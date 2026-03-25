@@ -161,6 +161,7 @@
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
 
@@ -219,14 +220,16 @@
                 <input type="password" id="auth-password" placeholder="Hasło (min. 8 znaków)" data-pl="Hasło (min. 8 znaków)" data-en="Password (min. 8 chars)" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
                 
                 <div id="reg-terms-group" style="display:none; margin-bottom: 15px;">
-                    <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #CBD5E1; cursor: pointer; line-height: 1.4; text-align: left;">
-                        <input type="checkbox" id="reg-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
-                        <span>
-    Akceptuję <a href="regulamin.html" target="_blank" style="color: white; font-weight: 800; text-decoration: underline;">Regulamin Ride24</a> 
-    oraz politykę prywatności.
-</span>
-                    </label>
-                </div>
+    <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #CBD5E1; cursor: pointer; line-height: 1.4; text-align: left;">
+        <input type="checkbox" id="reg-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
+        <span>
+            Akceptuję <a href="regulamin.html" target="_blank" style="color: white; font-weight: 800; text-decoration: underline;">Regulamin Ride24</a> 
+            oraz politykę prywatności.
+        </span>
+    </label>
+</div>
+
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" style="margin-bottom:15px;"></div>
 
                 <button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);" data-pl="Zaloguj się" data-en="Log in">
                     Zaloguj się i Kontynuuj
@@ -785,10 +788,18 @@ localStorage.setItem("bookingFlowVersion", "v2");
             document.getElementById("toggleText").innerText = isReg ? (lang==='pl'?"Masz już konto?":"Have an account?") : (lang==='pl'?"Nie masz konta?":"No account?");
             document.getElementById("toggleBtn").innerText = isReg ? (lang==='pl'?"Zaloguj się":"Log in") : (lang==='pl'?"Zarejestruj się":"Sign up");
         }
-
+        
         async function handleAuth() {
-            const email = document.getElementById("auth-email").value.trim();
-const pass = document.getElementById("auth-password").value.trim();
+
+    // 🛡️ TURNSTILE CHECK
+    const token = document.querySelector('[name="cf-turnstile-response"]')?.value;
+    if (!token) {
+    if (window.turnstile) turnstile.reset();
+    return window.showToast("Potwierdź, że nie jesteś robotem");
+}
+
+    const email = document.getElementById("auth-email").value.trim();
+    const pass = document.getElementById("auth-password").value.trim();
 
 if (!email || !email.includes("@")) {
     return window.showToast("Podaj poprawny email");
