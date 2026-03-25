@@ -2431,13 +2431,8 @@ uniqueResults.sort((a, b) => {
         return;
     }
     // 🛡️ TURNSTILE
-const turnstileToken = document
-    .querySelector('#authModal [name="cf-turnstile-response"]')?.value;
 
-if (!turnstileToken) {
-    console.warn("Turnstile failed");
-    return;
-}
+
 
             const lang = localStorage.getItem("lang") || "pl";
             const btn = this; 
