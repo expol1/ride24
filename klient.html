@@ -1898,6 +1898,12 @@ actionsHtml += `</div>`;
 
                     const pickup = booking.pickup_location || "—";
                     const drop = booking.return_location || pickup;
+                    // 🔥 GODZINY (NOWE)
+const pickupTime = booking.pickup_time || localStorage.getItem("bookingPickupTime") || "10:00";
+const dropTime = booking.drop_time || localStorage.getItem("bookingDropTime") || "10:00";
+
+const startFull = `${booking.start_date} ${pickupTime}`;
+const endFull = `${booking.end_date} ${dropTime}`;
 
                     const rowHtml = `
                         <tr class="clickable-row">
@@ -1914,14 +1920,8 @@ actionsHtml += `</div>`;
     </div>
 </td>
     
-    <div style="margin-top: 6px;">
-        <span onclick="window.openDetailsModal('${booking.deposit_snapshot ?? 0}', '${booking.mileage_limit_snapshot ?? ''}', ${booking.driver_included_snapshot === true}, '${booking.driver_hours_snapshot ?? ''}', '${partnerCurrency}')" 
-              style="font-size: 10px; font-weight: 700; color: var(--blue); cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
-            ${localStorage.getItem("client_lang") === "en" ? 'View details' : 'Zobacz szczegóły'}
-        </span>
-    </div>
-</td>
-                            <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+    
+                            <td>${startFull} &rarr; ${endFull}</td>
                             <td>
                                 <div style="font-size:12px; line-height:1.2;">
                                     <span title="Odbiór">📍 ${pickup}</span><br>

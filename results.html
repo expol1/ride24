@@ -725,7 +725,15 @@ if (searchParamsStr) {
 
     // 🔥 kompatybilność (zostawiamy stare pola żeby nic nie pękło)
     localStorage.setItem("bookingStartDate", searchParams.pickup_date);
-    localStorage.setItem("bookingEndDate", searchParams.drop_date);
+localStorage.setItem("bookingEndDate", searchParams.drop_date);
+
+// 🔥 GODZINY (SAFE)
+const pickupTime = searchParams?.pickup_time || "10:00";
+const dropTime = searchParams?.drop_time || "10:00";
+
+localStorage.setItem("bookingPickupTime", pickupTime);
+localStorage.setItem("bookingDropTime", dropTime);
+
 }
 
 // 🔥 wersjonowanie (future-proof)
