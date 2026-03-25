@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weryfikacja Rezerwacji - Ride24</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --brand-blue: #10386a; --brand-green: #74d941; --text-dark: #333; }
+        body { font-family: 'Inter', sans-serif; background: #f4f7f9; display: flex; justify-content: center; padding: 20px; color: var(--text-dark); }
+        .verify-card { background: white; width: 100%; max-width: 450px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: var(--brand-blue); color: white; padding: 25px; text-align: center; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 50px; font-weight: bold; margin-top: 10px; text-transform: uppercase; font-size: 14px; }
+        .status-paid { background: var(--brand-green); color: var(--brand-blue); }
+        .status-error { background: #ff4d4d; color: white; }
+        .content { padding: 25px; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .label { color: #777; font-size: 14px; }
+        .value { font-weight: 600; text-align: right; }
+        .loader { text-align: center; padding: 40px; color: var(--brand-blue); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="verify-card" id="app">
+    <div class="loader">Ładowanie danych rezerwacji...</div>
+</div>
+
+<script type="module">
+    const SUPABASE_URL = "https://zwyerdeuvyzgkgwglowr.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_KMeRBCZCQH-S0Ubnr80v6w_Gub3vcQf";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function verify() {
+        const app = document.getElementById('app');
+        const params = new URLSearchParams(window.location.search);
+        let code = params.get('code');
+
+        if (!code) {
+            app.innerHTML = '<div class="header" style="background:#666">BŁĄD / ERROR</div><div class="content">Brak kodu rezerwacji w URL. Dopisz <b>?code=R24-D5D136</b> do adresu.</div>';
+            return;
+        }
+
+        const { data: booking, error } = await supabase
+            .from('bookings')
+            .select(`
+                reservation_code, status, start_date, end_date, pickup_time, return_time,
+                profiles(id), 
+                car_classes(class_code),
+                pickup_location:partner_locations!pickup_location_id(location_name)
+            `)
+            .eq('reservation_code', code.toUpperCase())
+            .single();
+
+        if (error || !booking) {
+            app.innerHTML = `
+                <div class="header" style="background:#ff4d4d">NIEZNALEZIONO</div>
+                <div class="content">Rezerwacja <b>${code}</b> nie istnieje w bazie danych.</div>
+            `;
+            return;
+        }
+
+        const isPaid = booking.status === 'paid';
+
+        app.innerHTML = `
+            <div class="header">
+                <div style="font-size: 12px; opacity: 0.8;">REZERWACJA / RESERVATION</div>
+                <div style="font-size: 24px; font-weight: bold;">${booking.reservation_code}</div>
+                <div class="status-badge ${isPaid ? 'status-paid' : 'status-error'}">
+                    ${isPaid ? '✓ POTWIERDZONA (OPŁACONA)' : '✗ STATUS: ' + booking.status.toUpperCase()}
+                </div>
+            </div>
+            <div class="content">
+                
+                <div class="info-row"><span class="label">Klasa auta:</span><span class="value">${booking.car_classes?.class_code || '-'}</span></div>
+                <div class="info-row"><span class="label">Miejsce:</span><span class="value">${booking.pickup_location?.location_name || '-'}</span></div>
+                <div class="info-row">
+                    <span class="label">Odbiór:</span>
+                    <span class="value">${booking.start_date} ${booking.pickup_time?.substring(0,5) || '10:00'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Zwrot:</span>
+                    <span class="value">${booking.end_date} ${booking.return_time?.substring(0,5) || '10:00'}</span>
+                </div>
+                <div style="margin-top: 20px; font-size: 11px; color: #aaa; text-align: center;">
+                    Weryfikacja systemowa Ride24 Cloud <br> ${new Date().toLocaleString()}
+                </div>
+            </div>
+        `;
+    }
+
+    verify();
+</script>
+</body>
+</html>

@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Klienta - Ride24</title>
+
+    <link rel="preload" href="fonts/manrope-v20-latin-ext-700.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/inter-v20-latin_latin-ext-regular.woff2" as="font" type="font/woff2" crossorigin>
+
+    <style>
+        /* Styl dla Modala */
+.custom-modal {
+    display: none; 
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: #0F172A; /* Ciemne tło jak w panelu */
+    border: 1px solid #1E293B;
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.modal-content h3 {
+    color: #EF4444;
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+.modal-content p {
+    color: #94A3B8;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+#deleteConfirmInput {
+    width: 100%;
+    background: #1E293B;
+    border: 1px solid #334155;
+    padding: 12px;
+    border-radius: 8px;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 20px;
+    outline: none;
+}
+
+#deleteConfirmInput:focus {
+    border-color: #EF4444;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-secondary {
+    flex: 1;
+    background: #334155;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-danger-confirm {
+    flex: 1;
+    background: #EF4444;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    opacity: 0.5;
+    transition: 0.3s;
+}
+
+.btn-danger-confirm:not(:disabled) {
+    opacity: 1;
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+}
+
+.btn-delete-account {
+    width: 100%;
+    background: transparent;
+    color: #F87171; /* jaśniejsza czerwień */
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-start;
+
+    transition: all 0.2s ease;
+}
+
+/* hover */
+.btn-delete-account:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+    border-color: #EF4444;
+}
+
+/* active click */
+.btn-delete-account:active {
+    transform: scale(0.97);
+}
+        /* --- FONTY --- */
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-regular.woff2') format('woff2');font-weight:400;font-display:swap;}
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-500.woff2') format('woff2');font-weight:500;font-display:swap;}
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-600.woff2') format('woff2');font-weight:600;font-display:swap;}
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-700.woff2') format('woff2');font-weight:700;font-display:swap;}
+        @font-face{font-family:'Manrope';src:url('fonts/manrope-v20-latin-ext-700.woff2') format('woff2');font-weight:700;font-display:swap;}
+        @font-face{font-family:'Manrope';src:url('fonts/manrope-v20-latin-ext-800.woff2') format('woff2');font-weight:800;font-display:swap;}
+
+        :root {
+            --blue: #2563EB; 
+            --blue-dark: #1E3A8A;
+            --blue-hover: #1D4ED8;
+            --green: #16A34A;
+            --text: #0F172A;
+            --gray: #64748B;
+            --bg: #DCFCE7;
+            --border: #E2E8F0;
+            --sidebar-bg: #0F172A;
+            --red: #EF4444;
+            --orange: #F97316;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden; 
+        }
+        button { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; letter-spacing: -0.02em; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 220px;
+            background-color: var(--sidebar-bg);
+            color: #CBD5E1;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: width 0.3s cubic-bezier(.4,0,.2,1);
+            position: relative; 
+            z-index: 20; 
+        }
+        .sidebar.collapsed { width: 70px; }
+        .sidebar.collapsed .nav-text { display: none; }
+        .sidebar.collapsed .sidebar-logo span { display: none; }
+        .sidebar.collapsed .badge { opacity: 0; pointer-events: none; }
+        .sidebar.collapsed { width: 70px; }
+        .sidebar.collapsed .nav-text { display: none; }
+        .sidebar.collapsed .sidebar-logo span { display: none; }
+        .sidebar.collapsed .badge { opacity: 0; pointer-events: none; }
+        
+        /* 🔥 Poniższa linijka ukrywa kafel lojalnościowy przy zminimalizowanym menu */
+        .sidebar.collapsed #loyalty-card { display: none; }
+
+        .sidebar-logo {
+            padding: 24px; font-size: 22px; font-weight: 800; color: white;
+            font-family: 'Manrope', sans-serif; border-bottom: 1px solid #1E293B;
+            display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;
+        }
+
+        .collapse-toggle {
+            position: absolute;
+            top: 28px;
+            right: -16px; 
+            width: 32px;
+            height: 32px;
+            min-width: 32px; 
+            min-height: 32px;
+            background-color: var(--sidebar-bg); 
+            color: white;
+            border: 2px solid white; 
+            border-radius: 50%; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 14px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15); 
+            transition: all 0.2s cubic-bezier(.4,0,.2,1);
+            user-select: none;
+        }
+        .collapse-toggle:hover { background-color: var(--blue); transform: scale(1.1); }
+        .collapse-toggle::before { content: "❮"; margin-right: 2px; }
+        .sidebar.collapsed .collapse-toggle::before { content: "❯"; margin-right: 0; margin-left: 2px; }
+
+        /* --- MENU I IKONY --- */
+        .nav-menu { padding: 20px 0; display: flex; flex-direction: column; gap: 5px; flex: 1; overflow-y: auto; }
+        .nav-item { padding: 12px 24px; cursor: pointer; font-weight: 500; font-size: 15px; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; color: #94A3B8; position: relative; }
+        .nav-item-inner { display: flex; align-items: center; gap: 12px; }
+        .nav-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .icon-mask { width: 100%; height: 100%; background-color: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; transition: background-color 0.2s; }
+        .nav-item:hover { color: white; background-color: #1E293B; }
+        .nav-item.active { color: white; background-color: var(--blue); border-right: 4px solid #60A5FA; }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* --- TOPBAR --- */
+        .topbar {
+            height: 70px;
+            background: #16A34A;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            gap: 30px;
+            flex-shrink: 0;
+            z-index: 10;
+            font-size: 15px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .topbar-icons {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-left: auto;
+        }
+
+        /* --- CLIENT BADGE --- */
+        .client-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 0;
+            font-weight: 700;
+        }
+
+        .client-role {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            background: #2563EB;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 6px;
+        }
+
+        .client-greeting {
+            font-size: 16px;
+            font-weight: 800;
+            color: white;
+        }
+
+        .lang-switch { display: flex; gap: 10px; align-items: center; user-select: none; }
+        .lang-btn { cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; opacity: 0.5; }
+        .lang-btn:hover { opacity: 0.8; }
+        .lang-btn.active-lang { opacity: 1; border-bottom: 2px solid var(--blue); }
+
+        .badge-container {
+            position: relative;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge { background: var(--red); color: white; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 6px; transition: opacity 0.2s; }
+        .badge-absolute { position: absolute; top: -8px; right: -15px; font-size: 10px; border-radius: 10px; }
+
+        .logout-btn {
+            color: white;
+            border: 1px solid #EF4444;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            background: #EF4444;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #DC2626;
+            border-color: #DC2626;
+        }
+
+        /* --- CONTENT AREA --- */
+       .content-area { 
+            padding: 30px 50px 40px 60px; 
+            overflow-y: auto; 
+            flex: 1; 
+        }
+        
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-title { font-size: 24px; font-weight: 800; color: var(--blue-dark); display: flex; align-items: center; gap: 10px;}
+        
+        .section-heading { font-size: 18px; font-weight: 800; color: var(--blue-dark); margin-bottom: 16px; font-family: 'Manrope', sans-serif;}
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .profile-col { display: flex; flex-direction: column; }
+
+        .btn-primary { background: var(--blue); color: white; padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; text-decoration: none; }
+        .btn-primary:hover { background: var(--blue-hover); }
+        .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-secondary:hover { background: #F1F5F9; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+        .stat-title { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; min-height: 32px; line-height: 1.2;}
+        .stat-value { font-size: 26px; font-weight: 800; color: var(--blue-dark); font-family: 'Manrope', sans-serif;}
+        .stat-card.highlight { border-color: #FCD34D; background: #FFFBEB; }
+        .stat-card.success { border-color: #BBF7D0; background: #F0FDF4; }
+
+        .table-container { 
+            background: #ECFDF5; 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            overflow-x: auto; 
+            overflow-y: auto; 
+            max-height: 70vh; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+        }
+        .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: #F8FAFC; font-weight: 700; font-size: 15px;}
+        table { width: 100%; border-collapse: collapse; text-align: left; white-space: normal; }
+        tbody tr { background: white; }
+        td, th { word-wrap: break-word; }
+
+        th { padding: 14px 20px; font-size: 11px; text-transform: uppercase; color: var(--gray); font-weight: 700; border-bottom: 1px solid var(--border); }
+        td { padding: 16px 20px; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        .clickable-row { cursor: pointer; transition: background 0.2s; }
+        tbody tr:hover { background: #F8FAFC; }
+        
+        .class-code { font-weight: 800; font-size: 16px; color: #0F172A; margin-right: 6px; }
+        .class-label { color: #334155; font-weight: 600; }
+        
+        .status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
+        .status.pending { background: #F1F5F9; color: #64748B; }
+        .status.accepted { background: #DBEAFE; color: #2563EB; }
+        .status.awaiting_payment { background: #FFEDD5; color: #C2410C; }
+        .status.paid { background: #DCFCE7; color: #16A34A; }
+        .status.expired, .status.cancelled { background: #F1F5F9; color: #94A3B8; text-decoration: line-through; }
+        .status.payment_expired { background: #FEE2E2; color: #EF4444; }
+
+        .timer-badge { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px; color: var(--red); display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;}
+        .timer-urgent { animation: blink 2s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        
+        .badge-new { background: var(--red); color: white; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; letter-spacing: 0.5px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        
+        .btn-cancel { background: #EF4444; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; transition: opacity 0.2s; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-width: 125px; box-sizing: border-box;}
+        .btn-cancel:hover { background: #DC2626; }
+        .btn-pay { background: var(--orange); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-width: 125px; box-sizing: border-box;}
+        .btn-pay:hover { background: #EA580C; }
+        .btn-voucher { background: var(--blue); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; min-width: 125px; box-sizing: border-box;}
+        .btn-voucher:hover { background: var(--blue-dark); }
+        
+        .action-link { color: var(--blue); font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s; position: relative; z-index: 2; }
+        .action-link:hover { color: var(--blue-dark); text-decoration: underline; }
+
+        .settings-card { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; flex: 1;}
+        .form-group { margin-bottom: 16px; width: 100%; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray); margin-bottom: 6px; }
+        .form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: white;}
+        .form-group input:focus { outline: none; border-color: var(--green); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        .driver-row { display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 16px; align-items: end; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .driver-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .btn-icon-remove { background: #FEE2E2; color: var(--red); border: none; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; line-height: 1; transition: 0.2s;}
+        .btn-icon-remove:hover { background: var(--red); color: white; }
+
+        .price-col { font-weight: 700; color: var(--text); }
+        .price-due {
+    font-weight: 800;
+    color: #2563eb;
+}
+
+        /* --- NOWE STYLE DLA IKON --- */
+        .feature-icons {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .feature-icon {
+            width: 24px; /* POWIĘKSZONE IKONY */
+            height: 24px; /* POWIĘKSZONE IKONY */
+            cursor: help;
+            opacity: 0.9;
+            transition: transform 0.2s ease;
+        }
+
+        .feature-icon:hover {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
+        /* DODANE DLA WYŚWIETLANIA CEN */
+        .price-box {
+            font-size: 12px;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .price-box span {
+            font-weight: 800;
+        }
+        
+        .loading-row td {
+            text-align: center;
+            padding: 30px;
+            color: var(--gray);
+            font-weight: 600;
+        }
+        /* --- MODAL PREMIUM SAAS --- */
+        .modal-overlay {
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(15, 23, 42, 0.4); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            align-items: center; 
+            justify-content: center; 
+            z-index: 9999;
+            animation: overlayFade 0.4s ease forwards;
+        }
+        
+        .modal-box {
+            background: #ffffff; 
+            padding: 40px; 
+            border-radius: 24px; 
+            width: 480px; 
+            max-width: 92%;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(226, 232, 240, 1);
+            position: relative;
+            overflow: hidden;
+            animation: modalPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .modal-box::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+            background: linear-gradient(90deg, var(--blue), #3B82F6, var(--green));
+        }
+
+        .modal-box h3 { font-size: 22px; color: var(--sidebar-bg); margin-bottom: 8px; font-weight: 800; }
+        .modal-desc { font-size: 14px; color: var(--gray); margin-bottom: 24px; line-height: 1.5; }
+
+        .docs-container { background: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .modal-box a { color: var(--blue-dark); text-decoration: none; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
+        .modal-box a:hover { color: var(--blue); }
+
+        .premium-checkbox-wrapper { margin-top: 24px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 16px; border-radius: 12px; transition: background 0.2s; }
+        .premium-checkbox-wrapper:hover { background: #F1F5F9; }
+        .premium-checkbox-wrapper input[type="checkbox"] { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--blue); cursor: pointer; }
+        .premium-checkbox-text { font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--sidebar-bg); }
+
+        .modal-actions { margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; }
+        .modal-actions button { padding: 12px 24px; font-size: 15px; }
+
+        @keyframes overlayFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes modalPop { 0% { opacity: 0; transform: scale(0.95) translateY(15px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+
+    /* --- PREMIUM TOAST NOTIFICATIONS --- */
+        #toast-container {
+            position: fixed; 
+            top: 30px; 
+            right: 30px;
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            z-index: 10000;
+        }
+        
+        .premium-toast {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            color: white; 
+            padding: 16px 24px; 
+            border-radius: 16px;
+            font-size: 14px; 
+            font-weight: 600;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            display: flex; 
+            align-items: center; 
+            gap: 12px;
+            animation: toastSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        .premium-toast.error { border-left: 4px solid var(--red); }
+        .premium-toast.success { border-left: 4px solid var(--green); }
+        .toast-out { animation: toastSlideOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        @keyframes toastSlideIn { 
+            0% { transform: translateX(120%); opacity: 0; } 
+            100% { transform: translateX(0); opacity: 1; } 
+        }
+        @keyframes toastSlideOut { 
+            0% { transform: translateX(0); opacity: 1; } 
+            100% { transform: translateX(120%); opacity: 0; } 
+        }
+        /* --- LOYALTY TOOLTIP --- */
+.loyalty-tooltip {
+    position: fixed; /* 🔥 KLUCZOWE */
+    top: 200px; /* możesz dopasować */
+    left: 260px; /* szerokość sidebaru */
+    width: 260px;
+    background: #0F172A;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    z-index: 99999;
+    animation: fadeIn 0.2s ease;
+}
+
+.loyalty-tooltip::before {
+    content: "";
+    position: absolute;
+    top: 20px;
+    left: -6px; /* strzałka do sidebaru */
+    width: 10px;
+    height: 10px;
+    background: #0F172A;
+    border-left: 1px solid #334155;
+    border-bottom: 1px solid #334155;
+    transform: rotate(45deg);
+}
+
+.lt-title {
+    font-weight: 800;
+    font-size: 14px;
+    color: white;
+    margin-bottom: 6px;
+}
+
+.lt-desc {
+    font-size: 12px;
+    color: #94A3B8;
+    margin-bottom: 10px;
+}
+
+.lt-table div {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 3px 0;
+    color: #E2E8F0;
+}
+
+.lt-table span {
+    font-weight: 700;
+    color: #22C55E;
+}
+
+.lt-note {
+    font-size: 11px;
+    color: #64748B;
+    margin-top: 10px;
+    line-height: 1.4;
+}
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="bez.png" style="height:42px;" alt="Logo"> 
+        </div>
+        
+        <div class="collapse-toggle" onclick="toggleSidebar()"></div>
+
+        <nav class="nav-menu">
+            <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+                <div class="nav-item-inner">
+                    <span class="nav-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-dashboard.svg'); mask-image: url('icons/icon-dashboard.svg');"></div></span>
+                    <span class="nav-text" data-pl="Pulpit" data-en="Dashboard">Pulpit</span>
+                </div>
+            </div>
+            <div class="nav-item" onclick="switchTab('bookings')" id="nav-bookings">
+                <div class="nav-item-inner">
+                    <span class="nav-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-bookings.svg'); mask-image: url('icons/icon-bookings.svg');"></div></span>
+                    <span class="nav-text" data-pl="Moje rezerwacje" data-en="My bookings">Moje rezerwacje</span>
+                </div>
+                <div class="badge" id="bookings-badge">0</div>
+            </div>
+            <div class="nav-item" onclick="switchTab('payments')" id="nav-payments">
+                <div class="nav-item-inner">
+                    <span class="nav-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-payments.svg'); mask-image: url('icons/icon-payments.svg');"></div></span>
+                    <span class="nav-text" data-pl="Płatności" data-en="Payments">Płatności</span>
+                </div>
+            </div>
+            <div class="nav-item" onclick="switchTab('profile')" id="nav-profile">
+                <div class="nav-item-inner">
+                    <span class="nav-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-settings.svg'); mask-image: url('icons/icon-settings.svg');"></div></span>
+                    <span class="nav-text" data-pl="Profil" data-en="Profile">Profil</span>
+                </div>
+            </div>
+           <div id="loyalty-card" class="loyalty-container" style="margin: 40px 16px 20px 16px; padding: 16px; border-radius: 12px; border: 1px solid #334155; background: rgba(30, 41, 59, 0.5);">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px;" data-pl="Twój rabat lojalnościowy" data-en="Your loyalty discount">Twój rabat lojalnościowy</div>
+        
+        <svg onclick="openLoyaltyModal()" style="cursor: pointer; width: 22px; height: 22px; fill: #64748B; transition: fill 0.2s; flex-shrink: 0;" onmouseover="this.style.fill='#94A3B8'" onmouseout="this.style.fill='#64748B'" viewBox="0 0 24 24">
+            <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+        </svg>
+    </div>
+    
+    <div id="loyalty-level-name" style="font-size: 18px; font-weight: 800; color: #F8FAFC;">START</div>
+
+    <div style="margin-top: 12px;">
+        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #94A3B8; margin-bottom: 6px;">
+            <span id="loyalty-progress-text">0 / 3 rezerwacje</span>
+            <span id="loyalty-next-level">Cel: SILVER</span>
+        </div>
+        
+        <div style="width: 100%; height: 6px; background: #1E293B; border-radius: 4px; overflow: hidden; border: 1px solid #334155;">
+            <div id="loyalty-progress-bar" style="height: 100%; width: 0%; background: #64748B; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+        </div>
+        
+        <div id="loyalty-marketing-text" style="font-size: 11px; margin-top: 8px; font-weight: 800;"></div>
+    </div>
+</div>
+            <div style="margin-top: auto; padding: 20px; border-top: 1px solid #1E293B;">
+                
+    <button onclick="requestDeleteAccount()" class="btn-delete-account">
+        <span class="nav-icon">🗑️</span>
+        <span class="nav-text" 
+              data-pl="Usuń konto" 
+              data-en="Delete account" 
+              data-premium="Usuń konto Premium">
+              Usuń konto
+        </span>
+    </button>
+</div>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="client-badge">
+                
+                <span class="client-role" data-pl="KLIENT" data-en="CLIENT">KLIENT</span>
+                <span class="client-greeting" id="topbar-greeting">Witaj</span>
+            </div>
+
+            <div class="topbar-icons">
+                <div class="lang-switch">
+                    <div class="lang-btn" id="lang-pl" onclick="setLang('pl')">
+                        <img src="flagi/pl.svg" style="height:24px;" alt="PL">
+                    </div>
+                    <div class="lang-btn" id="lang-en" onclick="setLang('en')">
+                        <img src="flagi/uk.svg" style="height:24px;" alt="EN">
+                    </div>
+                </div>
+
+                <div class="badge-container" onclick="handleNotifications()">
+                    <span data-pl="Powiadomienia" data-en="Notifications">Powiadomienia</span>
+                    <div class="badge badge-absolute" id="notification-badge" style="display:none;">0</div>
+                </div>
+                <span class="logout-btn" onclick="goToSearch()" style="background: #2563EB; border-color: #2563EB;" data-pl="Szukaj aut" data-en="Search cars">
+                  Szukaj aut
+                  </span>
+                <span class="logout-btn" onclick="logout()" data-pl="Wyloguj" data-en="Logout">
+    Wyloguj
+</span>
+            </div>
+        </header>
+
+        <main class="content-area">
+
+            <div id="view-dashboard" class="view-section active">
+                <div class="page-header">
+                    <h1 class="page-title" data-pl="Pulpit" data-en="Dashboard">Pulpit</h1>
+                    <button class="btn-primary" onclick="submitBooking()" style="margin-bottom:20px;">
+Potwierdź rezerwację
+</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card highlight">
+                        <div class="stat-title"><span data-pl="Aktywne rezerwacje" data-en="Active bookings">Aktywne rezerwacje</span></div>
+                        <div class="stat-value" id="stat-active">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">
+                            <span data-pl="Oczekujące na potwierdzenie" data-en="Pending confirmation">Oczekujące na potwierdzenie</span>
+                        </div>
+                        <div class="stat-value" id="stat-pending">0</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-title" data-pl="Opłacone rezerwacje" data-en="Paid bookings">Opłacone rezerwacje</div>
+                        <div class="stat-value" id="stat-paid">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title" data-pl="Suma wydatków" data-en="Total spent">Suma wydatków</div>
+                        <div class="stat-value" style="color: var(--blue-dark);" id="stat-spent">0.00€</div>
+                    </div>
+                    
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header" data-pl="Ostatnie rezerwacje" data-en="Recent bookings">Ostatnie rezerwacje</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;" data-pl="ID Rezerwacji" data-en="Booking ID">ID Rezerwacji</th>
+                                <th data-pl="Klasa" data-en="Class">Klasa</th>
+                                <th data-pl="Daty" data-en="Dates">Daty</th>
+<th data-pl="Lokalizacja" data-en="Location">Lokalizacja</th>
+<th data-pl="Status" data-en="Status">Status</th>
+                                <th data-pl="Przy odbiorze" data-en="At pickup">Przy odbiorze</th>
+<th data-pl="Płatne teraz" data-en="Pay now">Płatne teraz</th>
+                                <th data-pl="Akcje" data-en="Actions">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-bookings-tbody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-bookings" class="view-section">
+                <div class="page-header">
+                    <h1 class="page-title" data-pl="Moje rezerwacje" data-en="My bookings">Moje rezerwacje</h1>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;" data-pl="ID Rezerwacji" data-en="Booking ID">ID Rezerwacji</th>
+                                <th data-pl="Klasa" data-en="Car class">Klasa</th>
+                                <th data-pl="Daty" data-en="Dates">Daty</th>
+<th data-pl="Lokalizacja" data-en="Location">Lokalizacja</th>
+<th data-pl="Status" data-en="Status">Status</th>
+                                <th data-pl="Przy odbiorze" data-en="At pickup">Przy odbiorze</th>
+<th data-pl="Płatne teraz" data-en="Pay now">Płatne teraz</th>
+                                <th data-pl="Akcje" data-en="Actions">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookings-tbody">
+                           </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-payments" class="view-section">
+                <div class="page-header">
+                    <h1 class="page-title" data-pl="Płatności" data-en="Payments">Płatności</h1>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-pl="ID Rezerwacji" data-en="Booking ID">ID Rezerwacji</th>
+                                <th data-pl="Opłacono online" data-en="Paid online">Opłacono online</th>
+                                <th data-pl="Pozostało do zapłaty" data-en="Remaining at pickup">Pozostało do zapłaty</th>
+                                <th data-pl="Status płatności" data-en="Payment status">Status płatności</th>
+                                <th data-pl="Potwierdzenie" data-en="Receipt">Potwierdzenie</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-tbody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-profile" class="view-section">
+                <div class="page-header"><h1 class="page-title" data-pl="Profil" data-en="Profile">Profil</h1></div>
+                
+                <div class="profile-grid">
+                    <div class="profile-col">
+                        <h2 class="section-heading" data-pl="Właściciel profilu" data-en="Profile owner">Właściciel profilu</h2>
+                        <div class="settings-card">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label data-pl="Imię i nazwisko" data-en="Name">Imię i nazwisko</label>
+                                    <input type="text" id="profile-name" value="">
+                                </div>
+                                <div class="form-group">
+                                    <label data-pl="Wiek" data-en="Age">Wiek</label>
+                                    <input type="number" id="profile-age" value="" min="18">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label data-pl="Email" data-en="Email">Email</label>
+                                    <input type="email" id="profile-email" value="" readonly>
+                                </div>
+                               <div class="form-group">
+                                    <label data-pl="Telefon" data-en="Phone">Telefon</label>
+                                    <input type="tel" id="profile-phone" value="" placeholder="+48 123 456 789" data-pl="+48 123 456 789" data-en="+44 123 456 789">
+                                </div>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label data-pl="Kraj zamieszkania" data-en="Country">Kraj zamieszkania</label>
+                                <input type="text" id="profile-country" value="PL" placeholder="PL" data-pl="PL" data-en="UK">
+                            </div>
+                            <div style="flex: 1;"></div>
+                            <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 20px;">
+                                <button type="button" class="btn-primary" onclick="saveProfile()" data-pl="Zapisz zmiany" data-en="Save Changes">Zapisz zmiany</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-col">
+                        <h2 class="section-heading" data-pl="Dodatkowi kierowcy" data-en="Additional drivers">Dodatkowi kierowcy</h2>
+                        <div class="settings-card">
+                            <div id="drivers-list" style="grid-column: span 2;">
+                                </div>
+                            
+                            <button type="button" class="btn-secondary" style="margin-top: 5px; width: max-content;" onclick="addDriverRow()" data-pl="+ Dodaj kierowcę" data-en="+ Add driver">+ Dodaj kierowcę</button>
+                            
+                            <div style="flex: 1;"></div>
+                            <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                                <button type="button" class="btn-primary" onclick="saveDrivers()" data-pl="Zapisz kierowców" data-en="Save drivers">Zapisz kierowców</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            </main>
+    </div>
+
+   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/helper/supabaseConfig.js"></script>
+    <script type="module">
+        // Otwieranie modala
+window.requestDeleteAccount = function() {
+    document.getElementById('deleteModal').style.display = 'flex';
+    document.getElementById('deleteConfirmInput').value = ''; // Reset pola
+    document.getElementById('finalDeleteBtn').disabled = true;
+};
+
+// Zamykanie modala
+window.closeDeleteModal = function() {
+    document.getElementById('deleteModal').style.display = 'none';
+};
+// --- LOGIKA MODALA SZCZEGÓŁÓW ---
+        window.openDetailsModal = function(deposit, mileage, driverIncluded, driverHours, currency) {
+            const isEn = localStorage.getItem("client_lang") === "en";
+            const body = document.getElementById("bookingDetailsBody");
+            
+            const depValue = parseFloat(deposit);
+            const depText = (!isNaN(depValue) && depValue > 0) ? `${depValue} ${currency}` : (isEn ? "No deposit" : "Brak kaucji");
+            const milText = mileage !== '' ? `${mileage} km/${isEn ? 'day' : 'dzień'}` : (isEn ? "Unlimited" : "Bez limitu");
+            
+            let html = `
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px;">
+                    <span>${isEn ? 'Deposit' : 'Kaucja'}:</span>
+                    <strong style="color: white;">${depText}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>${isEn ? 'Mileage limit' : 'Limit km'}:</span>
+                    <strong style="color: white;">${milText}</strong>
+                </div>
+            `;
+            
+            if (driverIncluded === true) {
+                const hrsText = driverHours !== '' ? ` (${driverHours}h)` : '';
+                html += `
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #334155;">
+                    <strong style="color: var(--blue); font-size: 15px;">🧑‍✈️ ${isEn ? 'Driver included' : 'Kierowca w cenie'}${hrsText}</strong>
+                </div>`;
+            }
+            
+            body.innerHTML = html;
+            document.getElementById("bookingDetailsModal").style.display = "flex";
+        };
+
+        window.closeDetailsModal = function() {
+            document.getElementById("bookingDetailsModal").style.display = "none";
+        };
+        // --- LOYALTY TOOLTIP ---
+window.openLoyaltyModal = function() {
+    const existing = document.getElementById("loyaltyTooltip");
+
+    if (existing) {
+        existing.remove();
+        return;
+    }
+
+    const tooltip = document.createElement("div");
+    tooltip.id = "loyaltyTooltip";
+    tooltip.className = "loyalty-tooltip";
+
+    tooltip.innerHTML = `
+        <div class="lt-title">🎯 Program lojalnościowy</div>
+        <div class="lt-desc">
+            Zbieraj opłacone rezerwacje i otrzymuj rabaty na opłatę rezerwacyjną.
+        </div>
+
+        <div class="lt-table">
+            <div>START <span>0%</span></div>
+            <div>SILVER <span>5%</span></div>
+            <div>GOLD <span>10%</span></div>
+            <div>PLATINUM <span>15%</span></div>
+            <div>VIP <span>20%</span></div>
+        </div>
+
+        <div class="lt-note">
+            ✔ Rabat dotyczy tylko opłaty on-line<br>
+            ✔ Nie obejmuje płatności dla Partnera<br>
+            ✔ Naliczany automatycznie po płatności
+        </div>
+    `;
+
+    const icon = document.querySelector("#loyalty-card svg");
+    icon.parentElement.style.position = "relative";
+    document.body.appendChild(tooltip);
+
+    document.addEventListener("click", function handler(e) {
+        if (!tooltip.contains(e.target) && e.target !== icon) {
+            tooltip.remove();
+            document.removeEventListener("click", handler);
+        }
+    });
+};
+// Walidacja wpisanego tekstu (USUŃ / DELETE)
+document.addEventListener("DOMContentLoaded", () => {
+    const input = document.getElementById('deleteConfirmInput');
+
+    if (!input) return;
+
+    input.addEventListener('input', (e) => {
+        const val = e.target.value.toUpperCase();
+        const isEn = localStorage.getItem("client_lang") === "en";
+        const requiredText = isEn ? "DELETE" : "USUŃ";
+
+        document.getElementById('finalDeleteBtn').disabled = (val !== requiredText);
+    });
+});
+
+// Proces usuwania (współpraca z Supabase)
+window.processAccountDeletion = async function() {
+
+    try {
+        const { data: { user } } = await db.auth.getUser();
+
+        const { error } = await db
+            .from("profiles")
+            .update({ 
+                deletion_requested: true,
+                deletion_requested_at: new Date().toISOString()
+            })
+            .eq("id", user.id);
+
+        if (error) throw error;
+
+        alert("Zgłoszenie wysłane. Zostaniesz wylogowany.");
+
+        await db.auth.signOut();
+
+        window.location.reload();
+
+    } catch (err) {
+        console.error(err);
+        alert("Error: " + err.message);
+    }
+};
+        async function getExchangeRate(currency) {
+    // 🔥 PLN → brak przeliczenia
+    if (currency === "PLN") {
+        console.log("💱 PLN → brak przeliczenia");
+        return 1;
+    }
+
+    try {
+        const res = await fetch(`https://api.nbp.pl/api/exchangerates/rates/A/${currency}/?format=json`);
+        const data = await res.json();
+
+        const rate = data.rates[0].mid;
+
+        console.log("💱 NBP RATE:", currency, rate);
+
+        return rate;
+
+    } catch (err) {
+        console.error("❌ NBP ERROR:", err);
+
+        // fallback (system się nie wywali)
+        return currency === "USD" ? 4.0 : 4.5;
+    }
+}
+        import { API } from './assets/api/apiService.js';
+
+        async function goToPayment(amount, bookingId) {
+  console.log("💰 PAYMENT:", amount, bookingId);
+
+  const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ 
+      amount,
+      booking_id: bookingId
+    }),
+  });
+
+  const data = await res.json();
+
+  console.log("➡️ STRIPE URL:", data);
+
+  window.location.href = data.url;
+}
+
+window.goToPayment = goToPayment;
+
+        // --- GLOBALNY STORE DANYCH ---
+        // --- KULOODPORNA INICJALIZACJA BAZY ---
+        if (!window.supabaseClient) {
+            console.error("❌ BŁĄD KRYTYCZNY: window.supabaseClient jest UNDEFINED w momencie startu modułu!");
+        } else {
+            console.log("✅ window.supabaseClient jest dostępny od startu!");
+        }
+
+        // Próba pobrania istniejącego klienta lub stworzenia go na nowo
+        const db = window.supabaseClient || (window.supabase && window.supabase.createClient(
+            window.SUPABASE_URL,
+            window.SUPABASE_ANON_KEY
+        ));
+
+        if (!db) {
+            console.error("❌ BŁĄD KRYTYCZNY: Nie udało się utworzyć obiektu 'db'! Sprawdź plik supabaseConfig.js");
+        }
+        let currentUser = null;
+        let payments = [];
+        // 🔥 LOYALTY SYSTEM CONFIG
+const loyaltyConfig = {
+  0: { name: "START", color: "#64748B", discount: 0 },
+  1: { name: "SILVER", color: "#94A3B8", discount: 5 },
+  2: { name: "GOLD", color: "#EAB308", discount: 10 },
+  3: { name: "PLATINUM", color: "#38BDF8", discount: 15 },
+  4: { name: "VIP", color: "#16A34A", discount: 20 }
+};
+const thresholds = [3, 6, 10, 15]; 
+
+function renderLoyaltyCard(profile) {
+    const level = profile.loyalty_level || 0;
+    const progress = profile.loyalty_progress || 0;
+    const config = loyaltyConfig[level];
+
+    document.getElementById("loyalty-level-name").innerText = `${config.name} (${config.discount}%)`;
+    document.getElementById("loyalty-level-name").style.color = config.color;
+    
+    const card = document.getElementById("loyalty-card");
+    card.style.borderColor = config.color;
+    card.style.background = config.color + "0D"; 
+
+    const progressBar = document.getElementById("loyalty-progress-bar");
+    const progressText = document.getElementById("loyalty-progress-text");
+    const nextLevelTarget = document.getElementById("loyalty-next-level");
+    const marketingText = document.getElementById("loyalty-marketing-text");
+
+    const nextThreshold = thresholds[level];
+
+    if (nextThreshold) {
+        const left = Math.max(0, nextThreshold - progress);
+        const prevThreshold = level === 0 ? 0 : thresholds[level - 1];
+        const percent = Math.min(100, ((Math.max(0, progress - prevThreshold)) / (nextThreshold - prevThreshold)) * 100);
+        
+        progressBar.style.width = `${percent}%`;
+        progressBar.style.background = config.color;
+        
+        // Dynamiczne wstrzykiwanie tłumaczeń PL/EN dla paska
+        progressText.setAttribute("data-pl", `${progress} / ${nextThreshold} rezerwacji`);
+        progressText.setAttribute("data-en", `${progress} / ${nextThreshold} bookings`);
+        progressText.innerText = `${progress} / ${nextThreshold} rezerwacji`;
+        
+        const nextConfig = loyaltyConfig[level + 1];
+        nextLevelTarget.setAttribute("data-pl", `Cel: ${nextConfig.name}`);
+        nextLevelTarget.setAttribute("data-en", `Target: ${nextConfig.name}`);
+        nextLevelTarget.innerText = `Cel: ${nextConfig.name}`;
+        
+        // Logika odmiany słowa "rezerwacja" i tłumaczenie komunikatu marketingowego
+        const plSuffix = left === 1 ? 'a' : (left > 1 && left < 5 ? 'e' : 'i');
+        const enSuffix = left === 1 ? '' : 's';
+        
+        const textPl = `🔥 Jeszcze ${left} rezerwacj${plSuffix} do ${nextConfig.discount}% zniżki!`;
+        const textEn = `🔥 ${left} more booking${enSuffix} to ${nextConfig.discount}% discount!`;
+        
+        marketingText.setAttribute("data-pl", textPl);
+        marketingText.setAttribute("data-en", textEn);
+        marketingText.innerText = textPl;
+        marketingText.style.color = nextConfig.color;
+    } else {
+        progressBar.style.width = "100%";
+        progressBar.style.background = "#16A34A";
+        
+        progressText.setAttribute("data-pl", `${progress} rezerwacji (MAX)`);
+        progressText.setAttribute("data-en", `${progress} bookings (MAX)`);
+        progressText.innerText = `${progress} rezerwacji (MAX)`;
+        
+        nextLevelTarget.setAttribute("data-pl", "Koniec gry!");
+        nextLevelTarget.setAttribute("data-en", "Max level!");
+        nextLevelTarget.innerText = "Koniec gry!";
+        
+        marketingText.setAttribute("data-pl", "🎉 Masz najwyższy możliwy rabat!");
+        marketingText.setAttribute("data-en", "🎉 You have the highest possible discount!");
+        marketingText.innerText = "🎉 Masz najwyższy możliwy rabat!";
+        marketingText.style.color = "#16A34A";
+    }
+
+    // Jeśli masz globalną funkcję do tłumaczeń na stronie (np. updateTranslations lub podobną), 
+    // opcjonalnie wywołaj ją tutaj, aby nałożyła od razu wybrany język:
+    if (typeof updateLanguage === "function") {
+        updateLanguage();
+    }
+}
+        // --- PREMIUM TOAST ENGINE ---
+        window.showToast = function(msg, type = "info") {
+            let container = document.getElementById("toast-container");
+            if (!container) {
+                container = document.createElement("div");
+                container.id = "toast-container";
+                document.body.appendChild(container);
+            }
+            
+            const toast = document.createElement("div");
+            toast.className = `premium-toast ${type}`;
+            const icon = type === "error" ? "🚨" : type === "success" ? "✅" : "ℹ️";
+            
+            toast.innerHTML = `<span style="font-size:18px">${icon}</span> <span>${msg}</span>`;
+            container.appendChild(toast);
+            
+            // Automatyczne znikanie po 3.5 sekundach
+            setTimeout(() => {
+                toast.classList.add("toast-out");
+                setTimeout(() => toast.remove(), 400); // usunięcie z DOM po animacji
+            }, 3500);
+        };
+
+        // --- INICJALIZACJA ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            if(db) {
+                const { data: { session } } = await db.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                }
+            }
+            // Ochrona panelu (Auth Guard)
+            if (!currentUser) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            window.detectLang();
+            await loadUserProfile();
+            await loadClientBookings(); 
+            await loadPayments();
+
+            // 🔥 BRAMKARZ V2 (Wiek + Telefon + Imię + Scroll UX)
+            const { data: profileCheck } = await db.from("profiles").select("name, phone, age").eq("id", currentUser.id).maybeSingle();
+            const isProfileIncomplete = !profileCheck || !profileCheck.name || !profileCheck.phone || !profileCheck.age;
+
+            if (isProfileIncomplete) {
+                window.showToast(localStorage.getItem("client_lang") === "en" ? "Please provide your phone number and age to continue!" : "Podaj swój telefon i wiek, aby móc rezerwować auta!", "error");
+                window.switchTab("profile");
+                
+                setTimeout(() => {
+                    let firstMissing = null;
+                    const checkFields = [
+                        { val: profileCheck?.name, id: "profile-name" },
+                        { val: profileCheck?.phone, id: "profile-phone" },
+                        { val: profileCheck?.age, id: "profile-age" }
+                    ];
+
+                    checkFields.forEach(f => {
+                        if (!f.val) {
+                            const el = document.getElementById(f.id);
+                            if (el) {
+                                el.style.border = "2px solid var(--red)";
+                                if (!firstMissing) firstMissing = el;
+                            }
+                        }
+                    });
+                    
+                    if (firstMissing) firstMissing.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 150);
+            }
+
+            if (localStorage.getItem("autoOpenBooking") === "true") {
+                if (!isProfileIncomplete) {
+                    localStorage.removeItem("autoOpenBooking"); 
+                    setTimeout(() => {
+                        window.showToast(localStorage.getItem("client_lang") === "en" ? "Complete your booking 👇" : "Dokończ rezerwację 👇", "success");
+                        window.submitBooking();
+                    }, 500); 
+                }
+            }
+            // 🔥 DELETE MODAL INPUT FIX
+const deleteInput = document.getElementById('deleteConfirmInput');
+
+if (deleteInput) {
+    deleteInput.addEventListener('input', (e) => {
+        const val = e.target.value.toUpperCase();
+        const isEn = localStorage.getItem("client_lang") === "en";
+        const requiredText = isEn ? "DELETE" : "USUŃ";
+
+        document.getElementById('finalDeleteBtn').disabled = (val !== requiredText);
+    });
+}
+        });
+        // --- KULOOODPORNY NASŁUCH KLIKNIĘCIA (EVENT DELEGATION) ---
+document.addEventListener("click", async function(e) {
+    // Sprawdzamy, czy kliknięty element to nasz przycisk (po ID)
+    if (e.target && e.target.id === "confirmBookingBtn") {
+        console.log("🔥 CLICK DZIAŁA - Rozpoczynam confirmBooking");
+        
+        // Wywołujemy funkcję
+        if (typeof window.confirmBooking === "function") {
+            await window.confirmBooking();
+        } else {
+            console.error("❌ Błąd: Funkcja window.confirmBooking nie została znaleziona!");
+        }
+    }
+});
+
+        // --- NASZA NOWA FUNKCJA POBIERANIA REZERWACJI (MOCK API) ---
+       window.submitBooking = function() {
+
+    const carClassId = localStorage.getItem("selectedCarId");
+    if (!carClassId) {
+        window.showToast("Brak wybranej grupy aut.", "error");
+        return;
+    }
+
+    // 🔥 MODAL OD RAZU
+    document.getElementById("termsModal").style.display = "flex";
+
+    const select = document.getElementById("driverSelect");
+    const addSelect = document.getElementById("additionalDriverSelect");
+
+    select.innerHTML = `<option>⏳ Ładowanie...</option>`;
+    addSelect.innerHTML = `<option>⏳ Ładowanie...</option>`;
+
+    // 🔥 ASYNC W TLE
+    setTimeout(async () => {
+
+        const { data: profileCheck } = await db
+            .from("profiles")
+            .select("name, phone, age")
+            .eq("id", currentUser.id)
+            .maybeSingle();
+
+        if (!profileCheck || !profileCheck.name || !profileCheck.phone || !profileCheck.age) {
+            window.showToast("Uzupełnij profil!", "error");
+            window.switchTab("profile");
+            window.closeTermsModal();
+            return;
+        }
+
+        const { data: myDrivers } = await db
+            .from("drivers")
+            .select("*")
+            .eq("user_id", currentUser.id);
+
+        const isEn = localStorage.getItem("client_lang") === "en";
+        const ownerText = isEn ? `Me (${profileCheck.name})` : `Ja (${profileCheck.name})`;
+
+        let optionsHtml = `<option value="">👤 ${ownerText}</option>`;
+
+        if (myDrivers) {
+            myDrivers.forEach(d => {
+                optionsHtml += `<option value="${d.id}">
+                    🚗 ${d.name}
+                </option>`;
+            });
+        }
+
+        select.innerHTML = optionsHtml;
+        addSelect.innerHTML = `<option value="none">Brak</option>` + optionsHtml;
+
+        select.onchange = () => {
+            if (select.value === addSelect.value) addSelect.value = "none";
+        };
+
+        addSelect.onchange = () => {
+            if (select.value === addSelect.value) select.value = "";
+        };
+
+        window.loadPartnerDocuments(carClassId); 
+
+    }, 0);
+};
+
+        // 2. Pobieranie linków partnera do okna (Etap 6)
+        window.loadPartnerDocuments = async function(carClassId) {
+            try {
+                const { data: car } = await db.from("car_classes").select("partner_id").eq("id", carClassId).single();
+                if (!car) return;
+
+                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url").eq("id", car.partner_id).single();
+
+                const tLink = document.getElementById("partnerTermsLink");
+                const rLink = document.getElementById("partnerRulesLink");
+
+                if (partner?.rental_terms_url) { tLink.href = partner.rental_terms_url; tLink.style.display = "block"; }
+                if (partner?.rental_rules_url) { rLink.href = partner.rental_rules_url; rLink.style.display = "block"; }
+            } catch (err) { console.error(err); }
+        }
+
+        // 3. Finalne potwierdzenie, RPC i zapis Snapshotu (Etap 8 i 9)
+       window.confirmBooking = async function() {
+            console.log("🔥 START CONFIRM - Funkcja odpalona!");
+            let bookingId = null;
+
+            // 🔥 DRUGA LINIA OBRONY (Twarda blokada przed zapisem do bazy)
+            const { data: profileCheck } = await db.from("profiles").select("name, phone, age").eq("id", currentUser.id).maybeSingle();
+            if (!profileCheck || !profileCheck.name || !profileCheck.phone || !profileCheck.age) {
+                window.showToast(localStorage.getItem("client_lang") === "en" ? "Complete your profile before booking!" : "Uzupełnij profil przed rezerwacją!", "error");
+                window.switchTab("profile");
+                window.closeTermsModal(); // Zamknięcie modala, jeśli był otwarty
+                return;
+            }
+
+            // SPRAWDZENIE ZGODY (ETAP 8)
+            if (!document.getElementById("acceptTerms").checked) {
+                console.log("❌ Zatrzymano: Brak akceptacji regulaminu");
+                return window.showToast(localStorage.getItem("client_lang") === "en" ? "Please accept the terms!" : "Zaakceptuj regulaminy!", "error");
+            }
+
+            // --- UNIKANIE DUPLIKATÓW ---
+            const btn = document.getElementById("confirmBookingBtn");
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "Sekunda...";
+            }
+
+            const carClassId = localStorage.getItem("selectedCarId");
+            const startDate = localStorage.getItem("bookingStartDate");
+            const endDate = localStorage.getItem("bookingEndDate");
+
+            console.log("🔥 DANE DO WYSYŁKI:", { carClassId, startDate, endDate });
+
+            try {
+                console.log("🔥 WYSYŁAM RPC...");
+                // Wywołanie funkcji w bazie (RPC)
+                const { data: bookingId, error } = await db.rpc("create_booking", {
+                    p_car_class_id: carClassId,
+                    p_start_date: startDate,
+                    p_end_date: endDate
+                });
+
+               console.log("🔥 RPC RESULT:", bookingId, error);
+
+if (error) throw error;
+
+// --- 🔥 FIX DANYCH KLIENTA (FINAL HYBRYDOWY) ---
+try {
+    const { data: { user } } = await db.auth.getUser();
+
+    const { data: profile } = await db
+        .from("profiles")
+        .select("name, phone, age")
+        .eq("id", user.id)
+        .single();
+
+    // ===============================
+    // 🔥 GŁÓWNY KIEROWCA (FINAL FIX 100%)
+let finalName = "Client";
+let finalAge = null;
+
+const mainSelect = document.getElementById("driverSelect").value;
+
+if (mainSelect && mainSelect.length === 36) {
+    // 👉 kierowca z tabeli drivers
+    const { data: mainDriver } = await db
+        .from("drivers")
+        .select("name, age")
+        .eq("id", mainSelect)
+        .single();
+
+    finalName = mainDriver?.name || profile?.name || "Client";
+    finalAge = mainDriver?.age !== null && mainDriver?.age !== undefined
+        ? parseInt(mainDriver.age)
+        : (profile?.age ? parseInt(profile.age) : null);
+
+    console.log("👤 DRIVER SELECTED:", finalName, finalAge);
+
+} else {
+    // 👉 PROFIL (fallback)
+    finalName = profile?.name || "Client";
+    finalAge = Number(profile?.age);
+
+if (isNaN(finalAge)) finalAge = null;
+
+    console.log("🧠 PROFILE USED:", finalName, finalAge);
+}
+    // ===============================
+    // 🔥 DODATKOWY KIEROWCA
+    // ===============================
+    const extraSelect = document.getElementById("additionalDriverSelect").value;
+
+    let extraName = null;
+    let extraAge = null;
+
+    if (extraSelect && extraSelect !== "none" && extraSelect.length === 36) {
+        const { data: extraDriver } = await db
+            .from("drivers")
+            .select("name, age")
+            .eq("id", extraSelect)
+            .single();
+
+        extraName = extraDriver?.name || null;
+        extraAge = extraDriver?.age ? parseInt(extraDriver.age) : null;
+    }
+
+    // 🔥 1. POBIERANIE SNAPSHOTU Z CAR_CLASSES
+    // Używamy zmiennej carClassId, którą zdefiniowałeś na samej górze funkcji
+    const { data: carData } = await db.from("car_classes")
+        .select("deposit_amount, mileage_limit, driver_included, features")
+        .eq("id", carClassId) 
+        .single();
+        
+    let depositSnap = carData?.deposit_amount || 0;
+    let mileageSnap = carData?.mileage_limit || null;
+    let driverIncludedSnap = carData?.driver_included === true;
+    let driverHoursSnap = null;
+
+    try {
+        let feats = carData?.features;
+        if (typeof feats === 'string') feats = JSON.parse(feats);
+        feats = feats || {}; 
+        if (feats.driverHours) driverHoursSnap = feats.driverHours.toString().trim();
+    } catch (e) {
+        console.warn("Błąd parsowania features:", e);
+        driverHoursSnap = null;
+    }
+
+    // ===============================
+    // 🔥 UPDATE BOOKING
+    // ===============================
+    console.log("🔥 FINAL DATA:", { finalName, finalAge, depositSnap, mileageSnap });
+    
+    await db.from("bookings").update({
+        main_driver_name: finalName,
+        main_driver_age: finalAge,
+        client_phone: profile?.phone || null,
+        client_email: user.email || null,
+        add_driver_name: extraName,
+        add_driver_age: extraAge,
+        // 🔥 ZAPIS SNAPSHOTU DO BAZY
+        deposit_snapshot: depositSnap,
+        mileage_limit_snapshot: mileageSnap,
+        driver_included_snapshot: driverIncludedSnap,
+        driver_hours_snapshot: driverHoursSnap
+    })
+    .eq("id", bookingId);
+
+    console.log("✅ UZUPEŁNIONO DANE BOOKING ORAZ SNAPSHOT:", bookingId);
+    
+
+} catch (err) {
+    console.error("❌ BŁĄD UZUPEŁNIANIA:", err);
+}
+// --- KONIEC FIXA ---
+
+                // ZAPIS SNAPSHOTÓW DOKUMENTÓW I LOKALIZACJI (ETAP 9)
+                const tLink = document.getElementById("partnerTermsLink");
+                const rLink = document.getElementById("partnerRulesLink");
+                
+                const searchParamsStr = localStorage.getItem("searchParams");
+                let pickupName = "Do ustalenia";
+                let dropName = "Do ustalenia";
+                
+                if (searchParamsStr) {
+                    const sp = JSON.parse(searchParamsStr);
+                    pickupName = sp.pickup_location?.name || "Do ustalenia";
+                    dropName = sp.drop_location?.name || pickupName; 
+                }
+
+                // 🔥 FIX: Pobranie ID obu kierowców
+                let selectedDriverId = null;
+const val = document.getElementById("driverSelect").value;
+
+if (val && val.length === 36) {
+    selectedDriverId = val;
+}
+                let addDriverVal = document.getElementById("additionalDriverSelect").value;
+                let additionalDriverId = null;
+
+if (addDriverVal && addDriverVal !== "none") {
+    // 🔥 dodatkowa walidacja UUID
+    if (addDriverVal.length === 36) {
+        additionalDriverId = addDriverVal;
+    }
+}
+
+                // 🧠 PRO TIP: Twarde zabezpieczenie backendowe przed duplikatem!
+                if (selectedDriverId === additionalDriverId && additionalDriverId !== null) {
+                    additionalDriverId = null;
+                }
+
+                // 🚨 BONUS: Sprawdzenie czy ID w ogóle istnieje przed wysyłką
+                if (!bookingId) {
+                    console.error("❌ KRYTYCZNY BŁĄD: bookingId jest NULL. Przerywam zapis.");
+                    window.showToast("Błąd systemowy: brak ID rezerwacji", "error");
+                    return;
+                }
+                // 🔥 POBIERAMY PRAWDZIWE CENY Z BACKENDU (RPC)
+const { data: priceData, error: priceError } = await db.rpc('calculate_booking_price', {
+    car_id: carClassId,
+    start_date: startDate,
+    end_date: endDate
+});
+
+if (priceError || !priceData) {
+    console.error("❌ BŁĄD LICZENIA CEN:", priceError);
+    throw new Error("Nie udało się pobrać ceny z backendu");
+}
+
+console.log("✅ SECURE PRICE:", priceData);
+
+// 🔥 ROZBIJAMY
+const baseTotal = priceData.base_total;
+const commission = priceData.commission;
+const finalTotal = priceData.final_total;
+
+// 🔥 PLN (Twoja marża)
+const currency = localStorage.getItem("bookingCurrency") || "USD";
+const rate = await getExchangeRate(currency); // albo dynamicznie późni
+const commissionPLN = Number((commission * rate).toFixed(2));
+
+// 🔥 FINALNE SNAPSHOTY
+const finalPriceSnapshot = finalTotal;
+const onlinePaymentPln = commissionPLN;
+const pickupPaymentPartner = baseTotal;
+
+console.log("💰 FINAL SNAPSHOT:", {
+    finalPriceSnapshot,
+    onlinePaymentPln,
+    pickupPaymentPartner
+});
+                // AKTUALIZACJA Z WERYFIKACJĄ (.select())
+                
+                const { data: updatedData, error: updateError } = await db
+                    .from("bookings")
+                    .update({
+    partner_terms_snapshot: tLink.style.display !== "none" ? tLink.href : null,
+    partner_rules_snapshot: rLink.style.display !== "none" ? rLink.href : null,
+    platform_terms_version: "v1.0",
+    terms_accepted: true,
+    terms_accepted_at: new Date().toISOString(),
+    pickup_location: pickupName,
+    return_location: dropName,
+    driver_id: selectedDriverId,
+    additional_driver_id: additionalDriverId,
+
+    // 🔥 DODAJ TE 3 LINIE
+    final_price_snapshot: finalPriceSnapshot,
+    online_payment_pln: onlinePaymentPln,
+    pickup_payment_partner_currency: pickupPaymentPartner,
+partner_currency: localStorage.getItem("bookingCurrency")
+    
+})
+                    .eq("id", bookingId)
+                    .eq("client_id", (await db.auth.getUser()).data.user.id) // Dodatkowe zabezpieczenie
+                    .select(); // 🔥 Klucz: prosimy bazę o zwrócenie zapisanego wiersza
+
+                // 1. Sprawdzenie błędów (TYLKO RAZ!)
+                console.log("📊 UPDATE DATA (Z BAZY):", updatedData);
+                
+                if (updateError) {
+                    console.error("❌ Błąd zapisu szczegółów:", updateError);
+                    throw updateError; 
+                }
+
+                if (!updatedData || updatedData.length === 0) {
+                    console.warn("⚠️ UWAGA: Baza nic nie zaktualizowała (pusta tablica).");
+                }
+
+                // 2. SUKCES FLOW - Zamykanie modala i reset przycisku
+                document.getElementById("termsModal").style.display = "none";
+                
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = localStorage.getItem("client_lang") === "en" ? "Confirm & Book" : "Potwierdzam i rezerwuję";
+                }
+
+                // 3. Powiadomienie o sukcesie
+                window.showToast(localStorage.getItem("client_lang") === "en" ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!", "success");
+                
+                // 4. Czyszczenie starych parametrów
+                localStorage.removeItem("selectedCarId");
+                localStorage.removeItem("bookingStartDate");
+                localStorage.removeItem("bookingEndDate");
+                localStorage.removeItem("searchParams"); 
+                
+                // 5. Odświeżenie danych w tle (żeby klient od razu widział nową rezerwację)
+                if (typeof loadClientBookings === "function") {
+                    await loadClientBookings(); 
+                }
+
+                // 6. 🔥 HARD STOP - kończymy funkcję!
+                return;
+
+            } catch (err) {
+                console.error("❌ KRYTYCZNY BŁĄD W PROCESIE REZERWACJI:", err);
+
+                // 🔥 ROLLBACK: Jeśli rezerwacja powstała w RPC, ale UPDATE się wywalił
+                // usuwamy ją, żeby nie blokowała terminu ("no_overlapping_bookings")
+                if (bookingId) {
+                    console.warn("⚠️ SPRZĄTANIE: Usuwam niekompletną rezerwację ID:", bookingId);
+                    try {
+                        const { data: { user } } = await db.auth.getUser();
+                        if (user) {
+                            await db.from("bookings")
+                                .delete()
+                                .eq("id", bookingId)
+                                .eq("client_id", user.id);
+                        }
+                    } catch (cleanupErr) {
+                        console.error("Błąd podczas rollbacka:", cleanupErr);
+                    }
+                }
+
+                // Obsługa czytelnych komunikatów dla użytkownika
+                let errorMsg = err.message || "Wystąpił nieoczekiwany błąd.";
+                
+                if (errorMsg.includes("no_overlapping_bookings")) {
+                    errorMsg = "Ten termin został właśnie zajęty. Proszę wybrać inne daty lub auto.";
+                }
+
+                window.showToast("Błąd: " + errorMsg, "error");
+
+                // Przywrócenie przycisku do działania
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Potwierdzam i rezerwuję";
+                }
+            }
+        }
+
+       window.closeTermsModal = function() {
+            document.getElementById("termsModal").style.display = "none";
+        }
+
+        window.getTimeLeft = function(deadline) {
+            const diff = new Date(deadline) - new Date();
+            if (diff <= 0) return "00:00";
+
+            const h = Math.floor(diff / 1000 / 60 / 60);
+            const m = Math.floor((diff / 1000 / 60) % 60);
+
+            const format = val => val < 10 ? '0' + val : val;
+            return `${format(h)}h ${format(m)}m`;
+        }
+
+       async function loadClientBookings() {
+            const dashTbody = document.getElementById('dashboard-bookings-tbody');
+            const bookTbody = document.getElementById('bookings-tbody');
+            
+            dashTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Ładowanie danych...</td></tr>';
+            bookTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Ładowanie danych...</td></tr>';
+
+            try {
+               // 🔥 FIX 1: Poprawiony SELECT (Wyciągamy cenę i walutę przez relacje)
+                const { data: clientBookings, error } = await db
+            .from("bookings")
+            .select(`
+    id,
+    created_at,
+    start_date,
+    end_date,
+    pickup_location,
+    return_location,
+    status,
+    payment_deadline,
+    final_price_snapshot,
+    online_payment_pln,
+    pickup_payment_partner_currency,
+    deposit_snapshot,
+    mileage_limit_snapshot,
+    driver_included_snapshot,
+    driver_hours_snapshot,
+    car_classes (
+        class_code, 
+        description,
+        partners (currency)
+    )
+`)
+                 .eq("client_id", currentUser.id)
+                  .order("created_at", { ascending: false });
+
+                if(error){
+                  // 🔥 Wyrzuca dokładny błąd do konsoli F12, jeśli to wina RLS lub innych kolumn
+                  console.error("BOOKINGS ERROR:", error); 
+                  dashTbody.innerHTML = '<tr><td colspan="8" style="color:red; text-align:center;">Sprawdź konsolę (F12) - Błąd DB</td></tr>';
+                  bookTbody.innerHTML = '<tr><td colspan="8" style="color:red; text-align:center;">Sprawdź konsolę (F12) - Błąd DB</td></tr>';
+                  return;
+                }
+
+                dashTbody.innerHTML = '';
+                bookTbody.innerHTML = '';
+
+                // --- LICZENIE STATYSTYK KLIENTA ---
+                const active = clientBookings.filter(b => 
+  b.status === 'accepted' || b.status === 'awaiting_payment'
+).length;
+                const pending = clientBookings.filter(b => b.status === 'pending').length;
+                const paid = clientBookings.filter(b => b.status === 'paid').length;
+                
+                document.getElementById('stat-active').innerText = active;
+                document.getElementById('stat-pending').innerText = pending;
+                
+                const statPaidEl = document.getElementById('stat-paid');
+                if (statPaidEl) statPaidEl.innerText = paid; 
+                
+                // --- INTELIGENTNE LICZENIE WYDATKÓW (MULTI-WALUTA) ---
+                const spentByCurrency = {};
+                clientBookings.forEach(b => {
+                    if (b.status === 'paid') {
+                        const amount = b.final_price_snapshot || 0;
+                        const cur = b.car_classes?.partners?.currency || 'EUR';
+                        spentByCurrency[cur] = (spentByCurrency[cur] || 0) + amount;
+                    }
+                });
+
+                let spentText = Object.entries(spentByCurrency)
+                    .map(([cur, amount]) => `${amount.toFixed(2)} <span style="font-size:14px; opacity:0.8;">${cur}</span>`)
+                    .join('<br>');
+
+                if (spentText === '') spentText = '0.00 <span style="font-size:14px;">EUR</span>';
+                document.getElementById('stat-spent').innerHTML = spentText;
+
+                const statSpentEl = document.getElementById('stat-spent');
+                if (statSpentEl) statSpentEl.innerHTML = spentText;
+                const badge = document.getElementById('bookings-badge');
+                if (badge) {
+                    badge.innerText = active + pending;
+                    badge.style.opacity = (active + pending) > 0 ? '1' : '0';
+                }
+
+                if (clientBookings.length === 0) {
+                    const emptyMsg = '<tr><td colspan="8" style="text-align:center; color:var(--gray);">Brak rezerwacji.</td></tr>';
+                    dashTbody.innerHTML = emptyMsg;
+                    bookTbody.innerHTML = emptyMsg;
+                    return;
+                }
+
+                // Generowanie tabel
+                for (const booking of clientBookings) {
+                    const carName = booking.car_classes?.description || "Auto";
+                    const carClassCode = booking.car_classes?.class_code || "?";
+                    
+                    // 🔥 FIX 4: Zmienne ładujące dane prosto z zagnieżdżonych relacji
+                    const finalPrice = booking.final_price_snapshot || 0;
+                    const partnerCurrency = booking.car_classes?.partners?.currency || 'EUR';
+
+                    let statusHtml = '';
+                    
+
+if (booking.status === 'pending') {
+    statusHtml = '<span class="status pending">Oczekująca</span>';
+}
+else if (booking.status === 'accepted') {
+    statusHtml = '<span class="status accepted">Potwierdzona</span>';
+}
+else if (booking.status === 'awaiting_payment') {
+
+    statusHtml = '<span class="status awaiting_payment">Oczekuje płatności</span>';
+
+    // 🔥 TIMER 24H (NOWOŚĆ)
+    if (booking.payment_deadline) {
+        const timeLeft = window.getTimeLeft(booking.payment_deadline);
+
+        statusHtml += `
+            <div class="timer-badge">
+                ⏳ ${timeLeft}
+            </div>
+        `;
+    }
+}
+else if (booking.status === 'paid') {
+    statusHtml = '<span class="status paid">Opłacona</span>';
+}
+else if (booking.status === 'cancelled') {
+    statusHtml = '<span class="status cancelled">Anulowana przez Ciebie</span>';
+}
+else if (booking.status === 'rejected') {
+    statusHtml = '<span class="status cancelled">Odrzucona przez partnera</span>';
+}
+else if (booking.status === 'expired') {
+    statusHtml = '<span class="status expired">Brak odpowiedzi partnera</span>';
+}
+else if (booking.status === 'payment_expired') {
+    statusHtml = '<span class="status payment_expired">Płatność wygasła</span>';
+}
+
+
+// --- DYNAMICZNE AKCJE ---
+let actionsHtml = `<div style="display:flex;flex-direction:column;gap:6px; align-items:flex-start;">`;
+
+const s = booking.status;
+
+if (s === 'pending') {
+    actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;">
+        Decyzja partnera:
+    </span>`;
+
+    actionsHtml += `<span class="timer-badge countdown-timer" data-created="${booking.created_at}" style="font-size:13px; margin-top:0; color:var(--orange);">
+        ⌛ --:--:--
+    </span>`;
+
+    actionsHtml += `<button class="btn-cancel" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="min-width:auto; padding:4px 8px; font-size:11px; margin-top:4px;">
+    Wycofaj wniosek
+</button>`;
+}
+else if (s === 'accepted') {
+
+    actionsHtml += `<button class="btn-cancel" 
+        onclick="window.cancelBooking('${booking.id}', '${booking.status}')"
+        style="width:100%;">
+        Anuluj rezerwację
+    </button>`;
+}
+
+else if (s === 'awaiting_payment') {
+
+
+    if (booking.payment_deadline) {
+        actionsHtml += `<div class="timer-badge payment-timer" data-deadline="${booking.payment_deadline}" style="margin-top: 6px; width: 100%; justify-content: center; font-size: 12px;">⌛ ${window.getTimeLeft(booking.payment_deadline)}</div>`;
+    }
+}
+else if (s === 'paid') {
+    actionsHtml += `<button class="btn-voucher" onclick="window.downloadVoucher('${booking.id}')" style="width:100%;">
+        Voucher PDF
+    </button>`;
+}
+else if (s === 'cancelled') {
+    actionsHtml += `<span style="font-size:12px; color:#F97316; font-weight:700;">
+        Anulowana przez Ciebie
+    </span>`;
+}
+else if (s === 'rejected') {
+    actionsHtml += `<span style="font-size:12px; color:#EF4444; font-weight:700;">
+        Odrzucona przez partnera
+    </span>`;
+}
+else if (s === 'expired') {
+    actionsHtml += `<span style="font-size:12px; color:#64748B; font-weight:700;">
+        Brak odpowiedzi partnera
+    </span>`;
+}
+else if (s === 'payment_expired') {
+    actionsHtml += `<span style="font-size:12px; color:#64748B; font-weight:700;">
+        Nieopłacona na czas
+    </span>`;
+}
+else {
+    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600;">
+        Zakończona
+    </span>`;
+}
+
+actionsHtml += `</div>`;
+
+                    const pickup = booking.pickup_location || "—";
+                    const drop = booking.return_location || pickup;
+
+                    const rowHtml = `
+                        <tr class="clickable-row">
+                            <td><strong>#R24-${booking.id.toString().slice(-4)}</strong></td>
+                            <td>
+    <span class="class-code">${carClassCode}</span>
+    <span class="class-label">${carName}</span>
+    
+    <div style="margin-top: 6px;">
+        <span onclick="window.openDetailsModal('${booking.deposit_snapshot ?? 0}', '${booking.mileage_limit_snapshot ?? ''}', ${booking.driver_included_snapshot === true}, '${booking.driver_hours_snapshot ?? ''}', '${partnerCurrency}')" 
+              style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+            ${localStorage.getItem("client_lang") === "en" ? 'View details' : 'Zobacz szczegóły'}
+        </span>
+    </div>
+</td>
+    
+    <div style="margin-top: 6px;">
+        <span onclick="window.openDetailsModal('${booking.deposit_snapshot ?? 0}', '${booking.mileage_limit_snapshot ?? ''}', ${booking.driver_included_snapshot === true}, '${booking.driver_hours_snapshot ?? ''}', '${partnerCurrency}')" 
+              style="font-size: 10px; font-weight: 700; color: var(--blue); cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+            ${localStorage.getItem("client_lang") === "en" ? 'View details' : 'Zobacz szczegóły'}
+        </span>
+    </div>
+</td>
+                            <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+                            <td>
+                                <div style="font-size:12px; line-height:1.2;">
+                                    <span title="Odbiór">📍 ${pickup}</span><br>
+                                    <span title="Zwrot" style="color:var(--gray);">🏁 ${drop}</span>
+                                </div>
+                            </td>
+                            <td>${statusHtml}</td>
+                            <td>
+    <strong>
+        ${(booking.pickup_payment_partner_currency || 0).toFixed(2)} ${partnerCurrency}
+    </strong>
+</td>
+                            <td class="price-due">
+    ${(booking.online_payment_pln || 0).toFixed(2)} PLN<br>
+
+    <span style="font-size:11px;color:#64748B;font-weight:600;"
+    data-pl="Opłata rezerwacyjna"
+    data-en="Booking fee">
+    Opłata rezerwacyjna
+    </span>
+</td>
+                            <td class="actions">
+                                ${actionsHtml}
+                            </td>
+                        </tr>
+                    `;
+                    dashTbody.innerHTML += rowHtml;
+                    bookTbody.innerHTML += rowHtml;
+                }
+
+                // --- SILNIK ODLICZANIA 24H DLA STATUSU PENDING ---
+                if (!window.bookingTimerRunning) {
+                    window.bookingTimerRunning = true;
+                    setInterval(() => {
+                        document.querySelectorAll('.countdown-timer').forEach(el => {
+                            const createdStr = el.getAttribute('data-created');
+                            if (!createdStr) return;
+                            
+                            const createdAt = new Date(createdStr).getTime();
+                            const deadline = createdAt + (24 * 60 * 60 * 1000); 
+                            const now = new Date().getTime();
+                            const diff = deadline - now;
+                            
+                            if (diff <= 0) {
+                                el.innerHTML = "⌛ Czas minął";
+                                el.style.color = "var(--gray)";
+                                el.classList.remove("timer-urgent");
+                            } else {
+                                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                                
+                                const format = val => val < 10 ? '0'+val : val;
+                                el.innerHTML = '⌛ ' + format(h) + ':' + format(m) + ':' + format(s);
+                                
+                                if (h < 2) el.classList.add("timer-urgent");
+                            }
+                        });
+                    }, 1000);
+                }
+
+                // --- TWÓJ SILNIK ODLICZANIA AWAITING_PAYMENT (co 60 sekund) ---
+                if (!window.paymentTimerRunning) {
+                    window.paymentTimerRunning = true;
+                    setInterval(() => {
+                        document.querySelectorAll('.payment-timer').forEach(el => {
+                            const deadline = el.dataset.deadline;
+                            if (!deadline) return;
+
+                            const diff = new Date(deadline) - new Date();
+                            if (diff <= 0) {
+                                el.innerHTML = "⌛ Czas minął";
+                                el.style.color = "var(--gray)";
+                                el.classList.remove("timer-urgent");
+                            } else {
+                                el.innerHTML = "⌛ " + window.getTimeLeft(deadline);
+                                if (diff < 2 * 60 * 60 * 1000) el.classList.add("timer-urgent");
+                            }
+                        });
+                    }, 60000);
+                }
+                
+                window.detectLang();
+
+            } catch (error) {
+                console.error("Błąd API:", error);
+            }
+        }
+
+        // =====================================================================
+        // PRZYWRÓCONY STARY KOD (PROFIL, KIEROWCY, PŁATNOŚCI, UI)
+        // (Wszystko dopięte do obiektu 'window', żeby działało w module)
+        // =====================================================================
+
+       async function loadPayments() {
+
+    if(!db) return;
+
+    const { data, error } = await db
+        .from("payments")
+        .select(`
+            id,
+            amount,
+            currency,
+            status,
+            booking_id,
+            bookings(reservation_code)
+        `)
+        .order("created_at", { ascending: false });
+
+    if(error){
+        console.error("Payments error:", error);
+        return;
+    }
+
+    const tbody = document.getElementById("payments-tbody");
+    if(!tbody) return;
+
+    tbody.innerHTML = "";
+
+    data.forEach(payment => {
+
+        const displayId =
+            payment.bookings?.reservation_code ||
+            payment.booking_id.substring(0,8);
+
+        tbody.innerHTML += `
+        <tr>
+            <td><strong>#${displayId}</strong></td>
+            <td class="price-col">${payment.amount} ${payment.currency}</td>
+            <td class="price-due">
+    ${Number(payment.amount || 0).toFixed(2)} PLN
+</td>
+        </tr>
+        `;
+    });
+
+    window.detectLang();
+}
+
+       async function loadUserProfile() {
+            if(!db || !currentUser || !currentUser.email) return;
+
+            
+            // NAPRAWIONA LINIA PONIŻEJ:
+            const { data: profile, error } = await db
+                .from("profiles")
+                .select("*")
+                .eq("id", currentUser.id) // Używamy "id", bo tak jest w Twojej bazie
+                .maybeSingle();
+                // 🔥 PSEUDO-AUTO AGE LOGIC (Premium SaaS)
+            if(profile && profile.age && profile.age_updated_at) {
+                const today = new Date();
+                const lastUpdate = new Date(profile.age_updated_at);
+                const yearsPassed = today.getFullYear() - lastUpdate.getFullYear();
+
+                if (yearsPassed >= 1) {
+                    const newAge = profile.age + yearsPassed;
+                    // Aktualizacja w bazie "w tle"
+                    await db.from("profiles").update({
+                        age: newAge,
+                        age_updated_at: today.toISOString().split('T')[0]
+                    }).eq("id", currentUser.id);
+                    
+                    // Aktualizacja lokalnego obiektu, aby UI od razu pokazał nową liczbę
+                    profile.age = newAge;
+                    console.log("🚀 System automatycznie zaktualizował wiek na:", newAge);
+                }
+            }
+
+            const emailInput = document.getElementById("profile-email");
+            if(emailInput && currentUser.email) emailInput.value = currentUser.email;
+
+            if(profile) {
+                if(document.getElementById("profile-name")) document.getElementById("profile-name").value = profile.name || "";
+                if(document.getElementById("profile-age")) document.getElementById("profile-age").value = profile.age || "";
+                if(document.getElementById("profile-phone")) document.getElementById("profile-phone").value = profile.phone || "";
+                // 🔥 FIX: Domyślnie ładuje "PL" jeśli baza zwróci null
+                if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "PL";
+                
+                const greeting = document.getElementById("topbar-greeting");
+                if(greeting) {
+                    const displayName = profile.name || currentUser.email || "Klient";
+                    greeting.setAttribute("data-pl", "Witaj " + displayName);
+                    greeting.setAttribute("data-en", "Hello " + displayName);
+                    
+                    const currentLang = localStorage.getItem("client_lang") || "pl";
+                    greeting.innerText = (currentLang === "en" ? "Hello " : "Witaj ") + displayName;
+                }
+            }
+
+            const { data: driversData } = await db
+                .from("drivers")
+                .select("*")
+                .eq("user_id", currentUser.id);
+
+            const list = document.getElementById("drivers-list");
+            if(list) {
+                list.innerHTML = "";
+                if(driversData && driversData.length > 0) {
+                    driversData.forEach(driver => {
+                        window.addDriverRow(driver.name, driver.age, driver.phone, driver.id);
+                        
+                    });
+                }
+            }
+            renderLoyaltyCard(profile);
+        }
+        
+
+        window.saveProfile = async function() {
+            if(!db || !currentUser) {
+                window.showToast(localStorage.getItem("client_lang") === "en" ? "Please log in first!" : "Zaloguj się najpierw!", "error");
+                return;
+            }
+            const profileData = {
+                id: currentUser.id,
+                name: document.getElementById("profile-name").value,
+                email: currentUser.email, // 🔥 DODANE: Zapis e-maila do bazy!
+                age: document.getElementById("profile-age").value ? parseInt(document.getElementById("profile-age").value) : null,
+                age_updated_at: new Date().toISOString().split('T')[0],
+                phone: document.getElementById("profile-phone").value,
+                country: document.getElementById("profile-country").value,
+            };
+
+            const { error } = await db.from("profiles").upsert(profileData);
+            if(error) { 
+                alert("Błąd przy zapisie profilu: " + error.message); 
+            } else { 
+                const isEn = localStorage.getItem("client_lang") === "en";
+                window.showToast(isEn ? "Profile saved" : "Profil zapisany", "success"); 
+                await loadUserProfile();
+                
+                if (localStorage.getItem("autoOpenBooking") === "true") {
+                    localStorage.removeItem("autoOpenBooking");
+                    window.submitBooking();
+                }
+            }
+        }
+
+        window.addDriverRow = function(name = "", age = "", phone = "", driverId = "") {
+            const list = document.getElementById('drivers-list');
+            const row = document.createElement('div');
+            row.className = 'driver-row driver-entry';
+            row.dataset.id = driverId;
+            row.innerHTML = `
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label data-pl="Imię i nazwisko" data-en="Full name">Imię i nazwisko</label>
+                    <input type="text" class="driver-name" placeholder="Jan Kowalski" value="${name}">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label data-pl="Wiek" data-en="Age">Wiek</label>
+                    <input type="number" class="driver-age" placeholder="30" min="18" value="${age}">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label data-pl="Telefon" data-en="Phone">Telefon</label>
+                    <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
+                </div>
+                <button type="button" class="btn-icon-remove" title="Usuń" onclick="removeDriver(this, '${driverId}')">×</button>
+            `;
+            list.appendChild(row);
+            window.detectLang(); 
+        }
+
+        window.removeDriver = async function(btnElement, driverId) {
+            const isEn = localStorage.getItem("client_lang") === "en";
+            if(driverId && db && currentUser) {
+                const { error } = await db.from("drivers").delete().eq("id", driverId).eq("user_id", currentUser.id);
+                if (!error) window.showToast(isEn ? "Driver removed" : "Kierowca usunięty", "info");
+            } else {
+                window.showToast(isEn ? "Row removed" : "Wiersz usunięty", "info");
+            }
+            btnElement.parentElement.remove();
+        }
+
+       window.saveDrivers = async function() {
+            const isEn = localStorage.getItem("client_lang") === "en";
+            if(!db || !currentUser) {
+                window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
+                return;
+            }
+            const rows = document.querySelectorAll(".driver-entry");
+            const newDrivers = [];
+            try {
+                await db.from("drivers").delete().eq("user_id", currentUser.id);
+                rows.forEach(row => {
+                    const name = row.querySelector(".driver-name").value;
+                    const age = row.querySelector(".driver-age").value;
+                    const phone = row.querySelector(".driver-phone").value;
+                    if(name) {
+                        newDrivers.push({ 
+                            user_id: currentUser.id, 
+                            name: name, 
+                            age: age ? parseInt(age) : null, 
+                            age_updated_at: new Date().toISOString().split('T')[0], // 🔥 Stempel dla kierowcy
+                            phone: phone 
+                        });
+                    }
+                });
+                if(newDrivers.length > 0) {
+                    const { error } = await db.from("drivers").insert(newDrivers);
+                    if(error) throw error;
+                }
+                window.showToast(isEn ? "Drivers list updated!" : "Lista kierowców została zaktualizowana!", "success");
+                await loadUserProfile(); 
+            } catch (err) {
+                window.showToast(isEn ? "Error saving drivers." : "Błąd podczas zapisu.", "error");
+            }
+        }
+
+        
+        // --- REALNE ANULOWANIE / ODRZUCANIE REZERWACJI ---
+        window.cancelBooking = async function(id, currentStatus) {
+            const isEn = localStorage.getItem("client_lang") === "en";
+            const confirmMsg = isEn 
+                ? "Are you sure you want to cancel this booking?" 
+                : "Czy na pewno chcesz anulować tę rezerwację?";
+            
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                if (currentStatus === 'pending') {
+                    // 1. SCENARIUSZ: Przed akceptacją partnera
+                    // Usuwamy całkowicie z bazy (fizyczne czyszczenie systemu)
+                    const { error } = await db
+                        .from("bookings")
+                        .delete()
+                        .eq("id", id)
+                        .eq("client_id", currentUser.id);
+                    if (error) throw error;
+                } else {
+                    // 2. SCENARIUSZ: Po akceptacji partnera (gdy klient np. nie chce opłacić)
+                    // Zmieniamy status, aby partner miał to w historii
+                    const { error } = await db
+                        .from("bookings")
+                        .update({ status: 'cancelled' })
+                        .eq("id", id)
+                        .eq("client_id", currentUser.id);
+                    if (error) throw error;
+                }
+
+                window.showToast(isEn ? "Booking cancelled." : "Rezerwacja została anulowana.", "success");
+                await loadClientBookings();
+
+            } catch (err) {
+                console.error("❌ BŁĄD ANULOWANIA:", err);
+                window.showToast(isEn ? "Error!" : "Błąd podczas anulowania.", "error");
+            }
+        };
+
+        // --- REALNA PŁATNOŚĆ (Przekierowanie) ---
+        window.payBooking = function(id) {
+    const isEn = localStorage.getItem("client_lang") === "en";
+
+    const booking = window.clientBookings.find(b => b.id === id);
+
+    if (!booking) {
+        window.showToast(isEn ? "Booking not found" : "Nie znaleziono rezerwacji", "error");
+        return;
+    }
+
+    // 🔥 BLOKADA PO CZASIE (TWARDA)
+    if (booking.payment_deadline && new Date(booking.payment_deadline) < new Date()) {
+        window.showToast(
+            isEn ? "Payment time has expired" : "Czas na płatność minął",
+            "error"
+        );
+        return;
+    }
+
+    // 🔒 BLOKADA STATUSÓW
+    if (
+        booking.status === 'cancelled' ||
+        booking.status === 'rejected' ||
+        booking.status === 'expired' ||
+        booking.status === 'payment_expired'
+    ) {
+        window.showToast(
+            isEn ? "This booking is closed" : "Ta rezerwacja jest zamknięta",
+            "error"
+        );
+        return;
+    }
+
+    // 🔒 BLOKADA jeśli już opłacona
+    if (booking.status === 'paid') {
+        window.showToast(
+            isEn ? "Already paid" : "Już opłacona",
+            "info"
+        );
+        return;
+    }
+
+    window.showToast(
+        isEn ? "Redirecting to payment..." : "Przekierowanie do płatności...",
+        "info"
+    );
+
+    console.log("Inicjacja płatności dla:", id);
+
+    // 🔥 TU PÓŹNIEJ: Stripe redirect
+};
+        window.downloadVoucher = async function(id) {
+            const isEn = localStorage.getItem("client_lang") === "en";
+            const { data, error } = await db.from("vouchers").select("pdf_path").eq("booking_id", id).single();
+
+            if(error || !data) {
+                window.showToast(isEn ? "Voucher is being generated..." : "Voucher jest jeszcze generowany...", "info");
+                return;
+            }
+            const { data: sData, error: sErr } = await db.storage.from("vouchers").createSignedUrl(data.pdf_path, 60);
+            if(sErr) {
+                window.showToast(isEn ? "Download error" : "Błąd pobierania", "error");
+                return;
+            }
+            window.location.href = sData.signedUrl;
+        }
+
+        window.setLang = function(lang) {
+            localStorage.setItem("client_lang", lang);
+            document.querySelectorAll("[data-pl]").forEach(el => {
+                if(el.dataset[lang]) {
+                    if(el.tagName === 'INPUT' && el.hasAttribute("placeholder")) el.placeholder = el.dataset[lang];
+                    else el.innerHTML = el.dataset[lang];
+                }
+            });
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const textSpan = item.querySelector('.nav-text');
+                if (textSpan && textSpan.dataset[lang]) item.setAttribute('data-tooltip', textSpan.dataset[lang]);
+            });
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
+            const activeBtn = document.getElementById('lang-' + lang);
+            if(activeBtn) activeBtn.classList.add('active-lang');
+        }
+
+        window.detectLang = function() {
+            let lang = localStorage.getItem("client_lang") || "pl";
+            window.setLang(lang);
+        }
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            const targetSection = document.getElementById('view-' + tabId);
+            if(targetSection) targetSection.classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            const targetNav = document.getElementById('nav-' + tabId);
+            if(targetNav) targetNav.classList.add('active');
+        }
+
+        window.toggleSidebar = function() { 
+            const sidebar = document.querySelector('.sidebar');
+            if(sidebar) sidebar.classList.toggle('collapsed'); 
+        }
+
+        window.handleNotifications = function() {
+            window.switchTab('dashboard'); 
+            const badge = document.getElementById('notification-badge');
+            if (badge) badge.style.display = 'none'; 
+        }
+
+        window.logout = async function() {
+            if(db) await db.auth.signOut();
+            window.location.href = "index.html";
+        }
+        window.goToSearch = function() {
+    window.location.href = "index.html";
+};
+    </script>
+    <div id="termsModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 data-pl="Potwierdzenie rezerwacji" data-en="Booking confirmation">Potwierdzenie rezerwacji</h3>
+            <p class="modal-desc" data-pl="Ostatni krok przed wyruszeniem w trasę. Zapoznaj się z poniższymi dokumentami:" data-en="The final step before hitting the road. Please review the documents below:">
+                Ostatni krok przed wyruszeniem w trasę. Zapoznaj się z poniższymi dokumentami:
+            </p>
+
+            <div style="margin-bottom: 20px; background: #F8FAFC; padding: 16px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
+                <div>
+                    <label style="font-size: 13px; font-weight: 700; color: var(--blue-dark); margin-bottom: 6px; display: block;" data-pl="Główny kierowca" data-en="Main driver">Główny kierowca</label>
+                    <select id="driverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
+                </div>
+                <div>
+                    <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
+                    <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
+                </div>
+            </div>
+
+            <div class="docs-container">
+                <a href="/regulamin.html" target="_blank">
+                    <span style="font-size: 18px;">📄</span> Regulamin platformy Ride24
+                </a>
+                <a id="partnerTermsLink" target="_blank" style="display:none">
+                    <span style="font-size: 18px;">📋</span> Warunki wynajmu partnera
+                </a>
+                <a id="partnerRulesLink" target="_blank" style="display:none">
+                    <span style="font-size: 18px;">🔑</span> Regulamin wypożyczalni
+                </a>
+            </div>
+
+            <label class="premium-checkbox-wrapper">
+                <input type="checkbox" id="acceptTerms">
+                <span class="premium-checkbox-text" data-pl="Akceptuję regulamin Ride24 oraz warunki wynajmu wybranej grupy aut." data-en="I accept Ride24 terms and the rental conditions for the selected car group.">
+                    Akceptuję regulamin Ride24 oraz warunki wynajmu wybranej grupy aut.
+                </span>
+            </label>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="window.closeTermsModal()" data-pl="Anuluj" data-en="Cancel">Anuluj</button>
+                <button id="confirmBookingBtn" class="btn-primary" style="box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);" data-pl="Potwierdzam i rezerwuję" data-en="Confirm & Book">
+                    Potwierdzam i rezerwuję
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Usuwania Konta -->
+     <div id="bookingDetailsModal" class="custom-modal">
+        <div class="modal-content" style="max-width: 400px; text-align: left;">
+            <h3 style="margin-top: 0; color: white;" data-pl="Szczegóły wynajmu" data-en="Rental Details">Szczegóły wynajmu</h3>
+            
+            <div id="bookingDetailsBody" style="color: #94A3B8; font-size: 14px; line-height: 1.8; background: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+                </div>
+            
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn-primary" onclick="closeDetailsModal()" data-pl="Zamknij" data-en="Close" style="width: 100%;">Zamknij</button>
+            </div>
+        </div>
+    </div>
+<div id="deleteModal" class="custom-modal">
+    <div class="modal-content">
+        <h3 data-pl="Usuń konto" data-en="Delete Account" data-premium="Usuń konto Premium">Usuń konto</h3>
+        <p data-pl="Ta operacja jest nieodwracalna. Wszystkie Twoje dane zostaną usunięte. Wpisz poniżej słowo USUŃ, aby potwierdzić." 
+           data-en="This action is irreversible. All your data will be deleted. Type DELETE below to confirm.">
+           Ta operacja jest nieodwracalna...
+        </p>
+        
+        <input type="text" id="deleteConfirmInput" placeholder="USUŃ / DELETE" autocomplete="off">
+        
+        <div class="modal-actions">
+            <button onclick="closeDeleteModal()" class="btn-secondary" data-pl="Anuluj" data-en="Cancel">Anuluj</button>
+            <button id="finalDeleteBtn" onclick="processAccountDeletion()" class="btn-danger-confirm" disabled data-pl="Potwierdzam" data-en="Confirm">Potwierdzam</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

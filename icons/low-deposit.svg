@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
+  <title>Niska kaucja&#10;Low deposit</title>
+  <defs>
+    <linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffca28" />
+      <stop offset="100%" stop-color="#f57f17" />
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4caf50" />
+      <stop offset="100%" stop-color="#2e7d32" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(0, 5)">
+    <path d="M 15 70 v 8 a 20 8 0 0 0 40 0 v -8" fill="#f57c00" stroke="#e65100" stroke-width="2"/>
+    <ellipse cx="35" cy="70" rx="20" ry="8" fill="url(#coinGrad)" stroke="#e65100" stroke-width="2"/>
+    <path d="M 15 58 v 8 a 20 8 0 0 0 40 0 v -8" fill="#f57c00" stroke="#e65100" stroke-width="2"/>
+    <ellipse cx="35" cy="58" rx="20" ry="8" fill="url(#coinGrad)" stroke="#e65100" stroke-width="2"/>
+    <path d="M 15 46 v 8 a 20 8 0 0 0 40 0 v -8" fill="#f57c00" stroke="#e65100" stroke-width="2"/>
+    <ellipse cx="35" cy="46" rx="20" ry="8" fill="url(#coinGrad)" stroke="#e65100" stroke-width="2"/>
+  </g>
+  <path d="M 68 25 v 35 h -8 l 15 15 l 15 -15 h -8 v -35 z" fill="url(#arrowGrad)"/>
+</svg>

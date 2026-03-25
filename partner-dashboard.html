@@ -1,0 +1,2928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partner Panel - Ride24</title>
+
+    <link rel="preload" href="fonts/manrope-v20-latin-ext-700.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/inter-v20-latin_latin-ext-regular.woff2" as="font" type="font/woff2" crossorigin>
+
+    <style>
+        /* --- FONTY --- */
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-regular.woff2') format('woff2');font-weight:400;font-display:swap;}
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-500.woff2') format('woff2');font-weight:500;font-display:swap;}
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-600.woff2') format('woff2');font-weight:600;font-display:swap;}
+        @font-face{font-family:'Inter';src:url('fonts/inter-v20-latin_latin-ext-700.woff2') format('woff2');font-weight:700;font-display:swap;}
+        @font-face{font-family:'Manrope';src:url('fonts/manrope-v20-latin-ext-700.woff2') format('woff2');font-weight:700;font-display:swap;}
+        @font-face{font-family:'Manrope';src:url('fonts/manrope-v20-latin-ext-800.woff2') format('woff2');font-weight:800;font-display:swap;}
+
+        :root {
+            --blue: #2563EB; 
+            --blue-dark: #1E3A8A;
+            --blue-hover: #1D4ED8;
+            --green: #16A34A;
+            --text: #0F172A;
+            --gray: #64748B;
+            --bg: #DCFCE7;
+            --border: #E2E8F0;
+            --sidebar-bg: #0F172A;
+            --red: #EF4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow-x: hidden; 
+        }
+        button { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; letter-spacing: -0.02em; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 220px;
+            background-color: var(--sidebar-bg);
+            color: #CBD5E1;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: width 0.3s cubic-bezier(.4,0,.2,1);
+            position: relative; 
+            z-index: 20; 
+        }
+        .sidebar.collapsed { width: 70px; }
+        .sidebar.collapsed .nav-text { display: none; }
+        .sidebar.collapsed .sidebar-logo span { display: none; }
+        .sidebar.collapsed .badge { opacity: 0; pointer-events: none; }
+
+        .sidebar-logo {
+            padding: 24px; font-size: 22px; font-weight: 800; color: white;
+            font-family: 'Manrope', sans-serif; border-bottom: 1px solid #1E293B;
+            display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;
+        }
+
+        /* --- OKRĄGŁY PRZYCISK ZWIJANIA --- */
+        .collapse-toggle {
+            position: absolute;
+            top: 28px;
+            right: -16px; 
+            width: 32px;
+            height: 32px;
+            min-width: 32px; 
+            min-height: 32px;
+            background-color: var(--sidebar-bg); 
+            color: white;
+            border: 2px solid white; 
+            border-radius: 50%; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 14px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15); 
+            transition: all 0.2s cubic-bezier(.4,0,.2,1);
+            user-select: none;
+            box-sizing: border-box; 
+        }
+        .collapse-toggle:hover {
+            background-color: var(--blue); 
+            transform: scale(1.1);
+        }
+        .collapse-toggle::before { content: "❮"; margin-right: 2px; }
+        .sidebar.collapsed .collapse-toggle::before { content: "❯"; margin-right: 0; margin-left: 2px; }
+
+        /* --- MENU I IKONY --- */
+        .nav-menu { 
+            padding: 20px 0; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 5px; 
+            flex: 1; 
+            overflow-y: auto; 
+        }
+        .nav-item {
+            padding: 12px 24px; cursor: pointer; font-weight: 500; font-size: 15px;
+            transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; color: #94A3B8;
+            position: relative; 
+        }
+        .nav-item-inner { display: flex; align-items: center; gap: 12px; }
+        
+        .nav-icon { 
+            width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
+        }
+        
+        .icon-mask {
+            width: 100%; height: 100%;
+            background-color: currentColor; 
+            -webkit-mask-size: contain; mask-size: contain;
+            -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+            -webkit-mask-position: center; mask-position: center;
+            transition: background-color 0.2s;
+        }
+        
+        .nav-item:hover { color: white; background-color: #1E293B; }
+        .nav-item.active { color: white; background-color: var(--blue); border-right: 4px solid #60A5FA; }
+
+        .sidebar.collapsed .nav-item:hover::after {
+            content: attr(data-tooltip);
+            position: absolute; left: 70px; background: #0F172A; color: white;
+            padding: 6px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap;
+            z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        .topbar {
+            height: 70px; background:#16A34A; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border); display: flex; align-items: center;
+            justify-content: flex-end; padding: 0 40px; gap: 30px; flex-shrink: 0; z-index: 10;
+        } 
+        .topbar, .topbar span, .topbar div, .topbar .badge-container, .topbar .logout-btn { color: white !important; }
+
+        .lang-switch { display: flex; gap: 10px; align-items: center; user-select: none; }
+        .lang-btn { cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; opacity: 0.5; }
+        .lang-btn:hover { opacity: 0.8; }
+        .lang-btn.active-lang { opacity: 1; border-bottom: 2px solid var(--blue); }
+
+        .topbar-icons { display: flex; gap: 20px; align-items: center; }
+        .badge-container { position: relative; cursor: pointer; color: var(--gray); font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px;}
+        .badge { background: var(--red); color: white; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 6px; transition: opacity 0.2s; }
+        .badge-absolute { position: absolute; top: -8px; right: -15px; font-size: 10px; border-radius: 10px; }
+
+        .partner-profile { 
+            display: flex; align-items: center; gap: 16px; font-weight: 600; font-size: 14px; 
+            padding-left: 30px; border-left: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .logout-btn{ color:white; border:1px solid #EF4444; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px; font-weight:700; background:#EF4444; transition:all 0.2s; }
+        .logout-btn:hover{ background:#DC2626; border-color:#DC2626; }
+
+        .content-area { padding: 40px; overflow-y: auto; flex: 1; }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-title { font-size: 24px; font-weight: 800; color: var(--blue-dark); display: flex; align-items: center; gap: 10px;}
+
+        .btn-primary {
+            background: var(--blue); color: white; padding: 10px 18px; border: none; border-radius: 8px;
+            font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary:hover { background: var(--blue-hover); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+        .stat-title { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; min-height: 32px; line-height: 1.2;}
+        .stat-value { font-size: 26px; font-weight: 800; color: var(--blue-dark); font-family: 'Manrope', sans-serif;}
+        .stat-card.highlight { border-color: #FCD34D; background: #FFFBEB; }
+        .stat-card.success { border-color: #BBF7D0; background: #F0FDF4; }
+
+        .table-container { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; overflow-y: auto; max-height: 520px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: #F8FAFC; font-weight: 700; font-size: 15px;}
+        table { width: 100%; border-collapse: collapse; text-align: left; white-space: normal; table-layout: fixed; }
+        tbody tr { background: white; }
+        td, th { word-wrap: break-word; }
+        
+        #view-fleet th:nth-child(1){width:120px} #view-fleet th:nth-child(2){width:160px} #view-fleet th:nth-child(3){width:120px} #view-fleet th:nth-child(4){width:80px} #view-fleet th:nth-child(5){width:90px} #view-fleet th:nth-child(6){width:80px} #view-fleet th:nth-child(7){width:120px} #view-fleet th:nth-child(8){width:120px} #view-fleet th:nth-child(9){width:120px} #view-fleet th:nth-child(10){width:120px}
+        #view-bookings th:nth-child(6){width:200px}
+        
+
+        th { padding: 14px 20px; font-size: 11px; text-transform: uppercase; color: var(--gray); font-weight: 700; border-bottom: 1px solid var(--border); }
+        td { padding: 16px 20px; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--border); color: var(--text); }
+        tr:last-child td { border-bottom: none; }
+        .clickable-row { cursor: pointer; transition: background 0.2s; }
+        tbody tr:hover { background: #F8FAFC; }
+        .client-age { color: var(--gray); font-size: 12px; font-weight: 600; margin-left: 6px; }
+        .class-code { font-weight: 800; font-size: 16px; color: #0F172A; margin-right: 6px; }
+        .class-label { color: #334155; font-weight: 600; }
+        
+        /* STATUSY ZGODNE Z PLANEM */
+        .status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.status.pending { background: #FEF3C7; color: #D97706; }
+.status.awaiting_payment { background: #FFEDD5; color: #C2410C; }
+.status.paid { background: #DCFCE7; color: #16A34A; }
+.status.rejected { background: #FEE2E2; color: #EF4444; }
+.status.active { background: #DCFCE7; color: #16A34A; }
+.status.inactive { background: #F1F5F9; color: #64748B; }
+
+.status.accepted { 
+    background: #DBEAFE; 
+    color: #2563EB; 
+}
+
+        .timer-badge { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 13px; color: var(--gray); display: flex; align-items: center; gap: 5px;}
+        .timer-urgent { color: var(--red); animation: blink 2s infinite; }
+        @keyframes blink { 50% { opacity: 0.7; } }
+        .badge-new { background: var(--red); color: white; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-left: 8px; letter-spacing: 0.5px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .btn-confirm { background: #16A34A; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .btn-confirm:hover { opacity: 0.9; }
+        .btn-cancel { background: #EF4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .btn-cancel:hover { opacity: 0.9; }
+        .btn-confirm:disabled, .btn-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .action-link { color: var(--blue); font-weight: 600; cursor: pointer; font-size: 13px; margin-right: 10px; transition: all 0.2s; position: relative; z-index: 2; }
+        .action-link:hover { color: var(--blue-dark); text-decoration: underline; }
+        .action-link.reject { color: var(--red); }
+        .action-link.reject:hover { color: #B91C1C; }
+
+        .settings-card { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 1000px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .settings-card button { grid-column: span 2; }
+        .form-group { margin-bottom: 16px; width: 100%; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray); margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: white;}
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--green); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; font-weight: 500;}
+        .checkbox-group input { width: auto; transform: scale(1.2); cursor: pointer; accent-color: var(--green); }
+        .fleet-thumb { width: 60px; height: 40px; background: #F1F5F9; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); cursor: pointer; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-box { background: white; width: 100%; max-width: 1000px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; transform: translateY(20px); transition: transform 0.3s; max-height: 95vh; display: flex; flex-direction: column; }
+        .modal-overlay.active .modal-box { transform: translateY(0); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h2 { font-size: 18px; font-weight: 800; color: var(--blue-dark); margin: 0;}
+        .modal-close { cursor: pointer; font-size: 24px; color: var(--gray); line-height: 1; }
+        .modal-close:hover { color: var(--red); }
+        .modal-body { padding: 24px; overflow-y: auto; background: #ECFDF5; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); background: #F8FAFC; display: flex; justify-content: flex-end; gap: 12px; }
+        .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-secondary:hover { background: #F1F5F9; }
+
+        .partner-discount-widget{ margin-top: auto; margin-bottom: 20px; margin-left: 15px; margin-right: 15px; padding:16px; background:#16A34A; border-radius:12px; text-align:center; color:white; }
+        .discount-title{ font-size:12px; font-weight:600; opacity:0.9; }
+        .discount-value{ font-size:28px; font-weight:800; margin-top:4px; font-family:'Manrope', sans-serif; }
+        .partner-discount-box{ background:#ECFDF5; border:1px solid #BBF7D0; padding:10px 12px; border-radius:8px; font-weight:700; color:#166534; font-size:14px; display:flex; align-items:center; height:42px; }
+
+        .file-tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+        .file-tile{ background:white; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; cursor:pointer; position:relative; transition:all 0.2s; text-align:center; }
+        .file-tile:hover{ border-color:var(--green); background:#F0FDF4; transform:translateY(-2px); }
+        .file-tile input{ pointer-events:none; }
+        
+        .file-icon { 
+            width: 32px; 
+            height: 32px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: var(--gray); 
+            transition: color 0.2s;
+        }
+        .file-tile:hover .file-icon { color: var(--blue); }
+
+        .file-title{ font-weight:700; font-size:14px; }
+        .file-sub{ font-size:12px; color:var(--gray); }
+        .file-actions{ display:flex; gap:10px; margin-top:8px; }
+        .file-actions span{ font-size:12px; font-weight:600; cursor:pointer; }
+        .file-edit{ color:var(--blue); }
+        .file-delete{ color:var(--red); }
+
+        /* --- POWIADOMIENIA (TOAST) --- */
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: white; border-left: 6px solid var(--green); padding: 16px 24px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 15px; color: var(--blue-dark); animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .toast.error { border-left-color: var(--red); }
+        @keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
+
+
+        /* === AUTOCOMPLETE === */
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 9999;
+    display: none;
+}
+
+.autocomplete-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.autocomplete-item:hover {
+    background: #F1F5F9;
+}
+
+    </style>
+
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="bez.png" style="height:42px;"> 
+        </div>
+        
+        <div class="collapse-toggle" onclick="toggleSidebar()"></div>
+
+        <nav class="nav-menu">
+            <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+                <div class="nav-item-inner">
+                    <span class="nav-icon">
+                        <div class="icon-mask" style="-webkit-mask-image: url('icons/icon-dashboard.svg'); mask-image: url('icons/icon-dashboard.svg');"></div>
+                    </span>
+                    <span class="nav-text" data-pl="Pulpit" data-en="Dashboard">Dashboard</span>
+                </div>
+            </div>
+            <div class="nav-item" onclick="switchTab('bookings')" id="nav-bookings">
+                <div class="nav-item-inner">
+                    <span class="nav-icon">
+                        <div class="icon-mask" style="-webkit-mask-image: url('icons/icon-bookings.svg'); mask-image: url('icons/icon-bookings.svg');"></div>
+                    </span>
+                    <span class="nav-text" data-pl="Rezerwacje" data-en="Bookings">Bookings</span>
+                </div>
+                <div class="badge">2</div>
+            </div>
+            <div class="nav-item" onclick="switchTab('locations')" id="nav-locations">
+                <div class="nav-item-inner">
+                    <span class="nav-icon">
+                        <div class="icon-mask" style="-webkit-mask-image: url('icons/location-dot.svg'); mask-image: url('icons/location-dot.svg'); background-color: currentColor;"></div>
+                    </span>
+                    <span class="nav-text" data-pl="Lokalizacje" data-en="Locations">Locations</span>
+                </div>
+            </div>
+            <div class="nav-item" onclick="switchTab('fleet')" id="nav-fleet">
+                <div class="nav-item-inner">
+                    <span class="nav-icon">
+                        <div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg');"></div>
+                    </span>
+                    <span class="nav-text" data-pl="Flota" data-en="Fleet">Fleet</span>
+                </div>
+            </div>
+            <div class="nav-item" onclick="switchTab('settings')" id="nav-settings">
+                <div class="nav-item-inner">
+                    <span class="nav-icon">
+                        <div class="icon-mask" style="-webkit-mask-image: url('icons/icon-settings.svg'); mask-image: url('icons/icon-settings.svg');"></div>
+                    </span>
+                    <span class="nav-text" data-pl="Ustawienia" data-en="Settings">Settings</span>
+                </div>
+            </div>
+        </nav>
+        <div class="partner-discount-widget">
+            <div class="discount-title" data-pl="Stały rabat  partnera" data-en="Partner commission">Partner commission</div>
+            <div class="discount-value" id="partnerDiscount">15%</div>
+        </div>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="lang-switch">
+                <div class="lang-btn" id="lang-en" onclick="setLang('en')">
+                    <img src="flagi/uk.svg" style="height:24px;">
+                </div>
+                <div class="lang-btn" id="lang-pl" onclick="setLang('pl')">
+                    <img src="flagi/pl.svg" style="height:24px;">
+                </div>
+            </div>
+
+            <div class="topbar-icons">
+                <div class="badge-container" onclick="handleNotifications()">
+                    <span data-pl="Powiadomienia" data-en="Notifications">Notifications</span>
+                    <div class="badge badge-absolute" id="notification-badge">2</div>
+                </div>
+            </div>
+            
+            <div class="partner-profile">
+                <span style="font-size:10px; font-weight:800; color:white; background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:6px; letter-spacing:0.5px;">PARTNER</span>
+                <img id="partnerAvatar" src="avatar.png" onerror="this.onerror=null; this.src='avatar-default.png';" style="width:32px;height:32px;border-radius:50%; object-fit:cover;">
+                <span id="partnerNameDisplay">John Smith</span>
+                <span class="logout-btn" onclick="goToSearch()" style="background: #2563EB; border-color: #2563EB;" data-pl="Strona główna" data-en="Home page">Strona główna</span>
+                <span class="logout-btn" onclick="logout()" data-pl="Wyloguj" data-en="Logout">Logout</span>
+            </div>
+        </header>
+
+        <main class="content-area">
+
+            <div id="view-dashboard" class="view-section active">
+                <div class="page-header">
+                    <h1 class="page-title" data-pl="Pulpit" data-en="Dashboard">Dashboard</h1>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card highlight">
+                        <div class="stat-title">
+                            <span data-pl="Oczekujące zapytania" data-en="Pending requests">Pending requests</span>
+                            <span class="badge-new" style="animation: none;">NEW</span>
+                        </div>
+                        <div class="stat-value" id="statPending">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title" data-pl="Oczekiwanie na płatność" data-en="Awaiting client confirmation">Awaiting payment</div>
+                        <div class="stat-value" id="statAwaiting">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title" data-pl="Opłacone rezerwacje" data-en="Paid bookings">Paid bookings</div>
+                        <div class="stat-value" id="statPaid">0</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-title" data-pl="Twój zysk (Suma)" data-en="Your revenue (Total)">Your revenue (Total)</div>
+                        <div class="stat-value" style="color: var(--green);" id="dashRevenue">0.00 EUR</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header" data-pl="Najnowsze zapytania" data-en="Latest requests">Latest requests</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-pl="Klient" data-en="Client">Client</th>
+<th data-pl="Klasa" data-en="Class">Class</th>
+<th data-pl="Odbiór / Zwrot" data-en="Pickup / Return">Pickup / Return</th>
+<th data-pl="Daty" data-en="Dates">Dates</th>
+<th data-pl="Status" data-en="Status">Status</th>
+<th data-pl="Pozostały czas" data-en="Response time left">Response time left</th>
+
+<th data-pl="Kwota przy odbiorze" data-en="Amount at pickup">Amount at pickup</th>
+
+<th data-pl="Akcje" data-en="Actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-requests-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-fleet" class="view-section">
+                <div class="page-header">
+                    <h1 class="page-title" data-pl="Flota" data-en="Fleet">Fleet</h1>
+                    <button type="button" class="btn-primary" onclick="openModal()" data-pl="+ Dodaj auto" data-en="+ Add vehicle">+ Add vehicle</button>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-pl="Zdjęcie" data-en="Image">Image</th>
+                                <th data-pl="Model" data-en="Model">Model</th>
+                                <th data-pl="Klasa" data-en="Class">Class</th>
+                                <th data-pl="Miejsca" data-en="Seats">Seats</th>
+                                <th data-pl="Skrzynia" data-en="Transmission">Transmission</th>
+                                <th data-pl="Bagaże" data-en="Bags">Bags</th>
+                                <th data-pl="Limit km" data-en="Mileage">Mileage</th>
+                                <th data-pl="Kaucja" data-en="Deposit">Deposit</th>
+                                <th data-pl="Cena/dzień" data-en="Price per day">Price per day</th>
+                                <th data-pl="Akcje" data-en="Actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fleet-list-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-bookings" class="view-section">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <span data-pl="Rezerwacje" data-en="Bookings">Bookings</span>
+                    </h1>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                          <tr>
+                                <th>ID</th>
+<th data-pl="Klient" data-en="Client">Client</th>
+<th data-pl="Klasa" data-en="Class">Class</th>
+<th data-pl="Odbiór / Zwrot" data-en="Pickup / Return">Pickup / Return</th>
+<th data-pl="Status" data-en="Status">Status</th>
+<th data-pl="Daty" data-en="Dates">Dates</th>
+
+<th data-pl="Kwota przy odbiorze" data-en="Amount at pickup">Amount at pickup</th>
+
+<th data-pl="Akcje" data-en="Actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookings-list-tbody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+           <div id="view-locations" class="view-section">
+                <div class="page-header">
+                    <h1 class="page-title" data-pl="Lokalizacje" data-en="Locations">Locations</h1>
+                    <button class="btn-primary" onclick="openLocationModal()" data-pl="+ Dodaj lokalizację" data-en="+ Add location">+ Add location</button>
+                </div>
+            
+                <div style="background: #FEF9C3; border: 2px solid #DC2626; padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; color: #991B1B; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.1);">
+                    <span style="font-size: 28px;">🌍</span>
+                    <div>
+                        <strong style="text-transform: uppercase;" data-pl="Ważna zasada wyszukiwarki:" data-en="Search engine important rule:">Ważna zasada wyszukiwarki:</strong><br>
+                        <span data-pl="Wszystkie kraje, regiony i miasta muszą być wpisywane w języku angielskim (np. wpisz Spain zamiast Hiszpania, Crete zamiast Kreta)." data-en="All countries, regions, and cities must be entered in English (e.g., type Spain instead of Hiszpania, Crete instead of Kreta).">Wszystkie kraje, regiony i miasta muszą być wpisywane w języku angielskim (np. wpisz Spain zamiast Hiszpania, Crete zamiast Kreta).</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-pl="Lokalizacja" data-en="Location">Location</th>
+                                <th data-pl="Kraj" data-en="Country">Country</th>
+                                <th data-pl="Region" data-en="Region">Region</th>
+                                <th data-pl="Typ" data-en="Type">Type</th>
+                                <th data-pl="Dodatkowa opłata" data-en="Extra fee">Extra fee</th>
+                                <th data-pl="Status" data-en="Status">Status</th>
+                                <th data-pl="Akcje" data-en="Actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locations-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="view-settings" class="view-section">
+                <div class="page-header"><h1 class="page-title" data-pl="Ustawienia" data-en="Settings">Settings</h1></div>
+                
+                <div class="settings-card">
+                    
+                    <div class="form-group">
+                        <label data-pl="Nazwa firmy *" data-en="Company name *">Company name *</label>
+                        <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent">
+                    </div>
+                    
+                   <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                        <label for="partnerActive" id="visibilityBox" style="cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--green); border: 2px solid #15803D; border-radius: 8px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
+                            <div style="display: flex; align-items: center; gap: 8px; pointer-events: none;">
+                                <div id="visibilityDot" style="width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); transition: all 0.3s ease;"></div>
+                                <span style="font-size: 14px; font-weight: 700; color: #ffffff; transition: all 0.3s ease;" data-pl="Widoczność profilu" data-en="Profile visibility">Profile visibility</span>
+                            </div>
+                            <div class="checkbox-group" style="margin: 0; pointer-events: none;">
+                               <input type="checkbox" id="partnerActive" checked style="transform: scale(1.2); pointer-events: auto;" onchange="togglePartnerVisibility()">
+                                <span id="visibilityText" data-pl="AKTYWNY" data-en="ACTIVE" style="font-size: 14px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; transition: all 0.3s ease;">ACTIVE</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-pl="Kraj *" data-en="Country *">Country *</label>
+                        <input type="text" id="partnerCountry" placeholder="e.g. Portugal">
+                    </div>
+                    <div class="form-group">
+                        <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
+                        <input type="text" id="partnerRegion" placeholder="e.g. Madeira">
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label data-pl="Główne miejsce odbioru" data-en="Main pickup location">Main pickup location</label>
+                        <input type="text" id="partnerPickup" placeholder="e.g. Madeira Airport / Hotel delivery">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-pl="Telefon *" data-en="Phone *">Phone *</label>
+                        <input type="tel" id="partnerPhone" placeholder="+48 000 000 000">
+                    </div>
+                    <div class="form-group">
+                        <label data-pl="Email" data-en="Email">Email</label>
+                        <input type="email" id="partnerEmail" placeholder="contact@company.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label data-pl="Telefon alarmowy" data-en="Emergency phone">Emergency phone</label>
+                        <input type="tel" id="partnerEmergency" placeholder="+48 000 000 000">
+                    </div>
+                    <div class="form-group">
+                    <label>Minimal driver age</label>
+                    <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21">
+                    </div>
+                    <div class="form-group">
+                        <label data-pl="Waluta (Zablokowana)" data-en="Currency (Locked)">Currency (Locked)</label>
+                        <div id="partnerCurrency" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: #F1F5F9; color: var(--gray); font-weight: 700; cursor: not-allowed; height: 42px; display: flex; align-items: center;">
+                            EUR
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                       <label data-pl="Pliki i dokumenty (Wymagane PDF) *" data-en="Files & documents (Required PDF) *">Files & documents (Required PDF) *</label>
+                        <div class="file-tiles">
+
+                            <label class="file-tile">
+                                <input type="file" id="avatarUpload" accept="image/*" style="display:none">
+                                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-avatar.svg'); mask-image: url('icons/icon-avatar.svg');"></div></div>
+                                <div class="file-title" data-pl="Avatar partnera" data-en="Partner avatar">Partner avatar</div>
+                                <div class="file-sub" data-pl="PNG / JPG" data-en="PNG / JPG">PNG / JPG</div>
+                            </label>
+
+                            <label class="file-tile">
+                                <input type="file" id="termsUpload" accept="application/pdf" style="display:none">
+                                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-doc.svg'); mask-image: url('icons/icon-doc.svg');"></div></div>
+                                <div class="file-title" data-pl="Warunki wynajmu" data-en="Rental terms">Rental terms</div>
+                                <div class="file-sub" data-pl="PDF" data-en="PDF">PDF</div>
+                            </label>
+
+                            <label class="file-tile">
+                                <input type="file" id="rulesUpload" accept="application/pdf" style="display:none">
+                                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-policy.svg'); mask-image: url('icons/icon-policy.svg');"></div></div>
+                                <div class="file-title" data-pl="Regulamin wypożyczalni" data-en="Rental policy">Rental policy</div>
+                                <div class="file-sub" data-pl="PDF" data-en="PDF">PDF</div>
+                            </label>
+
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label data-pl="Wgrane dokumenty" data-en="Uploaded documents">Uploaded documents</label>
+                        <div id="documentsList" class="file-tiles">
+
+                            
+
+                        </div>
+                    </div>
+
+                   <div style="grid-column: span 2; margin-top: 10px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        
+                        <button type="button" onclick="openPartnerTermsModal()" 
+                            style="padding: 12px 24px; background: #0F172A; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);"
+                            onmouseover="this.style.background='#1E293B'; this.style.transform='translateY(-1px)';" 
+                            onmouseout="this.style.background='#0F172A'; this.style.transform='translateY(0)';"
+                            data-pl="📄 Regulamin Współpracy" 
+                            data-en="📄 Partner Terms & Conditions">
+                            📄 Partner Terms & Conditions
+                        </button>
+
+                        <button type="button" class="btn-primary" onclick="savePartnerSettings()" 
+                            style="margin: 0; padding: 12px 30px; border-radius: 10px; font-size: 14px;" 
+                            data-pl="Zapisz zmiany" 
+                            data-en="Save Changes">
+                            Save Changes
+                        </button>
+                        
+                    </div>
+                    <div class="modal-overlay" id="deactivateModal">
+        <div class="modal-box" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 style="color: var(--red);" data-pl="Dezaktywacja konta" data-en="Deactivate account">Deactivate account</h2>
+                <div class="modal-close" onclick="closeDeactivateModal()">&times;</div>
+            </div>
+            <div class="modal-body" style="background: white; padding: 30px;">
+                <p style="color: var(--text); font-size: 14px; margin-top: 0; margin-bottom: 20px; line-height: 1.6;" id="deactivateText">
+                    WARNING! This action will hide your profile and vehicles. To confirm, please type the word: <strong style="color:var(--red);">delete</strong>
+                </p>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <input type="text" id="deactivateConfirmInput" placeholder="delete" style="text-align: center; font-weight: 800; border: 2px solid #FECACA; color: var(--red); font-size: 16px; letter-spacing: 1px;">
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: center; background: #FEF2F2; border-top: 1px solid #FECACA;">
+                <button class="btn-secondary" onclick="closeDeactivateModal()" data-pl="Anuluj" data-en="Cancel">Cancel</button>
+                <button class="btn-primary" style="background: var(--red);" onclick="processDeactivation()" data-pl="Potwierdź dezaktywację" data-en="Confirm deactivation">Confirm deactivation</button>
+            </div>
+        </div>
+    </div>
+                </div> <div style="max-width: 1000px; margin-top: 30px; padding: 24px; background: #FECACA; border: 1px solid #FCA5A5; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 10px 15px -3px rgba(185,28,28,0.1);">
+                    <div>
+                        <h3 style="color: #B91C1C; font-size: 16px; font-weight: 800; margin-bottom: 5px;" data-pl="Niebezpieczna strefa (Dezaktywacja)" data-en="Danger Zone (Deactivation)">Danger Zone (Deactivation)</h3>
+                        <p style="color: #991B1B; font-size: 13px; margin: 0;" data-pl="Twoje konto zostanie ukryte, a pojazdy znikną z wyszukiwarki. Dane zostaną usunięte po 30 dniach." data-en="Your account will be hidden and vehicles removed from search. Data will be deleted after 30 days.">Your account will be hidden and vehicles removed from search. Data will be deleted after 30 days.</p>
+                    </div>
+                    <button type="button" onclick="deactivatePartnerAccount()" style="background: #EF4444; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(239,68,68,0.2);" onmouseover="this.style.background='#DC2626'" onmouseout="this.style.background='#EF4444'" data-pl="Dezaktywuj konto" data-en="Deactivate account">
+                        Deactivate account
+                    </button>
+                </div>
+                
+            </div>
+         <div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-box" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2 style="color: var(--red);" data-pl="Usuwanie dokumentu" data-en="Delete document">Delete document</h2>
+            <div class="modal-close" onclick="closeDeleteModal()">&times;</div>
+        </div>
+        <div class="modal-body" style="background: white; padding: 30px; text-align: center;">
+            <div style="font-size: 50px; margin-bottom: 20px;">🗑️</div>
+            <p style="color: var(--text); font-size: 14px; line-height: 1.6;" 
+               data-pl="Czy na pewno chcesz trwale usunąć ten dokument z serwera?" 
+               data-en="Are you sure you want to permanently delete this document from the server?">
+                Are you sure you want to permanently delete this document from the server?
+            </p>
+        </div>
+        <div class="modal-footer" style="justify-content: center; background: #F8FAFC;">
+            <button class="btn-secondary" onclick="closeDeleteModal()" data-pl="Anuluj" data-en="Cancel">Cancel</button>
+            <button class="btn-primary" id="confirmDeleteBtn" style="background: var(--red);" data-pl="Usuń" data-en="Delete">Delete</button>
+        </div>
+    </div>
+</div> 
+
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="addCarModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 data-pl="Dodaj nowy pojazd" data-en="Add new vehicle">Add new vehicle</h2>
+                <div class="modal-close" onclick="closeModal()">&times;</div>
+            </div>
+            <form id="vehicleForm" class="modal-body">
+                
+                <div class="form-row" style="grid-template-columns: 240px 1fr; gap: 24px; margin-bottom: 16px;">
+                    
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Zdjęcie pojazdu" data-en="Vehicle image">Vehicle image</label>
+                        <div class="file-tiles" style="height: calc(100% - 28px);">
+                            <label class="file-tile" style="height: 100%;">
+                                <input type="file" id="vehicleImageUpload" accept="image/*" style="display:none">
+                                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg');"></div></div>
+                                <div class="file-title" data-pl="Zdjęcie pojazdu" data-en="Vehicle image">Vehicle image</div>
+                                <div class="file-sub" data-pl="PNG / JPG" data-en="PNG / JPG">PNG / JPG</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Opcje wynajmu" data-en="Rental options">Rental options</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: center; background: white; padding: 16px; border: 1px solid var(--border); border-radius: 12px; height: calc(100% - 28px); margin-top: 6px;">
+                            <label class="checkbox-group" style="margin-bottom: 0;">
+                                <input type="checkbox" id="featureNoDeposit">
+                                <span data-pl="Brak kaucji" data-en="No deposit">No deposit</span>
+                            </label>
+                            <label class="checkbox-group" style="margin-bottom: 0;">
+                                <input type="checkbox" id="featureFullInsurance">
+                                <span data-pl="Pełne ubezpieczenie" data-en="Full insurance">Full insurance</span>
+                            </label>
+                            <label class="checkbox-group" style="margin-bottom: 0;">
+                                <input type="checkbox" id="lowDeposit">
+                                <span data-pl="Niska kaucja" data-en="Low deposit">Low deposit</span>
+                            </label>
+                            <label class="checkbox-group" style="margin-bottom: 0;">
+                                <input type="checkbox" id="featureNoCreditCard">
+                                <span data-pl="Bez karty kredytowej" data-en="No credit card">No credit card</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Nazwa modelu (np. Toyota Yaris)" data-en="Model name">Model name</label>
+                        <input type="text" id="carModel" placeholder="e.g. Toyota Yaris">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Klasa auta" data-en="Car class">Car class</label>
+                        <select id="carClass">
+                            <option value="" disabled selected data-pl="Wybierz klasę" data-en="Select class">Select class</option>
+                            <option value="A">A - Economy</option>
+                            <option value="B">B - Compact</option>
+                            <option value="C">C - Sedan</option>
+                            <option value="D">D - SUV</option>
+                            <option value="E">E - Premium</option>
+                            <option value="F">F - Van / Family</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Liczba miejsc" data-en="Seats">Seats</label>
+                        <input type="number" id="carSeats" placeholder="5" min="2" max="9">
+                    </div>
+                </div>
+
+                <div class="form-row-3">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Skrzynia biegów" data-en="Transmission">Transmission</label>
+                        <select id="carTransmission">
+                            <option value="M" data-pl="M - Manualna" data-en="M - Manual">M - Manual</option>
+                            <option value="A" data-pl="A - Automatyczna" data-en="A - Automatic">A - Automatic</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Pojemność bagażnika" data-en="Luggage capacity">Luggage capacity</label>
+                        <select id="carBags">
+                            <option value="1" data-pl="1 walizka (małe auto)" data-en="1 suitcase (small car)">1 suitcase</option>
+                            <option value="2" data-pl="2 walizki (standard)" data-en="2 suitcases (standard)">2 suitcases</option>
+                            <option value="3" data-pl="3 walizki (sedan)" data-en="3 suitcases (sedan)">3 suitcases</option>
+                            <option value="4" data-pl="4 walizki (kombi/van)" data-en="4 suitcases (kombi/van)">4 suitcases</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Limit przebiegu" data-en="Mileage limit">Mileage limit</label>
+                        <label class="checkbox-group">
+                            <input type="checkbox" id="unlimitedMileage" checked onchange="toggleMileageInput()">
+                            <span data-pl="Bez limitu (Unlimited)" data-en="Unlimited mileage">Unlimited mileage</span>
+                        </label>
+                        <input type="number" id="mileageInput" placeholder="km per day" min="0" style="display: none; margin-top: 8px;">
+                    </div>
+                </div>
+
+                <div class="form-row-3" style="margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Kaucja (€) - opcjonalnie" data-en="Deposit amount (€)">Deposit amount (€)</label>
+                        <input type="number" id="carDeposit" placeholder="e.g. 200" min="0">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Rodzaj paliwa (opcjonalnie)" data-en="Fuel type (optional)">Fuel type (optional)</label>
+                        <select id="carFuel">
+                            <option value="" data-pl="Wybierz..." data-en="Select...">Select...</option>
+                            <option value="B" data-pl="B - Benzyna" data-en="B - Petrol">B - Petrol</option>
+                            <option value="D" data-pl="D - Diesel" data-en="D - Diesel">D - Diesel</option>
+                            <option value="E" data-pl="E - Elektryczny" data-en="E - Electric">E - Electric</option>
+                            <option value="H" data-pl="H - Hybryda" data-en="H - Hybrid">H - Hybrid</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Cena podstawowa za dobę" data-en="Price per day">Price per day</label>
+                        <input type="number" id="carPrice" placeholder="e.g. 40" min="0">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1; margin-top: 16px; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: #0F172A; margin: 0;">
+                        <input type="checkbox" id="carDriverIncluded" onchange="toggleDriverHours()" style="width: 20px; height: 20px; accent-color: #2563EB; cursor: pointer;">
+                        🧑 Kierowca w cenie (Driver included)
+                    </label>
+                    <p style="margin: 4px 0 0 30px; font-size: 12px; color: #64748B; font-weight: 500;">
+                        Zaznacz, jeśli to auto wynajmujesz wyłącznie wraz z usługą szofera. Oferta wyświetli się jako PREMIUM.
+                    </p>
+                    
+                    <div id="driverHoursContainer" style="display: none; margin-top: 12px; margin-left: 30px;">
+                        <label style="font-size: 13px; font-weight: 600; color: #0F172A; display: block; margin-bottom: 4px;" data-pl="Limit godzin dziennie (w cenie)" data-en="Hours per day included">Limit godzin dziennie (w cenie)</label>
+                        <input type="number" id="driverHours" placeholder="np. 8" min="1" max="24" style="width: 120px; padding: 8px 12px; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 14px; background: white;">
+                    </div>
+                </div>
+
+                <div class="form-row-3" style="margin-top: 16px; margin-bottom: 0;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Rabat partnera (%)" data-en="Partner commission (%)">Partner commission (%)</label>
+                        <div class="partner-discount-box" id="partnerDiscountForm">15%</div>
+                    </div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal()" data-pl="Anuluj" data-en="Cancel">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveVehicle()" data-pl="Dodaj auto" data-en="Add vehicle">Add vehicle</button>
+            </div>
+        </div>
+    </div>
+
+   <div class="modal-overlay" id="locationModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 data-pl="Dodaj lokalizację" data-en="Add location">Add location</h2>
+                <div class="modal-close" onclick="closeLocationModal()">&times;</div>
+            </div>
+            <div class="modal-body">
+
+                <div style="background: #FEE2E2; border: 2px solid #DC2626; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: inset 0 0 10px rgba(220, 38, 38, 0.05);">
+                    <strong style="color: #991B1B; display: block; font-size: 14px; margin-bottom: 6px; text-transform: uppercase;" data-pl="⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!" data-en="⚠️ IMPORTANT: Enter names in English ONLY!">⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!</strong>
+                    <span style="font-size: 13px; color: #991B1B; font-weight: 500;" data-pl="Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'." data-en="For the system to link locations with the search engine, type e.g., 'Greece' instead of 'Grecja', 'Rhodes' instead of 'Rodos'.">Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'.</span>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label data-pl="Nazwa lokalizacji" data-en="Location name">Location name</label>
+                        <input type="text" id="locName" placeholder="e.g. Madeira Airport (EN only)">
+                    </div>
+                    <div class="form-group">
+                        <label data-pl="Typ" data-en="Type">Type</label>
+                        <select id="locType">
+                            <option value="airport" data-pl="Lotnisko" data-en="Airport">Airport</option>
+                            <option value="city" data-pl="Miasto" data-en="City">City</option>
+                            <option value="hotel" data-pl="Dostawa pod hotel" data-en="Hotel delivery">Hotel delivery</option>
+                            <option value="office" data-pl="Biuro" data-en="Office">Office</option>
+                            <option value="custom" data-pl="Inna lokalizacja" data-en="Other location">Other location</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="position: relative;">
+    <label data-pl="Kraj" data-en="Country">Country</label>
+    <input type="text" id="locCountry" placeholder="e.g. Portugal (EN only)" autocomplete="off">
+    <div id="countryDropdown" class="autocomplete-dropdown"></div>
+</div>
+                    <div class="form-group" style="position: relative;">
+    <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
+    <input type="text" id="locRegion" placeholder="e.g. Madeira (EN only)" autocomplete="off">
+    <div id="regionDropdown" class="autocomplete-dropdown"></div>
+</div>
+                </div>
+
+                <div class="form-group" style="position: relative;">
+    <label data-pl="Miasto" data-en="City">City</label>
+    <input type="text" id="locCity" placeholder="e.g. Funchal (EN only)" autocomplete="off">
+    <div id="cityDropdown" class="autocomplete-dropdown"></div>
+</div>
+
+                <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+                    
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
+                            <input type="checkbox" id="locExtraFee" onchange="toggleExtraFeeInput()">
+                            <span data-pl="Wymagana dodatkowa opłata" data-en="Extra fee required">Extra fee required</span>
+                        </label>
+                        
+                        <div id="extraFeeAmountContainer" style="display: none; align-items: center; gap: 8px;">
+                            <input type="number" id="locExtraFeeAmount" placeholder="Kwota (np. 25)" style="width: 130px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+                            <span style="font-size: 12px; color: var(--gray);" data-pl="Puste = ustalane indyw." data-en="Empty = individual">Puste = ustalane indyw.</span>
+                        </div>
+                    </div>
+
+                    <div style="height: 1px; background: var(--border); width: 100%;"></div>
+
+                    <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
+                        <input type="checkbox" id="locContact">
+                        <span data-pl="Wymaga kontaktu z wypożyczalnią" data-en="Requires contact with rental company">Requires contact with rental company</span>
+                    </label>
+
+                </div>
+
+                <label class="checkbox-group" style="margin-top: 16px;">
+                    <input type="checkbox" id="locActive" checked>
+                    <span data-pl="Lokalizacja aktywna" data-en="Location active" style="font-weight: 700;">Location active</span>
+                </label>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeLocationModal()" data-pl="Anuluj" data-en="Cancel">Cancel</button>
+                <button class="btn-primary" onclick="saveLocation()" data-pl="Zapisz lokalizację" data-en="Save location">Save location</button>
+            </div>
+        </div>
+    </div>
+<div id="passwordModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
+        <div style="background:white; width:100%; max-width:400px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="padding: 20px 30px; border-bottom: 1px solid var(--border); background: #F8FAFC;">
+                <h2 id="pwdModalTitle" style="font-size: 18px; font-weight: 800; color: var(--text);">Security – Change Password</h2>
+                <p id="pwdModalDesc" style="font-size: 13px; color: var(--gray); margin-top: 5px; line-height: 1.5;">Update your password to secure your account.</p>
+            </div>
+            <div style="padding: 30px; display: flex; flex-direction: column; gap: 15px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;" data-pl="Nowe hasło" data-en="New Password">New Password</label>
+                    <input type="password" id="new-partner-pwd" placeholder="Min. 8 characters" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;" data-pl="Potwierdź nowe hasło" data-en="Confirm New Password">Confirm New Password</label>
+                    <input type="password" id="confirm-partner-pwd" placeholder="Repeat password" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                </div>
+
+                <div id="force-terms-group" style="display: none; margin-top: 5px;">
+                    <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--gray); cursor: pointer; line-height: 1.4;">
+                        <input type="checkbox" id="force-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
+                        <span>
+                            <span data-pl="Akceptuję" data-en="I accept">I accept</span> 
+                            <a href="javascript:void(0)" onclick="openPartnerTermsModal()" style="color: var(--blue); font-weight: 700; text-decoration: underline;" data-pl="Regulamin Współpracy B2B" data-en="B2B Terms of Cooperation">B2B Terms of Cooperation</a>
+                        </span>
+                    </label>
+                </div>
+            </div>
+            <div style="padding: 20px 30px; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 15px;">
+                <button id="cancelPwdBtn" onclick="closePasswordModal()" style="padding: 12px 24px; background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600;" data-pl="Anuluj" data-en="Cancel">Cancel</button>
+                <button onclick="updatePartnerPassword()" id="savePwdBtn" style="padding: 12px 30px; background: var(--blue); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; min-width: 160px;" data-pl="Zapisz hasło" data-en="Save Password">Save Password</button>
+            </div>
+        </div>
+    </div>
+    <div id="partnerTermsModal" style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(15,23,42,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
+        <div style="background:white; width:100%; max-width:850px; max-height:85vh; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); position:relative;">
+            <div style="padding: 20px 30px; border-bottom: 1px solid var(--border); background: #F8FAFC; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="font-size: 20px; font-weight: 800; color: var(--blue-dark); margin: 0;" data-pl="Regulamin Współpracy (Ride24)" data-en="Partner Terms of Cooperation">Partner Terms of Cooperation</h2>
+                <span onclick="closePartnerTermsModal()" style="font-size:32px; font-weight:800; color:#64748B; cursor:pointer; line-height:1;">&times;</span>
+            </div>
+            
+            <div style="padding: 30px; overflow-y: auto; color: var(--text);">
+                <div style="font-size: 14px; line-height: 1.7; color: #334155; display: flex; flex-direction: column; gap: 15px;">
+                    
+                    <div style="background: #F0F9FF; border-left: 5px solid var(--blue); padding: 15px; border-radius: 8px;">
+                        <strong data-pl="Ride24 działa jako platforma pośrednicząca (Marketplace)." data-en="Ride24 operates as an online marketplace platform.">Ride24 operates as an online marketplace platform.</strong>
+                    </div>
+                    
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§1 Charakter platformy" data-en="§1 Platform Nature">§1 Platform Nature</h3>
+                    <p data-pl="Ride24 działa jako internetowa platforma marketplace umożliwiająca wyszukiwanie oraz rezerwację usług wynajmu pojazdów oferowanych przez niezależne wypożyczalnie („Partnerów”)." data-en="Ride24 operates as an online marketplace platform that enables customers to search for and reserve vehicle rental services offered by independent rental companies (“Partners”).">Ride24 operates as an online marketplace platform that enables customers to search for and reserve vehicle rental services offered by independent rental companies (“Partners”).</p>
+                    <p data-pl="Ride24 nie świadczy usług wynajmu pojazdów i nie jest stroną umowy najmu." data-en="Ride24 does not provide vehicle rental services and is not a party to the rental agreement.">Ride24 does not provide vehicle rental services and is not a party to the rental agreement.</p>
+                    <p data-pl="Umowa najmu zawierana jest bezpośrednio pomiędzy klientem a Partnerem." data-en="The rental agreement is concluded directly between the customer and the Partner.">The rental agreement is concluded directly between the customer and the Partner.</p>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§2 Konto partnera" data-en="§2 Partner Account">§2 Partner Account</h3>
+                    <p data-pl="Ride24 udostępnia Partnerowi konto w panelu partnera platformy Ride24. Partner odpowiada za:" data-en="Ride24 provides the Partner with access to a Partner Account on the Ride24 platform. The Partner is responsible for:">Ride24 provides the Partner with access to a Partner Account on the Ride24 platform. The Partner is responsible for:</p>
+                    <ul style="padding-left: 20px;">
+                        <li data-pl="aktualność ofert" data-en="maintaining accurate information about vehicles">maintaining accurate information about vehicles</li>
+                        <li data-pl="ceny wynajmu i dostępność pojazdów" data-en="updating prices and availability">updating prices and availability</li>
+                        <li data-pl="zdjęcia oraz opisy pojazdów" data-en="uploading vehicle descriptions and photos">uploading vehicle descriptions and photos</li>
+                        <li data-pl="aktualność warunków wynajmu" data-en="maintaining valid rental terms and policies">maintaining valid rental terms and policies</li>
+                    </ul>
+                    <p data-pl="Partner gwarantuje, że wszystkie informacje opublikowane na platformie są dokładne i zgodne z prawem." data-en="The Partner guarantees that all information published on the platform is accurate and lawful.">The Partner guarantees that all information published on the platform is accurate and lawful.</p>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§3 Oferty pojazdów" data-en="§3 Vehicle Offers">§3 Vehicle Offers</h3>
+                    <p data-pl="Partner może publikować oferty wynajmu pojazdów poprzez panel partnera. Każda oferta powinna zawierać:" data-en="The Partner may publish vehicle rental offers through the Ride24 Partner Panel. Each offer must include:">The Partner may publish vehicle rental offers through the Ride24 Partner Panel. Each offer must include:</p>
+                    <ul style="padding-left: 20px;">
+                        <li data-pl="klasę pojazdu i ceny wynajmu" data-en="vehicle class and price list">vehicle class and price list</li>
+                        <li data-pl="warunki wynajmu" data-en="rental conditions">rental conditions</li>
+                        <li data-pl="lokalizację odbioru pojazdu" data-en="pickup location">pickup location</li>
+                        <li data-pl="wymagane dokumenty" data-en="required documents">required documents</li>
+                    </ul>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§4 Proces rezerwacji" data-en="§4 Reservation Process">§4 Reservation Process</h3>
+                    <p data-pl="Klient może dokonać rezerwacji poprzez platformę Ride24. Partner otrzymuje kartę rezerwacji zawierającą: dane klienta, typ pojazdu oraz daty wynajmu." data-en="Customers may create reservations through the Ride24 platform. After a reservation request is submitted, the Partner receives a reservation notification containing: reservation details, vehicle type, and customer contact data.">Customers may create reservations through the Ride24 platform. After a reservation request is submitted, the Partner receives a reservation notification containing: reservation details, vehicle type, and customer contact data.</p>
+                    <p data-pl="Partner zobowiązany jest potwierdzić lub odrzucić rezerwację w ciągu 24 godzin. Brak odpowiedzi w wymaganym czasie może skutkować automatycznym anulowaniem rezerwacji." data-en="The Partner must confirm or reject the reservation within 24 hours. Failure to respond within the required time may result in automatic cancellation of the reservation.">The Partner must confirm or reject the reservation within 24 hours. Failure to respond within the required time may result in automatic cancellation of the reservation.</p>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§5 Potwierdzenie rezerwacji" data-en="§5 Reservation Confirmation">§5 Reservation Confirmation</h3>
+                    <p data-pl="Po potwierdzeniu rezerwacji przez Partnera system generuje Voucher Ride24, a klient otrzymuje go drogą elektroniczną." data-en="Once the Partner confirms the reservation: the system generates a Ride24 Voucher and the customer receives the voucher electronically.">Once the Partner confirms the reservation: the system generates a Ride24 Voucher and the customer receives the voucher electronically.</p>
+                    <p data-pl="Partner zobowiązuje się honorować wszystkie potwierdzone vouchery wydane przez platformę Ride24." data-en="The Partner agrees to honor all confirmed vouchers issued through the Ride24 platform.">The Partner agrees to honor all confirmed vouchers issued through the Ride24 platform.</p>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§6 Prowizja / rabat dla Ride24" data-en="§6 Partner Commission / Discount">§6 Partner Commission / Discount</h3>
+                    <p data-pl="Partner udziela Ride24 stałego rabatu lub prowizji od cen standardowych pojazdów. Wysokość prowizji określana jest w panelu partnera." data-en="The Partner grants Ride24 a permanent commission or discount calculated from the standard rental prices listed in the Partner account.">The Partner grants Ride24 a permanent commission or discount calculated from the standard rental prices listed in the Partner account.</p>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§7 Odpowiedzialność partnera" data-en="§7 Partner Responsibilities">§7 Partner Responsibilities</h3>
+                    <p data-pl="Partner ponosi pełną odpowiedzialność za: realizację usługi wynajmu, stan techniczny pojazdów, ubezpieczenie oraz zgodność usług z przepisami prawa." data-en="The Partner is fully responsible for: the condition of the vehicles, the execution of the rental service, insurance coverage, and compliance with applicable laws.">The Partner is fully responsible for: the condition of the vehicles, the execution of the rental service, insurance coverage, and compliance with applicable laws.</p>
+                    <p data-pl="Ride24 nie ponosi odpowiedzialności za wykonanie usług wynajmu przez Partnera." data-en="Ride24 is not responsible for the performance of rental services by the Partner.">Ride24 is not responsible for the performance of rental services by the Partner.</p>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§8 Dane osobowe" data-en="§8 Customer Data Protection">§8 Customer Data Protection</h3>
+                    <p data-pl="Partner może otrzymywać dane osobowe klientów poprzez platformę Ride24. Partner zobowiązuje się do:" data-en="The Partner may receive customer personal data through the Ride24 platform. The Partner agrees to:">The Partner may receive customer personal data through the Ride24 platform. The Partner agrees to:</p>
+                    <ul style="padding-left: 20px;">
+                        <li data-pl="wykorzystywania danych wyłącznie w celu realizacji rezerwacji" data-en="use the data only for reservation fulfillment">use the data only for reservation fulfillment</li>
+                        <li data-pl="przestrzegania przepisów RODO (GDPR)" data-en="comply with GDPR regulations">comply with GDPR regulations</li>
+                    </ul>
+
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§9 Dokumenty rezerwacji" data-en="§9 Reservation Documents">§9 Reservation Documents</h3>
+                    <p data-pl="Klient otrzymuje dostęp do dokumentów rezerwacji w panelu Ride24. Dokumenty mogą obejmować: potwierdzenie rezerwacji, voucher, warunki wynajmu partnera oraz regulamin wypożyczalni." data-en="Customers receive access to reservation documents through their Ride24 account. Documents may include: reservation confirmation, voucher, partner rental conditions, and partner rental rules.">Customers receive access to reservation documents through their Ride24 account. Documents may include: reservation confirmation, voucher, partner rental conditions, and partner rental rules.</p>
+                    <h3 style="color: var(--blue); margin-top: 10px; font-size: 16px;" data-pl="§10 Dezaktywacja konta i usuwanie danych" data-en="§10 Account Deactivation and Data Deletion">§10 Account Deactivation and Data Deletion</h3>
+                    <p data-pl="Partner ma prawo w każdej chwili zdezaktywować swoje konto z poziomu panelu. Po potwierdzeniu dezaktywacji, oferty Partnera zostaną natychmiast ukryte w wyszukiwarce. Dane konta zostaną trwale usunięte z platformy po 30 dniach, z wyjątkiem danych niezbędnych do celów rozliczeniowych i podatkowych." data-en="The Partner has the right to deactivate their account at any time via the panel. Upon deactivation, the Partner's offers will be immediately hidden from search results. Account data will be permanently deleted from the platform after 30 days, except for data strictly required for billing and tax purposes.">The Partner has the right to deactivate their account at any time via the panel. Upon deactivation, the Partner's offers will be immediately hidden from search results. Account data will be permanently deleted from the platform after 30 days, except for data strictly required for billing and tax purposes.</p>
+                </div>
+            </div>
+            
+            <div style="padding: 20px 30px; border-top: 1px solid var(--border); background: #F8FAFC; display: flex; justify-content: flex-end;">
+                <button onclick="closePartnerTermsModal()" style="padding: 10px 24px; background: var(--blue); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;" data-pl="Zrozumiałem" data-en="I understand">I understand</button>
+            </div>
+        </div>
+    </div>
+    <div id="toast-container"></div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/helper/supabaseConfig.js"></script>
+
+    <script>
+        
+        function getCurrencySymbol(currency) {
+    switch ((currency || '').toUpperCase()) {
+        case 'USD': return '$';
+        case 'EUR': return '€';
+        case 'PLN': return 'zł';
+        case 'GBP': return '£';
+        default: return currency;
+    }
+}
+       function createDocTile(title, url, type) {
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            
+            // Przygotowujemy tłumaczenia tytułów w zależności od typu dokumentu
+            let titlePl = title;
+            let titleEn = title;
+            
+            if (type === "terms") {
+                titlePl = "Warunki wynajmu (PDF)";
+                titleEn = "Rental Terms (PDF)";
+            } else if (type === "rules") {
+                titlePl = "Regulamin wypożyczalni (PDF)";
+                titleEn = "Rental Policy (PDF)";
+            }
+
+            const displayTitle = isEn ? titleEn : titlePl;
+            const viewTxt = isEn ? "View" : "Podgląd";
+            const delTxt = isEn ? "Delete" : "Usuń";
+
+            return `
+                <div class="file-tile" style="cursor:default; background:#F8FAFC; width: 100%; max-width: 280px;">
+                    <div class="file-icon">
+                        <div class="icon-mask" style="-webkit-mask-image: url('icons/icon-doc.svg'); mask-image: url('icons/icon-doc.svg'); background-color: var(--blue);"></div>
+                    </div>
+                    <div class="file-title" style="word-break: break-all;" data-pl="${titlePl}" data-en="${titleEn}">${displayTitle}</div>
+                    <div class="file-actions">
+                        <a href="${url}" target="_blank" class="file-edit" style="text-decoration:none; font-weight:700;" data-pl="Podgląd" data-en="View">${viewTxt}</a>
+                        <span class="file-delete" style="color:var(--red); font-weight:700; cursor:pointer;" onclick="deleteDocument('${type}')" data-pl="Usuń" data-en="Delete">${delTxt}</span>
+                    </div>
+                </div>
+            `;
+        }
+        let documentToDelete = null;
+
+window.deleteDocument = function(type) {
+    documentToDelete = type;
+    const modal = document.getElementById("deleteConfirmModal");
+    modal.classList.add("active");
+    
+    const lang = localStorage.getItem("partner_lang") || "en";
+    modal.querySelectorAll("[data-pl]").forEach(el => {
+        if(el.dataset[lang]) el.innerHTML = el.dataset[lang];
+    });
+
+    document.getElementById("confirmDeleteBtn").onclick = () => executeDelete();
+};
+
+window.closeDeleteModal = function() {
+    document.getElementById("deleteConfirmModal").classList.remove("active");
+    documentToDelete = null;
+};
+
+async function executeDelete() {
+    if (!documentToDelete) return;
+    const type = documentToDelete;
+    const isEn = localStorage.getItem("partner_lang") === "en";
+    const btn = document.getElementById("confirmDeleteBtn");
+    
+    btn.disabled = true;
+    btn.innerText = "...";
+
+    try {
+        const { data: { session } } = await db.auth.getSession();
+        const userId = session.user.id;
+        const columnName = type === "terms" ? "rental_terms_url" : "rental_rules_url";
+        const fileName = type === "terms" ? "terms.pdf" : "rules.pdf";
+
+        await db.from("partners").update({ [columnName]: null }).eq("user_id", userId);
+        await db.storage.from("partner-documents").remove([`${userId}/${fileName}`]);
+
+        window.showToast(isEn ? "Document removed." : "Dokument został usunięty.", "success");
+        closeDeleteModal();
+        await loadPartnerSettings(userId);
+    } catch (err) {
+        console.error(err);
+        window.showToast("Error", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = isEn ? "Delete" : "Usuń";
+    }
+}
+        const db = window.supabaseClient;
+        let currentPartnerCurrency = "EUR"; // Globalna zmienna przechowująca walutę partnera
+
+        // --- AUTH GUARD & LOAD ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            const { data: { session } } = await db.auth.getSession();
+            
+            if (!session) {
+                window.location.href = "index.html"; 
+                return;
+            }
+
+            const { data: profile, error: profileError } = await db
+                .from("profiles")
+                .select("role, must_change_password")
+                .eq("id", session.user.id)
+                .single();
+
+            if (profileError || !profile || profile.role !== "partner") {
+                window.location.href = "index.html";
+                return;
+            }
+
+          // POBRANIE FLAGI KOMPLETNOŚCI PROFILU I STATUSU KONTA
+            const { data: partner } = await db
+                .from("partners")
+                .select("profile_completed, account_status")
+                .eq("user_id", session.user.id)
+                .single();
+                if(partner?.avatar_url){
+document.getElementById("partnerAvatar").src = partner.avatar_url
+}
+
+            // TWARDA BLOKADA DLA ZDEZAKTYWOWANYCH KONT
+            if (partner?.account_status === "disabled") {
+                await db.auth.signOut();
+                // Dodajemy parametr msg, żeby strona logowania mogła pokazać ładnego Toasta
+                window.location.href = "index.html?msg=account_disabled"; 
+                return;
+            }
+
+            const isProfileCompleted = partner?.profile_completed ?? false;
+
+            // Aktualizacja 'last_seen' w tle
+            db.from('partners').update({ last_seen: new Date().toISOString() }).eq('user_id', session.user.id).then();
+
+            // 1. SPRAWDZENIE BLOKADY HASŁA (Priorytet najwyższy)
+            if (profile.must_change_password) {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.style.opacity = "0.3";
+                    item.style.pointerEvents = "none";
+                });
+                openPasswordModal(true);
+                window.showToast("Password change required!", "error");
+            } 
+            // 2. BLOKADA NIEKOMPLETNEGO PROFILU (Krok 4 i 5)
+            else if (!isProfileCompleted) {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    if (item.id !== 'nav-settings') {
+                        item.style.opacity = "0.3";
+                        item.style.pointerEvents = "none";
+                    }
+                });
+                switchTab('settings');
+                const isEn = localStorage.getItem("partner_lang") === "en";
+                setTimeout(() => {
+                    window.showToast(isEn ? "Complete your profile to unlock the panel." : "Uzupełnij profil i wgraj dokumenty, aby odblokować panel.", "error");
+                }, 500);
+            }
+
+            console.log("Partner logged in:", session.user.email);
+            detectLang();
+            handleDepositOptions();
+            initDocUploadListeners();
+            bindVehicleUpload();
+            
+            // WCZYTANIE USTAWIEŃ
+            await loadPartnerSettings(session.user.id);
+            await loadDashboard();
+            await loadPartnerBookings();
+            await loadFleet();
+            await loadLocations();
+        });
+
+        // --- STATUS WIDOCZNOŚCI ---
+        window.updateVisibilityUI = function() {
+            setTimeout(() => {
+                const checkbox = document.getElementById('partnerActive');
+                const box = document.getElementById('visibilityBox');
+                const text = document.getElementById('visibilityText');
+                const dot = document.getElementById('visibilityDot');
+                const isEn = localStorage.getItem('partner_lang') === 'en';
+
+                if (checkbox.checked) {
+                    box.style.background = 'var(--green)'; 
+                    box.style.borderColor = '#15803D'; 
+                    box.style.boxShadow = '0 4px 12px rgba(22, 163, 74, 0.4)';
+                    if(dot) { dot.style.background = '#ffffff'; dot.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.3)'; }
+                    text.innerText = isEn ? 'ACTIVE' : 'AKTYWNY';
+                    text.setAttribute('data-pl', 'AKTYWNY');
+                    text.setAttribute('data-en', 'ACTIVE');
+                } else {
+                    box.style.background = 'var(--red)'; 
+                    box.style.borderColor = '#B91C1C'; 
+                    box.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                    if(dot) { dot.style.background = '#ffffff'; dot.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.3)'; }
+                    text.innerText = isEn ? 'HIDDEN' : 'UKRYTY';
+                    text.setAttribute('data-pl', 'UKRYTY');
+                    text.setAttribute('data-en', 'HIDDEN');
+                }
+            }, 10);
+        };
+
+        // --- UI LOGIC ---
+        function setLang(lang) {
+            localStorage.setItem("partner_lang", lang);
+            document.querySelectorAll("[data-pl]").forEach(el => {
+                if(el.dataset[lang]) el.innerHTML = el.dataset[lang];
+            });
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
+            document.getElementById('lang-' + lang).classList.add('active-lang');
+        }
+
+        // --- WCZYTYWANIE USTAWIEŃ (LOAD) ---
+        async function loadPartnerSettings(userId){
+    const { data, error } = await db
+        .from("partners")
+        .select("company_name, country, region, phone, emergency_phone, currency, active, discount_percent, currency_locked, avatar_url, rental_terms_url, rental_rules_url, min_driver_age")
+
+        .eq("user_id", userId)
+        .single();
+
+    if(data){
+        // --- TO JEST TWOJA ZMIANA (KROK 2) ---
+        currentPartnerCurrency = data.currency || "EUR"; 
+        // ------------------------------------
+
+        if(data.company_name) {
+            document.getElementById("partnerCompany").value = data.company_name;
+            document.getElementById("partnerNameDisplay").innerText = data.company_name; 
+        }
+                if(data.avatar_url) {
+                    document.getElementById("partnerAvatar").src = data.avatar_url;
+                }
+                
+                // DYNAMICZNE WYŚWIETLANIE WGRANYCH DOKUMENTÓW
+                const docList = document.getElementById("documentsList");
+                if (docList) {
+                    docList.innerHTML = ""; // Czyścimy statyczny przykład
+                    if (data.rental_terms_url) docList.innerHTML += createDocTile("Rental Terms (PDF)", data.rental_terms_url, "terms");
+                    if (data.rental_rules_url) docList.innerHTML += createDocTile("Rental Policy (PDF)", data.rental_rules_url, "rules");
+                }
+
+                if(data.country) document.getElementById("partnerCountry").value = data.country;
+                if(data.region) document.getElementById("partnerRegion").value = data.region;
+                if(data.phone) document.getElementById("partnerPhone").value = data.phone;
+                if(data.emergency_phone) document.getElementById("partnerEmergency").value = data.emergency_phone;
+                if(data.min_driver_age){
+    document.getElementById("partner-min-age").value = data.min_driver_age;
+}
+                
+                if(data.currency) {
+                    document.getElementById("partnerCurrency").innerText = data.currency;
+                }
+                
+                const activeCheckbox = document.getElementById("partnerActive");
+                if (activeCheckbox) {
+                    activeCheckbox.checked = data.active;
+                    updateVisibilityUI();
+                }
+
+                const commission = data.discount_percent !== null && data.discount_percent !== undefined ? data.discount_percent : 15;
+                setPartnerCommission(commission);
+            }
+        }
+
+        // --- ZAPISYWANIE USTAWIEŃ DO BAZY (SAVE) ---
+        async function savePartnerSettings(){
+            // Wyłapujemy przycisk, aby zablokować go na czas zapisu
+            const btn = document.querySelector(".settings-card button.btn-primary");
+            if(btn) { btn.disabled = true; btn.innerText = "Zapisywanie..."; }
+
+           try {
+                const { data: { session } } = await db.auth.getSession();
+                if(!session) return;
+
+                const company = document.getElementById("partnerCompany").value.trim();
+                const country = document.getElementById("partnerCountry").value.trim();
+                const region = document.getElementById("partnerRegion").value.trim();
+                const phone = document.getElementById("partnerPhone").value.trim();
+                const emergency = document.getElementById("partnerEmergency").value.trim();
+            
+                const isEn = localStorage.getItem("partner_lang") === "en";
+
+                // KROK 6: WALIDACJA PÓL
+                if (!company || !country || !phone) {
+                    window.showToast(isEn ? "Please fill in all required fields (*)." : "Wypełnij wszystkie wymagane pola (*).", "error");
+                    if(btn) { btn.disabled = false; btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany"; }
+                    return;
+                }
+
+                // KROK 7: WALIDACJA DOKUMENTÓW PDF
+                const { data: docCheck } = await db
+                    .from("partners")
+                    .select("rental_terms_url, rental_rules_url")
+                    .eq("user_id", session.user.id)
+                    .single();
+
+                if (!docCheck?.rental_terms_url || !docCheck?.rental_rules_url) {
+                    window.showToast(isEn ? "Please upload both required PDF documents." : "Musisz wgrać oba wymagane dokumenty PDF (Warunki i Regulamin).", "error");
+                    if(btn) { btn.disabled = false; btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany"; }
+                    return;
+                }
+
+                // KROK 8: ZBIERANIE DANYCH + ODBLOKOWANIE PANELU
+                const minAgeInput = document.getElementById("partner-min-age").value;
+
+console.log("🔥 MIN AGE INPUT:", minAgeInput);
+
+const updateData = {
+    company_name: company,
+    country: country,
+    region: region,
+    phone: phone,
+    emergency_phone: emergency,
+    min_driver_age: minAgeInput ? parseInt(minAgeInput) : null,
+    profile_completed: true
+};
+
+                const { data, error } = await db
+                    .from("partners")
+                    .update(updateData)
+                    .eq("user_id", session.user.id)
+                    .select();
+
+                if(error) throw error;
+                if(!data || data.length === 0) throw new Error("Błąd zapisu do bazy.");
+
+                window.showToast(isEn ? "Settings saved! Panel unlocked." : "Ustawienia zapisane! Panel odblokowany.", "success");
+                
+                // KROK 9: RESTART PANELU
+                setTimeout(() => location.reload(), 1500);
+
+            } catch(err) {
+                console.error(err);
+                alert("Błąd zapisu: " + err.message);
+                if(btn) { 
+                    btn.disabled = false; 
+                    const isEn = localStorage.getItem("partner_lang") === "en";
+                    btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany"; 
+                }
+            }
+        }
+
+        // --- ZAPISYWANIE WIDOCZNOŚCI (ACTIVE/HIDDEN) ---
+        window.togglePartnerVisibility = async function() {
+            const checkbox = document.getElementById('partnerActive');
+            const isActive = checkbox.checked;
+            const isEn = localStorage.getItem('partner_lang') === 'en';
+            
+            try {
+                const { data: { session } } = await db.auth.getSession();
+                
+                const { data, error } = await db.from("partners")
+                    .update({ active: isActive })
+                    .eq("user_id", session.user.id)
+                    .select();
+                
+                if (error) throw error;
+                if (!data || data.length === 0) throw new Error("Brak uprawnień do zmiany statusu!");
+                
+                window.showToast(isEn ? "Visibility updated." : "Zaktualizowano widoczność.", "success");
+                updateVisibilityUI(); 
+            } catch (err) {
+                console.error(err);
+                window.showToast(isEn ? "Error: " + err.message : "Błąd: " + err.message, "error");
+                checkbox.checked = !isActive; // Cofnij wizualnie błąd
+                updateVisibilityUI();
+            }
+        };
+
+
+
+        // --- FEATURES JSON ---
+        function collectFeatures(){
+            return {
+                noDeposit: document.getElementById("featureNoDeposit").checked,
+                fullInsurance: document.getElementById("featureFullInsurance").checked,
+                noCreditCard: document.getElementById("featureNoCreditCard").checked,
+                driverHours: document.getElementById("driverHours").value || "" 
+            }
+        }
+
+        async function saveVehicle() {
+            const btn = document.querySelector("#addCarModal .btn-primary");
+            btn.disabled = true;
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            btn.innerText = isEn ? "Saving..." : "Zapisywanie...";
+
+            try {
+                const { data: { session } } = await db.auth.getSession();
+                const { data: partner } = await db.from("partners").select("id").eq("user_id", session.user.id).single();
+                if (!partner) throw new Error("Nie znaleziono profilu partnera.");
+
+                const model = document.getElementById("carModel").value;
+                const class_code = document.getElementById("carClass").value;
+                const seats = parseInt(document.getElementById("carSeats").value) || 5;
+                const transmission = document.getElementById("carTransmission").value;
+                const bags = parseInt(document.getElementById("carBags").value) || 2;
+                const driverIncluded = document.getElementById("carDriverIncluded").checked;
+                
+                const unlimited = document.getElementById("unlimitedMileage").checked;
+                const mileage_limit = unlimited ? null : parseInt(document.getElementById("mileageInput").value);
+                
+                const deposit_amount = parseFloat(document.getElementById("carDeposit").value) || 0;
+                const fuel_type = document.getElementById("carFuel").value;
+                const base_price = parseFloat(document.getElementById("carPrice").value);
+                const commissionPercent = parseInt(document.getElementById("partnerDiscount").innerText) || 15;
+
+                const partner_net_price = base_price * (1 - (commissionPercent / 100));
+                const final_customer_price = base_price * 1.10;
+
+                if (!base_price || base_price <= 0) throw new Error(isEn ? "Price must be > 0" : "Cena musi być większa od 0");
+
+                // --- UPLOAD ZDJĘCIA (Z KOMPRESJĄ) ---
+                const fileInput = document.getElementById("vehicleImageUpload");
+                let file = fileInput?.files?.[0];
+                let imageUrl = null;
+                const imageTile = document.getElementById("vehicleImageUpload").closest(".file-tile");
+
+                if(file){
+                    try { file = await compressImage(file, 1024, 0.8); } catch (err) {}
+                    const filePath = `${partner.id}/${Date.now()}-${file.name}`;
+                    const { error:uploadError } = await db.storage.from("vehicle-images").upload(filePath, file);
+                    if(uploadError) throw new Error("Błąd wgrywania zdjęcia");
+                    
+                    const { data } = db.storage.from("vehicle-images").getPublicUrl(filePath);
+                    imageUrl = data.publicUrl;
+                } else if (window.currentEditingVehicleId && imageTile.dataset.existingImage) {
+                    // JEŚLI EDYTUJEMY I NIE WGRANO NOWEGO ZDJĘCIA -> Zachowaj stare zdjęcie!
+                    imageUrl = imageTile.dataset.existingImage;
+                }
+
+                // PAKIET DANYCH DO WYSŁANIA
+                const vehicleData = {
+                    partner_id: partner.id,
+                    class_code: class_code,
+                    description: model,
+                    public_price: base_price,
+                    partner_net_price: partner_net_price,
+                    final_customer_price: final_customer_price,
+                    transmission: transmission,
+                    seats: seats,
+                    bags: bags,
+                    mileage_limit: mileage_limit,
+                    deposit_amount: deposit_amount,
+                    fuel_type: fuel_type,
+                    active: true,
+                    features: collectFeatures(),
+                    image: imageUrl,
+                    driver_included: driverIncluded
+                };
+
+                // DECYZJA: UPDATE CZY INSERT?
+                if (window.currentEditingVehicleId) {
+                    const { error } = await db.from("car_classes").update(vehicleData).eq("id", window.currentEditingVehicleId);
+                    if (error) throw error;
+                    window.showToast(isEn ? "Vehicle updated!" : "Pojazd zaktualizowany!", "success");
+                } else {
+                    const { error } = await db.from("car_classes").insert([vehicleData]);
+                    if (error) throw error;
+                    window.showToast(isEn ? "Vehicle added!" : "Pojazd dodany do floty!", "success");
+                }
+
+                closeModal();
+                await loadFleet(); // Odśwież widok tabeli
+                
+            } catch (err) {
+                console.error("Błąd zapisu:", err);
+                window.showToast("Błąd: " + err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = window.currentEditingVehicleId 
+                    ? (isEn ? "Save changes" : "Zapisz zmiany") 
+                    : (isEn ? "Add vehicle" : "Dodaj auto");
+            }
+        }
+
+       // --- DASHBOARD STATYSTYKI ---
+        async function loadDashboard() {
+            const { data: { session } } = await db.auth.getSession();
+
+            // 1. Pobieramy ID oraz walutę prosto z profilu partnera
+            const { data: partner } = await db
+                .from("partners")
+                .select("id, currency") 
+                .eq("user_id", session.user.id)
+                .single();
+
+            const { data, error } = await db
+    .from("bookings")
+    .select(`
+        id,
+        status,
+        start_date,
+        end_date,
+        pickup_location,
+        return_location,
+
+        main_driver_name,
+        main_driver_age,
+        add_driver_name,
+        add_driver_age,
+
+        client_phone,
+        client_email,
+
+        partner_net_price_snapshot,
+        partner_currency
+    `)
+    .eq("partner_id", partner.id)
+    .in("status", ["pending", "awaiting_payment", "paid"]);
+
+            if (error) return console.error("Błąd ładowania statystyk:", error);
+
+            const pending = data.filter(b => b.status === "pending").length;
+            const awaiting = data.filter(b => b.status === "awaiting_payment").length;
+            const paid = data.filter(b => b.status === "paid").length;
+
+            const revenue = data
+                .filter(b => b.status === "paid")
+                .reduce((sum, b) => sum + (b.partner_net_price_snapshot || 0), 0);
+
+            // 2. Idealna logika waluty (Snapshot z bookingów LUB profil partnera)
+            const displayCurrency = 
+                data && data.length > 0 
+                    ? data[0].partner_currency 
+                    : partner.currency || "EUR";
+
+            document.getElementById("statPending").innerText = pending;
+            document.getElementById("statAwaiting").innerText = awaiting;
+            document.getElementById("statPaid").innerText = paid;
+            document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + displayCurrency;
+        }
+
+        // --- LISTA REZERWACJI ---
+        async function loadPartnerBookings() {
+            // 🔥 TWOJA NOWA FUNKCJA AUTO CLEAN
+            const cleanExpiredBookings = async (bookings) => {
+                const now = new Date();
+                
+                const expiredIds = bookings
+                    .filter(b => 
+                        b.status === 'awaiting_payment' &&
+                        b.payment_deadline &&
+                        new Date(b.payment_deadline) < now
+                    )
+                    .map(b => b.id);
+
+                if (expiredIds.length > 0) {
+                    await db
+                        .from('bookings')
+                        .update({ status: 'payment_expired' })
+                        .in('id', expiredIds)
+                        .eq('status', 'awaiting_payment');
+                        
+                    return true; 
+                }
+                return false;
+            };
+
+            const dashTbody = document.getElementById('dashboard-requests-tbody');
+            const bookTbody = document.getElementById('bookings-list-tbody');
+
+            // Zmiana colspan na 7, bo doszła kolumna lokalizacji
+            if(dashTbody) dashTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Ładowanie zapytań...</td></tr>';
+            if(bookTbody) bookTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Ładowanie rezerwacji...</td></tr>';
+
+            const { data: { session } } = await db.auth.getSession();
+
+            const { data: partner } = await db
+                .from("partners")
+                .select("id")
+                .eq("user_id", session.user.id)
+                .single();
+
+            // Czytamy z bezpiecznego widoku SQL
+            const { data, error } = await db
+                .from("safe_partner_bookings")
+.select(`
+    id,
+    start_date,
+    end_date,
+    status,
+    pickup_location,
+    return_location,
+    partner_response_deadline,
+    payment_deadline,
+    created_at,
+
+    car_classes(class_code,description),
+
+    client_phone,
+    client_email,
+    main_driver_name,
+    main_driver_age,
+    add_driver_name,
+    add_driver_age,
+
+    pickup_payment_partner_currency,
+    partner_currency
+`)
+                .eq("partner_id", partner.id)
+                .in("status", ["pending", "awaiting_payment", "paid"])
+                .order("created_at", { ascending: false });
+
+            if(error) {
+                console.error(error);
+                if(dashTbody) dashTbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
+                if(bookTbody) bookTbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
+                return;
+            }
+
+            // 🔥 WYWOŁANIE AUTO CLEAN PO POBRANIU DANYCH
+            const wasCleaned = await cleanExpiredBookings(data);
+            if (wasCleaned) {
+                // Jeśli coś wyczyszczono, przerywamy i ładujemy funkcję od nowa z czystymi danymi
+                return loadPartnerBookings(); 
+            }
+
+            if(dashTbody) dashTbody.innerHTML = "";
+            if(bookTbody) bookTbody.innerHTML = "";
+
+            const navBadge = document.querySelector('#nav-bookings .badge');
+            const topBadge = document.getElementById('notification-badge');
+
+            if (!data || data.length === 0) {
+                if(dashTbody) dashTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gray);">Brak nowych zapytań.</td></tr>';
+                if(bookTbody) bookTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gray);">Brak rezerwacji w systemie.</td></tr>';
+                if(navBadge) navBadge.style.display = 'none';
+                if(topBadge) topBadge.style.display = 'none';
+                return;
+            }
+
+            let pendingCount = 0; 
+
+            data.forEach(booking => {
+                console.log("BOOKING:", booking);
+                if(booking.status === "pending") pendingCount++;
+                
+               let statusHtml = "";
+
+if (booking.status === "pending") {
+    statusHtml = '<span class="status pending">Pending</span>';
+}
+else if (booking.status === "awaiting_payment") {
+    statusHtml = '<span class="status awaiting_payment">Awaiting client confirmation</span>';
+}
+else if (booking.status === "paid") {
+    statusHtml = '<span class="status paid">Paid</span>';
+}
+else if (booking.status === "rejected") {
+    statusHtml = '<span class="status rejected">Rejected</span>';
+}
+else if (booking.status === "payment_expired") {
+    statusHtml = '<span class="status inactive">Payment expired</span>';
+}
+
+let actions = "";
+const s = booking.status;
+
+if (s === "pending") {
+
+    actions = `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="btn-confirm" onclick="acceptBooking('${booking.id}', this)">
+        ACCEPT
+    </button>
+    <button class="btn-cancel" onclick="rejectBooking('${booking.id}', this)">
+        REJECT
+    </button>
+</div>
+    `;
+
+}
+else if (s === "awaiting_payment") {
+
+    actions = `
+        <span style="font-size:12px;color:var(--gray);font-weight:600;">
+            Waiting for client confirmation
+        </span>
+    `;
+
+}
+else if (s === "paid") {
+
+    actions = `
+        <span style="font-size:12px;color:var(--green);font-weight:700;">
+            Paid ✅
+        </span>
+    `;
+
+}
+else if (s === "rejected") {
+
+    actions = `
+        <span style="font-size:12px;color:var(--red);font-weight:700;">
+            Rejected
+        </span>
+    `;
+
+}
+else {
+
+    actions = `
+        <span style="font-size:12px;color:var(--gray);font-weight:600;">
+            Closed
+        </span>
+    `;
+
+}
+
+                // Bezpieczne dane GŁÓWNEGO kierowcy z widoku SQL
+                // 🔥 PEWNE WYCIĄGANIE IMIENIA (fallback)
+                
+const clientName =
+    booking.main_driver_name ||
+    booking.client_name ||
+    booking.full_name ||
+    booking.name ||
+    "Client";
+
+// 🔥 WIEK (jeśli istnieje)
+const ageValue = Number(booking.main_driver_age);
+
+const clientAge = !isNaN(ageValue) && ageValue > 0
+    ? `<span class="client-age">${ageValue} yo</span>`
+    : "";
+                // 🔥 Wyświetlanie DODATKOWEGO kierowcy
+                let extraDriverHtml = "";
+                if (booking.add_driver_name) {
+                    extraDriverHtml = `
+                        <div style="font-size: 11px; color: var(--gray); margin-top: 4px; font-weight: 600;">
+                            <span style="color: var(--blue);">+</span> ${booking.add_driver_name} (${booking.add_driver_age || '?'} yo)
+                        </div>
+                    `;
+                }
+
+                const carCode = booking.car_classes?.class_code || "?";
+                const carDesc = booking.car_classes?.description || "";
+                
+                // Kłódki chroniące dane przed płatnością
+                // 🔒 LOGIKA WIDOCZNOŚCI DANYCH KLIENTA
+let contactDisplay = "";
+
+if (booking.status === "paid") {
+
+    // ✅ PO OPŁACENIU – pokazujemy dane
+    contactDisplay = `
+        <div style="font-size:12px; line-height:1.4; margin-top:4px;">
+            <span style="color:var(--gray);">📞</span> ${booking.client_phone || "-"}<br>
+            <span style="color:var(--gray);">✉️</span> ${booking.client_email || "-"}
+        </div>
+    `;
+
+} else {
+
+    // 🔒 PRZED OPŁACENIEM – ukryte
+    contactDisplay = `
+        <div style="font-size:11px; color:var(--gray); margin-top:4px; font-weight:600;">
+            🔒 Contact visible after confirmation
+        </div>
+    `;
+
+}
+                
+                // NOWOŚĆ: Wyciągnięcie lokalizacji z połączonej tabeli (lub wyświetlenie braku danych)
+const pLoc = booking.pickup_location || "---";
+const dLoc = booking.return_location || pLoc;
+
+const locationDisplay = `
+    <div style="font-size:12px; line-height:1.4;">
+        <span style="color:#16A34A; font-weight:800;">O:</span> ${pLoc}<br>
+        <span style="color:#F97316; font-weight:800;">Z:</span> ${dLoc}
+    </div>
+`;
+
+                // Tabela w zakładce Bookings
+               const pickupAmount = Number(booking.pickup_payment_partner_currency || 0).toFixed(2);
+const currency = getCurrencySymbol(booking.partner_currency || 'USD');
+
+const rowHtml = `
+    <tr class="clickable-row">
+        <td style="font-weight: 700;">#R24-${booking.id.toString().slice(-4)}</td>
+
+       <td>
+    <div style="font-weight: 700;">${clientName} ${clientAge}</div>
+    ${extraDriverHtml}
+    ${contactDisplay}
+</td>
+
+<td>
+    <span class="class-code">${carCode}</span>
+    <span class="class-label">${carDesc}</span>
+</td>
+
+        <td>${locationDisplay}</td>
+
+        <td>${statusHtml}</td>
+
+        <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+
+        <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
+        <td style="font-weight:800; color:#16A34A; white-space:nowrap;">
+            ${pickupAmount} ${currency}
+        </td>
+
+        <!-- AKCJE -->
+        <td>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                ${actions}
+                ${
+                    booking.status === "pending"
+                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline}" style="margin-top: 4px;">
+                        ⌛ --:--:--
+                       </span>`
+                    : ""
+                }
+            </div>
+        </td>
+    </tr>
+`;
+
+                if(bookTbody) bookTbody.innerHTML += rowHtml;
+
+                // Tabela na Dashboard (tylko oczekujące)
+if (booking.status === "pending" && dashTbody) {
+
+    const timerHtml = `
+        <span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline}">
+            ⌛ --:--:--
+        </span>
+    `;
+
+   const dashRowHtml = `
+    <tr class="clickable-row">
+        <td>
+            <div style="font-weight: 700;">
+            ${clientName} ${clientAge} <span class="badge-new">NEW</span>
+            </div>
+            ${extraDriverHtml}
+            ${contactDisplay}
+        </td>
+
+        <td>
+            <span class="class-code">${carCode}</span>
+            <span class="class-label">${carDesc}</span>
+        </td>
+
+        <td>${locationDisplay}</td>
+
+        <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+
+        <td>${statusHtml}</td>
+
+        <td>${timerHtml}</td>
+
+        <!-- 🔥 NOWA KOLUMNA -->
+        <td style="font-weight:800; color:#16A34A; white-space:nowrap;">
+            ${pickupAmount} ${currency}
+        </td>
+
+        <td>${actions}</td>
+    </tr>
+`;
+
+    dashTbody.innerHTML += dashRowHtml;
+}
+            });
+
+// --- TIMER 24H (PARTNER RESPONSE) ---
+if (!window.partnerTimerRunning) {
+    window.partnerTimerRunning = true;
+
+    setInterval(() => {
+    document.querySelectorAll('.countdown-timer').forEach(el => {
+        const deadlineStr = el.getAttribute('data-deadline');
+
+        if (!deadlineStr || deadlineStr === "null" || deadlineStr === "undefined") {
+            el.innerHTML = "⌛ Brak danych";
+            return;
+        }
+
+        const deadline = new Date(deadlineStr).getTime();
+
+        if (isNaN(deadline)) {
+            el.innerHTML = "⌛ Błąd";
+            return;
+        }
+
+        const now = new Date().getTime();
+        const diff = deadline - now;
+
+        if (diff <= 0) {
+            el.innerHTML = "⌛ Expired";
+            el.style.color = "var(--gray)";
+            el.classList.remove("timer-urgent");
+            return;
+        }
+
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+        const format = v => v < 10 ? '0' + v : v;
+
+        el.innerHTML = `⌛ ${format(h)}:${format(m)}:${format(s)}`;
+
+        if (h < 2) el.classList.add("timer-urgent");
+    });
+}, 1000);
+}
+
+            if (pendingCount > 0) {
+                if(navBadge) { navBadge.innerText = pendingCount; navBadge.style.display = 'block'; }
+                if(topBadge) { topBadge.innerText = pendingCount; topBadge.style.display = 'flex'; }
+            } else {
+                if(navBadge) navBadge.style.display = 'none';
+                if(topBadge) topBadge.style.display = 'none';
+            }
+        }
+
+        // --- ACCEPT / REJECT ---
+window.acceptBooking = async function(id, btnElement) {
+    btnElement.disabled = true;
+    btnElement.innerText = "...";
+    const isEn = localStorage.getItem("partner_lang") === "en";
+
+    try {
+        // 1. deadline 24h
+        const paymentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+        // 2. update booking (🔥 poprawione)
+        const { error } = await db
+            .from('bookings')
+            .update({ 
+                status: 'awaiting_payment',
+                payment_deadline: paymentDeadline
+            })
+            .eq('id', id)
+            .eq('status', 'pending');
+
+        if (error) throw error;
+
+        // 3. sukces
+        window.showToast(
+            isEn 
+            ? "Booking accepted! The client has 24h to confirm the reservation." 
+            : "Rezerwacja zaakceptowana! Klient ma 24h na potwierdzenie rezerwacji.", 
+            "success"
+        );
+        
+        await loadPartnerBookings();
+        await loadDashboard();
+
+    } catch (err) {
+        console.error("Błąd akceptacji:", err);
+        alert(isEn ? "Error: " + err.message : "Błąd: " + err.message);
+    } finally {
+        btnElement.disabled = false;
+        btnElement.innerText = isEn ? "Accept" : "Akceptuj";
+    }
+}
+
+        window.rejectBooking = async function(id, btnElement) {
+            btnElement.disabled = true;
+            btnElement.innerText = "...";
+
+            const { error } = await db
+                .from("bookings")
+                .update({ status: "rejected" })
+                .eq("id", id)
+                .eq("status", "pending");
+
+            if (error) {
+                alert("Błąd: " + error.message);
+                btnElement.disabled = false;
+                btnElement.innerText = "Reject";
+                return;
+            }
+
+            window.showToast("Rezerwacja odrzucona.", "error");
+            await loadPartnerBookings();
+            await loadDashboard();
+        }
+
+        // --- FLOTA ---
+        async function loadFleet() {
+            const tbody = document.getElementById("fleet-list-tbody");
+            if(!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Ładowanie floty...</td></tr>';
+
+            const { data: { session } } = await db.auth.getSession();
+
+const { data: partner } = await db
+    .from("partners")
+    .select("id")
+    .eq("user_id", session.user.id)
+    .single();
+
+const { data, error } = await db
+    .from("car_classes")
+    .select("*")
+    .eq("partner_id", partner.id)
+    .order("created_at", { ascending: false });
+
+            if (error) {
+                console.error("Błąd ładowania floty:", error);
+                tbody.innerHTML = '<tr><td colspan="10" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: var(--gray);">Brak pojazdów we flocie. Dodaj pierwsze auto!</td></tr>';
+                return;
+            }
+
+            data.forEach(car => {
+                const tr = document.createElement("tr");
+                tr.className = "clickable-row";
+
+                // --- SPRAWDZAMY AKTUALNY JĘZYK ---
+                const isEn = localStorage.getItem("partner_lang") === "en";
+
+                const isUnlimited = car.mileage_limit === null || car.mileage_limit === 0;
+                
+                // Tłumaczymy teksty w locie
+                const mileageText = isUnlimited 
+                    ? (isEn ? "Unlimited" : "Bez limitu") 
+                    : `${car.mileage_limit} km/${isEn ? 'day' : 'dzień'}`;
+                    
+                const depositText = car.deposit_amount > 0 
+                    ? `${car.deposit_amount} €` 
+                    : (isEn ? "No deposit" : "Brak kaucji");
+
+                // Model Marketplace: Wyświetlamy zysk netto partnera
+                const displayPrice = car.partner_net_price || car.public_price || 0;
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="fleet-thumb">
+                            ${car.image ? `<img src="${car.image}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
+                        </div>
+                    </td>
+                    <td style="font-weight: 700;">${car.model || car.description || "Auto"}</td>
+                    <td class="class-name"><span class="class-code">${car.class_code || "?"}</span><span class="class-label">Class</span></td>
+                    <td>${car.seats || 5}</td>
+                    <td>${car.transmission === 'A' ? 'Auto' : 'Manual'}</td>
+                    <td>${car.bags || 2}</td>
+                    <td data-pl="${isUnlimited ? 'Bez limitu' : car.mileage_limit + ' km/dzień'}" data-en="${isUnlimited ? 'Unlimited' : car.mileage_limit + ' km/day'}">${mileageText}</td>
+                    <td data-pl="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'Brak kaucji'}" data-en="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'No deposit'}">${depositText}</td>
+                    <td class="price-cell" style="color: var(--green); font-weight: 800;">
+                    ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
+                    </td>
+                    <td class="actions">
+                        <span class="action-link" onclick="editVehicle('${car.id}')" data-pl="Edytuj" data-en="Edit">${isEn ? "Edit" : "Edytuj"}</span>
+                        <span class="action-link reject" onclick="deleteVehicle('${car.id}', '${car.image || ''}')" data-pl="Usuń" data-en="Delete">${isEn ? "Delete" : "Usuń"}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- LOKALIZACJE ---
+        async function loadLocations() {
+            const tbody = document.getElementById("locations-table");
+            if(!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Ładowanie lokalizacji...</td></tr>';
+
+            const { data: { session } } = await db.auth.getSession();
+
+const { data: partner } = await db
+    .from("partners")
+    .select("id")
+    .eq("user_id", session.user.id)
+    .single();
+
+const { data, error } = await db
+    .from("partner_locations")
+    .select("*")
+    .eq("partner_id", partner.id)
+    .order("created_at", { ascending: false });
+
+            if (error) {
+                console.error("Błąd ładowania lokalizacji:", error);
+                tbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = "";
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gray);">Brak zdefiniowanych lokalizacji. Dodaj pierwszą!</td></tr>';
+                return;
+            }
+
+            data.forEach(loc => {
+                const tr = document.createElement("tr");
+                const feeText = loc.extra_fee ? (loc.extra_fee_amount ? `${loc.extra_fee_amount} EUR` : "Indywidualna") : "Brak";
+                const statusClass = loc.active ? "active" : "inactive";
+                const statusText = loc.active ? "Aktywny" : "Nieaktywny";
+
+                tr.innerHTML = `
+                    <td>${loc.location_name}</td>
+                    <td>${loc.country}</td>
+                    <td>${loc.region}</td>
+                    <td>${loc.type}</td>
+                    <td>${feeText}</td>
+                    <td><span class="status ${statusClass}">${statusText}</span></td>
+                    <td>
+                        <span class="action-link reject" onclick="deleteLocation('${loc.id}')">Usuń</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+       function normalizeLocationInput(value) {
+            if (!value) return "";
+            return value
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, " ")
+                .replace(/(^\w|\s\w)/g, l => l.toUpperCase()); // Zamienia pierwsze litery na duże (np. "crete" -> "Crete")
+        }
+
+        async function saveLocation() {
+            const btn = document.querySelector("#locationModal .btn-primary");
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            btn.disabled = true;
+            btn.innerText = isEn ? "Saving..." : "Zapisywanie...";
+
+            try {
+                const { data: { session } } = await db.auth.getSession();
+                const { data: partner } = await db
+                    .from("partners")
+                    .select("id")
+                    .eq("user_id", session.user.id)
+                    .single();
+
+                if (!partner) throw new Error("Nie znaleziono profilu partnera.");
+
+                // 1. Zbieranie i normalizacja danych
+                const locationData = {
+                    partner_id: partner.id,
+                    location_name: document.getElementById('locName').value.trim(),
+                    country: normalizeLocationInput(document.getElementById('locCountry').value),
+                    region: normalizeLocationInput(document.getElementById('locRegion').value),
+                    city: normalizeLocationInput(document.getElementById('locCity').value),
+                    type: document.getElementById('locType').value,
+                    extra_fee: document.getElementById('locExtraFee').checked,
+                    extra_fee_amount: document.getElementById('locExtraFeeAmount').value ? parseFloat(document.getElementById('locExtraFeeAmount').value) : null,
+                    contact_required: document.getElementById('locContact').checked,
+                    active: document.getElementById('locActive').checked
+                };
+
+                if (!locationData.location_name || !locationData.country) {
+                    throw new Error(isEn ? "Fill in the location name and country." : "Wypełnij nazwę lokalizacji i kraj.");
+                }
+
+                // 2. TWARDA BLOKADA PL NAZW (Ultimate Gatekeeper)
+                const forbiddenWords = [
+                    'polska', 'grecja', 'hiszpania', 'wlochy', 'niemcy', 'francja', 'chorwacja', 'turcja', 'cypr', 'maroko', 'portugalia', 
+                    'kreta', 'rodos', 'majorka', 'teneryfa', 'korfu', 'zakynthos', 'sycylia', 'sardynia', 'wyspy kanaryjskie', 'baleary',
+                    'rzym', 'mediolan', 'lizbona', 'madryt', 'ateny', 'neapol', 'wenecja', 'paryż', 'londyn'
+                ];
+
+                const checkCountry = locationData.country.toLowerCase();
+                const checkRegion = locationData.region.toLowerCase();
+                const checkCity = locationData.city.toLowerCase();
+
+                if (forbiddenWords.includes(checkCountry) || forbiddenWords.includes(checkRegion) || forbiddenWords.includes(checkCity)) {
+                    window.showToast(isEn 
+                        ? "Please enter the location in English (e.g. Greece instead of Grecja, Crete instead of Kreta)." 
+                        : "Wpisz lokalizację po angielsku (np. Greece zamiast Grecja, Crete zamiast Kreta).", "error");
+                    
+                    btn.disabled = false;
+                    btn.innerText = isEn ? "Save location" : "Zapisz lokalizację";
+                    return; // STOP! Nie zapisujemy polskiej nazwy
+                }
+
+                // 3. Zapis do bazy partner_locations
+                const { error } = await db
+                    .from("partner_locations")
+                    .insert([locationData]);
+
+                if (error) throw error;
+
+                window.showToast(isEn ? "Location added!" : "Lokalizacja została dodana!", "success");
+                closeLocationModal();
+                await loadLocations();
+                
+                // Reset pól
+                document.getElementById('locName').value = "";
+                document.getElementById('locCountry').value = "";
+                document.getElementById('locRegion').value = "";
+                document.getElementById('locCity').value = "";
+                document.getElementById('locExtraFee').checked = false;
+                document.getElementById('locExtraFeeAmount').value = "";
+                document.getElementById('locContact').checked = false;
+                if (typeof toggleExtraFeeInput === "function") toggleExtraFeeInput();
+
+            } catch (err) {
+                console.error("Błąd zapisu lokalizacji:", err);
+                window.showToast("Błąd: " + err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = isEn ? "Save location" : "Zapisz lokalizację";
+            }
+        }
+
+        async function deleteLocation(id) {
+            if (!confirm("Czy na pewno chcesz usunąć tę lokalizację?")) return;
+
+            const { error } = await db
+                .from("partner_locations")
+                .delete()
+                .eq("id", id);
+
+            if (error) {
+                alert("Błąd usuwania: " + error.message);
+            } else {
+                window.showToast("Lokalizacja usunięta.", "success");
+                await loadLocations();
+            }
+        }
+
+        // --- INNE FUNKCJE ---
+        function detectLang() { setLang(localStorage.getItem("partner_lang") || "en"); }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('nav-' + tabId).classList.add('active');
+        }
+
+        function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('collapsed'); }
+        function openModal() { document.getElementById('addCarModal').classList.add('active'); }
+        function closeModal() { document.getElementById('addCarModal').classList.remove('active'); }
+
+        // --- LOCATIONS UI ---
+function openLocationModal() {
+    document.getElementById("locationModal").classList.add("active");
+
+    // 🔥 INIT AUTOCOMPLETE (KLUCZOWE)
+    setupAutocomplete("locCountry", "countryDropdown", "country");
+    setupAutocomplete("locRegion", "regionDropdown", "region");
+    setupAutocomplete("locCity", "cityDropdown", "city");
+
+    console.log("🔥 Autocomplete INIT after modal open");
+}
+
+function closeLocationModal() {
+    document.getElementById("locationModal").classList.remove("active");
+}
+
+function toggleExtraFeeInput() {
+    const isChecked = document.getElementById('locExtraFee').checked;
+    document.getElementById('extraFeeAmountContainer').style.display = isChecked ? 'flex' : 'none';
+}
+
+function toggleMileageInput() {
+    const unlimited = document.getElementById('unlimitedMileage');
+    const mileageInput = document.getElementById('mileageInput');
+    mileageInput.style.display = unlimited.checked ? 'none' : 'block';
+}
+function toggleDriverHours() {
+            const isChecked = document.getElementById('carDriverIncluded').checked;
+            document.getElementById('driverHoursContainer').style.display = isChecked ? 'block' : 'none';
+        }
+        // POWIADOMIENIA -> DASHBOARD
+        function handleNotifications() { 
+            // Przenosi po prostu do pulpitu. 
+            // Plakietki same znikną, gdy partner zaakceptuje/odrzuci zapytania!
+            switchTab('dashboard'); 
+        }
+
+        function openDetails(id) { console.log("Details for: " + id); }
+
+        function handleDepositOptions() {
+            const noDep = document.getElementById("noDeposit");
+            const lowDep = document.getElementById("lowDeposit");
+            if(noDep && lowDep) {
+                noDep.addEventListener("change", () => { if(noDep.checked) lowDep.checked = false; });
+                lowDep.addEventListener("change", () => { if(lowDep.checked) noDep.checked = false; });
+            }
+        }
+
+        function setPartnerCommission(value){
+            const el1 = document.getElementById("partnerDiscount");
+            const el2 = document.getElementById("partnerDiscountForm");
+            if(el1) el1.innerText = value + "%";
+            if(el2) el2.innerText = value + "%";
+        }
+
+        async function logout() { await db.auth.signOut(); window.location.href = "index.html"; }
+
+        // --- FILE UPLOADS ---
+        function initDocUploadListeners() {
+            const avatarInput = document.getElementById('avatarUpload');
+            if (avatarInput) {
+                avatarInput.addEventListener('change', function(e){
+                    const file = e.target.files[0];
+                    if(file && file.type.startsWith("image/")){
+                        const reader = new FileReader();
+                        reader.onload = function(ev){ document.getElementById('partnerAvatar').src = ev.target.result; }
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            const terms = document.getElementById("termsUpload");
+            const rules = document.getElementById("rulesUpload");
+            if(terms) terms.addEventListener("change", e => uploadPartnerDocument(e.target.files[0], "terms"));
+            if(rules) rules.addEventListener("change", e => uploadPartnerDocument(e.target.files[0], "rules"));
+        }
+
+        // Bezpieczne wysyłanie pliku do Supabase (z limitami)
+        async function uploadPartnerDocument(file, type) {
+            if(!file) return;
+
+            // --- BRAMKARZ 1: Tylko PDF ---
+            if (file.type !== "application/pdf") {
+                window.showToast("Błąd: Dozwolone są tylko pliki PDF!", "error");
+                return;
+            }
+
+            // --- BRAMKARZ 2: Limit 5MB ---
+            if (file.size > 5 * 1024 * 1024) {
+                window.showToast("Błąd: Plik jest za duży (max 5MB).", "error");
+                return;
+            }
+
+            const { data: { session } } = await db.auth.getSession();
+            const partnerId = session.user.id;
+            const filePath = `${partnerId}/${type}.pdf`;
+
+            window.showToast("Wgrywanie pliku...", "success");
+
+            // Wysłanie pliku do Storage
+            const { error: uploadError } = await db.storage
+                .from("partner-documents")
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) {
+                console.error(uploadError);
+                window.showToast("Błąd serwera podczas wgrywania.", "error");
+                return;
+            }
+
+            // Pobranie publicznego linku
+            const { data } = db.storage.from("partner-documents").getPublicUrl(filePath);
+            const url = data.publicUrl;
+
+            // Zapisanie linku w profilu partnera
+            if (type === "terms") {
+                await db.from("partners").update({ rental_terms_url: url }).eq("user_id", partnerId);
+            } else if (type === "rules") {
+                await db.from("partners").update({ rental_rules_url: url }).eq("user_id", partnerId);
+            }
+
+            window.showToast("Dokument wgrany i zapisany pomyślnie!", "success");
+            
+            // Odświeżenie ustawień, aby zmiany były od razu widoczne
+            await loadPartnerSettings(partnerId);
+        }
+
+        function bindVehicleUpload() {
+            const upload = document.getElementById("vehicleImageUpload");
+            if(!upload) return;
+
+            upload.addEventListener("change", e => {
+                const file = e.target.files[0];
+                
+                // 1. Sprawdzamy, czy plik istnieje i czy to obraz
+                if(!file || !file.type.startsWith("image/")) return;
+
+                // 2. Limit wielkości pliku (max 4MB)
+                if(file.size > 4 * 1024 * 1024){
+                    const isEn = localStorage.getItem("partner_lang") === "en";
+                    window.showToast(isEn ? "Image is too large (max 4MB)" : "Zdjęcie jest za duże (max 4MB)", "error");
+                    upload.value = ""; // Czyścimy input po błędzie
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                reader.onload = function(ev){
+                    const tile = upload.closest(".file-tile");
+
+                    // 3. Ukrywamy domyślne elementy kafelka
+                    tile.querySelector('.file-icon').style.display = 'none';
+                    tile.querySelector('.file-title').style.display = 'none';
+                    tile.querySelector('.file-sub').style.display = 'none';
+
+                    // 4. Usuwamy stary podgląd, jeśli partner zmienił zdanie
+                    const oldImg = tile.querySelector('.preview-img');
+                    if(oldImg) oldImg.remove();
+
+                    // 5. Generujemy i dodajemy nowy podgląd
+                    const img = document.createElement("img");
+                    img.src = ev.target.result;
+                    img.className = "preview-img";
+                    img.style.width = "100%";
+                    img.style.height = "120px";
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "8px";
+                    img.style.pointerEvents = "none";
+
+                    tile.appendChild(img);
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // --- TOAST NOTIFICATIONS ---
+        window.showToast = function(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+            toast.innerHTML = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+        window.goToSearch = function() {
+    window.location.href = "index.html";
+};
+// --- LOGIKA MODALA HASŁA ---
+// --- MODAL REGULAMINU PARTNERA ---
+        window.openPartnerTermsModal = function() {
+            document.getElementById('partnerTermsModal').style.display = 'flex';
+        };
+
+        window.closePartnerTermsModal = function() {
+            document.getElementById('partnerTermsModal').style.display = 'none';
+        };
+        window.openPasswordModal = (isForced = false) => {
+            document.getElementById("passwordModal").style.display = "flex";
+            document.getElementById("new-partner-pwd").value = "";
+            document.getElementById("confirm-partner-pwd").value = "";
+            document.getElementById("force-terms-checkbox").checked = false; // Reset checkboxa
+            
+            const isEn = localStorage.getItem("partner_lang") === "en";
+
+            if (isForced) {
+                document.getElementById("pwdModalTitle").innerText = isEn ? "Welcome to Ride24!" : "Witamy w Ride24!";
+                document.getElementById("pwdModalDesc").innerText = isEn ? "Please change your temporary password and accept the terms to continue." : "Ze względów bezpieczeństwa zmień hasło tymczasowe i zaakceptuj regulamin, aby kontynuować.";
+                
+                document.getElementById("cancelPwdBtn").style.display = "none"; // Ukrywamy przycisk anuluj
+                document.getElementById("force-terms-group").style.display = "block"; // Pokazujemy checkbox
+            } else {
+                document.getElementById("pwdModalTitle").innerText = isEn ? "Security – Change Password" : "Bezpieczeństwo – Zmiana hasła";
+                document.getElementById("pwdModalDesc").innerText = isEn ? "Update your password to secure your account." : "Zaktualizuj swoje hasło, aby zabezpieczyć konto.";
+                
+                document.getElementById("cancelPwdBtn").style.display = "block"; // Pokazujemy przycisk anuluj
+                document.getElementById("force-terms-group").style.display = "none"; // Ukrywamy checkbox
+            }
+        };
+
+        window.closePasswordModal = () => {
+            document.getElementById("passwordModal").style.display = "none";
+        };
+
+        window.updatePartnerPassword = async function() {
+            const newPass = document.getElementById("new-partner-pwd").value;
+            const confirmPass = document.getElementById("confirm-partner-pwd").value;
+            const termsGroup = document.getElementById("force-terms-group");
+            const termsCheckbox = document.getElementById("force-terms-checkbox");
+            const btn = document.getElementById("savePwdBtn");
+            const isEn = localStorage.getItem("partner_lang") === "en";
+
+            if (newPass !== confirmPass) return window.showToast(isEn ? "Passwords do not match!" : "Hasła nie są identyczne!", "error");
+            if (newPass.length < 8) return window.showToast(isEn ? "Min. 8 characters" : "Hasło musi mieć min. 8 znaków", "error");
+
+            // WERYFIKACJA REGULAMINU (jeśli pole jest widoczne, musi być zaznaczone)
+            if (termsGroup.style.display === "block" && !termsCheckbox.checked) {
+                return window.showToast(isEn ? "You must accept the Terms of Cooperation!" : "Musisz zaakceptować Regulamin Współpracy!", "error");
+            }
+
+            btn.disabled = true;
+            btn.innerText = isEn ? "Saving..." : "Zapisywanie...";
+
+          try {
+                // Zmiana hasła
+                const { error: authError } = await db.auth.updateUser({ password: newPass });
+                if (authError) throw authError;
+
+                // Odblokowanie konta w profiles (TYLKO zdjęcie blokady hasła)
+                const { data: { session } } = await db.auth.getSession();
+                const { error: profileError } = await db.from("profiles")
+                    .update({ must_change_password: false })
+                    .eq("id", session.user.id);
+                    
+                if (profileError) throw profileError;
+
+                window.showToast(isEn ? "Success! Panel unlocked." : "Sukces! Panel odblokowany.", "success");
+                setTimeout(() => location.reload(), 1500);
+
+            } catch (err) {
+                window.showToast("Error: " + err.message, "error");
+                btn.disabled = false;
+                btn.innerText = isEn ? "Save Password" : "Zapisz hasło";
+         }
+        };
+
+        // --- DEZAKTYWACJA KONTA (BEAUTIFUL UI) ---
+        window.deactivatePartnerAccount = function() {
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            const word = isEn ? "delete" : "usuń";
+            
+            // Ustawiamy odpowiedni tekst z czerwonym słowem kluczem
+            const textPl = `UWAGA! Ta akcja ukryje Twój profil i pojazdy. Aby potwierdzić, wpisz słowo: <strong style="color:var(--red); text-transform:uppercase;">${word}</strong>`;
+            const textEn = `WARNING! This action will hide your profile and vehicles. To confirm, please type the word: <strong style="color:var(--red); text-transform:uppercase;">${word}</strong>`;
+            
+            document.getElementById("deactivateText").innerHTML = isEn ? textEn : textPl;
+            document.getElementById("deactivateConfirmInput").value = "";
+            document.getElementById("deactivateConfirmInput").placeholder = word;
+            
+            // Otwieramy nasze nowe ładne okno
+            document.getElementById("deactivateModal").classList.add("active");
+        };
+
+        window.closeDeactivateModal = function() {
+            document.getElementById("deactivateModal").classList.remove("active");
+        };
+
+        window.processDeactivation = async function() {
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            const expectedWord = isEn ? "delete" : "usuń";
+            const inputWord = document.getElementById("deactivateConfirmInput").value.trim().toLowerCase();
+
+            // Walidacja poprawności słowa z ładnym Toastem
+            if (inputWord !== expectedWord) {
+                window.showToast(isEn ? "Incorrect confirmation word." : "Błędne słowo potwierdzające.", "error");
+                document.getElementById("deactivateConfirmInput").style.borderColor = "red";
+                return;
+            }
+
+            // Zablokowanie przycisku przed podwójnym kliknięciem
+            const btn = document.querySelector("#deactivateModal .btn-primary");
+            btn.disabled = true;
+            btn.innerText = "...";
+
+            try {
+                const { data: { session } } = await db.auth.getSession();
+                
+                // Właściwa dezaktywacja w bazie
+                const { error } = await db
+                    .from("partners")
+                    .update({ account_status: "disabled", active: false }) 
+                    .eq("user_id", session.user.id);
+
+                if (error) throw error;
+
+                // Zamknięcie modala i piękny zielony Toast zamiast systemowego Alertu
+                closeDeactivateModal();
+                window.showToast(isEn ? "Account deactivated. Logging out..." : "Konto zdezaktywowane. Wylogowywanie...", "success");
+                
+                // Opóźnienie, aby partner zdążył zobaczyć powiadomienie przed wyrzuceniem
+                setTimeout(async () => {
+                    await db.auth.signOut();
+                    window.location.href = "index.html";
+                }, 2500);
+                
+            } catch (err) {
+                console.error("Błąd dezaktywacji:", err);
+                window.showToast("Błąd: " + err.message, "error");
+                btn.disabled = false;
+                btn.innerText = isEn ? "Confirm deactivation" : "Potwierdź dezaktywację";
+            }
+        };
+       
+// AVATAR UPLOAD
+document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
+    const file = e.target.files[0]
+    if(!file) return
+    await uploadPartnerAvatar(file)
+})
+// --- USUWANIE POJAZDU Z FLOTY ---
+        window.deleteVehicle = async function(id, imageUrl) {
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            if (!confirm(isEn ? "Are you sure you want to delete this vehicle?" : "Czy na pewno chcesz usunąć ten pojazd z floty?")) return;
+
+            try {
+                // 1. Jeśli auto miało zdjęcie, najpierw kasujemy je z Supabase Storage
+                if (imageUrl) {
+                    // Wyciągamy ścieżkę pliku z pełnego linku URL
+                    const urlParts = imageUrl.split('/vehicle-images/');
+                    if (urlParts.length > 1) {
+                        const filePath = urlParts[1];
+                        await db.storage.from("vehicle-images").remove([filePath]);
+                        console.log("Usunięto zdjęcie z serwera:", filePath);
+                    }
+                }
+
+                // 2. Usuwamy wpis auta z bazy danych
+                const { error } = await db.from("car_classes").delete().eq("id", id);
+                if (error) throw error;
+
+                // 3. Sukces - odświeżamy interfejs
+                window.showToast(isEn ? "Vehicle deleted successfully." : "Pojazd został usunięty.", "success");
+                await loadFleet(); 
+
+            } catch (err) {
+                console.error("Błąd usuwania:", err);
+                window.showToast(isEn ? "Error: " + err.message : "Błąd: " + err.message, "error");
+            }
+        };
+
+        // Zmienna globalna przechowująca ID edytowanego auta (jeśli null = dodajemy nowe)
+        window.currentEditingVehicleId = null;
+
+        // --- ULEPSZONE OTWIERANIE PUSTEGO FORMULARZA (DODAWANIE) ---
+        window.openModal = function() {
+            window.currentEditingVehicleId = null; // Czysta karta
+            document.getElementById("vehicleForm").reset();
+            
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            document.querySelector("#addCarModal .modal-header h2").innerText = isEn ? "Add new vehicle" : "Dodaj nowy pojazd";
+            document.querySelector("#addCarModal .modal-footer .btn-primary").innerText = isEn ? "Add vehicle" : "Dodaj auto";
+
+            const imageTile = document.getElementById("vehicleImageUpload").closest(".file-tile");
+            if (imageTile) {
+                imageTile.querySelector('.file-icon').style.display = 'flex';
+                imageTile.querySelector('.file-title').style.display = 'block';
+                imageTile.querySelector('.file-sub').style.display = 'block';
+                const preview = imageTile.querySelector('.preview-img');
+                if (preview) preview.remove();
+                delete imageTile.dataset.existingImage; // Czyścimy pamięć starego zdjęcia
+            }
+            
+            document.getElementById('carDriverIncluded').checked = false;
+            document.getElementById('driverHours').value = "";
+            toggleDriverHours(); // Ukrywa pole
+            toggleMileageInput();
+            document.getElementById('addCarModal').classList.add('active');
+        };
+
+        // --- POBIERANIE DANYCH I UZUPEŁNIANIE FORMULARZA (EDYCJA) ---
+        window.editVehicle = async function(id) {
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            window.showToast(isEn ? "Loading vehicle data..." : "Pobieranie danych pojazdu...", "success");
+
+            try {
+                const { data: car, error } = await db.from("car_classes").select("*").eq("id", id).single();
+                if (error) throw error;
+
+                window.currentEditingVehicleId = car.id; // Zapamiętujemy, co edytujemy
+
+                // 1. Wypełniamy proste pola text/number/select
+                document.getElementById("carModel").value = car.description || "";
+                document.getElementById("carClass").value = car.class_code || "";
+                document.getElementById("carSeats").value = car.seats || 5;
+                document.getElementById("carTransmission").value = car.transmission || "M";
+                document.getElementById("carBags").value = car.bags || 2;
+                document.getElementById("carDeposit").value = car.deposit_amount || 0;
+                document.getElementById("carFuel").value = car.fuel_type || "";
+                document.getElementById("carPrice").value = car.public_price || "";
+                // 🔥 Odczyt znacznika VIP
+                document.getElementById('carDriverIncluded').checked = car.driver_included === true;
+                document.getElementById('driverHours').value = features.driverHours || "";
+                toggleDriverHours(); // Pokaż/ukryj pole w zależności od stanu checkboxa
+
+                // 2. Limit kilometrów
+                const unlimitedCheckbox = document.getElementById("unlimitedMileage");
+                const mileageInput = document.getElementById("mileageInput");
+                if (car.mileage_limit === null || car.mileage_limit === 0) {
+                    unlimitedCheckbox.checked = true;
+                    mileageInput.value = "";
+                } else {
+                    unlimitedCheckbox.checked = false;
+                    mileageInput.value = car.mileage_limit;
+                }
+                toggleMileageInput();
+
+                // 3. Opcje wynajmu (checkboxy z JSON)
+                let features = {};
+                try { features = typeof car.features === 'string' ? JSON.parse(car.features) : (car.features || {}); } catch(e){}
+                document.getElementById("featureNoDeposit").checked = features.noDeposit || false;
+                document.getElementById("featureFullInsurance").checked = features.fullInsurance || false;
+                document.getElementById("featureNoCreditCard").checked = features.noCreditCard || false;
+
+                // 4. Przywracanie miniaturki zdjęcia
+                const imageTile = document.getElementById("vehicleImageUpload").closest(".file-tile");
+                if (imageTile) {
+                    imageTile.querySelector('.file-icon').style.display = 'none';
+                    imageTile.querySelector('.file-title').style.display = 'none';
+                    imageTile.querySelector('.file-sub').style.display = 'none';
+                    const oldImg = imageTile.querySelector('.preview-img');
+                    if(oldImg) oldImg.remove();
+
+                    if (car.image) {
+                        const img = document.createElement("img");
+                        img.src = car.image;
+                        img.className = "preview-img";
+                        img.style = "width:100%; height:120px; object-fit:cover; border-radius:8px; pointer-events:none;";
+                        imageTile.dataset.existingImage = car.image; // Zapisujemy w tle obecny link!
+                        imageTile.appendChild(img);
+                    } else {
+                        imageTile.querySelector('.file-icon').style.display = 'flex';
+                        imageTile.querySelector('.file-title').style.display = 'block';
+                        imageTile.querySelector('.file-sub').style.display = 'block';
+                        delete imageTile.dataset.existingImage;
+                    }
+                }
+
+                // Zmieniamy nagłówki w modalu
+                document.querySelector("#addCarModal .modal-header h2").innerText = isEn ? "Edit vehicle" : "Edytuj pojazd";
+                document.querySelector("#addCarModal .modal-footer .btn-primary").innerText = isEn ? "Save changes" : "Zapisz zmiany";
+
+                document.getElementById('addCarModal').classList.add('active');
+
+            } catch (err) {
+                console.error(err);
+                window.showToast(isEn ? "Error loading data." : "Błąd ładowania danych.", "error");
+            }
+        };
+async function uploadPartnerAvatar(file){
+
+    const { data:{session} } = await db.auth.getSession()
+    const userId = session.user.id
+
+    const filePath = `${userId}/avatar.jpg`
+
+    await db.storage
+        .from("partner-documents")
+        .upload(filePath, file, { upsert:true })
+
+    const { data } = db.storage
+        .from("partner-documents")
+        .getPublicUrl(filePath)
+
+    await db
+        .from("partners")
+        .update({ avatar_url:data.publicUrl })
+        .eq("user_id", userId)
+
+    document.getElementById("partnerAvatar").src = data.publicUrl
+
+    showToast("Avatar uploaded","success")
+}
+// --- FUNKCJA KOMPRESUJĄCA ZDJĘCIA (CANVAS) ---
+function compressImage(file, maxWidth = 1024, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Przeskalowanie, jeśli zdjęcie jest szersze niż maxWidth
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Konwersja na lżejszy JPG
+                canvas.toBlob(blob => {
+                    if (blob) {
+                        // Tworzymy nowy, odchudzony plik gotowy do wysłania
+                        const newFileName = file.name.replace(/\.[^/.]+$/, ".jpg");
+                        const compressedFile = new File([blob], newFileName, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        resolve(compressedFile);
+                    } else {
+                        reject(new Error('Błąd kompresji obrazu'));
+                    }
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
+async function setupAutocomplete(inputId, dropdownId, category) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+
+    if (!input || !dropdown) {
+        console.warn("Autocomplete skip:", inputId);
+        return;
+    }
+
+    console.log("✅ Autocomplete READY:", inputId);
+
+    const handler = async () => {
+        const query = input.value.trim();
+
+        console.log("⌨️ INPUT:", inputId, query);
+
+        if (query.length < 2) {
+            dropdown.style.display = "none";
+            return;
+        }
+
+        try {
+           const { data, error } = await window.supabaseClient
+    .from("locations_dictionary")
+                .select("name_en")
+                .eq("category", category)
+                .ilike("name_en", `%${query}%`)
+                .limit(5);
+
+            console.log("📦 DATA:", data);
+
+            if (error) throw error;
+
+            dropdown.innerHTML = "";
+
+            data.forEach(item => {
+                const div = document.createElement("div");
+                div.className = "autocomplete-item";
+                div.textContent = item.name_en;
+
+                div.onclick = () => {
+                    input.value = item.name_en;
+                    dropdown.style.display = "none";
+                };
+
+                dropdown.appendChild(div);
+            });
+
+            dropdown.style.display = data.length ? "block" : "none";
+
+        } catch (err) {
+            console.error("❌ Autocomplete error:", err);
+        }
+    };
+
+    // 🔥 KLUCZ: dwa eventy zamiast jednego
+    input.addEventListener("input", handler);
+    input.addEventListener("keyup", handler);
+
+    document.addEventListener("click", (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
+}
+
+    </script>
+</body>
+</html>

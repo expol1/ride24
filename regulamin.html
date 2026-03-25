@@ -1,0 +1,369 @@
+
+<style>
+    .legal-container {
+        font-family: 'Inter', -apple-system, sans-serif;
+        color: #000000; /* Czarne litery dla maksymalnej czytelności */
+        line-height: 1.6;
+        max-width: 850px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        scroll-behavior: smooth;
+    }
+
+    .legal-header {
+        border-bottom: 3px solid #22c55e; /* Soczysta zieleń */
+        padding-bottom: 25px;
+        margin-bottom: 35px;
+        text-align: left;
+    }
+
+    .legal-header h1 {
+        color: #000000;
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin: 0 0 10px 0;
+        letter-spacing: -0.02em;
+    }
+
+    .legal-header p {
+        color: #475569;
+        font-size: 0.9rem;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .important-card {
+        background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%); /* Delikatny gradient zielono-błękitny */
+        border-left: 5px solid #3b82f6; /* Błękitny akcent */
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 35px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-top: 1px solid #e2e8f0;
+        border-right: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .important-card h3 {
+        color: #3b82f6;
+        margin: 0 0 10px 0;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 800;
+    }
+
+    .toc-box {
+        background: #f8fafc;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 40px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .toc-box h3 {
+        font-size: 0.9rem;
+        margin: 0 0 15px 0;
+        color: #64748b;
+        text-transform: uppercase;
+        font-weight: 700;
+    }
+
+    .toc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 8px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .toc-grid a {
+        font-size: 0.85rem;
+        color: #000000;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: block;
+        font-weight: 500;
+    }
+
+    .toc-grid a:hover {
+        color: #22c55e;
+        padding-left: 5px;
+    }
+
+    .legal-section {
+        margin-bottom: 45px;
+        scroll-margin-top: 100px;
+    }
+
+    .legal-section h3 {
+        color: #000000;
+        font-size: 1.3rem;
+        border-bottom: 2px solid #3b82f6; /* Błękitna linia pod nagłówkiem */
+        padding-bottom: 8px;
+        margin-bottom: 18px;
+        font-weight: 700;
+    }
+
+    .legal-section p {
+        margin-bottom: 15px;
+    }
+
+    .legal-section ul {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 20px;
+    }
+
+    .legal-section ul li {
+        position: relative;
+        padding-left: 25px;
+        margin-bottom: 8px;
+    }
+
+    .legal-section ul li::before {
+        content: "✔";
+        position: absolute;
+        left: 0;
+        color: #22c55e; /* Zielony "ptaszek" przy liście */
+        font-weight: bold;
+    }
+
+    .legal-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 20px 0;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid #e2e8f0;
+    }
+
+    .legal-table th {
+        background-color: #3b82f6; /* Błękitne nagłówki tabeli */
+        color: #ffffff;
+        text-align: left;
+        padding: 12px 15px;
+        font-size: 0.9rem;
+    }
+
+    .legal-table td {
+        padding: 12px 15px;
+        background-color: #ffffff;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.9rem;
+    }
+
+    .highlight-blue {
+        color: #2563eb;
+        font-weight: 700;
+    }
+
+    .highlight-green {
+        color: #15803d;
+        font-weight: 700;
+    }
+
+    .footer-note {
+        margin-top: 50px;
+        padding-top: 20px;
+        border-top: 2px solid #22c55e;
+        text-align: center;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+</style>
+
+<div class="legal-container">
+    <header class="legal-header">
+        <h1>Regulamin Serwisu</h1>
+        <p>Ride24.pl • Ostatnia aktualizacja: 01 maj 2026 r.</p>
+    </header>
+
+    <div class="important-card">
+        <h3>Ważne Informacje</h3>
+        <p>
+            Platforma Ride24.pl działa jako internetowy <span class="highlight-blue">marketplace</span>. Ride24 nie jest stroną umowy wynajmu pojazdu. 
+            Umowa wynajmu pojazdu zawierana jest bezpośrednio pomiędzy użytkownikiem a partnerem (wypożyczalnią samochodów).
+        </p>
+    </div>
+
+    <nav class="toc-box">
+    <h3>Spis treści</h3>
+    <ul class="toc-grid">
+        <li><a href="#par1">§1. Postanowienia ogólne</a></li>
+        <li><a href="#par2">§2. Definicje</a></li>
+        <li><a href="#par3">§3. Zakres usług</a></li>
+        <li><a href="#par4">§4. Proces rezerwacji</a></li>
+        <li><a href="#par5">§5. Płatności</a></li>
+        <li><a href="#par6">§6. Warunki partnera</a></li>
+        <li><a href="#par7">§7. Odpowiedzialność</a></li>
+        <li><a href="#par8">§8. RODO</a></li>
+        <li><a href="#par9">§9. Przechowywanie danych</a></li>
+        <li><a href="#par10">§10. Reklamacje</a></li>
+        <li><a href="#par11">§11. Zmiany regulaminu</a></li>
+        <li><a href="#par12"><strong>§12. Anulowanie i zwroty</strong></a></li>
+        <li><a href="#par14"><strong>§13. Program lojalnościowy</strong></a></li>
+        <li><a href="#par13"><strong>§14. Postanowienia końcowe</strong></a></li>
+    </ul>
+</nav>
+
+    <section id="par1" class="legal-section">
+        <h3>§1. Postanowienia ogólne</h3>
+        <p>Niniejszy regulamin określa zasady korzystania z platformy Ride24.pl, umożliwiającej rezerwację usług wynajmu samochodów oferowanych przez niezależnych partnerów.</p>
+        <p>Operatorem platformy jest Ride24. Platforma działa jako pośrednik (marketplace) umożliwiający prezentowanie ofert oraz dokonywanie rezerwacji online.</p>
+        <p>Ride24 nie świadczy usług wynajmu pojazdów i nie jest stroną umowy wynajmu.</p>
+    </section>
+
+    <section id="par2" class="legal-section">
+        <h3>§2. Definicje</h3>
+        <p><span class="highlight-blue">Platforma</span> – serwis Ride24.pl.</p>
+        <p><span class="highlight-blue">Użytkownik</span> – osoba korzystająca z serwisu.</p>
+        <p><span class="highlight-blue">Partner</span> – niezależna wypożyczalnia samochodów.</p>
+        <p><span class="highlight-blue">Opłata rezerwacyjna</span> – wynagrodzenie Operatora za usługę pośrednictwa.</p>
+    </section>
+
+    <section id="par3" class="legal-section">
+        <h3>§3. Zakres usług platformy</h3>
+        <p>Platforma umożliwia wyszukiwanie, porównywanie oraz rezerwację online pojazdów. Ride24 nie odpowiada za dostępność pojazdów ani ich stan techniczny – za te aspekty odpowiada wyłącznie Partner.</p>
+    </section>
+
+    <section id="par4" class="legal-section">
+        <h3>§4. Proces rezerwacji</h3>
+        <ul>
+            <li>Wybór miejsca, daty oraz grupy pojazdów.</li>
+            <li>Akceptacja regulaminu platformy oraz warunków Partnera.</li>
+            <li>Uiszczenie opłaty rezerwacyjnej.</li>
+            <li>Otrzymanie Vouchera potwierdzającego rezerwację.</li>
+        </ul>
+    </section>
+
+    <section id="par5" class="legal-section">
+        <h3>§5. Płatności</h3>
+        <p>Rezerwacja wymaga opłaty rezerwacyjnej online (wynagrodzenie dla Ride24). Pozostała kwota płatna jest bezpośrednio u Partnera przy odbiorze pojazdu.</p>
+    </section>
+
+    <section id="par6" class="legal-section">
+        <h3>§6. Warunki partnera</h3>
+        <p>Użytkownik zobowiązany jest do zapoznania się z regulaminem konkretnej wypożyczalni przed dokonaniem rezerwacji. Zasady odbioru i ubezpieczenia zależą od Partnera.</p>
+    </section>
+
+    <section id="par7" class="legal-section">
+        <h3>§7. Odpowiedzialność</h3>
+        <p>Ride24 nie ponosi odpowiedzialności za realizację usługi wynajmu ani za szkody powstałe w trakcie użytkowania pojazdu. Roszczenia należy kierować do Partnera.</p>
+    </section>
+
+    <section id="par8" class="legal-section">
+        <h3>§8. Ochrona danych osobowych (RODO)</h3>
+        <p>Administratorem danych jest Ride24. Dane są przetwarzane w celu realizacji rezerwacji oraz przekazywane Partnerowi realizującemu wynajem.</p>
+    </section>
+
+    <section id="par9" class="legal-section">
+        <h3>§9. Okres przechowywania danych</h3>
+        <p>Dane rezerwacji i vouchery są przechowywane przez <span class="highlight-green">180 dni</span> od zakończenia rezerwacji, po czym są automatycznie usuwane lub anonimizowane.</p>
+    </section>
+
+    <section id="par10" class="legal-section">
+        <h3>§10. Reklamacje</h3>
+        <p>Reklamacje techniczne dotyczące platformy: e-mail do Ride24. Reklamacje dotyczące samego pojazdu/wynajmu: bezpośrednio do Partnera.</p>
+    </section>
+
+    <section id="par11" class="legal-section">
+        <h3>§11. Zmiany regulaminu</h3>
+        <p>Ride24 zastrzega prawo do zmian. Obowiązuje wersja regulaminu z dnia dokonania rezerwacji.</p>
+    </section>
+
+    <section id="par12" class="legal-section">
+        <h3>§12. Anulowanie rezerwacji i zwrot opłaty</h3>
+        <p>Wysokość zwrotu opłaty rezerwacyjnej zależy od terminu anulowania:</p>
+        <table class="legal-table">
+            <thead>
+                <tr>
+                    <th>Termin anulowania</th>
+                    <th>Wysokość zwrotu</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>60 dni i więcej</td>
+                    <td class="highlight-green">90% zwrotu</td>
+                </tr>
+                <tr>
+                    <td>od 59 do 30 dni</td>
+                    <td class="highlight-green">50% zwrotu</td>
+                </tr>
+                <tr>
+                    <td>Poniżej 30 dni</td>
+                    <td style="color: #dc2626; font-weight: bold;">Brak zwrotu</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Rezerwacje Last Minute:</strong> Rezerwacje dokonane mniej niż 30 dni przed wynajmem są bezzwrotne.</p>
+    </section>
+     <section id="par14" class="legal-section">
+    <h3>§13. Program lojalnościowy</h3>
+
+    <p>
+        Platforma Ride24 może oferować użytkownikom program lojalnościowy polegający na przyznawaniu stałych rabatów
+        na opłatę rezerwacyjną za korzystanie z platformy.
+    </p>
+
+    <ul>
+        <li>Program lojalnościowy dotyczy wyłącznie <strong>opłaty rezerwacyjnej</strong> (wynagrodzenia Ride24).</li>
+        <li>Rabaty nie obejmują kwoty płatnej bezpośrednio u Partnera.</li>
+        <li>Poziom rabatu zależy od liczby zakończonych i opłaconych rezerwacji.</li>
+    </ul>
+
+    <p>Platforma może stosować następujące poziomy rabatowe:</p>
+
+    <table class="legal-table">
+        <thead>
+            <tr>
+                <th>Poziom</th>
+                <th>Rabat</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>START</td>
+                <td>0%</td>
+            </tr>
+            <tr>
+                <td>SILVER</td>
+                <td>5%</td>
+            </tr>
+            <tr>
+                <td>GOLD</td>
+                <td>10%</td>
+            </tr>
+            <tr>
+                <td>PLATINUM</td>
+                <td>15%</td>
+            </tr>
+            <tr>
+                <td class="highlight-green">VIP</td>
+                <td class="highlight-green">20%</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <ul>
+        <li>Rabaty naliczane są automatycznie po opłaceniu rezerwacji.</li>
+        <li>Ride24 zastrzega sobie prawo do zmiany zasad programu lojalnościowego w dowolnym momencie.</li>
+        <li>Program lojalnościowy ma charakter marketingowy i nie stanowi zobowiązania do jego utrzymywania.</li>
+    </ul>
+</section>
+    <section id="par13" class="legal-section">
+        <h3>§13. Postanowienia końcowe</h3>
+        <p>W sprawach nieuregulowanych zastosowanie ma prawo polskie. Spory rozstrzygane będą przez właściwe sądy powszechne.</p>
+    </section>
+
+    <footer class="footer-note">
+        <p>© 2026 Ride24.pl. Wszelkie prawa zastrzeżone.</p>
+    </footer>
+</div>
+   
+};

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
+  <title>Pełne ubezpieczenie&#10;Full insurance</title>
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2196f3" />
+      <stop offset="100%" stop-color="#0d47a1" />
+    </linearGradient>
+  </defs>
+  <path d="M 50 15 L 15 30 V 50 C 15 75 35 90 50 95 C 65 90 85 75 85 50 V 30 Z" fill="url(#shieldGrad)"/>
+  <path d="M 35 55 L 45 65 L 65 40" stroke="#ffffff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

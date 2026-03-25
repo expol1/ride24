@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyniki wyszukiwania - Ride24</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap">
+    <style>
+        :root {
+            --blue: #2563EB;
+            --blue-dark: #1E3A8A;
+            --green: #16A34A;
+            --green-light: #DCFCE7; /* Jasna, soczysta zieleń w tle detali */
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --bg-price: #F8FAFC; /* Bardzo jasny szary dla sekcji ceny */
+            --border: rgba(226, 232, 240, 0.9);
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; padding: 0; min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            background: 
+                radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%),
+                url('tlo.jpg') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .overlay-vignette {
+            position: fixed; inset: 0;
+            background: linear-gradient(to bottom, rgba(37, 99, 235, 0.2) 0%, transparent 30%, transparent 70%, rgba(37, 99, 235, 0.2) 100%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .container { 
+            position: relative; z-index: 1;
+            max-width: 1050px; margin: 0 auto; padding: 30px 20px;
+        }
+        
+        /* --- HEADER --- */
+        .header-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px); border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .logo-group { display: flex; align-items: center; gap: 15px; }
+        .logo-image { max-height: 42px; }
+        h1 { font-family: 'Manrope', sans-serif; color: white; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+        
+        .btn-back { 
+            text-decoration: none; color: white; font-weight: 700; font-size: 13px;
+            background: var(--blue); padding: 10px 20px; border-radius: 10px;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-back:hover { transform: translateY(-2px); background: var(--blue-dark); }
+
+        /* --- LISTA AUT (KOMPAKTOWA) --- */
+        .car-list { display: flex; flex-direction: column; gap: 14px; }
+        
+        .car-row { 
+            display: flex !important; flex-direction: row !important; align-items: stretch;
+            background: white; 
+            border: 1px solid var(--border); border-radius: 16px; 
+            overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            transition: all 0.3s ease;
+        }
+        .car-row:hover { border-color: var(--green); box-shadow: 0 15px 35px rgba(0,0,0,0.15); transform: translateY(-1px); }
+
+        .car-img-box { 
+            width: 220px; padding: 15px; background: white;
+            display: flex; align-items: center; justify-content: center;
+            border-right: 1px solid var(--border);
+        }
+        .car-img-box img { width: 100%; height: auto; object-fit: contain; transition: transform 0.3s ease; }
+        .car-row:hover .car-img-box img { transform: scale(1.05); }
+
+        /* SEKCJA DETALI */
+        .car-details-box { 
+            flex: 1; padding: 16px 24px; 
+            background: var(--green-light); 
+            display: flex; position: relative; flex-direction: column; justify-content: center;
+        }
+        
+        .car-title { font-size: 21px; font-weight: 800; color: var(--blue-dark); font-family: 'Manrope', sans-serif; margin: 0 0 14px 0; display: flex; align-items: baseline; gap: 6px; }
+        .car-title span { font-size: 13px; font-weight: 600; color: var(--text-muted); font-family: 'Inter', sans-serif;}
+        
+        /* KOLOROWY BADGE KLASY */
+        .class-badge-box {
+            position: absolute; top: 16px; right: 24px;
+            border-width: 2px; border-style: solid;
+            width: 55px; height: 60px; border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+            z-index: 2;
+        }
+        .class-letter { font-size: 28px; font-weight: 900; line-height: 1; font-family: 'Manrope', sans-serif; }
+        .class-name-small { font-size: 8px; font-weight: 800; text-transform: uppercase; margin-top: 2px; letter-spacing: 0.5px; }
+
+       .feature-grid {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 6px 30px;
+    align-items: center;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #166534;
+}
+
+.feature-item svg {
+    width: 16px;
+    height: 16px;
+    color: var(--green);
+    flex-shrink: 0;
+}
+        /* SEKACJA CENY */
+        .car-price-box { 
+            width: 220px; min-width: 220px; background: var(--bg-price);
+            padding: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            border-left: 1px solid var(--border);
+        }
+
+        .price-info { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .price-total { font-size: 32px; font-weight: 800; color: var(--text-main); font-family: 'Manrope', sans-serif; margin-bottom: 12px; letter-spacing: -0.5px; display: flex; align-items: baseline; gap: 4px;}
+        .price-total span { font-size: 15px; color: var(--text-muted); font-weight: 700;}
+
+        .btn-book { 
+            background: var(--green); color: white; border: none; 
+            padding: 14px; border-radius: 10px; font-weight: 800; font-size: 14px; 
+            cursor: pointer; transition: 0.3s; width: 100%; text-transform: uppercase;
+            box-shadow: 0 6px 15px rgba(22, 163, 74, 0.25); letter-spacing: 0.5px;
+        }
+        .btn-book:hover { background: #15803d; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(22, 163, 74, 0.35); }
+        .btn-book:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* TOAST ANIMACJE */
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
+        .toast { background: white; border-left: 6px solid var(--green); padding: 16px 24px; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); font-weight: 700; font-size: 14px; color: var(--blue-dark); display: flex; align-items: center; gap: 12px; animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
+
+        @media (max-width: 850px) {
+            .car-row { flex-direction: column !important; }
+            .car-img-box, .car-price-box { width: 100%; min-width: 100%; border: none; }
+            .car-price-box { border-top: 1px solid var(--border); padding: 20px; }
+            .class-badge-box { top: -35px; right: 20px; }
+        }
+    </style>
+    
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="assets/helper/supabaseConfig.js"></script>
+</head>
+<body>
+
+    <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <symbol id="icon-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+            </symbol>
+            <symbol id="icon-seats" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle>
+            </symbol>
+            <symbol id="icon-trans" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle><path d="M12 9v-6m0 12v6M9 12H3m12 0h6"></path>
+            </symbol>
+            <symbol id="icon-luggage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="8" width="16" height="12" rx="2" ry="2"></rect><path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </symbol>
+            <symbol id="icon-mileage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+            </symbol>
+            <symbol id="icon-deposit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </symbol>
+            <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </symbol>
+            <symbol id="icon-location" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle>
+            </symbol>
+        </defs>
+    </svg>
+    <div class="overlay-vignette"></div>
+    <div class="container">
+        <div class="header-bar">
+            <div class="logo-group">
+                <img src="bez.png" alt="Ride24" class="logo-image" onerror="this.style.display='none'">
+                <h1>Znalezione samochody</h1>
+            </div>
+            <a href="index.html" class="btn-back">
+                <svg width="16" height="16"><use href="#icon-back"></use></svg>
+                Zmień daty
+            </a>
+        </div>
+        
+        <div id="results-container" class="car-list"></div>
+    </div>
+
+    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+        <div style="background:var(--blue); color:white; width:100%; max-width:420px; border-radius:30px; padding:40px; position:relative; box-shadow:0 25px 50px rgba(0,0,0,0.4);">
+            <span onclick="closeAuth()" style="position:absolute; top:20px; right:20px; font-size:24px; cursor:pointer; color:white;">×</span>
+            <h2 id="modalTitle" style="text-align:center; margin-bottom:25px; color:white;" data-pl="Logowanie" data-en="Login">Logowanie</h2>
+            
+            <div>
+                <input type="text" id="reg-name" style="display:none; width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;" placeholder="Imię i nazwisko" data-pl="Imię i nazwisko" data-en="Full Name">
+                <input type="email" id="auth-email" placeholder="Adres e-mail" data-pl="Adres e-mail" data-en="Email address" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+                <input type="password" id="auth-password" placeholder="Hasło (min. 8 znaków)" data-pl="Hasło (min. 8 znaków)" data-en="Password (min. 8 chars)" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+                
+                <div id="reg-terms-group" style="display:none; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #CBD5E1; cursor: pointer; line-height: 1.4; text-align: left;">
+                        <input type="checkbox" id="reg-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
+                        <span>
+    Akceptuję <a href="regulamin.html" target="_blank" style="color: white; font-weight: 800; text-decoration: underline;">Regulamin Ride24</a> 
+    oraz politykę prywatności.
+</span>
+                    </label>
+                </div>
+
+                <button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);" data-pl="Zaloguj się" data-en="Log in">
+                    Zaloguj się i Kontynuuj
+                </button>
+                
+                <div style="text-align:center; margin:15px 0; color:#CBD5E1;" data-pl="lub" data-en="or">lub</div>
+                
+                <button onclick="loginGoogle()" style="width:100%; padding:14px; border:none; border-radius:12px; background:#E5E7EB; color:#0F172A; font-weight:700; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition: background 0.2s;">
+                    <img src="icons/google.svg" alt="Google" style="width:20px; height:20px; display:block;">
+                    <span data-pl="Zaloguj przez Google" data-en="Log in with Google">Zaloguj przez Google</span>
+                </button>
+            </div>
+            
+            <p style="text-align:center; margin-top:20px; font-size:14px; color:#CBD5E1;">
+                <span id="toggleText" data-pl="Nie masz konta?" data-en="Don't have an account?">Nie masz konta?</span>
+                <span id="toggleBtn" onclick="toggleMode()" style="color:#FFFFFF; font-weight:800; text-decoration:underline; cursor:pointer; margin-left:4px;" data-pl="Zarejestruj się" data-en="Sign up">Zarejestruj się</span>
+            </p>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // 🔥 POBIERANIE KURSU WALUTY (NBP)
+async function getExchangeRate(currency) {
+    try {
+        if (currency === "EUR") {
+            const res = await fetch("https://api.nbp.pl/api/exchangerates/rates/A/EUR/?format=json");
+            const data = await res.json();
+            return data.rates[0].mid;
+        }
+
+        if (currency === "USD") {
+            const res = await fetch("https://api.nbp.pl/api/exchangerates/rates/A/USD/?format=json");
+            const data = await res.json();
+            return data.rates[0].mid;
+        }
+
+        // fallback
+        return 4.3;
+
+    } catch (err) {
+        console.error("❌ Błąd pobierania kursu:", err);
+        return 4.3;
+    }
+}
+
+        const classNames = { 
+            A: "Economy", 
+            B: "Compact", 
+            C: "Sedan", 
+            D: "SUV", 
+            E: "Premium", 
+            F: "Van" 
+        };
+
+        const badgeColors = {
+            A: { bg: '#FFFBEB', border: '#FDE68A', color: '#D97706' }, 
+            B: { bg: '#EFF6FF', border: '#BFDBFE', color: '#2563EB' }, 
+            C: { bg: '#FAF5FF', border: '#E9D5FF', color: '#7E22CE' }, 
+            D: { bg: '#FEF2F2', border: '#FECACA', color: '#DC2626' }, 
+            E: { bg: '#1E293B', border: '#334155', color: '#FBBF24' }, 
+            F: { bg: '#F0FDFA', border: '#99F6E4', color: '#0D9488' }  
+        };
+
+        function getFeaturesForClass(classCode) {
+            const lang = localStorage.getItem("lang") || "pl";
+            const f = {
+                'A': { seats: 4, bags: 1, trans: lang === 'pl' ? 'Manualna' : 'Manual' },
+                'B': { seats: 5, bags: 2, trans: lang === 'pl' ? 'Manualna' : 'Manual' },
+                'C': { seats: 5, bags: 3, trans: lang === 'pl' ? 'Automatyczna' : 'Automatic' },
+                'D': { seats: 5, bags: 4, trans: lang === 'pl' ? 'Automatyczna' : 'Automatic' },
+                'E': { seats: 5, bags: 3, trans: lang === 'pl' ? 'Automatyczna' : 'Automatic' },
+                'F': { seats: 7, bags: 4, trans: lang === 'pl' ? 'Manualna' : 'Manual' }
+            };
+            return f[classCode] || f['A'];
+        }
+
+        window.showToast = function(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `✅ ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.4s ease forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        };
+
+        async function renderCars() {
+            const container = document.getElementById('results-container');
+            const db = window.supabaseClient; 
+            
+            container.innerHTML = '<p style="color:white; text-align:center; padding:50px; font-size:18px; font-weight:600;">Wyszukujemy najlepsze oferty w bazie Ride24...</p>';
+
+            try {
+                const searchParamsStr = localStorage.getItem("searchParams");
+                if (!searchParamsStr) {
+                    window.location.href = "index.html";
+                    return;
+                }
+
+                const filters = JSON.parse(searchParamsStr);
+                const loc = filters.pickup_location; 
+
+                // --- 🛡️ ZABEZPIECZENIE PRZED STARYMI DANYMI (EDGE CASE) ---
+                if (!loc || !loc.type || !loc.name) {
+                    console.error("Nieprawidłowy format lokalizacji. Powrót do strony głównej.");
+                    window.location.href = "index.html";
+                    return;
+                }
+                // ---------------------------------------------------------
+
+                // Nagłówek wyników (Szlif UX: "Dostępne auta w: ...")
+                document.querySelector("h1").innerText = `Dostępne auta w: ${loc.name}`;
+
+                const start = new Date(filters.pickup_date);
+                const end = new Date(filters.drop_date);
+                const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+
+                // 1. BUDOWANIE ZAPYTANIA Z UWZGLĘDNIENIEM MIAST I REGIONÓW
+                let query = db
+    .from('car_classes')
+    .select(`
+        *,
+        partners!inner(
+            id,
+            company_name,
+            active,
+            account_status,
+            currency,
+            min_driver_age,
+            partner_locations!inner(
+                country,
+                region,
+                city,
+                location_name,
+                active
+            )
+        )
+    `)
+    .eq('active', true)
+    .eq('partners.active', true)
+    .eq('partners.account_status', 'active') 
+    .eq('partners.partner_locations.active', true);
+    
+                
+                // 2. MAGICZNY FILTR INTENCJI
+                if (loc.type === "city") {
+                    query = query.eq('partners.partner_locations.city', loc.city);
+                } else if (loc.type === "region") {
+                    query = query.eq('partners.partner_locations.region', loc.region);
+                } else {
+                    query = query.eq('partners.partner_locations.country', loc.country);
+                }
+
+                // 📄 4️⃣ PAGINACJA (Limit wyników)
+                const PAGE_SIZE = 20;
+                const { data: rawCars, error } = await query.limit(PAGE_SIZE);
+                if (error) throw error;
+
+                container.innerHTML = '';
+
+                // 3. DEDUPLIKACJA AUT
+                const unique = new Map();
+                if (rawCars) {
+                    rawCars.forEach(car => {
+                        const partnerId = car.partners?.id;
+                        if (!partnerId) return;
+                        const key = `${car.id}-${partnerId}`;
+                        if (!unique.has(key)) unique.set(key, car);
+                    });
+                }
+                let cars = Array.from(unique.values());
+
+                // --- 🚀 KROK 4: ANALITYKA ---
+                console.log("SEARCH_LOG:", {
+                    query: loc.name,
+                    type: loc.type,
+                    results_count: cars.length,
+                    timestamp: new Date().toISOString()
+                });
+
+                // --- 💰 KROK 1: RANKING (Sortowanie po marży) ---
+                // --- 💰 KROK 1: RANKING (Sortowanie po marży + VIP) ---
+                cars.sort((a, b) => {
+                    // 💎 1. NAJPIERW auta z kierowcą na samą górę!
+                    const aVip = a.driver_included === true ? 1 : 0;
+                    const bVip = b.driver_included === true ? 1 : 0;
+                    if (aVip !== bVip) return bVip - aVip;
+
+                    // 💰 2. Następnie sortujemy (wewnątrz grup VIP / Zwykłe) po marży
+                    const marginA = (a.final_customer_price || 0) - (a.base_price || 0);
+                    const marginB = (b.final_customer_price || 0) - (b.base_price || 0);
+                    if (marginB !== marginA) return marginB - marginA; 
+                    
+                    // 💵 3. A jeśli marże równe, wygrywa tańsze dla klienta
+                    return a.final_customer_price - b.final_customer_price;
+                });
+
+                if (cars.length === 0) {
+                    const lang = localStorage.getItem("lang") || "pl";
+                    let suggestion = "";
+                    if (loc.type === 'city') {
+                        suggestion = lang === 'pl' ? `Spróbuj wyszukać cały region: <b>${loc.region}</b> lub kraj.` : `Try searching the entire region: <b>${loc.region}</b> or country.`;
+                    } else if (loc.type === 'region') {
+                        suggestion = lang === 'pl' ? `Spróbuj wyszukać w całym kraju: <b>${loc.country}</b>.` : `Try searching in the entire country: <b>${loc.country}</b>.`;
+                    }
+
+                    container.innerHTML = `
+                        <div style="text-align:center; color:white; padding:50px; background: rgba(0,0,0,0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                            <h3 style="font-size: 24px; margin-bottom: 10px;">Brak dostępnych aut w: ${loc.name}</h3>
+                            <p style="color: #94A3B8; font-size: 16px; margin-bottom: 20px;">${suggestion}</p>
+                            <a href="index.html" style="color: var(--blue); font-weight: 700; text-decoration: underline;">Wróć i zmień lokalizację</a>
+                        </div>`;
+                    return;
+                }
+
+               // 4. GENEROWANIE KAFELKÓW (Z walidacją i tłumaczeniem)
+                cars.forEach((car, index) => {
+                    console.log("CAR:", car);
+                    const lang = localStorage.getItem("lang") || "pl";
+                    const minAge = car.partners?.min_driver_age || 21;
+                    
+                    // 🛡️ 1️⃣ WALIDACJA DANYCH (Safe Prices)
+                    const basePricePerDay = Number(car.partner_net_price) || 0;
+                    const baseTotal = Number((basePricePerDay * days).toFixed(2));
+                    const finalTotal = Number((baseTotal * 1.25).toFixed(2));
+
+                    const classLetter = (car.class_code || "A").charAt(0).toUpperCase();
+                    const bc = badgeColors[classLetter] || badgeColors['A'];
+                    const carCurrency = car.partners?.currency || 'EUR';
+
+                    // 🌍 2️⃣ PRIORYTET: dane partnera > fallback klasy
+                    const fallbackFeat = getFeaturesForClass(classLetter);
+                    
+                    // BEZPIECZNA SKRZYNIA BIEGÓW (A, AUTO, AUTOMATIC)
+                    const transmissionRaw = (car.transmission || '').toUpperCase();
+                    
+                    const feat = {
+                        seats: car.seats ?? fallbackFeat.seats,
+                        bags: car.bags ?? fallbackFeat.bags,
+                        trans: transmissionRaw 
+                            ? (['A', 'AUTO', 'AUTOMATIC'].includes(transmissionRaw) 
+                                ? (lang === 'pl' ? 'Automatyczna' : 'Automatic') 
+                                : (lang === 'pl' ? 'Manualna' : 'Manual'))
+                            : fallbackFeat.trans
+                    };
+
+                    // 🌍 3️⃣ JĘZYK - Tłumaczenie detali w locie
+                    const labels = {
+                        
+                        seats: lang === 'pl' ? 'Miejsca' : 'Seats',
+                        luggage: lang === 'pl' ? 'Bagaż' : 'Luggage',
+                        daysInfo: lang === 'pl' ? `za ${days} ${days === 1 ? 'dzień' : 'dni'}` : `for ${days} ${days === 1 ? 'day' : 'days'}`,
+                        bookBtn: lang === 'pl' ? 'Zarezerwuj' : 'Book Now'
+                    };
+                    // 💎 KIEROWCA W CENIE (Premium Flag + Godziny)
+                    let parsedFeat = {};
+                    try { parsedFeat = typeof car.features === 'string' ? JSON.parse(car.features) : (car.features || {}); } catch(e) {}
+                    
+                    const hoursText = parsedFeat.driverHours ? ` (${parsedFeat.driverHours}h)` : '';
+
+                    const driverBadge = car.driver_included === true
+                        ? `<span style="
+                            display:inline-block;
+                            margin-left:10px;
+                            font-size:11px;
+                            background:linear-gradient(135deg, #1E3A8A, #2563EB);
+                            color:white;
+                            padding:4px 10px;
+                            border-radius:999px;
+                            font-weight:800;
+                            letter-spacing:0.4px;
+                            vertical-align:middle;
+                            transform:translateY(-2px);
+                            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+                        ">
+                            🧑 ${lang === 'pl' ? 'Kierowca w cenie' : 'Driver included'}${hoursText}
+                        </span>`
+                        : '';
+
+                    // 🚗 4️⃣ PARSOWANIE FEATURES (JSON z bazy)
+                    let parsedFeatures = {};
+                    try {
+                        parsedFeatures = typeof car.features === 'string' ? JSON.parse(car.features) : (car.features || {});
+                    } catch (e) {
+                        console.error("Błąd parsowania features:", e);
+                    }
+
+                    // 🔥 LIMIT KM (Bezpieczne sprawdzanie typu)
+                    const mileageHtml = (typeof car.mileage_limit === 'number' && car.mileage_limit > 0)
+                        ? `<div class="feature-item"><svg><use href="#icon-mileage"></use></svg> ${lang === 'pl' ? `Limit: ${car.mileage_limit} km/doba` : `Limit: ${car.mileage_limit} km/day`}</div>`
+                        : `<div class="feature-item"><svg><use href="#icon-mileage"></use></svg> <span style="color:#16A34A;font-weight:700;">${lang === 'pl' ? 'Bez limitu km' : 'Unlimited mileage'}</span></div>`;
+
+                    // 🔥 KAUCJA (z zielonym wyróżnieniem NO DEPOSIT)
+                    let depositHtml = '';
+                    if (parsedFeatures.noDeposit || car.deposit_amount === 0) {
+                        depositHtml = `<div class="feature-item"><svg><use href="#icon-deposit"></use></svg> <span style="color:#16A34A;font-weight:800;">${lang === 'pl' ? 'BRAK KAUCJI' : 'NO DEPOSIT'}</span></div>`;
+                    } else if (car.deposit_amount > 0) {
+                        depositHtml = `<div class="feature-item"><svg><use href="#icon-deposit"></use></svg> ${lang === 'pl' ? `Kaucja: ${car.deposit_amount} ${carCurrency}` : `Deposit: ${car.deposit_amount} ${carCurrency}`}</div>`;
+                    }
+
+                    // 🔥 DODATKOWE ZNACZKI Z JSON
+                    const creditCardHtml = parsedFeatures.noCreditCard 
+                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej' : 'No credit card'}</div>` 
+                        : '';
+                        
+                    const insuranceHtml = parsedFeatures.fullInsurance 
+                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Pełne ubezpieczenie' : 'Full insurance'}</div>` 
+                        : '';
+
+                    const row = document.createElement('div');
+                    row.className = 'car-row';
+                    row.style.position = "relative"; 
+
+                    row.innerHTML = `
+<div class="car-img-box">
+    <img src="${car.image || 'auto.png'}" alt="${car.class_code}" onerror="this.src='auto.png'">
+</div>
+
+<div class="car-details-box">
+    <h2 class="car-title">
+        ${car.class_code || 'Economy'} 
+        <span>${lang === 'pl' ? 'lub podobny' : 'or similar'}</span>
+        ${driverBadge}
+    </h2>
+
+    <div class="class-badge-box" style="background-color: ${bc.bg}; border-color: ${bc.border};">
+        <span class="class-letter" style="color: ${bc.color};">${classLetter}</span>
+        <span class="class-name-small" style="color: ${bc.color}; opacity: 0.9;">
+            ${classNames[classLetter] || 'Auto'}
+        </span>
+    </div>
+
+    <div class="feature-grid">
+        <div class="feature-item">
+            <svg><use href="#icon-seats"></use></svg> 
+            ${feat.seats} ${labels.seats}
+        </div>
+
+        <div class="feature-item">
+            <svg><use href="#icon-trans"></use></svg> 
+            ${feat.trans}
+        </div>
+
+        <div class="feature-item">
+            <svg><use href="#icon-luggage"></use></svg> 
+            ${labels.luggage}: ${feat.bags}
+        </div>
+
+        ${mileageHtml}
+        ${depositHtml}
+        ${creditCardHtml}
+        ${insuranceHtml}
+
+        <div style="grid-column: 1 / span 2; margin-top: 6px;">
+            <span style="
+                display: inline-flex; align-items: center; gap: 6px;
+                background: linear-gradient(135deg, #FEF9C3, #FDE68A); color: #78350F;
+                font-weight: 700; font-size: 12px; padding: 6px 12px;
+                border-radius: 999px; border: 1px solid #FCD34D;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+            ">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#78350F" stroke-width="2">
+                    <circle cx="12" cy="8" r="4"></circle>
+                    <path d="M6 20c0-4 12-4 12 0"></path>
+                </svg>
+                ${lang === 'pl' ? `Min. wiek ${minAge}+` : `Min age ${minAge}+`}
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="car-price-box">
+    <div class="price-info">${lang === 'pl' ? 'Łącznie' : 'Total'} ${labels.daysInfo}</div>
+    <div class="price-total">${finalTotal} <span>${carCurrency}</span></div>
+    <button class="btn-book" onclick="handleBooking('${car.id}', ${baseTotal}, '${carCurrency}', this)">
+        ${labels.bookBtn}
+    </button>
+</div>
+                    `;
+                    
+                    if (index === 0 && cars.length > 0) {
+                        row.innerHTML += `
+                            <div style="position: absolute; top: 0; left: 0; background: #F59E0B; color: white; padding: 4px 12px; font-size: 11px; font-weight: 800; border-radius: 0 0 12px 0; z-index: 10; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);">
+                                🔥 ${lang === 'pl' ? 'NAJLEPSZA OFERTA' : 'BEST DEAL'}
+                            </div>`;
+                        row.style.border = "2px solid #F59E0B"; 
+                    }
+
+                    container.appendChild(row);
+                });
+                // 📄 4️⃣ KOMUNIKAT O LIMITACH (Transparentność ofert)
+                // Wyświetla się tylko, gdy baza zwróci równe 20 wyników (czyli osiągnięto limit strony)
+                if (rawCars && rawCars.length === PAGE_SIZE) {
+                    const more = document.createElement("div");
+                    more.style = "text-align:center; color:white; margin: 30px 0; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 12px;";
+                    const lang = localStorage.getItem("lang") || "pl";
+                    
+                    // Zmienione słownictwo na "dostępne opcje", aby nie sugerować własności aut
+                    more.innerHTML = lang === 'pl' 
+                        ? "Wyświetlono 20 najtrafniejszych propozycji. Aby zobaczyć inne opcje, spróbuj zawęzić kryteria."
+                        : "Showing 20 most relevant options. To see other choices, please refine your criteria.";
+                    
+                    container.appendChild(more);
+                }
+
+            } catch (error) {
+                console.error("Błąd ładowania aut:", error);
+                container.innerHTML = '<p style="color:#FCA5A5; text-align:center; padding: 40px; background: rgba(0,0,0,0.5); border-radius: 12px;">Błąd bazy danych: ' + error.message + '</p>';
+            }
+        }
+
+       // --- INTELIGENTNA REZERWACJA (UPROSZCZONA I BEZPIECZNA) ---
+        let authMode = "login";
+
+        async function handleBooking(carId, priceTotal, currency, btnElement) {
+            const { data, error } = await window.supabaseClient.rpc('calculate_booking_price', {
+    car_id: carId,
+    start_date: localStorage.getItem("bookingStartDate"),
+    end_date: localStorage.getItem("bookingEndDate")
+});
+
+if (error) {
+    console.error("RPC ERROR:", error);
+} else {
+    console.log("SECURE PRICE:", data);
+}
+            const db = window.supabaseClient;
+            
+            // 🔥 1. ZAPISUJEMY KONTEKST OD RAZU PRZED CZYMKOLWIEK (Kluczowa poprawka)
+            localStorage.setItem("selectedCarId", carId);
+            
+            localStorage.setItem("autoOpenBooking", "true");
+            // 🔥 ZAPIS CEN (KLUCZOWE)
+// 🔥 CENA PARTNERA (to co masz z floty)
+const basePrice = Number(priceTotal) || 0;
+
+// 👉 Twoja marża 25%
+const commission = basePrice * 0.25;
+
+// 👉 CENA DLA KLIENTA (informacyjna)
+const finalPrice = basePrice + commission;
+
+// 🔥 LIVE KURS (NBP)
+let rate = 4.3;
+const liveRate = await getExchangeRate(currency);
+
+if (liveRate) {
+    rate = liveRate;
+}
+console.log("📡 LIVE RATE:", rate);
+
+// 👉 PLN (Twoja prowizja)
+const commissionPLN = Number((commission * rate).toFixed(2));
+
+// 👉 PARTNER DOSTAJE 100% SWOJEJ KWOTY
+const partnerPart = basePrice;
+
+// 🔥 ZAPIS
+localStorage.setItem("bookingFinalPrice", finalPrice);
+localStorage.setItem("bookingOnlinePln", commissionPLN);
+localStorage.setItem("bookingPickupPrice", partnerPart);
+localStorage.setItem("bookingCurrency", currency);
+
+// 🔥 DEBUG
+console.log("💾 ZAPISANO CENY:", {
+    currency,
+    rate,
+    basePrice,
+    finalPrice,
+    commissionPLN,
+    partnerPart
+});
+
+            // Przenosimy też daty z wyszukiwania
+            // 🔥 FULL BOOKING CONTEXT (NOWE - ZAMIAST starego bloku)
+const searchParamsStr = localStorage.getItem("searchParams");
+
+if (searchParamsStr) {
+    const searchParams = JSON.parse(searchParamsStr);
+
+    // 🔥 zapis pełnego kontekstu
+    localStorage.setItem("bookingContext", JSON.stringify({
+        car_id: carId,
+        location: searchParams.pickup_location,
+        start_date: searchParams.pickup_date,
+        end_date: searchParams.drop_date,
+        created_at: new Date().toISOString()
+    }));
+
+    // 🔥 kompatybilność (zostawiamy stare pola żeby nic nie pękło)
+    localStorage.setItem("bookingStartDate", searchParams.pickup_date);
+    localStorage.setItem("bookingEndDate", searchParams.drop_date);
+}
+
+// 🔥 wersjonowanie (future-proof)
+localStorage.setItem("bookingFlowVersion", "v2");
+
+            const { data: { session } } = await db.auth.getSession();
+
+            // Jeśli NIEZALOGOWANY -> otwieramy modal
+            if (!session) {
+                openAuth();
+                return;
+            }
+
+            // Jeśli ZALOGOWANY -> blokujemy przycisk i lecimy od razu do panelu
+            if (btnElement) {
+                btnElement.innerText = localStorage.getItem("lang") === 'pl' ? "PRZETWARZAM..." : "PROCESSING...";
+                btnElement.disabled = true;
+            }
+
+            window.showToast(localStorage.getItem("lang") === 'pl' ? "Świetny wybór! Przechodzimy do rezerwacji..." : "Great choice! Redirecting...");
+            
+            setTimeout(() => {
+                window.location.href = "klient.html";
+            }, 800);
+        }
+
+        // --- OBSŁUGA OKIENKA LOGOWANIA ---
+        function openAuth() {
+            document.getElementById("authModal").style.display = "flex";
+        }
+
+        function closeAuth() {
+            document.getElementById("authModal").style.display = "none";
+            
+            // 🔥 MICRO-SZLIF UX: Powiadomienie o przerwaniu rezerwacji
+            if (localStorage.getItem("selectedCarId")) {
+                const lang = localStorage.getItem("lang") || "pl";
+                window.showToast(lang === 'pl' ? "Wybierz auto ponownie" : "Please select a car again");
+            }
+
+            // 🔥 PEŁNE CZYSZCZENIE KONTEKSTU (Ochrona przed Ghost Bookingami)
+            localStorage.removeItem("autoOpenBooking");
+            localStorage.removeItem("selectedCarId");
+            localStorage.removeItem("bookingStartDate");
+            localStorage.removeItem("bookingEndDate");
+            localStorage.removeItem("bookingContext");
+            localStorage.removeItem("bookingFlowVersion");
+        }
+
+        function toggleMode() {
+            authMode = authMode === "login" ? "register" : "login";
+            const isReg = authMode === "register";
+            const lang = localStorage.getItem("lang") || "pl";
+
+            document.getElementById("reg-name").style.display = isReg ? "block" : "none";
+            document.getElementById("reg-terms-group").style.display = isReg ? "block" : "none"; 
+            
+            document.getElementById("modalTitle").innerText = isReg ? (lang==='pl'?"Załóż konto":"Sign up") : (lang==='pl'?"Logowanie":"Login");
+            document.getElementById("mainAuthBtn").innerText = isReg ? (lang==='pl'?"Zarejestruj się":"Sign up") : (lang==='pl'?"Zaloguj się":"Log in");
+            document.getElementById("toggleText").innerText = isReg ? (lang==='pl'?"Masz już konto?":"Have an account?") : (lang==='pl'?"Nie masz konta?":"No account?");
+            document.getElementById("toggleBtn").innerText = isReg ? (lang==='pl'?"Zaloguj się":"Log in") : (lang==='pl'?"Zarejestruj się":"Sign up");
+        }
+
+        async function handleAuth() {
+            const email = document.getElementById("auth-email").value.trim();
+const pass = document.getElementById("auth-password").value.trim();
+
+if (!email || !email.includes("@")) {
+    return window.showToast("Podaj poprawny email");
+}
+
+if (!pass || pass.length < 8) {
+    return window.showToast("Hasło min. 8 znaków");
+}
+            
+            const name = document.getElementById("reg-name").value.trim();
+            const btn = document.getElementById("mainAuthBtn");
+            const db = window.supabaseClient;
+            const lang = localStorage.getItem("lang") || "pl";
+
+            if (authMode === "register") {
+                if (!name) return window.showToast(lang==='pl' ? "Podaj imię i nazwisko" : "Enter full name", "error");
+                if (!document.getElementById("reg-terms-checkbox").checked) {
+                    return window.showToast(lang==='pl' ? "Musisz zaakceptować regulamin i politykę prywatności." : "You must accept the terms.", "error");
+                }
+            }
+
+            btn.innerText = lang==='pl' ? "PRZETWARZANIE..." : "PROCESSING...";
+            btn.disabled = true;
+
+            try {
+                if (authMode === "login") {
+                    const { error } = await db.auth.signInWithPassword({ email, password: pass });
+                    if (error) throw error;
+                } else {
+                    const { error } = await db.auth.signUp({
+                        email, password: pass, options: { data: { full_name: name } }
+                    });
+                    if (error) throw error;
+                }
+
+                // 🔥 KLUCZOWE: Po udanym logowaniu/rejestracji po prostu lecimy do klienta!
+                // W klient.html czeka już kod, który wyłapie naszą flagę autoOpenBooking
+                window.location.href = "klient.html";
+
+            } catch (err) {
+                window.showToast("Błąd: " + err.message, "error");
+                btn.disabled = false;
+                btn.innerText = authMode === "login" ? (lang==='pl'?"Zaloguj się":"Log in") : (lang==='pl'?"Zarejestruj się":"Sign up");
+            }
+        }
+
+        async function loginGoogle() {
+            // 🔥 GENIALNE UPROSZCZENIE: Zamiast wracać na results.html, logowanie Google od razu kieruje na klient.html
+            await window.supabaseClient.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo: window.location.origin + "/klient.html" } 
+            });
+        }
+
+        // --- INICJALIZACJA STRONY ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCars(); // Renderujemy listę aut
+        });
+    </script>
+</body>
+</html>

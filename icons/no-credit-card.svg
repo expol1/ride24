@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="80" height="80">
+  <title>Bez karty kredytowej&#10;Płatność gotówką</title>
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3f51b5" />
+      <stop offset="100%" stop-color="#1a237e" />
+    </linearGradient>
+    <linearGradient id="slashGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff5252" />
+      <stop offset="100%" stop-color="#c62828" />
+    </linearGradient>
+  </defs>
+  <rect x="15" y="30" width="70" height="45" rx="6" fill="url(#cardGrad)"/>
+  <rect x="15" y="40" width="70" height="10" fill="#000000" opacity="0.6"/>
+  <rect x="25" y="58" width="12" height="10" rx="2" fill="#ffd54f"/>
+  <path d="M 18 82 L 82 18" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M 18 82 L 82 18" stroke="url(#slashGrad)" stroke-width="8" stroke-linecap="round"/>
+</svg>
