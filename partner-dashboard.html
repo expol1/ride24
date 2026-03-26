@@ -1838,7 +1838,7 @@ const updateData = {
 
             // Czytamy z bezpiecznego widoku SQL
             const { data, error } = await db
-                .from("safe_partner_bookings")
+                .from("bookings")
 .select(`
     id,
     start_date,
