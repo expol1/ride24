@@ -2427,20 +2427,15 @@ const { data, error } = await db
         function closeModal() { document.getElementById('addCarModal').classList.remove('active'); }
 
         // --- LOCATIONS UI ---
-window.openLocationModal = function(event) {
-    if (event) event.stopPropagation();
-
-    // 🔥 zamknij wszystkie modale
-    document.querySelectorAll(".modal-overlay").forEach(m => {
-        m.classList.remove("active");
-    });
+function openLocationModal(event) {
+    if (event) {
+        event.stopPropagation();
+    }
 
     const modal = document.getElementById("locationModal");
 
-    if (!modal) {
-        console.error("❌ locationModal NOT FOUND");
-        return;
-    }
+    // 🔥 BLOKADA DUPLIKACJI
+    if (modal.classList.contains("active")) return;
 
     modal.classList.add("active");
 
@@ -2448,8 +2443,8 @@ window.openLocationModal = function(event) {
     setupAutocomplete("locRegion", "regionDropdown", "region");
     setupAutocomplete("locCity", "cityDropdown", "city");
 
-    console.log("🔥 Location modal OPEN");
-};
+    console.log("🔥 Autocomplete INIT after modal open");
+}
 
 
 
