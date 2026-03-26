@@ -398,18 +398,18 @@
 
         /* === AUTOCOMPLETE === */
 .autocomplete-dropdown {
-    position: fixed; /* 🔥 zamiast absolute */
-    
+    position: absolute; /* 🔥 MUSI być absolute, nie fixed */
+    top: calc(100% + 4px); /* Pojawia się równo pod inputem */
+    left: 0;
+    width: 100%; /* Dopasowuje szerokość do inputa */
     background: white;
     border: 1px solid #E2E8F0;
     border-radius: 8px;
-
     max-height: 200px;
     overflow-y: auto;
-
-    z-index: 999999; /* 🔥 ponad wszystko */
-
+    z-index: 999999;
     display: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .autocomplete-item {
@@ -3034,12 +3034,14 @@ async function setupAutocomplete(inputId, dropdownId, category) {
         return;
     }
 
+    // 🔥 ZABEZPIECZENIE: Zapobiega dublowaniu event listenerów przy każdym otwarciu modala
+    if (input.dataset.autocompleteReady === "true") return;
+    input.dataset.autocompleteReady = "true";
+
     console.log("✅ Autocomplete READY:", inputId);
 
     const handler = async () => {
         const query = input.value.trim();
-
-        console.log("⌨️ INPUT:", inputId, query);
 
         if (query.length < 2) {
             dropdown.style.display = "none";
@@ -3047,14 +3049,12 @@ async function setupAutocomplete(inputId, dropdownId, category) {
         }
 
         try {
-           const { data, error } = await db
-    .from("locations_dictionary")
+            const { data, error } = await db
+                .from("locations_dictionary")
                 .select("name_en")
                 .eq("category", category)
                 .ilike("name_en", `%${query}%`)
                 .limit(5);
-
-            console.log("📦 DATA:", data);
 
             if (error) throw error;
 
@@ -3080,9 +3080,8 @@ async function setupAutocomplete(inputId, dropdownId, category) {
         }
     };
 
-    // 🔥 KLUCZ: dwa eventy zamiast jednego
+    // 🔥 Zostawiamy TYLKO event 'input' (odpala się przy każdej zmianie wartości)
     input.addEventListener("input", handler);
-    input.addEventListener("keyup", handler);
 
     document.addEventListener("click", (e) => {
         if (!input.contains(e.target) && !dropdown.contains(e.target)) {
