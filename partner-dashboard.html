@@ -2854,64 +2854,102 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                 document.getElementById("carPrice").value = car.public_price || "";
                 // 🔥 Odczyt znacznika VIP
                 
-                const driverCheckbox = document.getElementById('carDriverIncluded');
+                // 🔥 FEATURES NAJPIERW (KLUCZOWE!)
+let features = {};
+
+try {
+    features = typeof car.features === 'string'
+        ? JSON.parse(car.features)
+        : (car.features || {});
+} catch (e) {
+    console.error("Features parse error:", e);
+    features = {};
+}
+
+// 🔥 Odczyt znacznika VIP
+const driverCheckbox = document.getElementById('carDriverIncluded');
 if (driverCheckbox) {
     driverCheckbox.checked = car.driver_included === true;
 }
-                const driverHoursInput = document.getElementById('driverHours');
+
+// 🔥 DRIVER HOURS (bez crasha)
+const driverHoursInput = document.getElementById('driverHours');
 if (driverHoursInput) {
     driverHoursInput.value = features.driverHours || "";
 }
-                toggleDriverHours(); // Pokaż/ukryj pole w zależności od stanu checkboxa
 
-                // 2. Limit kilometrów
-                const unlimitedCheckbox = document.getElementById("unlimitedMileage");
-                const mileageInput = document.getElementById("mileageInput");
-                if (car.mileage_limit === null || car.mileage_limit === 0) {
-                    unlimitedCheckbox.checked = true;
-                    mileageInput.value = "";
-                } else {
-                    unlimitedCheckbox.checked = false;
-                    mileageInput.value = car.mileage_limit;
-                }
-                toggleMileageInput();
+// 🔥 toggle (bez crasha)
+if (typeof toggleDriverHours === "function") {
+    toggleDriverHours();
+}
 
-                // 3. Opcje wynajmu (checkboxy z JSON)
-                let features = {};
-                try { features = typeof car.features === 'string' ? JSON.parse(car.features) : (car.features || {}); } catch(e){}
-                document.getElementById("featureNoDeposit").checked = features.noDeposit || false;
-                document.getElementById("featureFullInsurance").checked = features.fullInsurance || false;
-                document.getElementById("featureNoCreditCard").checked = features.noCreditCard || false;
+// 2. Limit kilometrów
+const unlimitedCheckbox = document.getElementById("unlimitedMileage");
+const mileageInput = document.getElementById("mileageInput");
 
-                // 4. Przywracanie miniaturki zdjęcia
-                const imageTile = document.getElementById("vehicleImageUpload").closest(".file-tile");
-                if (imageTile) {
-                    imageTile.querySelector('.file-icon').style.display = 'none';
-                    imageTile.querySelector('.file-title').style.display = 'none';
-                    imageTile.querySelector('.file-sub').style.display = 'none';
-                    const oldImg = imageTile.querySelector('.preview-img');
-                    if(oldImg) oldImg.remove();
+if (unlimitedCheckbox && mileageInput) {
+    if (car.mileage_limit === null || car.mileage_limit === 0) {
+        unlimitedCheckbox.checked = true;
+        mileageInput.value = "";
+    } else {
+        unlimitedCheckbox.checked = false;
+        mileageInput.value = car.mileage_limit;
+    }
+}
 
-                    if (car.image) {
-                        const img = document.createElement("img");
-                        img.src = car.image;
-                        img.className = "preview-img";
-                        img.style = "width:100%; height:120px; object-fit:cover; border-radius:8px; pointer-events:none;";
-                        imageTile.dataset.existingImage = car.image; // Zapisujemy w tle obecny link!
-                        imageTile.appendChild(img);
-                    } else {
-                        imageTile.querySelector('.file-icon').style.display = 'flex';
-                        imageTile.querySelector('.file-title').style.display = 'block';
-                        imageTile.querySelector('.file-sub').style.display = 'block';
-                        delete imageTile.dataset.existingImage;
-                    }
-                }
+if (typeof toggleMileageInput === "function") {
+    toggleMileageInput();
+}
 
-                // Zmieniamy nagłówki w modalu
-                document.querySelector("#addCarModal .modal-header h2").innerText = isEn ? "Edit vehicle" : "Edytuj pojazd";
-                document.querySelector("#addCarModal .modal-footer .btn-primary").innerText = isEn ? "Save changes" : "Zapisz zmiany";
+// 3. Opcje wynajmu
+const noDeposit = document.getElementById("featureNoDeposit");
+const fullInsurance = document.getElementById("featureFullInsurance");
+const noCard = document.getElementById("featureNoCreditCard");
 
-                document.getElementById('addCarModal').classList.add('active');
+if (noDeposit) noDeposit.checked = features.noDeposit || false;
+if (fullInsurance) fullInsurance.checked = features.fullInsurance || false;
+if (noCard) noCard.checked = features.noCreditCard || false;
+
+// 4. Przywracanie miniaturki zdjęcia
+const uploadInput = document.getElementById("vehicleImageUpload");
+const imageTile = uploadInput ? uploadInput.closest(".file-tile") : null;
+
+if (imageTile) {
+    const icon = imageTile.querySelector('.file-icon');
+    const title = imageTile.querySelector('.file-title');
+    const sub = imageTile.querySelector('.file-sub');
+
+    if (icon) icon.style.display = 'none';
+    if (title) title.style.display = 'none';
+    if (sub) sub.style.display = 'none';
+
+    const oldImg = imageTile.querySelector('.preview-img');
+    if (oldImg) oldImg.remove();
+
+    if (car.image) {
+        const img = document.createElement("img");
+        img.src = car.image;
+        img.className = "preview-img";
+        img.style = "width:100%; height:120px; object-fit:cover; border-radius:8px; pointer-events:none;";
+        imageTile.dataset.existingImage = car.image;
+        imageTile.appendChild(img);
+    } else {
+        if (icon) icon.style.display = 'flex';
+        if (title) title.style.display = 'block';
+        if (sub) sub.style.display = 'block';
+        delete imageTile.dataset.existingImage;
+    }
+}
+
+// 🔥 nagłówki
+const header = document.querySelector("#addCarModal .modal-header h2");
+const btn = document.querySelector("#addCarModal .modal-footer .btn-primary");
+
+if (header) header.innerText = isEn ? "Edit vehicle" : "Edytuj pojazd";
+if (btn) btn.innerText = isEn ? "Save changes" : "Zapisz zmiany";
+
+// 🔥 open modal
+document.getElementById('addCarModal').classList.add('active');
 
             } catch (err) {
                 console.error(err);
