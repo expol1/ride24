@@ -1785,10 +1785,7 @@ const updateData = {
                 .reduce((sum, b) => sum + (b.partner_net_price_snapshot || 0), 0);
 
             // 2. Idealna logika waluty (Snapshot z bookingów LUB profil partnera)
-            const displayCurrency = 
-                data && data.length > 0 
-                    ? data[0].partner_currency 
-                    : partner.currency || "EUR";
+            const displayCurrency = partner.currency || "EUR";
 
             document.getElementById("statPending").innerText = pending;
             document.getElementById("statAwaiting").innerText = awaiting;
