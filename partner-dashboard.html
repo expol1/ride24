@@ -1743,32 +1743,35 @@ const updateData = {
                 .eq("user_id", session.user.id)
                 .single();
 
-            const { data, error } = await db
+           const { data, error } = await db
     .from("bookings")
     .select(`
-    id,
-    created_at,
-    start_date,
-    end_date,
-    pickup_location,
-    return_location,
-    status,
-    payment_deadline,
-    final_price_snapshot,
-    online_payment_pln,
-    pickup_payment_partner_currency,
-    deposit_snapshot,
-    mileage_limit_snapshot,
-    driver_included_snapshot,
-    driver_hours_snapshot,
-    car_classes (
-        class_code, 
-        description,
-        partners (currency)
-    )
-`)
+        id,
+        created_at,
+        start_date,
+        end_date,
+        pickup_time,
+        return_time,
+        pickup_location,
+        return_location,
+        status,
+        payment_deadline,
+        final_price_snapshot,
+        online_payment_pln,
+        pickup_payment_partner_currency,
+        deposit_snapshot,
+        mileage_limit_snapshot,
+        driver_included_snapshot,
+        driver_hours_snapshot,
+        car_classes (
+            class_code, 
+            description,
+            partners (currency)
+        )
+    `)
     .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid"]);
+    .in("status", ["pending", "awaiting_payment", "paid"])
+    .order("created_at", { ascending: false });
 
             if (error) return console.error("Błąd ładowania statystyk:", error);
 
