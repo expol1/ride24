@@ -1857,11 +1857,16 @@ else if (s === 'accepted') {
 }
 
 else if (s === 'awaiting_payment') {
+      actionsHtml += `
+        <button class="btn-pay"
+            onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')"
+            style="width:100%;">
+            Opłać teraz
+        </button>
+    `;
 
 
-    if (booking.payment_deadline) {
-        actionsHtml += `<div class="timer-badge payment-timer" data-deadline="${booking.payment_deadline}" style="margin-top: 6px; width: 100%; justify-content: center; font-size: 12px;">⌛ ${window.getTimeLeft(booking.payment_deadline)}</div>`;
-    }
+    
 }
 else if (s === 'paid') {
     actionsHtml += `<button class="btn-voucher" onclick="window.downloadVoucher('${booking.id}')" style="width:100%;">
