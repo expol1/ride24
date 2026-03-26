@@ -398,11 +398,8 @@
 
         /* === AUTOCOMPLETE === */
 .autocomplete-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-
+    position: fixed; /* 🔥 zamiast absolute */
+    
     background: white;
     border: 1px solid #E2E8F0;
     border-radius: 8px;
@@ -410,7 +407,7 @@
     max-height: 200px;
     overflow-y: auto;
 
-    z-index: 99999; /* 🔥 musi być wyżej niż modal */
+    z-index: 999999; /* 🔥 ponad wszystko */
 
     display: none;
 }
@@ -705,7 +702,9 @@
                         <input type="tel" id="partnerEmergency" placeholder="+48 000 000 000">
                     </div>
                     <div class="form-group">
-                    <label>Minimal driver age</label>
+                    <label data-pl="Minimalny wiek kierowcy" data-en="Minimum driver age">
+    Minimum driver age
+</label>
                     <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21">
                     </div>
                     <div class="form-group">
@@ -2424,14 +2423,21 @@ const { data, error } = await db
         }
 
         function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('collapsed'); }
-        function openModal() { document.getElementById('addCarModal').classList.add('active'); }
+        
         function closeModal() { document.getElementById('addCarModal').classList.remove('active'); }
 
         // --- LOCATIONS UI ---
 function openLocationModal() {
+
+    // 🔥 ZAMKNIJ WSZYSTKIE MODALE NAJPIERW
+    document.querySelectorAll(".modal-overlay").forEach(m => {
+        m.classList.remove("active");
+    });
+
+    // 🔥 OTWÓRZ TEN KONKRETNY
     document.getElementById("locationModal").classList.add("active");
 
-    // 🔥 INIT AUTOCOMPLETE (KLUCZOWE)
+    // 🔥 INIT AUTOCOMPLETE
     setupAutocomplete("locCountry", "countryDropdown", "country");
     setupAutocomplete("locRegion", "regionDropdown", "region");
     setupAutocomplete("locCity", "cityDropdown", "city");
@@ -2806,29 +2812,25 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
 
         // --- ULEPSZONE OTWIERANIE PUSTEGO FORMULARZA (DODAWANIE) ---
         window.openModal = function() {
-            window.currentEditingVehicleId = null; // Czysta karta
-            document.getElementById("vehicleForm").reset();
-            
-            const isEn = localStorage.getItem("partner_lang") === "en";
-            document.querySelector("#addCarModal .modal-header h2").innerText = isEn ? "Add new vehicle" : "Dodaj nowy pojazd";
-            document.querySelector("#addCarModal .modal-footer .btn-primary").innerText = isEn ? "Add vehicle" : "Dodaj auto";
 
-            const imageTile = document.getElementById("vehicleImageUpload").closest(".file-tile");
-            if (imageTile) {
-                imageTile.querySelector('.file-icon').style.display = 'flex';
-                imageTile.querySelector('.file-title').style.display = 'block';
-                imageTile.querySelector('.file-sub').style.display = 'block';
-                const preview = imageTile.querySelector('.preview-img');
-                if (preview) preview.remove();
-                delete imageTile.dataset.existingImage; // Czyścimy pamięć starego zdjęcia
-            }
-            
-            document.getElementById('carDriverIncluded').checked = false;
-            document.getElementById('driverHours').value = "";
-            toggleDriverHours(); // Ukrywa pole
-            toggleMileageInput();
-            document.getElementById('addCarModal').classList.add('active');
-        };
+    // 🔥 ZAMKNIJ WSZYSTKIE MODALE
+    document.querySelectorAll(".modal-overlay").forEach(m => {
+        m.classList.remove("active");
+    });
+
+    window.currentEditingVehicleId = null;
+    document.getElementById("vehicleForm").reset();
+
+    const isEn = localStorage.getItem("partner_lang") === "en";
+
+    document.querySelector("#addCarModal .modal-header h2").innerText =
+        isEn ? "Add new vehicle" : "Dodaj nowy pojazd";
+
+    document.querySelector("#addCarModal .modal-footer .btn-primary").innerText =
+        isEn ? "Add vehicle" : "Dodaj auto";
+
+    document.getElementById('addCarModal').classList.add('active');
+}
 
         // --- POBIERANIE DANYCH I UZUPEŁNIANIE FORMULARZA (EDYCJA) ---
         window.editVehicle = async function(id) {
@@ -2851,8 +2853,15 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                 document.getElementById("carFuel").value = car.fuel_type || "";
                 document.getElementById("carPrice").value = car.public_price || "";
                 // 🔥 Odczyt znacznika VIP
-                document.getElementById('carDriverIncluded').checked = car.driver_included === true;
-                document.getElementById('driverHours').value = features.driverHours || "";
+                
+                const driverCheckbox = document.getElementById('carDriverIncluded');
+if (driverCheckbox) {
+    driverCheckbox.checked = car.driver_included === true;
+}
+                const driverHoursInput = document.getElementById('driverHours');
+if (driverHoursInput) {
+    driverHoursInput.value = features.driverHours || "";
+}
                 toggleDriverHours(); // Pokaż/ukryj pole w zależności od stanu checkboxa
 
                 // 2. Limit kilometrów
@@ -3000,7 +3009,7 @@ async function setupAutocomplete(inputId, dropdownId, category) {
         }
 
         try {
-           const { data, error } = await window.supabaseClient
+           const { data, error } = await db
     .from("locations_dictionary")
                 .select("name_en")
                 .eq("category", category)
