@@ -1374,7 +1374,8 @@ async function executeDelete() {
                 .eq("user_id", session.user.id)
                 .single();
                 if(partner?.avatar_url){
-document.getElementById("partnerAvatar").src = partner.avatar_url
+    document.getElementById("partnerAvatar").src =
+        `${partner.avatar_url}?t=${Date.now()}`
 }
 
             // TWARDA BLOKADA DLA ZDEZAKTYWOWANYCH KONT
@@ -2599,55 +2600,94 @@ function toggleDriverHours() {
             if(rules) rules.addEventListener("change", e => uploadPartnerDocument(e.target.files[0], "rules"));
         }
 
-        // Bezpieczne wysyłanie pliku do Supabase (z limitami)
-        async function uploadPartnerDocument(file, type) {
-            if(!file) return;
+       async function uploadPartnerDocument(file, type) {
+    if(!file) return;
 
-            // --- BRAMKARZ 1: Tylko PDF ---
-            if (file.type !== "application/pdf") {
-                window.showToast("Błąd: Dozwolone są tylko pliki PDF!", "error");
-                return;
-            }
+    const isEn = localStorage.getItem("partner_lang") === "en";
 
-            // --- BRAMKARZ 2: Limit 5MB ---
-            if (file.size > 5 * 1024 * 1024) {
-                window.showToast("Błąd: Plik jest za duży (max 5MB).", "error");
-                return;
-            }
+    // --- BRAMKARZ 1: Tylko PDF ---
+    if (file.type !== "application/pdf") {
+        window.showToast("Błąd: Dozwolone są tylko pliki PDF!", "error");
+        return;
+    }
 
-            const { data: { session } } = await db.auth.getSession();
-            const partnerId = session.user.id;
-            const filePath = `${partnerId}/${type}.pdf`;
+    // --- BRAMKARZ 2: Limit 5MB ---
+    if (file.size > 5 * 1024 * 1024) {
+        window.showToast("Błąd: Plik jest za duży (max 5MB).", "error");
+        return;
+    }
 
-            window.showToast("Wgrywanie pliku...", "success");
+    // 🔥 POPRAWNE POBRANIE SESJI (bez crasha)
+    const { data } = await db.auth.getSession();
+    const session = data?.session;
 
-            // Wysłanie pliku do Storage
-            const { error: uploadError } = await db.storage
-                .from("partner-documents")
-                .upload(filePath, file, { upsert: true });
+    if (!session) {
+        console.error("Brak sesji");
+        return;
+    }
 
-            if (uploadError) {
-                console.error(uploadError);
-                window.showToast("Błąd serwera podczas wgrywania.", "error");
-                return;
-            }
+    const partnerId = session.user.id;
 
-            // Pobranie publicznego linku
-            const { data } = db.storage.from("partner-documents").getPublicUrl(filePath);
-            const url = data.publicUrl;
+    // 🔥 BLOKADA jeśli już istnieje dokument
+    const { data: existing } = await db
+        .from("partners")
+        .select("rental_terms_url, rental_rules_url")
+        .eq("user_id", partnerId)
+        .single();
 
-            // Zapisanie linku w profilu partnera
-            if (type === "terms") {
-                await db.from("partners").update({ rental_terms_url: url }).eq("user_id", partnerId);
-            } else if (type === "rules") {
-                await db.from("partners").update({ rental_rules_url: url }).eq("user_id", partnerId);
-            }
+    if (type === "terms" && existing?.rental_terms_url) {
+        window.showToast(
+            isEn ? "Remove old document first" : "Usuń stare dokumenty",
+            "error"
+        );
+        return;
+    }
 
-            window.showToast("Dokument wgrany i zapisany pomyślnie!", "success");
-            
-            // Odświeżenie ustawień, aby zmiany były od razu widoczne
-            await loadPartnerSettings(partnerId);
-        }
+    if (type === "rules" && existing?.rental_rules_url) {
+        window.showToast(
+            isEn ? "Remove old document first" : "Usuń stare dokumenty",
+            "error"
+        );
+        return;
+    }
+
+    const filePath = `${partnerId}/${type}.pdf`;
+
+    window.showToast("Wgrywanie pliku...", "success");
+
+    // upload
+    const { error: uploadError } = await db.storage
+        .from("partner-documents")
+        .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+        console.error(uploadError);
+        window.showToast("Błąd serwera podczas wgrywania.", "error");
+        return;
+    }
+
+    // public URL
+    const { data: publicData } = db.storage
+        .from("partner-documents")
+        .getPublicUrl(filePath);
+
+    const url = publicData.publicUrl;
+
+    // zapis do DB
+    if (type === "terms") {
+        await db.from("partners")
+            .update({ rental_terms_url: url })
+            .eq("user_id", partnerId);
+    } else if (type === "rules") {
+        await db.from("partners")
+            .update({ rental_rules_url: url })
+            .eq("user_id", partnerId);
+    }
+
+    window.showToast("Dokument wgrany i zapisany pomyślnie!", "success");
+
+    await loadPartnerSettings(partnerId);
+}
 
         function bindVehicleUpload() {
             const upload = document.getElementById("vehicleImageUpload");
@@ -3055,22 +3095,44 @@ async function uploadPartnerAvatar(file){
     const { data:{session} } = await db.auth.getSession()
     const userId = session.user.id
 
-    const filePath = `${userId}/avatar.jpg`
+    // 🔥 kompresja (zostaje Twoja funkcja)
+    try {
+        file = await compressImage(file, 512, 0.8)
+    } catch(e){
+        console.warn("Compression failed, using original file")
+    }
 
-    await db.storage
+    // 🔥 NOWA NAZWA (rozwiązuje cache)
+    const fileName = `avatar-${Date.now()}.jpg`
+    const filePath = `${userId}/${fileName}`
+
+    // upload
+    const { error } = await db.storage
         .from("partner-documents")
         .upload(filePath, file, { upsert:true })
 
+    if(error){
+        console.error(error)
+        showToast("Upload error","error")
+        return
+    }
+
+    // public URL
     const { data } = db.storage
         .from("partner-documents")
         .getPublicUrl(filePath)
 
+    const publicUrl = data.publicUrl
+
+    // zapis do DB
     await db
         .from("partners")
-        .update({ avatar_url:data.publicUrl })
+        .update({ avatar_url: publicUrl })
         .eq("user_id", userId)
 
-    document.getElementById("partnerAvatar").src = data.publicUrl
+    // 🔥 wymuszenie odświeżenia (cache-buster)
+    document.getElementById("partnerAvatar").src =
+        `${publicUrl}?t=${Date.now()}`
 
     showToast("Avatar uploaded","success")
 }
