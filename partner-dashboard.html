@@ -987,8 +987,8 @@
         </div>
     </div>
 
-   <div class="modal-overlay" id="locationModal">
-        <div class="modal-box">
+   <div class="modal-overlay" id="locationModal" onclick="closeLocationModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h2 data-pl="Dodaj lokalizację" data-en="Add location">Add location</h2>
                 <div class="modal-close" onclick="closeLocationModal()">&times;</div>
@@ -2428,20 +2428,17 @@ const { data, error } = await db
 
         // --- LOCATIONS UI ---
 function openLocationModal(event) {
-    // 🔥 TO JEST KLUCZ: Zatrzymuje "Ghost Click"
     if (event) {
         event.stopPropagation();
     }
 
-    // 🔥 ZAMKNIJ WSZYSTKIE MODALE NAJPIERW
-    document.querySelectorAll(".modal-overlay").forEach(m => {
-        m.classList.remove("active");
-    });
+    const modal = document.getElementById("locationModal");
 
-    // 🔥 OTWÓRZ TEN KONKRETNY
-    document.getElementById("locationModal").classList.add("active");
+    // 🔥 BLOKADA DUPLIKACJI
+    if (modal.classList.contains("active")) return;
 
-    // 🔥 INIT AUTOCOMPLETE
+    modal.classList.add("active");
+
     setupAutocomplete("locCountry", "countryDropdown", "country");
     setupAutocomplete("locRegion", "regionDropdown", "region");
     setupAutocomplete("locCity", "cityDropdown", "city");
@@ -2449,9 +2446,7 @@ function openLocationModal(event) {
     console.log("🔥 Autocomplete INIT after modal open");
 }
 
-function closeLocationModal() {
-    document.getElementById("locationModal").classList.remove("active");
-}
+
 
 function toggleExtraFeeInput() {
     const isChecked = document.getElementById('locExtraFee').checked;
@@ -2818,9 +2813,7 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
         window.openModal = function() {
 
     // 🔥 ZAMKNIJ WSZYSTKIE MODALE
-    document.querySelectorAll(".modal-overlay").forEach(m => {
-        m.classList.remove("active");
-    });
+   
 
     window.currentEditingVehicleId = null;
     document.getElementById("vehicleForm").reset();
@@ -2960,6 +2953,13 @@ document.getElementById('addCarModal').classList.add('active');
                 window.showToast(isEn ? "Error loading data." : "Błąd ładowania danych.", "error");
             }
         };
+        function closeLocationModal() {
+    const modal = document.getElementById("locationModal");
+    if (modal) {
+        modal.classList.remove("active");
+    }
+}
+        
 async function uploadPartnerAvatar(file){
 
     const { data:{session} } = await db.auth.getSession()
