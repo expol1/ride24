@@ -621,7 +621,7 @@
            <div id="view-locations" class="view-section">
                 <div class="page-header">
                     <h1 class="page-title" data-pl="Lokalizacje" data-en="Locations">Locations</h1>
-                    <button type="button" class="btn-primary" onclick="openLocationModal()" data-pl="+ Dodaj lokalizację" data-en="+ Add location">+ Add location</button>
+                    <button type="button" class="btn-primary" onclick="openLocationModal(event)" data-pl="+ Dodaj lokalizację" data-en="+ Add location">+ Add location</button>
                 </div>
             
                 <div style="background: #FEF9C3; border: 2px solid #DC2626; padding: 16px; border-radius: 12px; margin-bottom: 20px; font-size: 14px; color: #991B1B; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 10px rgba(220, 38, 38, 0.1);">
@@ -2427,7 +2427,11 @@ const { data, error } = await db
         function closeModal() { document.getElementById('addCarModal').classList.remove('active'); }
 
         // --- LOCATIONS UI ---
-function openLocationModal() {
+function openLocationModal(event) {
+    // 🔥 TO JEST KLUCZ: Zatrzymuje "Ghost Click"
+    if (event) {
+        event.stopPropagation();
+    }
 
     // 🔥 ZAMKNIJ WSZYSTKIE MODALE NAJPIERW
     document.querySelectorAll(".modal-overlay").forEach(m => {
