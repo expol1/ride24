@@ -533,7 +533,7 @@
                     </div>
                     <div class="stat-card success">
                         <div class="stat-title" data-pl="Twój zysk (Suma)" data-en="Your revenue (Total)">Your revenue (Total)</div>
-                        <div class="stat-value" style="color: var(--green);" id="dashRevenue">0.00 EUR</div>
+                        <div class="stat-value" style="color: var(--green);" id="dashRevenue">0.00</div>
                     </div>
                 </div>
 
@@ -1759,7 +1759,7 @@ const updateData = {
     final_price_snapshot,
     online_payment_pln,
     pickup_payment_partner_currency,
-    partner_currency,   // 🔥 DODAJ TO
+    partner_currency,   
     deposit_snapshot,
     mileage_limit_snapshot,
     driver_included_snapshot,
@@ -1785,7 +1785,7 @@ const updateData = {
                 .reduce((sum, b) => sum + (b.partner_net_price_snapshot || 0), 0);
 
             // 2. Idealna logika waluty (Snapshot z bookingów LUB profil partnera)
-            const displayCurrency = partner.currency || "EUR";
+           const displayCurrency = partner?.currency;
 
             document.getElementById("statPending").innerText = pending;
             document.getElementById("statAwaiting").innerText = awaiting;
