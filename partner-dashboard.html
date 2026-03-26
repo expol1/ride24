@@ -336,6 +336,8 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+
+    flex-shrink: 0; /* 🔥 blokuje ściskanie */
 }
 
 .btn-secondary {
@@ -1744,24 +1746,27 @@ const updateData = {
             const { data, error } = await db
     .from("bookings")
     .select(`
-        id,
-        status,
-        start_date,
-        end_date,
-        pickup_location,
-        return_location,
-
-        main_driver_name,
-        main_driver_age,
-        add_driver_name,
-        add_driver_age,
-
-        client_phone,
-        client_email,
-
-        partner_net_price_snapshot,
-        partner_currency
-    `)
+    id,
+    created_at,
+    start_date,
+    end_date,
+    pickup_location,
+    return_location,
+    status,
+    payment_deadline,
+    final_price_snapshot,
+    online_payment_pln,
+    pickup_payment_partner_currency,
+    deposit_snapshot,
+    mileage_limit_snapshot,
+    driver_included_snapshot,
+    driver_hours_snapshot,
+    car_classes (
+        class_code, 
+        description,
+        partners (currency)
+    )
+`)
     .eq("partner_id", partner.id)
     .in("status", ["pending", "awaiting_payment", "paid"]);
 
@@ -1835,6 +1840,8 @@ const updateData = {
     id,
     start_date,
     end_date,
+    pickup_time,
+    return_time,
     status,
     pickup_location,
     return_location,
@@ -1889,6 +1896,17 @@ const updateData = {
             let pendingCount = 0; 
 
             data.forEach(booking => {
+                // 🔥 GODZINY FIX (KOPIUJ 1:1)
+const pickupTime = booking.pickup_time ?? "10:00";
+const dropTime = booking.return_time ?? "10:00";
+
+// usuń sekundy
+const pickupTimeClean = pickupTime.substring(0, 5);
+const dropTimeClean = dropTime.substring(0, 5);
+
+// finalny format
+const startFull = `${booking.start_date} ${pickupTimeClean}`;
+const endFull = `${booking.end_date} ${dropTimeClean}`;
                 console.log("BOOKING:", booking);
                 if(booking.status === "pending") pendingCount++;
                 
@@ -2052,7 +2070,7 @@ const rowHtml = `
 
         <td>${statusHtml}</td>
 
-        <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+        <td>${startFull} &rarr; ${endFull}</td>
 
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#16A34A; white-space:nowrap;">
@@ -2103,7 +2121,7 @@ if (booking.status === "pending" && dashTbody) {
 
         <td>${locationDisplay}</td>
 
-        <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+        <td>${startFull} &rarr; ${endFull}</td>
 
         <td>${statusHtml}</td>
 
