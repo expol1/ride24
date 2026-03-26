@@ -1906,6 +1906,7 @@ const updateData = {
             let pendingCount = 0; 
 
             data.forEach(booking => {
+    console.log("FULL:", JSON.stringify(booking, null, 2));
                 // 🔥 GODZINY FIX (KOPIUJ 1:1)
 const pickupTime = booking.pickup_time ?? "10:00";
 const dropTime = booking.return_time ?? "10:00";
