@@ -1837,6 +1837,8 @@ const updateData = {
     id,
     start_date,
     end_date,
+    pickup_time,
+    return_time,
     status,
     pickup_location,
     return_location,
@@ -1891,6 +1893,17 @@ const updateData = {
             let pendingCount = 0; 
 
             data.forEach(booking => {
+                // 🔥 GODZINY FIX (KOPIUJ 1:1)
+const pickupTime = booking.pickup_time ?? "10:00";
+const dropTime = booking.return_time ?? "10:00";
+
+// usuń sekundy
+const pickupTimeClean = pickupTime.substring(0, 5);
+const dropTimeClean = dropTime.substring(0, 5);
+
+// finalny format
+const startFull = `${booking.start_date} ${pickupTimeClean}`;
+const endFull = `${booking.end_date} ${dropTimeClean}`;
                 console.log("BOOKING:", booking);
                 if(booking.status === "pending") pendingCount++;
                 
@@ -2054,7 +2067,7 @@ const rowHtml = `
 
         <td>${statusHtml}</td>
 
-        <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+        <td>${startFull} &rarr; ${endFull}</td>
 
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#16A34A; white-space:nowrap;">
@@ -2105,7 +2118,7 @@ if (booking.status === "pending" && dashTbody) {
 
         <td>${locationDisplay}</td>
 
-        <td>${booking.start_date} &rarr; ${booking.end_date}</td>
+        <td>${startFull} &rarr; ${endFull}</td>
 
         <td>${statusHtml}</td>
 
