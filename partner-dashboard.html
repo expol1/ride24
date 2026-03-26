@@ -249,28 +249,24 @@
         .fleet-thumb { width: 60px; height: 40px; background: #F1F5F9; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); cursor: pointer; }
 
         .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(4px);
-
-    z-index: 99999; /* 🔥 KLUCZ */
-
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: flex;
     align-items: center;
     justify-content: center;
-
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 999999 !important;
     opacity: 0;
+    pointer-events: none;
     transition: opacity 0.3s;
 }
 
 .modal-overlay.active {
-    display: flex;
     opacity: 1;
+    pointer-events: auto;
 }
 
 .modal-box {
@@ -986,89 +982,7 @@
         </div>
     </div>
 
-   <div class="modal-overlay" id="locationModal">
-        <div class="modal-box" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h2 data-pl="Dodaj lokalizację" data-en="Add location">Add location</h2>
-                <div class="modal-close" onclick="closeLocationModal()">&times;</div>
-            </div>
-            <div class="modal-body">
-
-                <div style="background: #FEE2E2; border: 2px solid #DC2626; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: inset 0 0 10px rgba(220, 38, 38, 0.05);">
-                    <strong style="color: #991B1B; display: block; font-size: 14px; margin-bottom: 6px; text-transform: uppercase;" data-pl="⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!" data-en="⚠️ IMPORTANT: Enter names in English ONLY!">⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!</strong>
-                    <span style="font-size: 13px; color: #991B1B; font-weight: 500;" data-pl="Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'." data-en="For the system to link locations with the search engine, type e.g., 'Greece' instead of 'Grecja', 'Rhodes' instead of 'Rodos'.">Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'.</span>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label data-pl="Nazwa lokalizacji" data-en="Location name">Location name</label>
-                        <input type="text" id="locName" placeholder="e.g. Madeira Airport (EN only)">
-                    </div>
-                    <div class="form-group">
-                        <label data-pl="Typ" data-en="Type">Type</label>
-                        <select id="locType">
-                            <option value="airport" data-pl="Lotnisko" data-en="Airport">Airport</option>
-                            <option value="city" data-pl="Miasto" data-en="City">City</option>
-                            <option value="hotel" data-pl="Dostawa pod hotel" data-en="Hotel delivery">Hotel delivery</option>
-                            <option value="office" data-pl="Biuro" data-en="Office">Office</option>
-                            <option value="custom" data-pl="Inna lokalizacja" data-en="Other location">Other location</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group" style="position: relative;">
-    <label data-pl="Kraj" data-en="Country">Country</label>
-    <input type="text" id="locCountry" placeholder="e.g. Portugal (EN only)" autocomplete="off">
-    <div id="countryDropdown" class="autocomplete-dropdown"></div>
-</div>
-                    <div class="form-group" style="position: relative;">
-    <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
-    <input type="text" id="locRegion" placeholder="e.g. Madeira (EN only)" autocomplete="off">
-    <div id="regionDropdown" class="autocomplete-dropdown"></div>
-</div>
-                </div>
-
-                <div class="form-group" style="position: relative;">
-    <label data-pl="Miasto" data-en="City">City</label>
-    <input type="text" id="locCity" placeholder="e.g. Funchal (EN only)" autocomplete="off">
-    <div id="cityDropdown" class="autocomplete-dropdown"></div>
-</div>
-
-                <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
-                    
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                        <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
-                            <input type="checkbox" id="locExtraFee" onchange="toggleExtraFeeInput()">
-                            <span data-pl="Wymagana dodatkowa opłata" data-en="Extra fee required">Extra fee required</span>
-                        </label>
-                        
-                        <div id="extraFeeAmountContainer" style="display: none; align-items: center; gap: 8px;">
-                            <input type="number" id="locExtraFeeAmount" placeholder="Kwota (np. 25)" style="width: 130px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-                            <span style="font-size: 12px; color: var(--gray);" data-pl="Puste = ustalane indyw." data-en="Empty = individual">Puste = ustalane indyw.</span>
-                        </div>
-                    </div>
-
-                    <div style="height: 1px; background: var(--border); width: 100%;"></div>
-
-                    <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
-                        <input type="checkbox" id="locContact">
-                        <span data-pl="Wymaga kontaktu z wypożyczalnią" data-en="Requires contact with rental company">Requires contact with rental company</span>
-                    </label>
-
-                </div>
-
-                <label class="checkbox-group" style="margin-top: 16px;">
-                    <input type="checkbox" id="locActive" checked>
-                    <span data-pl="Lokalizacja aktywna" data-en="Location active" style="font-weight: 700;">Location active</span>
-                </label>
-
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeLocationModal()" data-pl="Anuluj" data-en="Cancel">Cancel</button>
-                <button class="btn-primary" onclick="saveLocation()" data-pl="Zapisz lokalizację" data-en="Save location">Save location</button>
-            </div>
-        </div>
-    </div>
+   
 <div id="passwordModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
         <div style="background:white; width:100%; max-width:400px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
             <div style="padding: 20px 30px; border-bottom: 1px solid var(--border); background: #F8FAFC;">
@@ -1172,6 +1086,162 @@
                 <button onclick="closePartnerTermsModal()" style="padding: 10px 24px; background: var(--blue); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;" data-pl="Zrozumiałem" data-en="I understand">I understand</button>
             </div>
         </div>
+    </div>
+    <div class="modal-overlay" id="locationModal">
+
+        <div class="modal-box" onclick="event.stopPropagation()">
+
+            <div class="modal-header">
+
+                <h2 data-pl="Dodaj lokalizację" data-en="Add location">Add location</h2>
+
+                <div class="modal-close" onclick="closeLocationModal()">&times;</div>
+
+            </div>
+
+            <div class="modal-body">
+
+
+                <div style="background: #FEE2E2; border: 2px solid #DC2626; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: inset 0 0 10px rgba(220, 38, 38, 0.05);">
+
+                    <strong style="color: #991B1B; display: block; font-size: 14px; margin-bottom: 6px; text-transform: uppercase;" data-pl="⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!" data-en="⚠️ IMPORTANT: Enter names in English ONLY!">⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!</strong>
+
+                    <span style="font-size: 13px; color: #991B1B; font-weight: 500;" data-pl="Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'." data-en="For the system to link locations with the search engine, type e.g., 'Greece' instead of 'Grecja', 'Rhodes' instead of 'Rodos'.">Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'.</span>
+
+                </div>
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label data-pl="Nazwa lokalizacji" data-en="Location name">Location name</label>
+
+                        <input type="text" id="locName" placeholder="e.g. Madeira Airport (EN only)">
+
+                    </div>
+
+                    <div class="form-group">
+
+                        <label data-pl="Typ" data-en="Type">Type</label>
+
+                        <select id="locType">
+
+                            <option value="airport" data-pl="Lotnisko" data-en="Airport">Airport</option>
+
+                            <option value="city" data-pl="Miasto" data-en="City">City</option>
+
+                            <option value="hotel" data-pl="Dostawa pod hotel" data-en="Hotel delivery">Hotel delivery</option>
+
+                            <option value="office" data-pl="Biuro" data-en="Office">Office</option>
+
+                            <option value="custom" data-pl="Inna lokalizacja" data-en="Other location">Other location</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group" style="position: relative;">
+
+    <label data-pl="Kraj" data-en="Country">Country</label>
+
+    <input type="text" id="locCountry" placeholder="e.g. Portugal (EN only)" autocomplete="off">
+
+    <div id="countryDropdown" class="autocomplete-dropdown"></div>
+
+</div>
+
+                    <div class="form-group" style="position: relative;">
+
+    <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
+
+    <input type="text" id="locRegion" placeholder="e.g. Madeira (EN only)" autocomplete="off">
+
+    <div id="regionDropdown" class="autocomplete-dropdown"></div>
+
+</div>
+
+                </div>
+
+
+                <div class="form-group" style="position: relative;">
+
+    <label data-pl="Miasto" data-en="City">City</label>
+
+    <input type="text" id="locCity" placeholder="e.g. Funchal (EN only)" autocomplete="off">
+
+    <div id="cityDropdown" class="autocomplete-dropdown"></div>
+
+</div>
+
+
+                <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);">
+
+                    
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+
+                        <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
+
+                            <input type="checkbox" id="locExtraFee" onchange="toggleExtraFeeInput()">
+
+                            <span data-pl="Wymagana dodatkowa opłata" data-en="Extra fee required">Extra fee required</span>
+
+                        </label>
+
+                        
+
+                        <div id="extraFeeAmountContainer" style="display: none; align-items: center; gap: 8px;">
+
+                            <input type="number" id="locExtraFeeAmount" placeholder="Kwota (np. 25)" style="width: 130px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
+
+                            <span style="font-size: 12px; color: var(--gray);" data-pl="Puste = ustalane indyw." data-en="Empty = individual">Puste = ustalane indyw.</span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div style="height: 1px; background: var(--border); width: 100%;"></div>
+
+
+                    <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
+
+                        <input type="checkbox" id="locContact">
+
+                        <span data-pl="Wymaga kontaktu z wypożyczalnią" data-en="Requires contact with rental company">Requires contact with rental company</span>
+
+                    </label>
+
+
+                </div>
+
+
+                <label class="checkbox-group" style="margin-top: 16px;">
+
+                    <input type="checkbox" id="locActive" checked>
+
+                    <span data-pl="Lokalizacja aktywna" data-en="Location active" style="font-weight: 700;">Location active</span>
+
+                </label>
+
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button class="btn-secondary" onclick="closeLocationModal()" data-pl="Anuluj" data-en="Cancel">Cancel</button>
+
+                <button class="btn-primary" onclick="saveLocation()" data-pl="Zapisz lokalizację" data-en="Save location">Save location</button>
+
+            </div>
+
+        </div>
+
     </div>
     <div id="toast-container"></div>
 
