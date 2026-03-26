@@ -1839,28 +1839,28 @@ const updateData = {
                 .from("bookings")
 .select(`
     id,
+    created_at,
     start_date,
     end_date,
     pickup_time,
     return_time,
-    status,
     pickup_location,
     return_location,
-    partner_response_deadline,
+    status,
     payment_deadline,
-    created_at,
-
-    car_classes(class_code,description),
-
-    client_phone,
-    client_email,
-    main_driver_name,
-    main_driver_age,
-    add_driver_name,
-    add_driver_age,
-
+    final_price_snapshot,
+    online_payment_pln,
     pickup_payment_partner_currency,
-    partner_currency
+    partner_currency,  
+    deposit_snapshot,
+    mileage_limit_snapshot,
+    driver_included_snapshot,
+    driver_hours_snapshot,
+    car_classes (
+        class_code, 
+        description,
+        partners (currency)
+    )
 `)
                 .eq("partner_id", partner.id)
                 .in("status", ["pending", "awaiting_payment", "paid"])
