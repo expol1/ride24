@@ -1744,44 +1744,7 @@ const updateData = {
                 .eq("user_id", session.user.id)
                 .single();
 
-           const { data, error } = await db
-    .from("bookings")
-    .select(`
-    id,
-    created_at,
-    start_date,
-    end_date,
-    pickup_time,
-    return_time,
-    pickup_location,
-    return_location,
-    status,
-    payment_deadline,
-    final_price_snapshot,
-    online_payment_pln,
-    pickup_payment_partner_currency,
-    partner_currency,
-
-    main_driver_name,
-    main_driver_age,
-    add_driver_name,
-    add_driver_age,
-    client_phone,
-    client_email,
-
-    deposit_snapshot,
-    mileage_limit_snapshot,
-    driver_included_snapshot,
-    driver_hours_snapshot,
-    car_classes (
-        class_code, 
-        description,
-        partners (currency)
-    )
-`)
-    .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid"])
-    .order("created_at", { ascending: false });
+           
 
             if (error) return console.error("Błąd ładowania statystyk:", error);
 
@@ -1845,35 +1808,44 @@ const updateData = {
 
             // Czytamy z bezpiecznego widoku SQL
             const { data, error } = await db
-                .from("bookings")
-.select(`
-    id,
-    created_at,
-    start_date,
-    end_date,
-    pickup_time,
-    return_time,
-    pickup_location,
-    return_location,
-    status,
-    payment_deadline,
-    final_price_snapshot,
-    online_payment_pln,
-    pickup_payment_partner_currency,
-    partner_currency,  
-    deposit_snapshot,
-    mileage_limit_snapshot,
-    driver_included_snapshot,
-    driver_hours_snapshot,
-    car_classes (
-        class_code, 
-        description,
-        partners (currency)
-    )
-`)
-                .eq("partner_id", partner.id)
-                .in("status", ["pending", "awaiting_payment", "paid"])
-                .order("created_at", { ascending: false });
+    .from("bookings")
+    .select(`
+        id,
+        created_at,
+        start_date,
+        end_date,
+        pickup_time,
+        return_time,
+        pickup_location,
+        return_location,
+        status,
+        payment_deadline,
+        final_price_snapshot,
+        online_payment_pln,
+        pickup_payment_partner_currency,
+        partner_currency,
+
+        main_driver_name,
+        main_driver_age,
+        add_driver_name,
+        add_driver_age,
+        client_phone,
+        client_email,
+
+        deposit_snapshot,
+        mileage_limit_snapshot,
+        driver_included_snapshot,
+        driver_hours_snapshot,
+
+        car_classes (
+            class_code, 
+            description,
+            partners (currency)
+        )
+    `)
+    .eq("partner_id", partner.id)
+    .in("status", ["pending", "awaiting_payment", "paid"])
+    .order("created_at", { ascending: false });
 
             if(error) {
                 console.error(error);
