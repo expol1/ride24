@@ -1900,10 +1900,13 @@ actionsHtml += `</div>`;
                     const drop = booking.return_location || pickup;
                     // 🔥 GODZINY (NOWE)
 const pickupTime = booking.pickup_time || localStorage.getItem("bookingPickupTime") || "10:00";
-const dropTime = booking.drop_time || localStorage.getItem("bookingDropTime") || "10:00";
+const dropTime = booking.return_time || localStorage.getItem("bookingDropTime") || "10:00";
 
-const startFull = `${booking.start_date} ${pickupTime}`;
-const endFull = `${booking.end_date} ${dropTime}`;
+const pickupTimeClean = pickupTime.substring(0,5);
+const dropTimeClean = dropTime.substring(0,5);
+
+const startFull = `${booking.start_date} ${pickupTimeClean}`;
+const endFull = `${booking.end_date} ${dropTimeClean}`;
 
                     const rowHtml = `
                         <tr class="clickable-row">

@@ -248,18 +248,117 @@
         .checkbox-group input { width: auto; transform: scale(1.2); cursor: pointer; accent-color: var(--green); }
         .fleet-thumb { width: 60px; height: 40px; background: #F1F5F9; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); cursor: pointer; }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 999; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; }
-        .modal-overlay.active { display: flex; opacity: 1; }
-        .modal-box { background: white; width: 100%; max-width: 1000px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden; transform: translateY(20px); transition: transform 0.3s; max-height: 95vh; display: flex; flex-direction: column; }
-        .modal-overlay.active .modal-box { transform: translateY(0); }
-        .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h2 { font-size: 18px; font-weight: 800; color: var(--blue-dark); margin: 0;}
-        .modal-close { cursor: pointer; font-size: 24px; color: var(--gray); line-height: 1; }
-        .modal-close:hover { color: var(--red); }
-        .modal-body { padding: 24px; overflow-y: auto; background: #ECFDF5; }
-        .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); background: #F8FAFC; display: flex; justify-content: flex-end; gap: 12px; }
-        .btn-secondary { background: white; color: var(--text); border: 1px solid var(--border); padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-secondary:hover { background: #F1F5F9; }
+        .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+
+    z-index: 999;
+
+    align-items: center;
+    justify-content: center;
+
+    opacity: 0;
+    transition: opacity 0.3s;
+
+    overflow: visible !important; /* 🔥 FIX */
+}
+
+.modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-box {
+    background: white;
+    width: 100%;
+    max-width: 1000px;
+
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+    overflow: visible !important; /* 🔥 KLUCZOWE */
+
+    transform: translateY(20px);
+    transition: transform 0.3s;
+
+    max-height: 95vh;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-overlay.active .modal-box {
+    transform: translateY(0);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--blue-dark);
+    margin: 0;
+}
+
+.modal-close {
+    cursor: pointer;
+    font-size: 24px;
+    color: var(--gray);
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--red);
+}
+
+.modal-body {
+    padding: 24px;
+
+    overflow: visible !important; /* 🔥 KLUCZOWE */
+
+    background: #ECFDF5;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: #F8FAFC;
+
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--text);
+    border: 1px solid var(--border);
+
+    padding: 10px 18px;
+    border-radius: 8px;
+
+    font-weight: 600;
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #F1F5F9;
+}
 
         .partner-discount-widget{ margin-top: auto; margin-bottom: 20px; margin-left: 15px; margin-right: 15px; padding:16px; background:#16A34A; border-radius:12px; text-align:center; color:white; }
         .discount-title{ font-size:12px; font-weight:600; opacity:0.9; }
@@ -303,12 +402,16 @@
     top: 100%;
     left: 0;
     right: 0;
+
     background: white;
     border: 1px solid #E2E8F0;
     border-radius: 8px;
+
     max-height: 200px;
     overflow-y: auto;
-    z-index: 9999;
+
+    z-index: 99999; /* 🔥 musi być wyżej niż modal */
+
     display: none;
 }
 
@@ -837,21 +940,39 @@
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Cena podstawowa za dobę" data-en="Price per day">Price per day</label>
                         <input type="number" id="carPrice" placeholder="e.g. 40" min="0">
-                    </div>
-                    <div class="form-group" style="grid-column: 1 / -1; margin-top: 16px; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: #0F172A; margin: 0;">
-                        <input type="checkbox" id="carDriverIncluded" onchange="toggleDriverHours()" style="width: 20px; height: 20px; accent-color: #2563EB; cursor: pointer;">
-                        🧑 Kierowca w cenie (Driver included)
-                    </label>
-                    <p style="margin: 4px 0 0 30px; font-size: 12px; color: #64748B; font-weight: 500;">
-                        Zaznacz, jeśli to auto wynajmujesz wyłącznie wraz z usługą szofera. Oferta wyświetli się jako PREMIUM.
-                    </p>
-                    
-                    <div id="driverHoursContainer" style="display: none; margin-top: 12px; margin-left: 30px;">
-                        <label style="font-size: 13px; font-weight: 600; color: #0F172A; display: block; margin-bottom: 4px;" data-pl="Limit godzin dziennie (w cenie)" data-en="Hours per day included">Limit godzin dziennie (w cenie)</label>
-                        <input type="number" id="driverHours" placeholder="np. 8" min="1" max="24" style="width: 120px; padding: 8px 12px; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 14px; background: white;">
-                    </div>
-                </div>
+                   </div>
+<div class="form-group" style="grid-column: 1 / -1; margin-top: 16px; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
+    
+    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: #0F172A; margin: 0;">
+        <input type="checkbox" id="carDriverIncluded" onchange="toggleDriverHours()" style="width: 20px; height: 20px; accent-color: #2563EB; cursor: pointer;">
+        
+        <span data-pl="🧑 Kierowca w cenie" data-en="🧑 Driver included">
+            🧑 Driver included
+        </span>
+    </label>
+
+    <p style="margin: 4px 0 0 30px; font-size: 12px; color: #64748B; font-weight: 500;">
+        <span 
+            data-pl="Zaznacz, jeśli to auto wynajmujesz wyłącznie wraz z usługą szofera. Oferta wyświetli się jako PREMIUM."
+            data-en="Check if this vehicle is rented only with a chauffeur. The offer will be displayed as PREMIUM.">
+            Check if this vehicle is rented only with a chauffeur. The offer will be displayed as PREMIUM.
+        </span>
+    </p>
+    
+    <div id="driverHoursContainer" style="display: none; margin-top: 12px; margin-left: 30px;">
+        <label style="font-size: 13px; font-weight: 600; color: #0F172A; display: block; margin-bottom: 4px;"
+               data-pl="Limit godzin dziennie (w cenie)"
+               data-en="Hours per day included">
+            Hours per day included
+        </label>
+
+        <input type="number" id="driverHours" 
+               placeholder="8" 
+               min="1" max="24"
+               style="width: 120px; padding: 8px 12px; border: 1px solid #E2E8F0; border-radius: 6px; font-size: 14px; background: white;">
+    </div>
+
+</div>
 
                 <div class="form-row-3" style="margin-top: 16px; margin-bottom: 0;">
                     <div class="form-group" style="margin-bottom: 0;">
