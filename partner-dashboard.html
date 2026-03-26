@@ -1757,6 +1757,7 @@ const updateData = {
         return_location,
         status,
         payment_deadline,
+        partner_response_deadline,
         final_price_snapshot,
         online_payment_pln,
         pickup_payment_partner_currency,
@@ -1858,6 +1859,7 @@ const updateData = {
         return_location,
         status,
         payment_deadline,
+        partner_response_deadline,
         final_price_snapshot,
         online_payment_pln,
         pickup_payment_partner_currency,
@@ -2104,7 +2106,7 @@ const rowHtml = `
                 ${actions}
                 ${
                     booking.status === "pending"
-                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline}" style="margin-top: 4px;">
+                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}"" style="margin-top: 4px;">
                         ⌛ --:--:--
                        </span>`
                     : ""
@@ -2120,7 +2122,7 @@ const rowHtml = `
 if (booking.status === "pending" && dashTbody) {
 
     const timerHtml = `
-        <span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline}">
+        <span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}">
             ⌛ --:--:--
         </span>
     `;
