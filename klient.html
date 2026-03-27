@@ -1199,17 +1199,31 @@ function renderLoyaltyCard(profile) {
 
         // --- INICJALIZACJA ---
         document.addEventListener("DOMContentLoaded", async () => {
-            if(db) {
-                const { data: { session } } = await db.auth.getSession();
-                if (session) {
-                    currentUser = session.user;
-                }
-            }
+            const { data: { session } } = await db.auth.getSession();
+
+if (!session) {
+    console.log("⏳ czekam na sesję...");
+    
+    await new Promise(r => setTimeout(r, 1000));
+
+    const retry = await db.auth.getSession();
+    const retrySession = retry?.data?.session;
+
+    if (!retrySession) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    currentUser = retrySession.user;
+} else {
+    currentUser = session.user;
+}
             // Ochrona panelu (Auth Guard)
-            if (!currentUser) {
-                window.location.href = "index.html";
-                return;
-            }
+if (!currentUser || !currentUser.id) {
+    console.log("❌ brak usera po auth");
+    window.location.href = "index.html";
+    return;
+}
 
             window.detectLang();
             await loadUserProfile();
