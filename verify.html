@@ -115,8 +115,8 @@ async function verify() {
 
     if (!code) {
         app.innerHTML = `
-            <div class="header" style="background:#666">BŁĄD</div>
-            <div class="content">Brak kodu rezerwacji w URL</div>
+            <div class="header" style="background:#666">BŁĄD / ERROR</div>
+            <div class="content">Brak kodu rezerwacji w URL / Missing booking code</div>
         `;
         return;
     }
@@ -139,15 +139,16 @@ async function verify() {
 
     if (error || !booking) {
         app.innerHTML = `
-            <div class="header status-error">NIEWAŻNY VOUCHER</div>
+            <div class="header status-error">NIEWAŻNY VOUCHER / INVALID VOUCHER</div>
             <div class="content">
-                Kod <b>${code}</b> nie istnieje<br><br>
-                <span class="bad">❌ Voucher nieautentyczny</span>
+                Kod / Code <b>${code}</b> nie istnieje / does not exist<br><br>
+                <span class="bad">❌ Voucher nieautentyczny / Not authentic</span>
             </div>
         `;
         return;
     }
 
+    // 🔥 SECURITY: Akceptujemy tylko opłacone vouchery
     const isValid = booking.status === 'paid';
 
     const pickup =
@@ -155,13 +156,17 @@ async function verify() {
         booking.pickup_location ||
         "-";
 
+    const pTime = booking.pickup_time ? String(booking.pickup_time).substring(0,5) : "";
+    const rTime = booking.return_time ? String(booking.return_time).substring(0,5) : "";
+
+    // 🔥 DWUJĘZYCZNOŚĆ I LEPSZY UX STATUSÓW
     app.innerHTML = `
         <div class="header">
-            <div style="font-size:12px;opacity:.8">WERYFIKACJA VOUCHERA</div>
+            <div style="font-size:12px;opacity:.8">WERYFIKACJA VOUCHERA / VOUCHER VERIFICATION</div>
             <div style="font-size:24px;font-weight:bold">${booking.reservation_code}</div>
 
             <div class="status-badge ${isValid ? 'status-paid' : 'status-error'}">
-                ${isValid ? '✓ WAŻNY / OPŁACONY' : '✗ NIEWAŻNY'}
+                ${isValid ? '✓ WAŻNY / VALID' : '✗ NIEWAŻNY / INVALID'}
             </div>
         </div>
 
@@ -170,28 +175,28 @@ async function verify() {
             <div class="info-row">
                 <span class="label">Status:</span>
                 <span class="value ${isValid ? 'ok' : 'bad'}">
-                    ${isValid ? 'Aktywna rezerwacja' : booking.status}
+                    ${isValid ? 'Aktywna / Active' : 'Nieopłacona / Unpaid'}
                 </span>
             </div>
 
             <div class="info-row">
-                <span class="label">Klasa pojazdu:</span>
+                <span class="label">Klasa pojazdu / Vehicle class:</span>
                 <span class="value">${booking.car_classes?.class_code || '-'}</span>
             </div>
 
             <div class="info-row">
-                <span class="label">Miejsce odbioru:</span>
+                <span class="label">Miejsce odbioru / Pickup location:</span>
                 <span class="value">${pickup}</span>
             </div>
 
             <div class="info-row">
-                <span class="label">Odbiór:</span>
-                <span class="value">${booking.start_date} ${booking.pickup_time?.substring(0,5) || ''}</span>
+                <span class="label">Odbiór / Pickup:</span>
+                <span class="value">${booking.start_date} ${pTime}</span>
             </div>
 
             <div class="info-row">
-                <span class="label">Zwrot:</span>
-                <span class="value">${booking.end_date} ${booking.return_time?.substring(0,5) || ''}</span>
+                <span class="label">Zwrot / Return:</span>
+                <span class="value">${booking.end_date} ${rTime}</span>
             </div>
 
             <div style="margin-top:20px;font-size:11px;color:#aaa;text-align:center">

@@ -58,7 +58,8 @@ serve(async (req) => {
         .eq("booking_id", booking_id)
     }
 
-    const reservation = booking.reservation_code || booking.id.slice(0,8).toUpperCase()
+    // 🔥 FIX 3: Bezpieczniejsze ?? zamiast ||
+    const reservation = booking.reservation_code ?? booking.id.slice(0,8).toUpperCase()
 
     // ✅ FIX VERIFY
     const verifyUrl = `https://ride24.pl/verify.html?code=${reservation}`
@@ -70,7 +71,6 @@ serve(async (req) => {
       "-"
 
     // ✅ FIX KWOT
-    const paid = booking.online_payment_pln || 0
     const pickupPay = booking.pickup_payment_partner_currency || 0
 
     // ===== PDF =====
@@ -104,21 +104,21 @@ serve(async (req) => {
 
     page.drawImage(logoImage, { x: 50, y: 725, width: 130, height: 45 })
 
-    page.drawText("RENTAL VOUCHER", { x: 300, y: 755, size: 14, font: bold, color: rgb(1,1,1) })
-    page.drawText(`Res: ${reservation}`, { x: 300, y: 735, size: 12, font, color: rgb(0.8,0.8,0.9) })
+    page.drawText("RENTAL VOUCHER / VOUCHER", { x: 300, y: 755, size: 14, font: bold, color: rgb(1,1,1) })
+    page.drawText(`Res / Nr: ${reservation}`, { x: 300, y: 735, size: 12, font, color: rgb(0.8,0.8,0.9) })
 
     let y = 640
 
     // ===== CLIENT =====
-    page.drawText("CLIENT", { x: labelX, y, size: 12, font: bold, color: textGray })
+    page.drawText("CLIENT DETAILS / DANE KLIENTA", { x: labelX, y, size: 12, font: bold, color: textGray })
     y -= 25
-    page.drawText("Name:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText("Name / Imię i nazwisko:", { x: labelX, y, size: 12, font, color: textGray })
     page.drawText(`${booking.profiles?.name || "-"}`, { x: valueX, y, size: 12, font: bold, color: textDark })
     y -= 18
-    page.drawText("Phone:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText("Phone / Telefon:", { x: labelX, y, size: 12, font, color: textGray })
     page.drawText(`${booking.profiles?.phone || "-"}`, { x: valueX, y, size: 12, font: bold, color: textDark })
     y -= 18
-    page.drawText("Email:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText("Email / E-mail:", { x: labelX, y, size: 12, font, color: textGray })
     page.drawText(`${booking.profiles?.email || "-"}`, { x: valueX, y, size: 12, font: bold, color: textDark })
 
     y -= 25
@@ -126,51 +126,92 @@ serve(async (req) => {
     y -= 30
 
     // ===== RENTAL =====
-    page.drawText("RENTAL", { x: labelX, y, size: 12, font: bold, color: textGray })
+    page.drawText("VEHICLE & RENTAL INFO / POJAZD I WYNAJEM", { x: labelX, y, size: 12, font: bold, color: textGray })
     y -= 25
-    page.drawText("Class:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText("Class / Klasa:", { x: labelX, y, size: 12, font, color: textGray })
     page.drawText(`${booking.car_classes?.class_code || "-"}`, { x: valueX, y, size: 12, font: bold, color: textDark })
 
     y -= 18
-    page.drawText("Pickup:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText("Pickup / Miejsce odbioru:", { x: labelX, y, size: 12, font, color: textGray })
     page.drawText(`${pickup}`, { x: valueX, y, size: 12, font: bold, color: textDark })
 
     const pTime = booking.pickup_time ? ` ${booking.pickup_time.slice(0,5)}` : ""
     const rTime = booking.return_time ? ` ${booking.return_time.slice(0,5)}` : ""
 
     y -= 18
-    page.drawText("Start:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText("Start / Odbiór:", { x: labelX, y, size: 12, font, color: textGray })
     page.drawText(`${booking.start_date}${pTime}`, { x: valueX, y, size: 12, font: bold, color: textDark })
 
     y -= 18
-    page.drawText("End:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText("End / Zwrot:", { x: labelX, y, size: 12, font, color: textGray })
     page.drawText(`${booking.end_date}${rTime}`, { x: valueX, y, size: 12, font: bold, color: textDark })
+
+    y -= 25
+    page.drawText("RENTAL DETAILS / SZCZEGÓŁY WYNAJMU", { x: labelX, y, size: 12, font: bold, color: textGray })
+
+    // --- KAUCJA ---
+    y -= 20
+    page.drawText("Deposit / Kaucja:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText(
+      `${booking.deposit_snapshot || 0} ${booking.partner_currency || "EUR"}`, 
+      { x: valueX, y, size: 12, font: bold, color: textDark }
+    )
+
+    // --- LIMIT KM ---
+    y -= 18
+    page.drawText("Mileage / Limit km:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText(
+      booking.mileage_limit_snapshot 
+        ? `${booking.mileage_limit_snapshot} km/day` 
+        : "Unlimited / Bez limitu",
+      { x: valueX, y, size: 12, font: bold, color: textDark }
+    )
+
+    // --- KIEROWCA ---
+    if (booking.driver_included_snapshot) {
+      y -= 18
+      page.drawText("Driver / Kierowca:", { x: labelX, y, size: 12, font, color: textGray })
+      const hours = booking.driver_hours_snapshot ? ` (${booking.driver_hours_snapshot}h)` : ""
+      page.drawText(`Included${hours} / W cenie${hours}`, { x: valueX, y, size: 12, font: bold, color: brandBlue })
+    }
 
     y -= 30
 
-    // ===== PAYMENT (TYLKO JEŚLI >0) =====
-    if (paid > 0 || pickupPay > 0) {
-      page.drawRectangle({ x: 40, y: y - 75, width: 520, height: 100, color: rgb(0.96,0.97,0.98) })
-      page.drawText("PAYMENT", { x: 60, y, size: 12, font: bold, color: textGray })
+    // ===== PAYMENT BOX (🔥 FIX 1: Pokazujemy tylko gdy do dopłaty jest > 0, wywalone info o PLN) =====
+    if (pickupPay > 0) {
+      page.drawRectangle({ x: 40, y: y - 55, width: 520, height: 80, color: rgb(0.96,0.97,0.98) })
+      page.drawText("PAYMENT SUMMARY / PODSUMOWANIE PŁATNOŚCI", { x: 60, y, size: 12, font: bold, color: textGray })
       y -= 25
+      
+      page.drawText("To pay at pickup / Do zapłaty na miejscu:", { x: 60, y, size: 12, font, color: textGray })
+      page.drawText(`${pickupPay} ${booking.partner_currency || "EUR"}`, { x: 300, y, size: 14, font: bold, color: rgb(0.1,0.6,0.1) })
 
-      if (paid > 0) {
-        page.drawText("Paid online:", { x: 60, y, size: 12, font, color: textGray })
-        page.drawText(`${paid} PLN`, { x: 300, y, size: 12, font: bold, color: textDark })
-        y -= 20
-      }
-
-      if (pickupPay > 0) {
-        page.drawText("To pay at pickup:", { x: 60, y, size: 12, font, color: textGray })
-        page.drawText(`${pickupPay} ${booking.partner_currency}`, { x: 300, y, size: 14, font: bold, color: rgb(0.1,0.6,0.1) })
-        y -= 20
-      }
+      y -= 45 // margines po szarym tle
     }
+
+    // ===== RENTAL PARTNER =====
+    page.drawText("RENTAL PARTNER / WYPOŻYCZALNIA", { x: labelX, y, size: 12, font: bold, color: textGray })
+    y -= 25
+    page.drawText("Company / Firma:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText(`${booking.partners?.company_name || "-"}`, { x: valueX, y, size: 12, font: bold, color: textDark })
+    y -= 18
+    page.drawText("Phone / Telefon:", { x: labelX, y, size: 12, font, color: textGray })
+    page.drawText(`${booking.partners?.phone || "-"}`, { x: valueX, y, size: 12, font: bold, color: textDark })
+    y -= 18
+    page.drawText("Emergency / Tel. alarmowy:", { x: labelX, y, size: 12, font, color: textGray })
+    
+    // 🔥 FIX 2: Sprytny fallback dla numeru awaryjnego (jeśli null, daje zwykły phone)
+    const emergencyPhone = booking.partners?.emergency_phone || booking.partners?.phone || "-";
+    page.drawText(`${emergencyPhone}`, { x: valueX, y, size: 12, font: bold, color: textDark })
 
     // ===== VERIFY =====
     page.drawLine({ start: { x: 50, y: 120 }, end: { x: 550, y: 120 }, thickness: 1, color: lightGray })
-    page.drawText("Verify reservation:", { x: 50, y: 100, size: 10, font, color: textGray })
+    page.drawText("Verify this reservation online / Zweryfikuj rezerwację online:", { x: 50, y: 100, size: 10, font, color: textGray })
     page.drawText(verifyUrl, { x: 50, y: 85, size: 10, font: bold, color: brandBlue })
+
+    // ===== FOOTER =====
+    page.drawText("Please present this voucher when picking up the vehicle.", { x: 50, y: 50, size: 10, font, color: textGray })
+    page.drawText("Prosimy o okazanie tego vouchera przy odbiorze pojazdu.", { x: 50, y: 38, size: 10, font, color: textGray })
 
     const pdfBytes = await pdfDoc.save()
     const filePath = `vouchers/${reservation}.pdf`
