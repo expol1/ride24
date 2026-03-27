@@ -11,7 +11,12 @@ const supabase = createClient(
 );
 
 Deno.serve(async (req) => {
-  const sig = req.headers.get("stripe-signature")!;
+  const sig = req.headers.get("stripe-signature");
+
+  if (!sig) {
+    return new Response("No signature", { status: 400 });
+  }
+
   const body = await req.text();
 
   let event;
@@ -23,67 +28,31 @@ Deno.serve(async (req) => {
       Deno.env.get("STRIPE_WEBHOOK_SECRET")!
     );
   } catch (err) {
-    console.error("❌ Signature error:", err.message);
     return new Response("Invalid signature", { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
 
-    const bookingId = session.metadata?.booking_id;
+    const bookingId =
+      session.metadata?.booking_id || session.client_reference_id;
 
     if (!bookingId) {
-      console.error("❌ Brak booking_id");
       return new Response("No booking_id", { status: 400 });
     }
 
-    console.log("💰 PAYMENT OK:", bookingId);
-
-    // 1. Sprawdź czy już było
-    const { data: booking } = await supabase
-      .from("bookings")
-      .select("status")
-      .eq("id", bookingId)
-      .single();
-
-    if (!booking || booking.status === "paid") {
-      console.log("⚠️ Już przetworzone");
-      return new Response("OK");
-    }
-
-    // 2. Ustaw status PAID
     await supabase
       .from("bookings")
       .update({ status: "paid" })
       .eq("id", bookingId);
 
-    // 3. Pobierz usera
-    const { data: bookingUser } = await supabase
-      .from("bookings")
-      .select("client_id")
-      .eq("id", bookingId)
-      .single();
-
-    // 4. Loyalty
-    if (bookingUser?.client_id) {
-      await supabase.rpc("increment_loyalty_and_update_level", {
-        target_user_id: bookingUser.client_id,
-      });
-    }
-
-    // 5. Voucher
-    await fetch(
-      "https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/generate-voucher",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ booking_id: bookingId }),
-      }
-    );
-
-    console.log("✅ DONE:", bookingId);
+    await supabase.from("payments").insert({
+      booking_id: bookingId,
+      stripe_session_id: session.id,
+      amount: session.amount_total / 100,
+      currency: "pln",
+      status: "paid",
+    });
   }
 
   return new Response("OK");

@@ -6,7 +6,7 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 })
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://ride24.pl",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
@@ -22,9 +22,9 @@ serve(async (req) => {
     console.log("💰 PAYMENT REQUEST:", booking_id, amount)
 
     // 🔥 WALIDACJA
-    if (!booking_id || !amount) {
+    if (!booking_id || !amount || amount <= 0) {
       return new Response(
-        JSON.stringify({ error: "Missing booking_id or amount" }),
+        JSON.stringify({ error: "Invalid booking_id or amount" }),
         {
           headers: {
             ...corsHeaders,
@@ -37,15 +37,15 @@ serve(async (req) => {
 
     // 🔥 STRIPE SESSION
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "payment",
+      payment_method_types: ["card"],
 
       line_items: [
         {
           price_data: {
             currency: "pln",
             product_data: {
-              name: `Booking ${booking_id}`,
+              name: `Ride24 Booking ${booking_id}`,
             },
             unit_amount: Math.round(amount * 100),
           },
@@ -53,13 +53,16 @@ serve(async (req) => {
         },
       ],
 
-      // 🔥 WAŻNE — przekazujemy booking_id dalej
+      // 🔥 KLUCZOWE — webhook będzie tego używał
       metadata: {
         booking_id: booking_id,
       },
 
-      success_url: "https://ride24.pl/panel.html?payment=success",
-      cancel_url: "https://ride24.pl/panel.html?payment=cancel",
+      // 🔥 DODANE — łatwiejsze mapowanie
+      client_reference_id: booking_id,
+
+      success_url: "https://ride24.pl/klient.html?payment=success",
+      cancel_url: "https://ride24.pl/klient.html?payment=cancel",
     })
 
     console.log("✅ STRIPE URL:", session.url)
