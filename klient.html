@@ -1026,7 +1026,7 @@ window.processAccountDeletion = async function() {
         async function goToPayment(amount, bookingId) {
   console.log("💰 PAYMENT:", amount, bookingId);
 
- const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create_checkout_session", {
+  const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create_checkout_session", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -1037,11 +1037,14 @@ window.processAccountDeletion = async function() {
     }),
   });
 
+  console.log("📡 STATUS:", res.status);
+
   const data = await res.json();
 
-  console.log("➡️ STRIPE URL:", data);
+  console.log("🔥 RESPONSE:", data);
 
-  window.location.href = data.url;
+  // 🔴 WYŁĄCZAMY NA CHWILĘ REDIRECT
+  // window.location.href = data.url;
 }
 
 window.goToPayment = goToPayment;
