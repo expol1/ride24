@@ -1026,26 +1026,35 @@ window.processAccountDeletion = async function() {
         async function goToPayment(amount, bookingId) {
   console.log("💰 PAYMENT:", amount, bookingId);
 
-  // 🔥 POBIERZ SESJĘ
-  const { data: { session } } = await window.supabaseClient.auth.getSession();
+  const { data: { user } } = await window.supabaseClient.auth.getUser();
 
-  if (!session) {
-    console.error("❌ BRAK SESJI!");
-    alert("Musisz być zalogowany");
-    return;
-  }
+if (!user) {
+  console.error("❌ BRAK USERA!");
+  alert("Musisz być zalogowany");
+  return;
+}
 
-  const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create_checkout_session", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`,
-    },
-    body: JSON.stringify({ 
-      amount,
-      booking_id: bookingId
-    }),
-  });
+// 🔥 pobierz świeży token
+const { data: { session } } = await window.supabaseClient.auth.getSession();
+const token = session?.access_token;
+
+if (!token) {
+  alert("Odśwież stronę i spróbuj ponownie");
+  return;
+}
+
+const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create_checkout_session", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+    "apikey": window.SUPABASE_ANON_KEY,
+  },
+  body: JSON.stringify({ 
+    amount,
+    booking_id: bookingId
+  }),
+});
 
   console.log("📡 STATUS:", res.status);
 
