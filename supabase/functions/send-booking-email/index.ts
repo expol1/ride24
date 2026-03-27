@@ -6,7 +6,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // zmienimy na ride24.pl przed produkcją
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -17,8 +17,9 @@ serve(async (req) => {
   }
 
   try {
+    const body = await req.json();
 
-    const { booking_id } = await req.json();
+    const booking_id = body.booking_id || body.record?.id || body.id;
 
     if (!booking_id) {
       throw new Error("Brak booking_id");
@@ -34,7 +35,7 @@ serve(async (req) => {
       .select(`
         id,
         reservation_code,
-        profiles:client_id (
+        profiles (
           email
         )
       `)
@@ -47,23 +48,39 @@ serve(async (req) => {
 
     const clientEmail = booking.profiles?.email;
 
-    if (!clientEmail) {
-      throw new Error("Brak email klienta");
+    // 🔥 KLUCZOWY FIX — NIE WYWAŁA SYSTEMU
+    if (!clientEmail || typeof clientEmail !== "string") {
+      console.error("EMAIL ERROR: clientEmail =", clientEmail);
+
+      await supabase
+        .from("email_logs")
+        .insert({
+          booking_id: booking.id,
+          email: null,
+          type: "booking_confirmation",
+          status: "skipped"
+        });
+
+      return new Response(
+        JSON.stringify({ skipped: true }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
+      );
     }
 
-    const resendRes = await fetch(
-      "https://api.resend.com/emails",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${RESEND_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          from: "Ride24 <no-reply@ride24.pl>",
-          to: clientEmail,
-          subject: "Ride24 – Twoja rezerwacja została potwierdzona",
-          html: `
+    const resendRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: "Ride24 <no-reply@ride24.pl>",
+        to: String(clientEmail), // 🔥 zabezpieczenie
+        subject: "Ride24 – Twoja rezerwacja została potwierdzona",
+        html: `
           <p>Twoja rezerwacja została opłacona.</p>
           <p>Voucher jest gotowy w panelu klienta.</p>
           <p>Kod rezerwacji: <b>${booking.reservation_code}</b></p>
@@ -73,14 +90,15 @@ serve(async (req) => {
           https://ride24.pl/panel
           </a>
           </p>
-          `
-        })
-      }
-    );
+        `
+      })
+    });
 
     const resendData = await resendRes.json();
 
     if (!resendRes.ok) {
+
+      console.error("RESEND ERROR:", resendData); // 🔥 DEBUG
 
       await supabase
         .from("email_logs")
@@ -111,7 +129,9 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
+
+    console.error("SEND EMAIL ERROR:", error.message);
 
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -120,7 +140,5 @@ serve(async (req) => {
         status: 400
       }
     );
-
   }
-
 });
