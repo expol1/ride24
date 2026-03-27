@@ -1026,10 +1026,20 @@ window.processAccountDeletion = async function() {
         async function goToPayment(amount, bookingId) {
   console.log("💰 PAYMENT:", amount, bookingId);
 
+  // 🔥 POBIERZ SESJĘ
+  const { data: { session } } = await window.supabaseClient.auth.getSession();
+
+  if (!session) {
+    console.error("❌ BRAK SESJI!");
+    alert("Musisz być zalogowany");
+    return;
+  }
+
   const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create_checkout_session", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`,
     },
     body: JSON.stringify({ 
       amount,
@@ -1043,8 +1053,13 @@ window.processAccountDeletion = async function() {
 
   console.log("🔥 RESPONSE:", data);
 
-  // 🔴 WYŁĄCZAMY NA CHWILĘ REDIRECT
-  // window.location.href = data.url;
+  if (!data.url) {
+    console.error("❌ BRAK URL:", data);
+    alert("Błąd płatności");
+    return;
+  }
+
+  window.location.href = data.url;
 }
 
 window.goToPayment = goToPayment;
