@@ -1026,7 +1026,7 @@ window.processAccountDeletion = async function() {
         async function goToPayment(amount, bookingId) {
   console.log("💰 PAYMENT:", amount, bookingId);
 
-  const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create-checkout", {
+ const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create_checkout_session", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
