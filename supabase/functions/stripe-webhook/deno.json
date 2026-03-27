@@ -1,4 +1,5 @@
 {
+  "verify_jwt": false,
   "imports": {
     "@supabase/functions-js": "jsr:@supabase/functions-js@^2"
   }
