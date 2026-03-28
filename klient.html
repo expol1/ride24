@@ -1093,12 +1093,13 @@ window.goToPayment = goToPayment;
         let currentUser = null;
         let payments = [];
         // 🔥 LOYALTY SYSTEM CONFIG
+// 🔥 LOYALTY SYSTEM CONFIG (Z nowymi, pięknymi tłami)
 const loyaltyConfig = {
-  0: { name: "START", color: "#64748B", discount: 0 },
-  1: { name: "SILVER", color: "#94A3B8", discount: 5 },
-  2: { name: "GOLD", color: "#EAB308", discount: 10 },
-  3: { name: "PLATINUM", color: "#38BDF8", discount: 15 },
-  4: { name: "VIP", color: "#16A34A", discount: 20 }
+  0: { name: "START", color: "#64748B", border: "#334155", bg: "rgba(30, 41, 59, 0.5)", discount: 0 },
+  1: { name: "SILVER", color: "#CBD5E1", border: "#94A3B8", bg: "rgba(148, 163, 184, 0.1)", discount: 5 },
+  2: { name: "GOLD", color: "#FBBF24", border: "#D97706", bg: "rgba(245, 158, 11, 0.1)", discount: 10 },
+  3: { name: "PLATINUM", color: "#38BDF8", border: "#0284C7", bg: "rgba(56, 189, 248, 0.1)", discount: 15 },
+  4: { name: "VIP", color: "#22C55E", border: "#16A34A", bg: "rgba(34, 197, 94, 0.1)", discount: 20 }
 };
 const thresholds = [3, 6, 10, 15]; 
 
@@ -1125,8 +1126,8 @@ function renderLoyaltyCard(paidCount) {
     document.getElementById("loyalty-level-name").style.color = config.color;
     
     const card = document.getElementById("loyalty-card");
-    card.style.borderColor = config.color;
-    card.style.background = config.color + "0D"; 
+    card.style.borderColor = config.border;
+    card.style.background = config.bg;
 
     const progressBar = document.getElementById("loyalty-progress-bar");
     const progressText = document.getElementById("loyalty-progress-text");
