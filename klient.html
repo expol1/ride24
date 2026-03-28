@@ -1517,6 +1517,8 @@ if (isNaN(finalAge)) finalAge = null;
     await db.from("bookings").update({
         main_driver_name: finalName,
         main_driver_age: finalAge,
+        pickup_time: localStorage.getItem("bookingPickupTime") + ":00",
+        return_time: localStorage.getItem("bookingDropTime") + ":00",
         client_phone: profile?.phone || null,
         client_email: user.email || null,
         add_driver_name: extraName,
@@ -1744,6 +1746,8 @@ partner_currency: localStorage.getItem("bookingCurrency")
     created_at,
     start_date,
     end_date,
+    pickup_time,
+    return_time,
     pickup_location,
     return_location,
     status,
@@ -1945,8 +1949,8 @@ actionsHtml += `</div>`;
                     const pickup = booking.pickup_location || "—";
                     const drop = booking.return_location || pickup;
                     // 🔥 GODZINY (NOWE)
-const pickupTime = booking.pickup_time || localStorage.getItem("bookingPickupTime") || "10:00";
-const dropTime = booking.return_time || localStorage.getItem("bookingDropTime") || "10:00";
+const pickupTime = booking.pickup_time || "10:00";
+const dropTime = booking.return_time || "10:00";
 
 const pickupTimeClean = pickupTime.substring(0,5);
 const dropTimeClean = dropTime.substring(0,5);
