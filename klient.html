@@ -792,9 +792,8 @@ Potwierdź rezerwację
                             <tr>
                                 <th data-pl="ID Rezerwacji" data-en="Booking ID">ID Rezerwacji</th>
                                 <th data-pl="Opłacono online" data-en="Paid online">Opłacono online</th>
-                                <th data-pl="Pozostało do zapłaty" data-en="Remaining at pickup">Pozostało do zapłaty</th>
-                                <th data-pl="Status płatności" data-en="Payment status">Status płatności</th>
-                                <th data-pl="Potwierdzenie" data-en="Receipt">Potwierdzenie</th>
+                                <th data-pl="Status" data-en="Status">Status</th>
+                                <th data-pl="Akcje" data-en="Actions">Akcje</th>
                             </tr>
                         </thead>
                         <tbody id="payments-tbody">
@@ -2120,9 +2119,9 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
         // =====================================================================
 
        async function loadPayments() {
-
     if(!db) return;
 
+    // Pobieramy płatności z ograniczoną liczbą pól (bez walut partnera)
     const { data, error } = await db
         .from("payments")
         .select(`
@@ -2131,7 +2130,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
             currency,
             status,
             booking_id,
-            bookings(reservation_code)
+            bookings(id, reservation_code, start_date, status, online_payment_pln)
         `)
         .order("created_at", { ascending: false });
 
@@ -2144,20 +2143,65 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     if(!tbody) return;
 
     tbody.innerHTML = "";
+    const isEn = localStorage.getItem("client_lang") === "en";
 
     data.forEach(payment => {
+        const booking = payment.bookings;
+        if(!booking) return;
 
-        const displayId =
-            payment.bookings?.reservation_code ||
-            payment.booking_id.substring(0,8);
+        const displayId = booking.reservation_code || payment.booking_id.substring(0,8);
+        
+        // 🔥 IDEALNIE CZYSTO: Pobieramy tylko i wyłącznie kwotę PLN zapisaną w rezerwacji
+        const paidOnline = Number(booking.online_payment_pln || 0).toFixed(2) + " PLN";
 
+        // Status płatności
+        let paymentStatusHtml = "";
+        if (booking.status === "paid") {
+            paymentStatusHtml = `<span class="status paid">${isEn ? 'Paid' : 'Opłacona'}</span>`;
+        } else if (booking.status === "awaiting_payment") {
+            paymentStatusHtml = `<span class="status awaiting_payment">${isEn ? 'Awaiting payment' : 'Do opłaty'}</span>`;
+        } else if (booking.status === "accepted") {
+            paymentStatusHtml = `<span class="status pending">${isEn ? 'Pending payment' : 'Oczekuje na płatność'}</span>`;
+        } else if (booking.status === "cancelled") {
+            paymentStatusHtml = `<span class="status cancelled">${isEn ? 'Cancelled' : 'Anulowana'}</span>`;
+        } else {
+            paymentStatusHtml = `<span class="status pending">${booking.status}</span>`;
+        }
+
+        // Akcje (Voucher + Odwołaj)
+        let actionsHtml = `<div style="display:flex; gap:8px; align-items:center;">`;
+        
+        if (booking.status === "paid") {
+            actionsHtml += `<button class="btn-voucher" onclick="window.downloadVoucher('${booking.id}')" style="min-width:auto; padding:6px 12px; font-size:11px;">Voucher PDF</button>`;
+            
+            // Kalkulator zwrotów z Regulaminu Ride24
+            const start = new Date(booking.start_date);
+            const today = new Date();
+            const diffDays = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+            
+            let refundPercent = 0;
+            if (diffDays >= 60) refundPercent = 90;
+            else if (diffDays >= 30) refundPercent = 50;
+            
+            if (refundPercent > 0) {
+                const btnText = isEn ? `Cancel (Refund ${refundPercent}%)` : `Odwołaj (Zwrot ${refundPercent}%)`;
+                actionsHtml += `<button class="btn-cancel" onclick="window.requestRefund('${booking.id}', ${refundPercent})" style="min-width:auto; font-size:11px; padding:6px 12px;">${btnText}</button>`;
+            } else {
+                actionsHtml += `<span style="font-size:11px; color:var(--red); font-weight:600;">${isEn ? 'Non-refundable' : 'Brak zwrotu'} (<30 dni)</span>`;
+            }
+        } else if (booking.status === "awaiting_payment") {
+            actionsHtml += `<button class="btn-pay" onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')" style="min-width:auto; padding:6px 12px; font-size:11px;">${isEn ? 'Pay now' : 'Opłać teraz'}</button>`;
+        }
+
+        actionsHtml += `</div>`;
+
+        // Budowa wiersza tabeli - 4 KOLUMNY
         tbody.innerHTML += `
-        <tr>
-            <td><strong>#${displayId}</strong></td>
-            <td class="price-col">${payment.amount} ${payment.currency}</td>
-            <td class="price-due">
-    ${Number(payment.amount || 0).toFixed(2)} PLN
-</td>
+        <tr class="clickable-row">
+            <td><strong>#R24-${displayId}</strong></td>
+            <td class="price-due">${paidOnline}</td>
+            <td>${paymentStatusHtml}</td>
+            <td>${actionsHtml}</td>
         </tr>
         `;
     });
