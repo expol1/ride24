@@ -1102,10 +1102,24 @@ const loyaltyConfig = {
 };
 const thresholds = [3, 6, 10, 15]; 
 
-function renderLoyaltyCard(profile) {
-    const level = profile.loyalty_level || 0;
-    const progress = profile.loyalty_progress || 0;
-    const config = loyaltyConfig[level];
+function renderLoyaltyCard(paidCount) {
+
+    // 🔥 dynamiczne liczenie poziomu
+    let level = 0;
+
+    if (paidCount >= 15) level = 4;
+    else if (paidCount >= 10) level = 3;
+    else if (paidCount >= 6) level = 2;
+    else if (paidCount >= 3) level = 1;
+
+    // 🔥 progress = liczba opłaconych rezerwacji
+    const progress = paidCount;
+
+    // 🔥 config poziomu
+    const config = loyaltyConfig[level] || loyaltyConfig[0];
+
+    // 🔥 tylko UI (NIE używać do płatności)
+    window.currentLoyaltyDiscount = config.discount;
 
     document.getElementById("loyalty-level-name").innerText = `${config.name} (${config.discount}%)`;
     document.getElementById("loyalty-level-name").style.color = config.color;
@@ -1134,7 +1148,7 @@ function renderLoyaltyCard(profile) {
         progressText.setAttribute("data-en", `${progress} / ${nextThreshold} bookings`);
         progressText.innerText = `${progress} / ${nextThreshold} rezerwacji`;
         
-        const nextConfig = loyaltyConfig[level + 1];
+        const nextConfig = loyaltyConfig[level + 1] || config;
         nextLevelTarget.setAttribute("data-pl", `Cel: ${nextConfig.name}`);
         nextLevelTarget.setAttribute("data-en", `Target: ${nextConfig.name}`);
         nextLevelTarget.innerText = `Cel: ${nextConfig.name}`;
@@ -1602,8 +1616,40 @@ const finalTotal = priceData.final_total;
 
 // 🔥 PLN (Twoja marża)
 const currency = localStorage.getItem("bookingCurrency") || "USD";
-const rate = await getExchangeRate(currency); // albo dynamicznie późni
-const commissionPLN = Number((commission * rate).toFixed(2));
+const rate = await getExchangeRate(currency);
+
+// 🔥 1. LICZYMY PROWIZJĘ (BAZA)
+let commissionPLN = Number((commission * rate).toFixed(2));
+
+
+// 🔥 2. POBIERAMY ŚWIEŻE BOOKINGI (KLUCZ)
+const { data: freshBookings, error: loyaltyError } = await db
+  .from("bookings")
+  .select("status")
+  .eq("client_id", currentUser.id);
+
+if (loyaltyError) {
+  console.error("❌ Loyalty error:", loyaltyError);
+}
+
+// 🔥 3. LICZYMY PAID
+const paidCount = (freshBookings || []).filter(b => b.status === "paid").length;
+
+// 🔥 4. PROGI
+let discountPercent = 0;
+
+if (paidCount >= 15) discountPercent = 20;
+else if (paidCount >= 10) discountPercent = 15;
+else if (paidCount >= 6) discountPercent = 10;
+else if (paidCount >= 3) discountPercent = 5;
+
+// 🔥 5. NAKŁADAMY RABAT
+if (discountPercent > 0) {
+  console.log(`🎉 Rabat: ${discountPercent}%`);
+
+  const discountAmount = commissionPLN * (discountPercent / 100);
+  commissionPLN = Number((commissionPLN - discountAmount).toFixed(2));
+}
 
 // 🔥 FINALNE SNAPSHOTY
 const finalPriceSnapshot = finalTotal;
@@ -1611,9 +1657,11 @@ const onlinePaymentPln = commissionPLN;
 const pickupPaymentPartner = baseTotal;
 
 console.log("💰 FINAL SNAPSHOT:", {
-    finalPriceSnapshot,
-    onlinePaymentPln,
-    pickupPaymentPartner
+  finalPriceSnapshot,
+  onlinePaymentPln,
+  pickupPaymentPartner,
+  discountPercent,
+  paidCount
 });
                 // AKTUALIZACJA Z WERYFIKACJĄ (.select())
                 
@@ -1634,7 +1682,8 @@ console.log("💰 FINAL SNAPSHOT:", {
     final_price_snapshot: finalPriceSnapshot,
     online_payment_pln: onlinePaymentPln,
     pickup_payment_partner_currency: pickupPaymentPartner,
-partner_currency: localStorage.getItem("bookingCurrency")
+partner_currency: localStorage.getItem("bookingCurrency"),
+loyalty_discount_percent: discountPercent
     
 })
                     .eq("id", bookingId)
