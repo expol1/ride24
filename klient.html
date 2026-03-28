@@ -1834,6 +1834,10 @@ loyalty_discount_percent: discountPercent
 ).length;
                 const pending = clientBookings.filter(b => b.status === 'pending').length;
                 const paid = clientBookings.filter(b => b.status === 'paid').length;
+                // 🔥 ODPALAMY KARTĘ LOJALNOŚCIOWĄ W UI
+                if (typeof renderLoyaltyCard === "function") {
+                    renderLoyaltyCard(paid);
+                }
                 
                 document.getElementById('stat-active').innerText = active;
                 document.getElementById('stat-pending').innerText = pending;
@@ -2226,7 +2230,6 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                     });
                 }
             }
-            renderLoyaltyCard(profile);
         }
         
 
