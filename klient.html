@@ -2515,7 +2515,7 @@ function calculateRefundPercent(pickupDate) {
             const activeBtn = document.getElementById('lang-' + lang);
             if(activeBtn) activeBtn.classList.add('active-lang');
             if (typeof loadPayments === "function") loadPayments();
-            if (typeof loadClientBookings === "function") loadClientBookings();
+            
         }
 
         window.detectLang = function() {
