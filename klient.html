@@ -996,26 +996,34 @@ window.processAccountDeletion = async function() {
         alert("Error: " + err.message);
     }
 };
-        async function getExchangeRate(currency) {
+        window._rateCache = window._rateCache || {}; // Inicjalizacja pamięci podręcznej dla NBP
+
+async function getExchangeRate(currency) {
     // 🔥 PLN → brak przeliczenia
     if (currency === "PLN") {
-        console.log("💱 PLN → brak przeliczenia");
         return 1;
+    }
+
+    // 🔥 CACHE: Zwracamy z pamięci, jeśli już pobraliśmy kurs w tej sesji
+    if (window._rateCache[currency]) {
+        console.log("💱 NBP CACHE:", currency, window._rateCache[currency]);
+        return window._rateCache[currency];
     }
 
     try {
         const res = await fetch(`https://api.nbp.pl/api/exchangerates/rates/A/${currency}/?format=json`);
         const data = await res.json();
-
         const rate = data.rates[0].mid;
 
         console.log("💱 NBP RATE:", currency, rate);
+        
+        // Zapisujemy do cache na przyszłość
+        window._rateCache[currency] = rate;
 
         return rate;
 
     } catch (err) {
         console.error("❌ NBP ERROR:", err);
-
         // fallback (system się nie wywali)
         return currency === "USD" ? 4.0 : 4.5;
     }
@@ -2118,96 +2126,65 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
         // (Wszystko dopięte do obiektu 'window', żeby działało w module)
         // =====================================================================
 
-       async function loadPayments() {
-    if(!db) return;
+      // 🔥 LOGIKA ZWROTU / ODWOŁANIA Z ZAKŁADKI PŁATNOŚCI (PÓŁAUTOMAT)
+window._refundProcessing = false; 
 
-    // Pobieramy płatności z ograniczoną liczbą pól (bez walut partnera)
-    const { data, error } = await db
-        .from("payments")
-        .select(`
-            id,
-            amount,
-            currency,
-            status,
-            booking_id,
-            bookings(id, reservation_code, start_date, status, online_payment_pln)
-        `)
-        .order("created_at", { ascending: false });
+// ✅ FINALNA WERSJA: Przyjmuje 3 parametry (z kwotą PLN)
+window.requestRefund = async function(bookingId, refundPercent, amountPln) {
+    if (window._refundProcessing) return;
 
-    if(error){
-        console.error("Payments error:", error);
+    // 🔒 Zabezpieczenie przed brakiem danych
+    if (!bookingId || amountPln === undefined || amountPln === null) {
+        window.showToast("Błąd danych rezerwacji (brak kwoty).", "error");
         return;
     }
 
-    const tbody = document.getElementById("payments-tbody");
-    if(!tbody) return;
-
-    tbody.innerHTML = "";
     const isEn = localStorage.getItem("client_lang") === "en";
+    const confirmMsg = isEn 
+        ? `Are you sure you want to cancel this booking? You are eligible for a ${refundPercent}% refund.`
+        : `Czy na pewno chcesz anulować tę rezerwację? Zgodnie z regulaminem przysługuje Ci zwrot ${refundPercent}% opłaty rezerwacyjnej.`;
 
-    data.forEach(payment => {
-        const booking = payment.bookings;
-        if(!booking) return;
+    if(!confirm(confirmMsg)) return;
 
-        const displayId = booking.reservation_code || payment.booking_id.substring(0,8);
-        
-        // 🔥 IDEALNIE CZYSTO: Pobieramy tylko i wyłącznie kwotę PLN zapisaną w rezerwacji
-        const paidOnline = Number(booking.online_payment_pln || 0).toFixed(2) + " PLN";
+    window._refundProcessing = true; // Blokada przycisku
 
-        // Status płatności
-        let paymentStatusHtml = "";
-        if (booking.status === "paid") {
-            paymentStatusHtml = `<span class="status paid">${isEn ? 'Paid' : 'Opłacona'}</span>`;
-        } else if (booking.status === "awaiting_payment") {
-            paymentStatusHtml = `<span class="status awaiting_payment">${isEn ? 'Awaiting payment' : 'Do opłaty'}</span>`;
-        } else if (booking.status === "accepted") {
-            paymentStatusHtml = `<span class="status pending">${isEn ? 'Pending payment' : 'Oczekuje na płatność'}</span>`;
-        } else if (booking.status === "cancelled") {
-            paymentStatusHtml = `<span class="status cancelled">${isEn ? 'Cancelled' : 'Anulowana'}</span>`;
-        } else {
-            paymentStatusHtml = `<span class="status pending">${booking.status}</span>`;
+    try {
+        // 💰 GAME CHANGER: Dokładne wyliczenie kwoty zwrotu dla Admina / API Stripe
+        const calculatedRefund = Number((amountPln * refundPercent / 100).toFixed(2));
+
+        const { data, error } = await db
+            .from("bookings")
+            .update({ 
+                status: 'cancelled',
+                cancelled_at: new Date().toISOString(),
+                refund_percentage: refundPercent,
+                refund_amount_pln: calculatedRefund, // 🔥 Gotowa kwota wpada do bazy
+                refund_status: 'pending' // 🔥 Flaga dla Admina
+            })
+            .eq("id", bookingId)
+            .eq("status", "paid") // 🔒 Tylko opłacone
+            .is("refund_status", null) // 🔒 Blokada Race Condition
+            .select();
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            throw new Error("Rezerwacja już anulowana lub status zwrotu uległ zmianie.");
         }
 
-        // Akcje (Voucher + Odwołaj)
-        let actionsHtml = `<div style="display:flex; gap:8px; align-items:center;">`;
+        window.showToast(isEn ? "Booking cancelled." : `Rezerwacja anulowana. Przetwarzamy zwrot (${refundPercent}%).`, "success");
         
-        if (booking.status === "paid") {
-            actionsHtml += `<button class="btn-voucher" onclick="window.downloadVoucher('${booking.id}')" style="min-width:auto; padding:6px 12px; font-size:11px;">Voucher PDF</button>`;
-            
-            // Kalkulator zwrotów z Regulaminu Ride24
-            const start = new Date(booking.start_date);
-            const today = new Date();
-            const diffDays = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
-            
-            let refundPercent = 0;
-            if (diffDays >= 60) refundPercent = 90;
-            else if (diffDays >= 30) refundPercent = 50;
-            
-            if (refundPercent > 0) {
-                const btnText = isEn ? `Cancel (Refund ${refundPercent}%)` : `Odwołaj (Zwrot ${refundPercent}%)`;
-                actionsHtml += `<button class="btn-cancel" onclick="window.requestRefund('${booking.id}', ${refundPercent})" style="min-width:auto; font-size:11px; padding:6px 12px;">${btnText}</button>`;
-            } else {
-                actionsHtml += `<span style="font-size:11px; color:var(--red); font-weight:600;">${isEn ? 'Non-refundable' : 'Brak zwrotu'} (<30 dni)</span>`;
-            }
-        } else if (booking.status === "awaiting_payment") {
-            actionsHtml += `<button class="btn-pay" onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')" style="min-width:auto; padding:6px 12px; font-size:11px;">${isEn ? 'Pay now' : 'Opłać teraz'}</button>`;
-        }
+        // Odświeżamy widoki
+        if (typeof loadPayments === "function") await loadPayments();
+        if (typeof loadClientBookings === "function") await loadClientBookings(); 
 
-        actionsHtml += `</div>`;
-
-        // Budowa wiersza tabeli - 4 KOLUMNY
-        tbody.innerHTML += `
-        <tr class="clickable-row">
-            <td><strong>#R24-${displayId}</strong></td>
-            <td class="price-due">${paidOnline}</td>
-            <td>${paymentStatusHtml}</td>
-            <td>${actionsHtml}</td>
-        </tr>
-        `;
-    });
-
-    window.detectLang();
-}
+    } catch(err) {
+        console.error("Błąd anulowania (zwrot):", err);
+        window.showToast(isEn ? err.message : "Wystąpił błąd podczas anulowania.", "error");
+    } finally {
+        window._refundProcessing = false; // Zdejmujemy blokadę
+    }
+};
 
        async function loadUserProfile() {
             if(!db || !currentUser || !currentUser.email) return;
@@ -2381,12 +2358,19 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
         
         // --- REALNE ANULOWANIE / ODRZUCANIE REZERWACJI ---
         window.cancelBooking = async function(id, currentStatus) {
-            const isEn = localStorage.getItem("client_lang") === "en";
-            const confirmMsg = isEn 
-                ? "Are you sure you want to cancel this booking?" 
-                : "Czy na pewno chcesz anulować tę rezerwację?";
-            
-            if (!confirm(confirmMsg)) return;
+    const isEn = localStorage.getItem("client_lang") === "en";
+    
+    // 🔒 FIX: Konflikt logiki (zabezpieczenie przed zwykłym anulowaniem dla opłaconych)
+    if (currentStatus === 'paid') {
+        window.showToast(isEn ? "Please use the refund option in the Payments tab." : "Użyj opcji zwrotu w zakładce Płatności.", "error");
+        return;
+    }
+
+    const confirmMsg = isEn 
+        ? "Are you sure you want to cancel this booking?" 
+        : "Czy na pewno chcesz anulować tę rezerwację?";
+    
+    if (!confirm(confirmMsg)) return;
 
             try {
                 if (currentStatus === 'pending') {
@@ -2535,6 +2519,75 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
         }
         window.goToSearch = function() {
     window.location.href = "index.html";
+};
+window.logout = async function() {
+            if(db) await db.auth.signOut();
+            window.location.href = "index.html";
+        }
+        window.goToSearch = function() {
+    window.location.href = "index.html";
+};
+
+// 🔥 LOGIKA ZWROTU / ODWOŁANIA Z ZAKŁADKI PŁATNOŚCI (PÓŁAUTOMAT)
+window._refundProcessing = false; 
+
+// 🔥 LOGIKA ZWROTU / ODWOŁANIA Z ZAKŁADKI PŁATNOŚCI (PÓŁAUTOMAT)
+window._refundProcessing = false; 
+
+// ❗ ZMIANA: Dodano 3. argument (onlinePaymentPln)
+window.requestRefund = async function(bookingId, refundPercent, onlinePaymentPln) {
+    if (window._refundProcessing) return;
+
+    // ❗ FIX 4: Frontend Guard (Choć UI też tego pilnuje, warto to mieć przed API)
+    if (!bookingId || onlinePaymentPln === undefined) {
+        window.showToast("Błąd danych rezerwacji.", "error");
+        return;
+    }
+
+    const isEn = localStorage.getItem("client_lang") === "en";
+    const confirmMsg = isEn 
+        ? `Are you sure you want to cancel this booking? You are eligible for a ${refundPercent}% refund.`
+        : `Czy na pewno chcesz anulować tę rezerwację? Zgodnie z regulaminem przysługuje Ci zwrot ${refundPercent}% opłaty rezerwacyjnej.`;
+
+    if(!confirm(confirmMsg)) return;
+
+    window._refundProcessing = true;
+
+    // ❗ FIX 1: Obliczanie dokładnej kwoty w PLN
+    const refundAmount = parseFloat((onlinePaymentPln * (refundPercent / 100)).toFixed(2));
+
+    try {
+        const { data, error } = await db
+            .from("bookings")
+            .update({ 
+                status: 'cancelled',
+                cancelled_at: new Date().toISOString(),
+                refund_percentage: refundPercent,
+                refund_amount_pln: refundAmount, // 💰 Zapisujemy policzoną kwotę
+                refund_status: 'pending' 
+            })
+            .eq("id", bookingId)
+            .eq("status", "paid") // 🔒 Tylko opłacone
+            .is("refund_status", null) // ❗ FIX 2: Race condition guard (zabezpiecza przed nadpisaniem jeśli admin już coś kliknął)
+            .select();
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            throw new Error("Rezerwacja już anulowana lub status zwrotu uległ zmianie (Race condition).");
+        }
+
+        window.showToast(isEn ? "Booking cancelled." : `Rezerwacja anulowana. Przetwarzamy zwrot (${refundPercent}%).`, "success");
+        
+        if (typeof loadPayments === "function") await loadPayments();
+        if (typeof loadClientBookings === "function") await loadClientBookings(); 
+
+    } catch(err) {
+        console.error("Błąd anulowania (zwrot):", err);
+        window.showToast(isEn ? err.message : "Wystąpił błąd podczas anulowania.", "error");
+    } finally {
+        window._refundProcessing = false;
+    }
 };
     </script>
     <div id="termsModal" class="modal-overlay">
