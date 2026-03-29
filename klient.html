@@ -2499,41 +2499,23 @@ function calculateRefundPercent(pickupDate) {
             window.location.href = sData.signedUrl;
         }
 
-       window.setLang = function(lang) {
-    // 1. Zapisujemy wybór w pamięci
-    localStorage.setItem("client_lang", lang);
-
-    // 2. Tłumaczymy statyczne elementy z atrybutem [data-pl]
-    document.querySelectorAll("[data-pl]").forEach(el => {
-        if(el.dataset[lang]) {
-            if(el.tagName === 'INPUT' && el.hasAttribute("placeholder")) {
-                el.placeholder = el.dataset[lang];
-            } else {
-                el.innerHTML = el.dataset[lang];
-            }
+        window.setLang = function(lang) {
+            localStorage.setItem("client_lang", lang);
+            document.querySelectorAll("[data-pl]").forEach(el => {
+                if(el.dataset[lang]) {
+                    if(el.tagName === 'INPUT' && el.hasAttribute("placeholder")) el.placeholder = el.dataset[lang];
+                    else el.innerHTML = el.dataset[lang];
+                }
+            });
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const textSpan = item.querySelector('.nav-text');
+                if (textSpan && textSpan.dataset[lang]) item.setAttribute('data-tooltip', textSpan.dataset[lang]);
+            });
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
+            const activeBtn = document.getElementById('lang-' + lang);
+            if(activeBtn) activeBtn.classList.add('active-lang');
+            
         }
-    });
-
-    // 3. Tłumaczymy tooltipy w menu bocznym
-    document.querySelectorAll('.nav-item').forEach(item => {
-        const textSpan = item.querySelector('.nav-text');
-        if (textSpan && textSpan.dataset[lang]) {
-            item.setAttribute('data-tooltip', textSpan.dataset[lang]);
-        }
-    });
-
-    // 4. Wizualna zmiana aktywnej flagi
-    document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
-    const activeBtn = document.getElementById('lang-' + lang);
-    if(activeBtn) activeBtn.classList.add('active-lang');
-
-    // 🔥 KLUCZ: Odświeżamy dynamiczne tabele, żeby użyły nowej logiki "isEn"
-    console.log("🌍 Zmiana języka na:", lang, "- Odświeżam tabele...");
-    
-    // Wywołujemy funkcje, które budują tabele od nowa
-    if (typeof loadClientBookings === "function") loadClientBookings();
-    if (typeof loadPayments === "function") loadPayments();
-}
 
         window.detectLang = function() {
             let lang = localStorage.getItem("client_lang") || "pl";
