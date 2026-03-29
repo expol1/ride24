@@ -371,6 +371,11 @@
         .status.paid { background: #DCFCE7; color: #16A34A; }
         .status.expired, .status.cancelled { background: #F1F5F9; color: #94A3B8; text-decoration: line-through; }
         .status.payment_expired { background: #FEE2E2; color: #EF4444; }
+        .status.refunded {
+    background: #DCFCE7;
+    color: #16A34A;
+    font-weight: 800;
+}
 
         .timer-badge { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px; color: var(--red); display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;}
         .timer-urgent { animation: blink 2s infinite; }
@@ -1871,6 +1876,8 @@ loyalty_discount_percent: discountPercent
     return_location,
     status,
     payment_deadline,
+    refund_status,
+refund_completed_at,
     final_price_snapshot,
     online_payment_pln,
     pickup_payment_partner_currency,
@@ -1980,8 +1987,28 @@ else if (booking.status === 'awaiting_payment') {
         `;
     }
 }
+// 🔥 NAJPIERW REFUND
+else if (booking.refund_status === 'completed') {
+
+    const refundDate = booking.refund_completed_at 
+        ? new Date(booking.refund_completed_at).toLocaleDateString('pl-PL')
+        : '';
+
+    statusHtml = `
+        <span class="status refunded">
+            🟢 Rozliczone ${refundDate ? `(${refundDate})` : ''}
+        </span>
+    `;
+}
 else if (booking.status === 'paid') {
     statusHtml = '<span class="status paid">Opłacona</span>';
+}
+else if (booking.refund_status === 'pending') {
+    statusHtml = `
+        <span class="status awaiting_payment">
+            🟠 Zwrot w trakcie
+        </span>
+    `;
 }
 else if (booking.status === 'cancelled') {
     statusHtml = '<span class="status cancelled">Anulowana przez Ciebie</span>';
