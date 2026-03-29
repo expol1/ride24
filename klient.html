@@ -2701,39 +2701,9 @@ window.loadPayments = async function() {
 
         data.forEach(b => {
 
-            let actions = "-";
+            let actions = "";
 
-            // 🔥 refund tylko dla paid
-           if (b.status === "paid" && !b.refund_status) {
-    const refundPercent = calculateRefundPercent(b.start_date);
-    
-    if (refundPercent > 0) {
-        // Przycisk aktywny z info o procencie
-        actions = `
-            <button class="btn-cancel"
-                onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})">
-                ${isEn ? 'Refund' : 'Zwrot'} (${refundPercent}%)
-            </button>
-        `;
-    } else {
-        // Przycisk WYŁĄCZONY (szary)
-        actions = `
-            <button class="btn-cancel" disabled style="opacity: 0.4; cursor: not-allowed; filter: grayscale(1);">
-                ${isEn ? 'No refund' : 'Brak zwrotu'}
-            </button>
-        `;
-    }
-}
-actions = ""; // 🔥 reset
-
-// 🟠 Zwrot w toku
-if (b.refund_status === "pending") {
-    actions = `<span style="color:#F97316;font-weight:700;">
-        ${isEn ? 'Refund pending' : 'Zwrot w toku'}
-    </span>`;
-}
-
-// 🟢 Zwrot zakończony
+// 🟢 1. ZWROT ZAKOŃCZONY (NAJWYŻSZY PRIORYTET)
 if (b.refund_status === "completed") {
 
     const refundDate = b.refund_completed_at
@@ -2753,19 +2723,52 @@ if (b.refund_status === "completed") {
     </span>`;
 }
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>#R24-${b.id.toString().slice(-4)}</td>
-                    <td>${(b.online_payment_pln || 0).toFixed(2)} PLN</td>
-                    <td 
-  data-pl="${translateStatus(b.status, 'pl')}" 
-  data-en="${translateStatus(b.status, 'en')}"
->
-  ${translateStatus(b.status, localStorage.getItem("client_lang") === "en" ? "en" : "pl")}
-</td>
-                    <td>${actions}</td>
-                </tr>
-            `;
+// 🟠 2. ZWROT W TOKU
+else if (b.refund_status === "pending") {
+
+    actions = `<span style="color:#F97316;font-weight:700;">
+        ${isEn ? 'Refund pending' : 'Zwrot w toku'}
+    </span>`;
+}
+
+// 🔵 3. PRZYCISK ZWROTU (tylko jeśli brak refundu)
+else if (b.status === "paid") {
+
+    const refundPercent = calculateRefundPercent(b.start_date);
+    
+    if (refundPercent > 0) {
+        actions = `
+            <button class="btn-cancel"
+                onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})">
+                ${isEn ? 'Refund' : 'Zwrot'} (${refundPercent}%)
+            </button>
+        `;
+    } else {
+        actions = `
+            <button class="btn-cancel" disabled 
+                style="opacity:0.4;cursor:not-allowed;filter:grayscale(1);">
+                ${isEn ? 'No refund' : 'Brak zwrotu'}
+            </button>
+        `;
+    }
+}
+
+// ⚫ fallback (żeby tabela się nie rozwaliła)
+if (!actions) actions = "-";
+
+tbody.innerHTML += `
+    <tr>
+        <td>#R24-${b.id.toString().slice(-4)}</td>
+        <td>${(b.online_payment_pln || 0).toFixed(2)} PLN</td>
+        <td 
+            data-pl="${translateStatus(b.status, 'pl')}" 
+            data-en="${translateStatus(b.status, 'en')}"
+        >
+            ${translateStatus(b.status, localStorage.getItem("client_lang") === "en" ? "en" : "pl")}
+        </td>
+        <td>${actions}</td>
+    </tr>
+`;
         });
 
     } catch (err) {
