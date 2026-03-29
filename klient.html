@@ -595,6 +595,28 @@
     margin-top: 10px;
     line-height: 1.4;
 }
+/* --- ACTION MODAL (SAAS CONFIRM) --- */
+#actionConfirmModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10001; /* Wyżej niż inne, żeby zawsze był na wierzchu */
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+}
+
+.action-modal-box {
+    background: white;
+    padding: 40px;
+    border-radius: 24px;
+    width: 440px;
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+}
     </style>
 </head>
 <body>
@@ -1218,7 +1240,46 @@ function renderLoyaltyCard(paidCount) {
                 setTimeout(() => toast.remove(), 400); // usunięcie z DOM po animacji
             }, 3500);
         };
+// ==========================================
+// KROK 3: LOGIKA MODALA AKCJI (POTWIERDZENIA)
+// ==========================================
 
+window.openActionModal = function(options) {
+    const { title, desc, icon, confirmText, isDanger, onConfirm } = options;
+    const isEn = localStorage.getItem("client_lang") === "en";
+
+    const modal = document.getElementById("actionConfirmModal");
+    const confirmBtn = document.getElementById("actionModalConfirmBtn");
+
+    document.getElementById("actionModalTitle").innerText = title;
+    document.getElementById("actionModalDesc").innerText = desc;
+    document.getElementById("actionModalIcon").innerText = icon || "⚠️";
+    
+    confirmBtn.innerText = confirmText || (isEn ? "Confirm" : "Potwierdzam");
+    confirmBtn.style.background = isDanger ? "var(--red)" : "var(--blue)";
+    
+    // Zapobiegamy nakładaniu się wielu zdarzeń click
+    const newBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+
+    newBtn.onclick = async () => {
+        newBtn.disabled = true;
+        newBtn.innerText = isEn ? "Processing..." : "Przetwarzanie...";
+        try {
+            await onConfirm();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            closeActionModal();
+        }
+    };
+
+    modal.style.display = "flex";
+};
+
+window.closeActionModal = function() {
+    document.getElementById("actionConfirmModal").style.display = "none";
+};
         // --- INICJALIZACJA ---
         document.addEventListener("DOMContentLoaded", async () => {
             const { data: { session } } = await db.auth.getSession();
@@ -2409,25 +2470,29 @@ function calculateRefundPercent(pickupDate) {
 
         
         // --- REALNE ANULOWANIE / ODRZUCANIE REZERWACJI ---
-        window.cancelBooking = async function(id, currentStatus) {
+       // --- NOWOCZESNE ANULOWANIE (SaaS Version) ---
+window.cancelBooking = async function(id, currentStatus) {
     const isEn = localStorage.getItem("client_lang") === "en";
     
-    // 🔒 FIX: Konflikt logiki (zabezpieczenie przed zwykłym anulowaniem dla opłaconych)
+    // 🔒 Zabezpieczenie przed zwykłym anulowaniem dla opłaconych (wymuszamy zwrot)
     if (currentStatus === 'paid') {
         window.showToast(isEn ? "Please use the refund option in the Payments tab." : "Użyj opcji zwrotu w zakładce Płatności.", "error");
         return;
     }
 
-    const confirmMsg = isEn 
-        ? "Are you sure you want to cancel this booking?" 
-        : "Czy na pewno chcesz anulować tę rezerwację?";
-    
-    if (!confirm(confirmMsg)) return;
-
+    // Wywołujemy Twój nowy Action Modal (ten z Kroku 3)
+    window.openActionModal({
+        title: isEn ? "Cancel Reservation" : "Anuluj rezerwację",
+        desc: isEn 
+            ? "Are you sure you want to cancel this booking? This action is irreversible." 
+            : "Czy na pewno chcesz anulować tę rezerwację? Ta akcja jest nieodwracalna.",
+        icon: "🚫",
+        confirmText: isEn ? "Yes, cancel" : "Tak, anuluj",
+        isDanger: true, // Dzięki temu przycisk będzie czerwony
+        onConfirm: async () => {
             try {
                 if (currentStatus === 'pending') {
-                    // 1. SCENARIUSZ: Przed akceptacją partnera
-                    // Usuwamy całkowicie z bazy (fizyczne czyszczenie systemu)
+                    // 1. SCENARIUSZ: Przed akceptacją partnera - usuwamy fizycznie
                     const { error } = await db
                         .from("bookings")
                         .delete()
@@ -2435,8 +2500,7 @@ function calculateRefundPercent(pickupDate) {
                         .eq("client_id", currentUser.id);
                     if (error) throw error;
                 } else {
-                    // 2. SCENARIUSZ: Po akceptacji partnera (gdy klient np. nie chce opłacić)
-                    // Zmieniamy status, aby partner miał to w historii
+                    // 2. SCENARIUSZ: Po akceptacji - zmieniamy tylko status
                     const { error } = await db
                         .from("bookings")
                         .update({ status: 'cancelled' })
@@ -2446,13 +2510,15 @@ function calculateRefundPercent(pickupDate) {
                 }
 
                 window.showToast(isEn ? "Booking cancelled." : "Rezerwacja została anulowana.", "success");
-                await loadClientBookings();
+                await loadClientBookings(); // Odświeżamy listę, żeby zmiany były widoczne
 
             } catch (err) {
                 console.error("❌ BŁĄD ANULOWANIA:", err);
                 window.showToast(isEn ? "Error!" : "Błąd podczas anulowania.", "error");
             }
-        };
+        }
+    });
+};
 
         // --- REALNA PŁATNOŚĆ (Przekierowanie) ---
         window.payBooking = function(id) {
@@ -2748,6 +2814,17 @@ if (b.refund_status === "pending") {
         </div>
     </div>
 </div>
+<div id="actionConfirmModal">
+    <div class="action-modal-box">
+        <div id="actionModalIcon" style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+        <h3 id="actionModalTitle" style="font-family: 'Manrope'; font-size: 22px; color: var(--sidebar-bg); margin-bottom: 12px;">Potwierdź akcję</h3>
+        <p id="actionModalDesc" style="color: var(--gray); font-size: 14px; line-height: 1.5; margin-bottom: 30px;">Czy na pewno chcesz kontynuować?</p>
 
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn-secondary" onclick="closeActionModal()" style="flex: 1;" data-pl="Wróć" data-en="Go back">Wróć</button>
+            <button id="actionModalConfirmBtn" class="btn-primary" style="flex: 1; border: none;" data-pl="Potwierdzam" data-en="Confirm">Potwierdzam</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
