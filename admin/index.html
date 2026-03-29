@@ -203,16 +203,17 @@
         <table>
             <thead>
     <tr>
-        <th>ID</th>
-<th>Email</th>
-<th>Data</th>
-<th>Kwota</th>
-<th>%</th>
-<th>Akcja</th>
-    </tr>
+    <th>Klient</th>
+    <th>Data</th>
+    <th>Kwota</th>
+    <th>%</th>
+    <th>Konto</th>
+    <th>Powód</th>
+    <th>Akcja</th>
+</tr>
 </thead>
             <tbody id="refunds-tbody">
-    <tr><td colspan="6">Ładowanie...</td></tr>
+    <tr><td colspan="7">Ładowanie...</td></tr>
 </tbody>
         </table>
     </div>
@@ -446,7 +447,7 @@ async function loadDeletionRequests() {
         `;
     });
 }
-        async function loadRefunds() {
+       async function loadRefunds() {
 
   const { data, error } = await db.rpc("admin_get_refunds");
 
@@ -455,34 +456,52 @@ async function loadDeletionRequests() {
 
   if (error) {
     console.error(error);
-    tbody.innerHTML = "<tr><td colspan='6'>Błąd</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='7'>Błąd</td></tr>";
     return;
   }
 
   if (!data.length) {
-    tbody.innerHTML = "<tr><td colspan='6'>Brak zwrotów</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='7'>Brak zwrotów</td></tr>";
     return;
   }
 
   data.forEach(r => {
     tbody.innerHTML += `
       <tr>
-        <td>#${r.id}</td>
-        <td>${r.email}</td>
+
+        <td>
+          <div style="font-weight:600">${r.name || "-"}</div>
+          <div style="font-size:12px; color:#64748B">${r.email}</div>
+        </td>
+
         <td>${r.start_date}</td>
+
         <td><b>${r.amount} PLN</b></td>
+
         <td>${r.percentage}%</td>
+
+        <td style="font-family:monospace; font-size:12px;">
+          <span onclick="navigator.clipboard.writeText('${r.account}')"
+          style="cursor:pointer">
+            ${r.account || "-"}
+          </span>
+        </td>
+
+        <td style="max-width:200px;">
+          ${r.reason || "-"}
+        </td>
+
         <td>
           <button class="btn-primary"
             onclick="markRefundDone('${r.id}')">
             Zwrócone
           </button>
         </td>
+
       </tr>
     `;
   });
 }
-
         const db = window.supabaseClient;
 
         // XSS Sanitizer
