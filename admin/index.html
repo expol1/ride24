@@ -448,12 +448,7 @@ async function loadDeletionRequests() {
 }
         async function loadRefunds() {
 
-  const { data, error } = await db
-    .from("bookings")
-    .select("id, client_email, refund_amount_pln, refund_percentage, start_date")
-    .eq("refund_status", "pending")
-    .eq("status", "cancelled") // 🔥 DODAJ TO
-    .order("cancelled_at", { ascending: false });
+  const { data, error } = await db.rpc("admin_get_refunds");
 
   const tbody = document.getElementById("refunds-tbody");
   tbody.innerHTML = "";
@@ -473,10 +468,10 @@ async function loadDeletionRequests() {
     tbody.innerHTML += `
       <tr>
         <td>#${r.id}</td>
-        <td>${r.client_email}</td>
+        <td>${r.email}</td>
         <td>${r.start_date}</td>
-        <td><b>${r.refund_amount_pln} PLN</b></td>
-        <td>${r.refund_percentage}%</td>
+        <td><b>${r.amount} PLN</b></td>
+        <td>${r.percentage}%</td>
         <td>
           <button class="btn-primary"
             onclick="markRefundDone('${r.id}')">
