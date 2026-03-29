@@ -2241,14 +2241,11 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
         // 🔥 3. MOST DO ADMINA: Skoro update bookings się udał, tworzymy transakcję
         // To sprawi, że prośba pojawi się w zakładce "Zwroty" u Admina
         await db.from("transactions").insert([{
-            booking_id: bookingId,
-            client_id: currentUser.id,
-            amount: calculatedRefund,
-            type: "refund_pending",
-            description: isEn 
-                ? `Refund request (${refundPercent}%)` 
-                : `Prośba o zwrot (${refundPercent}%)`
-        }]);
+    booking_id: bookingId,
+    client_id: currentUser.id,
+    amount: calculatedRefund, // tylko informacyjnie
+    type: "refund_pending"
+}]);
 
         // 4. Komunikat sukcesu (Bilingwalny)
         const successMsg = isEn 
