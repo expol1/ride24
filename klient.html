@@ -2514,7 +2514,6 @@ function calculateRefundPercent(pickupDate) {
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
             const activeBtn = document.getElementById('lang-' + lang);
             if(activeBtn) activeBtn.classList.add('active-lang');
-            if (typeof loadPayments === "function") loadPayments();
             
         }
 
