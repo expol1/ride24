@@ -1987,29 +1987,11 @@ else if (booking.status === 'awaiting_payment') {
         `;
     }
 }
-// 🔥 NAJPIERW REFUND
-else if (booking.refund_status === 'completed') {
 
-    const refundDate = booking.refund_completed_at 
-        ? new Date(booking.refund_completed_at).toLocaleDateString('pl-PL')
-        : '';
-
-    statusHtml = `
-        <span class="status refunded">
-            🟢 Rozliczone ${refundDate ? `(${refundDate})` : ''}
-        </span>
-    `;
-}
 else if (booking.status === 'paid') {
     statusHtml = '<span class="status paid">Opłacona</span>';
 }
-else if (booking.refund_status === 'pending') {
-    statusHtml = `
-        <span class="status awaiting_payment">
-            🟠 Zwrot w trakcie
-        </span>
-    `;
-}
+
 else if (booking.status === 'cancelled') {
     statusHtml = '<span class="status cancelled">Anulowana przez Ciebie</span>';
 }
@@ -2742,8 +2724,33 @@ window.loadPayments = async function() {
         `;
     }
 }
+actions = ""; // 🔥 reset
+
+// 🟠 Zwrot w toku
 if (b.refund_status === "pending") {
-    actions = `<span style="color:#F97316;font-weight:700;">${isEn ? 'Refund pending' : 'Zwrot w toku'}</span>`;
+    actions = `<span style="color:#F97316;font-weight:700;">
+        ${isEn ? 'Refund pending' : 'Zwrot w toku'}
+    </span>`;
+}
+
+// 🟢 Zwrot zakończony
+if (b.refund_status === "completed") {
+
+    const refundDate = b.refund_completed_at
+        ? new Date(b.refund_completed_at).toLocaleDateString('pl-PL')
+        : '';
+
+    actions = `<span style="
+        background:#DCFCE7;
+        color:#16A34A;
+        font-weight:800;
+        padding:6px 10px;
+        border-radius:8px;
+        display:inline-block;
+    ">
+        ${isEn ? 'Refunded' : 'Rozliczone'} 
+        ${refundDate ? `(${refundDate})` : ''}
+    </span>`;
 }
 
             tbody.innerHTML += `
