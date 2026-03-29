@@ -2152,27 +2152,49 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
         // 💰 GAME CHANGER: Dokładne wyliczenie kwoty zwrotu dla Admina / API Stripe
         const calculatedRefund = Number((amountPln * refundPercent / 100).toFixed(2));
 
+       // 1. Próba aktualizacji statusu rezerwacji
         const { data, error } = await db
             .from("bookings")
             .update({ 
                 status: 'cancelled',
                 cancelled_at: new Date().toISOString(),
                 refund_percentage: refundPercent,
-                refund_amount_pln: calculatedRefund, // 🔥 Gotowa kwota wpada do bazy
-                refund_status: 'pending' // 🔥 Flaga dla Admina
+                refund_amount_pln: calculatedRefund, 
+                refund_status: 'pending' 
             })
             .eq("id", bookingId)
-            .eq("status", "paid") // 🔒 Tylko opłacone
-            .is("refund_status", null) // 🔒 Blokada Race Condition
+            .eq("status", "paid")             // 🔒 Tylko jeśli zapłacone
+            .is("refund_status", null)        // 🔒 Tylko jeśli jeszcze nie było prośby o zwrot
             .select();
 
         if (error) throw error;
 
+        // 2. Blokada przed duplikatem / zmianą statusu w międzyczasie
         if (!data || data.length === 0) {
-            throw new Error("Rezerwacja już anulowana lub status zwrotu uległ zmianie.");
+            const errorMsg = isEn 
+                ? "Booking already cancelled or refund status changed." 
+                : "Rezerwacja już anulowana lub status zwrotu uległ zmianie.";
+            throw new Error(errorMsg);
         }
 
-        window.showToast(isEn ? "Booking cancelled." : `Rezerwacja anulowana. Przetwarzamy zwrot (${refundPercent}%).`, "success");
+        // 🔥 3. MOST DO ADMINA: Skoro update bookings się udał, tworzymy transakcję
+        // To sprawi, że prośba pojawi się w zakładce "Zwroty" u Admina
+        await db.from("transactions").insert([{
+            booking_id: bookingId,
+            client_id: currentUser.id,
+            amount: calculatedRefund,
+            type: "refund_pending",
+            description: isEn 
+                ? `Refund request (${refundPercent}%)` 
+                : `Prośba o zwrot (${refundPercent}%)`
+        }]);
+
+        // 4. Komunikat sukcesu (Bilingwalny)
+        const successMsg = isEn 
+            ? `Booking cancelled. Processing refund (${refundPercent}%).` 
+            : `Rezerwacja anulowana. Przetwarzamy zwrot (${refundPercent}%).`;
+            
+        window.showToast(successMsg, "success");
         
         // Odświeżamy widoki
         if (typeof loadPayments === "function") await loadPayments();
