@@ -708,7 +708,7 @@
             <div id="view-dashboard" class="view-section active">
                 <div class="page-header">
                     <h1 class="page-title" data-pl="Pulpit" data-en="Dashboard">Pulpit</h1>
-                    <button class="btn-primary" onclick="submitBooking()" style="margin-bottom:20px;">
+                    <button class="btn-primary" onclick="submitBooking()" style="margin-bottom:20px;" data-pl="Potwierdź rezerwację" data-en="Confirm booking">
 Potwierdź rezerwację
 </button>
                 </div>
@@ -1789,6 +1789,7 @@ loyalty_discount_percent: discountPercent
 
        async function loadClientBookings() {
             const dashTbody = document.getElementById('dashboard-bookings-tbody');
+            const isEn = localStorage.getItem("client_lang") === "en";
             const bookTbody = document.getElementById('bookings-tbody');
             
             dashTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Ładowanie danych...</td></tr>';
@@ -1942,7 +1943,7 @@ const s = booking.status;
 
 if (s === 'pending') {
     actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;">
-        Decyzja partnera:
+        ${isEn ? 'Partner decision:' : 'Decyzja partnera:'}
     </span>`;
 
     actionsHtml += `<span class="timer-badge countdown-timer" data-created="${booking.created_at}" style="font-size:13px; margin-top:0; color:var(--orange);">
@@ -1950,15 +1951,14 @@ if (s === 'pending') {
     </span>`;
 
     actionsHtml += `<button class="btn-cancel" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="min-width:auto; padding:4px 8px; font-size:11px; margin-top:4px;">
-    Wycofaj wniosek
-</button>`;
+        ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
+    </button>`;
 }
 else if (s === 'accepted') {
-
     actionsHtml += `<button class="btn-cancel" 
         onclick="window.cancelBooking('${booking.id}', '${booking.status}')"
         style="width:100%;">
-        Anuluj rezerwację
+        ${isEn ? 'Cancel booking' : 'Anuluj rezerwację'}
     </button>`;
 }
 
@@ -2575,6 +2575,7 @@ function translateStatus(status, lang = null) {
 }
 window.loadPayments = async function() {
     console.log("💰 loadPayments start");
+    const isEn = localStorage.getItem("client_lang") === "en";
 
     const tbody = document.getElementById("payments-tbody");
     if (!tbody) return;
@@ -2609,14 +2610,14 @@ window.loadPayments = async function() {
     actions = `
         <button class="btn-cancel"
             onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})">
-            Zwrot
+            ${isEn ? 'Refund' : 'Zwrot'}
         </button>
     `;
 }
 
-            if (b.refund_status === "pending") {
-                actions = `<span style="color:#F97316;font-weight:700;">Zwrot w toku</span>`;
-            }
+if (b.refund_status === "pending") {
+    actions = `<span style="color:#F97316;font-weight:700;">${isEn ? 'Refund pending' : 'Zwrot w toku'}</span>`;
+}
 
             tbody.innerHTML += `
                 <tr>
