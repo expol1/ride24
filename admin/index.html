@@ -452,6 +452,7 @@ async function loadDeletionRequests() {
     .from("bookings")
     .select("id, client_email, refund_amount_pln, refund_percentage, start_date")
     .eq("refund_status", "pending")
+    .eq("status", "cancelled") // 🔥 DODAJ TO
     .order("cancelled_at", { ascending: false });
 
   const tbody = document.getElementById("refunds-tbody");
