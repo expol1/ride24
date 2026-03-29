@@ -2556,7 +2556,24 @@ window.logout = async function() {
         window.goToSearch = function() {
     window.location.href = "index.html";
 };
+function translateStatus(status) {
+    const isEn = localStorage.getItem("client_lang") === "en";
 
+    const map = {
+        pending: { pl: "Oczekująca", en: "Pending" },
+        accepted: { pl: "Potwierdzona", en: "Accepted" },
+        awaiting_payment: { pl: "Oczekuje płatności", en: "Awaiting payment" },
+        paid: { pl: "Opłacone", en: "Paid" },
+        cancelled: { pl: "Anulowana", en: "Cancelled" },
+        rejected: { pl: "Odrzucona", en: "Rejected" },
+        expired: { pl: "Wygasła", en: "Expired" },
+        payment_expired: { pl: "Płatność wygasła", en: "Payment expired" }
+    };
+
+    return map[status]
+        ? map[status][isEn ? "en" : "pl"]
+        : status;
+}
 window.loadPayments = async function() {
     console.log("💰 loadPayments start");
 
@@ -2606,7 +2623,7 @@ window.loadPayments = async function() {
                 <tr>
                     <td>#R24-${b.id.toString().slice(-4)}</td>
                     <td>${(b.online_payment_pln || 0).toFixed(2)} PLN</td>
-                    <td>${b.status === 'paid' ? 'Opłacone' : b.status}</td>
+                    <td>${translateStatus(b.status)}</td>
                     <td>${actions}</td>
                 </tr>
             `;
