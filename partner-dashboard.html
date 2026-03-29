@@ -205,20 +205,51 @@
         .class-code { font-weight: 800; font-size: 16px; color: #0F172A; margin-right: 6px; }
         .class-label { color: #334155; font-weight: 600; }
         
-        /* STATUSY ZGODNE Z PLANEM */
-        .status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-.status.pending { background: #FEF3C7; color: #D97706; }
-.status.awaiting_payment { background: #FFEDD5; color: #C2410C; }
-.status.paid { background: #DCFCE7; color: #16A34A; }
-.status.rejected { background: #FEE2E2; color: #EF4444; }
-.status.active { background: #DCFCE7; color: #16A34A; }
-.status.inactive { background: #F1F5F9; color: #64748B; }
+        /* STATUSY ZGODNE Z PLANEM (FINAL) */
+.status { 
+    padding: 4px 10px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    font-weight: 700; 
+    display: inline-block;
+}
 
+/* 🟡 pending */
+.status.pending { 
+    background: #FEF3C7; 
+    color: #D97706; 
+}
+
+/* 🟠 awaiting */
+.status.awaiting_payment { 
+    background: #FFEDD5; 
+    color: #C2410C; 
+}
+
+/* 🟢 confirmed (ZAMIENIA paid dla partnera) */
+.status.confirmed { 
+    background: #DCFCE7; 
+    color: #16A34A; 
+}
+
+/* 🔴 cancelled / rejected / refund */
+.status.cancelled,
+.status.rejected { 
+    background: #FEE2E2; 
+    color: #EF4444; 
+}
+
+/* 🔵 accepted (opcjonalnie) */
 .status.accepted { 
     background: #DBEAFE; 
     color: #2563EB; 
 }
 
+/* ⚪ expired / inactive */
+.status.inactive { 
+    background: #F1F5F9; 
+    color: #64748B; 
+}
         .timer-badge { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 13px; color: var(--gray); display: flex; align-items: center; gap: 5px;}
         .timer-urgent { color: var(--red); animation: blink 2s infinite; }
         @keyframes blink { 50% { opacity: 0.7; } }
@@ -524,7 +555,7 @@
                         <div class="stat-value" id="statPending">0</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-title" data-pl="Oczekiwanie na płatność" data-en="Awaiting client confirmation">Awaiting payment</div>
+                        <div class="stat-title" data-pl="Oczekujące na potwierdzenie" data-en="Pending confirmation">Oczekujące na potwierdzenie</div>
                         <div class="stat-value" id="statAwaiting">0</div>
                     </div>
                     <div class="stat-card">
@@ -1747,49 +1778,54 @@ const updateData = {
           const { data, error } = await db
     .from("bookings")
     .select(`
-        id,
-        created_at,
-        start_date,
-        end_date,
-        pickup_time,
-        return_time,
-        pickup_location,
-        return_location,
-        status,
-        payment_deadline,
-        partner_response_deadline,
-        final_price_snapshot,
-        online_payment_pln,
-        pickup_payment_partner_currency,
-        partner_currency,
+    id,
+    created_at,
+    start_date,
+    end_date,
+    pickup_time,
+    return_time,
+    pickup_location,
+    return_location,
+    status,
+    payment_deadline,
+    partner_response_deadline,
+    final_price_snapshot,
+    online_payment_pln,
+    pickup_payment_partner_currency,
+    partner_currency,
+    partner_net_price_snapshot,  // 🔥 DODAJ TO
 
-        main_driver_name,
-        main_driver_age,
-        add_driver_name,
-        add_driver_age,
-        client_phone,
-        client_email,
+    main_driver_name,
+    main_driver_age,
+    add_driver_name,
+    add_driver_age,
+    client_phone,
+    client_email,
 
-        deposit_snapshot,
-        mileage_limit_snapshot,
-        driver_included_snapshot,
-        driver_hours_snapshot,
+    deposit_snapshot,
+    mileage_limit_snapshot,
+    driver_included_snapshot,
+    driver_hours_snapshot,
 
-        car_classes (
-            class_code, 
-            description,
-            partners (currency)
-        )
-    `)
+    car_classes (
+        class_code, 
+        description,
+        partners (currency)
+    ),
+    refund_status,
+    refund_completed_at
+`)
     .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid"])
+    .in("status", ["pending", "awaiting_payment", "paid", "cancelled"])
     .order("created_at", { ascending: false });
 
             if (error) return console.error("Błąd ładowania statystyk:", error);
 
             const pending = data.filter(b => b.status === "pending").length;
             const awaiting = data.filter(b => b.status === "awaiting_payment").length;
-            const paid = data.filter(b => b.status === "paid").length;
+            const confirmed = data.filter(b => b.status === "paid").length;
+
+document.getElementById("statPaid").innerText = confirmed;
 
             const revenue = data
                 .filter(b => b.status === "paid")
@@ -1878,13 +1914,15 @@ const updateData = {
         driver_hours_snapshot,
 
         car_classes (
-            class_code, 
-            description,
-            partners (currency)
-        )
+    class_code, 
+    description,
+    partners (currency)
+),
+refund_status,
+refund_completed_at
     `)
     .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid"])
+    .in("status", ["pending", "awaiting_payment", "paid", "cancelled"])
     .order("created_at", { ascending: false });
 
             if(error) {
@@ -1933,76 +1971,98 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 console.log("BOOKING:", booking);
                 if(booking.status === "pending") pendingCount++;
                 
-               let statusHtml = "";
+               // ================= STATUS =================
+let statusHtml = "";
 
-if (booking.status === "pending") {
+// 🔴 CANCELLED (także po refundzie)
+if (booking.status === "cancelled" || booking.refund_status === "completed") {
+    statusHtml = '<span class="status rejected">Cancelled</span>';
+}
+
+// 🟢 CONFIRMED (czyli paid)
+else if (booking.status === "paid") {
+    statusHtml = '<span class="status confirmed">Confirmed</span>';
+}
+
+// 🟠 PENDING
+else if (booking.status === "pending") {
     statusHtml = '<span class="status pending">Pending</span>';
 }
+
+// 🔵 AWAITING
 else if (booking.status === "awaiting_payment") {
-    statusHtml = '<span class="status awaiting_payment">Awaiting client confirmation</span>';
-}
-else if (booking.status === "paid") {
-    statusHtml = '<span class="status paid">Paid</span>';
-}
-else if (booking.status === "rejected") {
-    statusHtml = '<span class="status rejected">Rejected</span>';
-}
-else if (booking.status === "payment_expired") {
-    statusHtml = '<span class="status inactive">Payment expired</span>';
+    statusHtml = '<span class="status awaiting_payment">Awaiting client</span>';
 }
 
+// ⚫ fallback
+else {
+    statusHtml = `<span class="status">${booking.status}</span>`;
+}
+
+
+// ================= ACTIONS =================
 let actions = "";
-const s = booking.status;
 
-if (s === "pending") {
+// 🔴 pending → akcje
+if (booking.status === "pending") {
 
     actions = `
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-    <button class="btn-confirm" onclick="acceptBooking('${booking.id}', this)">
-        ACCEPT
-    </button>
-    <button class="btn-cancel" onclick="rejectBooking('${booking.id}', this)">
-        REJECT
-    </button>
-</div>
+            <button class="btn-confirm" onclick="acceptBooking('${booking.id}', this)">
+                ACCEPT
+            </button>
+            <button class="btn-cancel" onclick="rejectBooking('${booking.id}', this)">
+                REJECT
+            </button>
+        </div>
     `;
-
 }
-else if (s === "awaiting_payment") {
 
-    actions = `
-        <span style="font-size:12px;color:var(--gray);font-weight:600;">
-            Waiting for client confirmation
-        </span>
-    `;
-
-}
-else if (s === "paid") {
-
-    actions = `
-        <span style="font-size:12px;color:var(--green);font-weight:700;">
-            Paid ✅
-        </span>
-    `;
-
-}
-else if (s === "rejected") {
+// 🔴 CANCELLED (NAJWYŻSZY PRIORYTET)
+else if (booking.refund_status === "completed") {
 
     actions = `
         <span style="font-size:12px;color:var(--red);font-weight:700;">
-            Rejected
+            Cancelled
         </span>
     `;
-
 }
-else {
+else if (booking.status === "cancelled") {
 
+    actions = `
+        <span style="font-size:12px;color:var(--red);font-weight:700;">
+            Cancelled
+        </span>
+    `;
+}
+
+// 🔵 awaiting
+else if (booking.status === "awaiting_payment") {
+
+    actions = `
+        <span style="font-size:12px;color:var(--gray);font-weight:600;">
+            Waiting for client
+        </span>
+    `;
+}
+
+// 🟢 confirmed
+else if (booking.status === "paid") {
+
+    actions = `
+        <span style="font-size:12px;color:var(--green);font-weight:700;">
+            Confirmed ✅
+        </span>
+    `;
+}
+
+// ⚫ fallback
+else {
     actions = `
         <span style="font-size:12px;color:var(--gray);font-weight:600;">
             Closed
         </span>
     `;
-
 }
 
                 // Bezpieczne dane GŁÓWNEGO kierowcy z widoku SQL
@@ -2106,7 +2166,7 @@ const rowHtml = `
                 ${actions}
                 ${
                     booking.status === "pending"
-                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}"" style="margin-top: 4px;">
+                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="margin-top: 4px;">
                         ⌛ --:--:--
                        </span>`
                     : ""
