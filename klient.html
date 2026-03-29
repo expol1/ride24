@@ -2206,6 +2206,10 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
         : `Czy na pewno chcesz anulować tę rezerwację? Zgodnie z regulaminem przysługuje Ci zwrot ${refundPercent}% opłaty rezerwacyjnej.`;
 
     if(!confirm(confirmMsg)) return;
+    const account = prompt("Podaj numer konta do zwrotu (IBAN):");
+if (!account) return;
+
+const reason = prompt("Powód rezygnacji (opcjonalnie):") || "";
 
     window._refundProcessing = true; // Blokada przycisku
 
@@ -2217,12 +2221,14 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
         const { data, error } = await db
             .from("bookings")
             .update({ 
-                status: 'cancelled',
-                cancelled_at: new Date().toISOString(),
-                refund_percentage: refundPercent,
-                refund_amount_pln: calculatedRefund, 
-                refund_status: 'pending' 
-            })
+    status: 'cancelled',
+    cancelled_at: new Date().toISOString(),
+    refund_percentage: refundPercent,
+    refund_amount_pln: calculatedRefund,
+    refund_status: 'pending',
+    refund_account: account,   // 🔥 NOWE
+    refund_reason: reason      // 🔥 NOWE
+})
             .eq("id", bookingId)
             .eq("status", "paid")             // 🔒 Tylko jeśli zapłacone
             .is("refund_status", null)        // 🔒 Tylko jeśli jeszcze nie było prośby o zwrot
@@ -2237,15 +2243,12 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
                 : "Rezerwacja już anulowana lub status zwrotu uległ zmianie.";
             throw new Error(errorMsg);
         }
-
-        // 🔥 3. MOST DO ADMINA: Skoro update bookings się udał, tworzymy transakcję
-        // To sprawi, że prośba pojawi się w zakładce "Zwroty" u Admina
-        await db.from("transactions").insert([{
-    booking_id: bookingId,
-    client_id: currentUser.id,
-    amount: calculatedRefund, // tylko informacyjnie
-    type: "refund_pending"
-}]);
+            // 🔥 ANULUJ VOUCHER (KLUCZOWE)
+await db
+  .from("vouchers")
+  .update({ status: "cancelled" })
+  .eq("booking_id", bookingId);
+        
 
         // 4. Komunikat sukcesu (Bilingwalny)
         const successMsg = isEn 

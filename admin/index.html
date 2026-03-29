@@ -203,16 +203,17 @@
         <table>
             <thead>
     <tr>
-        <th>ID Rezerwacji</th> <!-- 🔥 NOWE -->
-        <th>Email klienta</th>
-        <th>Data</th>
-        <th>Kwota</th>
-        <th>Akcja</th>
+        <th>ID</th>
+<th>Email</th>
+<th>Data</th>
+<th>Kwota</th>
+<th>%</th>
+<th>Akcja</th>
     </tr>
 </thead>
             <tbody id="refunds-tbody">
-                <tr><td colspan="4">Ładowanie...</td></tr>
-            </tbody>
+    <tr><td colspan="6">Ładowanie...</td></tr>
+</tbody>
         </table>
     </div>
 </div>
@@ -447,86 +448,45 @@ async function loadDeletionRequests() {
 }
         async function loadRefunds() {
 
-    const { data, error } = await db
-        .from("transactions")
-        .select(`
-            id,
-            booking_id,
-            amount,
-            created_at,
-            bookings (client_email, start_date)
-        `)
-        .eq("type", "refund_pending")
-        .order("created_at", { ascending: false })
+  const { data, error } = await db
+    .from("bookings")
+    .select("id, client_email, refund_amount_pln, refund_percentage, start_date")
+    .eq("refund_status", "pending")
+    .order("cancelled_at", { ascending: false });
 
-    const tbody = document.getElementById("refunds-tbody");
-    tbody.innerHTML = "";
+  const tbody = document.getElementById("refunds-tbody");
+  tbody.innerHTML = "";
 
-    if (error) {
-    tbody.innerHTML = "<tr><td colspan='4'>Błąd ładowania zwrotów</td></tr>";
+  if (error) {
+    console.error(error);
+    tbody.innerHTML = "<tr><td colspan='6'>Błąd</td></tr>";
     return;
-}
+  }
 
-if (!data.length) {
-    tbody.innerHTML = "<tr><td colspan='4'>Brak zwrotów</td></tr>";
+  if (!data.length) {
+    tbody.innerHTML = "<tr><td colspan='6'>Brak zwrotów</td></tr>";
     return;
-}
+  }
 
-    data.forEach(r => {
+  data.forEach(r => {
     tbody.innerHTML += `
-        <tr>
-            <td>#${r.booking_id}</td> <!-- 🔥 TU DODANE -->
-            <td>${escapeHtml(r.bookings?.client_email || "-")}</td>
-            <td>${r.bookings?.start_date || "-"}</td>
-            <td><b>${escapeHtml(String(r.amount))} PLN</b></td>
-            <td>
-                <button class="btn-primary"
-                 onclick="this.disabled=true; approveRefund('${r.id}', ${r.amount})">
-                    Zatwierdź
-                </button>
-            </td>
-        </tr>
+      <tr>
+        <td>#${r.id}</td>
+        <td>${r.client_email}</td>
+        <td>${r.start_date}</td>
+        <td><b>${r.refund_amount_pln} PLN</b></td>
+        <td>${r.refund_percentage}%</td>
+        <td>
+          <button class="btn-primary"
+            onclick="markRefundDone('${r.id}')">
+            Zwrócone
+          </button>
+        </td>
+      </tr>
     `;
-});
+  });
 }
-async function approveRefund(transactionId, amount) {
 
-    if (!confirm(`Zwrócić ${amount} PLN?`)) return;
-
-    try {
-
-        // 🔥 WYWOŁANIE EDGE FUNCTION
-        const { data: result, error: functionError } = await db.functions.invoke('admin-refund', {
-            body: { transaction_id: transactionId, amount: amount }
-        });
-
-        // 🔐 ZABEZPIECZENIE (TO O KTÓRE PYTAŁEŚ)
-        if (functionError || !result?.success) {
-            throw new Error(functionError?.message || "Refund nieudany");
-        }
-
-        // ✅ UPDATE DB DOPIERO PO SUKCESIE
-        const { error: dbError } = await db
-    .from("transactions")
-    .update({ 
-        type: "refund_done",
-        processed_at: new Date().toISOString()
-    })
-    .eq("id", transactionId);
-
-        if (dbError) throw dbError;
-
-        alert("Zwrot zatwierdzony");
-
-        loadRefunds();
-
-    } catch (err) {
-
-        console.error(err);
-        alert("Błąd: " + err.message);
-
-    }
-}
         const db = window.supabaseClient;
 
         // XSS Sanitizer
@@ -758,6 +718,26 @@ Usuń
             if (error) { alert("Błąd: " + error.message); } 
             else { loadPartnersData(); }
         }
+        // 🔥 REFUND MANUAL (ADMIN)
+window.markRefundDone = async function(id) {
+
+    if (!confirm("Czy oznaczyć jako zwrócone?")) return;
+
+    const { error } = await db
+        .from("bookings")
+        .update({ refund_status: "done" })
+        .eq("id", id);
+
+    if (error) {
+        alert("Błąd: " + error.message);
+        return;
+    }
+
+    alert("Zwrot oznaczony jako wykonany");
+
+    loadRefunds();
+    loadRadarData(); // 🔥 odśwież statystyki
+};
        // --- USUWANIE PARTNERA (NOWE RPC) ---
 window.deletePartner = async function(partnerId) {
     // 1. Zabezpieczenie przed przypadkowym kliknięciem
@@ -911,13 +891,12 @@ loadRadarData();
 
 // 🔥 DODAJ TO DOKŁADNIE TUTAJ ↓↓↓
 
-db.channel('transactions-admin')
+db.channel('refunds-admin')
 .on(
   'postgres_changes',
-  { event: '*', schema: 'public', table: 'transactions' },
+  { event: '*', schema: 'public', table: 'bookings' },
   () => {
     loadRefunds();
-    loadRadarData(); // 💰 update $$$ live
   }
 )
 .subscribe();
