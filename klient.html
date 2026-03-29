@@ -1967,7 +1967,7 @@ else if (s === 'awaiting_payment') {
         <button class="btn-pay"
             onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')"
             style="width:100%;">
-            Opłać teraz
+            ${isEn ? 'Pay now' : 'Opłać teraz'}
         </button>
     `;
 
@@ -1981,27 +1981,27 @@ else if (s === 'paid') {
 }
 else if (s === 'cancelled') {
     actionsHtml += `<span style="font-size:12px; color:#F97316; font-weight:700;">
-        Anulowana przez Ciebie
+        ${isEn ? 'Cancelled by you' : 'Anulowana przez Ciebie'}
     </span>`;
 }
 else if (s === 'rejected') {
     actionsHtml += `<span style="font-size:12px; color:#EF4444; font-weight:700;">
-        Odrzucona przez partnera
+        ${isEn ? 'Rejected by partner' : 'Odrzucona przez partnera'}
     </span>`;
 }
 else if (s === 'expired') {
     actionsHtml += `<span style="font-size:12px; color:#64748B; font-weight:700;">
-        Brak odpowiedzi partnera
+        ${isEn ? 'No response from partner' : 'Brak odpowiedzi partnera'}
     </span>`;
 }
 else if (s === 'payment_expired') {
     actionsHtml += `<span style="font-size:12px; color:#64748B; font-weight:700;">
-        Nieopłacona na czas
+        ${isEn ? 'Payment time expired' : 'Nieopłacona na czas'}
     </span>`;
 }
 else {
     actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600;">
-        Zakończona
+        ${isEn ? 'Completed' : 'Zakończona'}
     </span>`;
 }
 
@@ -2499,23 +2499,41 @@ function calculateRefundPercent(pickupDate) {
             window.location.href = sData.signedUrl;
         }
 
-        window.setLang = function(lang) {
-            localStorage.setItem("client_lang", lang);
-            document.querySelectorAll("[data-pl]").forEach(el => {
-                if(el.dataset[lang]) {
-                    if(el.tagName === 'INPUT' && el.hasAttribute("placeholder")) el.placeholder = el.dataset[lang];
-                    else el.innerHTML = el.dataset[lang];
-                }
-            });
-            document.querySelectorAll('.nav-item').forEach(item => {
-                const textSpan = item.querySelector('.nav-text');
-                if (textSpan && textSpan.dataset[lang]) item.setAttribute('data-tooltip', textSpan.dataset[lang]);
-            });
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
-            const activeBtn = document.getElementById('lang-' + lang);
-            if(activeBtn) activeBtn.classList.add('active-lang');
-            
+       window.setLang = function(lang) {
+    // 1. Zapisujemy wybór w pamięci
+    localStorage.setItem("client_lang", lang);
+
+    // 2. Tłumaczymy statyczne elementy z atrybutem [data-pl]
+    document.querySelectorAll("[data-pl]").forEach(el => {
+        if(el.dataset[lang]) {
+            if(el.tagName === 'INPUT' && el.hasAttribute("placeholder")) {
+                el.placeholder = el.dataset[lang];
+            } else {
+                el.innerHTML = el.dataset[lang];
+            }
         }
+    });
+
+    // 3. Tłumaczymy tooltipy w menu bocznym
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const textSpan = item.querySelector('.nav-text');
+        if (textSpan && textSpan.dataset[lang]) {
+            item.setAttribute('data-tooltip', textSpan.dataset[lang]);
+        }
+    });
+
+    // 4. Wizualna zmiana aktywnej flagi
+    document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
+    const activeBtn = document.getElementById('lang-' + lang);
+    if(activeBtn) activeBtn.classList.add('active-lang');
+
+    // 🔥 KLUCZ: Odświeżamy dynamiczne tabele, żeby użyły nowej logiki "isEn"
+    console.log("🌍 Zmiana języka na:", lang, "- Odświeżam tabele...");
+    
+    // Wywołujemy funkcje, które budują tabele od nowa
+    if (typeof loadClientBookings === "function") loadClientBookings();
+    if (typeof loadPayments === "function") loadPayments();
+}
 
         window.detectLang = function() {
             let lang = localStorage.getItem("client_lang") || "pl";
