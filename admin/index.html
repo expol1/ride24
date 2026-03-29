@@ -719,10 +719,9 @@ window.markRefundDone = async function(id) {
 
     if (!confirm("Czy oznaczyć jako zwrócone?")) return;
 
-    const { error } = await db
-        .from("bookings")
-        .update({ refund_status: "done" })
-        .eq("id", id);
+    const { error } = await db.rpc("admin_mark_refund_done", {
+        p_id: id
+    });
 
     if (error) {
         alert("Błąd: " + error.message);
@@ -732,7 +731,7 @@ window.markRefundDone = async function(id) {
     alert("Zwrot oznaczony jako wykonany");
 
     loadRefunds();
-    loadRadarData(); // 🔥 odśwież statystyki
+    loadRadarData();
 };
        // --- USUWANIE PARTNERA (NOWE RPC) ---
 window.deletePartner = async function(partnerId) {
