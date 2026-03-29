@@ -2185,6 +2185,35 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
         window._refundProcessing = false; // Zdejmujemy blokadę
     }
 };
+// 🔥 AUTO REFUND HANDLER (NOWY)
+window.handleRefundClick = function(bookingId, pickupDate, amountPln) {
+    const percent = calculateRefundPercent(pickupDate);
+
+    if (percent === 0) {
+        const isEn = localStorage.getItem("client_lang") === "en";
+window.showToast(
+    isEn ? "No refund (less than 30 days)" : "Brak zwrotu (poniżej 30 dni)",
+    "error"
+);
+        return;
+    }
+
+    requestRefund(bookingId, percent, amountPln);
+};
+// 🔥 LICZENIE PROCENTU ZWROTU
+function calculateRefundPercent(pickupDate) {
+    if (!pickupDate) return 0;
+
+    const today = new Date();
+    const pickup = new Date(pickupDate);
+
+    const diffTime = pickup - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays >= 60) return 90;
+    if (diffDays >= 30) return 50;
+    return 0;
+}
 
        async function loadUserProfile() {
             if(!db || !currentUser || !currentUser.email) return;
@@ -2528,65 +2557,64 @@ window.logout = async function() {
     window.location.href = "index.html";
 };
 
-// 🔥 LOGIKA ZWROTU / ODWOŁANIA Z ZAKŁADKI PŁATNOŚCI (PÓŁAUTOMAT)
-window._refundProcessing = false; 
+window.loadPayments = async function() {
+    console.log("💰 loadPayments start");
 
-// 🔥 LOGIKA ZWROTU / ODWOŁANIA Z ZAKŁADKI PŁATNOŚCI (PÓŁAUTOMAT)
-window._refundProcessing = false; 
+    const tbody = document.getElementById("payments-tbody");
+    if (!tbody) return;
 
-// ❗ ZMIANA: Dodano 3. argument (onlinePaymentPln)
-window.requestRefund = async function(bookingId, refundPercent, onlinePaymentPln) {
-    if (window._refundProcessing) return;
-
-    // ❗ FIX 4: Frontend Guard (Choć UI też tego pilnuje, warto to mieć przed API)
-    if (!bookingId || onlinePaymentPln === undefined) {
-        window.showToast("Błąd danych rezerwacji.", "error");
-        return;
-    }
-
-    const isEn = localStorage.getItem("client_lang") === "en";
-    const confirmMsg = isEn 
-        ? `Are you sure you want to cancel this booking? You are eligible for a ${refundPercent}% refund.`
-        : `Czy na pewno chcesz anulować tę rezerwację? Zgodnie z regulaminem przysługuje Ci zwrot ${refundPercent}% opłaty rezerwacyjnej.`;
-
-    if(!confirm(confirmMsg)) return;
-
-    window._refundProcessing = true;
-
-    // ❗ FIX 1: Obliczanie dokładnej kwoty w PLN
-    const refundAmount = parseFloat((onlinePaymentPln * (refundPercent / 100)).toFixed(2));
+    tbody.innerHTML = `<tr><td colspan="4">Ładowanie...</td></tr>`;
 
     try {
         const { data, error } = await db
             .from("bookings")
-            .update({ 
-                status: 'cancelled',
-                cancelled_at: new Date().toISOString(),
-                refund_percentage: refundPercent,
-                refund_amount_pln: refundAmount, // 💰 Zapisujemy policzoną kwotę
-                refund_status: 'pending' 
-            })
-            .eq("id", bookingId)
-            .eq("status", "paid") // 🔒 Tylko opłacone
-            .is("refund_status", null) // ❗ FIX 2: Race condition guard (zabezpiecza przed nadpisaniem jeśli admin już coś kliknął)
-            .select();
+            .select("id, online_payment_pln, status, refund_status, start_date")
+            .eq("client_id", currentUser.id)
+            .not("online_payment_pln", "is", null)
+            .order("created_at", { ascending: false });
 
         if (error) throw error;
 
+        console.log("💰 PAYMENTS:", data);
+
         if (!data || data.length === 0) {
-            throw new Error("Rezerwacja już anulowana lub status zwrotu uległ zmianie (Race condition).");
+            tbody.innerHTML = `<tr><td colspan="4">Brak płatności</td></tr>`;
+            return;
         }
 
-        window.showToast(isEn ? "Booking cancelled." : `Rezerwacja anulowana. Przetwarzamy zwrot (${refundPercent}%).`, "success");
-        
-        if (typeof loadPayments === "function") await loadPayments();
-        if (typeof loadClientBookings === "function") await loadClientBookings(); 
+        tbody.innerHTML = "";
 
-    } catch(err) {
-        console.error("Błąd anulowania (zwrot):", err);
-        window.showToast(isEn ? err.message : "Wystąpił błąd podczas anulowania.", "error");
-    } finally {
-        window._refundProcessing = false;
+        data.forEach(b => {
+
+            let actions = "-";
+
+            // 🔥 refund tylko dla paid
+            if (b.status === "paid" && !b.refund_status) {
+    actions = `
+        <button class="btn-cancel"
+            onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})">
+            Zwrot
+        </button>
+    `;
+}
+
+            if (b.refund_status === "pending") {
+                actions = `<span style="color:#F97316;font-weight:700;">Zwrot w toku</span>`;
+            }
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>#R24-${b.id.toString().slice(-4)}</td>
+                    <td>${(b.online_payment_pln || 0).toFixed(2)} PLN</td>
+                    <td>${b.status === 'paid' ? 'Opłacone' : b.status}</td>
+                    <td>${actions}</td>
+                </tr>
+            `;
+        });
+
+    } catch (err) {
+        console.error("❌ loadPayments error:", err);
+        tbody.innerHTML = `<tr><td colspan="4">Błąd ładowania</td></tr>`;
     }
 };
     </script>
