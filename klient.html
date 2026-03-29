@@ -2207,12 +2207,13 @@ function calculateRefundPercent(pickupDate) {
     const today = new Date();
     const pickup = new Date(pickupDate);
 
+    // Obliczamy różnicę dni (zaokrąglamy w górę)
     const diffTime = pickup - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays >= 60) return 90;
-    if (diffDays >= 30) return 50;
-    return 0;
+    if (diffDays > 60) return 90;      // Powyżej 60 dni -> 90%
+    if (diffDays >= 30) return 50;    // Od 30 do 60 dni -> 50%
+    return 0;                         // Poniżej 30 dni -> Brak zwrotu
 }
 
        async function loadUserProfile() {
@@ -2606,15 +2607,26 @@ window.loadPayments = async function() {
             let actions = "-";
 
             // 🔥 refund tylko dla paid
-            if (b.status === "paid" && !b.refund_status) {
-    actions = `
-        <button class="btn-cancel"
-            onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})">
-            ${isEn ? 'Refund' : 'Zwrot'}
-        </button>
-    `;
+           if (b.status === "paid" && !b.refund_status) {
+    const refundPercent = calculateRefundPercent(b.start_date);
+    
+    if (refundPercent > 0) {
+        // Przycisk aktywny z info o procencie
+        actions = `
+            <button class="btn-cancel"
+                onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})">
+                ${isEn ? 'Refund' : 'Zwrot'} (${refundPercent}%)
+            </button>
+        `;
+    } else {
+        // Przycisk WYŁĄCZONY (szary)
+        actions = `
+            <button class="btn-cancel" disabled style="opacity: 0.4; cursor: not-allowed; filter: grayscale(1);">
+                ${isEn ? 'No refund' : 'Brak zwrotu'}
+            </button>
+        `;
+    }
 }
-
 if (b.refund_status === "pending") {
     actions = `<span style="color:#F97316;font-weight:700;">${isEn ? 'Refund pending' : 'Zwrot w toku'}</span>`;
 }
