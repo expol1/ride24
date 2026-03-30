@@ -612,7 +612,7 @@ if (!deletionsError && deletionsData) {
         start_date,
         end_date,
         profiles:client_id!left (name, email),
-        partners!left (company_name)
+        partners:partner_id!left (company_name)
     `)
     .order("created_at", { ascending: false })
     .limit(50);
