@@ -80,16 +80,62 @@ serve(async (req) => {
         from: "Ride24 <no-reply@ride24.pl>",
         to: String(clientEmail), // 🔥 zabezpieczenie
         subject: "Ride24 – Twoja rezerwacja została potwierdzona",
-        html: `
-          <p>Twoja rezerwacja została opłacona.</p>
-          <p>Voucher jest gotowy w panelu klienta.</p>
-          <p>Kod rezerwacji: <b>${booking.reservation_code}</b></p>
-          <p>
-          Panel:
-          <a href="https://ride24.pl/panel?reservation=${booking.reservation_code}">
-          https://ride24.pl/panel
-          </a>
-          </p>
+       html: `
+<div style="margin:0; padding:0; background:#f4f4f7; font-family:Arial, sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+<tr>
+<td align="center">
+
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:10px; overflow:hidden;">
+
+<tr>
+<td align="center" style="padding:30px; border-bottom:1px solid #eee;">
+<img src="https://zwyerdeuvyzgkgwglowr.supabase.co/storage/v1/object/public/assets/bez.png" width="150" style="display:block;" />
+</td>
+</tr>
+
+<tr>
+<td style="padding:40px; text-align:center;">
+
+<h2 style="margin-bottom:20px;">
+Twoja rezerwacja została opłacona 🎉
+</h2>
+
+<p style="color:#555;">
+Voucher jest gotowy w panelu klienta.
+</p>
+
+<div style="background:#f8f9fa; padding:20px; border-radius:8px; margin-top:25px;">
+<p style="margin:0; font-size:13px; color:#777;">Kod rezerwacji</p>
+<p style="margin:10px 0 0 0; font-size:22px; font-weight:bold;">
+${booking.reservation_code}
+</p>
+</div>
+
+<div style="margin-top:30px;">
+<a href="https://ride24.pl/panel?reservation=${booking.reservation_code}"
+style="background:#000; color:white; padding:14px 26px; text-decoration:none; border-radius:6px; font-weight:600;">
+Przejdź do panelu
+</a>
+</div>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:20px; background:#f8f9fa; text-align:center; font-size:12px; color:#999;">
+© ${new Date().getFullYear()} Ride24
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</div>
         `
       })
     });

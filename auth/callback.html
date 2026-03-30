@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trwa logowanie... | Ride24</title>
+  <style>
+    /* Reset i podstawowe style fontów */
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc; /* Bardzo jasny, przyjemny szary */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #1e293b;
+    }
+
+    /* Kontener centralny */
+    .loader-card {
+      background: #ffffff;
+      padding: 40px 50px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      transition: all 0.3s ease;
+    }
+
+    /* Animowany spinner w kolorach premium */
+    .spinner {
+      width: 50px;
+      height: 50px;
+      margin: 0 auto 20px auto;
+      border-radius: 50%;
+      /* Tło spinnera - delikatny szary */
+      border: 4px solid #e2e8f0;
+      /* Flagowe kolory: niebieski i soczysta zieleń */
+      border-top-color: #2563eb; /* Niebieski */
+      border-left-color: #00e676; /* Jasna soczysta zieleń */
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Typografia */
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 10px 0;
+    }
+
+    p {
+      font-size: 14px;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Klasa błędu dodawana przez JS */
+    .error-state .spinner {
+      display: none; /* Ukrywamy kółko przy błędzie */
+    }
+    
+    .error-icon {
+      display: none;
+      font-size: 40px;
+      margin-bottom: 15px;
+    }
+
+    .error-state .error-icon {
+      display: block;
+    }
+
+    .error-state h1 {
+      color: #ef4444; /* Czerwony błąd */
+    }
+  </style>
+</head>
+<body>
+
+  <div class="loader-card" id="status-card">
+    <div class="spinner" id="spinner"></div>
+    <div class="error-icon" id="error-icon">⚠️</div>
+    <h1 id="status-title">Autoryzacja...</h1>
+    <p id="status-desc">Bezpiecznie łączymy z Twoim panelem Ride24.</p>
+  </div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="/assets/helper/supabaseConfig.js"></script>
+
+  <script>
+    // Funkcja pomocnicza do zmiany stanu UI zamiast alertów
+    function updateUI(isError, title, description) {
+      const card = document.getElementById('status-card');
+      document.getElementById('status-title').innerText = title;
+      document.getElementById('status-desc').innerText = description;
+      
+      if (isError) {
+        card.classList.add('error-state');
+      }
+    }
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error(error);
+          updateUI(true, "Błąd logowania", "Wystąpił problem z weryfikacją danych. Za chwilę wrócisz na stronę główną.");
+          // Czekamy 2 sekundy, żeby użytkownik przeczytał komunikat, po czym przekierowujemy
+          setTimeout(() => { window.location.href = "/"; }, 2000);
+          return;
+        }
+
+        if (data?.session) {
+          // Sukces - od razu przekierowujemy
+          window.location.href = "/panel.html";
+        } else {
+          updateUI(true, "Brak dostępu", "Nie wykryto aktywnej sesji. Za chwilę wrócisz do ekranu logowania.");
+          setTimeout(() => { window.location.href = "/"; }, 2000);
+        }
+      } catch (err) {
+        console.error("Niespodziewany błąd:", err);
+        updateUI(true, "Krytyczny błąd", "Coś poszło nie tak. Spróbuj ponownie za chwilę.");
+        setTimeout(() => { window.location.href = "/"; }, 2000);
+      }
+    })();
+  </script>
+
+</body>
+</html>
