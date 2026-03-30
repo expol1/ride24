@@ -1820,7 +1820,7 @@ const confirmed = data.filter(b => b.status === "paid").length;
 
 const revenue = data
     .filter(b => b.status === "paid")
-    .reduce((sum, b) => sum + (b.partner_net_price_snapshot || 0), 0);
+    .reduce((sum, b) => sum + (b.pickup_payment_partner_currency || 0), 0);
 
 const displayCurrency = partner?.currency || "EUR";
 
