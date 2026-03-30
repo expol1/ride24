@@ -1033,10 +1033,10 @@ async function addDictionary() {
         return;
     }
 
-    const keywords = keywordsRaw
-        .split(",")
-        .map(k => k.trim().toLowerCase())
-        .filter(k => k.length > 0);
+    const keywords = (keywordsRaw || "")
+    .split(",")
+    .map(k => k.trim().toLowerCase())
+    .filter(k => k.length > 0);
 
     const { error } = await db
         .from("locations_dictionary")
@@ -1048,7 +1048,7 @@ async function addDictionary() {
     slug: alias.toLowerCase().replace(/\s+/g, "-"),
     parent_country_en: null,
     parent_region_en: null
-}])
+}]);
 
     if (error) {
         alert("Błąd: " + error.message);
