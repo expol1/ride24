@@ -604,10 +604,19 @@ if (!deletionsError && deletionsData) {
         // --- DANE (REZERWACJE) ---
         async function loadBookingsData() {
             const { data, error } = await db
-                .from("bookings")
-                .select(`id, reservation_code, status, start_date, end_date, profiles:client_id (name, email), partners (company_name)`)
-                .order("created_at", { ascending: false })
-                .limit(50);
+    .from("bookings")
+    .select(`
+        id,
+        reservation_code,
+        status,
+        start_date,
+        end_date,
+        profiles:client_id!left (name, email),
+        partners!left (company_name)
+    `)
+    .order("created_at", { ascending: false })
+    .limit(50);
+    console.log("BOOKINGS DEBUG:", data, error);
 
             const tbody = document.getElementById("admin-bookings-tbody");
             tbody.innerHTML = "";
