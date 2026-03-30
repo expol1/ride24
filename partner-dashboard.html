@@ -1983,8 +1983,9 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 else if (booking.status === "pending") {
                     statusHtml = `<div class="status-tile pending">⚡ ${isEnLang ? 'New request' : 'Nowe zapytanie'}</div>`;
                 }
+               
               else if (booking.status === "awaiting_payment") {
-                    statusHtml = `<div class="status-tile awaiting_payment">⏳ ${isEnLang ? 'Awaiting' : 'Oczekuje'}</div>`;
+                    statusHtml = `<div class="status-tile awaiting_payment">⏳ ${isEnLang ? 'Awaiting' : 'Oczekujący'}</div>`;
                 }
                 else if (booking.status === "payment_expired" || booking.status === "expired") {
                     statusHtml = `<div class="status-tile payment_expired">⏰ ${isEnLang ? 'Expired' : 'Wygasła'}</div>`;
