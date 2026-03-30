@@ -205,19 +205,24 @@
         .class-code { font-weight: 800; font-size: 16px; color: #0F172A; margin-right: 6px; }
         .class-label { color: #334155; font-weight: 600; }
         
-        /* --- PREMIUM STATUS TILES (PARTNER) --- */
+        /* --- /* --- PREMIUM STATUS TILES (PARTNER) --- */
         .status-tile {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.3px;
             border: 1px solid transparent;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            white-space: nowrap;
+            white-space: normal;
+            text-align: center;
+            line-height: 1.3;
+            word-break: break-word;
+            max-width: 100%;
         }
         .status-tile.pending { background: #FFFBEB; color: #D97706; border-color: #FEF3C7; } /* Złoty dla nowych zapytań */
         .status-tile.awaiting_payment { background: #FFF7ED; color: #EA580C; border-color: #FFEDD5; }
@@ -1978,8 +1983,8 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 else if (booking.status === "pending") {
                     statusHtml = `<div class="status-tile pending">⚡ ${isEnLang ? 'New request' : 'Nowe zapytanie'}</div>`;
                 }
-                else if (booking.status === "awaiting_payment") {
-                    statusHtml = `<div class="status-tile awaiting_payment">⏳ ${isEnLang ? 'Awaiting payment' : 'Oczekuje na wpłatę'}</div>`;
+              else if (booking.status === "awaiting_payment") {
+                    statusHtml = `<div class="status-tile awaiting_payment">⏳ ${isEnLang ? 'Awaiting' : 'Oczekuje'}</div>`;
                 }
                 else if (booking.status === "payment_expired" || booking.status === "expired") {
                     statusHtml = `<div class="status-tile payment_expired">⏰ ${isEnLang ? 'Expired' : 'Wygasła'}</div>`;
