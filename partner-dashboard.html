@@ -1822,22 +1822,19 @@ const updateData = {
             if (error) return console.error("Błąd ładowania statystyk:", error);
 
             const pending = data.filter(b => b.status === "pending").length;
-            const awaiting = data.filter(b => b.status === "awaiting_payment").length;
-            const confirmed = data.filter(b => b.status === "paid").length;
+const awaiting = data.filter(b => b.status === "awaiting_payment").length;
+const confirmed = data.filter(b => b.status === "paid").length;
 
+const revenue = data
+    .filter(b => b.status === "paid")
+    .reduce((sum, b) => sum + (b.partner_net_price_snapshot || 0), 0);
+
+const displayCurrency = partner?.currency || "EUR";
+
+document.getElementById("statPending").innerText = pending;
+document.getElementById("statAwaiting").innerText = awaiting;
 document.getElementById("statPaid").innerText = confirmed;
-
-            const revenue = data
-                .filter(b => b.status === "paid")
-                .reduce((sum, b) => sum + (b.partner_net_price_snapshot || 0), 0);
-
-            // 2. Idealna logika waluty (Snapshot z bookingów LUB profil partnera)
-           const displayCurrency = partner?.currency;
-
-            document.getElementById("statPending").innerText = pending;
-            document.getElementById("statAwaiting").innerText = awaiting;
-            document.getElementById("statPaid").innerText = paid;
-            document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + displayCurrency;
+document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + displayCurrency;
         }
 
         // --- LISTA REZERWACJI ---
