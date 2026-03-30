@@ -205,62 +205,65 @@
         .class-code { font-weight: 800; font-size: 16px; color: #0F172A; margin-right: 6px; }
         .class-label { color: #334155; font-weight: 600; }
         
-        /* STATUSY ZGODNE Z PLANEM (FINAL) */
-.status { 
-    padding: 4px 10px; 
-    border-radius: 20px; 
-    font-size: 12px; 
-    font-weight: 700; 
-    display: inline-block;
-}
+        /* --- PREMIUM STATUS TILES (PARTNER) --- */
+        .status-tile {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            white-space: nowrap;
+        }
+        .status-tile.pending { background: #FFFBEB; color: #D97706; border-color: #FEF3C7; } /* Złoty dla nowych zapytań */
+        .status-tile.awaiting_payment { background: #FFF7ED; color: #EA580C; border-color: #FFEDD5; }
+        .status-tile.confirmed, .status-tile.paid { background: #F0FDF4; color: #16A34A; border-color: #BBF7D0; }
+        .status-tile.cancelled, .status-tile.rejected, .status-tile.payment_expired { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+        .status-tile.inactive { background: #F8FAFC; color: #64748B; border-color: #E2E8F0; }
 
-/* 🟡 pending */
-.status.pending { 
-    background: #FEF3C7; 
-    color: #D97706; 
-}
-
-/* 🟠 awaiting */
-.status.awaiting_payment { 
-    background: #FFEDD5; 
-    color: #C2410C; 
-}
-
-/* 🟢 confirmed (ZAMIENIA paid dla partnera) */
-.status.confirmed { 
-    background: #DCFCE7; 
-    color: #16A34A; 
-}
-
-/* 🔴 cancelled / rejected / refund */
-.status.cancelled,
-.status.rejected { 
-    background: #FEE2E2; 
-    color: #EF4444; 
-}
-
-/* 🔵 accepted (opcjonalnie) */
-.status.accepted { 
-    background: #DBEAFE; 
-    color: #2563EB; 
-}
-
-/* ⚪ expired / inactive */
-.status.inactive { 
-    background: #F1F5F9; 
-    color: #64748B; 
-}
         .timer-badge { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 13px; color: var(--gray); display: flex; align-items: center; gap: 5px;}
         .timer-urgent { color: var(--red); animation: blink 2s infinite; }
         @keyframes blink { 50% { opacity: 0.7; } }
         .badge-new { background: var(--red); color: white; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; margin-left: 8px; letter-spacing: 0.5px; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        .btn-confirm { background: #16A34A; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-        .btn-confirm:hover { opacity: 0.9; }
-        .btn-cancel { background: #EF4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-        .btn-cancel:hover { opacity: 0.9; }
-        .btn-confirm:disabled, .btn-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* --- PREMIUM ACTION BUTTONS (PARTNER) --- */
+        .action-btn-premium {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid transparent;
+        }
+        .action-btn-premium:active { transform: scale(0.97); }
+        .action-btn-premium:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        .btn-confirm-premium {
+            background: linear-gradient(135deg, #22C55E, #16A34A);
+            color: white;
+            box-shadow: 0 4px 10px rgba(22, 163, 74, 0.2);
+        }
+        .btn-confirm-premium:hover { box-shadow: 0 6px 14px rgba(22, 163, 74, 0.3); transform: translateY(-1px); }
+
+        .btn-reject-premium {
+            background: white;
+            color: #EF4444;
+            border-color: #FECACA;
+        }
+        .btn-reject-premium:hover { background: #FEF2F2; border-color: #F87171; }
 
         .action-link { color: var(--blue); font-weight: 600; cursor: pointer; font-size: 13px; margin-right: 10px; transition: all 0.2s; position: relative; z-index: 2; }
         .action-link:hover { color: var(--blue-dark); text-decoration: underline; }
@@ -1961,99 +1964,73 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 console.log("BOOKING:", booking);
                 if(booking.status === "pending") pendingCount++;
                 
-               // ================= STATUS =================
-let statusHtml = "";
+              // ================= STATUS (PREMIUM TILES) =================
+                let statusHtml = "";
+                const isEnLang = localStorage.getItem("partner_lang") === "en";
 
-// 🔴 CANCELLED (także po refundzie)
-if (booking.status === "cancelled" || booking.refund_status === "completed") {
-    statusHtml = '<span class="status rejected">Cancelled</span>';
-}
-
-// 🟢 CONFIRMED (czyli paid)
-else if (booking.status === "paid") {
-    statusHtml = '<span class="status confirmed">Confirmed</span>';
-}
-
-// 🟠 PENDING
-else if (booking.status === "pending") {
-    statusHtml = '<span class="status pending">Pending</span>';
-}
-
-// 🔵 AWAITING
-else if (booking.status === "awaiting_payment") {
-    statusHtml = '<span class="status awaiting_payment">Awaiting client</span>';
-}
-
-// ⚫ fallback
-else {
-    statusHtml = `<span class="status">${booking.status}</span>`;
-}
+                if (booking.status === "cancelled" || booking.refund_status === "completed" || booking.status === "rejected") {
+                    statusHtml = `<div class="status-tile cancelled">🚫 ${isEnLang ? 'Cancelled' : 'Anulowana'}</div>`;
+                }
+                else if (booking.status === "paid") {
+                    statusHtml = `<div class="status-tile confirmed">✅ ${isEnLang ? 'Confirmed' : 'Potwierdzona'}</div>`;
+                }
+                else if (booking.status === "pending") {
+                    statusHtml = `<div class="status-tile pending">⚡ ${isEnLang ? 'New request' : 'Nowe zapytanie'}</div>`;
+                }
+                else if (booking.status === "awaiting_payment") {
+                    statusHtml = `<div class="status-tile awaiting_payment">⏳ ${isEnLang ? 'Awaiting payment' : 'Oczekuje na wpłatę'}</div>`;
+                }
+                else if (booking.status === "payment_expired" || booking.status === "expired") {
+                    statusHtml = `<div class="status-tile payment_expired">⏰ ${isEnLang ? 'Expired' : 'Wygasła'}</div>`;
+                }
+                else {
+                    statusHtml = `<div class="status-tile inactive">${booking.status}</div>`;
+                }
 
 
-// ================= ACTIONS =================
-let actions = "";
+                // ================= ACTIONS (PREMIUM BUTTONS) =================
+                let actions = "";
 
-// 🔴 pending → akcje
-if (booking.status === "pending") {
-
-    actions = `
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn-confirm" onclick="acceptBooking('${booking.id}', this)">
-                ACCEPT
-            </button>
-            <button class="btn-cancel" onclick="rejectBooking('${booking.id}', this)">
-                REJECT
-            </button>
-        </div>
-    `;
-}
-
-// 🔴 CANCELLED (NAJWYŻSZY PRIORYTET)
-else if (booking.refund_status === "completed") {
-
-    actions = `
-        <span style="font-size:12px;color:var(--red);font-weight:700;">
-            Cancelled
-        </span>
-    `;
-}
-else if (booking.status === "cancelled") {
-
-    actions = `
-        <span style="font-size:12px;color:var(--red);font-weight:700;">
-            Cancelled
-        </span>
-    `;
-}
-
-// 🔵 awaiting
-else if (booking.status === "awaiting_payment") {
-
-    actions = `
-        <span style="font-size:12px;color:var(--gray);font-weight:600;">
-            Waiting for client
-        </span>
-    `;
-}
-
-// 🟢 confirmed
-else if (booking.status === "paid") {
-
-    actions = `
-        <span style="font-size:12px;color:var(--green);font-weight:700;">
-            Confirmed ✅
-        </span>
-    `;
-}
-
-// ⚫ fallback
-else {
-    actions = `
-        <span style="font-size:12px;color:var(--gray);font-weight:600;">
-            Closed
-        </span>
-    `;
-}
+                if (booking.status === "pending") {
+                    actions = `
+                        <div style="display:flex;flex-direction:column;gap:8px;width:100%;min-width:120px;">
+                            <button class="action-btn-premium btn-confirm-premium" onclick="acceptBooking('${booking.id}', this)">
+                                ✅ ${isEnLang ? 'ACCEPT' : 'AKCEPTUJ'}
+                            </button>
+                            <button class="action-btn-premium btn-reject-premium" onclick="rejectBooking('${booking.id}', this)">
+                                ❌ ${isEnLang ? 'REJECT' : 'ODRZUĆ'}
+                            </button>
+                        </div>
+                    `;
+                }
+                else if (booking.status === "cancelled" || booking.refund_status === "completed" || booking.status === "rejected") {
+                    actions = `
+                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;">
+                            ${isEnLang ? 'Closed' : 'Zamknięta'}
+                        </span>
+                    `;
+                }
+                else if (booking.status === "awaiting_payment") {
+                    actions = `
+                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;">
+                            ${isEnLang ? 'Waiting for client' : 'Czekamy na klienta'}
+                        </span>
+                    `;
+                }
+                else if (booking.status === "paid") {
+                    actions = `
+                        <span style="font-size:12px;color:var(--green);font-weight:700;padding:6px 0;">
+                            🎉 ${isEnLang ? 'Ready for pickup' : 'Gotowe do odbioru'}
+                        </span>
+                    `;
+                }
+                else {
+                    actions = `
+                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;">
+                            ${isEnLang ? 'Closed' : 'Zamknięta'}
+                        </span>
+                    `;
+                }
 
                 // Bezpieczne dane GŁÓWNEGO kierowcy z widoku SQL
                 // 🔥 PEWNE WYCIĄGANIE IMIENIA (fallback)
