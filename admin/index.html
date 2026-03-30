@@ -117,7 +117,45 @@
 
         .company-name { font-weight: 700; font-size: 14px; color: var(--blue-dark); }
         .client-info { font-size: 12px; color: var(--gray); margin-top: 4px; }
-    </style>
+
+/* 🔥 TOOLTIP (SMART SEARCH) */
+.info-tooltip {
+    position: relative;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    color: #2563EB;
+    background: #EFF6FF;
+    border: 1px solid #DBEAFE;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tooltip-box {
+    position: absolute;
+    top: 30px;
+    left: 0;
+    width: 300px;
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 12px;
+    color: #334155;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    display: none;
+    z-index: 100;
+    line-height: 1.5;
+}
+
+.info-tooltip:hover .tooltip-box {
+    display: block;
+}
+</style>
 </head>
 <body>
 
@@ -299,7 +337,30 @@
 </div>
 <div id="view-search" class="view-section">
     <div class="page-header">
-        <h1 class="page-title">Smart Search & Logi</h1>
+        <div style="display:flex; align-items:center; gap:10px;">
+    <h1 class="page-title">Smart Search & Logi</h1>
+
+    <div class="info-tooltip">
+        ⓘ
+        <div class="tooltip-box">
+            <b>Jak to działa?</b><br><br>
+
+            1. System zapisuje błędne wyszukiwania użytkowników<br>
+            2. Pokazuje najczęstsze frazy poniżej<br>
+            3. Ty dodajesz poprawki (aliasy)<br><br>
+
+            <b>PRZYKŁAD:</b><br>
+            Użytkownik wpisuje: <b>mediolna</b><br>
+            Dodajesz:<br><br>
+
+            • Miasto: <b>Mediolan</b><br>
+            • Alias: <b>Milano</b><br>
+            • Błędy: <b>mediolna,medilan,medjolan</b><br><br>
+
+            👉 System zacznie poprawnie kierować użytkownika 🚀
+        </div>
+    </div>
+</div>
     </div>
 
     <div class="table-container">
@@ -980,10 +1041,14 @@ async function addDictionary() {
     const { error } = await db
         .from("locations_dictionary")
         .insert([{
-            city,
-            alias,
-            keywords
-        }]);
+    category: "city",
+    name_en: alias,
+    name_pl: city,
+    keywords: keywords.join(" "),
+    slug: alias.toLowerCase().replace(/\s+/g, "-"),
+    parent_country_en: null,
+    parent_region_en: null
+}])
 
     if (error) {
         alert("Błąd: " + error.message);
