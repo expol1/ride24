@@ -1907,7 +1907,7 @@ refund_completed_at,
 
                 // --- LICZENIE STATYSTYK KLIENTA ---
                 const active = clientBookings.filter(b => 
-  b.status === 'accepted' || b.status === 'awaiting_payment'
+  ['pending', 'accepted', 'awaiting_payment', 'paid'].includes(b.status)
 ).length;
                 const pending = clientBookings.filter(b => b.status === 'pending').length;
                 const paid = clientBookings.filter(b => b.status === 'paid').length;
@@ -1942,10 +1942,10 @@ refund_completed_at,
                 const statSpentEl = document.getElementById('stat-spent');
                 if (statSpentEl) statSpentEl.innerHTML = spentText;
                 const badge = document.getElementById('bookings-badge');
-                if (badge) {
-                    badge.innerText = active + pending;
-                    badge.style.opacity = (active + pending) > 0 ? '1' : '0';
-                }
+if (badge) {
+    badge.innerText = active;
+    badge.style.opacity = active > 0 ? '1' : '0';
+}
 
                 if (clientBookings.length === 0) {
                     const emptyMsg = '<tr><td colspan="8" style="text-align:center; color:var(--gray);">Brak rezerwacji.</td></tr>';
