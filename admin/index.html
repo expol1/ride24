@@ -189,7 +189,7 @@
     <div class="stat-value" id="stat-refunds">0</div>
 </div>
 <div class="stat-card" style="border-left: 4px solid var(--red);">
-    <div class="stat-title">Wnioski o usunięcie</div>
+    <div class="stat-title">Wnioski o usunięcie konta</div>
     <div class="stat-value" id="stat-deletions">0</div>
 </div>
     </div>
@@ -573,24 +573,50 @@ async function loadDeletionRequests() {
     const { count } = await db.from("partners").select("*", { count: 'exact', head: true });
     document.getElementById("stat-partners").innerText = count || 0;
 
-    // 🔥 DODAJ TO DOKŁADNIE TUTAJ ↓↓↓
+    // --- TRANSACTIONS (REVENUE + REFUNDS) ---
+try {
 
-    const { data: tx } = await db.from("transactions").select("type, amount");
+    const res = await db
+        .from("transactions")
+        .select("type, amount");
 
-    if (!tx) {
-    console.error("Brak transactions");
-} else {
-        const revenue = tx
-            .filter(t => t.type === "payment")
-            .reduce((sum, t) => sum + Number(t.amount), 0);
+    const tx = res.data;
+    const error = res.error;
 
-        const refunds = tx
-    .filter(t => t.type === "refund_done")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    console.log("TX DEBUG:", tx, error);
 
-        document.getElementById("stat-revenue").innerText = revenue.toFixed(2);
-        document.getElementById("stat-refunds").innerText = refunds.toFixed(2);
+    if (error) {
+    console.error("Transactions error:", error);
+}
+
+    if (!Array.isArray(tx) || tx.length === 0) {
+        console.warn("Brak transactions");
+        document.getElementById("stat-revenue").innerText = "0.00";
+        document.getElementById("stat-refunds").innerText = "0.00";
+        
     }
+
+   else {
+
+    let revenue = 0;
+    let refunds = 0;
+
+    for (let i = 0; i < tx.length; i++) {
+        const t = tx[i];
+        const amount = parseFloat(t.amount || 0);
+
+        if (t.type === "payment") revenue += amount;
+        if (t.type === "refund_done") refunds += amount;
+    }
+if (isNaN(revenue)) revenue = 0;
+if (isNaN(refunds)) refunds = 0;
+    document.getElementById("stat-revenue").innerText = revenue.toFixed(2);
+    document.getElementById("stat-refunds").innerText = refunds.toFixed(2);
+}
+
+} catch (err) {
+    console.error("CRASH:", err);
+}
     // --- Wnioski o usunięcie ---
 const { data: deletionsData, error: deletionsError } = await db.rpc("admin_get_deletion_requests");
 
