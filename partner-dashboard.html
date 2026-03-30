@@ -1816,16 +1816,10 @@ const updateData = {
     refund_completed_at
 `)
     .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid", "cancelled", "inactive", "rejected", "payment_expired"])
+    .in("status", ["pending", "awaiting_payment", "paid", "cancelled"])
     .order("created_at", { ascending: false });
 
             if (error) return console.error("Błąd ładowania statystyk:", error);
-            console.log("REVENUE SOURCE:", data.map(b => ({
-    id: b.id,
-    status: b.status,
-    pickup: b.pickup_payment_partner_currency,
-    net: b.partner_net_price_snapshot
-})));
 
             const pending = data.filter(b => b.status === "pending").length;
             const awaiting = data.filter(b => b.status === "awaiting_payment").length;
@@ -1834,15 +1828,15 @@ const updateData = {
 document.getElementById("statPaid").innerText = confirmed;
 
             const revenue = data
-    .filter(b => b.status === "paid")
-    .reduce((sum, b) => sum + (b.pickup_payment_partner_currency || 0), 0);
+                .filter(b => b.status === "paid")
+                .reduce((sum, b) => sum + (b.partner_net_price_snapshot || 0), 0);
 
             // 2. Idealna logika waluty (Snapshot z bookingów LUB profil partnera)
-           const displayCurrency = partner?.currency || "EUR";
+           const displayCurrency = partner?.currency;
 
             document.getElementById("statPending").innerText = pending;
             document.getElementById("statAwaiting").innerText = awaiting;
-           document.getElementById("statPaid").innerText = confirmed;
+            document.getElementById("statPaid").innerText = paid;
             document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + displayCurrency;
         }
 
@@ -1928,7 +1922,7 @@ refund_status,
 refund_completed_at
     `)
     .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid", "cancelled", "inactive", "rejected", "payment_expired"])
+    .in("status", ["pending", "awaiting_payment", "paid", "cancelled"])
     .order("created_at", { ascending: false });
 
             if(error) {
