@@ -300,6 +300,19 @@
     <div id="toast-container"></div>
 
     <script>
+        function setLang(lang) {
+    localStorage.setItem("lang", lang);
+    const isEn = lang === "en";
+    
+    document.querySelectorAll("[data-pl]").forEach(el => {
+        const text = isEn ? el.dataset.en : el.dataset.pl;
+        if (el.tagName === 'INPUT') {
+            el.placeholder = text;
+        } else {
+            el.innerHTML = text;
+        }
+    });
+}
         function openRegSuccess() {
     closeAuth(); // Zamykamy okno logowania
     const modal = document.getElementById("regSuccessModal");
