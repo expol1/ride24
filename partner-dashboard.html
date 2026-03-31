@@ -484,8 +484,20 @@
             .nav-icon { width: 24px; height: 24px; }
             .nav-item.active { color: var(--green) !important; background: transparent !important; border-top: 3px solid var(--green) !important; }
 
-            /* Topbar i Content */
-            .topbar { padding: 0 15px; height: 60px; justify-content: flex-end; }
+           /* Topbar i Content - NAPRAWA WIDOCZNOŚCI FLAG */
+            .topbar { 
+                padding: 0 10px !important; 
+                height: 60px; 
+                display: flex !important;
+                justify-content: space-between !important; /* Rozpycha flagi na lewo, a profil na prawo */
+                align-items: center !important;
+            }
+            .lang-switch { 
+                flex-shrink: 0 !important; /* Zakaz ściskania flag! */
+                display: flex !important;
+                gap: 10px !important;
+            }
+            #partnerNameDisplay { display: none !important; } /* Ukrywa imię na mobile, żeby zmieścić flagi */
             .content-area { padding: 15px; }
 
             /* Statystyki 2x2 */
