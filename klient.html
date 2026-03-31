@@ -2039,15 +2039,7 @@ else if (booking.status === 'accepted') {
 }
 else if (booking.status === 'awaiting_payment') {
     statusHtml = `<div class="status-tile awaiting_payment">💳 ${isEn ? 'Awaiting payment' : 'Oczekuje płatności'}</div>`;
-    // 🔥 TIMER 24H
-    if (booking.payment_deadline) {
-        const timeLeft = window.getTimeLeft(booking.payment_deadline);
-        statusHtml += `
-            <div class="timer-badge" style="margin-top: 8px;">
-                ⏳ ${timeLeft}
-            </div>
-        `;
-    }
+    
 }
 else if (booking.status === 'paid') {
     statusHtml = `<div class="status-tile paid">🎉 ${isEn ? 'Paid' : 'Opłacona'}</div>`;
@@ -2084,9 +2076,27 @@ else if (s === 'accepted') {
     </button>`;
 }
 else if (s === 'awaiting_payment') {
-    actionsHtml += `<button class="action-btn-premium btn-pay-now" onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')">
-        💳 ${isEn ? 'Pay now' : 'Opłać teraz'}
-    </button>`;
+
+    let timerHtml = "";
+
+    if (booking.payment_deadline) {
+        timerHtml = `
+            <div class="timer-badge payment-timer"
+                 data-deadline="${booking.payment_deadline}"
+                 style="margin-bottom:6px;">
+                ⏳ ${window.getTimeLeft(booking.payment_deadline)}
+            </div>
+        `;
+    }
+
+    actionsHtml += `
+        ${timerHtml}
+
+        <button class="action-btn-premium btn-pay-now"
+            onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')">
+            💳 ${isEn ? 'Pay now' : 'Opłać teraz'}
+        </button>
+    `;
 }
 else if (s === 'paid') {
     actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')">
