@@ -471,7 +471,263 @@
 .autocomplete-item:hover {
     background: #F1F5F9;
 }
+/* =========================================================
+   📱 MOBILE RESPONSIVENESS - SILICON VALLEY SAAS STYLE
+   ========================================================= */
 
+/* --- TABLETY I MNIEJSZE EKRANY (Max 1024px) --- */
+@media (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .settings-card {
+        grid-template-columns: 1fr;
+    }
+    .settings-card button {
+        grid-column: 1;
+    }
+}
+
+/* --- SMARTFONY (Max 768px) --- */
+@media (max-width: 768px) {
+    /* 1. Layout i ukrywanie zbędnych elementów */
+    body {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    .sidebar-logo, 
+    .collapse-toggle, 
+    .partner-discount-widget,
+    #partnerNameDisplay,
+    .partner-profile span.logout-btn[data-pl="Strona główna"],
+    .partner-profile span[style*="font-size:10px"] {
+        display: none !important;
+    }
+
+    /* 2. Transformacja Sidebar -> App Bottom Nav */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100% !important;
+        height: 75px;
+        flex-direction: row;
+        background: rgba(15, 23, 42, 0.95); /* Dark slate with opacity */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 9999;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+        padding: 0;
+    }
+    .nav-menu {
+        flex-direction: row;
+        padding: 0;
+        align-items: center;
+        justify-content: space-around;
+        width: 100%;
+        overflow: visible;
+    }
+    .nav-item {
+        padding: 8px 4px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        flex: 1;
+        border: none !important;
+        background: transparent !important;
+        border-top: 3px solid transparent !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .nav-item-inner {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .nav-icon {
+        width: 22px;
+        height: 22px;
+    }
+    .nav-text {
+        display: block !important;
+        font-size: 10px;
+        font-weight: 600;
+        text-align: center;
+        letter-spacing: 0.3px;
+    }
+    
+    /* Aktywny element Bottom Nav (Niebieski/Zielony Glow) */
+    .nav-item.active {
+        color: var(--green) !important;
+        border-top: 3px solid var(--green) !important;
+        background: linear-gradient(180deg, rgba(22, 163, 74, 0.1) 0%, rgba(22, 163, 74, 0) 100%) !important;
+    }
+    .nav-item.active .icon-mask {
+        background-color: var(--green) !important;
+        filter: drop-shadow(0 0 6px rgba(22, 163, 74, 0.4));
+    }
+    .nav-item .badge {
+        position: absolute;
+        top: 4px;
+        right: calc(50% - 20px);
+        transform: scale(0.9);
+        border: 2px solid #0F172A;
+    }
+    .sidebar.collapsed .nav-item:hover::after {
+        display: none !important; /* Usuwa bug dymków na mobilkach */
+    }
+
+    /* 3. Main Wrapper i Topbar */
+    .main-wrapper {
+        padding-bottom: 80px; /* Miejsce na bottom nav */
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+    .topbar {
+        padding: 0 16px;
+        gap: 12px;
+        justify-content: space-between;
+        height: 60px;
+        position: sticky;
+        top: 0;
+    }
+    .partner-profile {
+        padding-left: 10px;
+        border-left: none;
+        gap: 12px;
+    }
+    .logout-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    /* 4. Obszar Contentu i Header */
+    .content-area {
+        padding: 16px;
+        overflow: visible;
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .page-title {
+        font-size: 22px;
+    }
+    .btn-primary {
+        width: 100%;
+        text-align: center;
+        padding: 12px;
+        font-size: 15px;
+    }
+
+    /* 5. Statystyki */
+    .stats-grid {
+        grid-template-columns: 1fr; /* Na telefonach statystyki pod rzad */
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .stat-card {
+        padding: 16px;
+    }
+    .stat-value {
+        font-size: 24px;
+    }
+
+    /* 6. Tabele (Poziomy scroll w stylu Apple/Stripe) */
+    .table-container {
+        border-radius: 8px;
+        border-left: none;
+        border-right: none;
+        margin: 0 -16px; /* Wylewa tabelę do krawędzi ekranu */
+        width: calc(100% + 32px);
+        box-shadow: none;
+        border-bottom: 1px solid var(--border);
+        border-top: 1px solid var(--border);
+        -webkit-overflow-scrolling: touch; /* Gładki scroll na iOS */
+    }
+    th, td {
+        white-space: nowrap; /* Zapobiega łamaniu wierszy - użytkownik musi przesunąć palcem */
+        padding: 14px 16px;
+    }
+    
+    /* 7. Formularze i Siatki w Ustawieniach / Modalach */
+    .form-row, 
+    .form-row-3,
+    .form-row[style],
+    div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .form-group[style*="grid-column: span 2"] {
+        grid-column: 1 !important;
+    }
+    .file-tiles {
+        grid-template-columns: 1fr;
+    }
+    .settings-card {
+        padding: 16px;
+        gap: 16px;
+    }
+    #visibilityBox {
+        margin-top: 8px;
+    }
+
+    /* 8. Panele Danger i Przyciski akcji */
+    div[style*="max-width: 1000px; margin-top: 30px; padding: 24px"] {
+        flex-direction: column;
+        text-align: center;
+        padding: 16px !important;
+    }
+    div[style*="max-width: 1000px; margin-top: 30px; padding: 24px"] button {
+        width: 100%;
+        margin-top: 10px;
+    }
+    div[style*="display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap"] {
+        flex-direction: column;
+    }
+    div[style*="display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap"] button {
+        width: 100%;
+    }
+
+    /* 9. Modale */
+    .modal-box {
+        width: 95% !important;
+        max-width: 100% !important;
+        max-height: 90vh;
+        margin: 0 auto;
+        border-radius: 12px;
+    }
+    .modal-header {
+        padding: 16px;
+    }
+    .modal-body {
+        padding: 16px;
+    }
+    .modal-footer {
+        padding: 16px;
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+    .modal-footer button {
+        width: 100%;
+        margin: 0;
+    }
+    
+    /* Zwiększenie widoczności powiadomień na mobilkach */
+    #toast-container {
+        bottom: 90px;
+        right: 16px;
+        left: 16px;
+    }
+    .toast {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+}
     </style>
 
 </head>
