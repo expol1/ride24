@@ -177,36 +177,36 @@
             top: 0;
             z-index: 100;
             
-            /* 🔥 POTRÓJNY GRADIENT: Granat -> Błękit -> Soczysta Zieleń */
+            /* 🔥 MORSKI GRADIENT: Granat (logo) -> Niebieski (środek) -> Błękit (przyciski) */
             background: linear-gradient(
                 90deg, 
-                rgba(30, 58, 138, 0.95) 0%,   /* Ciemny granat po lewej (przy logo) */
-                rgba(56, 189, 248, 0.95) 50%, /* Jasny błękit na środku */
-                rgba(74, 222, 128, 0.95) 100% /* Soczysta zieleń po prawej */
+                rgba(15, 23, 42, 0.95) 0%,    /* Bardzo ciemny granat po lewej */
+                rgba(37, 99, 235, 0.95) 45%,  /* Klasyczny, żywy niebieski na środku */
+                rgba(56, 189, 248, 0.95) 100% /* Jasny błękit po prawej */
             );
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             
-            border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
         }
 
-        /* 🛡️ Biała, miękka poświata wyciągająca logo z granatowego tła */
+        /* 🛡️ Delikatna poświata pod logo (wyciąga je z granatowego tła) */
         header .logo-container img {
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85));
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
         }
 
-        /* Białe teksty (PL/EN) z delikatnym cieniem dla idealnej czytelności na błękicie */
+        /* Jasne teksty języków z cieniem dla czytelności na błękicie */
         header .lang-btn, header .lang-divider {
             color: #FFFFFF;
             font-weight: 800;
             text-shadow: 0 2px 4px rgba(0,0,0,0.25);
         }
 
-        /* Białe ramki na przyciskach, żeby nie stopiły się z zielonym tłem po prawej */
+        /* Ramki na przyciskach, żeby wyraźnie odcinały się od jasnego błękitu po prawej */
         header .auth-buttons button {
-            border: 2px solid rgba(255, 255, 255, 0.95);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
 
         .logo-container {
