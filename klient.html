@@ -684,6 +684,175 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     border: 1px solid var(--border);
 }
+/* ===================================================================== */
+/* 📱 PREMIUM SAAS MOBILE APP UX (DOLINA KRZEMOWA) */
+/* ===================================================================== */
+@media (max-width: 768px) {
+    /* 1. UKŁAD GŁÓWNY - Miejsce na dolny pasek (Bottom Nav) */
+    body { padding-bottom: 75px; } /* Miejsce na bottom nav */
+    .content-area { padding: 20px 16px 100px 16px; overflow-x: hidden; }
+
+    /* 2. GÓRNY PASEK (Topbar) - Szklany Premium Gradient (Zieleń -> Niebieski) */
+    .topbar {
+        padding: 0 16px;
+        gap: 12px;
+        background: linear-gradient(135deg, #22C55E 0%, #2563EB 100%) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+        justify-content: space-between;
+    }
+    .client-badge { display: none; } /* Czysty UI na mobile - ukrywamy napis "Witaj" */
+    
+    .logout-btn { 
+        padding: 8px 14px; 
+        font-size: 13px; 
+        border: none !important; 
+        background: rgba(255, 255, 255, 0.2) !important; 
+        backdrop-filter: blur(10px);
+        box-shadow: none;
+    }
+
+    /* 3. DOLNY PASEK NAWIGACJI (Zamiast Sidebaru) - Jak w natywnej aplikacji */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 75px;
+        flex-direction: row;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 1000;
+        padding-bottom: env(safe-area-inset-bottom, 10px); /* Wsparcie dla notcha iPhone */
+        transition: none;
+    }
+    
+    /* Ukrywamy elementy niepotrzebne w dolnym pasku */
+    .sidebar-logo, .collapse-toggle, #loyalty-card, .sidebar > div:last-child { 
+        display: none !important; 
+    }
+    
+    .nav-menu {
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .nav-item {
+        flex-direction: column;
+        justify-content: center;
+        padding: 8px 0;
+        gap: 6px;
+        flex: 1;
+        border: none !important;
+        text-align: center;
+        background: transparent !important;
+    }
+    
+    .nav-item-inner { flex-direction: column; gap: 4px; }
+    .nav-text { font-size: 11px; font-weight: 600; }
+    
+    /* Aktywna zakładka = Twoja Soczysta Zieleń */
+    .nav-item.active { color: #22C55E !important; }
+    .nav-item.active .nav-icon { color: #22C55E; transform: scale(1.15); transition: 0.2s; }
+
+    /* Badge powiadomień na dolnym pasku */
+    .nav-item .badge {
+        position: absolute;
+        top: 4px;
+        right: calc(50% - 20px);
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+    }
+
+    /* 4. DASHBOARD - Statystyki (Kafelki 2x2) */
+    .page-header { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .btn-primary[onclick="submitBooking()"] { width: 100%; margin-bottom: 0 !important; height: 50px; }
+    
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .stat-card { padding: 16px; }
+    .stat-title { font-size: 10px; }
+    .stat-value { font-size: 22px; }
+
+    /* 5. TABELE - Uwolnienie marginesów (Edge-to-Edge Scroll) */
+    .table-container { 
+        margin: 0 -16px; /* Wylewa się na krawędzie ekranu */
+        border-radius: 0; 
+        border-left: none; 
+        border-right: none;
+    }
+    th { padding: 14px 16px; font-size: 10px; }
+    td { padding: 16px; font-size: 13px; }
+
+    /* 6. PROFIL I FORMULARZE - Touch-Friendly Inputs */
+    .profile-grid { grid-template-columns: 1fr; gap: 24px; }
+    .form-row { grid-template-columns: 1fr; gap: 16px; }
+    .form-group input, .form-group select { height: 50px; font-size: 15px; } /* Idealne pod kciuk */
+    
+    /* Estetyczny styl dla dodawanych kierowców na mobile */
+    .driver-row {
+        grid-template-columns: 1fr;
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        margin-bottom: 16px;
+    }
+    .driver-row .btn-icon-remove { 
+        width: 100%; 
+        height: 44px;
+        margin-top: 12px; 
+        font-weight: 700; 
+        font-size: 14px; 
+        gap: 8px;
+    }
+    .driver-row .btn-icon-remove::after { content: " Usuń kierowcę"; }
+
+    /* 7. MODALE (Bottom Sheet) - Wjeżdżają od dołu ekranu jak w iOS */
+    .modal-overlay, .custom-modal, #actionConfirmModal { 
+        align-items: flex-end !important; 
+        padding: 0 !important; 
+    }
+    
+    .modal-box, .modal-content, .action-modal-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 28px 28px 0 0 !important;
+        margin: 0 !important;
+        padding: 32px 24px calc(24px + env(safe-area-inset-bottom, 20px)) !important;
+        animation: sheetSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        border: none !important;
+    }
+    
+    .modal-actions { flex-direction: column; gap: 12px; }
+    .modal-actions button { width: 100%; height: 50px; }
+
+    @keyframes sheetSlideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* 8. POWIADOMIENIA (Toasty) na dole ekranu (nad nawigacją) */
+    #toast-container {
+        top: auto !important;
+        bottom: 90px !important;
+        left: 16px;
+        right: 16px;
+    }
+}
     </style>
 </head>
 <body>
