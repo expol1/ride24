@@ -2188,31 +2188,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // 4. Sprawdzenie sesji (PRZEKIEROWANIE DLA ZALOGOWANYCH / GOOGLE)
-    try {
-        const { data: { session }, error: sessionError } = await db.auth.getSession();
+   // 4. Sprawdzenie sesji (Tylko zmiana wyglądu przycisku, BEZ przekierowania)
+try {
+    const { data: { session } } = await db.auth.getSession();
+    if (session) {
+        // Tutaj możesz dopisać kod, który ukryje przycisk "Zaloguj się" 
+        // i pokaże np. "Witaj, [Imię]!" lub "Mój Panel"
+        console.log("Użytkownik zalogowany - zostaje na stronie głównej.");
         
-        if (session && !sessionError) {
-            // Pobieramy profil, żeby wiedzieć gdzie przekierować
-            const { data: profile } = await db
-                .from("profiles")
-                .select("role")
-                .eq("id", session.user.id)
-                .maybeSingle();
-
-            const role = profile?.role || "klient";
-
-            if (role === "admin") {
-                window.location.href = "admin/index.html";
-            } else if (role === "partner") {
-                window.location.href = "partner-dashboard.html";
-            } else {
-                window.location.href = "klient.html";
-            }
-            return; // Ważne: przerywamy dalsze ładowanie UI, jeśli jest redirect
+        // Przykład: zmiana tekstu przycisku logowania
+        const loginBtn = document.querySelector(".btn-blue[onclick='openAuth()']");
+        if(loginBtn) {
+            loginBtn.innerText = "Mój Panel";
+            loginBtn.onclick = () => window.location.href = "klient.html";
         }
-    } catch (err) {
-        console.warn("Błąd sesji:", err);
     }
+} catch (err) {
+    console.warn("Błąd sesji:", err);
+}
 
     // 5. Inicjalizacja UI (tylko dla niezalogowanych)
     if (typeof detectLang === "function") detectLang();
