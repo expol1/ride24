@@ -745,12 +745,8 @@
             .flags-grid { justify-content: center; }
 
             /* Auto na sam dół */
-            .hero-car { 
-                order: 3;
-                position: relative; right: auto; bottom: auto; 
-                width: 85%; max-width: 420px; 
-                margin: -10px auto 20px auto; display: block;
-            }
+            /* Całkowite ukrycie auta na tabletach i telefonach */
+            .hero-car { display: none !important; }
 
             .hero { 
                 background: linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(125,211,252,0.15) 100%);
