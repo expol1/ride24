@@ -2216,28 +2216,22 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
         return;
     }
 
-    // Zapisz dane do późniejszego użycia w modalu
     window._currentRefundData = { bookingId, refundPercent, amountPln };
-
     const isEn = localStorage.getItem("client_lang") === "en";
     const calculatedRefund = Number((amountPln * refundPercent / 100).toFixed(2));
 
-    // Ustawienie tekstu informacyjnego w modalu
     document.getElementById("refundModalDesc").innerHTML = isEn
         ? `Are you sure you want to cancel? You are eligible for a <strong>${refundPercent}% refund</strong> (<span style="color:var(--green); font-weight:800;">${calculatedRefund} PLN</span>). Provide your account details below.`
         : `Zgodnie z regulaminem przysługuje Ci <strong>${refundPercent}% zwrotu</strong> (<span style="color:var(--green); font-weight:800;">${calculatedRefund} PLN</span>). Podaj numer konta do przelewu.`;
 
-    // Resetowanie pól formularza za każdym otwarciem
     const accountInput = document.getElementById("refundAccountInput");
     accountInput.value = "";
     document.getElementById("refundReasonInput").value = "";
+    document.getElementById("refundSwiftInput").value = ""; // Reset SWIFT
     document.getElementById("isIbanCheckbox").checked = false;
     document.getElementById("refundAccountError").style.display = "none";
     
-    // Wymuś zresetowanie walidacji
     toggleIbanMode();
-
-    // Pokaż modal
     document.getElementById("refundModal").style.display = "flex";
 };
 
@@ -2251,18 +2245,22 @@ window.toggleIbanMode = function() {
     const isIban = document.getElementById("isIbanCheckbox").checked;
     const input = document.getElementById("refundAccountInput");
     const error = document.getElementById("refundAccountError");
+    const swiftContainer = document.getElementById("refundSwiftContainer");
     
-    error.style.display = "none"; // ukryj błąd przy zmianie trybu
-    input.value = ""; // wyczyść pole
+    error.style.display = "none"; 
+    input.value = ""; 
+    document.getElementById("refundSwiftInput").value = "";
     
     if (isIban) {
         input.placeholder = "np. GB12 3456 7890 1234 5678 90";
-        input.maxLength = 34; // Maksymalna długość IBAN (formatowany ze spacjami)
+        input.maxLength = 34; 
         input.setAttribute("oninput", "formatIbanNumber(this)");
+        swiftContainer.style.display = "block"; // Pokazuje SWIFT
     } else {
         input.placeholder = "00 0000 0000 0000 0000 0000 0000";
-        input.maxLength = 32; // 26 cyfr + 6 spacji
+        input.maxLength = 32; 
         input.setAttribute("oninput", "formatPolishAccountNumber(this)");
+        swiftContainer.style.display = "none"; // Ukrywa SWIFT
     }
 };
 
@@ -2301,12 +2299,13 @@ window.submitRefundAction = async function() {
     const isEn = localStorage.getItem("client_lang") === "en";
     const isIban = document.getElementById("isIbanCheckbox").checked;
     const accountInput = document.getElementById("refundAccountInput");
+    const swiftInput = document.getElementById("refundSwiftInput");
     const errorMsg = document.getElementById("refundAccountError");
     
-    const accountVal = accountInput.value.replace(/\s/g, ''); // usuń spacje do walidacji długości
+    const accountVal = accountInput.value.replace(/\s/g, ''); 
+    const swiftVal = swiftInput.value.trim();
     const reasonVal = document.getElementById("refundReasonInput").value.trim();
 
-    // WALIDACJA DŁUGOŚCI PRZED WYSŁANIEM
     if (!isIban) {
         if (accountVal.length !== 26) {
             errorMsg.innerText = isEn ? "Polish account number must have exactly 26 digits." : "Polski numer konta musi mieć dokładnie 26 cyfr.";
@@ -2319,12 +2318,16 @@ window.submitRefundAction = async function() {
             errorMsg.style.display = "block";
             return;
         }
+        if (swiftVal.length < 8) {
+            errorMsg.innerText = isEn ? "SWIFT/BIC must be at least 8 characters." : "Kod SWIFT/BIC musi mieć co najmniej 8 znaków.";
+            errorMsg.style.display = "block";
+            return;
+        }
     }
 
     const { bookingId, refundPercent, amountPln } = window._currentRefundData;
     const btn = document.getElementById("confirmRefundBtn");
     
-    // Blokada przycisku przed podwójnym kliknięciem
     window._refundProcessing = true;
     btn.disabled = true;
     btn.style.opacity = "0.7";
@@ -2332,8 +2335,10 @@ window.submitRefundAction = async function() {
 
     try {
         const calculatedRefund = Number((amountPln * refundPercent / 100).toFixed(2));
+        
+        // Złączenie danych IBAN i SWIFT w jedno pole dla Supabase, aby uniknąć zmiany schematu DB
+        const finalAccountStr = isIban ? `IBAN: ${accountInput.value} | SWIFT: ${swiftVal}` : accountInput.value;
 
-        // 1. Aktualizacja statusu rezerwacji w Supabase
         const { data, error } = await db
             .from("bookings")
             .update({ 
@@ -2342,7 +2347,7 @@ window.submitRefundAction = async function() {
                 refund_percentage: refundPercent,
                 refund_amount_pln: calculatedRefund,
                 refund_status: 'pending',
-                refund_account: accountInput.value, // Wartość sformatowana ze spacjami (ładniej w bazie)
+                refund_account: finalAccountStr,
                 refund_reason: reasonVal || "Brak powodu"
             })
             .eq("id", bookingId)
@@ -2356,16 +2361,12 @@ window.submitRefundAction = async function() {
             throw new Error(isEn ? "Booking already cancelled or refund status changed." : "Rezerwacja już anulowana lub status uległ zmianie.");
         }
 
-        // 2. Anuluj voucher w Supabase
         await db.from("vouchers").update({ status: "cancelled" }).eq("booking_id", bookingId);
         
-        // 3. Sukces UI
         window.showToast(isEn ? `Booking cancelled. Refund of ${calculatedRefund} PLN initiated.` : `Rezerwacja anulowana. Przetwarzamy zwrot (${calculatedRefund} PLN).`, "success");
         
-        // Zamykamy modal
         window.closeRefundModal();
 
-        // 4. Odświeżenie tabel i widoków w tle
         if (typeof loadPayments === "function") await loadPayments();
         if (typeof loadClientBookings === "function") await loadClientBookings(); 
 
@@ -2373,12 +2374,12 @@ window.submitRefundAction = async function() {
         console.error("Błąd anulowania (zwrot):", err);
         window.showToast(isEn ? err.message : "Wystąpił błąd podczas anulowania.", "error");
     } finally {
-        // Zdjęcie blokady z przycisku, gdyby pojawił się błąd i modal nadal był otwarty
         window._refundProcessing = false;
         btn.disabled = false;
         btn.style.opacity = "1";
         btn.innerHTML = `<span data-pl="Zatwierdź zwrot" data-en="Confirm Refund">${isEn ? "Confirm Refund" : "Zatwierdź zwrot"}</span>`;
     }
+
 };
 // 🔥 AUTO REFUND HANDLER (NOWY)
 window.handleRefundClick = function(bookingId, pickupDate, amountPln) {
@@ -2961,16 +2962,21 @@ window.loadPayments = async function() {
         <div style="background: #F8FAFC; padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px;">
             
             <div class="form-group" style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label style="margin-bottom: 0;" data-pl="Numer konta bankowego" data-en="Bank account number">Numer konta bankowego</label>
-                    <label style="font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--blue-dark); font-weight: 600;">
-                        <input type="checkbox" id="isIbanCheckbox" onchange="toggleIbanMode()" style="accent-color: var(--blue); width: 16px; height: 16px;">
-                        <span data-pl="Przelew zagraniczny (IBAN)" data-en="Foreign transfer (IBAN)">Przelew zagraniczny (IBAN)</span>
-                    </label>
-                </div>
-                <input type="text" id="refundAccountInput" placeholder="00 0000 0000 0000 0000 0000 0000" oninput="formatAccountNumber(this)" style="font-size: 16px; letter-spacing: 1px; font-weight: 600; color: var(--blue-dark);">
-                <small id="refundAccountError" style="color: var(--red); display: none; font-size: 12px; font-weight: 600; margin-top: 6px;"></small>
-            </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <label style="margin-bottom: 0;" data-pl="Numer konta bankowego" data-en="Bank account number">Numer konta bankowego</label>
+        <label style="font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--blue-dark); font-weight: 600;">
+            <input type="checkbox" id="isIbanCheckbox" onchange="toggleIbanMode()" style="accent-color: var(--blue); width: 16px; height: 16px;">
+            <span data-pl="Przelew zagraniczny (IBAN)" data-en="Foreign transfer (IBAN)">Przelew zagraniczny (IBAN)</span>
+        </label>
+    </div>
+    <input type="text" id="refundAccountInput" placeholder="00 0000 0000 0000 0000 0000 0000" oninput="formatAccountNumber(this)" style="font-size: 16px; letter-spacing: 1px; font-weight: 600; color: var(--blue-dark);">
+    
+    <div id="refundSwiftContainer" style="display: none; margin-top: 12px;">
+        <label style="margin-bottom: 6px; display: block; font-size: 13px; font-weight: 700; color: var(--gray);" data-pl="Kod SWIFT / BIC" data-en="SWIFT / BIC Code">Kod SWIFT / BIC</label>
+        <input type="text" id="refundSwiftInput" placeholder="np. ABCD PL PW" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '')" style="font-size: 16px; letter-spacing: 1px; font-weight: 600; color: var(--blue-dark); text-transform: uppercase;">
+    </div>
+    <small id="refundAccountError" style="color: var(--red); display: none; font-size: 12px; font-weight: 600; margin-top: 6px;"></small>
+</div>
 
             <div class="form-group" style="margin-bottom: 0;">
                 <label data-pl="Powód rezygnacji (opcjonalnie)" data-en="Reason for cancellation (optional)">Powód rezygnacji (opcjonalnie)</label>
