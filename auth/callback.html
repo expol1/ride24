@@ -103,17 +103,27 @@
       return;
     }
 
-    // 1. Próba wymiany kodu na sesję
-    const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+    // 1. Sprawdzamy, czy sesja już istnieje 
+    // (Supabase v2 automatycznie parsuje tokeny z fragmentu # w URL przy starcie)
+    let { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (error) {
-      console.error("Auth error:", error);
-      
-      // 🔥 KLUCZ: Jeśli jest błąd, czyścimy sesję, żeby strona główna nie robiła autoredirectu
+    // 2. Jeśli sesji nie ma, sprawdzamy czy w URL jest parametr ?code= (flow PKCE dla maili)
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    if (!session && code) {
+      const { data: exchangedData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) throw exchangeError;
+      session = exchangedData.session;
+    }
+
+    // 3. Jeśli po tych próbach nadal nie ma sesji - link jest zły lub wygasł
+    if (sessionError || !session) {
+      console.error("Auth error:", sessionError);
       await supabase.auth.signOut(); 
-      localStorage.clear(); // Czyścimy też dane rezerwacji, by nie straszyły
+      localStorage.clear();
 
-      updateUI(true, "Błąd logowania", "Link wygasł lub jest nieprawidłowy.");
+      updateUI(true, "Błąd logowania", "Link wygasł lub sesja nie mogła zostać utworzona.");
 
       setTimeout(() => {
         window.location.href = "/";
@@ -121,30 +131,23 @@
       return;
     }
 
-    if (!data?.session) {
-      await supabase.auth.signOut();
-      updateUI(true, "Brak sesji", "Spróbuj zalogować się ponownie.");
-      setTimeout(() => { window.location.href = "/"; }, 2500);
-      return;
-    }
-
-    // 2. Jeśli sesja OK -> Sprawdzamy profil
-    const { data: profile } = await supabase
+    // 4. Sesja jest poprawna -> Pobieramy profil, aby sprawdzić rolę
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", data.session.user.id)
+      .eq("id", session.user.id)
       .maybeSingle();
 
-    if (!profile) {
-      // Jeśli profilu nie ma, domyślnie klient
-      window.location.href = "/klient.html";
-      return;
+    if (profileError) {
+        console.warn("Błąd pobierania profilu:", profileError);
     }
 
-    // 3. Przekierowanie zależne od roli
-    if (profile.role === "admin") {
+    // 5. Przekierowanie zależne od roli (z fallbackiem na klienta)
+    const role = profile?.role || "klient";
+
+    if (role === "admin") {
       window.location.href = "/admin/index.html";
-    } else if (profile.role === "partner") {
+    } else if (role === "partner") {
       window.location.href = "/partner-dashboard.html";
     } else {
       window.location.href = "/klient.html";
@@ -152,8 +155,9 @@
 
   } catch (err) {
     console.error("Critical error:", err);
-    updateUI(true, "Błąd krytyczny", "Coś poszło nie tak.");
-    setTimeout(() => { window.location.href = "/"; }, 2500);
+    await supabase.auth.signOut();
+    updateUI(true, "Błąd krytyczny", "Coś poszło nie tak podczas autoryzacji.");
+    setTimeout(() => { window.location.href = "/"; }, 3000);
   }
 })();
   </script>
