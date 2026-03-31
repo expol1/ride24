@@ -1824,10 +1824,11 @@ async function handleAuth() {
             });
             if (error) throw error;
             if (data.user && !data.session) {
-                showStatus(isEn ? "Check email to activate!" : "Sprawdź email, aby aktywować!", "success");
-            } else {
-                window.location.href = "klient.html";
-            }
+    // 🔥 TO WYWOŁA TWOJE OKIENKO Z KOPERTĄ
+    openRegSuccess(); 
+} else {
+    window.location.href = "klient.html";
+}
         }
     } catch (err) {
         window.showToast(err.message, "error");
