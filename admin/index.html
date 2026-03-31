@@ -659,52 +659,47 @@ async function loadDeletionRequests() {
     const { count } = await db.from("partners").select("*", { count: 'exact', head: true });
     document.getElementById("stat-partners").innerText = count || 0;
 
-    // --- TRANSACTIONS (REVENUE + REFUNDS) ---
-try {
+   // --- REVENUE (Z BOOKINGS) ---
+const { data: revenueData, error: revenueError } = await db
+    .from("bookings")
+    .select("online_payment_pln, status");
 
-    const { data: tx, error } = await db
-        .from("transactions")
-        .select("type, amount");
-
-    console.log("TX DEBUG:", tx, error);
-
-    if (error) {
-        console.error("Transactions error:", error);
-        document.getElementById("stat-revenue").innerText = "0.00";
-        document.getElementById("stat-refunds").innerText = "0.00";
-        return;
-    }
-
-    if (!Array.isArray(tx) || tx.length === 0) {
-        console.warn("Brak transactions");
-        document.getElementById("stat-revenue").innerText = "0.00";
-        document.getElementById("stat-refunds").innerText = "0.00";
-        return; // 🔥 KLUCZOWE
-    }
+if (!revenueError && revenueData) {
 
     let revenue = 0;
-    let refunds = 0;
 
-    tx.forEach(t => {
-        const amount = parseFloat(t.amount || 0);
-        const type = (t.type || "").toLowerCase();
-
-        console.log("TYPE:", type, "AMOUNT:", amount);
-
-        if (type.includes("payment")) {
-            revenue += amount;
-        }
-
-        if (type.includes("refund")) {
-            refunds += amount;
+    revenueData.forEach(b => {
+        if (b.status === "paid" || b.status === "confirmed") {
+            revenue += parseFloat(b.online_payment_pln || 0);
         }
     });
 
     document.getElementById("stat-revenue").innerText = revenue.toFixed(2);
+
+} else {
+    document.getElementById("stat-revenue").innerText = "0.00";
+}
+
+
+// --- REFUNDS (Z BOOKINGS) ---
+const { data: refundData, error: refundError } = await db
+    .from("bookings")
+    .select("refund_amount_pln, refund_status");
+
+if (!refundError && refundData) {
+
+    let refunds = 0;
+
+    refundData.forEach(b => {
+        if (b.refund_status === "completed") {
+            refunds += parseFloat(b.refund_amount_pln || 0);
+        }
+    });
+
     document.getElementById("stat-refunds").innerText = refunds.toFixed(2);
 
-} catch (err) {
-    console.error("CRASH:", err);
+} else {
+    document.getElementById("stat-refunds").innerText = "0.00";
 }
     // --- Wnioski o usunięcie ---
 const { data: deletionsData, error: deletionsError } = await db.rpc("admin_get_deletion_requests");
