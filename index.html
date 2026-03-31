@@ -177,14 +177,30 @@
             top: 0;
             z-index: 100;
             
-            /* 🔥 PREMIUM SAAS: Czyste "szronione szkło" */
-            background: rgba(255, 255, 255, 0.92); /* Prawie białe - idealny kontrast dla logo! */
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            /* 🔥 Błękit i zieleń - przejście wyśrodkowane w połowie długości */
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.92) 20%, rgba(74, 222, 128, 0.92) 80%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             
-            /* Eleganckie odcięcie i cień */
-            border-bottom: 1px solid rgba(15, 23, 42, 0.05); 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 🛡️ Ochrona czytelności: biała poświata odcinająca logo od kolorowego tła */
+        header .logo-container img {
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9));
+        }
+
+        /* 🛡️ Ochrona czytelności: białe ramki wokół przycisków, żeby nie zlały się z tłem */
+        header .auth-buttons button {
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Pogrubienie i przyciemnienie tekstów języka (PL/EN) dla lepszego kontrastu */
+        header .lang-btn, header .lang-divider {
+            color: #0F172A;
+            font-weight: 800;
         }
 
         .logo-container {
