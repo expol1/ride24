@@ -1765,135 +1765,53 @@ function toggleMode(){
 }
 
 async function handleAuth() {
-
     const btn = document.getElementById("mainAuthBtn");
-
-    const turnstileToken = document
-        .querySelector('#authModal [name="cf-turnstile-response"]')?.value;
+    const turnstileToken = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
+    const isEn = localStorage.getItem("lang") === "en";
 
     if (!turnstileToken) {
-        window.showToast("Potwierdź, że nie jesteś botem", "error");
-
-        btn.disabled = true;
-        setTimeout(() => btn.disabled = false, 1500);
-
+        window.showToast(isEn ? "Confirm you are human" : "Potwierdź, że nie jesteś botem", "error");
         return;
     }
 
     const email = document.getElementById("auth-email")?.value.trim().toLowerCase();
     const pass = document.getElementById("auth-password")?.value.trim();
     const name = document.getElementById("reg-name")?.value.trim();
-    const isEn = localStorage.getItem("lang") === "en";
-
-    // 🔐 WALIDACJA EMAIL (POPRAWIONA)
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-if (!email || !emailRegex.test(email)) {
-    showStatus(
-        isEn ? "Enter valid email" : "Podaj poprawny email",
-        "error"
-    );
-    return;
-}
-
-    // 🔐 WALIDACJA HASŁA
-    if (!pass || pass.length < 8) {
-        showStatus(isEn ? "Password min 8 characters" : "Hasło musi mieć min. 8 znaków", "error");
-        return;
-    }
-
-    // 🔐 WALIDACJA REJESTRACJI
-    if (mode === "register") {
-
-        if (!name || name.length < 2) {
-            showStatus(
-                isEn ? "Enter full name" : "Podaj imię i nazwisko",
-                "error"
-            );
-            return;
-        }
-
-        if (!document.getElementById("reg-terms-checkbox")?.checked) {
-            showStatus(
-                isEn ? "Accept terms to register" : "Musisz zaakceptować regulamin",
-                "error"
-            );
-            return;
-        }
-    }
 
     btn.disabled = true;
     btn.innerText = isEn ? "Processing..." : "Przetwarzanie...";
 
     try {
         if (mode === "login") {
-
-    const { data, error } = await db.auth.signInWithPassword({
-        email,
-        password: pass,
-        options: {
-            captchaToken: turnstileToken
-        }
-    });
-
-    if (error) throw error;
-
-    if (!data.session)  {
-    showStatus(
-        isEn 
-            ? "Please confirm your email first" 
-            : "Najpierw potwierdź email",
-        "error"
-    );
-
-    btn.disabled = false;
-    btn.innerText = isEn ? "Log in" : "Zaloguj się";
-
-    return;
-}
-
-    await smartRedirect();
-} else {
-
-            const { error } = await db.auth.signUp({
-    email,
-    password: pass,
-    options: {
-        data: { full_name: name },
-        emailRedirectTo: 'https://ride24.pl/auth/callback',
-        captchaToken: turnstileToken
-    }
-});
-
+            const { data, error } = await db.auth.signInWithPassword({
+                email, password: pass, options: { captchaToken: turnstileToken }
+            });
             if (error) throw error;
-
-            showStatus("Sprawdź email, aby aktywować konto", "success");
-
-setTimeout(() => {
-    closeAuth();
-}, 2000);
-        }
-
-    } catch (err) {
-
-        if (mode === "login") {
-            showStatus(isEn ? "Not found. Switching to sign up..." : "Brak konta. Przełączam na rejestrację...", "error");
-            setTimeout(() => { if (mode === "login") toggleMode(); }, 2500);
+            if (data.session) window.location.href = "klient.html";
         } else {
-            showStatus(isEn ? "Error. Try again." : "Błąd. Spróbuj ponownie.", "error");
+            const { data, error } = await db.auth.signUp({
+                email, password: pass,
+                options: {
+                    data: { full_name: name },
+                    emailRedirectTo: window.location.origin + '/auth/callback.html',
+                    captchaToken: turnstileToken
+                }
+            });
+            if (error) throw error;
+            if (data.user && !data.session) {
+                showStatus(isEn ? "Check email to activate!" : "Sprawdź email, aby aktywować!", "success");
+            } else {
+                window.location.href = "klient.html";
+            }
         }
-
-    } finally {
+    } catch (err) {
+        window.showToast(err.message, "error");
         btn.disabled = false;
-        btn.innerText = isEn
-    ? (mode === "login" ? "Log in" : "Sign up")
-    : (mode === "login" ? "Zaloguj się" : "Zarejestruj się");
-
-        // 🔄 reset Turnstile (bardzo ważne)
-        if (window.turnstile) {
-            window.turnstile.reset();
-        }
+        btn.innerText = isEn ? (mode === "login" ? "Log in" : "Sign up") : (mode === "login" ? "Zaloguj się" : "Zarejestruj się");
+    } finally {
+        if (window.turnstile) window.turnstile.reset();
     }
+
 }
 
 async function smartRedirect() {
@@ -1936,12 +1854,13 @@ function showStatus(msg, type) {
 }
 
 async function loginGoogle() {
-    await db.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-        redirectTo: window.location.origin + "/auth/callback"
-    }
-});
+    const { error } = await db.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+            redirectTo: window.location.origin + "/auth/callback.html"
+        }
+    });
+    if (error) window.showToast("Google error: " + error.message, "error");
 }
 
 // --- FUNKCJE LOGOWANIA PARTNERA ---
@@ -2008,65 +1927,78 @@ document.addEventListener("keydown", function(e) {
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Zamykanie podpowiedzi po kliknięciu poza wyszukiwarkę
+    // 1. Inicjalizacja bazy wewnątrz bloku
+    const db = window.supabaseClient;
+    if (!db) {
+        console.error("Supabase nie załadował się poprawnie.");
+        return;
+    }
 
-            document.addEventListener("click", (e) => {
-
-                if (!e.target.closest(".input-wrapper") && !e.target.closest(".search-dropdown")) {
-
-                    document.querySelectorAll(".search-dropdown").forEach(el => {
-
-                        el.classList.remove("show");
-
-                    });
-
-                }
-
-            });
-    // Rozpoznawanie powrotu z logowania Google
-    
-
-    const { data: { session } } = await db.auth.getSession();
-if (session) {
-        const { data: profile } = await db
-            .from("profiles")
-            .select("role")
-            .eq("id", data.session.user.id)
-            .maybeSingle();
-
-        const isAdmin = profile && profile.role === "admin";
-        const isPartner = profile && profile.role === "partner";
-        
-        let targetPage = "klient.html";
-        let btnTextPl = "Mój Panel";
-        let btnTextEn = "My Dashboard";
-
-        if (isAdmin) {
-            targetPage = "admin/index.html";
-            btnTextPl = "Panel Admina";
-            btnTextEn = "God Mode";
-        } else if (isPartner) {
-            targetPage = "partner-dashboard.html";
-            btnTextPl = "Panel Partnera";
-            btnTextEn = "Partner Panel";
+    // 2. Obsługa kliknięć (zamykanie dropdownów i modali)
+    document.addEventListener("click", (e) => {
+        // Zamykanie podpowiedzi wyszukiwarki
+        if (!e.target.closest(".input-wrapper") && !e.target.closest(".search-dropdown")) {
+            document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
         }
+        
+        // Zamykanie modali po kliknięciu w tło
+        const authModal = document.getElementById("authModal");
+        const partnerModal = document.getElementById("partnerModal");
+        if (e.target === authModal) closeAuth();
+        if (e.target === partnerModal) closePartnerAuth();
+    });
 
-        const loginBtn = document.querySelector('button[onclick="openAuth()"]');
-        if (loginBtn) {
-            loginBtn.setAttribute("onclick", `window.location.href='${targetPage}'`);
-            loginBtn.dataset.pl = btnTextPl;
-            loginBtn.dataset.en = btnTextEn;
-            const currentLang = localStorage.getItem("lang") || "pl";
-            loginBtn.innerText = currentLang === "en" ? btnTextEn : btnTextPl;
+    // 3. Obsługa klawisza ESC
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeAuth();
+            closePartnerAuth();
+        }
+    });
 
-            if (isAdmin) {
-                loginBtn.style.background = "#0F172A";
-                loginBtn.style.color = "#FFFFFF";
+    // 4. Sprawdzenie sesji (PRZEKIEROWANIE DLA ZALOGOWANYCH / GOOGLE)
+    try {
+        const { data: { session }, error: sessionError } = await db.auth.getSession();
+        
+        if (session && !sessionError) {
+            // Pobieramy profil, żeby wiedzieć gdzie przekierować
+            const { data: profile } = await db
+                .from("profiles")
+                .select("role")
+                .eq("id", session.user.id)
+                .maybeSingle();
+
+            const role = profile?.role || "klient";
+
+            if (role === "admin") {
+                window.location.href = "admin/index.html";
+            } else if (role === "partner") {
+                window.location.href = "partner-dashboard.html";
+            } else {
+                window.location.href = "klient.html";
             }
+            return; // Ważne: przerywamy dalsze ładowanie UI, jeśli jest redirect
         }
-        
-        const partnerBtn = document.querySelector('button[onclick="openPartnerAuth()"]');
-        if (partnerBtn) partnerBtn.style.display = 'none';
+    } catch (err) {
+        console.warn("Błąd sesji:", err);
+    }
+
+    // 5. Inicjalizacja UI (tylko dla niezalogowanych)
+    if (typeof detectLang === "function") detectLang();
+    if (typeof generateTimeOptions === "function") generateTimeOptions();
+    if (typeof setDefaultDates === "function") setDefaultDates();
+    if (typeof setDefaultTime === "function") setDefaultTime();
+    if (typeof syncDropTime === "function") syncDropTime();
+
+    // Ładowanie wyszukiwarki
+    if (typeof setupSmartSearch === "function") {
+        setupSmartSearch("smart-search-pickup", "pickup-results", "pickup");
+        setupSmartSearch("smart-search-drop", "drop-results", "drop");
+    }
+
+    const pickupTimeEl = document.getElementById("pickup-time");
+    if (pickupTimeEl) {
+        pickupTimeEl.addEventListener("change", syncDropTime);
     }
 });
 // --- SEARCH STRUCTURE (READY FOR BACKEND) ---

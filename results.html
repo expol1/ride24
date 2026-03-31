@@ -211,48 +211,43 @@
         <div id="results-container" class="car-list"></div>
     </div>
 
-    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); align-items:center; justify-content:center;">
-    
-    <div style="background:var(--blue); color:white; width:100%; max-width:360px; border-radius:30px; padding:35px 30px; position:relative; box-shadow:0 25px 50px rgba(0,0,0,0.4);">
-        
+   <div id="authModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); align-items:center; justify-content:center;">
+    <div style="background:var(--blue); color:white; width:100%; max-width:400px; border-radius:30px; padding:40px; position:relative; box-shadow:0 25px 50px rgba(0,0,0,0.4);">
         <span onclick="closeAuth()" style="position:absolute; top:20px; right:20px; font-size:24px; cursor:pointer; color:white;">×</span>
         <h2 id="modalTitle" style="text-align:center; margin-bottom:25px; color:white;" data-pl="Logowanie" data-en="Login">Logowanie</h2>
+        
+        <div>
+            <input type="text" id="reg-name" style="display:none; width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;" placeholder="Imię i nazwisko" data-pl="Imię i nazwisko" data-en="Full Name">
+            <input type="email" id="auth-email" placeholder="Adres e-mail" data-pl="Adres e-mail" data-en="Email address" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+            <input type="password" id="auth-password" placeholder="Hasło (min. 8 znaków)" data-pl="Hasło (min. 8 znaków)" data-en="Password (min. 8 characters)" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
             
-            <div>
-               <input type="text" id="reg-name" style="display:none; width:100%; padding:15px 18px; margin-bottom:12px; border:2px solid transparent; border-radius:12px; outline:none; color:#0F172A; font-family:'Inter', sans-serif; font-size:15px; background: #ffffff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);" placeholder="Imię i nazwisko" data-pl="Imię i nazwisko" data-en="Full Name">
-                <input type="email" id="auth-email" placeholder="Adres e-mail" data-pl="Adres e-mail" data-en="Email address" style="width:100%; padding:15px 18px; margin-bottom:12px; border:2px solid transparent; border-radius:12px; outline:none; color:#0F172A; font-family:'Inter', sans-serif; font-size:15px; background: #ffffff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                <input type="password" id="auth-password" placeholder="Hasło (min. 8 znaków)" data-pl="Hasło (min. 8 znaków)" data-en="Password (min. 8 chars)" style="width:100%; padding:15px 18px; margin-bottom:12px; border:2px solid transparent; border-radius:12px; outline:none; color:#0F172A; font-family:'Inter', sans-serif; font-size:15px; background: #ffffff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                
-                <div id="reg-terms-group" style="display:none; margin-bottom: 15px;">
-    <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #CBD5E1; cursor: pointer; line-height: 1.4; text-align: left;">
-        <input type="checkbox" id="reg-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
-        <span>
-            Akceptuję <a href="regulamin.html" target="_blank" style="color: white; font-weight: 800; text-decoration: underline;">Regulamin Ride24</a> 
-            oraz politykę prywatności.
-        </span>
-    </label>
-</div>
-
-                <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" style="margin-bottom: 15px; display: flex; justify-content: center; width: 100%;"></div>
-
-                <button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);" data-pl="Zaloguj się" data-en="Log in">
-                    Zaloguj się i Kontynuuj
-                </button>
-                
-                <div style="text-align:center; margin:15px 0; color:#CBD5E1;" data-pl="lub" data-en="or">lub</div>
-                
-                <button onclick="loginGoogle()" style="width:100%; padding:14px; border:none; border-radius:12px; background:#E5E7EB; color:#0F172A; font-weight:700; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition: background 0.2s;">
-                    <img src="icons/google.svg" alt="Google" style="width:20px; height:20px; display:block;">
-                    <span data-pl="Zaloguj przez Google" data-en="Log in with Google">Zaloguj przez Google</span>
-                </button>
+            <div id="reg-terms-group" style="display:none; margin-bottom: 15px;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #CBD5E1; cursor: pointer; line-height: 1.4; text-align: left;">
+                    <input type="checkbox" id="reg-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
+                    <span>Akceptuję <a href="regulamin.html" target="_blank" style="color: white; font-weight: 800; text-decoration: underline;">Regulamin</a> oraz politykę prywatności.</span>
+                </label>
             </div>
+
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
             
-            <p style="text-align:center; margin-top:20px; font-size:14px; color:#CBD5E1;">
-                <span id="toggleText" data-pl="Nie masz konta?" data-en="Don't have an account?">Nie masz konta?</span>
-                <span id="toggleBtn" onclick="toggleMode()" style="color:#FFFFFF; font-weight:800; text-decoration:underline; cursor:pointer; margin-left:4px;" data-pl="Zarejestruj się" data-en="Sign up">Zarejestruj się</span>
-            </p>
+            <button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; margin-top:15px; transition: transform 0.2s;" data-pl="Zaloguj się" data-en="Log in">
+                Zaloguj się
+            </button>
+            
+            <div style="text-align:center; margin:15px 0; color:#CBD5E1;" data-pl="lub" data-en="or">lub</div>
+            
+            <button onclick="loginGoogle()" style="width:100%; padding:14px; border:none; border-radius:12px; background:#E5E7EB; color:#0F172A; font-weight:700; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+                <img src="icons/google.svg" alt="Google" style="width:20px; height:20px;">
+                <span data-pl="Zaloguj przez Google" data-en="Log in with Google">Zaloguj przez Google</span>
+            </button>
         </div>
+        
+        <p style="text-align:center; margin-top:20px; font-size:14px; color:#CBD5E1;">
+            <span id="toggleText" data-pl="Nie masz konta?" data-en="Don't have an account?">Nie masz konta?</span>
+            <span id="toggleBtn" onclick="toggleMode()" style="color:#FFFFFF; font-weight:800; text-decoration:underline; cursor:pointer; margin-left:4px;" data-pl="Zarejestruj się" data-en="Sign up">Zarejestruj się</span>
+        </p>
     </div>
+</div>
 
     <div id="toast-container"></div>
 
@@ -801,99 +796,101 @@ localStorage.setItem("bookingFlowVersion", "v2");
             document.getElementById("toggleBtn").innerText = isReg ? (lang==='pl'?"Zaloguj się":"Log in") : (lang==='pl'?"Zarejestruj się":"Sign up");
         }
         
-        async function handleAuth() {
+       async function handleAuth() {
+    const btn = document.getElementById("mainAuthBtn");
+    const lang = localStorage.getItem("lang") || "pl";
+    const db = window.supabaseClient;
 
-    // 🛡️ TURNSTILE CHECK
+    // 🛡️ 1. TURNSTILE CHECK
     const token = document.querySelector('[name="cf-turnstile-response"]')?.value;
     if (!token) {
-    if (window.turnstile) turnstile.reset();
-    return window.showToast("Potwierdź, że nie jesteś robotem");
-}
-
-    const email = document.getElementById("auth-email").value.trim();
-    const pass = document.getElementById("auth-password").value.trim();
-
-if (!email || !email.includes("@")) {
-    return window.showToast("Podaj poprawny email");
-}
-
-if (!pass || pass.length < 8) {
-    return window.showToast("Hasło min. 8 znaków");
-}
-            
-            const name = document.getElementById("reg-name").value.trim();
-            const btn = document.getElementById("mainAuthBtn");
-            const db = window.supabaseClient;
-            const lang = localStorage.getItem("lang") || "pl";
-
-            if (authMode === "register") {
-                if (!name) return window.showToast(lang==='pl' ? "Podaj imię i nazwisko" : "Enter full name", "error");
-                if (!document.getElementById("reg-terms-checkbox").checked) {
-                    return window.showToast(lang==='pl' ? "Musisz zaakceptować regulamin i politykę prywatności." : "You must accept the terms.", "error");
-                }
-            }
-
-            btn.innerText = lang==='pl' ? "PRZETWARZANIE..." : "PROCESSING...";
-            btn.disabled = true;
-
-            try {
-    if (authMode === "login") {
-        const { data, error } = await db.auth.signInWithPassword({
-            email,
-            password: pass
-        });
-
-        if (error) throw error;
-
-        // 🔥 BLOKADA NIEPOTWIERDZONEGO EMAILA
-        if (!data.session) {
-            window.showToast(lang === 'pl' ? "Najpierw potwierdź email" : "Please confirm your email first");
-            btn.disabled = false;
-           btn.innerText = lang === 'pl' ? "Zaloguj się" : "Log in";
-            return;
-        }
-
-        // ✅ login OK → dopiero teraz redirect
-        window.location.href = "klient.html";
-
-    } else {
-        const { error } = await db.auth.signUp({
-            email,
-            password: pass,
-            options: {
-                data: { full_name: name },
-                emailRedirectTo: 'https://ride24.pl/auth/callback'
-            }
-        });
-
-        if (error) throw error;
-
-        // ✅ rejestracja → ZERO redirectu
-        window.showToast("Sprawdź email, aby aktywować konto");
-
-        btn.disabled = false;
-        btn.innerText = lang === 'pl' ? "Zarejestruj się" : "Sign up";
+        if (window.turnstile) window.turnstile.reset();
+        return window.showToast(lang === 'pl' ? "Potwierdź, że nie jesteś robotem" : "Confirm you are human", "error");
     }
 
-            } catch (err) {
-                window.showToast("Błąd: " + err.message, "error");
-                btn.disabled = false;
-                btn.innerText = authMode === "login" ? (lang==='pl'?"Zaloguj się":"Log in") : (lang==='pl'?"Zarejestruj się":"Sign up");
-            }
+    // 🛡️ 2. WALIDACJA PÓL
+    const email = document.getElementById("auth-email").value.trim().toLowerCase();
+    const pass = document.getElementById("auth-password").value.trim();
+    const name = document.getElementById("reg-name") ? document.getElementById("reg-name").value.trim() : "";
+
+    if (!email || !email.includes("@")) {
+        return window.showToast(lang === 'pl' ? "Podaj poprawny email" : "Enter valid email", "error");
+    }
+    if (pass.length < 8) {
+        return window.showToast(lang === 'pl' ? "Hasło min. 8 znaków" : "Password min. 8 chars", "error");
+    }
+
+    if (authMode === "register") {
+        if (!name) return window.showToast(lang === 'pl' ? "Podaj imię i nazwisko" : "Enter full name", "error");
+        if (!document.getElementById("reg-terms-checkbox").checked) {
+            return window.showToast(lang === 'pl' ? "Musisz zaakceptować regulamin" : "Accept terms first", "error");
         }
+    }
+
+    // 🚀 3. START PROCESU
+    btn.innerText = lang === 'pl' ? "PRZETWARZANIE..." : "PROCESSING...";
+    btn.disabled = true;
+
+    try {
+        if (authMode === "login") {
+            const { data, error } = await db.auth.signInWithPassword({
+                email, password: pass, options: { captchaToken: token }
+            });
+
+            if (error) throw error;
+
+            if (!data.session) {
+                window.showToast(lang === 'pl' ? "Potwierdź email przed logowaniem" : "Confirm email first", "error");
+                btn.disabled = false;
+                btn.innerText = lang === 'pl' ? "Zaloguj się" : "Log in";
+                return;
+            }
+
+            // ✅ Logowanie OK -> jedziemy do panelu (gdzie czeka autoOpenBooking)
+            window.location.href = "klient.html";
+
+        } else {
+            // 📝 REJESTRACJA
+            const { data, error } = await db.auth.signUp({
+                email, password: pass,
+                options: {
+                    data: { full_name: name },
+                    // 🔥 Dynamiczny adres callbacka (zadziała i na localhost i na serwerze)
+                    emailRedirectTo: window.location.origin + '/auth/callback.html',
+                    captchaToken: token
+                }
+            });
+
+            if (error) throw error;
+
+            window.showToast(lang === 'pl' ? "Sprawdź email, aby aktywować konto!" : "Check email to activate!", "success");
+            
+            // Przywracamy przycisk, żeby user nie myślał, że strona zawisła
+            btn.disabled = false;
+            btn.innerText = lang === 'pl' ? "Zarejestruj się" : "Sign up";
+        }
+    } catch (err) {
+        window.showToast(err.message, "error");
+        btn.disabled = false;
+        btn.innerText = authMode === "login" ? (lang === 'pl' ? "Zaloguj się" : "Log in") : (lang === 'pl' ? "Zarejestruj się" : "Sign up");
+    } finally {
+        if (window.turnstile) window.turnstile.reset();
+    }
+}
 
         async function loginGoogle() {
-            // 🔥 GENIALNE UPROSZCZENIE: Zamiast wracać na results.html, logowanie Google od razu kieruje na klient.html
-            await window.supabaseClient.auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo: window.location.origin + "/klient.html" } 
-            });
+    const db = window.supabaseClient;
+    
+    // Kierujemy na callback.html - to on jest "mózgiem", który wie, kogo gdzie wysłać
+    const { error } = await db.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+            redirectTo: window.location.origin + "/auth/callback.html"
         }
+    });
 
-        // --- INICJALIZACJA STRONY ---
-        document.addEventListener('DOMContentLoaded', () => {
-            renderCars(); // Renderujemy listę aut
-        });
+    if (error) window.showToast("Google error: " + error.message, "error");
+}
     </script>
 </body>
 </html>
