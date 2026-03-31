@@ -177,30 +177,31 @@
             top: 0;
             z-index: 100;
             
-            /* 🔥 Błękit i zieleń - przejście wyśrodkowane w połowie długości */
-            background: linear-gradient(90deg, rgba(56, 189, 248, 0.92) 20%, rgba(74, 222, 128, 0.92) 80%);
+            /* 🔥 Głęboki niebieski (lewa) przechodzący w soczystą zieleń (prawa) */
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.95) 0%, rgba(37, 99, 235, 0.92) 45%, rgba(34, 197, 94, 0.92) 100%);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             
-            border-bottom: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
 
-        /* 🛡️ Ochrona czytelności: biała poświata odcinająca logo od kolorowego tła */
+        /* 🛡️ Delikatna, biała poświata pod logo, żeby idealnie odciąć je od tła */
         header .logo-container img {
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9));
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
         }
 
-        /* 🛡️ Ochrona czytelności: białe ramki wokół przycisków, żeby nie zlały się z tłem */
+        /* Jasne teksty dla przełącznika języków, żeby były wyraźne */
+        header .lang-btn, header .lang-divider {
+            color: #FFFFFF;
+            font-weight: 800;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* Ochrona czytelności: białe ramki wokół przycisków */
         header .auth-buttons button {
             border: 2px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* Pogrubienie i przyciemnienie tekstów języka (PL/EN) dla lepszego kontrastu */
-        header .lang-btn, header .lang-divider {
-            color: #0F172A;
-            font-weight: 800;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .logo-container {
