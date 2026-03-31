@@ -923,6 +923,16 @@
         .flatpickr-day.today:hover { background: var(--blue) !important; color: white !important; border-color: var(--blue) !important; }
         
         .flatpickr-day.flatpickr-disabled { color: #CBD5E1 !important; }
+        /* Animacja koperty w oknie sukcesu */
+#regSuccessModal .legal-modal div:first-child {
+    animation: envelopeFloat 2s ease-in-out infinite;
+    display: inline-block; /* Ważne, aby transformacja działała */
+}
+
+@keyframes envelopeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
     </style>
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -1146,6 +1156,20 @@ Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezer
 </footer>
 
 <script>
+    function openRegSuccess() {
+    closeAuth(); // Zamykamy okno logowania
+    const modal = document.getElementById("regSuccessModal");
+    modal.style.display = "flex";
+    
+    // Odświeżamy tłumaczenie w nowym oknie
+    const lang = localStorage.getItem("lang") || "pl";
+    setLang(lang);
+}
+
+function closeRegSuccess() {
+    document.getElementById("regSuccessModal").style.display = "none";
+    document.body.style.overflow = "auto";
+}
     
     // --- SKRYPT TŁUMACZENIA (PL / EN) ---
     window.showToast = function(msg, type = 'info') {
@@ -1766,60 +1790,41 @@ function toggleMode(){
 
 async function handleAuth() {
     const btn = document.getElementById("mainAuthBtn");
-    const lang = localStorage.getItem("lang") || "pl";
-    const isEn = lang === "en";
+    const turnstileToken = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
+    const isEn = localStorage.getItem("lang") === "en";
 
-    // 🛡️ 1. TURNSTILE
-    const token = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
-    if (!token) {
-        if (window.turnstile) window.turnstile.reset();
-        return window.showToast(isEn ? "Confirm you are human" : "Potwierdź, że nie jesteś robotem", "error");
+    if (!turnstileToken) {
+        window.showToast(isEn ? "Confirm you are human" : "Potwierdź, że nie jesteś botem", "error");
+        return;
     }
 
-    const email = document.getElementById("auth-email").value.trim().toLowerCase();
-    const pass = document.getElementById("auth-password").value.trim();
+    const email = document.getElementById("auth-email")?.value.trim().toLowerCase();
+    const pass = document.getElementById("auth-password")?.value.trim();
     const name = document.getElementById("reg-name")?.value.trim();
 
-    // 🛡️ 2. WALIDACJA
-    if (!email.includes("@")) {
-        return window.showToast(isEn ? "Enter a valid email" : "Podaj poprawny email", "error");
-    }
-    if (pass.length < 8) {
-        return window.showToast(isEn ? "Min. 8 characters" : "Hasło min. 8 znaków", "error");
-    }
-
-    if (authMode === "register") {
-        if (!name) return window.showToast(isEn ? "Enter full name" : "Podaj imię i nazwisko", "error");
-        if (!document.getElementById("reg-terms-checkbox").checked) {
-            return window.showToast(isEn ? "Accept terms and policy" : "Musisz zaakceptować regulamin", "error");
-        }
-    }
-
-    // 🚀 3. PROCES
-    btn.innerText = isEn ? "PROCESSING..." : "PRZETWARZANIE...";
     btn.disabled = true;
+    btn.innerText = isEn ? "Processing..." : "Przetwarzanie...";
 
     try {
-        const db = window.supabaseClient;
-        if (authMode === "login") {
+        if (mode === "login") {
             const { data, error } = await db.auth.signInWithPassword({
-                email, password: pass, options: { captchaToken: token }
+                email, password: pass, options: { captchaToken: turnstileToken }
             });
             if (error) throw error;
             if (data.session) window.location.href = "klient.html";
         } else {
+            
             const { data, error } = await db.auth.signUp({
                 email, password: pass,
                 options: {
                     data: { full_name: name },
                     emailRedirectTo: window.location.origin + '/auth/callback.html',
-                    captchaToken: token
+                    captchaToken: turnstileToken
                 }
             });
             if (error) throw error;
-
             if (data.user && !data.session) {
-                openRegSuccess(); // To otwiera nasze nowe okno
+                showStatus(isEn ? "Check email to activate!" : "Sprawdź email, aby aktywować!", "success");
             } else {
                 window.location.href = "klient.html";
             }
@@ -1827,38 +1832,11 @@ async function handleAuth() {
     } catch (err) {
         window.showToast(err.message, "error");
         btn.disabled = false;
-        btn.innerText = isEn ? (authMode === "login" ? "Log in" : "Sign up") : (authMode === "login" ? "Zaloguj się" : "Zarejestruj się");
+        btn.innerText = isEn ? (mode === "login" ? "Log in" : "Sign up") : (mode === "login" ? "Zaloguj się" : "Zarejestruj się");
     } finally {
         if (window.turnstile) window.turnstile.reset();
     }
-}
 
-// Funkcje pomocnicze dla modala sukcesu
-function openRegSuccess() {
-    closeAuth(); // Zamyka modal logowania
-    const modal = document.getElementById("regSuccessModal");
-    modal.style.display = "flex";
-    setLang(localStorage.getItem("lang") || "pl");
-}
-
-function closeRegSuccess() {
-    document.getElementById("regSuccessModal").style.display = "none";
-    document.body.style.overflow = "auto";
-}
-
-// Funkcje pomocnicze dla nowego modala (dodaj je pod handleAuth, jeśli ich jeszcze nie masz)
-function openRegSuccess() {
-    closeAuth(); // Zamykamy małe okno logowania
-    const modal = document.getElementById("regSuccessModal");
-    if (modal) {
-        modal.style.display = "flex";
-        setLang(localStorage.getItem("lang") || "pl"); // Odświeżamy język w nowym oknie
-    }
-}
-
-function closeRegSuccess() {
-    document.getElementById("regSuccessModal").style.display = "none";
-    document.body.style.overflow = "auto";
 }
 
 async function smartRedirect() {
@@ -2537,18 +2515,17 @@ uniqueResults.sort((a, b) => {
     </div>
 </div>
 <div id="regSuccessModal" class="legal-overlay" style="display:none; align-items:center; justify-content:center;">
-    <div class="legal-modal" style="text-align:center; max-width:450px; border-top: 6px solid var(--green);">
+    <div class="legal-modal" style="text-align:center; max-width:450px;">
         <div style="font-size: 60px; margin-bottom: 20px;">📩</div>
-        <h2 id="successTitle" style="color: var(--blue-dark); margin-bottom: 15px;" 
-            data-pl="Sprawdź skrzynkę!" 
-            data-en="Check your inbox!">Sprawdź skrzynkę!</h2>
+        <h2 id="successTitle" style="color: var(--blue-dark); margin-bottom: 15px;" data-pl="Sprawdź skrzynkę!" data-en="Check your inbox!">Sprawdź skrzynkę!</h2>
         <p id="successDesc" style="font-size: 16px; color: var(--gray); margin-bottom: 25px; line-height: 1.6;" 
            data-pl="Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację." 
            data-en="We've sent an activation link to your email. Click it to log in and complete your booking.">
            Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.
         </p>
-        <button onclick="closeRegSuccess()" class="btn-submit" style="width: 100%; margin: 0;" 
-                data-pl="Rozumiem" data-en="I understand">Rozumiem</button>
+        <button onclick="closeRegSuccess()" class="btn-submit" style="width: 100%; margin: 0;" data-pl="Rozumiem" data-en="Got it">
+            Rozumiem
+        </button>
     </div>
 </div>
 </body>

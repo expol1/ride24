@@ -147,49 +147,11 @@
         .btn-book:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
 
         /* TOAST ANIMACJE */
-        /* Kontener na dymki */
-#toast-container {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-/* Wygląd bazowy dymka */
-.toast {
-    background: white;
-    border-left: 6px solid var(--green); /* Domyślnie zielony */
-    padding: 16px 24px;
-    border-radius: 12px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--blue-dark);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 300px;
-    animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* Wariant dla błędów */
-.toast.error {
-    border-left-color: #EF4444; /* Czerwony */
-    color: #B91C1C;
-}
-
-/* Animacje */
-@keyframes slideIn {
-    from { transform: translateX(120%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes fadeOut {
-    to { opacity: 0; transform: translateY(20px); }
-}
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
+        .toast { background: white; border-left: 6px solid var(--green); padding: 16px 24px; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); font-weight: 700; font-size: 14px; color: var(--blue-dark); display: flex; align-items: center; gap: 12px; animation: slideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(10px); } }
 
         @media (max-width: 850px) {
             .car-row { flex-direction: column !important; }
@@ -197,6 +159,16 @@
             .car-price-box { border-top: 1px solid var(--border); padding: 20px; }
             .class-badge-box { top: -35px; right: 20px; }
         }
+        /* Animacja koperty w oknie sukcesu */
+#regSuccessModal .legal-modal div:first-child {
+    animation: envelopeFloat 2s ease-in-out infinite;
+    display: inline-block; /* Ważne, aby transformacja działała */
+}
+
+@keyframes envelopeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
     </style>
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -236,24 +208,15 @@
     <div class="overlay-vignette"></div>
     <div class="container">
         <div class="header-bar">
-    <div class="logo-group">
-        <img src="bez.png" alt="Ride24" class="logo-image" onerror="this.style.display='none'">
-        <h1 data-pl="Znalezione samochody" data-en="Available cars">Znalezione samochody</h1>
-    </div>
-
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <div style="display: flex; gap: 10px; font-size: 12px; font-weight: 800; color: white;">
-            <span onclick="setLang('pl')" style="cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">PL</span>
-            <span style="opacity: 0.3;">|</span>
-            <span onclick="setLang('en')" style="cursor:pointer; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">EN</span>
+            <div class="logo-group">
+                <img src="bez.png" alt="Ride24" class="logo-image" onerror="this.style.display='none'">
+                <h1>Znalezione samochody</h1>
+            </div>
+            <a href="index.html" class="btn-back">
+                <svg width="16" height="16"><use href="#icon-back"></use></svg>
+                Zmień daty
+            </a>
         </div>
-
-        <a href="index.html" class="btn-back">
-            <svg width="16" height="16"><use href="#icon-back"></use></svg>
-            <span data-pl="Zmień daty" data-en="Change dates">Zmień daty</span>
-        </a>
-    </div>
-</div>
         
         <div id="results-container" class="car-list"></div>
     </div>
@@ -299,29 +262,20 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- 1. FUNKCJA TŁUMACZENIA (MUSI BYĆ W KAŻDYM PLIKU) ---
-function setLang(lang) {
-    localStorage.setItem("lang", lang);
-    const isEn = lang === "en";
-
-    document.querySelectorAll("[data-pl]").forEach(el => {
-        const text = isEn ? el.dataset.en : el.dataset.pl;
-        if (el.tagName === 'INPUT') {
-            el.placeholder = text;
-        } else if (el.tagName === 'OPTION') {
-            el.innerText = text;
-        } else {
-            el.innerHTML = text; 
-        }
-    });
+        function openRegSuccess() {
+    closeAuth(); // Zamykamy okno logowania
+    const modal = document.getElementById("regSuccessModal");
+    modal.style.display = "flex";
+    
+    // Odświeżamy tłumaczenie w nowym oknie
+    const lang = localStorage.getItem("lang") || "pl";
+    setLang(lang);
 }
 
-// --- 2. INICJALIZACJA STRONY (URUCHOMIENIE WSZYSTKIEGO) ---
-document.addEventListener("DOMContentLoaded", () => {
-    const lang = localStorage.getItem("lang") || "pl";
-    setLang(lang);    // Ustaw język
-    renderCars();     // Pobierz i wyświetl auta
-});
+function closeRegSuccess() {
+    document.getElementById("regSuccessModal").style.display = "none";
+    document.body.style.overflow = "auto";
+}
         // 🔥 POBIERANIE KURSU WALUTY (NBP)
 async function getExchangeRate(currency) {
     try {
@@ -377,27 +331,17 @@ async function getExchangeRate(currency) {
             return f[classCode] || f['A'];
         }
 
-        window.showToast = function(msg, type = 'success') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    // Dodajemy klasę główną i klasę typu (np. toast error)
-    toast.className = `toast ${type}`;
-    
-    // Dobór ikony
-    const icon = type === 'error' ? '⚠️' : (type === 'success' ? '✅' : 'ℹ️');
-    
-    toast.innerHTML = `<span>${icon}</span> ${msg}`;
-
-    container.appendChild(toast);
-
-    // Animacja wyjścia i usunięcie
-    setTimeout(() => {
-        toast.style.animation = 'fadeOut 0.4s ease forwards';
-        setTimeout(() => toast.remove(), 400);
-    }, 4000);
-};
+        window.showToast = function(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `✅ ${msg}`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.4s ease forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        };
 
         async function renderCars() {
             const container = document.getElementById('results-container');
@@ -876,124 +820,114 @@ localStorage.setItem("bookingFlowVersion", "v2");
             document.getElementById("toggleBtn").innerText = isReg ? (lang==='pl'?"Zaloguj się":"Log in") : (lang==='pl'?"Zarejestruj się":"Sign up");
         }
         
-       // --- LOGIKA AUTORYZACJI (WERSJA PREMIUM Z MODALEM) ---
-async function handleAuth() {
+       async function handleAuth() {
     const btn = document.getElementById("mainAuthBtn");
     const lang = localStorage.getItem("lang") || "pl";
-    const isEn = lang === "en";
     const db = window.supabaseClient;
 
-    // 🛡️ 1. TURNSTILE (Cloudflare)
-    const token = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
+    // 🛡️ 1. TURNSTILE CHECK
+    const token = document.querySelector('[name="cf-turnstile-response"]')?.value;
     if (!token) {
         if (window.turnstile) window.turnstile.reset();
-        return window.showToast(isEn ? "Confirm you are human" : "Potwierdź, że nie jesteś robotem", "error");
+        return window.showToast(lang === 'pl' ? "Potwierdź, że nie jesteś robotem" : "Confirm you are human", "error");
     }
 
+    // 🛡️ 2. WALIDACJA PÓL
     const email = document.getElementById("auth-email").value.trim().toLowerCase();
     const pass = document.getElementById("auth-password").value.trim();
-    const name = document.getElementById("reg-name")?.value.trim();
+    const name = document.getElementById("reg-name") ? document.getElementById("reg-name").value.trim() : "";
 
-    // 🛡️ 2. WALIDACJA
-    if (!email.includes("@")) {
-        return window.showToast(isEn ? "Enter a valid email" : "Podaj poprawny email", "error");
+    if (!email || !email.includes("@")) {
+        return window.showToast(lang === 'pl' ? "Podaj poprawny email" : "Enter valid email", "error");
     }
     if (pass.length < 8) {
-        return window.showToast(isEn ? "Min. 8 characters" : "Hasło min. 8 znaków", "error");
+        return window.showToast(lang === 'pl' ? "Hasło min. 8 znaków" : "Password min. 8 chars", "error");
     }
 
     if (authMode === "register") {
-        if (!name) return window.showToast(isEn ? "Enter full name" : "Podaj imię i nazwisko", "error");
+        if (!name) return window.showToast(lang === 'pl' ? "Podaj imię i nazwisko" : "Enter full name", "error");
         if (!document.getElementById("reg-terms-checkbox").checked) {
-            return window.showToast(isEn ? "Accept terms and policy" : "Musisz zaakceptować regulamin", "error");
+            return window.showToast(lang === 'pl' ? "Musisz zaakceptować regulamin" : "Accept terms first", "error");
         }
     }
 
-    // 🚀 3. PROCES
-    btn.innerText = isEn ? "PROCESSING..." : "PRZETWARZANIE...";
+    // 🚀 3. START PROCESU
+    btn.innerText = lang === 'pl' ? "PRZETWARZANIE..." : "PROCESSING...";
     btn.disabled = true;
 
     try {
         if (authMode === "login") {
-            // LOGOWANIE
             const { data, error } = await db.auth.signInWithPassword({
                 email, password: pass, options: { captchaToken: token }
             });
+
             if (error) throw error;
-            
-            if (data.session) {
-                window.location.href = "klient.html";
+
+            if (!data.session) {
+                window.showToast(lang === 'pl' ? "Potwierdź email przed logowaniem" : "Confirm email first", "error");
+                btn.disabled = false;
+                btn.innerText = lang === 'pl' ? "Zaloguj się" : "Log in";
+                return;
             }
+
+            // ✅ Logowanie OK -> jedziemy do panelu (gdzie czeka autoOpenBooking)
+            window.location.href = "klient.html";
+
         } else {
-            // REJESTRACJA
+            // 📝 REJESTRACJA
             const { data, error } = await db.auth.signUp({
                 email, password: pass,
                 options: {
                     data: { full_name: name },
+                    // 🔥 Dynamiczny adres callbacka (zadziała i na localhost i na serwerze)
                     emailRedirectTo: window.location.origin + '/auth/callback.html',
                     captchaToken: token
                 }
             });
+
             if (error) throw error;
 
-            // 🔥 OTWARCIE OKNA SUKCESU
-            if (data.user && !data.session) {
-                openRegSuccess(); 
-            } else {
-                window.location.href = "klient.html";
-            }
+            window.showToast(lang === 'pl' ? "Sprawdź email, aby aktywować konto!" : "Check email to activate!", "success");
+            
+            // Przywracamy przycisk, żeby user nie myślał, że strona zawisła
+            btn.disabled = false;
+            btn.innerText = lang === 'pl' ? "Zarejestruj się" : "Sign up";
         }
     } catch (err) {
         window.showToast(err.message, "error");
         btn.disabled = false;
-        btn.innerText = isEn ? (authMode === "login" ? "Log in" : "Sign up") : (authMode === "login" ? "Zaloguj się" : "Zarejestruj się");
+        btn.innerText = authMode === "login" ? (lang === 'pl' ? "Zaloguj się" : "Log in") : (lang === 'pl' ? "Zarejestruj się" : "Sign up");
     } finally {
         if (window.turnstile) window.turnstile.reset();
     }
 }
 
-// --- LOGOWANIE GOOGLE ---
-async function loginGoogle() {
+        async function loginGoogle() {
     const db = window.supabaseClient;
+    
+    // Kierujemy na callback.html - to on jest "mózgiem", który wie, kogo gdzie wysłać
     const { error } = await db.auth.signInWithOAuth({
         provider: "google",
         options: {
             redirectTo: window.location.origin + "/auth/callback.html"
         }
     });
+
     if (error) window.showToast("Google error: " + error.message, "error");
-}
-
-// --- OBSŁUGA OKIEN SUKCESU ---
-function openRegSuccess() {
-    closeAuth(); // Zamyka modal logowania/rejestracji
-    const modal = document.getElementById("regSuccessModal");
-    if (modal) {
-        modal.style.display = "flex";
-        document.body.style.overflow = "hidden";
-        // Uruchamia tłumaczenie treści wewnątrz nowego modala
-        if (typeof setLang === "function") setLang(localStorage.getItem("lang") || "pl");
-    }
-}
-
-function closeRegSuccess() {
-    document.getElementById("regSuccessModal").style.display = "none";
-    document.body.style.overflow = "auto";
 }
     </script>
     <div id="regSuccessModal" class="legal-overlay" style="display:none; align-items:center; justify-content:center;">
-    <div class="legal-modal" style="text-align:center; max-width:450px; border-top: 6px solid var(--green);">
+    <div class="legal-modal" style="text-align:center; max-width:450px;">
         <div style="font-size: 60px; margin-bottom: 20px;">📩</div>
-        <h2 id="successTitle" style="color: var(--blue-dark); margin-bottom: 15px;" 
-            data-pl="Sprawdź skrzynkę!" 
-            data-en="Check your inbox!">Sprawdź skrzynkę!</h2>
+        <h2 id="successTitle" style="color: var(--blue-dark); margin-bottom: 15px;" data-pl="Sprawdź skrzynkę!" data-en="Check your inbox!">Sprawdź skrzynkę!</h2>
         <p id="successDesc" style="font-size: 16px; color: var(--gray); margin-bottom: 25px; line-height: 1.6;" 
            data-pl="Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację." 
            data-en="We've sent an activation link to your email. Click it to log in and complete your booking.">
            Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.
         </p>
-        <button onclick="closeRegSuccess()" class="btn-submit" style="width: 100%; margin: 0;" 
-                data-pl="Rozumiem" data-en="I understand">Rozumiem</button>
+        <button onclick="closeRegSuccess()" class="btn-submit" style="width: 100%; margin: 0;" data-pl="Rozumiem" data-en="Got it">
+            Rozumiem
+        </button>
     </div>
 </div>
 </body>
