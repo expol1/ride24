@@ -635,21 +635,36 @@
         font-size: 24px;
     }
 
-    /* 6. Tabele (Poziomy scroll w stylu Apple/Stripe) */
+    /* 6. Tabele (Poziomy scroll w stylu Apple/Stripe - Naprawa czytelności) */
     .table-container {
         border-radius: 8px;
         border-left: none;
         border-right: none;
-        margin: 0 -16px; /* Wylewa tabelę do krawędzi ekranu */
+        margin: 0 -16px; /* Wylewa kontener tabeli do krawędzi ekranu */
         width: calc(100% + 32px);
         box-shadow: none;
         border-bottom: 1px solid var(--border);
         border-top: 1px solid var(--border);
+        overflow-x: auto;
         -webkit-overflow-scrolling: touch; /* Gładki scroll na iOS */
     }
-    th, td {
-        white-space: nowrap; /* Zapobiega łamaniu wierszy - użytkownik musi przesunąć palcem */
-        padding: 14px 16px;
+
+    .table-container table {
+        table-layout: auto !important; /* Pozwala kolumnom naturalnie oddychać */
+        min-width: 950px !important;   /* Gwarantuje, że tabela nie zostanie zgnieciona na telefonie */
+    }
+
+    .table-container th, 
+    .table-container td {
+        white-space: normal !important; /* Przywraca naturalne układanie się tekstu, tagów i przycisków */
+        padding: 14px 16px !important;
+        vertical-align: middle;
+    }
+
+    /* Zabezpieczenie miejsca dla przycisków akcji Premium, aby nie były ściśnięte */
+    td .action-btn-premium {
+        min-width: 120px;
+        padding: 10px 14px;
     }
     
     /* 7. Formularze i Siatki w Ustawieniach / Modalach */
