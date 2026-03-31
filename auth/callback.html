@@ -95,87 +95,67 @@
     }
 
     (async () => {
-      try {
-        const supabase = window.supabaseClient;
+  try {
+    const supabase = window.supabaseClient;
 
-        if (!supabase) {
-          updateUI(true, "Błąd systemu", "Brak połączenia z backendem.");
-          return;
-        }
+    if (!supabase) {
+      updateUI(true, "Błąd systemu", "Brak połączenia z backendem.");
+      return;
+    }
 
-        // 🔥 KLUCZOWE — zamiana tokena z maila na session
-        const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
+    // 1. Próba wymiany kodu na sesję
+    const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href);
 
-        if (error) {
-          console.error("Auth error:", error);
+    if (error) {
+      console.error("Auth error:", error);
+      
+      // 🔥 KLUCZ: Jeśli jest błąd, czyścimy sesję, żeby strona główna nie robiła autoredirectu
+      await supabase.auth.signOut(); 
+      localStorage.clear(); // Czyścimy też dane rezerwacji, by nie straszyły
 
-          updateUI(
-            true,
-            "Błąd logowania",
-            "Link wygasł lub jest nieprawidłowy."
-          );
+      updateUI(true, "Błąd logowania", "Link wygasł lub jest nieprawidłowy.");
 
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 2500);
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2500);
+      return;
+    }
 
-          return;
-        }
+    if (!data?.session) {
+      await supabase.auth.signOut();
+      updateUI(true, "Brak sesji", "Spróbuj zalogować się ponownie.");
+      setTimeout(() => { window.location.href = "/"; }, 2500);
+      return;
+    }
 
-        if (!data?.session) {
-          updateUI(
-            true,
-            "Brak sesji",
-            "Spróbuj zalogować się ponownie."
-          );
+    // 2. Jeśli sesja OK -> Sprawdzamy profil
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.session.user.id)
+      .maybeSingle();
 
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 2500);
+    if (!profile) {
+      // Jeśli profilu nie ma, domyślnie klient
+      window.location.href = "/klient.html";
+      return;
+    }
 
-          return;
-        }
+    // 3. Przekierowanie zależne od roli
+    if (profile.role === "admin") {
+      window.location.href = "/admin/index.html";
+    } else if (profile.role === "partner") {
+      window.location.href = "/partner-dashboard.html";
+    } else {
+      window.location.href = "/klient.html";
+    }
 
-        // 🔥 ROLE BASED REDIRECT
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.session.user.id)
-          .maybeSingle();
-
-        // fallback (czasem profil jeszcze nie istnieje)
-        if (!profile) {
-          console.warn("Brak profilu → fallback klient");
-
-          setTimeout(() => {
-            window.location.href = "/klient.html";
-          }, 800);
-
-          return;
-        }
-
-        if (profile.role === "admin") {
-          window.location.href = "/admin/index.html";
-        } else if (profile.role === "partner") {
-          window.location.href = "/partner-dashboard.html";
-        } else {
-          window.location.href = "/klient.html";
-        }
-
-      } catch (err) {
-        console.error("Critical error:", err);
-
-        updateUI(
-          true,
-          "Błąd krytyczny",
-          "Coś poszło nie tak."
-        );
-
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 2500);
-      }
-    })();
+  } catch (err) {
+    console.error("Critical error:", err);
+    updateUI(true, "Błąd krytyczny", "Coś poszło nie tak.");
+    setTimeout(() => { window.location.href = "/"; }, 2500);
+  }
+})();
   </script>
 
 </body>
