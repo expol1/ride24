@@ -1838,7 +1838,7 @@ if (!email || !emailRegex.test(email)) {
 
     if (error) throw error;
 
-    if (!data.session || !data.user?.email_confirmed_at) {
+    if (!data.session)  {
     showStatus(
         isEn 
             ? "Please confirm your email first" 
@@ -2024,13 +2024,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             });
     // Rozpoznawanie powrotu z logowania Google
-    if (window.location.hash && window.location.hash.includes('access_token')) {
-    await smartRedirect();
-    return; 
-}
+    
 
-    const { data } = await db.auth.getSession();
-    if (data.session) {
+    const { data: { session } } = await db.auth.getSession();
+if (session) {
         const { data: profile } = await db
             .from("profiles")
             .select("role")
