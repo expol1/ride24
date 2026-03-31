@@ -2188,24 +2188,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // 4. Sprawdzenie sesji (PRZEKIEROWANIE DLA ZALOGOWANYCH / GOOGLE)
-   // 4. Sprawdzenie sesji (Tylko zmiana wyglądu przycisku, BEZ przekierowania)
-try {
-    const { data: { session } } = await db.auth.getSession();
-    if (session) {
-        // Tutaj możesz dopisać kod, który ukryje przycisk "Zaloguj się" 
-        // i pokaże np. "Witaj, [Imię]!" lub "Mój Panel"
-        console.log("Użytkownik zalogowany - zostaje na stronie głównej.");
+   // 4. Sprawdzenie sesji i aktualizacja przycisku (BEZ PRZEKIEROWANIA)
+    try {
+        const { data: { session } } = await db.auth.getSession();
         
-        // Przykład: zmiana tekstu przycisku logowania
-        const loginBtn = document.querySelector(".btn-blue[onclick='openAuth()']");
-        if(loginBtn) {
-            loginBtn.innerText = "Mój Panel";
-            loginBtn.onclick = () => window.location.href = "klient.html";
+        if (session) {
+            const loginBtn = document.querySelector(".auth-buttons .btn-blue");
+            if (loginBtn) {
+                // Pobieramy język, żeby wiedzieć co napisać
+                const lang = localStorage.getItem("lang") || "pl";
+                
+                // Zmieniamy dane w atrybutach, żeby funkcja setLang ich nie zepsuła
+                loginBtn.dataset.pl = "Mój profil";
+                loginBtn.dataset.en = "My profile";
+                
+                // Ustawiamy aktualny tekst
+                loginBtn.innerText = lang === "en" ? "My profile" : "Mój profil";
+                
+                // Zmieniamy funkcję kliknięcia: zamiast otwierać modal, idzie do panelu
+                loginBtn.onclick = (e) => {
+                    e.preventDefault();
+                    window.location.href = "klient.html";
+                };
+            }
         }
+    } catch (err) {
+        console.warn("Błąd sprawdzania sesji:", err);
     }
-} catch (err) {
-    console.warn("Błąd sesji:", err);
-}
 
     // 5. Inicjalizacja UI (tylko dla niezalogowanych)
     if (typeof detectLang === "function") detectLang();
