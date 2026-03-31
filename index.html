@@ -1828,37 +1828,50 @@ if (!email || !emailRegex.test(email)) {
     try {
         if (mode === "login") {
 
-            const { error } = await db.auth.signInWithPassword({
-                email,
-                password: pass,
-                options: {
-                    captchaToken: turnstileToken   // 🔥 KLUCZOWE
-                }
-            });
+    const { data, error } = await db.auth.signInWithPassword({
+        email,
+        password: pass,
+        options: {
+            captchaToken: turnstileToken
+        }
+    });
 
-            if (error) throw error;
+    if (error) throw error;
 
-            await smartRedirect();
+    if (!data.session || !data.user?.email_confirmed_at) {
+    showStatus(
+        isEn 
+            ? "Please confirm your email first" 
+            : "Najpierw potwierdź email",
+        "error"
+    );
 
-        } else {
+    btn.disabled = false;
+    btn.innerText = isEn ? "Log in" : "Zaloguj się";
+
+    return;
+}
+
+    await smartRedirect();
+} else {
 
             const { error } = await db.auth.signUp({
-                email,
-                password: pass,
-                options: {
-                    data: { full_name: name },
-                    emailRedirectTo: window.location.origin,
-                    captchaToken: turnstileToken   // 🔥 KLUCZOWE
-                }
-            });
+    email,
+    password: pass,
+    options: {
+        data: { full_name: name },
+        emailRedirectTo: 'https://ride24.pl/auth/callback',
+        captchaToken: turnstileToken
+    }
+});
 
             if (error) throw error;
 
-            showStatus(isEn ? "Success! Check your email." : "Sukces! Sprawdź pocztę.", "success");
+            showStatus("Sprawdź email, aby aktywować konto", "success");
 
-            setTimeout(async () => {
-                await smartRedirect();
-            }, 2000);
+setTimeout(() => {
+    closeAuth();
+}, 2000);
         }
 
     } catch (err) {
@@ -1887,9 +1900,8 @@ async function smartRedirect() {
     const { data: { session } } = await db.auth.getSession();
     
     if (!session) {
-        window.location.href = "klient.html";
-        return;
-    }
+    return; // NIC NIE RÓB
+}
 
     const { data: profile } = await db
         .from("profiles")
@@ -1925,11 +1937,11 @@ function showStatus(msg, type) {
 
 async function loginGoogle() {
     await db.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-            redirectTo: window.location.origin
-        }
-    });
+    provider: "google",
+    options: {
+        redirectTo: window.location.origin + "/auth/callback"
+    }
+});
 }
 
 // --- FUNKCJE LOGOWANIA PARTNERA ---
@@ -2013,9 +2025,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
     // Rozpoznawanie powrotu z logowania Google
     if (window.location.hash && window.location.hash.includes('access_token')) {
-        await smartRedirect();
-        return; 
-    }
+    await smartRedirect();
+    return; 
+}
 
     const { data } = await db.auth.getSession();
     if (data.session) {

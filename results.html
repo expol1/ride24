@@ -837,19 +837,43 @@ if (!pass || pass.length < 8) {
             btn.disabled = true;
 
             try {
-                if (authMode === "login") {
-                    const { error } = await db.auth.signInWithPassword({ email, password: pass });
-                    if (error) throw error;
-                } else {
-                    const { error } = await db.auth.signUp({
-                        email, password: pass, options: { data: { full_name: name } }
-                    });
-                    if (error) throw error;
-                }
+    if (authMode === "login") {
+        const { data, error } = await db.auth.signInWithPassword({
+            email,
+            password: pass
+        });
 
-                // 🔥 KLUCZOWE: Po udanym logowaniu/rejestracji po prostu lecimy do klienta!
-                // W klient.html czeka już kod, który wyłapie naszą flagę autoOpenBooking
-                window.location.href = "klient.html";
+        if (error) throw error;
+
+        // 🔥 BLOKADA NIEPOTWIERDZONEGO EMAILA
+        if (!data.session) {
+            window.showToast(lang === 'pl' ? "Najpierw potwierdź email" : "Please confirm your email first");
+            btn.disabled = false;
+           btn.innerText = lang === 'pl' ? "Zaloguj się" : "Log in";
+            return;
+        }
+
+        // ✅ login OK → dopiero teraz redirect
+        window.location.href = "klient.html";
+
+    } else {
+        const { error } = await db.auth.signUp({
+            email,
+            password: pass,
+            options: {
+                data: { full_name: name },
+                emailRedirectTo: 'https://ride24.pl/auth/callback'
+            }
+        });
+
+        if (error) throw error;
+
+        // ✅ rejestracja → ZERO redirectu
+        window.showToast("Sprawdź email, aby aktywować konto");
+
+        btn.disabled = false;
+        btn.innerText = lang === 'pl' ? "Zarejestruj się" : "Sign up";
+    }
 
             } catch (err) {
                 window.showToast("Błąd: " + err.message, "error");
