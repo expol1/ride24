@@ -6,6 +6,26 @@
     <title>Wyniki wyszukiwania - Ride24</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap">
     <style>
+        #regSuccessModal .legal-modal div:first-child {
+    animation: envelopeFloat 2s ease-in-out infinite;
+    display: inline-block;
+}
+
+@keyframes envelopeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Upewnij się, że masz też te klasy dla tła modala */
+.legal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
+    align-items: center; justify-content: center;
+}
+.legal-modal {
+    background: white; padding: 40px; border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3); border-top: 6px solid var(--green);
+}
         :root {
             --blue: #2563EB;
             --blue-dark: #1E3A8A;
@@ -265,16 +285,24 @@
         function openRegSuccess() {
     closeAuth(); // Zamykamy okno logowania
     const modal = document.getElementById("regSuccessModal");
-    modal.style.display = "flex";
-    
-    // Odświeżamy tłumaczenie w nowym oknie
-    const lang = localStorage.getItem("lang") || "pl";
-    setLang(lang);
+    if (modal) {
+        modal.style.display = "flex";
+        // 🔥 DODAJ TO: Blokuje przewijanie strony, gdy okno jest otwarte
+        document.body.style.overflow = "hidden"; 
+        
+        // Odświeżamy tłumaczenie w nowym oknie
+        const lang = localStorage.getItem("lang") || "pl";
+        if (typeof setLang === "function") setLang(lang);
+    }
 }
 
 function closeRegSuccess() {
-    document.getElementById("regSuccessModal").style.display = "none";
-    document.body.style.overflow = "auto";
+    const modal = document.getElementById("regSuccessModal");
+    if (modal) {
+        modal.style.display = "none";
+        // Przywracamy przewijanie strony
+        document.body.style.overflow = "auto";
+    }
 }
         // 🔥 POBIERANIE KURSU WALUTY (NBP)
 async function getExchangeRate(currency) {
@@ -885,9 +913,14 @@ localStorage.setItem("bookingFlowVersion", "v2");
                 }
             });
 
-            if (error) throw error;
+           if (error) throw error;
 
-            window.showToast(lang === 'pl' ? "Sprawdź email, aby aktywować konto!" : "Check email to activate!", "success");
+// 🔥 ZMIANA: Zamiast Toasta otwieramy modal sukcesu
+if (data.user && !data.session) {
+    openRegSuccess(); 
+} else {
+    window.location.href = "klient.html";
+}
             
             // Przywracamy przycisk, żeby user nie myślał, że strona zawisła
             btn.disabled = false;
