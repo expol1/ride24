@@ -715,96 +715,191 @@
         .footer-links a:hover { color: white; }
 
         /* --- MEDIA QUERIES (PREMIUM SAAS MOBILE) --- */
+        
+        /* 📱 TABLETY I MAŁE LAPTOPY */
+        @media (max-width: 1100px) {
+            .hero .container { 
+                display: flex;
+                flex-direction: column; 
+                align-items: center; 
+                gap: 24px;
+                padding-top: 10px;
+            }
+            
+            /* Wyszukiwarka idzie na samą górę */
+            .hero-search { 
+                order: 1; 
+                max-width: 100%; 
+                width: 100%;
+            }
+            
+            /* Opisy i benefity spadają pod wyszukiwarkę */
+            .hero-text { 
+                order: 2; 
+                max-width: 100%; 
+                text-align: center;
+            }
+            .hero-text h1 { font-size: 38px; }
+            .hero-benefits { display: flex; flex-direction: column; align-items: center; }
+            .hero-benefits li { justify-content: center; }
+            .flags-grid { justify-content: center; }
 
-/* Tablet & small laptop */
-@media (max-width: 1100px) {
-    .hero .container { flex-direction: column; align-items: center; gap: 30px; }
-    .hero-text, .hero-search { max-width: 100%; text-align: center; }
-    .hero-text h1 { font-size: 42px; }
-    .hero-benefits { display: flex; flex-direction: column; align-items: center; }
-    .hero-benefits li { justify-content: center; }
-    .flags-grid { justify-content: center; }
+            /* Auto na sam dół */
+            .hero-car { 
+                order: 3;
+                position: relative; right: auto; bottom: auto; 
+                width: 85%; max-width: 420px; 
+                margin: -10px auto 20px auto; display: block;
+            }
 
-    /* CLEAN HERO BACKGROUND */
-    .hero { 
-        background: linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(125,211,252,0.15) 100%);
-        padding: 40px 0 60px 0; 
-        min-height: auto; 
-    }
-    .hero-car { 
-        position: relative; right: auto; bottom: auto; width: 80%; 
-        max-width: 400px; margin: -20px auto 20px auto; display: block;
-    }
-    .how-it-works-section { background: #0F172A; }
-    .section-header { text-align: center; color: white; top: 0; margin-top: 30px; }
-}
+            .hero { 
+                background: linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(125,211,252,0.15) 100%);
+                padding: 20px 0 60px 0; min-height: auto; 
+            }
+            .how-it-works-section { background: #0F172A; }
+            .section-header { text-align: center; color: white; top: 0; margin-top: 30px; }
+        }
 
-/* MOBILE */
-@media (max-width: 768px) {
-    /* HEADER MOBILE */
-    header { flex-direction: column; padding: 16px 4%; gap: 16px; background: rgba(15, 23, 42, 0.98); }
-    .header-right { width: 100%; justify-content: space-between; }
-    .auth-buttons { width: 100%; gap: 8px; }
-    .auth-buttons button { flex: 1; padding: 12px; font-size: 13px; }
+        /* 📱 SMARTFONY (APP-LIKE UX) */
+        @media (max-width: 768px) {
+            
+            /* HEADER: Przyciski obok siebie, super kompaktowo */
+            header { 
+                flex-wrap: wrap; 
+                padding: 12px 16px; 
+                gap: 12px;
+                background: rgba(15, 23, 42, 0.98); 
+            }
+            .logo-container { font-size: 22px; }
+            .logo-container img { height: 36px; }
+            
+            .header-right { 
+                width: 100%; 
+                justify-content: space-between; 
+            }
+            
+            /* Przyciski w rzędzie */
+            .auth-buttons { 
+                flex-direction: row; 
+                gap: 8px; 
+                width: auto;
+            }
+            .auth-buttons button { 
+                padding: 10px 14px; 
+                font-size: 13px; 
+                border-radius: 10px;
+            }
 
-    /* HERO */
-    .hero { padding: 20px 0 40px 0; }
-    .hero-text h1 { font-size: 32px; line-height: 1.2; margin-bottom: 16px; }
-    .hero-text h2 { font-size: 18px; margin-bottom: 24px; }
-    .hero-car { width: 95%; margin-top: 10px; }
+            /* HERO: Typografia */
+            .hero { padding: 10px 0 40px 0; }
+            .hero-text h1 { font-size: 30px; line-height: 1.15; margin-bottom: 12px; }
+            .hero-text h2 { font-size: 16px; margin-bottom: 20px; }
 
-    /* GRID */
-    .steps-container { grid-template-columns: 1fr; gap: 16px; }
-    .step-box { padding: 20px; align-items: flex-start; }
-    .form-grid { grid-template-columns: 1fr; gap: 16px; }
-    .full-width { grid-column: span 1; }
+            /* WYSZUKIWARKA PREMIUM (Glassmorphism & Touch Targets) */
+            .search-form { 
+                padding: 20px; 
+                border-radius: 24px; 
+                background: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 15px 40px rgba(37, 99, 235, 0.12);
+                border: 1px solid rgba(255, 255, 255, 0.8);
+            }
+            .split-inputs { flex-direction: column; gap: 12px; }
+            .input-wrapper input, .input-wrapper select { 
+                height: 52px; /* Touch-friendly */
+                font-size: 15px; 
+                border-radius: 14px;
+                background: #F8FAFC;
+                border: 1px solid #E2E8F0;
+            }
+            .input-wrapper input:focus, .input-wrapper select:focus {
+                background: #FFFFFF;
+            }
+            
+            /* GŁÓWNY PRZYCISK CTA */
+            .btn-submit { 
+                grid-column: span 1; 
+                width: 100%; 
+                height: 56px; 
+                font-size: 17px; 
+                border-radius: 14px; 
+                margin-top: 16px;
+                background: linear-gradient(135deg, var(--blue), var(--blue-hover));
+                box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
+            }
 
-    /* SEARCH BOX PREMIUM */
-    .search-form { padding: 24px 20px; border-radius: 20px; background: rgba(255, 255, 255, 0.85); }
-    .split-inputs { flex-direction: column; gap: 12px; }
-    .input-wrapper input, .input-wrapper select { height: 50px; font-size: 15px; }
+            /* APP-LIKE SWIPE: Przewijane poziomo plakietki */
+            .trust-badges { 
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE */
+                padding: 0 4px 12px 4px;
+                justify-content: flex-start;
+                gap: 12px;
+            }
+            .trust-badges::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+            .trust-badge { 
+                flex-shrink: 0; 
+                padding: 8px 16px; 
+                border-radius: 20px;
+                font-size: 12px;
+            }
 
-    /* CTA BUTTON */
-    .btn-submit { grid-column: span 1; width: 100%; height: 54px; font-size: 17px; border-radius: 12px; margin-top: 16px; }
+            /* Kafelki z krokami (Pionowo) */
+            .steps-container { grid-template-columns: 1fr; gap: 16px; }
+            .step-box { padding: 20px; align-items: flex-start; border-radius: 20px; }
+            .form-grid { grid-template-columns: 1fr; gap: 16px; }
+            .full-width { grid-column: span 1; }
 
-    /* BADGES */
-    .trust-badges { flex-direction: column; align-items: stretch; gap: 8px; }
-    .trust-badge { justify-content: center; padding: 10px; }
-    .flags-grid { gap: 12px; }
-    .bottom-badges { flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px 10px; }
+            .flags-grid { gap: 12px; }
+            .bottom-badges { flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px 10px; }
+            .footer-content { flex-direction: column; gap: 20px; text-align: center; }
+            .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
 
-    /* FOOTER */
-    .footer-content { flex-direction: column; gap: 20px; text-align: center; }
-    .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
+            /* NATIVE APP MODALS (Bottom Sheet z animacją) */
+            .legal-overlay, #authModal, #partnerModal { align-items: flex-end !important; padding: 0 !important; }
+            
+            .legal-modal, #authModal > div, #partnerModal > div { 
+                padding: 32px 24px; 
+                max-height: 90vh; 
+                border-radius: 28px 28px 0 0 !important; 
+                position: absolute; 
+                bottom: 0; 
+                width: 100%; 
+                max-width: 100% !important;
+                animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1) forwards;
+            }
+        }
 
-    /* MODALS MOBILE (Bottom sheet style) */
-    .legal-modal { 
-        padding: 24px 20px; max-height: 90vh; border-radius: 20px 20px 0 0; 
-        position: absolute; bottom: 0; width: 100%; 
-    }
-    .legal-overlay { align-items: flex-end; padding: 0; }
-    #authModal > div, #partnerModal > div { padding: 30px 20px; border-radius: 24px; max-width: 90%; }
-}
+        /* BANER COOKIES ODKLEJONY OD RAMKI */
+        @media (max-width: 600px) {
+            .cookie-banner { 
+                bottom: 0; 
+                border-radius: 28px 28px 0 0; 
+                width: 100%; 
+                max-width: 100%; 
+                border-bottom: none; 
+                padding: 24px;
+                padding-bottom: env(safe-area-inset-bottom, 24px); 
+            }
+            .cookie-buttons { flex-direction: column; gap: 8px; }
+            .cookie-buttons button { width: 100%; height: 50px; font-size: 15px; border-radius: 12px;}
+        }
 
-/* COOKIES MOBILE */
-@media (max-width: 600px) {
-    .cookie-banner { 
-        bottom: 0; border-radius: 24px 24px 0 0; width: 100%; 
-        max-width: 100%; border-bottom: none; padding: 24px;
-        padding-bottom: env(safe-area-inset-bottom, 24px); /* Wsparcie dla notcha w iOS */
-    }
-    .cookie-buttons { flex-direction: column; gap: 8px; }
-    .cookie-buttons button { width: 100%; height: 48px; }
-}
+        /* ULTRA MAŁE EKRANY (np. iPhone SE) */
+        @media (max-width: 380px) {
+            .hero-text h1 { font-size: 26px; }
+            .auth-buttons button { padding: 10px 12px; font-size: 12px; }
+            .cf-turnstile { transform: scale(0.85); transform-origin: center; margin: 16px auto !important; }
+        }
 
-/* VERY SMALL DEVICES */
-@media (max-width: 380px) {
-    .hero-text h1 { font-size: 28px; }
-    .auth-buttons { flex-direction: column; }
-    .cf-turnstile {
-        transform: scale(0.85); transform-origin: center; margin: 16px auto !important;
-    }
-}
+        /* ANIMACJA WYSUNIĘCIA MODALA (BOTTOM SHEET) */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
         /* Styl dla dokumentów prawnych Overlay */
 .legal-overlay {
     display: none; position: fixed; inset: 0; z-index: 9999;
