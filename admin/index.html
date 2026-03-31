@@ -662,43 +662,46 @@ async function loadDeletionRequests() {
     // --- TRANSACTIONS (REVENUE + REFUNDS) ---
 try {
 
-    const res = await db
+    const { data: tx, error } = await db
         .from("transactions")
         .select("type, amount");
-
-    const tx = res.data;
-    const error = res.error;
 
     console.log("TX DEBUG:", tx, error);
 
     if (error) {
-    console.error("Transactions error:", error);
-}
+        console.error("Transactions error:", error);
+        document.getElementById("stat-revenue").innerText = "0.00";
+        document.getElementById("stat-refunds").innerText = "0.00";
+        return;
+    }
 
     if (!Array.isArray(tx) || tx.length === 0) {
         console.warn("Brak transactions");
         document.getElementById("stat-revenue").innerText = "0.00";
         document.getElementById("stat-refunds").innerText = "0.00";
-        
+        return; // 🔥 KLUCZOWE
     }
-
-   else {
 
     let revenue = 0;
     let refunds = 0;
 
-    for (let i = 0; i < tx.length; i++) {
-        const t = tx[i];
+    tx.forEach(t => {
         const amount = parseFloat(t.amount || 0);
+        const type = (t.type || "").toLowerCase();
 
-        if (t.type === "payment") revenue += amount;
-        if (t.type === "refund_done") refunds += amount;
-    }
-if (isNaN(revenue)) revenue = 0;
-if (isNaN(refunds)) refunds = 0;
+        console.log("TYPE:", type, "AMOUNT:", amount);
+
+        if (type.includes("payment")) {
+            revenue += amount;
+        }
+
+        if (type.includes("refund")) {
+            refunds += amount;
+        }
+    });
+
     document.getElementById("stat-revenue").innerText = revenue.toFixed(2);
     document.getElementById("stat-refunds").innerText = refunds.toFixed(2);
-}
 
 } catch (err) {
     console.error("CRASH:", err);
