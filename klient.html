@@ -2079,24 +2079,24 @@ else if (s === 'awaiting_payment') {
 
     let timerHtml = "";
 
-    if (booking.payment_deadline) {
-        timerHtml = `
-            <div class="timer-badge payment-timer"
-                 data-deadline="${booking.payment_deadline}"
-                 style="margin-bottom:6px;">
-                ⏳ ${window.getTimeLeft(booking.payment_deadline)}
-            </div>
-        `;
-    }
-
-    actionsHtml += `
-        ${timerHtml}
-
-        <button class="action-btn-premium btn-pay-now"
-            onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')">
-            💳 ${isEn ? 'Pay now' : 'Opłać teraz'}
-        </button>
+if (booking.payment_deadline) {
+    timerHtml = `
+        <div class="timer-badge payment-timer"
+             data-deadline="${booking.payment_deadline}"
+             style="margin-top:6px;">
+            ⏳ ${window.getTimeLeft(booking.payment_deadline)}
+        </div>
     `;
+}
+
+actionsHtml += `
+    <button class="action-btn-premium btn-pay-now"
+        onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')">
+        💳 ${isEn ? 'Pay now' : 'Opłać teraz'}
+    </button>
+
+    ${timerHtml}
+`;
 }
 else if (s === 'paid') {
     actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')">
