@@ -177,12 +177,14 @@
             top: 0;
             z-index: 100;
             
-            /* 🔥 PREMIUM SAAS HEADER: Soczysta zieleń -> Błękit z efektem szkła */
-            background: linear-gradient(90deg, rgba(209, 250, 229, 0.85) 0%, rgba(224, 242, 254, 0.85) 100%);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(56, 189, 248, 0.2); /* Lekka, chłodna ramka */
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+            /* 🔥 SOCZYSTY PREMIUM SAAS: Wyraźny błękit -> Jasna zieleń */
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.95) 0%, rgba(74, 222, 128, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            
+            /* Odcięcie i głębia */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.6); 
+            box-shadow: 0 10px 30px rgba(56, 189, 248, 0.25);
         }
 
         .logo-container {
