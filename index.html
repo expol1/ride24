@@ -2386,8 +2386,16 @@ function renderSmartResults(results, lang, resultsBox, type) {
                 <span class="sub-text" style="color: var(--gray); font-size: 12px;">${r.country} ${r.region ? '• ' + r.region : ''}</span>
             </div>`;
             
-        // PRZEKAZUJEMY CAŁY OBIEKT 'r'
-        div.addEventListener("click", () => applySearch(r, r.country, type));
+        // FUNKCJA WYBIERAJĄCA
+        const selectItem = (e) => {
+            e.preventDefault(); // Ważne: powstrzymuje input przed przedwczesnym blurem!
+            applySearch(r, r.country, type);
+        };
+
+        // ZAMIANA z "click" na "mousedown" i "touchstart"
+        div.addEventListener("mousedown", selectItem);
+        div.addEventListener("touchstart", selectItem, { passive: false });
+        
         resultsBox.appendChild(div);
     });
 }

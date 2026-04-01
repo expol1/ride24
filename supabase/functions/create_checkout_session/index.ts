@@ -5,6 +5,9 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   apiVersion: "2023-10-16",
 })
 
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://ride24.pl",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -35,6 +38,19 @@ serve(async (req) => {
       )
     }
 
+    // 🔥 STATUS → awaiting_payment (NOWE, BEZPIECZNE)
+    await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${booking_id}`, {
+      method: "PATCH",
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        status: "awaiting_payment",
+      }),
+    })
+
     // 🔥 STRIPE SESSION
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -45,20 +61,19 @@ serve(async (req) => {
           price_data: {
             currency: "pln",
             product_data: {
-              name: `Ride24 Booking ${booking_id}`,
-            },
+  name: "Ride24 – Auta z różnych zakątków świata",
+  description: `Rezerwacja: ${booking_id}`,
+},
             unit_amount: Math.round(amount * 100),
           },
           quantity: 1,
         },
       ],
 
-      // 🔥 KLUCZOWE — webhook będzie tego używał
       metadata: {
         booking_id: booking_id,
       },
 
-      // 🔥 DODANE — łatwiejsze mapowanie
       client_reference_id: booking_id,
 
       success_url: "https://ride24.pl/klient.html?payment=success",
