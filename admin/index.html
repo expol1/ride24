@@ -498,10 +498,10 @@
 <div id="reply-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
     <div style="background:white; padding:30px; border-radius:12px; width:500px; max-width:90%;">
         <h3>Odpowiedź do: <span id="reply-to-email" style="color:var(--blue);"></span></h3>
-        <textarea id="reply-text" placeholder="Wpisz treść odpowiedzi..." style="width:100%; height:150px; margin:15px 0; padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit;"></textarea>
+        <textarea id="reply-text" placeholder="Wpisz treść odpowiedzi..." style="width:100%; height:150px; margin:15px 0; padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit; color:black;"></textarea>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button onclick="closeReplyModal()" style="background:#eee; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anuluj</button>
-            <button onclick="sendReply()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Wyślij wiadomość</button>
+            <button onclick="closeReplyModal()" style="background:#eee; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">Anuluj</button>
+            <button onclick="sendReply()" style="background:var(--blue); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">Wyślij wiadomość</button>
         </div>
     </div>
 </div>
