@@ -1243,12 +1243,51 @@ function closeReplyModal() {
 async function sendReply() {
     const email = document.getElementById('reply-to-email').innerText;
     const text = document.getElementById('reply-text').value;
+    const btn = document.querySelector('#reply-modal button[onclick="sendReply()"]');
 
-    if(!text) return alert("Wpisz treść!");
+    if(!text) return alert("Wpisz treść wiadomości!");
 
-    alert("Wysłano odpowiedź do: " + email + "\nTreść: " + text);
-    // Tutaj w przyszłości dodasz kod wysyłający maila przez API
-    closeReplyModal();
+    // Blokujemy przycisk, żeby nie wysłać 10 razy tej samej wiadomości
+    btn.innerText = "Wysyłanie...";
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+
+    try {
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) throw new Error("Sesja wygasła. Zaloguj się ponownie.");
+
+        // Uderzamy do Twojej funkcji "send-reply"
+        const response = await fetch('https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/send-reply', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+                'apikey': 'sb_publishable_KMeRBCZCQH-S0Ubnr80v6w_Gub3vcQf'
+            },
+            body: JSON.stringify({ 
+                to: email, 
+                message: text 
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            alert("✅ Sukces! Wiadomość została wysłana do: " + email);
+            closeReplyModal();
+        } else {
+            throw new Error(result.error || "Błąd serwera pocztowego.");
+        }
+
+    } catch (err) {
+        console.error("Błąd:", err);
+        alert("❌ Ups! Coś poszło nie tak: " + err.message);
+    } finally {
+        // Przywracamy przycisk do życia
+        btn.innerText = "Wyślij wiadomość";
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    }
 }
     </script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
