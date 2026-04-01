@@ -1240,7 +1240,7 @@
             </div>
 
             <form id="searchForm" class="search-form" style="min-height: 350px; display: flex; flex-direction: column; justify-content: center;">
-                <input type="text" name="website" style="display:none">
+                <input type="text" name="website" style="position:absolute; left:-5000px;" tabindex="-1" autocomplete="off">
                 
                 <div class="form-grid" style="gap: 20px 16px;">
 
@@ -1433,18 +1433,7 @@ lang = browserLang.toLowerCase().startsWith("pl") ? "pl" : "en";
 setLang(lang);
 }
 
-    // --- LOGIKA COOKIES ---
-document.addEventListener("DOMContentLoaded", () => {
-    // Sprawdzamy, czy użytkownik już kliknął
-    const cookieConsent = localStorage.getItem("cookie_consent");
-    
-    if (!cookieConsent) {
-        // Czekamy sekundę po załadowaniu strony, żeby nie atakować użytkownika od razu
-        setTimeout(() => {
-            document.getElementById("cookieConsent").classList.add("show");
-        }, 1000);
-    }
-});
+ 
 
 function handleCookieConsent(action) {
     // Zapisujemy wybór w pamięci przeglądarki ('accept' lub 'reject')
@@ -1938,7 +1927,7 @@ window.closeLegal = function() {
 
 <script>
 // --- FUNKCJE LOGOWANIA KLIENTA ---
-const db = window.supabaseClient;
+const db = window.db;
 let mode = "login";
 
 function openAuth(){ document.getElementById("authModal").style.display="flex"; document.body.style.overflow="hidden"; }
@@ -2146,94 +2135,12 @@ async function partnerLogin() {
     }
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    const authModal = document.getElementById("authModal");
-    const partnerModal = document.getElementById("partnerModal");
-    if(authModal) authModal.addEventListener("click", e => { if(e.target === authModal) closeAuth(); });
-    if(partnerModal) partnerModal.addEventListener("click", e => { if(e.target === partnerModal) closePartnerAuth(); });
-});
+
 
 document.addEventListener("keydown", function(e) {
     if(e.key === "Escape") { closeAuth(); closePartnerAuth(); }
 });
 
-document.addEventListener("DOMContentLoaded", async () => {
-    // 1. Inicjalizacja bazy wewnątrz bloku
-    const db = window.supabaseClient;
-    if (!db) {
-        console.error("Supabase nie załadował się poprawnie.");
-        return;
-    }
-
-    // 2. Obsługa kliknięć (zamykanie dropdownów i modali)
-    document.addEventListener("click", (e) => {
-        // Zamykanie podpowiedzi wyszukiwarki
-        if (!e.target.closest(".input-wrapper") && !e.target.closest(".search-dropdown")) {
-            document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
-        }
-        
-        // Zamykanie modali po kliknięciu w tło
-        const authModal = document.getElementById("authModal");
-        const partnerModal = document.getElementById("partnerModal");
-        if (e.target === authModal) closeAuth();
-        if (e.target === partnerModal) closePartnerAuth();
-    });
-
-    // 3. Obsługa klawisza ESC
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-            closeAuth();
-            closePartnerAuth();
-        }
-    });
-
-    // 4. Sprawdzenie sesji (PRZEKIEROWANIE DLA ZALOGOWANYCH / GOOGLE)
-   // 4. Sprawdzenie sesji i aktualizacja przycisku (BEZ PRZEKIEROWANIA)
-    try {
-        const { data: { session } } = await db.auth.getSession();
-        
-        if (session) {
-            const loginBtn = document.querySelector(".auth-buttons .btn-blue");
-            if (loginBtn) {
-                // Pobieramy język, żeby wiedzieć co napisać
-                const lang = localStorage.getItem("lang") || "pl";
-                
-                // Zmieniamy dane w atrybutach, żeby funkcja setLang ich nie zepsuła
-                loginBtn.dataset.pl = "Mój profil";
-                loginBtn.dataset.en = "My profile";
-                
-                // Ustawiamy aktualny tekst
-                loginBtn.innerText = lang === "en" ? "My profile" : "Mój profil";
-                
-                // Zmieniamy funkcję kliknięcia: zamiast otwierać modal, idzie do panelu
-                loginBtn.onclick = (e) => {
-                    e.preventDefault();
-                    window.location.href = "klient.html";
-                };
-            }
-        }
-    } catch (err) {
-        console.warn("Błąd sprawdzania sesji:", err);
-    }
-
-    // 5. Inicjalizacja UI (tylko dla niezalogowanych)
-    if (typeof detectLang === "function") detectLang();
-    if (typeof generateTimeOptions === "function") generateTimeOptions();
-    if (typeof setDefaultDates === "function") setDefaultDates();
-    if (typeof setDefaultTime === "function") setDefaultTime();
-    if (typeof syncDropTime === "function") syncDropTime();
-
-    // Ładowanie wyszukiwarki
-    if (typeof setupSmartSearch === "function") {
-        setupSmartSearch("smart-search-pickup", "pickup-results", "pickup");
-        setupSmartSearch("smart-search-drop", "drop-results", "drop");
-    }
-
-    const pickupTimeEl = document.getElementById("pickup-time");
-    if (pickupTimeEl) {
-        pickupTimeEl.addEventListener("change", syncDropTime);
-    }
-});
 // --- SEARCH STRUCTURE (READY FOR BACKEND) ---
 // --- OBSŁUGA FORMULARZA KONTAKTOWEGO ---
 window.handleContactSubmit = function(e) {
@@ -2344,118 +2251,38 @@ function collectSearchData(){
             const dTime = document.getElementById("drop-time");
             if (pTime && dTime) dTime.value = pTime.value;
         }
-        // --- 🧠 SMART SEARCH & AUTO-FILL ---
-        let SELECTED_PICKUP = null;
-        let SELECTED_DROP = null;
-        let isDropManuallyChanged = false; 
+        // --- 🧠 INTELIGENTNA WYSZUKIWARKA (Wersja Pro) ---
+let SELECTED_PICKUP = null;
+let SELECTED_DROP = null;
+let isDropManuallyChanged = false; 
+let lastQueryId = 0; // Zapobiega pokazywaniu starych wyników przy wolnym necie
 
-        function setupSmartSearch(inputId, resultsId, type) {
-            const input = document.getElementById(inputId);
-            const resultsBox = document.getElementById(resultsId);
-            let timeout = null;
+function getMatchPriority(text, query) {
+    const t = text.toLowerCase();
+    const q = query.toLowerCase();
 
-            if (!input) return;
-
-            // 1. Reakcja na wpisywanie tekstu (szukanie w bazie)
-            input.addEventListener("input", (e) => {
-                if (type === 'drop') isDropManuallyChanged = true; 
-                
-                const query = e.target.value.trim().toLowerCase();
-                clearTimeout(timeout);
-
-                if (query.length < 2) {
-                    resultsBox.classList.remove("show");
-                    if (type === 'pickup') SELECTED_PICKUP = null;
-                    if (type === 'drop') SELECTED_DROP = null;
-                    return;
-                }
-
-                timeout = setTimeout(async () => {
-                    await fetchSmartLocations(query, resultsBox, type);
-                }, 300);
-            });
-
-            // 2. Pokazywanie autosugestii przy kliknięciu (tylko dla pustego pola)
-            input.addEventListener("focus", async () => {
-                if (input.value.trim() === "") {
-                    const top = await getTopSearches();
-                    // Dodajemy sztywny fallback na start, gdy baza logów jest jeszcze pusta
-                    const listToRender = top.length > 0 ? top : [{query: 'Majorka'}, {query: 'Rodos'}, {query: 'Kreta'}];
-                    renderSuggestions(listToRender, resultsBox, type, input);
-                }
-            });
-        }
-// --- 🔥 AUTOSUGESTIE (BOOKING STYLE) ---
-        async function getTopSearches() {
-            const db = window.supabaseClient;
-            const { data, error } = await db.rpc('get_top_searches');
-            if (error) {
-                console.error(error);
-                return [];
-            }
-            return data || [];
-        }
-
-        function renderSuggestions(list, resultsBox, type, inputElement) {
-            if (!list || list.length === 0) return;
-
-            resultsBox.innerHTML = `
-                <div style="padding: 12px 16px 8px; font-size: 11px; font-weight: 800; color: var(--gray); text-transform: uppercase;">
-                    🔥 Popularne kierunki
-                </div>
-            `;
-
-            list.forEach(item => {
-                const div = document.createElement("div");
-                div.className = "search-dropdown-item";
-                div.innerHTML = `
-                    <div style="font-weight: 700; color: var(--blue-dark); font-size: 15px;">📍 ${item.query}</div>
-                `;
-
-                div.addEventListener("click", () => {
-                    inputElement.value = item.query;
-                    resultsBox.classList.remove("show");
-                    
-                });
-
-                resultsBox.appendChild(div);
-            });
-
-            resultsBox.classList.add("show");
-        }
-       async function fetchSmartLocations(query, resultsBox, type) {
-    const db = window.supabaseClient;
+    if (t === q) return 1;          // exact match
+    if (t.startsWith(q)) return 2; // startsWith
+    if (t.includes(q)) return 3;   // contains
+    return 4;                      // fallback
+}
+async function fetchSmartLocations(query, resultsBox, type) {
+    const db = window.db; 
     const lang = localStorage.getItem("lang") || "pl";
 
-    const originalQuery = query; // Zachowujemy do logów
-    query = query.trim().toLowerCase();
-
-    if (query.length < 2) return;
-
-    // 1. słownik (tłumaczenia + keywords)
+    // 1. Tłumaczenia/Słownik
     let { data: dictMatches } = await db
         .from('locations_dictionary')
         .select('name_en')
         .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
 
     let translated = dictMatches?.map(m => m.name_en) || [];
-
-    // 2. fallback (zawsze dodaj input usera)
     translated.push(query);
 
-    // 3. czyszczenie (PRO)
-    const uniqueTerms = [...new Set(translated)]
-        .filter(t => typeof t === 'string')
-        .map(t => t.trim().toLowerCase())
-        .filter(t => t.length > 1)
-        .slice(0, 5);
+    const uniqueTerms = [...new Set(translated)].slice(0, 5);
+    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,country.ilike.%${t}%`).join(',');
 
-    // 🔥 4. budowa filtra (DODANY location_name)
-    let orFilters = uniqueTerms.map(term =>
-        `location_name.ilike.%${term}%,city.ilike.%${term}%,region.ilike.%${term}%,country.ilike.%${term}%`
-    ).join(',');
-
-    // 🔥 5. zapytanie do partnerów (DODANY location_name)
+    // 2. Pobieranie z partner_locations
     const { data: partnerData, error } = await db
         .from('partner_locations')
         .select('location_name, country, region, city')
@@ -2463,186 +2290,113 @@ function collectSearchData(){
         .eq('active', true)
         .limit(10);
 
-    if (error) {
-        console.error(error);
-        return;
+    if (error) return;
+
+   const results = (partnerData || []).map(item => {
+    const name = item.location_name || item.city || item.country;
+
+    let priority = getMatchPriority(name, query);
+
+    // 🔥 bonus dla lotnisk
+    if (name.toLowerCase().includes("airport")) {
+        priority -= 0.5;
     }
 
-    // 6. Shadow log (NAPRAWIONY — brak konfliktu zmiennych)
-    if (!dictMatches || dictMatches.length === 0) {
+    return {
+        name,
+        country: item.country,
+        priority
+    };
+}).sort((a, b) => a.priority - b.priority);
 
-        const { data: fallbackData } = await db
-            .from("locations_dictionary")
-            .select("name_en")
-            .ilike("name_en", `%${originalQuery}%`)
-            .limit(5);
+    if (results.length === 0) {
+        resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
+    } else {
+        renderSmartResults(results, lang, resultsBox, type);
+    }
+    resultsBox.classList.add("show");
+}
 
-        if (fallbackData && fallbackData.length > 0) {
-            dictMatches = fallbackData;
-        } else {
-            console.log("UNKNOWN_SEARCH:", originalQuery);
-            await db.from('search_logs').insert({ query: originalQuery });
+// Dodaj też tę brakującą funkcję pomocniczą:
+function renderSmartResults(results, lang, resultsBox, type) {
+    resultsBox.innerHTML = "";
+    results.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "search-dropdown-item";
+        div.innerHTML = `
+            <div style="display:flex; flex-direction:column;">
+                <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
+                <span class="sub-text" style="color: var(--gray); font-size: 12px;">${r.country}</span>
+            </div>`;
+        div.addEventListener("click", () => applySearch(r, r.country, type));
+        resultsBox.appendChild(div);
+    });
+}
+function setupSmartSearch(inputId, resultsId, type) {
+    const input = document.getElementById(inputId);
+    const resultsBox = document.getElementById(resultsId);
+    let timeout = null;
+
+    if (!input) return;
+
+    input.addEventListener("input", (e) => {
+        if (type === 'drop') isDropManuallyChanged = true; 
+        const query = e.target.value.trim().toLowerCase();
+        clearTimeout(timeout);
+
+        if (query.length < 2) {
+            resultsBox.classList.remove("show");
+            if (type === 'pickup') SELECTED_PICKUP = null;
+            if (type === 'drop') SELECTED_DROP = null;
             return;
         }
-    }
 
-    // 7. Formatowanie (TYLKO jedna zmiana: location_name)
-    const uniqueResults = [];
-const seen = new Set();
-
-(partnerData || []).forEach(item => {
-
-    const locName = item.location_name
-        ? item.location_name
-        : (item.city ? item.city : (item.region ? item.region : item.country));
-
-    const locType = item.city ? "city" : (item.region ? "region" : "country");
-
-    // 🔥 deduplikacja (case-insensitive)
-    const key = `${item.location_name}_${item.city}_${item.region}_${item.country}_${item.type}`;
-
-    if (!seen.has(key) && locName) {
-        seen.add(key);
-
-        // 🔥 STABLE RANKING VERSION
-
-// bezpieczna normalizacja
-const rawName = item.location_name || "";
-const name = rawName.toLowerCase().trim();
-
-// 🔥 dokładniejsze wykrywanie airport (bez false-positive)
-const isAirport =
-    /\b(airport|lotnisko|terminal|air\s?base|intl|international)\b/.test(name);
-
-// 🔥 stabilne określenie typu
-let locType = "country";
-let priority = 4;
-
-if (isAirport) {
-    locType = "airport";
-    priority = 1;
-} else if (item.city && item.city.trim() !== "") {
-    locType = "city";
-    priority = 2;
-} else if (item.region && item.region.trim() !== "") {
-    locType = "region";
-    priority = 3;
+        const queryId = ++lastQueryId; 
+        timeout = setTimeout(async () => {
+            if (queryId !== lastQueryId) return; // Jeśli user pisał dalej, zignoruj ten wynik
+            await fetchSmartLocations(query, resultsBox, type);
+        }, 300);
+    });
 }
 
-// 🔥 final push (bezpieczny)
-uniqueResults.push({
-    name: locName || rawName || "Unknown",
-    country: item.country || "",
-    region: item.region || "",
-    city: item.city || "",
-    type: locType,
-    priority: priority
-});
-    }
-});
-uniqueResults.sort((a, b) => {
-    if (a.priority !== b.priority) return a.priority - b.priority;
-    return a.name.localeCompare(b.name);
-});
-
-    if (uniqueResults.length === 0) {
-        resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
-        resultsBox.classList.add("show");
-        return;
-    }
-
-    renderSmartResults(uniqueResults, lang, resultsBox, type);
-}
-
-        function renderSmartResults(results, lang, resultsBox, type) {
-            resultsBox.innerHTML = "";
-            results.forEach(r => {
-                const div = document.createElement("div");
-                div.className = "search-dropdown-item";
-                
-                // Wyświetlamy oryginalną nazwę kraju pobraną z bazy
-                const displayCountry = r.country;
-                
-                div.innerHTML = `
-                    <div style="display:flex; flex-direction:column;">
-                        <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
-                        <span class="sub-text" style="color: var(--gray); font-size: 12px; margin-top: 2px;">
-                            ${displayCountry} ${r.region ? '• ' + r.region : ''}
-                        </span>
-                    </div>
-                `;
-                
-                div.addEventListener("click", () => applySearch(r, displayCountry, type));
-                resultsBox.appendChild(div);
-            });
-            resultsBox.classList.add("show");
-        }
-
-        function applySearch(item, displayCountry, type) {
-            const formattedName = `${item.name} (${displayCountry})`;
-            
-            if (type === 'pickup') {
-                const input = document.getElementById("smart-search-pickup");
-                input.value = formattedName;
-                SELECTED_PICKUP = item;
-                document.getElementById("pickup-results").classList.remove("show");
-
-                if (!isDropManuallyChanged) {
-                    const dropInput = document.getElementById("smart-search-drop");
-                    dropInput.value = formattedName;
-                    SELECTED_DROP = item;
-                }
-            } else {
-                const input = document.getElementById("smart-search-drop");
-                input.value = formattedName;
-                SELECTED_DROP = item;
-                document.getElementById("drop-results").classList.remove("show");
-            }
-        }
-
-        // --- INICJALIZACJA I PRZYCISK SZUKAJ ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- Poprawiona obsługa zamykania okna ostrzegawczego ---
-            const warningOverlay = document.getElementById('test-warning-overlay');
-            const closeWarningBtn = document.querySelector('.close-warning-btn'); // Użycie klasy, bo ID nie było w HTML
-
-            if (closeWarningBtn && warningOverlay) {
-                closeWarningBtn.addEventListener('click', function() {
-                    warningOverlay.classList.add('hidden');
-                });
-                warningOverlay.addEventListener('click', function(event) {
-                    if (event.target === warningOverlay) warningOverlay.classList.add('hidden');
-                });
-                document.addEventListener('keydown', function(event) {
-                    if (event.key === 'Escape' && !warningOverlay.classList.contains('hidden')) {
-                        warningOverlay.classList.add('hidden');
-                    }
-                });
-            }
-            // 0. Uruchomienie poprawnego języka
-            if (typeof detectLang === "function") detectLang();
-
-            // 1. Ładowanie dat i godzin
-            if (typeof generateTimeOptions === "function") generateTimeOptions();
-            if (typeof setDefaultDates === "function") setDefaultDates();
-            if (typeof setDefaultTime === "function") setDefaultTime();
-            if (typeof syncDropTime === "function") syncDropTime();
-           
+// Funkcja wyboru lokalizacji z listy
+function applySearch(item, displayCountry, type) {
+    const formattedName = `${item.name} (${displayCountry})`;
+    const inputId = type === 'pickup' ? "smart-search-pickup" : "smart-search-drop";
+    const resId = type === 'pickup' ? "pickup-results" : "drop-results";
     
-            
-            // 2. Kopiowanie godziny zwrotu
-            const pickupTimeEl = document.getElementById("pickup-time");
-            if (pickupTimeEl) {
-                pickupTimeEl.addEventListener("change", syncDropTime);
-            }
+    const input = document.getElementById(inputId);
+    if(input) {
+        input.value = formattedName;
+        input.blur(); // Chowa klawiaturę na smartfonach (UX!)
+    }
+    
+    document.getElementById(resId)?.classList.remove("show");
 
-            // 3. Ładowanie Smart Search
-            setupSmartSearch("smart-search-pickup", "pickup-results", "pickup");
-            setupSmartSearch("smart-search-drop", "drop-results", "drop");
-        });
+    if (type === 'pickup') {
+        SELECTED_PICKUP = item;
+        // Jeśli user nie grzebał w polu "Zwrot", kopiujemy tam Odbiór
+        if (!isDropManuallyChanged) {
+            const dropInput = document.getElementById("smart-search-drop");
+            if(dropInput) dropInput.value = formattedName;
+            SELECTED_DROP = item;
+        }
+    } else {
+        SELECTED_DROP = item;
+    }
+}
         
 
-        document.getElementById("searchBtn").addEventListener("click", async function() {
+        document.getElementById("searchBtn")?.addEventListener("click", async function() {
+    // 1. Blokada przed wielokrotnym kliknięciem
+    if (this.disabled) return; 
+
+    // 2. Inteligenta poprawka: jeśli user wpisał odbiór, a olał zwrot - kopiujemy dane
+    if (!SELECTED_DROP && SELECTED_PICKUP) {
+        SELECTED_DROP = SELECTED_PICKUP;
+        const dropInput = document.getElementById("smart-search-drop");
+        if(dropInput) dropInput.value = document.getElementById("smart-search-pickup").value;
+    }
             // --- 🛡️ BRAMKARZ: Blokada natychmiastowa przed jakimkolwiek ruchem ---
             if (this.disabled) return; 
             // 🛡️ HONEYPOT (DODAJ TUTAJ)
@@ -2697,7 +2451,84 @@ uniqueResults.sort((a, b) => {
                 window.location.href = "results.html";
             }, 600);
         });
+// --- JEDYNY I GŁÓWNY SILNIK STARTOWY STRONY ---
+document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Podpięcie bazy (Supabase)
+    window.db = window.supabaseClient;
+    if (!window.db) {
+        console.error("Supabase nie załadowany!");
+        return;
+    }
 
+    // 2. Ustawienie języka
+    detectLang();
+
+    // 3. Cookies
+    if (!localStorage.getItem("cookie_consent")) {
+        setTimeout(() => {
+            document.getElementById("cookieConsent")?.classList.add("show");
+        }, 1000);
+    }
+
+    // 4. Kliknięcia i zamykanie (Dropdowny, Modale, Warningi)
+    document.addEventListener("click", (e) => {
+        // Zamykanie listy wyszukiwarki
+        if (!e.target.closest(".input-wrapper") && !e.target.closest(".search-dropdown")) {
+            document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
+        }
+        // Zamykanie modali tłem
+        const authModal = document.getElementById("authModal");
+        const partnerModal = document.getElementById("partnerModal");
+        const warningOverlay = document.getElementById('test-warning-overlay');
+
+        if (e.target === authModal) closeAuth();
+        if (e.target === partnerModal) closePartnerAuth();
+        if (e.target === warningOverlay && e.target.id === 'test-warning-overlay') {
+             warningOverlay.style.display = 'none';
+        }
+    });
+
+    // Obsługa klawisza ESC
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeAuth();
+            closePartnerAuth();
+            const warning = document.getElementById('test-warning-overlay');
+            if(warning) warning.style.display = 'none';
+            closeLegal();
+        }
+    });
+
+    // 5. Daty, Czas i Smart Search
+    generateTimeOptions();
+    setDefaultDates();
+    setDefaultTime();
+    syncDropTime();
+
+    document.getElementById("pickup-time")?.addEventListener("change", syncDropTime);
+    setupSmartSearch("smart-search-pickup", "pickup-results", "pickup");
+    setupSmartSearch("smart-search-drop", "drop-results", "drop");
+
+    // 6. Sesja użytkownika (Mój profil / Zaloguj)
+    try {
+        const { data: { session } } = await window.db.auth.getSession();
+        if (session) {
+            const btn = document.querySelector(".auth-buttons .btn-blue");
+            if (btn) {
+                const lang = localStorage.getItem("lang") || "pl";
+                btn.dataset.pl = "Mój profil";
+                btn.dataset.en = "My profile";
+                btn.innerText = lang === "en" ? "My profile" : "Mój profil";
+                btn.onclick = (e) => { 
+                    e.preventDefault(); 
+                    window.location.href = "klient.html"; 
+                };
+            }
+        }
+    } catch (err) {
+        console.warn("Użytkownik niezalogowany.");
+    }
+});
         
 </script>
 <div id="legalOverlay" class="legal-overlay" onclick="if(event.target === this) closeLegal()">
