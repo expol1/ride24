@@ -2168,27 +2168,48 @@ document.addEventListener("keydown", function(e) {
 
 // --- SEARCH STRUCTURE (READY FOR BACKEND) ---
 // --- OBSŁUGA FORMULARZA KONTAKTOWEGO ---
-window.handleContactSubmit = function(e) {
+window.handleContactSubmit = async function(e) {
     e.preventDefault(); 
+    
+    const db = window.supabaseClient; // 🛡️ Używamy stabilnego połączenia
     const lang = localStorage.getItem("lang") || "pl";
     const btn = e.target.querySelector('button[type="submit"]');
-    const originalText = btn.innerText;
     
+    // Pobieramy dane z Twoich pól (wykorzystujemy querySelector, bo pola nie mają ID)
+    const nameInput = e.target.querySelector('input[data-pl="Wpisz swoje imię"]');
+    const emailInput = e.target.querySelector('input[data-pl="Wpisz swój email"]');
+    const messageInput = e.target.querySelector('textarea');
+
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const message = messageInput.value.trim();
+
     btn.disabled = true;
     btn.innerText = lang === 'pl' ? 'Wysyłanie...' : 'Sending...';
-    btn.style.opacity = '0.8';
 
-    setTimeout(() => {
+    try {
+        // 🚀 WRZUCAMY DO BAZY
+        const { error } = await db
+            .from('contact_messages')
+            .insert([{ name, email, message }]);
+
+        if (error) throw error;
+
         window.showToast(
-            lang === 'pl' ? "Wiadomość została wysłana!" : "Message sent successfully!", 
+            lang === 'pl' ? "Wiadomość wysłana! Dziękujemy." : "Message sent! Thank you.", 
             "success"
         );
-        e.target.reset(); 
-        if(typeof closeLegal === "function") closeLegal(); 
+        
+        e.target.reset(); // Czyścimy pola
+        if(typeof closeLegal === "function") closeLegal(); // Zamykamy okno kontaktu
+
+    } catch (err) {
+        console.error("Błąd kontaktu:", err);
+        window.showToast("Błąd: " + err.message, "error");
+    } finally {
         btn.disabled = false;
-        btn.innerText = originalText;
-        btn.style.opacity = '1';
-    }, 1200);
+        btn.innerText = lang === 'pl' ? 'Wyślij' : 'Send';
+    }
 };
 function collectSearchData(){
     return {

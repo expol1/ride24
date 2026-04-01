@@ -155,6 +155,63 @@
 .info-tooltip:hover .tooltip-box {
     display: block;
 }
+/* --- STYLE DLA TELEFONU --- */
+@media (max-width: 768px) {
+    body { flex-direction: column; }
+
+    /* Ukrywamy boczny pasek na telefonie */
+    .sidebar { display: none; }
+
+    /* Górny pasek dopasowujemy do telefonu */
+    .topbar { padding: 0 15px; height: 60px; }
+    .admin-role { font-size: 9px; padding: 3px 6px; }
+    .logout-btn { padding: 6px 10px; font-size: 11px; }
+
+    /* Treść zajmuje cały ekran */
+    .content-area { padding: 20px 15px 80px 15px; } /* 80px na dole, żeby menu nie zasłaniało treści */
+
+    /* Statystyki: zamiast 4 w rzędzie, robimy 2 */
+    .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat-card { padding: 15px; }
+    .stat-value { font-size: 20px; }
+
+    /* Tabele: pozwalamy im się przewijać na boki, żeby nie niszczyły układu */
+    .table-container { overflow-x: auto; }
+    td, th { padding: 10px; font-size: 12px; }
+
+    /* --- NOWE MENU DOLNE (Tylko na telefonie) --- */
+    .mobile-nav {
+        display: flex !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--sidebar-bg);
+        height: 65px;
+        z-index: 1000;
+        border-top: 1px solid #1E293B;
+        justify-content: space-around;
+        align-items: center;
+        padding-bottom: env(safe-area-inset-bottom); /* Dla iPhone z wcięciem */
+    }
+
+    .mobile-nav-item {
+        color: #94A3B8;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-size: 10px;
+        text-decoration: none;
+        gap: 4px;
+        cursor: pointer;
+    }
+
+    .mobile-nav-item.active { color: white; }
+    .mobile-nav-item i { font-size: 20px; }
+}
+
+/* Ukrywamy dolne menu na komputerze */
+.mobile-nav { display: none; }
 </style>
 </head>
 <body>
@@ -165,7 +222,7 @@
             ADMIN
         </div>
         <nav class="nav-menu">
-            <nav class="nav-menu">
+            
 
     <!-- 1 -->
     <div class="nav-item active" onclick="switchTab('radar')" id="nav-radar">
@@ -193,13 +250,30 @@
     </div>
 
     <!-- 6 -->
-    <div class="nav-item" onclick="switchTab('bookings')" id="nav-bookings">
-        <span class="nav-text">Wszystkie Rezerwacje</span>
-    </div>
+    <div class="nav-item" onclick="switchTab('messages')" id="nav-messages">
+    <span class="nav-text">Wiadomości (Kontakt)</span>
+</div>
 
 </nav>
     </aside>
-
+<nav class="mobile-nav">
+        <div class="mobile-nav-item active" onclick="switchTab('radar')" id="m-nav-radar">
+            <span>📡</span>
+            <span>Radar</span>
+        </div>
+        <div class="mobile-nav-item" onclick="switchTab('partners')" id="m-nav-partners">
+            <span>🤝</span>
+            <span>Firmy</span>
+        </div>
+        <div class="mobile-nav-item" onclick="switchTab('messages')" id="m-nav-messages">
+            <span>✉️</span>
+            <span>Wiadomości</span>
+        </div>
+        <div class="mobile-nav-item" onclick="switchTab('search')" id="m-nav-search">
+            <span>🔍</span>
+            <span>Search</span>
+        </div>
+    </nav>
     <div class="main-wrapper">
         <header class="topbar">
             <div class="admin-badge">
@@ -256,7 +330,10 @@
             <div class="stat-title">Zwroty do akceptacji</div>
             <div class="stat-value" id="stat-pending-refunds" style="color: #8B5CF6;">0</div>
         </div>
-    </div>
+        <div class="stat-card" style="border-left: 4px solid #8B5CF6; cursor: pointer;" onclick="switchTab('messages')">
+    <div class="stat-title">Wiadomości (Kontakt)</div>
+    <div class="stat-value" id="stat-messages" style="color: #8B5CF6;">0</div>
+</div>
 </div>
              <div id="view-refunds" class="view-section">
     <div class="page-header">
@@ -282,27 +359,28 @@
         </table>
     </div>
 </div>
-            <div id="view-bookings" class="view-section">
-                <div class="page-header"><h1 class="page-title">Globalne Rezerwacje</h1></div>
-                <div class="table-container">
-                    <div class="table-header">Najnowsze wpisy w systemie</div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Kod</th>
-                                <th>Klient</th>
-                                <th>Partner (Firma)</th>
-                                <th>Daty</th>
-                                <th>Status</th>
-                                <th>Akcja Awaryjna</th>
-                            </tr>
-                        </thead>
-                        <tbody id="admin-bookings-tbody">
-                            <tr><td colspan="6" style="text-align: center;">Ładowanie danych...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <div id="view-messages" class="view-section">
+    <div class="page-header">
+        <h1 class="page-title">Wiadomości od klientów</h1>
+    </div>
+
+    <div class="table-container">
+        <div class="table-header">Skrzynka odbiorcza</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 160px;">Data</th>
+                    <th style="width: 220px;">Nadawca</th>
+                    <th>Treść wiadomości</th>
+                    <th style="width: 120px;">Akcja</th>
+                </tr>
+            </thead>
+            <tbody id="messages-tbody">
+                <tr><td colspan="4" style="text-align:center;">Ładowanie wiadomości...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
             <div id="view-partners" class="view-section">
     <div class="page-header">
@@ -424,6 +502,62 @@
     <script src="../assets/helper/supabaseConfig.js"></script>
 
     <script>
+        async function loadMessages() {
+            const tbody = document.getElementById("messages-tbody");
+            if (!tbody) return;
+
+            const { data, error } = await db
+                .from('contact_messages')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = "<tr><td colspan='4'>Błąd pobierania danych.</td></tr>";
+                return;
+            }
+
+            tbody.innerHTML = "";
+            if (data.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding:20px; color:gray;'>Brak nowych wiadomości.</td></tr>";
+                return;
+            }
+
+            data.forEach(msg => {
+                const date = new Date(msg.created_at).toLocaleString('pl-PL');
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-size: 11px; color: var(--gray);">${date}</td>
+                        <td>
+                            <div style="font-weight: 700;">${escapeHtml(msg.name)}</div>
+                            <div style="font-size: 12px; color: var(--blue); font-weight:600;">${escapeHtml(msg.email)}</div>
+                        </td>
+                        <td style="line-height: 1.5; font-size: 13px; white-space: pre-wrap; color: var(--text);">${escapeHtml(msg.message)}</td>
+                        <td>
+                            <button class="btn-primary" style="margin-bottom: 5px; width: 100%;" 
+                                onclick="window.location.href='mailto:${msg.email}?subject=Re: Wiadomość z Ride24'">
+                                Odpisz
+                            </button>
+                            <button class="btn-danger" style="width: 100%;" onclick="deleteMessage('${msg.id}')">
+                                Usuń
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+async function deleteMessage(id) {
+    if (!confirm("⚠️ Czy na pewno chcesz trwale usunąć tę wiadomość?")) return;
+
+    const { error } = await db.from('contact_messages').delete().eq('id', id);
+    if (error) {
+        alert("Błąd: " + error.message);
+    } else {
+        loadMessages();
+        loadRadarData(); // Aktualizuje cyferkę na kafelku
+    }
+}
+
         async function loadSearchLogs() {
 
     const tbody = document.getElementById("search-logs-tbody");
@@ -623,21 +757,32 @@ async function loadDeletionRequests() {
             document.getElementById("admin-email").innerText = session.user.email;
             
             loadRadarData();
-            loadBookingsData();
+           
             loadPartnersData();
             loadDeletionRequests();
             
         });
 
         // --- NAWIGACJA ---
-        window.switchTab = function(tabId) {
+       window.switchTab = function(tabId) {
             if (tabId === "search") loadSearchLogs();
             if (tabId === "deletions") loadDeletionRequests();
             if (tabId === "refunds") loadRefunds();
+            if (tabId === "messages") loadMessages();
+            
+            // Ukrywamy wszystkie sekcje i pokazujemy wybraną
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById('view-' + tabId).classList.add('active');
+            
+            // Podświetlamy menu boczne (komputer)
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.getElementById('nav-' + tabId).classList.add('active');
+            const navBtn = document.getElementById('nav-' + tabId);
+            if(navBtn) navBtn.classList.add('active');
+
+            // Podświetlamy menu dolne (telefon)
+            document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active'));
+            const mobileNavBtn = document.getElementById('m-nav-' + tabId);
+            if(mobileNavBtn) mobileNavBtn.classList.add('active');
         }
 
         window.logout = async function() {
@@ -681,7 +826,13 @@ if (!revenueError && revenueData) {
 } else {
     document.getElementById("stat-revenue").innerText = "0.00";
 }
+const { count: msgCount, error: msgError } = await db
+        .from("contact_messages")
+        .select("*", { count: 'exact', head: true });
 
+    if (!msgError) {
+        document.getElementById("stat-messages").innerText = msgCount || 0;
+    }
 
 // --- REFUNDS (Z BOOKINGS) ---
 const { data: refundData, error: refundError } = await db
@@ -1015,46 +1166,24 @@ window.processAddPartner = async function() {
     }
 };
 
-// --- REALTIME ADMIN PANEL ---
-db.channel('partners-admin')
-.on(
-'postgres_changes',
-{
-event: '*',
-schema: 'public',
-table: 'partners'
-},
-() => {
-loadPartnersData();
-loadRadarData();
-}
-)
-.subscribe();
-
-
-// 🔥 DODAJ TO DOKŁADNIE TUTAJ ↓↓↓
-
-db.channel('refunds-admin')
-.on(
-  'postgres_changes',
-  { event: '*', schema: 'public', table: 'bookings' },
-  () => {
-    loadRefunds();
-  }
-)
-.subscribe();
-
-// 🔥 NOWY KANAŁ DLA REZERWACJI (DODANY TUTAJ)
-db.channel('bookings-admin')
-.on(
-  'postgres_changes',
-  { event: '*', schema: 'public', table: 'bookings' },
-  () => {
-    loadBookingsData();
-    loadRadarData();
-  }
-)
-.subscribe();
+// --- SUPER-KANAŁ REALTIME (JEDEN ZAMIAST TRZECH) ---
+db.channel('admin-general')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
+        console.log("🔔 Nowa wiadomość od klienta!");
+        loadMessages();
+        loadRadarData();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+        console.log("💰 Zmiana w rezerwacjach/kasie!");
+        loadRadarData();
+        loadRefunds(); // Odświeży też listę zwrotów, jeśli ją przeglądasz
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'partners' }, () => {
+        console.log("🤝 Zmiana w bazie partnerów!");
+        loadPartnersData();
+        loadRadarData();
+    })
+    .subscribe();
 
 async function addDictionary() {
     const city = document.getElementById("dict-city").value.trim();
