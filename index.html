@@ -1927,13 +1927,16 @@ window.closeLegal = function() {
 
 <script>
 // --- FUNKCJE LOGOWANIA KLIENTA ---
-const db = window.db;
+
 let mode = "login";
 
 function openAuth(){ document.getElementById("authModal").style.display="flex"; document.body.style.overflow="hidden"; }
 function closeAuth(){ document.getElementById("authModal").style.display="none"; document.body.style.overflow="auto"; }
 async function handlePasswordReset(e) {
     if (e) e.preventDefault();
+    
+    // 🛡️ FIX: Pobieramy połączenie bezpośrednio tutaj
+    const db = window.supabaseClient; 
     
     const emailInput = document.getElementById('auth-email'); 
     const email = emailInput?.value?.trim().toLowerCase();
@@ -1984,56 +1987,74 @@ function toggleMode(){
 
 async function handleAuth() {
     const btn = document.getElementById("mainAuthBtn");
-    const turnstileToken = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
-    const isEn = localStorage.getItem("lang") === "en";
+    const lang = localStorage.getItem("lang") || "pl";
+    const db = window.supabaseClient; // Pobieramy stąd, tak jak w results
 
-    if (!turnstileToken) {
-        window.showToast(isEn ? "Confirm you are human" : "Potwierdź, że nie jesteś botem", "error");
-        return;
+    // 🛡️ 1. TURNSTILE CHECK
+    const token = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
+    if (!token) {
+        if (window.turnstile) window.turnstile.reset();
+        return window.showToast(lang === 'pl' ? "Potwierdź, że nie jesteś robotem" : "Confirm you are human", "error");
     }
 
-    const email = document.getElementById("auth-email")?.value.trim().toLowerCase();
-    const pass = document.getElementById("auth-password")?.value.trim();
-    const name = document.getElementById("reg-name")?.value.trim();
+    // 🛡️ 2. WALIDACJA PÓL
+    const email = document.getElementById("auth-email").value.trim().toLowerCase();
+    const pass = document.getElementById("auth-password").value.trim();
+    const name = document.getElementById("reg-name") ? document.getElementById("reg-name").value.trim() : "";
 
+    if (!email || !email.includes("@")) {
+        return window.showToast(lang === 'pl' ? "Podaj poprawny email" : "Enter valid email", "error");
+    }
+    if (pass.length < 8) {
+        return window.showToast(lang === 'pl' ? "Hasło min. 8 znaków" : "Password min. 8 chars", "error");
+    }
+
+    if (mode === "register") { // Upewnij się, że w index zmienna nazywa się 'mode'
+        if (!name) return window.showToast(lang === 'pl' ? "Podaj imię i nazwisko" : "Enter full name", "error");
+        if (!document.getElementById("reg-terms-checkbox").checked) {
+            return window.showToast(lang === 'pl' ? "Musisz zaakceptować regulamin" : "Accept terms first", "error");
+        }
+    }
+
+    // 🚀 3. START PROCESU
+    btn.innerText = lang === 'pl' ? "PRZETWARZANIE..." : "PROCESSING...";
     btn.disabled = true;
-    btn.innerText = isEn ? "Processing..." : "Przetwarzanie...";
 
     try {
         if (mode === "login") {
             const { data, error } = await db.auth.signInWithPassword({
-                email, password: pass, options: { captchaToken: turnstileToken }
+                email, password: pass, options: { captchaToken: token }
             });
+
             if (error) throw error;
             if (data.session) window.location.href = "klient.html";
+
         } else {
-            
             const { data, error } = await db.auth.signUp({
                 email, password: pass,
                 options: {
                     data: { full_name: name },
                     emailRedirectTo: window.location.origin + '/auth/callback.html',
-                    captchaToken: turnstileToken
+                    captchaToken: token
                 }
             });
+
             if (error) throw error;
+
             if (data.user && !data.session) {
-    // 🔥 TO WYWOŁA TWOJE OKIENKO Z KOPERTĄ
-    openRegSuccess(); 
-} else {
-    window.location.href = "klient.html";
-}
+                openRegSuccess(); // To otworzy okno z kopertą
+            } else {
+                window.location.href = "klient.html";
+            }
         }
     } catch (err) {
         window.showToast(err.message, "error");
         btn.disabled = false;
-        btn.innerText = isEn ? (mode === "login" ? "Log in" : "Sign up") : (mode === "login" ? "Zaloguj się" : "Zarejestruj się");
+        btn.innerText = mode === "login" ? (lang === 'pl' ? "Zaloguj się" : "Log in") : (lang === 'pl' ? "Zarejestruj się" : "Sign up");
     } finally {
         if (window.turnstile) window.turnstile.reset();
     }
-
 }
-
 async function smartRedirect() {
     const { data: { session } } = await db.auth.getSession();
     
@@ -2088,6 +2109,9 @@ function openPartnerAuth() { document.getElementById("partnerModal").style.displ
 function closePartnerAuth() { document.getElementById("partnerModal").style.display="none"; document.body.style.overflow="auto"; }
 
 async function partnerLogin() {
+    // 🛡️ FIX: Pobieramy połączenie bezpośrednio tutaj
+    const db = window.supabaseClient; 
+
     const email = document.getElementById("partner-email").value.trim().toLowerCase();
     const pass = document.getElementById("partner-password").value.trim();
     const btn = document.getElementById("partnerAuthBtn");
@@ -2120,6 +2144,7 @@ async function partnerLogin() {
 
         if (error) throw error;
 
+        // Jeśli wszystko ok, przekierowujemy odpowiednio do roli
         await smartRedirect();
 
     } catch (err) {
@@ -2128,7 +2153,6 @@ async function partnerLogin() {
         btn.innerText = "Log in to partner panel";
 
     } finally {
-        // 🔄 reset captcha (ważne)
         if (window.turnstile) {
             window.turnstile.reset();
         }
@@ -2267,7 +2291,14 @@ function getMatchPriority(text, query) {
     return 4;                      // fallback
 }
 async function fetchSmartLocations(query, resultsBox, type) {
-    const db = window.db; 
+    // 🛡️ POPRAWKA: Pobieramy klienta bezpośrednio z okna, tak jak w results.html
+    const db = window.supabaseClient; 
+    
+    if (!db) {
+        console.warn("Supabase nie jest jeszcze gotowy...");
+        return;
+    }
+
     const lang = localStorage.getItem("lang") || "pl";
 
     // 1. Szukanie w słowniku
@@ -2290,11 +2321,13 @@ async function fetchSmartLocations(query, resultsBox, type) {
         .eq('active', true)
         .limit(10);
 
-    if (error) return;
+    if (error) {
+        console.error("Błąd wyszukiwania:", error);
+        return;
+    }
 
-    // 3. Mapowanie danych z uwzględnieniem TYPU dla results.html
+    // 3. Mapowanie danych
     const results = (partnerData || []).map(item => {
-        // Określamy typ (city/region/country) - kluczowe dla results.html!
         let locType = "country";
         if (item.city) locType = "city";
         else if (item.region) locType = "region";
@@ -2304,7 +2337,7 @@ async function fetchSmartLocations(query, resultsBox, type) {
             country: item.country,
             region: item.region,
             city: item.city,
-            type: locType, // <--- TO NAPRAWIA REDIRECT LOOP
+            type: locType,
             priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
         };
     }).sort((a, b) => a.priority - b.priority);
