@@ -446,11 +446,14 @@ async function getExchangeRate(currency) {
             currency,
             min_driver_age,
             partner_locations!inner(
-                country,
+              country,
                 region,
                 city,
                 location_name,
-                active
+                active,
+                contact_required,
+                extra_fee,
+                extra_fee_amount
             )
         )
     `)
@@ -536,7 +539,43 @@ async function getExchangeRate(currency) {
                     console.log("CAR:", car);
                     const lang = localStorage.getItem("lang") || "pl";
                     const minAge = car.partners?.min_driver_age || 21;
+                  const specialLoc = car.partners?.partner_locations?.find(l => l.contact_required === true || l.extra_fee === true);
+                    let customBadgeHtml = '';
                     
+                    if (specialLoc) {
+                        const needsContact = specialLoc.contact_required;
+                        const hasFee = specialLoc.extra_fee;
+                        const feeAmount = specialLoc.extra_fee_amount;
+
+                        let badgeTextPl = '';
+                        let badgeTextEn = '';
+
+                        if (hasFee && needsContact) {
+                            badgeTextPl = `Dopłata ${feeAmount} USD (wymagany kontakt)`;
+                            badgeTextEn = `Extra fee ${feeAmount} USD (contact required)`;
+                        } else if (hasFee) {
+                            badgeTextPl = `Dopłata ${feeAmount} USD`;
+                            badgeTextEn = `Extra fee ${feeAmount} USD`;
+                        } else if (needsContact) {
+                            badgeTextPl = `Wymagany kontakt`;
+                            badgeTextEn = `Contact required`;
+                        }
+
+                        customBadgeHtml = `
+                        <span style="
+                            display: inline-flex; align-items: center; gap: 6px;
+                            background: linear-gradient(135deg, #FEF2F2, #FECACA); color: #991B1B;
+                            font-weight: 700; font-size: 12px; padding: 6px 12px;
+                            border-radius: 999px; border: 1px solid #FCA5A5;
+                            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+                        ">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                            ${lang === 'pl' ? badgeTextPl : badgeTextEn}
+                        </span>
+                        `;
+                    }
                     // 🛡️ 1️⃣ WALIDACJA DANYCH (Safe Prices)
                     const basePricePerDay = Number(car.partner_net_price) || 0;
                     const baseTotal = Number((basePricePerDay * days).toFixed(2));
@@ -669,7 +708,7 @@ async function getExchangeRate(currency) {
         ${creditCardHtml}
         ${insuranceHtml}
 
-        <div style="grid-column: 1 / span 2; margin-top: 6px;">
+      <div style="grid-column: 1 / span 2; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px;">
             <span style="
                 display: inline-flex; align-items: center; gap: 6px;
                 background: linear-gradient(135deg, #FEF9C3, #FDE68A); color: #78350F;
@@ -683,6 +722,8 @@ async function getExchangeRate(currency) {
                 </svg>
                 ${lang === 'pl' ? `Min. wiek ${minAge}+` : `Min age ${minAge}+`}
             </span>
+
+            ${customBadgeHtml}
         </div>
     </div>
 </div>
