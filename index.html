@@ -1407,14 +1407,15 @@ function closeRegSuccess() {
     localStorage.setItem("lang", lang);
 
     document.querySelectorAll("[data-pl]").forEach(el => {
-        if (el.tagName === 'INPUT') {
-            el.placeholder = el.dataset[lang];
-        } else if (el.tagName === 'OPTION') {
-            el.innerText = el.dataset[lang];
-        } else {
-            el.innerText = el.dataset[lang];
-        }
-    });
+    // Dodajemy sprawdzanie TEXTAREA obok INPUT
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.placeholder = el.dataset[lang];
+    } else if (el.tagName === 'OPTION') {
+        el.innerText = el.dataset[lang];
+    } else {
+        el.innerText = el.dataset[lang];
+    }
+});
 
     document.querySelectorAll(".lang-btn").forEach(btn => {
         btn.classList.remove("active-lang");
@@ -1826,12 +1827,12 @@ kontakt: `
 
 <div class="form-group">
     <label data-pl="Wiadomość" data-en="Message">Wiadomość</label>
-    <textarea 
-        required 
-        data-pl="Wpisz swoją wiadomość..." 
-        data-en="Type your message..."
-        placeholder="Wpisz swoją wiadomość..."
-    ></textarea>
+    <textarea
+    required
+    data-pl="Wpisz swoją wiadomość..."
+    data-en="Type your message..."
+    placeholder="Wpisz swoją wiadomość..."
+></textarea>
         </div>
 
         <button 
