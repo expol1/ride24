@@ -855,9 +855,7 @@
 }
     </style>
 </head>
-<body>
-
-    <aside class="sidebar">
+<body> <aside class="sidebar">
         <div class="sidebar-logo">
             <img src="bez.png" style="height:42px;" alt="Logo"> 
         </div>
@@ -1736,17 +1734,22 @@ document.addEventListener("click", async function(e) {
             console.log("🔥 DANE DO WYSYŁKI:", { carClassId, startDate, endDate });
 
             try {
-                console.log("🔥 WYSYŁAM RPC...");
-                // Wywołanie funkcji w bazie (RPC)
-                const { data: bookingId, error } = await db.rpc("create_booking", {
-                    p_car_class_id: carClassId,
-                    p_start_date: startDate,
-                    p_end_date: endDate
-                });
+    console.log("🔥 WYSYŁAM RPC...");
 
-               console.log("🔥 RPC RESULT:", bookingId, error);
+    // 1. Wywołujemy RPC i zapisujemy całą odpowiedź do stałej
+    const rpcResponse = await db.rpc("create_booking", {
+        p_car_class_id: carClassId,
+        p_start_date: startDate,
+        p_end_date: endDate
+    });
 
-if (error) throw error;
+    // 2. Przypisujemy dane do zmiennych (bez słowa 'const' przy bookingId, bo już je masz wyżej)
+    bookingId = rpcResponse.data; 
+    const error = rpcResponse.error; // 👈 TO JEST KLUCZOWE, żeby 'if (error)' zadziałało
+
+    console.log("🔥 RPC RESULT:", bookingId, error);
+
+    if (error) throw error; 
 
 // --- 🔥 FIX DANYCH KLIENTA (FINAL HYBRYDOWY) ---
 try {
