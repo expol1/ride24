@@ -2388,61 +2388,71 @@ function applySearch(item, displayCountry, type) {
         
 
         document.getElementById("searchBtn")?.addEventListener("click", async function() {
-    // 1. Blokada przed wielokrotnym kliknięciem
-    if (this.disabled) return; 
-
-    // 2. Inteligenta poprawka: jeśli user wpisał odbiór, a olał zwrot - kopiujemy dane
-    if (!SELECTED_DROP && SELECTED_PICKUP) {
-        SELECTED_DROP = SELECTED_PICKUP;
-        const dropInput = document.getElementById("smart-search-drop");
-        if(dropInput) dropInput.value = document.getElementById("smart-search-pickup").value;
-    }
-            // --- 🛡️ BRAMKARZ: Blokada natychmiastowa przed jakimkolwiek ruchem ---
+            // 1. Blokada przed wielokrotnym kliknięciem
             if (this.disabled) return; 
-            // 🛡️ HONEYPOT (DODAJ TUTAJ)
-    const honeypot = document.querySelector('[name="website"]')?.value;
 
-    if (honeypot) {
-        console.warn("Bot blocked (honeypot)");
-        this.disabled = true;
-        return;
-    }
-    // 🛡️ TURNSTILE
+            // 2. 🛡️ HONEYPOT - szybki stop dla botów
+            const honeypot = document.querySelector('[name="website"]')?.value;
+            if (honeypot) {
+                console.warn("Bot blocked");
+                this.disabled = true;
+                return;
+            }
 
-
+            // 3. Inteligenta poprawka: jeśli user wpisał odbiór, a olał zwrot - kopiujemy dane
+            if (!SELECTED_DROP && SELECTED_PICKUP) {
+                SELECTED_DROP = SELECTED_PICKUP;
+                const dropInput = document.getElementById("smart-search-drop");
+                if(dropInput) dropInput.value = document.getElementById("smart-search-pickup").value;
+            }
 
             const lang = localStorage.getItem("lang") || "pl";
-            const btn = this; 
+            
+            // 4. Pobranie wartości do walidacji dat
+            const pDate = document.getElementById("pickup-date").value;
+            const pTime = document.getElementById("pickup-time").value;
+            const dDate = document.getElementById("drop-date").value;
+            const dTime = document.getElementById("drop-time").value;
 
-            // 1. Walidacja
+            // Tworzymy pełne daty do porównania
+            const pickupFull = new Date(`${pDate}T${pTime}`);
+            const dropFull = new Date(`${dDate}T${dTime}`);
+            const now = new Date();
+
+            // --- 🛑 WALIDACJA (LOGIKA STRAŻNIKA) ---
+
+            // A. Czy wybrano lokalizację?
             if (!SELECTED_PICKUP) {
-                const errorMsg = lang === 'pl' 
-                    ? "Proszę wybrać miejsce odbioru z listy podpowiedzi!" 
-                    : "Please select a pick-up location from the list!";
-                
-                window.showToast(errorMsg, "error");
-
-                // Tymczasowa blokada przycisku na 1 sekundy, aby nie "spamować" dymkami
-                btn.disabled = true;
-                setTimeout(() => { btn.disabled = false; }, 1000);
-
+                window.showToast(lang === 'pl' ? "Proszę wybrać miejsce odbioru z listy!" : "Please select a pick-up location!", "error");
                 document.getElementById("smart-search-pickup").focus();
                 return;
             }
 
-            // --- 💎 EFEKT PREMIUM: FINALNA BLOKADA PRZED PRZEJŚCIEM ---
-            btn.disabled = true; 
-            btn.innerHTML = lang === 'pl' ? 'SZUKAM AUT...' : 'SEARCHING...';
-            btn.style.opacity = "0.8";
-            btn.style.cursor = "not-allowed";
+            // B. Czy data odbioru nie jest w przeszłości? (z marginesem 5 min)
+            if (pickupFull < new Date(now.getTime() - 300000)) {
+                window.showToast(lang === 'pl' ? "Data odbioru nie może być w przeszłości!" : "Pick-up date cannot be in the past!", "error");
+                return;
+            }
+
+            // C. Czy zwrot jest po odbiorze? (Zabezpieczenie przed "powrotem do przyszłości")
+            if (dropFull <= pickupFull) {
+                window.showToast(lang === 'pl' ? "Data zwrotu musi być późniejsza niż odbioru!" : "Drop-off must be after pick-up!", "error");
+                return;
+            }
+
+            // --- ✅ WSZYSTKO OK -> PRZECHODZIMY DO WYNIKÓW ---
+            
+            this.disabled = true; 
+            this.innerHTML = lang === 'pl' ? 'SZUKAM AUT...' : 'SEARCHING...';
+            this.style.opacity = "0.8";
 
             const searchData = {
                 pickup_location: SELECTED_PICKUP,
                 drop_location: SELECTED_DROP || SELECTED_PICKUP,
-                pickup_date: document.getElementById("pickup-date").value,
-                drop_date: document.getElementById("drop-date").value,
-                pickup_time: document.getElementById("pickup-time").value,
-                drop_time: document.getElementById("drop-time").value
+                pickup_date: pDate,
+                drop_date: dDate,
+                pickup_time: pTime,
+                drop_time: dTime
             };
 
             localStorage.setItem("searchParams", JSON.stringify(searchData));
