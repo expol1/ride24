@@ -2379,17 +2379,24 @@ function renderSmartResults(results, lang, resultsBox, type) {
         const div = document.createElement("div");
         div.className = "search-dropdown-item";
         
-        // Wyświetlamy nazwę i kraj
+        // Dynamiczne budowanie sub-textu (Miasto, Region, Kraj)
+        let subDetails = [];
+        if (r.city && r.name !== r.city) subDetails.push(r.city);
+        if (r.region && r.name !== r.region) subDetails.push(r.region);
+        if (r.country && r.name !== r.country) subDetails.push(r.country);
+        let subText = subDetails.join(', ');
+
+        // Wyświetlamy nazwę i szczegóły lokalizacji
         div.innerHTML = `
             <div style="display:flex; flex-direction:column;">
                 <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
-                <span class="sub-text" style="color: var(--gray); font-size: 12px;">${r.country} ${r.region ? '• ' + r.region : ''}</span>
+                <span class="sub-text" style="color: var(--gray); font-size: 12px;">${subText}</span>
             </div>`;
             
         // FUNKCJA WYBIERAJĄCA
         const selectItem = (e) => {
             e.preventDefault(); // Ważne: powstrzymuje input przed przedwczesnym blurem!
-            applySearch(r, r.country, type);
+            applySearch(r, type); // Usunięto r.country z argumentów, zrobimy to mądrzej w applySearch
         };
 
         // ZAMIANA z "click" na "mousedown" i "touchstart"
@@ -2427,8 +2434,16 @@ function setupSmartSearch(inputId, resultsId, type) {
 }
 
 // Funkcja wyboru lokalizacji z listy
-function applySearch(item, displayCountry, type) {
-    const formattedName = `${item.name} (${displayCountry})`;
+// Funkcja wyboru lokalizacji z listy
+function applySearch(item, type) {
+    // Formatujemy to, co wpadnie do inputa po kliknięciu
+    let inputDetails = [];
+    if (item.city && item.city !== item.name) inputDetails.push(item.city);
+    if (item.country && item.country !== item.name) inputDetails.push(item.country);
+    
+    let detailsStr = inputDetails.length > 0 ? ` (${inputDetails.join(', ')})` : '';
+    const formattedName = `${item.name}${detailsStr}`;
+
     const inputId = type === 'pickup' ? "smart-search-pickup" : "smart-search-drop";
     const resId = type === 'pickup' ? "pickup-results" : "drop-results";
     
