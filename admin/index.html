@@ -495,6 +495,16 @@
         <button class="btn-primary" onclick="addDictionary()">Dodaj</button>
     </div>
 </div>
+<div id="reply-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:white; padding:30px; border-radius:12px; width:500px; max-width:90%;">
+        <h3>Odpowiedź do: <span id="reply-to-email" style="color:var(--blue);"></span></h3>
+        <textarea id="reply-text" placeholder="Wpisz treść odpowiedzi..." style="width:100%; height:150px; margin:15px 0; padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit;"></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button onclick="closeReplyModal()" style="background:#eee; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Anuluj</button>
+            <button onclick="sendReply()" style="background:var(--primary); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">Wyślij wiadomość</button>
+        </div>
+    </div>
+</div>
         </main>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -531,15 +541,15 @@
                             <div style="font-size: 12px; color: var(--blue); font-weight:600;">${escapeHtml(msg.email)}</div>
                         </td>
                         <td style="line-height: 1.5; font-size: 13px; white-space: pre-wrap; color: var(--text);">${escapeHtml(msg.message)}</td>
-                        <td>
-                            <button class="btn-primary" style="margin-bottom: 5px; width: 100%;" 
-                                onclick="window.location.href='mailto:${msg.email}?subject=Re: Wiadomość z Ride24'">
-                                Odpisz
-                            </button>
-                            <button class="btn-danger" style="width: 100%;" onclick="deleteMessage('${msg.id}')">
-                                Usuń
-                            </button>
-                        </td>
+                       <td>
+    <button class="btn-primary" style="margin-bottom: 5px; width: 100%;" 
+        onclick="openReplyModal('${msg.email}')">
+        Odpisz
+    </button>
+    <button class="btn-danger" style="width: 100%;" onclick="deleteMessage('${msg.id}')">
+        Usuń
+    </button>
+</td>
                     </tr>
                 `;
             });
@@ -759,7 +769,7 @@ async function loadDeletionRequests() {
            
             loadPartnersData();
             loadDeletionRequests();
-            
+            loadMessages();
         });
 
         // --- NAWIGACJA ---
@@ -1216,6 +1226,29 @@ async function addDictionary() {
     } else {
         alert("Dodano!");
     }
+}
+// 1. Otwieranie okienka
+function openReplyModal(email) {
+    document.getElementById('reply-to-email').innerText = email;
+    document.getElementById('reply-modal').style.display = 'flex';
+}
+
+// 2. Zamykanie okienka
+function closeReplyModal() {
+    document.getElementById('reply-modal').style.display = 'none';
+    document.getElementById('reply-text').value = ''; // czyści tekst
+}
+
+// 3. "Wysyłanie" (na razie udawane, dopóki nie masz serwera poczty)
+async function sendReply() {
+    const email = document.getElementById('reply-to-email').innerText;
+    const text = document.getElementById('reply-text').value;
+
+    if(!text) return alert("Wpisz treść!");
+
+    alert("Wysłano odpowiedź do: " + email + "\nTreść: " + text);
+    // Tutaj w przyszłości dodasz kod wysyłający maila przez API
+    closeReplyModal();
 }
     </script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
