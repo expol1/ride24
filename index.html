@@ -2270,7 +2270,7 @@ async function fetchSmartLocations(query, resultsBox, type) {
     const db = window.db; 
     const lang = localStorage.getItem("lang") || "pl";
 
-    // 1. Tłumaczenia/Słownik
+    // 1. Szukanie w słowniku
     let { data: dictMatches } = await db
         .from('locations_dictionary')
         .select('name_en')
@@ -2292,22 +2292,22 @@ async function fetchSmartLocations(query, resultsBox, type) {
 
     if (error) return;
 
-   const results = (partnerData || []).map(item => {
-    const name = item.location_name || item.city || item.country;
+    // 3. Mapowanie danych z uwzględnieniem TYPU dla results.html
+    const results = (partnerData || []).map(item => {
+        // Określamy typ (city/region/country) - kluczowe dla results.html!
+        let locType = "country";
+        if (item.city) locType = "city";
+        else if (item.region) locType = "region";
 
-    let priority = getMatchPriority(name, query);
-
-    // 🔥 bonus dla lotnisk
-    if (name.toLowerCase().includes("airport")) {
-        priority -= 0.5;
-    }
-
-    return {
-        name,
-        country: item.country,
-        priority
-    };
-}).sort((a, b) => a.priority - b.priority);
+        return {
+            name: item.location_name || item.city || item.country,
+            country: item.country,
+            region: item.region,
+            city: item.city,
+            type: locType, // <--- TO NAPRAWIA REDIRECT LOOP
+            priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
+        };
+    }).sort((a, b) => a.priority - b.priority);
 
     if (results.length === 0) {
         resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
@@ -2323,11 +2323,15 @@ function renderSmartResults(results, lang, resultsBox, type) {
     results.forEach(r => {
         const div = document.createElement("div");
         div.className = "search-dropdown-item";
+        
+        // Wyświetlamy nazwę i kraj
         div.innerHTML = `
             <div style="display:flex; flex-direction:column;">
                 <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
-                <span class="sub-text" style="color: var(--gray); font-size: 12px;">${r.country}</span>
+                <span class="sub-text" style="color: var(--gray); font-size: 12px;">${r.country} ${r.region ? '• ' + r.region : ''}</span>
             </div>`;
+            
+        // PRZEKAZUJEMY CAŁY OBIEKT 'r'
         div.addEventListener("click", () => applySearch(r, r.country, type));
         resultsBox.appendChild(div);
     });
