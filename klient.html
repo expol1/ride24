@@ -2896,31 +2896,20 @@ window.cancelBooking = async function(id, currentStatus) {
     // 🔥 TU PÓŹNIEJ: Stripe redirect
 };
         window.downloadVoucher = async function(id) {
-    const isEn = localStorage.getItem("client_lang") === "en";
+            const isEn = localStorage.getItem("client_lang") === "en";
+            const { data, error } = await db.from("vouchers").select("pdf_path").eq("booking_id", id).single();
 
-    // 1. Sprawdzamy czy w ogóle mamy ścieżkę w bazie danych
-    const { data, error } = await db.from("vouchers").select("pdf_path").eq("booking_id", id).single();
-
-    // Pierwszy bezpiecznik: Baza danych
-    if (error || !data || !data.pdf_path) {
-        window.showToast(isEn ? "Voucher is being generated..." : "Voucher jest jeszcze generowany...", "info");
-        return;
-    }
-
-    // 2. Prosimy Storage o podpisanie linku
-    const { data: sData, error: sErr } = await db.storage.from("vouchers").createSignedUrl(data.pdf_path, 60);
-
-    // Drugi bezpiecznik: Serwer plików (Storage)
-    // To jest to, o co pytałeś - DODAJ TO:
-    if (sErr || !sData?.signedUrl) {
-        console.error("Błąd Storage:", sErr);
-        window.showToast(isEn ? "Download error" : "Błąd pobierania", "error");
-        return;
-    }
-
-    // 3. Dopiero jak wszystko jest 100% pewne - przekierowujemy
-    window.location.href = sData.signedUrl;
-}
+            if(error || !data) {
+                window.showToast(isEn ? "Voucher is being generated..." : "Voucher jest jeszcze generowany...", "info");
+                return;
+            }
+            const { data: sData, error: sErr } = await db.storage.from("vouchers").createSignedUrl(data.pdf_path, 60);
+            if(sErr) {
+                window.showToast(isEn ? "Download error" : "Błąd pobierania", "error");
+                return;
+            }
+            window.location.href = sData.signedUrl;
+        }
 
         window.setLang = function(lang) {
             localStorage.setItem("client_lang", lang);
