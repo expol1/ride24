@@ -1128,6 +1128,23 @@
         .flatpickr-day.today:hover { background: var(--blue) !important; color: white !important; border-color: var(--blue) !important; }
         
         .flatpickr-day.flatpickr-disabled { color: #CBD5E1 !important; }
+        /* Naprawa zawijania się dni w kalendarzu */
+.flatpickr-calendar {
+    width: 320px !important; /* Lekkie poszerzenie głównego okna */
+}
+
+.flatpickr-innerContainer, 
+.flatpickr-rContainer, 
+.dayContainer, 
+.flatpickr-days {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+}
+
+.dayContainer {
+    justify-content: space-around !important; /* Równomierne rozłożenie cyfr */
+}
         /* Animacja koperty w oknie sukcesu */
 #regSuccessModal .legal-modal div:first-child {
     animation: envelopeFloat 2s ease-in-out infinite;
