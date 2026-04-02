@@ -21,7 +21,7 @@
             --blue: #2563EB; 
             --blue-dark: #1E3A8A;
             --blue-hover: #1D4ED8;
-            --green: #16A34A;
+            --green: #73D700;
             --text: #0F172A;
             --gray: #64748B;
             --bg: #DCFCE7;
@@ -140,7 +140,7 @@
         .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
         .topbar {
-            height: 70px; background:#16A34A; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            height: 70px; background:#73D700; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border); display: flex; align-items: center;
             justify-content: flex-end; padding: 0 40px; gap: 30px; flex-shrink: 0; z-index: 10;
         } 
@@ -179,14 +179,14 @@
         .btn-primary:hover { background: var(--blue-hover); }
 
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card { background: #F6FCED; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: transform 0.2s, box-shadow 0.2s; }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
         .stat-title { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; min-height: 32px; line-height: 1.2;}
         .stat-value { font-size: 26px; font-weight: 800; color: var(--blue-dark); font-family: 'Manrope', sans-serif;}
         .stat-card.highlight { border-color: #FCD34D; background: #FFFBEB; }
-        .stat-card.success { border-color: #BBF7D0; background: #F0FDF4; }
+        .stat-card.success { border-color: #D6F7A1; background: #F9FDF2; }
 
-        .table-container { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; overflow-y: auto; max-height: 520px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .table-container { background: #F6FCED; border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; overflow-y: auto; max-height: 520px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: #F8FAFC; font-weight: 700; font-size: 15px;}
         table { width: 100%; border-collapse: collapse; text-align: left; white-space: normal; table-layout: fixed; }
         tbody tr { background: white; }
@@ -226,7 +226,7 @@
         }
         .status-tile.pending { background: #FFFBEB; color: #D97706; border-color: #FEF3C7; } /* Złoty dla nowych zapytań */
         .status-tile.awaiting_payment { background: #FFF7ED; color: #EA580C; border-color: #FFEDD5; }
-        .status-tile.confirmed, .status-tile.paid { background: #F0FDF4; color: #16A34A; border-color: #BBF7D0; }
+        .status-tile.confirmed, .status-tile.paid { background: #F9FDF2; color: #73D700; border-color: #D6F7A1; }
         .status-tile.cancelled, .status-tile.rejected, .status-tile.payment_expired { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
         .status-tile.inactive { background: #F8FAFC; color: #64748B; border-color: #E2E8F0; }
 
@@ -257,7 +257,7 @@
         .action-btn-premium:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
         .btn-confirm-premium {
-            background: linear-gradient(135deg, #22C55E, #16A34A);
+            background: linear-gradient(135deg, #8CE619, #73D700);
             color: white;
             box-shadow: 0 4px 10px rgba(22, 163, 74, 0.2);
         }
@@ -276,7 +276,7 @@
         .action-link.reject { color: var(--red); }
         .action-link.reject:hover { color: #B91C1C; }
 
-        .settings-card { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 1000px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .settings-card { background: #F6FCED; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 1000px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .settings-card button { grid-column: span 2; }
         .form-group { margin-bottom: 16px; width: 100%; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray); margin-bottom: 6px; }
@@ -360,7 +360,7 @@
 
 .modal-body {
     padding: 24px;
-    background: #ECFDF5;
+    background: #F6FCED;
 
     flex: 1;              /* 🔥 KLUCZ */
     overflow-y: auto;     /* 🔥 SCROLL */
@@ -398,14 +398,14 @@
     background: #F1F5F9;
 }
 
-        .partner-discount-widget{ margin-top: auto; margin-bottom: 20px; margin-left: 15px; margin-right: 15px; padding:16px; background:#16A34A; border-radius:12px; text-align:center; color:white; }
+        .partner-discount-widget{ margin-top: auto; margin-bottom: 20px; margin-left: 15px; margin-right: 15px; padding:16px; background:#73D700; border-radius:12px; text-align:center; color:white; }
         .discount-title{ font-size:12px; font-weight:600; opacity:0.9; }
         .discount-value{ font-size:28px; font-weight:800; margin-top:4px; font-family:'Manrope', sans-serif; }
-        .partner-discount-box{ background:#ECFDF5; border:1px solid #BBF7D0; padding:10px 12px; border-radius:8px; font-weight:700; color:#166534; font-size:14px; display:flex; align-items:center; height:42px; }
+        .partner-discount-box{ background:#F6FCED; border:1px solid #D6F7A1; padding:10px 12px; border-radius:8px; font-weight:700; color:#3D7000; font-size:14px; display:flex; align-items:center; height:42px; }
 
         .file-tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
         .file-tile{ background:white; border:1px solid var(--border); border-radius:12px; padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; cursor:pointer; position:relative; transition:all 0.2s; text-align:center; }
-        .file-tile:hover{ border-color:var(--green); background:#F0FDF4; transform:translateY(-2px); }
+        .file-tile:hover{ border-color:var(--green); background:#F9FDF2; transform:translateY(-2px); }
         .file-tile input{ pointer-events:none; }
         
         .file-icon { 
@@ -758,7 +758,7 @@
                     </div>
                     
                    <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
-                        <label for="partnerActive" id="visibilityBox" style="cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--green); border: 2px solid #15803D; border-radius: 8px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
+                        <label for="partnerActive" id="visibilityBox" style="cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--green); border: 2px solid #58A300; border-radius: 8px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
                             <div style="display: flex; align-items: center; gap: 8px; pointer-events: none;">
                                 <div id="visibilityDot" style="width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); transition: all 0.3s ease;"></div>
                                 <span style="font-size: 14px; font-weight: 700; color: #ffffff; transition: all 0.3s ease;" data-pl="Widoczność profilu" data-en="Profile visibility">Profile visibility</span>
@@ -1537,7 +1537,7 @@ async function executeDelete() {
 
                 if (checkbox.checked) {
                     box.style.background = 'var(--green)'; 
-                    box.style.borderColor = '#15803D'; 
+                    box.style.borderColor = '#58A300'; 
                     box.style.boxShadow = '0 4px 12px rgba(22, 163, 74, 0.4)';
                     if(dot) { dot.style.background = '#ffffff'; dot.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.3)'; }
                     text.innerText = isEn ? 'ACTIVE' : 'AKTYWNY';
@@ -2156,7 +2156,7 @@ const dLoc = booking.return_location || pLoc;
 
 const locationDisplay = `
     <div style="font-size:12px; line-height:1.4;">
-        <span style="color:#16A34A; font-weight:800;">O:</span> ${pLoc}<br>
+        <span style="color:#73D700; font-weight:800;">O:</span> ${pLoc}<br>
         <span style="color:#F97316; font-weight:800;">Z:</span> ${dLoc}
     </div>
 `;
@@ -2187,7 +2187,7 @@ const rowHtml = `
         <td>${startFull} &rarr; ${endFull}</td>
 
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
-        <td style="font-weight:800; color:#16A34A; white-space:nowrap;">
+        <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
         </td>
 
@@ -2242,7 +2242,7 @@ if (booking.status === "pending" && dashTbody) {
         <td>${timerHtml}</td>
 
         <!-- 🔥 NOWA KOLUMNA -->
-        <td style="font-weight:800; color:#16A34A; white-space:nowrap;">
+        <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
         </td>
 
