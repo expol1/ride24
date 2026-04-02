@@ -136,7 +136,7 @@
             --blue: #2563EB; 
             --blue-dark: #1E3A8A;
             --blue-hover: #1D4ED8;
-            --green: #16A34A;
+            --green: #73D700;
             --text: #0F172A;
             --gray: #64748B;
             --bg: #DCFCE7;
@@ -230,7 +230,7 @@
         /* --- TOPBAR --- */
         .topbar {
             height: 70px;
-            background: #16A34A;
+            background: #73D700;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
@@ -359,13 +359,13 @@
         .stat-card.pending { background: #EFF6FF; border-color: #BFDBFE; }
         
         .stat-card.success::before { background: var(--green); }
-        .stat-card.success { background: #F0FDF4; border-color: #BBF7D0; }
+        .stat-card.success { background: #F9FDF2; border-color: #D6F7A1; }
         
         .stat-card.spent::before { background: #8B5CF6; }
         .stat-card.spent { background: #F5F3FF; border-color: #DDD6FE; }
 
         .table-container { 
-            background: #ECFDF5; 
+            background: #F6FCED; 
             border: 1px solid var(--border); 
             border-radius: 12px; 
             overflow-x: auto; 
@@ -404,7 +404,7 @@
         .status-tile.pending { background: #F8FAFC; color: #64748B; border-color: #E2E8F0; }
         .status-tile.accepted { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
         .status-tile.awaiting_payment { background: #FFF7ED; color: #EA580C; border-color: #FFEDD5; }
-        .status-tile.paid { background: #F0FDF4; color: #16A34A; border-color: #BBF7D0; }
+        .status-tile.paid { background: #F9FDF2; color: #73D700; border-color: #D6F7A1; }
         .status-tile.cancelled, .status-tile.expired, .status-tile.payment_expired { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
         
         .timer-badge { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 11px; color: var(--red); display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;}
@@ -458,7 +458,7 @@
         .action-link { color: var(--blue); font-weight: 600; cursor: pointer; font-size: 13px; transition: all 0.2s; position: relative; z-index: 2; }
         .action-link:hover { color: var(--blue-dark); text-decoration: underline; }
 
-        .settings-card { background: #ECFDF5; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; flex: 1;}
+        .settings-card { background: #F6FCED; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; flex: 1;}
         .form-group { margin-bottom: 16px; width: 100%; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray); margin-bottom: 6px; }
         .form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: white;}
@@ -653,7 +653,7 @@
 
 .lt-table span {
     font-weight: 700;
-    color: #22C55E;
+    color: #8CE619;
 }
 
 .lt-note {
@@ -696,7 +696,7 @@
     .topbar {
         padding: 0 16px;
         gap: 12px;
-        background: linear-gradient(135deg, #22C55E 0%, #2563EB 100%) !important;
+        background: linear-gradient(135deg, #8CE619 0%, #2563EB 100%) !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
         justify-content: space-between;
@@ -759,8 +759,8 @@
     .nav-text { font-size: 11px; font-weight: 600; }
     
     /* Aktywna zakładka = Twoja Soczysta Zieleń */
-    .nav-item.active { color: #22C55E !important; }
-    .nav-item.active .nav-icon { color: #22C55E; transform: scale(1.15); transition: 0.2s; }
+    .nav-item.active { color: #8CE619 !important; }
+    .nav-item.active .nav-icon { color: #8CE619; transform: scale(1.15); transition: 0.2s; }
 
     /* Badge powiadomień na dolnym pasku */
     .nav-item .badge {
@@ -1364,7 +1364,7 @@ const loyaltyConfig = {
   1: { name: "SILVER", color: "#CBD5E1", border: "#94A3B8", bg: "rgba(148, 163, 184, 0.1)", discount: 5 },
   2: { name: "GOLD", color: "#FBBF24", border: "#D97706", bg: "rgba(245, 158, 11, 0.1)", discount: 10 },
   3: { name: "PLATINUM", color: "#38BDF8", border: "#0284C7", bg: "rgba(56, 189, 248, 0.1)", discount: 15 },
-  4: { name: "VIP", color: "#22C55E", border: "#16A34A", bg: "rgba(34, 197, 94, 0.1)", discount: 20 }
+  4: { name: "VIP", color: "#8CE619", border: "#73D700", bg: "rgba(34, 197, 94, 0.1)", discount: 20 }
 };
 const thresholds = [3, 6, 10, 15]; 
 
@@ -1432,7 +1432,7 @@ function renderLoyaltyCard(paidCount) {
         marketingText.style.color = nextConfig.color;
     } else {
         progressBar.style.width = "100%";
-        progressBar.style.background = "#16A34A";
+        progressBar.style.background = "#73D700";
         
         progressText.setAttribute("data-pl", `${progress} rezerwacji (MAX)`);
         progressText.setAttribute("data-en", `${progress} bookings (MAX)`);
@@ -1445,7 +1445,7 @@ function renderLoyaltyCard(paidCount) {
         marketingText.setAttribute("data-pl", "🎉 Masz najwyższy możliwy rabat!");
         marketingText.setAttribute("data-en", "🎉 You have the highest possible discount!");
         marketingText.innerText = "🎉 Masz najwyższy możliwy rabat!";
-        marketingText.style.color = "#16A34A";
+        marketingText.style.color = "#73D700";
     }
 
     // Jeśli masz globalną funkcję do tłumaczeń na stronie (np. updateTranslations lub podobną), 
@@ -3194,7 +3194,7 @@ window.loadPayments = async function() {
 
         <div class="modal-actions" style="margin-top: 0;">
             <button class="btn-secondary" onclick="closeRefundModal()" data-pl="Anuluj" data-en="Cancel">Anuluj</button>
-            <button id="confirmRefundBtn" class="btn-primary" onclick="submitRefundAction()" style="background: linear-gradient(135deg, #2563EB, #22C55E); box-shadow: 0 8px 20px -6px rgba(34, 197, 94, 0.5); font-weight: 800; border: none; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+            <button id="confirmRefundBtn" class="btn-primary" onclick="submitRefundAction()" style="background: linear-gradient(135deg, #2563EB, #8CE619); box-shadow: 0 8px 20px -6px rgba(34, 197, 94, 0.5); font-weight: 800; border: none; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
                 <span data-pl="Zatwierdź zwrot" data-en="Confirm Refund">Zatwierdź zwrot</span>
             </button>
         </div>
