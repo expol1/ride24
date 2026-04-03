@@ -543,7 +543,7 @@
                         <td style="line-height: 1.5; font-size: 13px; white-space: pre-wrap; color: var(--text);">${escapeHtml(msg.message)}</td>
                        <td>
     <button class="btn-primary" style="margin-bottom: 5px; width: 100%;" 
-        onclick="openReplyModal('${msg.email}')">
+        onclick="openReplyModal('${msg.id}', '${msg.email}')"
         Odpisz
     </button>
     <button class="btn-danger" style="width: 100%;" onclick="deleteMessage('${msg.id}')">
@@ -1228,7 +1228,10 @@ async function addDictionary() {
     }
 }
 // 1. Otwieranie okienka
-function openReplyModal(email) {
+let currentMessageId = null;
+
+function openReplyModal(id, email) {
+    currentMessageId = id;
     document.getElementById('reply-to-email').innerText = email;
     document.getElementById('reply-modal').style.display = 'flex';
 }
@@ -1271,10 +1274,30 @@ async function sendReply() {
         });
 
         const result = await response.json();
+        console.log(result);
 
-        if (response.ok && result.success) {
-            alert("✅ Sukces! Wiadomość została wysłana do: " + email);
-            closeReplyModal();
+       if (response.ok && result.success) {
+
+    // 🔥 ZAPIS DO BAZY
+    const { error: updateError } = await db
+        .from("contact_messages")
+        .update({
+            admin_reply: text,
+            replied_at: new Date().toISOString(),
+            status: "replied"
+        })
+        .eq("id", currentMessageId);
+
+    if (updateError) {
+        console.error(updateError);
+        alert("Mail poszedł, ale NIE zapisano odpowiedzi w bazie!");
+    }
+
+    alert("✅ Wiadomość wysłana do: " + email);
+
+    closeReplyModal();
+    loadMessages();
+
         } else {
             throw new Error(result.error || "Błąd serwera pocztowego.");
         }
