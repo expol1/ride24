@@ -11,7 +11,6 @@ const supabase = createClient(
 );
 
 Deno.serve(async (req) => {
-  // 🔥 HEADER (case-safe)
   const sig =
     req.headers.get("stripe-signature") ||
     req.headers.get("Stripe-Signature");
@@ -21,13 +20,11 @@ Deno.serve(async (req) => {
     return new Response("No signature", { status: 400 });
   }
 
-  // 🔥 RAW BODY (KLUCZOWE)
   const body = await req.text();
 
   let event: Stripe.Event;
 
   try {
-    // 🔥 FIX dla Deno
     event = await stripe.webhooks.constructEventAsync(
       body,
       sig,
@@ -38,11 +35,8 @@ Deno.serve(async (req) => {
     return new Response("Invalid signature", { status: 400 });
   }
 
-  // 🔥 OBSŁUGA PŁATNOŚCI
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-
-    console.log("📦 SESSION:", session);
 
     const bookingId =
       session.metadata?.booking_id || session.client_reference_id;
@@ -54,24 +48,21 @@ Deno.serve(async (req) => {
 
     console.log("💰 PAYMENT OK:", bookingId);
 
-    // 🔥 SPRAWDŹ CZY JUŻ OPŁACONE (idempotency)
-    const { data: existing, error: fetchError } = await supabase
+    // 🔒 IDEMPOTENCY
+    const { data: existing } = await supabase
       .from("bookings")
       .select("status")
       .eq("id", bookingId)
-      .single();
-
-    if (fetchError) {
-      console.error("❌ FETCH ERROR:", fetchError.message);
-      return new Response("DB error", { status: 500 });
-    }
+      .maybeSingle();
 
     if (existing?.status === "paid") {
       console.log("⚠️ DUPLIKAT — już opłacone:", bookingId);
       return new Response("OK - Already paid", { status: 200 });
     }
 
+    // ==========================================
     // 🔥 1. UPDATE BOOKING
+    // ==========================================
     const { error: updateError } = await supabase
       .from("bookings")
       .update({ status: "paid" })
@@ -82,7 +73,9 @@ Deno.serve(async (req) => {
       return new Response("DB error", { status: 500 });
     }
 
+    // ==========================================
     // 🔥 2. INSERT PAYMENT
+    // ==========================================
     const { error: insertError } = await supabase
       .from("payments")
       .insert({
@@ -97,27 +90,89 @@ Deno.serve(async (req) => {
       console.error("❌ INSERT ERROR:", insertError.message);
     }
 
-    // 🔥 3. INSERT VOUCHER (To rozwiąże problem z pustą tabelą!)
+    // ==========================================
+    // 🔥 3. INSERT VOUCHER (NIE RUSZAMY)
+    // ==========================================
     const { error: voucherError } = await supabase
-  .from("vouchers")
-  .insert({
-    booking_id: bookingId,
-    status: "pending" 
-  });
+      .from("vouchers")
+      .insert({
+        booking_id: bookingId,
+        status: "pending",
+      });
 
     if (voucherError && !voucherError.message.includes("unique_booking_id")) {
-  console.error("❌ VOUCHER ERROR:", voucherError.message);
-}
+      console.error("❌ VOUCHER ERROR:", voucherError.message);
+    }
 
-    /* 🔥 OPCJONALNIE: ZAPIS DO TABELI TRANSACTIONS (odkomentuj jeśli potrzebujesz)
-    await supabase.from("transaction").insert({
-        booking_id: bookingId,
-        type: "payment",
-        amount: (session.amount_total || 0) / 100
-    });
-    */
+    // ==========================================
+    // 🔥 4. GENERATE VOUCHER (ZOSTAJE)
+    // ==========================================
+    console.log("🚀 Triggering generate-voucher...");
 
-    console.log("✅ SAVED TO DB (Booking, Payment, Voucher)");
+    try {
+      const response = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-voucher`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+          },
+          body: JSON.stringify({ booking_id: bookingId })
+        }
+      );
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`❌ VOUCHER FETCH ERROR (${response.status}):`, errText);
+      } else {
+        console.log("🎫 VOUCHER GENERATION TRIGGERED");
+      }
+
+    } catch (err: any) {
+      console.error("❌ VOUCHER NETWORK ERROR:", err.message);
+    }
+
+    // ==========================================
+    // 🔥 5. EMAIL QUEUE (ZAWSZE)
+    // ==========================================
+    const { error: emailError } = await supabase
+      .from("email_logs")
+      .insert([
+        {
+          booking_id: bookingId,
+          type: "booking_confirmation",
+          status: "queued"
+        },
+        {
+          booking_id: bookingId,
+          type: "partner_booking_confirmed",
+          status: "queued"
+        }
+      ]);
+
+    if (emailError) {
+      console.error("❌ EMAIL LOG ERROR:", emailError.message);
+    }
+
+   // ==========================================
+    // 🔥 6. TRIGGER WORKER (NON-BLOCKING + AUTH + BODY)
+    // ==========================================
+    fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/email-worker`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({}) // Dodajemy puste body dla stabilności POST-a
+      }
+    )
+    .then(() => console.log("📨 Worker triggered successfully"))
+    .catch(err => console.error("❌ WORKER TRIGGER ERROR:", err));
+
+    console.log("✅ FLOW COMPLETE");
   }
 
   return new Response("OK", { status: 200 });

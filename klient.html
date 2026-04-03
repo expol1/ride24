@@ -1746,13 +1746,29 @@ document.addEventListener("click", async function(e) {
         p_end_date: endDate
     });
 
-    // 2. Przypisujemy dane do zmiennych (bez słowa 'const' przy bookingId, bo już je masz wyżej)
-    bookingId = rpcResponse.data; 
-    const error = rpcResponse.error; // 👈 TO JEST KLUCZOWE, żeby 'if (error)' zadziałało
+   bookingId = rpcResponse.data; 
+const error = rpcResponse.error;
 
-    console.log("🔥 RPC RESULT:", bookingId, error);
+console.log("🔥 RPC RESULT:", bookingId, error);
 
-    if (error) throw error; 
+if (error) throw error;
+
+// 🔥 EMAIL LOG (SAFE)
+const { error: emailError } = await db
+  .from("email_logs")
+  .insert({
+    booking_id: bookingId,
+    type: "partner_new_request",
+    status: "queued"
+  });
+
+if (emailError) {
+  console.error("❌ EMAIL LOG ERROR:", emailError);
+} else {
+  console.log("📧 partner_new_request queued:", bookingId);
+}
+
+console.log("📧 partner_new_request queued:", bookingId);
 
 // --- 🔥 FIX DANYCH KLIENTA (FINAL HYBRYDOWY) ---
 try {

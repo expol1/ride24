@@ -23,21 +23,28 @@ serve(async (req) => {
     )
 
     // ===== FETCH BOOKING =====
-    const { data: booking } = await supabase
-      .from("bookings")
-      .select(`
-        *,
-        profiles(name,email,phone),
-        partners(company_name,phone,emergency_phone), 
-        pickup_location_join:partner_locations!pickup_location_id(location_name),
-        car_classes(class_code)
-      `)
-      .eq("id", booking_id)
-      .single()
+    const { data: booking, error: fetchError } = await supabase
+  .from("bookings")
+  .select(`
+  *,
+  profiles!fk_client(name,email,phone),
+  partners!bookings_partner_id_fkey(company_name,phone,emergency_phone),
+  pickup_location_join:partner_locations!pickup_location_id(location_name),
+  car_classes!bookings_car_class_id_fkey(class_code)
+`)
+  .eq("id", booking_id)
+  .single();
 
-    if (!booking || booking.status !== "paid") {
-      return new Response("Ignored", { status: 200 })
-    }
+// 🔥 NOWE – łapiemy błędy z bazy
+if (fetchError) {
+  console.error("❌ DB ERROR:", fetchError.message);
+  throw new Error(fetchError.message);
+}
+
+// 🔥 zostaje jak było
+if (!booking || booking.status !== "paid") {
+  return new Response("Ignored", { status: 200 });
+}
 
     // ===== VOUCHER ROW =====
     const { data: existing } = await supabase
@@ -229,9 +236,7 @@ serve(async (req) => {
 
     console.log("Voucher READY:", reservation)
 
-    await supabase.functions.invoke("send-booking-email", {
-      body: { booking_id }
-    })
+    
 
     return new Response(JSON.stringify({ ok: true }))
 
