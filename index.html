@@ -1157,6 +1157,41 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
 }
+/* --- PREMIUM SOCIAL ICONS (DARK FOOTER) --- */
+.saas-social-container {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    color: #94A3B8; /* Kolor zgrany z tekstami w Twojej stopce */
+    background-color: transparent;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+}
+
+.social-icon:hover {
+    color: #FFFFFF; /* Czysta biel na hover */
+    background-color: rgba(255, 255, 255, 0.1); /* Subtelne, półprzezroczyste tło */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Wyśrodkowanie na telefonach - dodane do Twojego media query @media (max-width: 768px) */
+@media (max-width: 768px) {
+    .saas-social-container {
+        justify-content: center;
+        width: 100%;
+        margin-top: 10px;
+    }
+}
     </style>
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -1375,6 +1410,27 @@ Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezer
             <a href="javascript:void(0)" onclick="openLegal('regulamin')">Regulamin</a>
             <a href="javascript:void(0)" onclick="openLegal('polityka')">Polityka prywatności</a>
             <a href="javascript:void(0)" onclick="openLegal('kontakt')" data-pl="Kontakt" data-en="Contact">Kontakt</a>
+        </div>
+
+        <div class="saas-social-container">
+            <a href="https://www.facebook.com/profile.php?id=61561090230180" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Facebook Ride24">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                </svg>
+            </a>
+            <a href="https://x.com/Ride24pl" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="X Ride24">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
+                    <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
+                </svg>
+            </a>
+            <a href="https://www.instagram.com/ride24.pl/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Instagram Ride24">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+            </a>
         </div>
     </div>
 </footer>
