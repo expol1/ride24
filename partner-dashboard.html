@@ -520,7 +520,61 @@
             .modal-box { width: 95% !important; max-height: 90vh !important; }
             .form-row, .form-row-3 { grid-template-columns: 1fr !important; }
         }
-
+            /* --- BEAUTIFUL GUIDE MODAL --- */
+        .guide-overlay {
+            position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(6px);
+            z-index: 9999999 !important; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .guide-overlay.active { opacity: 1; pointer-events: auto; }
+        .guide-box {
+            background: white; width: 100%; max-width: 900px; height: 80vh; max-height: 700px;
+            border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: flex; flex-direction: column; overflow: hidden;
+            transform: scale(0.95); transition: transform 0.3s ease;
+        }
+        .guide-overlay.active .guide-box { transform: scale(1); }
+        .guide-header {
+            padding: 20px 24px; background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+            color: white; display: flex; justify-content: space-between; align-items: center;
+        }
+        .guide-header h2 { font-size: 20px; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 10px; color: white;}
+        .guide-body { display: flex; flex: 1; overflow: hidden; background: #F8FAFC; }
+        .guide-sidebar {
+            width: 250px; background: white; border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; padding: 16px 0; overflow-y: auto;
+        }
+        .guide-tab {
+            padding: 12px 24px; font-weight: 600; font-size: 14px; color: var(--gray);
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+            border-left: 4px solid transparent;
+        }
+        .guide-tab:hover { background: #F1F5F9; color: var(--text); }
+        .guide-tab.active { background: #EFF6FF; color: var(--blue); border-left-color: var(--blue); }
+        .guide-content-area { flex: 1; padding: 30px; overflow-y: auto; }
+        .guide-section { display: none; animation: fadeIn 0.3s ease; }
+        .guide-section.active { display: block; }
+        .guide-card {
+            background: white; border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .guide-card h3 { color: var(--blue-dark); font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;}
+        .guide-card p, .guide-card li { font-size: 14px; color: #334155; line-height: 1.6; }
+        .guide-card ul { margin-top: 10px; padding-left: 20px; }
+        .guide-step { 
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; background: var(--green); color: white;
+            border-radius: 50%; font-size: 12px; font-weight: 800; margin-right: 8px;
+        }
+        .guide-close { cursor: pointer; font-size: 28px; line-height: 1; opacity: 0.8; transition: 0.2s; }
+        .guide-close:hover { opacity: 1; transform: scale(1.1); }
+        @media (max-width: 768px) {
+            .guide-body { flex-direction: column; }
+            .guide-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; padding: 0; overflow-x: auto; }
+            .guide-tab { white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
+            .guide-tab.active { border-left-color: transparent; border-bottom-color: var(--blue); }
+        }
     </style>
 
 </head>
@@ -594,6 +648,15 @@
             </div>
 
             <div class="topbar-icons">
+                <div class="badge-container" onclick="openGuide()" style="background: white; color: var(--blue-dark) !important; padding: 6px 12px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-right: 15px;">
+                    <span style="font-size: 16px;">💡</span>
+                    <span data-pl="Instrukcja" data-en="User Guide" style="color: var(--blue-dark) !important;">Instrukcja</span>
+                </div>
+                <div class="badge-container" onclick="handleNotifications()">
+                    <span data-pl="Powiadomienia" data-en="Notifications">Notifications</span>
+                    <div class="badge badge-absolute" id="notification-badge">2</div>
+                </div>
+            </div>
                 <div class="badge-container" onclick="handleNotifications()">
                     <span data-pl="Powiadomienia" data-en="Notifications">Notifications</span>
                     <div class="badge badge-absolute" id="notification-badge">2</div>
@@ -1347,7 +1410,9 @@
         </div>
 
     </div>
-    <div id="toast-container"></div>
+   <div id="toast-container"></div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
@@ -3354,12 +3419,38 @@ async function setupAutocomplete(inputId, dropdownId, category) {
     // 🔥 Zostawiamy TYLKO event 'input' (odpala się przy każdej zmianie wartości)
     input.addEventListener("input", handler);
 
-    document.addEventListener("click", (e) => {
-        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.style.display = "none";
-        }
-    });
+   document.addEventListener("click", (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
 }
+
+        // --- GUIDE MODAL LOGIC ---
+        window.openGuide = function() {
+            document.getElementById('guideModal').classList.add('active');
+            
+            // Wymuś odświeżenie tekstów w modalu (jeśli język się zmienił w międzyczasie)
+            const lang = localStorage.getItem("partner_lang") || "en";
+            const guideModal = document.getElementById('guideModal');
+            guideModal.querySelectorAll("[data-pl]").forEach(el => {
+                if(el.dataset[lang]) el.innerHTML = el.dataset[lang];
+            });
+        };
+
+        window.closeGuide = function() {
+            document.getElementById('guideModal').classList.remove('active');
+        };
+
+        window.switchGuideTab = function(tabId) {
+            // Ukrywamy wszystkie sekcje contentu wewnątrz guide
+            document.querySelectorAll('.guide-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            // Odznaczamy wszystkie zakładki na pasku bocznym
+            document.querySelectorAll('.guide-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+        };
 
     </script>
 </body>
