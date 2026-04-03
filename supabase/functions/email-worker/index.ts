@@ -64,221 +64,235 @@ const getBaseTemplate = (title: string, content: string, buttonText?: string, bu
 `
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok")
+  if (req.method === "OPTIONS") return new Response("ok")
 
-  // drain body (edge stability)
-  try { await req.json() } catch (_) {}
+  // drain body (edge stability)
+  try { await req.json() } catch (_) {}
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  )
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  )
 
-  const { data: queue } = await supabase
-    .from("email_logs")
-    .select("*")
-    .eq("status", "queued")
-    .order("created_at", { ascending: true })
-    .limit(10)
+  let processedInThisSession = 0
 
-  if (!queue || queue.length === 0) return new Response("Queue empty")
+  // 🔥 START PĘTLI WHILE - Przetwarzamy kolejkę do zera
+  while (true) {
 
-  for (const log of queue) {
-    try {
-      // 🔒 ATOMIC LOCK
-      const { data: lock } = await supabase
-        .from("email_logs")
-        .update({ status: "processing" })
-        .eq("id", log.id)
-        .eq("status", "queued")
-        .select()
+    const { data: queue, error: fetchError } = await supabase
+      .from("email_logs")
+      .select("*")
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(10)
 
-      if (!lock || lock.length === 0) {
-        console.log("SKIP LOCKED:", log.id)
-        continue
-      }
+    if (fetchError || !queue || queue.length === 0) {
+      break
+    }
 
-      console.log("PROCESSING:", log.id)
+    console.log("Batch size:", queue.length);
 
-      const { data: booking, error: dbError } = await supabase
-        .from("bookings")
-        .select(`
-          *,
-          profiles!fk_client(email),
-          partners!bookings_partner_id_fkey(email),
-          car_classes!bookings_car_class_id_fkey(class_code)
-        `)
-        .eq("id", log.booking_id)
-        .single()
+    for (const log of queue) {
+      try {
+        // 🔒 ATOMIC LOCK
+        const { data: lock } = await supabase
+          .from("email_logs")
+          .update({ status: "processing" })
+          .eq("id", log.id)
+          .eq("status", "queued")
+          .select()
 
-      if (dbError || !booking) {
-        console.error("DB ERROR:", dbError?.message)
+        if (!lock || lock.length === 0) {
+          console.log("SKIP LOCKED:", log.id)
+          continue
+        }
 
-        await supabase
-          .from("email_logs")
-          .update({ status: "failed" })
-          .eq("id", log.id)
+        console.log("PROCESSING:", log.id)
 
-        continue
-      }
+        const { data: booking, error: dbError } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            profiles!fk_client(email),
+            partners!bookings_partner_id_fkey(email),
+            car_classes!bookings_car_class_id_fkey(class_code)
+          `)
+          .eq("id", log.booking_id)
+          .single()
 
-      let subject = ""
-      let html = ""
+        if (dbError || !booking) {
+          console.error("DB ERROR:", dbError?.message)
 
-      switch (log.type) {
-        // 1. DLA KLIENTA: Prośba o wpłatę (PL)
-        case "client_payment_required":
-          subject = `Potwierdź rezerwację ${booking.reservation_code}`
-          html = getBaseTemplate(
-            "Twoja rezerwacja czeka!",
-            `<p>Dobra wiadomość! Wypożyczalnia zaakceptowała Twoje zapytanie.</p>
-             <div class="highlight-box">
-               <div class="label">Numer rezerwacji</div>
-               <div class="value">${booking.reservation_code}</div>
-             </div>
-             <p>Aby potwierdzić rezerwację i zablokować auto, prosimy o dokonanie płatności online w ciągu 24h.</p>`,
-            "Opłać rezerwację",
-            `https://ride24.pl/panel?id=${booking.id}`
-          )
-          break
+          await supabase
+            .from("email_logs")
+            .update({ status: "failed" })
+            .eq("id", log.id)
 
-        // 2. DLA KLIENTA: Potwierdzenie i Voucher (PL)
-        case "booking_confirmation":
-          subject = `Ride24 – Twoja rezerwacja została potwierdzona`
-          html = getBaseTemplate(
-            "Twoja rezerwacja została opłacona 🎉",
-            `<p>Świetna wiadomość! Twoja płatność została pomyślnie zaksięgowana. Rezerwacja jest już w pełni potwierdzona, a auto zarezerwowane na Twój termin.</p>
-             <div class="highlight-box">
-               <div class="label">Kod rezerwacji</div>
-               <div class="value">${booking.reservation_code}</div>
-             </div>
-             <p>Twój voucher PDF oraz szczegóły odbioru pojazdu są już dostępne w panelu klienta. Prosimy o okazanie vouchera (na telefonie lub wydrukowanego) przy odbiorze auta.</p>
-             <p style="margin-top: 30px;"><b>Dziękujemy za zaufanie!</b> Życzymy bezpiecznej podróży oraz samych udanych przejazdów. Będzie nam bardzo miło gościć Cię u nas ponownie.</p>`,
-            "Przejdź do panelu i pobierz voucher",
-            `https://ride24.pl/panel?reservation=${booking.reservation_code}`
-          )
-          break
+          continue
+        }
 
-        // 3. DLA PARTNERA: Nowe zapytanie (EN)
-        case "partner_new_request":
-          subject = `New booking request: ${booking.reservation_code}`
-          html = getBaseTemplate(
-            "New Booking Request",
-            `<p>You have received a new booking request for car class: <b>${booking.car_classes?.class_code || "-"}</b>.</p>
-             <div class="highlight-box">
-               <div class="label">Reservation Code</div>
-               <div class="value">${booking.reservation_code}</div>
-             </div>
-             <p>Please log in to your dashboard to accept or decline this request.</p>`,
-            "Open Partner Dashboard",
-            "https://ride24.pl/partner-dashboard"
-          )
-          break
+        let subject = ""
+        let html = ""
 
-        // 4. DLA PARTNERA: Klient potwierdził (EN)
-        case "partner_booking_confirmed":
-          subject = `Booking confirmed – ${booking.reservation_code}`
-          html = getBaseTemplate(
-            "Booking Confirmed",
-            `<p>The client has officially confirmed the reservation: <b>${booking.reservation_code}</b>.</p>
-             <div class="highlight-box">
-               <div class="label">Reservation Code</div>
-               <div class="value">${booking.reservation_code}</div>
-               <div class="label" style="margin-top:10px">Car Class</div>
-               <div class="value">${booking.car_classes?.class_code || "-"}</div>
-             </div>
-             <p>Please prepare the vehicle for the scheduled pickup. Full reservation details are available in your dashboard.</p>
-             <p>Thank you for your partnership!</p>`,
-            "Open Partner Dashboard",
-            "https://ride24.pl/partner-dashboard"
-          )
-          break
+        switch (log.type) {
+          // 1. DLA KLIENTA: Prośba o wpłatę (PL)
+          case "client_payment_required":
+            subject = `Potwierdź rezerwację ${booking.reservation_code}`
+            html = getBaseTemplate(
+              "Twoja rezerwacja czeka!",
+              `<p>Dobra wiadomość! Wypożyczalnia zaakceptowała Twoje zapytanie.</p>
+               <div class="highlight-box">
+                 <div class="label">Numer rezerwacji</div>
+                 <div class="value">${booking.reservation_code}</div>
+               </div>
+               <p>Aby potwierdzić rezerwację i zablokować auto, prosimy o dokonanie płatności online w ciągu 24h.</p>`,
+              "Opłać rezerwację",
+              `https://ride24.pl/panel?id=${booking.id}`
+            )
+            break
 
-        default:
-          console.log("SKIP TYPE:", log.type)
-          await supabase.from("email_logs").update({ status: "failed" }).eq("id", log.id)
-          continue
-      }
+          // 2. DLA KLIENTA: Potwierdzenie i Voucher (PL)
+          case "booking_confirmation":
+            subject = `Ride24 – Twoja rezerwacja została potwierdzona`
+            html = getBaseTemplate(
+              "Twoja rezerwacja została opłacona 🎉",
+              `<p>Świetna wiadomość! Twoja płatność została pomyślnie zaksięgowana. Rezerwacja jest już w pełni potwierdzona, a auto zarezerwowane na Twój termin.</p>
+               <div class="highlight-box">
+                 <div class="label">Kod rezerwacji</div>
+                 <div class="value">${booking.reservation_code}</div>
+               </div>
+               <p>Twój voucher PDF oraz szczegóły odbioru pojazdu są już dostępne w panelu klienta. Prosimy o okazanie vouchera (na telefonie lub wydrukowanego) przy odbiorze auta.</p>
+               <p style="margin-top: 30px;"><b>Dziękujemy za zaufanie!</b> Życzymy bezpiecznej podróży oraz samych udanych przejazdów. Będzie nam bardzo miło gościć Cię u nas ponownie.</p>`,
+              "Przejdź do panelu i pobierz voucher",
+              `https://ride24.pl/panel?reservation=${booking.reservation_code}`
+            )
+            break
 
-      // 🔥 PRECYZYJNE KIEROWANIE MAILI (Podmiana)
-      let finalEmail = log.email; // Jeśli e-mail jest ręcznie wpisany w logu, ma priorytet
+          // 3. DLA PARTNERA: Nowe zapytanie (EN)
+          case "partner_new_request":
+            subject = `New booking request: ${booking.reservation_code}`
+            html = getBaseTemplate(
+              "New Booking Request",
+              `<p>You have received a new booking request for car class: <b>${booking.car_classes?.class_code || "-"}</b>.</p>
+               <div class="highlight-box">
+                 <div class="label">Reservation Code</div>
+                 <div class="value">${booking.reservation_code}</div>
+               </div>
+               <p>Please log in to your dashboard to accept or decline this request.</p>`,
+              "Open Partner Dashboard",
+              "https://ride24.pl/partner-dashboard"
+            )
+            break
 
-      if (!finalEmail) {
-        if (log.type.startsWith("partner_")) {
-          // Powiadomienia zaczynające się od "partner_" wysyłamy do partnera
-          finalEmail = booking.partners?.email;
-        } else {
-          // Wszystkie pozostałe (vouchery, płatności) wysyłamy do klienta
-          finalEmail = booking.profiles?.email;
-        }
-      }
+          // 4. DLA PARTNERA: Klient potwierdził (EN)
+          case "partner_booking_confirmed":
+            subject = `Booking confirmed – ${booking.reservation_code}`
+            html = getBaseTemplate(
+              "Booking Confirmed",
+              `<p>The client has officially confirmed the reservation: <b>${booking.reservation_code}</b>.</p>
+               <div class="highlight-box">
+                 <div class="label">Reservation Code</div>
+                 <div class="value">${booking.reservation_code}</div>
+                 <div class="label" style="margin-top:10px">Car Class</div>
+                 <div class="value">${booking.car_classes?.class_code || "-"}</div>
+               </div>
+               <p>Please prepare the vehicle for the scheduled pickup. Full reservation details are available in your dashboard.</p>
+               <p>Thank you for your partnership!</p>`,
+              "Open Partner Dashboard",
+              "https://ride24.pl/partner-dashboard"
+            )
+            break
 
-      console.log("EMAIL TARGET:", log.id, log.type, finalEmail);
+          default:
+            console.log("SKIP TYPE:", log.type)
+            await supabase.from("email_logs").update({ status: "failed" }).eq("id", log.id)
+            continue
+        }
 
-      // ✅ walidacja email
-      if (!finalEmail || typeof finalEmail !== "string") {
-        console.error("NO EMAIL:", log.id)
+        // 🔥 PRECYZYJNE KIEROWANIE MAILI
+        let finalEmail = log.email; 
 
-        await supabase
-          .from("email_logs")
-          .update({ status: "failed" })
-          .eq("id", log.id)
+        if (!finalEmail) {
+          if (log.type.startsWith("partner_")) {
+            finalEmail = booking.partners?.email;
+          } else {
+            finalEmail = booking.profiles?.email;
+          }
+        }
 
-        continue
-      }
+        console.log("EMAIL TARGET:", log.id, finalEmail);
 
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 8000);
+        // ✅ walidacja email
+        if (!finalEmail || typeof finalEmail !== "string") {
+          console.error("NO EMAIL:", log.id)
 
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          from: "Ride24 <noreply@ride24.pl>",
-          to: finalEmail,
-          subject,
-          html,
-          headers: {
-            "Idempotency-Key": log.id
-          }
-        }),
-        signal: controller.signal
-      })
+          await supabase
+            .from("email_logs")
+            .update({ status: "failed" })
+            .eq("id", log.id)
 
-      if (res.ok) {
-        console.log("SENT:", finalEmail)
+          continue
+        }
 
-        await supabase
-          .from("email_logs")
-          .update({ status: "sent" })
-          .eq("id", log.id)
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
 
-      } else {
-        const err = await res.text()
-        console.error("RESEND ERROR:", err)
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            from: "Ride24 <noreply@ride24.pl>",
+            to: finalEmail,
+            subject,
+            html,
+            headers: {
+              "Idempotency-Key": log.id
+            }
+          }),
+          signal: controller.signal
+        })
 
-        await supabase
-          .from("email_logs")
-          .update({ status: "failed" })
-          .eq("id", log.id)
-      }
+        // ✅ CLEAR TIMEOUT po fetchu
+        clearTimeout(timeout);
 
-    } catch (e: any) {
-      if (e.name === "AbortError") {
-        console.error("TIMEOUT:", log.id);
-      } else {
-        console.error("ERROR:", e);
-      }
+        if (res.ok) {
+          console.log("SENT:", finalEmail)
 
-      await supabase
-        .from("email_logs")
-        .update({ status: "failed" })
-        .eq("id", log.id)
-    }
-  }
+          await supabase
+            .from("email_logs")
+            .update({ status: "sent" })
+            .eq("id", log.id)
+          
+          processedInThisSession++
 
-  return new Response("DONE")
+        } else {
+          const err = await res.text()
+          console.error("RESEND ERROR:", err)
+
+          await supabase
+            .from("email_logs")
+            .update({ status: "failed" })
+            .eq("id", log.id)
+        }
+
+      } catch (e: any) {
+        if (e.name === "AbortError") {
+          console.error("TIMEOUT:", log.id);
+        } else {
+          console.error("ERROR:", e);
+        }
+
+        await supabase
+          .from("email_logs")
+          .update({ status: "failed" })
+          .eq("id", log.id)
+      }
+    } // Koniec pętli FOR
+
+  } // Koniec pętli WHILE
+
+  return new Response(`DONE. Processed: ${processedInThisSession}`)
 })

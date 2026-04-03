@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { PDFDocument, rgb } from "https://esm.sh/pdf-lib"
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1"
+import QRCode from "https://esm.sh/qrcode"
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok")
@@ -93,6 +94,14 @@ if (!booking || booking.status !== "paid") {
     const font = await pdfDoc.embedFont(await regFont.data.arrayBuffer())
     const bold = await pdfDoc.embedFont(await boldFont.data.arrayBuffer())
     const logoImage = await pdfDoc.embedPng(await logoRes.data.arrayBuffer())
+    // Generowanie kodu QR
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#10386B', light: '#FFFFFF' },
+    });
+    const qrImageBytes = Uint8Array.from(atob(qrDataUrl.split(",")[1]), c => c.charCodeAt(0));
+    const qrImage = await pdfDoc.embedPng(qrImageBytes);
 
     const page = pdfDoc.addPage([600, 800])
 
@@ -211,10 +220,20 @@ if (!booking || booking.status !== "paid") {
     const emergencyPhone = booking.partners?.emergency_phone || booking.partners?.phone || "-";
     page.drawText(`${emergencyPhone}`, { x: valueX, y, size: 12, font: bold, color: textDark })
 
-    // ===== VERIFY =====
-    page.drawLine({ start: { x: 50, y: 120 }, end: { x: 550, y: 120 }, thickness: 1, color: lightGray })
-    page.drawText("Verify this reservation online / Zweryfikuj rezerwację online:", { x: 50, y: 100, size: 10, font, color: textGray })
-    page.drawText(verifyUrl, { x: 50, y: 85, size: 10, font: bold, color: brandBlue })
+    // ===== VERIFY & QR CODE =====
+    page.drawLine({ start: { x: 50, y: 150 }, end: { x: 550, y: 150 }, thickness: 1, color: lightGray })
+    
+    // Tekst po lewej
+    page.drawText("Verify this reservation online / Zweryfikuj rezerwację online:", { x: 50, y: 130, size: 10, font, color: textGray })
+    page.drawText(verifyUrl, { x: 50, y: 115, size: 10, font: bold, color: brandBlue })
+
+    // Kod QR po prawej
+    page.drawImage(qrImage, { 
+      x: 460, 
+      y: 75, 
+      width: 85, 
+      height: 85 
+    })
 
     // ===== FOOTER =====
     page.drawText("Please present this voucher when picking up the vehicle.", { x: 50, y: 50, size: 10, font, color: textGray })
@@ -233,6 +252,23 @@ if (!booking || booking.status !== "paid") {
       pdf_path: filePath,
       status: "ready"
     }).eq("booking_id", booking_id)
+    // 📧 EMAIL: booking_confirmation (voucher)
+const { data: exists } = await supabase
+  .from("email_logs")
+  .select("id")
+  .eq("booking_id", booking_id)
+  .eq("type", "booking_confirmation")
+  .maybeSingle();
+
+if (!exists) {
+  await supabase.from("email_logs").insert({
+    booking_id: booking_id,
+    type: "booking_confirmation",
+    status: "queued"
+  });
+
+  console.log("📧 booking_confirmation queued:", booking_id);
+}
 
     console.log("Voucher READY:", reservation)
 

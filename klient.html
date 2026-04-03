@@ -859,9 +859,9 @@
     </style>
 </head>
 <body> <aside class="sidebar">
-        <div class="sidebar-logo">
-            <img src="bez.png" style="height:42px;" alt="Logo"> 
-        </div>
+        <div class="sidebar-logo" onclick="goToHome()">
+    <img src="bez.png" style="height:42px;" alt="Logo"> 
+</div>
         
         <div class="collapse-toggle" onclick="toggleSidebar()"></div>
 
@@ -3091,6 +3091,9 @@ window.loadPayments = async function() {
         console.error("❌ loadPayments error:", err);
         tbody.innerHTML = `<tr><td colspan="4">Błąd ładowania</td></tr>`;
     }
+};
+window.goToHome = function() {
+    window.location.href = "index.html";
 };
     </script>
     <div id="termsModal" class="modal-overlay">
