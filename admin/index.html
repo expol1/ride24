@@ -543,9 +543,9 @@
                         <td style="line-height: 1.5; font-size: 13px; white-space: pre-wrap; color: var(--text);">${escapeHtml(msg.message)}</td>
                        <td>
     <button class="btn-primary" style="margin-bottom: 5px; width: 100%;" 
-        onclick="openReplyModal('${msg.id}', '${msg.email}')"
-        Odpisz
-    </button>
+    onclick="openReplyModal('${msg.id}', '${msg.email}')">
+    Odpisz
+</button>
     <button class="btn-danger" style="width: 100%;" onclick="deleteMessage('${msg.id}')">
         Usuń
     </button>
