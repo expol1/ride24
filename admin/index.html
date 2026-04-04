@@ -960,8 +960,7 @@ ${statusMap[b.status] || b.status}
         async function loadPartnersData() {
             const { data, error } = await db
                 .from("partners")
-                .select("id, company_name, active, country, account_status")
-                
+                .select("id, company_name, active, country")
                 .order("created_at", { ascending: false });
 
             const tbody = document.getElementById("admin-partners-tbody");
