@@ -956,7 +956,9 @@ ${statusMap[b.status] || b.status}
             });
         }
 
-       async function loadPartnersData() {
+       // --- ZARZĄDZANIE PARTNERAMI (POPRAWIONE) ---
+
+async function loadPartnersData() {
     const { data, error } = await db
         .from("partners")
         .select("id, company_name, active, country")
@@ -972,7 +974,7 @@ ${statusMap[b.status] || b.status}
     }
 
     data.forEach(p => {
-        // Gwarantujemy, że isActive to true/false, co naprawia błędy w onclick
+        // Kluczowa poprawka: zamiana null na false
         const isActive = p.active === true; 
         const statusHtml = isActive 
             ? `<span class="status active">AKTYWNY</span>` 
@@ -998,54 +1000,49 @@ ${statusMap[b.status] || b.status}
     });
 }
 
-       // --- AKCJE MODERACJI (POPRAWIONE) ---
-
 async function togglePartner(partnerId, makeActive) {
-    const msg = makeActive ? "odblokować" : "zawiesić (ukryć auta)";
-    if (!confirm(`Czy na pewno chcesz ${msg} tego partnera?`)) return;
-
+    if (!confirm("Czy na pewno chcesz zmienić status tego partnera?")) return;
     try {
         const { error } = await db.rpc('admin_toggle_partner_status', { 
             p_partner_id: partnerId, 
             p_active: makeActive 
         });
         if (error) throw error;
-
-        alert("✅ Status partnera został zmieniony.");
-        loadPartnersData(); 
+        alert("✅ Status zmieniony");
+        loadPartnersData();
     } catch (err) {
-        alert("Błąd: " + err.message);
+        alert("Błąd bazy: " + err.message);
     }
 }
 
 async function deletePartner(partnerId) {
-    if(!confirm("⚠️ Czy na pewno chcesz trwale USUNĄĆ partnera? Akcja usunie konto i wszystkie dane. Jest nieodwracalna!")) return;
-
+    if (!confirm("⚠️ UWAGA: Czy na pewno chcesz trwale USUNĄĆ partnera?")) return;
     try {
         const { error } = await db.rpc("admin_delete_partner", {
             p_partner_id: partnerId
         });
         if (error) throw error;
-
-        alert("✅ Partner został całkowicie usunięty.");
+        alert("✅ Partner usunięty");
         loadPartnersData();
         loadRadarData();
-    } catch(err) {
-        alert("Błąd: " + err.message);
+    } catch (err) {
+        alert("Błąd bazy: " + err.message);
     }
 }
 
+async function forceCancel(bookingId) {
+    if (!confirm("Czy na pewno anulować rezerwację?")) return;
+    const { error } = await db.rpc('admin_force_cancel_booking', { p_booking_id: bookingId });
+    if (error) alert("Błąd: " + error.message);
+    else { alert("Anulowano"); loadRadarData(); }
+}
+
 async function markRefundDone(id) {
-    if (!confirm("Czy oznaczyć jako zwrócone?")) return;
-    try {
-        const { error } = await db.rpc("admin_mark_refund_done", { p_id: id });
-        if (error) throw error;
-        alert("Zwrot oznaczony jako wykonany");
-        loadRefunds();
-        loadRadarData();
-    } catch (err) {
-        alert("Błąd: " + err.message);
-    }
+    if (!confirm("Oznaczyć jako zwrócone?")) return;
+    const { error } = await db.rpc("admin_mark_refund_done", { p_id: id });
+    if (error) alert("Błąd: " + error.message);
+    else { alert("Gotowe"); loadRefunds(); loadRadarData(); }
+
 }
 
 async function forceCancel(bookingId) {
