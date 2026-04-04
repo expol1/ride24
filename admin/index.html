@@ -734,6 +734,24 @@ async function loadDeletionRequests() {
   });
 }
         const db = window.supabaseClient;
+        // --- SUPER-KANAŁ REALTIME (PRZENIESIONY NA DOŁ)
+db.channel('admin-general')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
+        console.log("🔔 Nowa wiadomość od klienta!");
+        loadMessages();
+        loadRadarData();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+        console.log("💰 Zmiana w rezerwacjach/kasie!");
+        loadRadarData();
+        loadRefunds();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'partners' }, () => {
+        console.log("🤝 Zmiana w bazie partnerów!");
+        loadPartnersData();
+        loadRadarData();
+    })
+    .subscribe();
 
         // XSS Sanitizer
         function escapeHtml(text) {
@@ -960,7 +978,8 @@ ${statusMap[b.status] || b.status}
         async function loadPartnersData() {
             const { data, error } = await db
                 .from("partners")
-                .select("id, company_name, active, country")
+                .select("id, company_name, active, country, account_status")
+                
                 .order("created_at", { ascending: false });
 
             const tbody = document.getElementById("admin-partners-tbody");
@@ -1176,23 +1195,7 @@ window.processAddPartner = async function() {
 };
 
 // --- SUPER-KANAŁ REALTIME (JEDEN ZAMIAST TRZECH) ---
-db.channel('admin-general')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
-        console.log("🔔 Nowa wiadomość od klienta!");
-        loadMessages();
-        loadRadarData();
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
-        console.log("💰 Zmiana w rezerwacjach/kasie!");
-        loadRadarData();
-        loadRefunds(); // Odświeży też listę zwrotów, jeśli ją przeglądasz
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'partners' }, () => {
-        console.log("🤝 Zmiana w bazie partnerów!");
-        loadPartnersData();
-        loadRadarData();
-    })
-    .subscribe();
+
 
 async function addDictionary() {
     const city = document.getElementById("dict-city").value.trim();

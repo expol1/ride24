@@ -134,41 +134,47 @@ serve(async (req) => {
     if (resendApiKey) {
 
       const html = `
-<div style="font-family: Inter, Arial, sans-serif; background: #f8fafc; padding: 40px; margin: 0;">
-  <div style="max-width: 600px; margin: auto; background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+<div style="font-family: 'Inter', Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 40px 20px; margin: 0;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
     
-    <div style="background: #0f172a; padding: 24px; text-align: center;">
-      <img src="https://zwyerdeuvyzgkgwglowr.supabase.co/storage/v1/object/public/assets/bez.png" alt="Ride24 Logo" style="height: 36px; display: block; margin: 0 auto;">
+    <div style="background-color: #0f172a; padding: 30px 20px; text-align: center;">
+      <img src="https://zwyerdeuvyzgkgwglowr.supabase.co/storage/v1/object/public/assets/bez.png" alt="Ride24 Logo" style="height: 40px; display: block; margin: 0 auto;">
     </div>
 
-    <div style="padding: 30px;">
-      <h2 style="color: #0f172a; margin-top: 0; font-size: 22px;">Welcome to Ride24!</h2>
+    <div style="padding: 40px 30px;">
+      <h2 style="color: #0f172a; margin-top: 0; margin-bottom: 20px; font-size: 24px; font-weight: 700; text-align: center;">Welcome to Ride24!</h2>
       
-      <p style="color: #334155; line-height: 1.6; font-size: 15px;">
-        The Ride24 Administrator has successfully created a Partner account for <strong>${company_name}</strong>.
+      <p style="color: #475569; line-height: 1.6; font-size: 16px; margin-bottom: 24px; text-align: center;">
+        The Ride24 Administrator has successfully created a Partner account for <strong style="color: #0f172a;">${company_name}</strong>.
       </p>
 
-      <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <div style="margin-bottom: 8px; color: #64748b; font-size: 14px;">
-          Login (E-mail): <span style="color: #0f172a; font-weight: bold; margin-left: 5px;">${email}</span>
+      <div style="background-color: #f8fafc; padding: 24px; border-radius: 12px; margin: 30px 0; border: 1px dashed #cbd5e1; text-align: center;">
+        <div style="margin-bottom: 12px; color: #64748b; font-size: 15px;">
+          Login (E-mail): <br>
+          <span style="color: #0f172a; font-weight: 700; font-size: 16px; display: inline-block; margin-top: 4px;">${email}</span>
         </div>
-        <div style="color: #64748b; font-size: 14px;">
-          Temporary Password: <span style="color: #0f172a; font-weight: bold; margin-left: 5px;">${password}</span>
+        <div style="color: #64748b; font-size: 15px;">
+          Temporary Password: <br>
+          <span style="color: #0f172a; font-weight: 700; font-size: 16px; display: inline-block; margin-top: 4px; letter-spacing: 1px;">${password}</span>
         </div>
       </div>
 
-      <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin-bottom: 24px;">
-        <em>For security reasons, you will be required to change this temporary password and accept the B2B Terms of Cooperation upon your first login.</em>
+      <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 35px; text-align: center; font-style: italic;">
+        For security reasons, you will be required to change this temporary password and accept the B2B Terms of Cooperation upon your first login.
       </p>
 
-      <div style="text-align: center;">
-        <a href="https://ride24.pl/partner/login.html" 
-           style="display: inline-block; background: #2563eb; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <a href="https://ride24.pl/partner.html" 
+           style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 16px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; letter-spacing: 0.5px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); border: 1px solid #1d4ed8;">
            Log in to Partner Dashboard
         </a>
       </div>
 
     </div>
+  </div>
+  
+  <div style="text-align: center; margin-top: 20px; color: #94a3b8; font-size: 13px;">
+    &copy; 2026 Ride24. All rights reserved.
   </div>
 </div>
 `
