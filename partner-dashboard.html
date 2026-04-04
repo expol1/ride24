@@ -492,16 +492,24 @@
                 padding: 0 10px !important; 
                 height: 60px; 
                 display: flex !important;
-                justify-content: space-between !important; /* Rozpycha flagi na lewo, a profil na prawo */
+                justify-content: flex-start !important; 
                 align-items: center !important;
+                overflow-x: auto !important; 
+                white-space: nowrap !important; 
+                -webkit-overflow-scrolling: touch; 
             }
             .lang-switch { 
-                flex-shrink: 0 !important; /* Zakaz ściskania flag! */
+                flex-shrink: 0 !important; 
                 display: flex !important;
                 gap: 10px !important;
             }
-            #partnerNameDisplay { display: none !important; } /* Ukrywa imię na mobile, żeby zmieścić flagi */
+            #partnerNameDisplay { display: none !important; } 
             .content-area { padding: 15px; }
+            
+            .partner-profile { 
+                flex-shrink: 0 !important; 
+                margin-left: auto; 
+            }
 
             /* Statystyki 2x2 */
             .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
@@ -687,7 +695,7 @@
                         <div class="stat-value" id="statAwaiting">0</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-title" data-pl="Opłacone rezerwacje" data-en="Paid bookings">Paid bookings</div>
+                       <div class="stat-title" data-pl="Potwierdzone rezerwacje" data-en="Confirmed bookings">Confirmed bookings</div>
                         <div class="stat-value" id="statPaid">0</div>
                     </div>
                     <div class="stat-card success">
@@ -1435,24 +1443,16 @@
                     
                     <div id="g-start" class="guide-section active">
                         <div class="guide-card">
-                            <h3 data-pl="Witaj w Ride24!" data-en="Welcome to Ride24!">Witaj w Ride24!</h3>
-                            <p data-pl="Twój panel jest zablokowany do momentu uzupełnienia profilu. Zrób to w dwóch prostych krokach:" data-en="Your panel is locked until your profile is complete. Follow these two simple steps:"></p>
+                            <h3 data-pl="Twój Pulpit (Dashboard)" data-en="Your Dashboard">Twój Pulpit (Dashboard)</h3>
+                            <p data-pl="Na stronie głównej widzisz najważniejsze statystyki swojej wypożyczalni:" data-en="On the main page, you can see the key statistics of your rental:"></p>
                             <ul>
-                                <li>
-                                    <span class="guide-step">1</span> 
-                                    <strong data-pl="Uzupełnij dane:" data-en="Fill in your details:">Uzupełnij dane:</strong> 
-                                    <span data-pl="Przejdź do zakładki Ustawienia i podaj dane kontaktowe." data-en="Go to Settings and provide your contact details."></span>
-                                </li>
-                                <li style="margin-top: 10px;">
-                                    <span class="guide-step">2</span> 
-                                    <strong data-pl="Wgraj dokumenty (PDF):" data-en="Upload documents (PDF):">Wgraj dokumenty (PDF):</strong> 
-                                    <span data-pl="Dodaj Warunki Wynajmu i Regulamin. Muszą być w formacie PDF. Bez tego system nie odblokuje dodawania aut." data-en="Upload your Rental Terms and Policy. They must be in PDF format. The system won't unlock until this is done."></span>
-                                </li>
+                                <li><strong>Oczekujące zapytania (Pending requests):</strong> <span data-pl="Nowe zapytania od klientów, na które musisz zareagować w ciągu 24h." data-en="New requests from clients that require your action within 24h."></span></li>
+                                <li><strong>Oczekujące na potwierdzenie (Pending confirmation):</strong> <span data-pl="Zaakceptowałeś zapytanie, czekamy aż klient potwierdzi rezerwację." data-en="You accepted the request, waiting for the client to confirm the booking."></span></li>
+                                <li><strong>Potwierdzone rezerwacje (Confirmed bookings):</strong> <span data-pl="Klient potwierdził rezerwację. Gotowe do realizacji." data-en="Client confirmed the booking. Ready for fulfillment."></span></li>
+                                <li><strong>Twój zysk (Suma) (Your revenue):</strong> <span data-pl="Szacowany całkowity zysk z potwierdzonych rezerwacji." data-en="Estimated total revenue from confirmed bookings."></span></li>
+                                <li><strong>Najnowsze zapytania (Latest requests):</strong> <span data-pl="Tabela ze skrótem aktualnych spraw." data-en="A table summarizing current requests."></span></li>
+                                <li><strong>Stały rabat partnera (Partner discount):</strong> <span data-pl="Widoczny w menu bocznym. Jest to wynegocjowany rabat między Tobą a Ride24. System automatycznie pomniejsza o ten procent ceny wprowadzane przez Ciebie w sekcji Flota." data-en="Visible in the sidebar. This is the negotiated discount between you and Ride24. The system automatically reduces the base prices you enter in the Fleet section by this percentage."></span></li>
                             </ul>
-                        </div>
-                        <div class="guide-card" style="border-left: 4px solid var(--blue);">
-                            <h3 data-pl="Przełącznik widoczności" data-en="Visibility toggle">Przełącznik widoczności</h3>
-                            <p data-pl="W ustawieniach znajdziesz przycisk AKTYWNY / UKRYTY. Jeśli wyjedziesz na urlop lub zabraknie Ci aut, zmień status na UKRYTY. Wszystkie Twoje oferty natychmiast znikną z wyszukiwarki." data-en="In Settings, you will find an ACTIVE / HIDDEN toggle. If you go on vacation or run out of cars, set it to HIDDEN. All your offers will instantly disappear from the search engine."></p>
                         </div>
                     </div>
 
@@ -1466,18 +1466,29 @@
                             </ul>
                         </div>
                         <div class="guide-card">
-                            <h3 data-pl="Dodatkowe opłaty" data-en="Extra fees">Dodatkowe opłaty</h3>
-                            <p data-pl="Podczas dodawania np. lotniska oddalonego od bazy, możesz zaznaczyć 'Wymagana dodatkowa opłata' i wpisać konkretną kwotę. Zostanie ona doliczona do wynajmu." data-en="When adding e.g. an airport far from your base, you can check 'Extra fee required' and enter an amount. It will be added to the rental."></p>
+                            <h3 data-pl="Zarządzanie lokalizacjami" data-en="Location Management">Zarządzanie lokalizacjami</h3>
+                            <p data-pl="W tabeli lokalizacji widzisz: Nazwę, Kraj, Region, Typ, Dodatkową opłatę, Status oraz Akcje (np. usuń). Dodając nową lokalizację, wypełniasz następujące pola:" data-en="In the locations table you see: Name, Country, Region, Type, Extra fee, Status, and Actions. When adding a new location, you fill in:"></p>
+                            <ul>
+                                <li><strong>Nazwa, Kraj, Region/Wyspa, Miasto:</strong> <span data-pl="Dane geograficzne (zawsze po angielsku)." data-en="Geographical data (always in English)."></span></li>
+                                <li><strong>Typ:</strong> <span data-pl="Wybierz czy to Lotnisko, Miasto, Biuro itp." data-en="Select if it's an Airport, City, Office, etc."></span></li>
+                                <li><strong>Wymagana dodatkowa opłata:</strong> <span data-pl="Opcjonalnie wpisz kwotę. Zostanie ona WYŚWIETLONA klientowi wyłącznie jako informacja (nie będzie doliczona do wartości koszyka rezerwacji w systemie)." data-en="Optionally enter an amount. It will be DISPLAYED to the client for informational purposes only (it will not be added to the system's reservation total)."></span></li>
+                                <li><strong>Wymaga kontaktu:</strong> <span data-pl="Zaznacz, jeśli przed odbiorem klient musi się z Wami skontaktować." data-en="Check if the client needs to contact you before pickup."></span></li>
+                                <li><strong>Lokalizacja aktywna:</strong> <span data-pl="Włącza lub wyłącza widoczność punktu." data-en="Toggles the visibility of the point."></span></li>
+                            </ul>
                         </div>
                     </div>
 
-                    <div id="g-fleet" class="guide-section">
+                  <div id="g-fleet" class="guide-section">
                         <div class="guide-card">
-                            <h3 data-pl="Jak dodawać pojazdy?" data-en="How to add vehicles?">Jak dodawać pojazdy?</h3>
-                            <p data-pl="Przejdź do zakładki Flota i kliknij '+ Dodaj auto'. Możesz oferować usługi dodatkowe:" data-en="Go to the Fleet tab and click '+ Add vehicle'. You can offer additional options:"></p>
-                            <ul>
-                                <li><strong>Brak kaucji / No deposit</strong></li>
-                                <li><strong>Bez limitu kilometrów / Unlimited mileage</strong></li>
+                            <h3 data-pl="Jak dodawać pojazdy i wypełniać pola?" data-en="How to add vehicles and fill in fields?">Jak dodawać pojazdy i wypełniać pola?</h3>
+                            <p data-pl="Podczas dodawania lub edycji pojazdu wypełniasz poniższe dane:" data-en="When adding or editing a vehicle, you fill in the following data:"></p>
+                            <ul style="font-size: 13px;">
+                                <li><strong>Zdjęcie pojazdu:</strong> <span data-pl="Wgraj miniaturę (PNG/JPG)." data-en="Upload a thumbnail (PNG/JPG)."></span></li>
+                                <li><strong>Opcje wynajmu:</strong> <span data-pl="Zaznacz atuty: Brak kaucji, Pełne ubezpieczenie, Niska kaucja, Bez karty kredytowej." data-en="Check perks: No deposit, Full insurance, Low deposit, No credit card."></span></li>
+                                <li><strong>Model, Klasa, Miejsca, Skrzynia, Bagaże, Paliwo:</strong> <span data-pl="Podstawowe parametry techniczne auta." data-en="Basic technical parameters of the car."></span></li>
+                                <li><strong>Limit przebiegu:</strong> <span data-pl="Wpisz dzienny limit lub zaznacz opcję 'Bez limitu'." data-en="Enter daily limit or check 'Unlimited'."></span></li>
+                                <li><strong>Kaucja:</strong> <span data-pl="Wpisz kwotę zabezpieczenia (lub zostaw puste, jeśli brak)." data-en="Enter the security deposit amount (or leave blank)."></span></li>
+                                <li><strong style="color: var(--blue);">Cena podstawowa za dobę:</strong> <span data-pl="⚠️ BARDZO WAŻNE: Wpisz pełną cenę bazową. System automatycznie przeliczy Twoją stawkę netto używając % z pola 'Rabat partnera'." data-en="⚠️ CRITICAL: Enter the full base price. The system will automatically calculate your net rate using the % from the 'Partner discount' field."></span></li>
                             </ul>
                         </div>
                         <div class="guide-card" style="border-left: 4px solid #F59E0B;">
@@ -1491,8 +1502,8 @@
                             <h3 data-pl="Cykl życia rezerwacji" data-en="Booking lifecycle">Cykl życia rezerwacji</h3>
                             <ul>
                                 <li><strong style="color:#D97706;" data-pl="1. Nowe zapytanie (Pending):" data-en="1. New request (Pending):"></strong> <span data-pl="Gdy klient kliknie rezerwuj, masz dokładnie 24h na kliknięcie AKCEPTUJ lub ODRZUĆ. Na pulpicie tyka zegar!" data-en="When a client clicks book, you have exactly 24h to click ACCEPT or REJECT. A timer runs on your dashboard!"></span></li>
-                                <li><strong style="color:#EA580C;" data-pl="2. Oczekujący (Awaiting):" data-en="2. Awaiting:"></strong> <span data-pl="Zaakceptowałeś zapytanie. Teraz piłka jest po stronie klienta - ma 24h na opłacenie zaliczki." data-en="You accepted the request. Now the client has 24h to pay the deposit."></span></li>
-                                <li><strong style="color:var(--green);" data-pl="3. Potwierdzona (Paid):" data-en="3. Confirmed (Paid):"></strong> <span data-pl="Sukces! Klient zapłacił. W tym momencie system odblokowuje numer telefonu i e-mail klienta, abyście mogli się skontaktować przed odbiorem auta." data-en="Success! The client paid. At this point, the system unlocks the client's phone and email so you can contact them before pickup."></span></li>
+                                <li><strong style="color:#EA580C;" data-pl="2. Oczekujący (Awaiting):" data-en="2. Awaiting:"></strong> <span data-pl="Zaakceptowałeś zapytanie. Teraz piłka jest po stronie klienta - ma 24h na potwierdzenie rezerwacji." data-en="You accepted the request. Now the client has 24h to confirm the reservation."></span></li>
+                                <li><strong style="color:var(--green);" data-pl="3. Potwierdzona (Confirmed):" data-en="3. Confirmed:"></strong> <span data-pl="Sukces! Klient potwierdził rezerwację. W tym momencie system odblokowuje numer telefonu i e-mail klienta, abyście mogli się skontaktować przed odbiorem auta." data-en="Success! The client confirmed the reservation. At this point, the system unlocks the client's phone and email so you can contact them before pickup."></span></li>
                             </ul>
                         </div>
                     </div>
