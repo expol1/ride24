@@ -956,116 +956,108 @@ ${statusMap[b.status] || b.status}
             });
         }
 
-        // --- DANE (PARTNERZY) ---
-        async function loadPartnersData() {
-            const { data, error } = await db
-                .from("partners")
-                .select("id, company_name, active, country")
-                .order("created_at", { ascending: false });
+       async function loadPartnersData() {
+    const { data, error } = await db
+        .from("partners")
+        .select("id, company_name, active, country")
+        .order("created_at", { ascending: false });
 
-            const tbody = document.getElementById("admin-partners-tbody");
-            tbody.innerHTML = "";
+    const tbody = document.getElementById("admin-partners-tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
 
-            if (error) {
-    tbody.innerHTML = "<tr><td colspan='4'>Błąd ładowania partnerów</td></tr>";
-    return;
-}
-
-if (!data.length) {
-    tbody.innerHTML = "<tr><td colspan='4'>Brak partnerów</td></tr>";
-    return;
-}
-
-            data.forEach(p => {
-                let statusHtml = p.active 
-                    ? `<span class="status active">AKTYWNY</span>` 
-                    : `<span class="status suspended">ZAWIESZONY</span>`;
-                
-                let actionBtn = `
-<button class="btn-warn" onclick="togglePartner('${p.id}', ${!p.active})">
-${p.active ? "Zawieś Partnera" : "Odblokuj"}
-</button>
-
-<button class="btn-danger" style="margin-left:6px;"
-onclick="deletePartner('${p.id}')">
-Usuń
-</button>
-`;
-                let safeCompanyName = escapeHtml(p.company_name || "Brak nazwy");
-               let safeCountry = escapeHtml(p.country ?? "---");
-
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="company-name">${safeCompanyName}</td>
-                        <td>${safeCountry}</td>
-                        <td>${statusHtml}</td>
-                        <td>${actionBtn}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        // --- AKCJE RPC ---
-        window.forceCancel = async function(bookingId) {
-            if (!confirm("UWAGA: Czy na pewno chcesz twardo anulować tę rezerwację? Ta akcja jest nieodwracalna.")) return;
-
-            const { error } = await db.rpc('admin_force_cancel_booking', { p_booking_id: bookingId });
-            if (error) { alert("Błąd: " + error.message); } 
-            else { alert("Rezerwacja anulowana pomyślnie."); loadBookingsData(); loadRadarData(); }
-        }
-
-        window.togglePartner = async function(partnerId, makeActive) {
-            const msg = makeActive ? "odblokować" : "zawiesić (ukryć auta)";
-            if (!confirm(`Czy na pewno chcesz ${msg} tego partnera?`)) return;
-
-            const { error } = await db.rpc('admin_toggle_partner_status', { p_partner_id: partnerId, p_active: makeActive });
-            if (error) { alert("Błąd: " + error.message); } 
-            else { loadPartnersData(); }
-        }
-        // 🔥 REFUND MANUAL (ADMIN)
-window.markRefundDone = async function(id) {
-
-    if (!confirm("Czy oznaczyć jako zwrócone?")) return;
-
-    const { error } = await db.rpc("admin_mark_refund_done", {
-        p_id: id
-    });
-
-    if (error) {
-        alert("Błąd: " + error.message);
+    if (error || !data) {
+        tbody.innerHTML = "<tr><td colspan='4'>Błąd ładowania danych</td></tr>";
         return;
     }
 
-    alert("Zwrot oznaczony jako wykonany");
+    data.forEach(p => {
+        // Gwarantujemy, że isActive to true/false, co naprawia błędy w onclick
+        const isActive = p.active === true; 
+        const statusHtml = isActive 
+            ? `<span class="status active">AKTYWNY</span>` 
+            : `<span class="status suspended">ZAWIESZONY</span>`;
+        
+        const actionBtn = `
+            <button class="btn-warn" onclick="togglePartner('${p.id}', ${!isActive})">
+                ${isActive ? "Zawieś Partnera" : "Odblokuj"}
+            </button>
+            <button class="btn-danger" style="margin-left:6px;" onclick="deletePartner('${p.id}')">
+                Usuń
+            </button>
+        `;
 
-    loadRefunds();
-    loadRadarData();
-};
-       // --- USUWANIE PARTNERA (NOWE RPC) ---
-window.deletePartner = async function(partnerId) {
-    // 1. Zabezpieczenie przed przypadkowym kliknięciem
-    if(!confirm("⚠️ Czy na pewno chcesz USUNĄĆ partnera wraz z kontem i wszystkimi danymi? Ta akcja jest nieodwracalna!")) return;
+        tbody.innerHTML += `
+            <tr>
+                <td class="company-name">${escapeHtml(p.company_name || "Brak nazwy")}</td>
+                <td>${escapeHtml(p.country ?? "---")}</td>
+                <td>${statusHtml}</td>
+                <td>${actionBtn}</td>
+            </tr>
+        `;
+    });
+}
+
+       // --- AKCJE MODERACJI (POPRAWIONE) ---
+
+async function togglePartner(partnerId, makeActive) {
+    const msg = makeActive ? "odblokować" : "zawiesić (ukryć auta)";
+    if (!confirm(`Czy na pewno chcesz ${msg} tego partnera?`)) return;
 
     try {
-        // 2. Wywołanie zaktualizowanego RPC w bazie danych
+        const { error } = await db.rpc('admin_toggle_partner_status', { 
+            p_partner_id: partnerId, 
+            p_active: makeActive 
+        });
+        if (error) throw error;
+
+        alert("✅ Status partnera został zmieniony.");
+        loadPartnersData(); 
+    } catch (err) {
+        alert("Błąd: " + err.message);
+    }
+}
+
+async function deletePartner(partnerId) {
+    if(!confirm("⚠️ Czy na pewno chcesz trwale USUNĄĆ partnera? Akcja usunie konto i wszystkie dane. Jest nieodwracalna!")) return;
+
+    try {
         const { error } = await db.rpc("admin_delete_partner", {
             p_partner_id: partnerId
         });
+        if (error) throw error;
 
-        // 3. Obsługa błędów (np. jeśli partner ma aktywne rezerwacje)
-        if(error) {
-            alert("Błąd: " + error.message);
-            return;
-        }
-
-        // 4. Sukces i przeładowanie widoku
-        alert("✅ Partner został całkowicie usunięty z systemu.");
+        alert("✅ Partner został całkowicie usunięty.");
         loadPartnersData();
         loadRadarData();
-
     } catch(err) {
-        console.error(err);
-        alert("Błąd krytyczny: " + err.message);
+        alert("Błąd: " + err.message);
+    }
+}
+
+async function markRefundDone(id) {
+    if (!confirm("Czy oznaczyć jako zwrócone?")) return;
+    try {
+        const { error } = await db.rpc("admin_mark_refund_done", { p_id: id });
+        if (error) throw error;
+        alert("Zwrot oznaczony jako wykonany");
+        loadRefunds();
+        loadRadarData();
+    } catch (err) {
+        alert("Błąd: " + err.message);
+    }
+}
+
+async function forceCancel(bookingId) {
+    if (!confirm("UWAGA: Czy na pewno chcesz twardo anulować tę rezerwację?")) return;
+    try {
+        const { error } = await db.rpc('admin_force_cancel_booking', { p_booking_id: bookingId });
+        if (error) throw error;
+        alert("Rezerwacja anulowana.");
+        loadBookingsData();
+        loadRadarData();
+    } catch (err) {
+        alert("Błąd: " + err.message);
     }
 }
         // --- MODAL CONTROL ---
