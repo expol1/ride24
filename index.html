@@ -1906,7 +1906,14 @@ window.closeLegal = function() {
         
         <input type="email" id="partner-email" placeholder="Partner email" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
         <input type="password" id="partner-password" placeholder="Password" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
-        
+        <div style="text-align: right; margin-top: -8px; margin-bottom: 15px;">
+    <a href="javascript:void(0)" onclick="handlePartnerPasswordReset(event)" 
+       style="color: #F1FCE3; font-size: 13px; text-decoration: underline; font-weight: 600; cursor: pointer;"
+       onmouseover="this.style.color='white'" 
+       onmouseout="this.style.color='#F1FCE3'">
+       Zapomniałeś hasła?
+    </a>
+</div>
         <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
         <button id="partnerAuthBtn" onclick="partnerLogin()" style="width:100%; padding:14px; background:var(--blue); color:white; border:none; border-radius:12px; font-weight:600; font-size:16px; cursor:pointer; transition: background 0.2s;">
             Log in to partner panel
@@ -1948,6 +1955,43 @@ async function handlePasswordReset(e) {
         window.showToast(error.message, "error");
     } else {
         window.showToast(isEn ? "Check your email for the reset link" : "Sprawdź email — link do resetu został wysłany", "success");
+    }
+}
+
+
+
+/* ======= TU WKLEJASZ NOWĄ FUNKCJĘ ======= */
+
+async function handlePartnerPasswordReset(e) {
+    if (e) e.preventDefault();
+
+    const db = window.supabaseClient;
+
+    const emailInput = document.getElementById('partner-email');
+    const email = emailInput?.value?.trim().toLowerCase();
+
+    const lang = localStorage.getItem("lang") || "pl";
+
+    if (!email) {
+        return window.showToast(
+            lang === "pl" ? "Podaj email w polu partnera" : "Enter partner email",
+            "error"
+        );
+    }
+
+    const { error } = await db.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html'
+    });
+
+    if (error) {
+        window.showToast(error.message, "error");
+    } else {
+        window.showToast(
+            lang === "pl"
+                ? "Sprawdź email — link do resetu został wysłany"
+                : "Check your email for reset link",
+            "success"
+        );
     }
 }
 function toggleMode(){

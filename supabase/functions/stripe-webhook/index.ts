@@ -81,7 +81,9 @@ Deno.serve(async (req) => {
       .insert({
         booking_id: bookingId,
         stripe_session_id: session.id,
-        amount: (session.amount_total || 0) / 100,
+        amount: session.amount_total
+  ? session.amount_total / 100
+  : null,
         currency: session.currency || "pln",
         status: "paid",
       });
