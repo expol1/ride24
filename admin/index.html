@@ -426,7 +426,7 @@
     </div>
 
     <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; font-weight: 600;">
-        ⚠️ WAŻNE: Po usunięciu konta w panelu, wszystkie dane (w tym partnerzy) znikają bezpowrotnie dzięki relacji CASCADE w bazie.
+        ⚠️ WAŻNE: Po usunięciu konta w panelu, wejdź do Supabase /Authentication usuń ręcznie.
     </div>
 
     <div class="saas-grid">
@@ -730,7 +730,7 @@ async function loadDeletionRequests() {
     const { data: partnersData, error: pError } = await db
         .from("partners")
         .select("user_id, company_name, email")
-        .or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled");
+        .or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled,active.eq.false");
 
     if (pError) {
         console.error("Błąd pobierania partnerów:", pError);
@@ -952,7 +952,7 @@ if (!refundError && refundData) {
     // --- Wnioski o usunięcie ---
 // --- Wnioski o usunięcie (Klienci + Partnerzy) ---
     const { data: clientsDel } = await db.rpc("admin_get_deletion_requests");
-    const { data: partnersDel } = await db.from("partners").select("id").or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled");
+    const { data: partnersDel } = await db.from("partners").select("id").or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled,active.eq.false");
     let totalDelCount = (clientsDel ? clientsDel.length : 0) + (partnersDel ? partnersDel.length : 0);
     document.getElementById("stat-deletions").innerText = totalDelCount;
 // --- ZWROTY DO AKCEPTACJI (RADAR) ---
