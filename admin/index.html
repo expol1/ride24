@@ -730,7 +730,7 @@ async function loadDeletionRequests() {
     const { data: partnersData, error: pError } = await db
         .from("partners")
         .select("user_id, company_name, email")
-        .or("account_status.is.null,active.is.null,account_status.eq.deleted");
+        .or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled");
 
     if (pError) {
         console.error("Błąd pobierania partnerów:", pError);
@@ -952,8 +952,7 @@ if (!refundError && refundData) {
     // --- Wnioski o usunięcie ---
 // --- Wnioski o usunięcie (Klienci + Partnerzy) ---
     const { data: clientsDel } = await db.rpc("admin_get_deletion_requests");
-    const { data: partnersDel } = await db.from("partners").select("id").or("account_status.is.null,active.is.null,account_status.eq.deleted");
-    
+    const { data: partnersDel } = await db.from("partners").select("id").or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled");
     let totalDelCount = (clientsDel ? clientsDel.length : 0) + (partnersDel ? partnersDel.length : 0);
     document.getElementById("stat-deletions").innerText = totalDelCount;
 // --- ZWROTY DO AKCEPTACJI (RADAR) ---
