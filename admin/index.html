@@ -466,7 +466,25 @@
     </div>
 </div>
     </div>
-
+<div class="table-container" style="margin-bottom: 30px;">
+        <div class="table-header" style="display:flex; justify-content: space-between;">
+            <span>Nowe lokalizacje od partnerów (do zmapowania)</span>
+            <span style="font-size: 12px; font-weight: 600; background: var(--blue); color: white; padding: 2px 8px; border-radius: 10px;" id="unmapped-count">0</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nazwa (Oryginał)</th>
+                    <th>Typ</th>
+                    <th>Wystąpień</th>
+                    <th>Akcja</th>
+                </tr>
+            </thead>
+            <tbody id="unmapped-locations-tbody">
+                <tr><td colspan="4">Ładowanie...</td></tr>
+            </tbody>
+        </table>
+    </div>
     <div class="table-container">
         <div class="table-header">Najczęstsze błędne wyszukiwania</div>
         <table>
@@ -484,6 +502,11 @@
 
     <div style="margin-top: 40px;">
         <h3>Dodaj wpis do słownika</h3>
+        <select id="dict-category" style="margin-bottom:6px; padding:6px; width:100%; max-width:200px; border:1px solid #E2E8F0; border-radius:4px;">
+    <option value="city">Miasto (City)</option>
+    <option value="country">Kraj (Country)</option>
+    <option value="region">Region</option>
+</select><br>
 
         <input id="dict-city" placeholder="Poprawna nazwa (PL) np. Mediolan" style="margin-bottom:6px;">
 <input id="dict-alias" placeholder="Poprawna nazwa (EN) np. Milano" style="margin-bottom:6px;">
@@ -1186,48 +1209,7 @@ db.channel('admin-general')
     })
     .subscribe();
 
-async function addDictionary() {
-    const city = document.getElementById("dict-city").value.trim();
-    const alias = document.getElementById("dict-alias").value.trim();
-    const keywordsRaw = document.getElementById("dict-keywords").value;
 
-    if (!city || !alias) {
-        alert("Podaj miasto i alias");
-        return;
-    }
-
-    const keywords = (keywordsRaw || "")
-    .split(",")
-    .map(k => k.trim().toLowerCase())
-    .filter(k => k.length > 0);
-
-    const { error } = await db
-        .from("locations_dictionary")
-        .insert([{
-            category: "city",
-            name_en: alias,
-            name_pl: city,
-            keywords: keywords.join(" "),
-            slug: alias.toLowerCase().replace(/\s+/g, "-"),
-            parent_country_en: null,
-            parent_region_en: null
-        }]);
-
-    if (error) {
-        alert("Błąd: " + error.message);
-    } else {
-        alert("Dodano wpis do słownika!");
-        
-        // Czyszczenie pól
-        document.getElementById("dict-city").value = "";
-        document.getElementById("dict-alias").value = "";
-        document.getElementById("dict-keywords").value = "";
-        
-        // Odświeżenie list
-        loadUnmappedLocations();
-        loadSearchLogs();
-    }
-}
 // 1. Otwieranie okienka
 let currentMessageId = null;
 
@@ -1320,42 +1302,52 @@ async function loadUnmappedLocations() {
     tbody.innerHTML = "<tr><td colspan='4'>Szukam nowych lokalizacji...</td></tr>";
 
     try {
+        // 1. Pobieramy kraj, region i miasto
         const { data: partnerData, error: pError } = await db
             .from('partner_locations')
-            .select('city')
-            .not('city', 'is', null)
-            .neq('city', '');
+            .select('country, region, city');
 
         if (pError) throw pError;
 
+        // 2. Pobieramy cały słownik (bez ograniczania tylko do miast)
         const { data: dictData, error: dError } = await db
             .from('locations_dictionary')
-            .select('name_en')
-            .eq('category', 'city');
+            .select('name_en');
 
         if (dError) throw dError;
 
-        const mappedCities = new Set(dictData.map(d => d.name_en?.toLowerCase().trim()));
+        const mappedLocations = new Set(dictData.map(d => d.name_en?.toLowerCase().trim()));
         const unmappedCounts = {};
 
+        // 3. Analizujemy wszystkie trzy poziomy
         (partnerData || []).forEach(row => {
-            const rawCity = row.city;
-            if (!rawCity) return;
-            const cityKey = rawCity.toLowerCase().trim();
+            const places = [
+                { name: row.country, type: 'country' },
+                { name: row.region, type: 'region' },
+                { name: row.city, type: 'city' }
+            ];
 
-            if (!mappedCities.has(cityKey)) {
-                unmappedCounts[rawCity] = (unmappedCounts[rawCity] || 0) + 1;
-            }
+            places.forEach(place => {
+                if (!place.name) return;
+                const key = place.name.toLowerCase().trim();
+                
+                if (!mappedLocations.has(key)) {
+                    unmappedCounts[place.name] = {
+                        count: (unmappedCounts[place.name]?.count || 0) + 1,
+                        type: place.type
+                    };
+                }
+            });
         });
 
         const unmappedArray = Object.entries(unmappedCounts)
-            .map(([city, count]) => ({ city, count }))
+            .map(([name, data]) => ({ name, count: data.count, type: data.type }))
             .sort((a, b) => b.count - a.count);
 
         document.getElementById("unmapped-count").innerText = unmappedArray.length;
 
         if (unmappedArray.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding:20px; color:gray;'>Brak nowych lokalizacji do przetłumaczenia. 🎉</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding:20px; color:gray;'>Brak nowych lokalizacji. 🎉</td></tr>";
             return;
         }
 
@@ -1363,12 +1355,12 @@ async function loadUnmappedLocations() {
         unmappedArray.forEach(item => {
             tbody.innerHTML += `
                 <tr>
-                    <td style="font-weight: 700; color: var(--blue-dark);">${escapeHtml(item.city)}</td>
-                    <td><span class="status" style="background: #E2E8F0; color: #475569;">city</span></td>
+                    <td style="font-weight: 700; color: var(--blue-dark);">${escapeHtml(item.name)}</td>
+                    <td><span class="status" style="background: #E2E8F0; color: #475569;">${item.type}</span></td>
                     <td><b>${item.count}</b></td>
                     <td>
                         <button class="btn-primary" style="padding: 6px 12px; font-size: 11px;" 
-                            onclick="prefillDictionary('${escapeHtml(item.city)}')">
+                            onclick="prefillDictionary('${escapeHtml(item.name)}', '${item.type}')">
                             Tłumacz
                         </button>
                     </td>
@@ -1381,10 +1373,11 @@ async function loadUnmappedLocations() {
     }
 }
 
-window.prefillDictionary = function(partnerName) {
-    document.getElementById("dict-alias").value = partnerName;
-    document.getElementById("dict-city").focus();
-    document.getElementById("dict-city").scrollIntoView({ behavior: "smooth", block: "center" });
+window.prefillDictionary = function(partnerName, categoryType) {
+    document.getElementById("dict-alias").value = partnerName;
+    if(categoryType) { document.getElementById("dict-category").value = categoryType; }
+    document.getElementById("dict-city").focus();
+    document.getElementById("dict-city").scrollIntoView({ behavior: "smooth", block: "center" });
 };
     </script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
