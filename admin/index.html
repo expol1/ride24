@@ -422,36 +422,41 @@
 </div>
     <div id="view-deletions" class="view-section">
     <div class="page-header">
-        <h1 class="page-title">Konta do usunięcia</h1>
+        <h1 class="page-title">Wnioski o usunięcie konta</h1>
     </div>
 
-    <div style="
-        background: #FEF2F2;
-        border: 1px solid #FECACA;
-        color: #991B1B;
-        padding: 16px 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        font-size: 13px;
-        font-weight: 600;
-    ">
-        ⚠️ WAŻNE: Po usunięciu konta w panelu, należy ręcznie usunąć użytkownika w Supabase:<br>
-        <b>Authentication → Users</b>
+    <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; font-weight: 600;">
+        ⚠️ WAŻNE: Po usunięciu konta w panelu, wszystkie dane (w tym partnerzy) znikają bezpowrotnie dzięki relacji CASCADE w bazie.
     </div>
 
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Email</th>
-                    <th>ID</th>
-                    <th>Akcja</th>
-                </tr>
-            </thead>
-            <tbody id="deletions-tbody">
-                <tr><td colspan="3">Ładowanie...</td></tr>
-            </tbody>
-        </table>
+    <div class="saas-grid">
+        <div class="saas-card">
+            <div class="saas-card-header">Klienci (Zwykli użytkownicy)</div>
+            <div style="overflow-y: auto; max-height: 400px;">
+                <table>
+                    <thead>
+                        <tr><th>Email / ID</th><th>Akcja</th></tr>
+                    </thead>
+                    <tbody id="deletions-clients-tbody">
+                        <tr><td colspan="2">Ładowanie...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="saas-card">
+            <div class="saas-card-header">Partnerzy (Wypożyczalnie)</div>
+            <div style="overflow-y: auto; max-height: 400px;">
+                <table>
+                    <thead>
+                        <tr><th>Firma / Email</th><th>Akcja</th></tr>
+                    </thead>
+                    <tbody id="deletions-partners-tbody">
+                        <tr><td colspan="2">Ładowanie...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 <div id="view-search" class="view-section">
@@ -683,35 +688,78 @@ async function deleteMessage(id) {
 async function loadDeletionRequests() {
     console.log("Pobieranie listy zgłoszeń do usunięcia...");
 
-    const { data, error } = await db.rpc("admin_get_deletion_requests");
+    const tbodyClients = document.getElementById("deletions-clients-tbody");
+    const tbodyPartners = document.getElementById("deletions-partners-tbody");
 
-    console.log("Odebrane dane:", data);
-    if (error) console.error("Błąd pobierania listy:", error);
+    if (!tbodyClients || !tbodyPartners) return;
 
-    const tbody = document.getElementById("deletions-tbody");
-    if (!tbody) return; // Zabezpieczenie przed brakiem elementu w DOM
+    tbodyClients.innerHTML = "<tr><td colspan='2'>Ładowanie...</td></tr>";
+    tbodyPartners.innerHTML = "<tr><td colspan='2'>Ładowanie...</td></tr>";
+
+    let totalDeletions = 0;
+
+    // 1. POBIERANIE KLIENTÓW (Z RPC)
+    const { data: clientsData, error: cError } = await db.rpc("admin_get_deletion_requests");
     
-    tbody.innerHTML = "";
-
-    if (error || !data || data.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; padding:20px; color:gray;'>Brak aktywnych zgłoszeń o usunięcie konta</td></tr>";
-        return;
+    if (cError) {
+        console.error("Błąd pobierania klientów:", cError);
+        tbodyClients.innerHTML = "<tr><td colspan='2'>Błąd bazy danych</td></tr>";
+    } else {
+        tbodyClients.innerHTML = "";
+        if (!clientsData || clientsData.length === 0) {
+            tbodyClients.innerHTML = "<tr><td colspan='2' style='text-align:center; padding:20px; color:gray;'>Brak wniosków</td></tr>";
+        } else {
+            totalDeletions += clientsData.length;
+            clientsData.forEach(u => {
+                tbodyClients.innerHTML += `
+                    <tr>
+                        <td>
+                            <div style="font-weight:600;">${escapeHtml(u.email)}</div>
+                            <div style="font-size:11px; color:#64748B;">${u.id}</div>
+                        </td>
+                        <td style="text-align: right;">
+                            <button class="btn-danger" onclick="deleteUser('${u.id}')">Usuń</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
     }
 
-    data.forEach(u => {
-        tbody.innerHTML += `
-            <tr>
-                <td style="font-weight:600;">${u.email}</td>
-                <td style="font-size:11px; color:#64748B;">${u.id}</td>
-                <td>
-                    <button class="btn-danger"
-                        onclick="deleteUser('${u.id}')">
-                        Usuń definitywnie
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
+    // 2. POBIERANIE PARTNERÓW (Gdzie status lub active to null)
+    const { data: partnersData, error: pError } = await db
+        .from("partners")
+        .select("user_id, company_name, email")
+        .or("account_status.is.null,active.is.null,account_status.eq.deleted");
+
+    if (pError) {
+        console.error("Błąd pobierania partnerów:", pError);
+        tbodyPartners.innerHTML = "<tr><td colspan='2'>Błąd bazy danych</td></tr>";
+    } else {
+        tbodyPartners.innerHTML = "";
+        if (!partnersData || partnersData.length === 0) {
+            tbodyPartners.innerHTML = "<tr><td colspan='2' style='text-align:center; padding:20px; color:gray;'>Brak wniosków</td></tr>";
+        } else {
+            totalDeletions += partnersData.length;
+            partnersData.forEach(p => {
+                tbodyPartners.innerHTML += `
+                    <tr>
+                        <td>
+                            <div style="font-weight:700; color:var(--blue-dark);">${escapeHtml(p.company_name)}</div>
+                            <div style="font-size:11px; color:#64748B;">${escapeHtml(p.email || "Brak email")}</div>
+                        </td>
+                        <td style="text-align: right;">
+                            <button class="btn-danger" onclick="deleteUser('${p.user_id}')">Usuń</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    }
+
+    // Aktualizacja kafelka Radar
+    const statDeletions = document.getElementById("stat-deletions");
+    if (statDeletions) statDeletions.innerText = totalDeletions;
 }
        async function loadRefunds() {
 
@@ -902,14 +950,12 @@ if (!refundError && refundData) {
     document.getElementById("stat-refunds").innerText = "0.00";
 }
     // --- Wnioski o usunięcie ---
-const { data: deletionsData, error: deletionsError } = await db.rpc("admin_get_deletion_requests");
-
-if (!deletionsError && deletionsData) {
-    document.getElementById("stat-deletions").innerText = deletionsData.length || 0;
-} else {
-    document.getElementById("stat-deletions").innerText = "Błąd";
-
-}
+// --- Wnioski o usunięcie (Klienci + Partnerzy) ---
+    const { data: clientsDel } = await db.rpc("admin_get_deletion_requests");
+    const { data: partnersDel } = await db.from("partners").select("id").or("account_status.is.null,active.is.null,account_status.eq.deleted");
+    
+    let totalDelCount = (clientsDel ? clientsDel.length : 0) + (partnersDel ? partnersDel.length : 0);
+    document.getElementById("stat-deletions").innerText = totalDelCount;
 // --- ZWROTY DO AKCEPTACJI (RADAR) ---
     const { data: pendingRefunds, error: pendingRefundsError } = await db.rpc("admin_get_refunds");
     if (!pendingRefundsError && pendingRefunds) {
