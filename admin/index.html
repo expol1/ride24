@@ -155,6 +155,21 @@
 .info-tooltip:hover .tooltip-box {
     display: block;
 }
+
+/* --- SAAS SMART SEARCH LAYOUT --- */
+        .saas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px; }
+        .saas-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
+        .saas-card-header { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .saas-card table { margin: 0; }
+        .saas-card th { background: transparent; padding: 10px 0; border-bottom: 2px solid var(--bg); }
+        .saas-card td { padding: 12px 0; }
+        
+        .smart-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #F8FAFC; padding: 20px; border-radius: 12px; border: 1px dashed #CBD5E1; }
+        .smart-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; }
+        .smart-label { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; margin-bottom: 4px; display: block; }
+        .smart-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; transition: 0.2s; }
+        .smart-input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px #DBEAFE; }
+
 /* --- STYLE DLA TELEFONU --- */
 @media (max-width: 768px) {
     body { flex-direction: column; }
@@ -442,80 +457,77 @@
 <div id="view-search" class="view-section">
     <div class="page-header">
         <div style="display:flex; align-items:center; gap:10px;">
-    <h1 class="page-title">Smart Search & Logi</h1>
-
-    <div class="info-tooltip">
-        ⓘ
-        <div class="tooltip-box">
-            <b>Jak to działa?</b><br><br>
-
-            1. System zapisuje błędne wyszukiwania użytkowników<br>
-            2. Pokazuje najczęstsze frazy poniżej<br>
-            3. Ty dodajesz poprawki (aliasy)<br><br>
-
-            <b>PRZYKŁAD:</b><br>
-            Użytkownik wpisuje: <b>mediolna</b><br>
-            Dodajesz:<br><br>
-
-            • Miasto: <b>Mediolan</b><br>
-            • Alias: <b>Milano</b><br>
-            • Błędy: <b>mediolna,medilan,medjolan</b><br><br>
-
-            👉 System zacznie poprawnie kierować użytkownika 🚀
+            <h1 class="page-title">Smart Search & Słownik</h1>
         </div>
     </div>
-</div>
-    </div>
-<div class="table-container" style="margin-bottom: 30px;">
-        <div class="table-header" style="display:flex; justify-content: space-between;">
-            <span>Nowe lokalizacje od partnerów (do zmapowania)</span>
-            <span style="font-size: 12px; font-weight: 600; background: var(--blue); color: white; padding: 2px 8px; border-radius: 10px;" id="unmapped-count">0</span>
+
+    <div class="saas-grid">
+        <div class="saas-card">
+            <div class="saas-card-header">
+                Nowe od Partnerów (Do zmapowania)
+                <span style="font-size: 11px; background: var(--blue); color: white; padding: 2px 8px; border-radius: 10px;" id="unmapped-count">0</span>
+            </div>
+            <div style="overflow-y: auto; max-height: 300px;">
+                <table>
+                    <thead>
+                        <tr><th>Nazwa (Oryginał)</th><th>Typ</th><th>Akcja</th></tr>
+                    </thead>
+                    <tbody id="unmapped-locations-tbody">
+                        <tr><td colspan="3">Ładowanie...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Nazwa (Oryginał)</th>
-                    <th>Typ</th>
-                    <th>Wystąpień</th>
-                    <th>Akcja</th>
-                </tr>
-            </thead>
-            <tbody id="unmapped-locations-tbody">
-                <tr><td colspan="4">Ładowanie...</td></tr>
-            </tbody>
-        </table>
-    </div>
-    <div class="table-container">
-        <div class="table-header">Najczęstsze błędne wyszukiwania</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Fraza</th>
-                    <th>Ilość</th>
-                </tr>
-            </thead>
-            <tbody id="search-logs-tbody">
-                <tr><td colspan="2">Ładowanie...</td></tr>
-            </tbody>
-        </table>
+
+        <div class="saas-card">
+            <div class="saas-card-header">Top błędne zapytania (Logi)</div>
+            <div style="overflow-y: auto; max-height: 300px;">
+                <table>
+                    <thead>
+                        <tr><th>Fraza klienta</th><th>Ilość</th></tr>
+                    </thead>
+                    <tbody id="search-logs-tbody">
+                        <tr><td colspan="2">Ładowanie...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <div style="margin-top: 40px;">
-        <h3>Dodaj wpis do słownika</h3>
-        <select id="dict-category" style="margin-bottom:6px; padding:6px; width:100%; max-width:200px; border:1px solid #E2E8F0; border-radius:4px;">
-    <option value="city">Miasto (City)</option>
-    <option value="country">Kraj (Country)</option>
-    <option value="region">Region</option>
-</select><br>
+    <div class="saas-card">
+        <div class="saas-card-header" style="border:none; padding-bottom:0;">
+            Kreator Mapowania (Słownik)
+            <span style="font-size: 12px; font-weight: 500; color: var(--gray);">Wypełnij tylko to, co chcesz dodać.</span>
+        </div>
+        
+        <div class="smart-form-grid" style="margin-top: 16px;">
+            <div style="grid-column: span 2; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                <span style="font-weight: 800; color: var(--blue-dark); font-size: 14px;">1. Państwo (Country)</span>
+            </div>
+            <div><label class="smart-label">Oryginał (EN)</label><input id="dict-country-en" class="smart-input" placeholder="np. Italy"></div>
+            <div><label class="smart-label">Tłumaczenie (PL)</label><input id="dict-country-pl" class="smart-input" placeholder="np. Włochy"></div>
 
-        <input id="dict-city" placeholder="Poprawna nazwa (PL) np. Mediolan" style="margin-bottom:6px;">
-<input id="dict-alias" placeholder="Poprawna nazwa (EN) np. Milano" style="margin-bottom:6px;">
-<input id="dict-keywords" placeholder="Błędy użytkownika np. mediolna,medilan">
+            <div style="grid-column: span 2; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 10px;">
+                <span style="font-weight: 800; color: var(--blue-dark); font-size: 14px;">2. Region / Wyspa</span>
+            </div>
+            <div><label class="smart-label">Oryginał (EN)</label><input id="dict-region-en" class="smart-input" placeholder="np. Lazio"></div>
+            <div><label class="smart-label">Tłumaczenie (PL)</label><input id="dict-region-pl" class="smart-input" placeholder="np. Lacjum"></div>
 
+            <div style="grid-column: span 2; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-top: 10px;">
+                <span style="font-weight: 800; color: var(--blue-dark); font-size: 14px;">3. Miasto (City)</span>
+            </div>
+            <div><label class="smart-label">Oryginał (EN)</label><input id="dict-city-en" class="smart-input" placeholder="np. Rome"></div>
+            <div><label class="smart-label">Tłumaczenie (PL)</label><input id="dict-city-pl" class="smart-input" placeholder="np. Rzym"></div>
 
-        <br><br>
+            <div style="grid-column: span 2; margin-top: 10px;">
+                <label class="smart-label">Słowa kluczowe (błędy z logów po przecinku)</label>
+                <input id="dict-keywords" class="smart-input" placeholder="np. rzym, rome, rzim">
+            </div>
 
-        <button class="btn-primary" onclick="addDictionary()">Dodaj</button>
+            <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 10px;">
+                <button class="btn-primary" onclick="addDictionary()" style="padding: 12px 24px; font-size: 14px; background: var(--green);">Zapisz do słownika</button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="reply-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
@@ -1298,18 +1310,15 @@ async function sendReply() {
 async function loadUnmappedLocations() {
     const tbody = document.getElementById("unmapped-locations-tbody");
     if (!tbody) return;
-
-    tbody.innerHTML = "<tr><td colspan='4'>Szukam nowych lokalizacji...</td></tr>";
+    tbody.innerHTML = "<tr><td colspan='3'>Szukam nowych lokalizacji...</td></tr>";
 
     try {
-        // 1. Pobieramy kraj, region i miasto
         const { data: partnerData, error: pError } = await db
             .from('partner_locations')
             .select('country, region, city');
 
         if (pError) throw pError;
 
-        // 2. Pobieramy cały słownik (bez ograniczania tylko do miast)
         const { data: dictData, error: dError } = await db
             .from('locations_dictionary')
             .select('name_en');
@@ -1319,7 +1328,6 @@ async function loadUnmappedLocations() {
         const mappedLocations = new Set(dictData.map(d => d.name_en?.toLowerCase().trim()));
         const unmappedCounts = {};
 
-        // 3. Analizujemy wszystkie trzy poziomy
         (partnerData || []).forEach(row => {
             const places = [
                 { name: row.country, type: 'country' },
@@ -1341,44 +1349,96 @@ async function loadUnmappedLocations() {
         });
 
         const unmappedArray = Object.entries(unmappedCounts)
-            .map(([name, data]) => ({ name, count: data.count, type: data.type }))
-            .sort((a, b) => b.count - a.count);
+            .sort((a, b) => b[1].count - a[1].count);
 
         document.getElementById("unmapped-count").innerText = unmappedArray.length;
 
         if (unmappedArray.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding:20px; color:gray;'>Brak nowych lokalizacji. 🎉</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='3' style='text-align:center; color:gray;'>Wszystko przetłumaczone! 🎉</td></tr>";
             return;
         }
 
         tbody.innerHTML = "";
-        unmappedArray.forEach(item => {
+        unmappedArray.forEach(([name, data]) => {
             tbody.innerHTML += `
                 <tr>
-                    <td style="font-weight: 700; color: var(--blue-dark);">${escapeHtml(item.name)}</td>
-                    <td><span class="status" style="background: #E2E8F0; color: #475569;">${item.type}</span></td>
-                    <td><b>${item.count}</b></td>
-                    <td>
+                    <td style="font-weight: 700; color: var(--blue-dark);">${escapeHtml(name)}</td>
+                    <td><span class="status" style="background: #E2E8F0; color: #475569;">${data.type}</span></td>
+                    <td style="text-align: right;">
                         <button class="btn-primary" style="padding: 6px 12px; font-size: 11px;" 
-                            onclick="prefillDictionary('${escapeHtml(item.name)}', '${item.type}')">
-                            Tłumacz
-                        </button>
+                            onclick="prefillDictionary('${escapeHtml(name)}', '${data.type}')">Tłumacz</button>
                     </td>
                 </tr>
             `;
         });
     } catch (err) {
-        console.error("Błąd pobierania danych:", err);
-        tbody.innerHTML = "<tr><td colspan='4'>Błąd pobierania danych z bazy.</td></tr>";
+        console.error("Błąd pobierania danych unmapped:", err);
+        tbody.innerHTML = "<tr><td colspan='3'>Błąd pobierania danych.</td></tr>";
     }
 }
 
-window.prefillDictionary = function(partnerName, categoryType) {
-    document.getElementById("dict-alias").value = partnerName;
-    if(categoryType) { document.getElementById("dict-category").value = categoryType; }
-    document.getElementById("dict-city").focus();
-    document.getElementById("dict-city").scrollIntoView({ behavior: "smooth", block: "center" });
+window.prefillDictionary = function(name, type) {
+    if (type === 'country') { document.getElementById("dict-country-en").value = name; document.getElementById("dict-country-pl").focus(); }
+    if (type === 'region') { document.getElementById("dict-region-en").value = name; document.getElementById("dict-region-pl").focus(); }
+    if (type === 'city') { document.getElementById("dict-city-en").value = name; document.getElementById("dict-city-pl").focus(); }
+    document.getElementById("dict-keywords").scrollIntoView({ behavior: "smooth", block: "center" });
 };
+
+async function addDictionary() {
+    const cEn = document.getElementById("dict-country-en").value.trim();
+    const cPl = document.getElementById("dict-country-pl").value.trim();
+    const rEn = document.getElementById("dict-region-en").value.trim();
+    const rPl = document.getElementById("dict-region-pl").value.trim();
+    const ciEn = document.getElementById("dict-city-en").value.trim();
+    const ciPl = document.getElementById("dict-city-pl").value.trim();
+    const keywordsRaw = document.getElementById("dict-keywords").value.trim();
+
+    const inserts = [];
+    const keys = keywordsRaw ? keywordsRaw.split(",").map(k => k.trim().toLowerCase()).join(", ") : "";
+
+    if (cEn && cPl) {
+        inserts.push({
+            category: 'country', name_en: cEn, name_pl: cPl,
+            slug: cEn.toLowerCase().replace(/\s+/g, "-"),
+            keywords: (!rEn && !ciEn) ? keys : "", 
+            parent_country_en: null, parent_region_en: null
+        });
+    }
+
+    if (rEn && rPl) {
+        inserts.push({
+            category: 'region', name_en: rEn, name_pl: rPl,
+            slug: rEn.toLowerCase().replace(/\s+/g, "-"),
+            keywords: (!ciEn) ? keys : "",
+            parent_country_en: cEn || null, parent_region_en: null
+        });
+    }
+
+    if (ciEn && ciPl) {
+        inserts.push({
+            category: 'city', name_en: ciEn, name_pl: ciPl,
+            slug: ciEn.toLowerCase().replace(/\s+/g, "-"),
+            keywords: keys,
+            parent_country_en: cEn || null, parent_region_en: rEn || null
+        });
+    }
+
+    if (inserts.length === 0) {
+        alert("Wypełnij chociaż jeden poziom (np. tylko Państwo, albo tylko Miasto) w obu językach (EN i PL)!");
+        return;
+    }
+
+    const { error } = await db.from("locations_dictionary").insert(inserts);
+
+    if (error) {
+        alert("Błąd zapisu: " + error.message);
+    } else {
+        alert("✅ Słownik zaktualizowany!");
+        document.querySelectorAll('.smart-input').forEach(input => input.value = "");
+        loadUnmappedLocations();
+        loadSearchLogs();
+    }
+}
     </script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">
