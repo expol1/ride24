@@ -1395,26 +1395,23 @@ function closeRegSuccess() {
 };
     
    function setLang(lang) {
-
     localStorage.setItem("lang", lang);
 
     document.querySelectorAll("[data-pl]").forEach(el => {
-    // Dodajemy sprawdzanie TEXTAREA obok INPUT
-    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-        el.placeholder = el.dataset[lang];
-    } else if (el.tagName === 'OPTION') {
-        el.innerText = el.dataset[lang];
-    } else {
-        el.innerText = el.dataset[lang];
-    }
-});
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = el.dataset[lang];
+        } else if (el.tagName === 'OPTION') {
+            el.innerText = el.dataset[lang];
+        } else {
+            el.innerHTML = el.dataset[lang]; // ZMIANA: innerHTML pozwala na tagi <strong>, <a> itp. w tłumaczeniach
+        }
+    });
 
     document.querySelectorAll(".lang-btn").forEach(btn => {
         btn.classList.remove("active-lang");
     });
 
     document.getElementById("lang-" + lang).classList.add("active-lang");
-
 }
 
     function detectLang() {
@@ -1444,112 +1441,111 @@ function handleCookieConsent(action) {
     }
 }
       const legalData = {
-       
     regulamin: `
-<h2>Regulamin Serwisu</h2>
-<p><strong>Ride24.pl • Ostatnia aktualizacja: 01 maj 2026 r.</strong></p>
+<h2 data-pl="Regulamin Serwisu" data-en="Terms of Service">Regulamin Serwisu</h2>
+<p><strong data-pl="Ride24.pl • Ostatnia aktualizacja: 01 maj 2026 r." data-en="Ride24.pl • Last update: May 01, 2026">Ride24.pl • Ostatnia aktualizacja: 01 maj 2026 r.</strong></p>
 
 <div style="background:#F0F9FF;border-left:5px solid #2563EB;padding:15px;margin-bottom:20px;border-radius:8px;">
-<strong>Ważne Informacje</strong><br>
-Platforma Ride24.pl działa jako internetowy marketplace. Ride24 nie jest stroną umowy wynajmu pojazdu. Umowa wynajmu pojazdu zawierana jest bezpośrednio pomiędzy użytkownikiem a partnerem (wypożyczalnią samochodów).
+<strong data-pl="Ważne Informacje" data-en="Important Information">Ważne Informacje</strong><br>
+<span data-pl="Platforma Ride24.pl działa jako internetowy marketplace. Ride24 nie jest stroną umowy wynajmu pojazdu. Umowa wynajmu pojazdu zawierana jest bezpośrednio pomiędzy użytkownikiem a partnerem (wypożyczalnią samochodów)." data-en="The Ride24.pl platform operates as an online marketplace. Ride24 is not a party to the vehicle rental agreement. The vehicle rental agreement is concluded directly between the user and the partner (car rental company).">Platforma Ride24.pl działa jako internetowy marketplace. Ride24 nie jest stroną umowy wynajmu pojazdu. Umowa wynajmu pojazdu zawierana jest bezpośrednio pomiędzy użytkownikiem a partnerem (wypożyczalnią samochodów).</span>
 </div>
 
-<h3>Spis treści</h3>
+<h3 data-pl="Spis treści" data-en="Table of Contents">Spis treści</h3>
 <ul>
-<li>§1. Postanowienia ogólne</li>
-<li>§2. Definicje</li>
-<li>§3. Zakres usług</li>
-<li>§4. Proces rezerwacji</li>
-<li>§5. Płatności</li>
-<li>§6. Warunki partnera</li>
-<li>§7. Odpowiedzialność</li>
-<li>§8. RODO</li>
-<li>§9. Przechowywanie danych</li>
-<li>§10. Reklamacje</li>
-<li>§11. Zmiany regulaminu</li>
-<li>§12. Anulowanie i zwroty</li>
-<li>§13. Program lojalnościowy</li>
-<li>§14. Postanowienia końcowe</li>
+<li data-pl="§1. Postanowienia ogólne" data-en="§1. General Provisions">§1. Postanowienia ogólne</li>
+<li data-pl="§2. Definicje" data-en="§2. Definitions">§2. Definicje</li>
+<li data-pl="§3. Zakres usług" data-en="§3. Scope of Services">§3. Zakres usług</li>
+<li data-pl="§4. Proces rezerwacji" data-en="§4. Booking Process">§4. Proces rezerwacji</li>
+<li data-pl="§5. Płatności" data-en="§5. Payments">§5. Płatności</li>
+<li data-pl="§6. Warunki partnera" data-en="§6. Partner Conditions">§6. Warunki partnera</li>
+<li data-pl="§7. Odpowiedzialność" data-en="§7. Liability">§7. Odpowiedzialność</li>
+<li data-pl="§8. RODO" data-en="§8. GDPR">§8. RODO</li>
+<li data-pl="§9. Przechowywanie danych" data-en="§9. Data Retention">§9. Przechowywanie danych</li>
+<li data-pl="§10. Reklamacje" data-en="§10. Complaints">§10. Reklamacje</li>
+<li data-pl="§11. Zmiany regulaminu" data-en="§11. Changes to the Terms">§11. Zmiany regulaminu</li>
+<li data-pl="§12. Anulowanie i zwroty" data-en="§12. Cancellations and Refunds">§12. Anulowanie i zwroty</li>
+<li data-pl="§13. Program lojalnościowy" data-en="§13. Loyalty Program">§13. Program lojalnościowy</li>
+<li data-pl="§14. Postanowienia końcowe" data-en="§14. Final Provisions">§14. Postanowienia końcowe</li>
 </ul>
 
-<h3>§1. Postanowienia ogólne</h3>
-<p>Niniejszy regulamin określa zasady korzystania z platformy Ride24.pl, umożliwiającej rezerwację usług wynajmu samochodów oferowanych przez niezależnych partnerów.</p>
-<p>Operatorem platformy jest Ride24. Platforma działa jako pośrednik (marketplace) umożliwiający prezentowanie ofert oraz dokonywanie rezerwacji online.</p>
-<p>Ride24 nie świadczy usług wynajmu pojazdów i nie jest stroną umowy wynajmu.</p>
+<h3 data-pl="§1. Postanowienia ogólne" data-en="§1. General Provisions">§1. Postanowienia ogólne</h3>
+<p data-pl="Niniejszy regulamin określa zasady korzystania z platformy Ride24.pl, umożliwiającej rezerwację usług wynajmu samochodów oferowanych przez niezależnych partnerów." data-en="These terms and conditions define the rules for using the Ride24.pl platform, which enables the booking of car rental services offered by independent partners.">Niniejszy regulamin określa zasady korzystania z platformy Ride24.pl, umożliwiającej rezerwację usług wynajmu samochodów oferowanych przez niezależnych partnerów.</p>
+<p data-pl="Operatorem platformy jest Ride24. Platforma działa jako pośrednik (marketplace) umożliwiający prezentowanie ofert oraz dokonywanie rezerwacji online." data-en="The operator of the platform is Ride24. The platform acts as an intermediary (marketplace) allowing the presentation of offers and making online reservations.">Operatorem platformy jest Ride24. Platforma działa jako pośrednik (marketplace) umożliwiający prezentowanie ofert oraz dokonywanie rezerwacji online.</p>
+<p data-pl="Ride24 nie świadczy usług wynajmu pojazdów i nie jest stroną umowy wynajmu." data-en="Ride24 does not provide vehicle rental services and is not a party to the rental agreement.">Ride24 nie świadczy usług wynajmu pojazdów i nie jest stroną umowy wynajmu.</p>
 
-<h3>§2. Definicje</h3>
-<p>Platforma – serwis Ride24.pl.</p>
-<p>Użytkownik – osoba korzystająca z serwisu.</p>
-<p>Partner – niezależna wypożyczalnia samochodów.</p>
-<p>Opłata rezerwacyjna – wynagrodzenie Operatora za usługę pośrednictwa.</p>
+<h3 data-pl="§2. Definicje" data-en="§2. Definitions">§2. Definicje</h3>
+<p data-pl="Platforma – serwis Ride24.pl." data-en="Platform – the Ride24.pl website.">Platforma – serwis Ride24.pl.</p>
+<p data-pl="Użytkownik – osoba korzystająca z serwisu." data-en="User – a person using the website.">Użytkownik – osoba korzystająca z serwisu.</p>
+<p data-pl="Partner – niezależna wypożyczalnia samochodów." data-en="Partner – an independent car rental company.">Partner – niezależna wypożyczalnia samochodów.</p>
+<p data-pl="Opłata rezerwacyjna – wynagrodzenie Operatora za usługę pośrednictwa." data-en="Booking fee – the Operator's remuneration for the intermediary service.">Opłata rezerwacyjna – wynagrodzenie Operatora za usługę pośrednictwa.</p>
 
-<h3>§3. Zakres usług platformy</h3>
-<p>Platforma umożliwia wyszukiwanie, porównywanie oraz rezerwację online pojazdów. Ride24 nie odpowiada za dostępność pojazdów ani ich stan techniczny – za te aspekty odpowiada wyłącznie Partner.</p>
+<h3 data-pl="§3. Zakres usług platformy" data-en="§3. Scope of platform services">§3. Zakres usług platformy</h3>
+<p data-pl="Platforma umożliwia wyszukiwanie, porównywanie oraz rezerwację online pojazdów. Ride24 nie odpowiada za dostępność pojazdów ani ich stan techniczny – za te aspekty odpowiada wyłącznie Partner." data-en="The platform allows searching, comparing, and online booking of vehicles. Ride24 is not responsible for the availability of vehicles or their technical condition – the Partner is solely responsible for these aspects.">Platforma umożliwia wyszukiwanie, porównywanie oraz rezerwację online pojazdów. Ride24 nie odpowiada za dostępność pojazdów ani ich stan techniczny – za te aspekty odpowiada wyłącznie Partner.</p>
 
-<h3>§4. Proces rezerwacji</h3>
+<h3 data-pl="§4. Proces rezerwacji" data-en="§4. Booking Process">§4. Proces rezerwacji</h3>
 <ul>
-<li>Wybór miejsca, daty oraz grupy pojazdów.</li>
-<li>Akceptacja regulaminu platformy oraz warunków Partnera.</li>
-<li>Uiszczenie opłaty rezerwacyjnej.</li>
-<li>Otrzymanie Vouchera potwierdzającego rezerwację.</li>
+<li data-pl="Wybór miejsca, daty oraz grupy pojazdów." data-en="Selection of location, date, and vehicle group.">Wybór miejsca, daty oraz grupy pojazdów.</li>
+<li data-pl="Akceptacja regulaminu platformy oraz warunków Partnera." data-en="Acceptance of the platform's terms and the Partner's conditions.">Akceptacja regulaminu platformy oraz warunków Partnera.</li>
+<li data-pl="Uiszczenie opłaty rezerwacyjnej." data-en="Payment of the booking fee.">Uiszczenie opłaty rezerwacyjnej.</li>
+<li data-pl="Otrzymanie Vouchera potwierdzającego rezerwację." data-en="Receiving a Voucher confirming the booking.">Otrzymanie Vouchera potwierdzającego rezerwację.</li>
 </ul>
 
-<h3>§5. Płatności</h3>
-<p>Rezerwacja wymaga opłaty rezerwacyjnej online (wynagrodzenie dla Ride24, która może podlegać rabatom w ramach programu lojalnościowego).</p>
+<h3 data-pl="§5. Płatności" data-en="§5. Payments">§5. Płatności</h3>
+<p data-pl="Rezerwacja wymaga opłaty rezerwacyjnej online (wynagrodzenie dla Ride24, która może podlegać rabatom w ramach programu lojalnościowego)." data-en="Booking requires an online booking fee (remuneration for Ride24, which may be subject to discounts under the loyalty program).">Rezerwacja wymaga opłaty rezerwacyjnej online (wynagrodzenie dla Ride24, która może podlegać rabatom w ramach programu lojalnościowego).</p>
 
-<h3>§6. Warunki partnera</h3>
-<p>Użytkownik zobowiązany jest do zapoznania się z regulaminem konkretnej wypożyczalni przed dokonaniem rezerwacji. Zasady odbioru i ubezpieczenia zależą od Partnera.</p>
+<h3 data-pl="§6. Warunki partnera" data-en="§6. Partner Conditions">§6. Warunki partnera</h3>
+<p data-pl="Użytkownik zobowiązany jest do zapoznania się z regulaminem konkretnej wypożyczalni przed dokonaniem rezerwacji. Zasady odbioru i ubezpieczenia zależą od Partnera." data-en="The user is obliged to read the terms and conditions of a specific rental company before making a booking. Pick-up and insurance rules depend on the Partner.">Użytkownik zobowiązany jest do zapoznania się z regulaminem konkretnej wypożyczalni przed dokonaniem rezerwacji. Zasady odbioru i ubezpieczenia zależą od Partnera.</p>
 
-<h3>§7. Odpowiedzialność</h3>
-<p>Ride24 nie ponosi odpowiedzialności za realizację usługi wynajmu ani za szkody powstałe w trakcie użytkowania pojazdu. Roszczenia należy kierować do Partnera.</p>
+<h3 data-pl="§7. Odpowiedzialność" data-en="§7. Liability">§7. Odpowiedzialność</h3>
+<p data-pl="Ride24 nie ponosi odpowiedzialności za realizację usługi wynajmu ani za szkody powstałe w trakcie użytkowania pojazdu. Roszczenia należy kierować do Partnera." data-en="Ride24 is not liable for the execution of the rental service or for damages incurred during the use of the vehicle. Claims should be directed to the Partner.">Ride24 nie ponosi odpowiedzialności za realizację usługi wynajmu ani za szkody powstałe w trakcie użytkowania pojazdu. Roszczenia należy kierować do Partnera.</p>
 
-<h3>§8. Ochrona danych osobowych (RODO)</h3>
-<p>Administratorem danych jest Ride24. Dane są przetwarzane w celu realizacji rezerwacji oraz przekazywane Partnerowi realizującemu wynajem.</p>
+<h3 data-pl="§8. Ochrona danych osobowych (RODO)" data-en="§8. Personal Data Protection (GDPR)">§8. Ochrona danych osobowych (RODO)</h3>
+<p data-pl="Administratorem danych jest Ride24. Dane są przetwarzane w celu realizacji rezerwacji oraz przekazywane Partnerowi realizującemu wynajem." data-en="The data controller is Ride24. Data is processed to complete the booking and forwarded to the Partner providing the rental.">Administratorem danych jest Ride24. Dane są przetwarzane w celu realizacji rezerwacji oraz przekazywane Partnerowi realizującemu wynajem.</p>
 
-<h3>§9. Okres przechowywania danych</h3>
-<p>Dane rezerwacji i vouchery są przechowywane przez 180 dni od zakończenia rezerwacji, po czym są automatycznie usuwane lub anonimizowane.</p>
+<h3 data-pl="§9. Okres przechowywania danych" data-en="§9. Data Retention Period">§9. Okres przechowywania danych</h3>
+<p data-pl="Dane rezerwacji i vouchery są przechowywane przez 180 dni od zakończenia rezerwacji, po czym są automatycznie usuwane lub anonimizowane." data-en="Booking data and vouchers are stored for 180 days from the end of the booking, after which they are automatically deleted or anonymized.">Dane rezerwacji i vouchery są przechowywane przez 180 dni od zakończenia rezerwacji, po czym są automatycznie usuwane lub anonimizowane.</p>
 
-<h3>§10. Reklamacje</h3>
-<p>Reklamacje techniczne dotyczące platformy: e-mail do Ride24. Reklamacje dotyczące samego pojazdu/wynajmu: bezpośrednio do Partnera.</p>
+<h3 data-pl="§10. Reklamacje" data-en="§10. Complaints">§10. Reklamacje</h3>
+<p data-pl="Reklamacje techniczne dotyczące platformy: e-mail do Ride24. Reklamacje dotyczące samego pojazdu/wynajmu: bezpośrednio do Partnera." data-en="Technical complaints regarding the platform: email to Ride24. Complaints regarding the vehicle/rental itself: directly to the Partner.">Reklamacje techniczne dotyczące platformy: e-mail do Ride24. Reklamacje dotyczące samego pojazdu/wynajmu: bezpośrednio do Partnera.</p>
 
-<h3>§11. Zmiany regulaminu</h3>
-<p>Ride24 zastrzega prawo do zmian. Obowiązuje wersja regulaminu z dnia dokonania rezerwacji.</p>
+<h3 data-pl="§11. Zmiany regulaminu" data-en="§11. Changes to the Terms">§11. Zmiany regulaminu</h3>
+<p data-pl="Ride24 zastrzega prawo do zmian. Obowiązuje wersja regulaminu z dnia dokonania rezerwacji." data-en="Ride24 reserves the right to make changes. The version of the terms valid on the day of booking applies.">Ride24 zastrzega prawo do zmian. Obowiązuje wersja regulaminu z dnia dokonania rezerwacji.</p>
 
-<h3>§12. Anulowanie rezerwacji i zwrot opłaty</h3>
+<h3 data-pl="§12. Anulowanie rezerwacji i zwrot opłaty" data-en="§12. Booking Cancellation and Refunds">§12. Anulowanie rezerwacji i zwrot opłaty</h3>
 <table style="width:100%;border-collapse:collapse;margin:15px 0;">
-<tr><th style="border:1px solid #E2E8F0;padding:8px;">Termin anulowania</th><th style="border:1px solid #E2E8F0;padding:8px;">Zwrot</th></tr>
-<tr><td style="border:1px solid #E2E8F0;padding:8px;">60 dni i więcej</td><td style="border:1px solid #E2E8F0;padding:8px;">90%</td></tr>
-<tr><td style="border:1px solid #E2E8F0;padding:8px;">59–30 dni</td><td style="border:1px solid #E2E8F0;padding:8px;">50%</td></tr>
-<tr><td style="border:1px solid #E2E8F0;padding:8px;">poniżej 30 dni</td><td style="border:1px solid #E2E8F0;padding:8px;">0%</td></tr>
+<tr><th style="border:1px solid #E2E8F0;padding:8px;" data-pl="Termin anulowania" data-en="Cancellation time">Termin anulowania</th><th style="border:1px solid #E2E8F0;padding:8px;" data-pl="Zwrot" data-en="Refund">Zwrot</th></tr>
+<tr><td style="border:1px solid #E2E8F0;padding:8px;" data-pl="60 dni i więcej" data-en="60 days or more">60 dni i więcej</td><td style="border:1px solid #E2E8F0;padding:8px;">90%</td></tr>
+<tr><td style="border:1px solid #E2E8F0;padding:8px;" data-pl="59–30 dni" data-en="59–30 days">59–30 dni</td><td style="border:1px solid #E2E8F0;padding:8px;">50%</td></tr>
+<tr><td style="border:1px solid #E2E8F0;padding:8px;" data-pl="poniżej 30 dni" data-en="under 30 days">poniżej 30 dni</td><td style="border:1px solid #E2E8F0;padding:8px;">0%</td></tr>
 </table>
 
-<p><strong>Rezerwacje Last Minute:</strong> poniżej 30 dni – brak zwrotu.</p>
+<p><strong data-pl="Rezerwacje Last Minute:" data-en="Last Minute Bookings:">Rezerwacje Last Minute:</strong> <span data-pl="poniżej 30 dni – brak zwrotu." data-en="under 30 days – no refund.">poniżej 30 dni – brak zwrotu.</span></p>
 
 <ul style="line-height: 1.6; color: var(--gray); margin-bottom: 20px; padding-left: 20px;">
-    <li style="margin-bottom: 10px;">
+    <li style="margin-bottom: 10px;" data-pl="<strong style='color: var(--text);'>Procedura zwrotu:</strong> Zwroty środków realizowane są wyłącznie na podstawie wniosku przesłanego przez Klienta za pośrednictwem Panelu Klienta (przycisk 'Zwrot'). Klient ma obowiązek samodzielnie podać prawidłowy numer konta bankowego (lub numer IBAN)." data-en="<strong style='color: var(--text);'>Refund Procedure:</strong> Refunds are processed solely based on a request submitted by the Client via the Client Panel ('Refund' button). The Client is responsible for providing the correct bank account number (or IBAN).">
         <strong style="color: var(--text);">Procedura zwrotu:</strong> Zwroty środków realizowane są wyłącznie na podstawie wniosku przesłanego przez Klienta za pośrednictwem Panelu Klienta (przycisk "Zwrot"). Klient ma obowiązek samodzielnie podać prawidłowy numer konta bankowego (lub numer IBAN).
     </li>
-    <li style="margin-bottom: 10px;">
+    <li style="margin-bottom: 10px;" data-pl="<strong style='color: var(--text);'>Zgodność danych:</strong> Wskazane konto bankowe musi należeć do osoby będącej właścicielem profilu Klienta na platformie Ride24. Przelewy na konta osób trzecich nie będą realizowane w celu zapobiegania nadużyciom." data-en="<strong style='color: var(--text);'>Data Match:</strong> The specified bank account must belong to the owner of the Client profile on the Ride24 platform. Transfers to third-party accounts will not be processed to prevent fraud.">
         <strong style="color: var(--text);">Zgodność danych:</strong> Wskazane konto bankowe musi należeć do osoby będącej właścicielem profilu Klienta na platformie Ride24. Przelewy na konta osób trzecich nie będą realizowane w celu zapobiegania nadużyciom.
     </li>
-    <li>
+    <li data-pl="<strong style='color: var(--text);'>Wyłączenie odpowiedzialności:</strong> Administrator platformy (Ride24) nie ponosi odpowiedzialności za opóźnienia, odrzucenia przelewów bankowych ani ewentualne utraty środków wynikające z podania przez Klienta błędnego, niepełnego numeru konta bankowego lub danych niezgodnych z danymi właściciela profilu." data-en="<strong style='color: var(--text);'>Disclaimer:</strong> The platform administrator (Ride24) is not responsible for delays, rejected bank transfers, or any loss of funds resulting from the Client providing an incorrect or incomplete bank account number, or details not matching the profile owner.">
         <strong style="color: var(--text);">Wyłączenie odpowiedzialności:</strong> Administrator platformy (Ride24) nie ponosi odpowiedzialności za opóźnienia, odrzucenia przelewów bankowych ani ewentualne utraty środków wynikające z podania przez Klienta błędnego, niepełnego numeru konta bankowego lub danych niezgodnych z danymi właściciela profilu.
     </li>
 </ul>
-<h3>§13. Program lojalnościowy</h3>
 
-<p>Platforma Ride24 może oferować użytkownikom program lojalnościowy polegający na przyznawaniu rabatów na opłatę rezerwacyjną.</p>
+<h3 data-pl="§13. Program lojalnościowy" data-en="§13. Loyalty Program">§13. Program lojalnościowy</h3>
+<p data-pl="Platforma Ride24 może oferować użytkownikom program lojalnościowy polegający na przyznawaniu rabatów na opłatę rezerwacyjną." data-en="The Ride24 platform may offer users a loyalty program consisting of granting discounts on the booking fee.">Platforma Ride24 może oferować użytkownikom program lojalnościowy polegający na przyznawaniu rabatów na opłatę rezerwacyjną.</p>
 
 <ul>
-<li>Program dotyczy wyłącznie opłaty rezerwacyjnej (wynagrodzenia Ride24).</li>
-<li>Rabaty nie obejmują płatności dla Partnera.</li>
-<li>Poziom rabatu zależy od liczby opłaconych rezerwacji.</li>
+<li data-pl="Program dotyczy wyłącznie opłaty rezerwacyjnej (wynagrodzenia Ride24)." data-en="The program only applies to the booking fee (Ride24 remuneration).">Program dotyczy wyłącznie opłaty rezerwacyjnej (wynagrodzenia Ride24).</li>
+<li data-pl="Rabaty nie obejmują płatności dla Partnera." data-en="Discounts do not cover payments to the Partner.">Rabaty nie obejmują płatności dla Partnera.</li>
+<li data-pl="Poziom rabatu zależy od liczby opłaconych rezerwacji." data-en="The discount level depends on the number of paid bookings.">Poziom rabatu zależy od liczby opłaconych rezerwacji.</li>
 </ul>
 
 <table style="width:100%;border-collapse:collapse;margin:15px 0;">
 <tr>
-<th style="border:1px solid #E2E8F0;padding:8px;">Poziom</th>
-<th style="border:1px solid #E2E8F0;padding:8px;">Rabat</th>
+<th style="border:1px solid #E2E8F0;padding:8px;" data-pl="Poziom" data-en="Level">Poziom</th>
+<th style="border:1px solid #E2E8F0;padding:8px;" data-pl="Rabat" data-en="Discount">Rabat</th>
 </tr>
 <tr><td style="border:1px solid #E2E8F0;padding:8px;">START</td><td style="border:1px solid #E2E8F0;padding:8px;">0%</td></tr>
 <tr><td style="border:1px solid #E2E8F0;padding:8px;">SILVER</td><td style="border:1px solid #E2E8F0;padding:8px;">5%</td></tr>
@@ -1559,17 +1555,18 @@ Platforma Ride24.pl działa jako internetowy marketplace. Ride24 nie jest stron�
 </table>
 
 <ul>
-<li>Rabaty naliczane są automatycznie po opłaceniu rezerwacji.</li>
-<li>Ride24 może zmieniać zasady programu w dowolnym momencie.</li>
-<li>Program ma charakter marketingowy.</li>
+<li data-pl="Rabaty naliczane są automatycznie po opłaceniu rezerwacji." data-en="Discounts are applied automatically after paying for the booking.">Rabaty naliczane są automatycznie po opłaceniu rezerwacji.</li>
+<li data-pl="Ride24 może zmieniać zasady programu w dowolnym momencie." data-en="Ride24 can change the program rules at any time.">Ride24 może zmieniać zasady programu w dowolnym momencie.</li>
+<li data-pl="Program ma charakter marketingowy." data-en="The program has a promotional nature.">Program ma charakter marketingowy.</li>
 </ul>
-<h3>§14. Postanowienia końcowe</h3>
-<p>W sprawach nieuregulowanych zastosowanie ma prawo polskie. Spory rozstrzygane będą przez właściwe sądy powszechne.</p>
+
+<h3 data-pl="§14. Postanowienia końcowe" data-en="§14. Final Provisions">§14. Postanowienia końcowe</h3>
+<p data-pl="W sprawach nieuregulowanych zastosowanie ma prawo polskie. Spory rozstrzygane będą przez właściwe sądy powszechne." data-en="In matters not covered, Polish law applies. Disputes will be resolved by the competent common courts.">W sprawach nieuregulowanych zastosowanie ma prawo polskie. Spory rozstrzygane będą przez właściwe sądy powszechne.</p>
 `,
     faq: `
-<h2>FAQ – Najczęściej zadawane pytania</h2>
+<h2 data-pl="FAQ – Najczęściej zadawane pytania" data-en="FAQ – Frequently Asked Questions">FAQ – Najczęściej zadawane pytania</h2>
 
-<h3>1. Czy Ride24 wynajmuje samochody?</h3>
+<h3 data-pl="1. Czy Ride24 wynajmuje samochody?" data-en="1. Does Ride24 rent cars?">1. Czy Ride24 wynajmuje samochody?</h3>
 <p data-pl="Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów."
    data-en="No. Ride24 is a marketplace connecting users with car rental companies.">
 Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów.
@@ -1580,8 +1577,7 @@ Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyc
 Umowa wynajmu zawierana jest bezpośrednio z partnerem.
 </p>
 
-
-<h3>2. Jak wygląda płatność?</h3>
+<h3 data-pl="2. Jak wygląda płatność?" data-en="2. How does payment work?">2. Jak wygląda płatność?</h3>
 <p data-pl="Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną."
    data-en="Booking is simple – you only pay a small booking fee online.">
 Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną.
@@ -1592,15 +1588,13 @@ Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjn
 Pozostałą kwotę zapłacisz bezpośrednio przy odbiorze auta.
 </p>
 
-
-<h3>3. Czy muszę płacić całość z góry?</h3>
+<h3 data-pl="3. Czy muszę płacić całość z góry?" data-en="3. Do I have to pay everything upfront?">3. Czy muszę płacić całość z góry?</h3>
 <p data-pl="Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu."
    data-en="No. You only pay the booking fee, and the rest at pickup.">
 Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu.
 </p>
 
-
-<h3>4. Czym jest opłata rezerwacyjna?</h3>
+<h3 data-pl="4. Czym jest opłata rezerwacyjna?" data-en="4. What is a booking fee?">4. Czym jest opłata rezerwacyjna?</h3>
 <p data-pl="To niewielka opłata za rezerwację i obsługę platformy Ride24."
    data-en="It is a small fee for booking and using the Ride24 platform.">
 To niewielka opłata za rezerwację i obsługę platformy Ride24.
@@ -1611,8 +1605,7 @@ To niewielka opłata za rezerwację i obsługę platformy Ride24.
 Dzięki niej Twoja rezerwacja jest zabezpieczona.
 </p>
 
-
-<h3>5. Czy opłata rezerwacyjna podlega zwrotowi?</h3>
+<h3 data-pl="5. Czy opłata rezerwacyjna podlega zwrotowi?" data-en="5. Is the booking fee refundable?">5. Czy opłata rezerwacyjna podlega zwrotowi?</h3>
 <p data-pl="Tak – wysokość zwrotu zależy od momentu anulowania:"
    data-en="Yes – the refund depends on when you cancel:">
 Tak – wysokość zwrotu zależy od momentu anulowania:
@@ -1641,15 +1634,13 @@ Rezerwacje last minute (poniżej 30 dni) są bezzwrotne.
     </p>
 </div>
 
-
-<h3>6. Co jeśli auto nie będzie dostępne?</h3>
+<h3 data-pl="6. Co jeśli auto nie będzie dostępne?" data-en="6. What if the car is unavailable?">6. Co jeśli auto nie będzie dostępne?</h3>
 <p data-pl="W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej."
    data-en="In that case, you will receive a full refund of the booking fee.">
 W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej.
 </p>
 
-
-<h3>7. Czy Ride24 odpowiada za wynajem?</h3>
+<h3 data-pl="7. Czy Ride24 odpowiada za wynajem?" data-en="7. Is Ride24 responsible for the rental?">7. Czy Ride24 odpowiada za wynajem?</h3>
 <p data-pl="Za wynajem odpowiada partner (wypożyczalnia samochodów)."
    data-en="The rental is provided by the partner (car rental company).">
 Za wynajem odpowiada partner (wypożyczalnia samochodów).
@@ -1660,15 +1651,13 @@ Za wynajem odpowiada partner (wypożyczalnia samochodów).
 Ride24 odpowiada za proces rezerwacji online.
 </p>
 
-
-<h3>8. Czy potrzebuję karty kredytowej?</h3>
+<h3 data-pl="8. Czy potrzebuję karty kredytowej?" data-en="8. Do I need a credit card?">8. Czy potrzebuję karty kredytowej?</h3>
 <p data-pl="Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową."
    data-en="Not always – many partners accept cash or debit card.">
 Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową.
 </p>
 
-
-<h3>9. Co zawiera voucher?</h3>
+<h3 data-pl="9. Co zawiera voucher?" data-en="9. What does the voucher include?">9. Co zawiera voucher?</h3>
 <ul>
 <li data-pl="numer rezerwacji" data-en="booking number">numer rezerwacji</li>
 <li data-pl="dane partnera" data-en="partner details">dane partnera</li>
@@ -1676,119 +1665,102 @@ Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debet
 <li data-pl="kontakt" data-en="contact info">kontakt</li>
 </ul>
 
-
-<h3>10. Jak się skontaktować?</h3>
-<p data-pl="kontakt@ride24.pl"
-   data-en="contact@ride24.pl">
+<h3 data-pl="10. Jak się skontaktować?" data-en="10. How to get in touch?">10. Jak się skontaktować?</h3>
+<p data-pl="kontakt@ride24.pl" data-en="kontakt@ride24.pl">
 kontakt@ride24.pl
 </p>
 `,
   polityka: `
-<h2>Polityka prywatności Ride24</h2>
-<p style="color: #64748B; font-size: 13px;">Data wejścia w życie: 01.05.2026</p>
+<h2 data-pl="Polityka prywatności Ride24" data-en="Ride24 Privacy Policy">Polityka prywatności Ride24</h2>
+<p style="color: #64748B; font-size: 13px;" data-pl="Data wejścia w życie: 01.05.2026" data-en="Effective date: May 01, 2026">Data wejścia w życie: 01.05.2026</p>
 
-<h3>1. Administrator danych</h3>
-<p>Administratorem danych osobowych jest Ride24 – operator platformy Ride24.pl.</p>
-<p>Kontakt z administratorem:<br>kontakt@ride24.pl</p>
+<h3 data-pl="1. Administrator danych" data-en="1. Data Controller">1. Administrator danych</h3>
+<p data-pl="Administratorem danych osobowych jest Ride24 – operator platformy Ride24.pl." data-en="The controller of personal data is Ride24 – operator of the Ride24.pl platform.">Administratorem danych osobowych jest Ride24 – operator platformy Ride24.pl.</p>
+<p data-pl="Kontakt z administratorem:<br>kontakt@ride24.pl" data-en="Contact with the administrator:<br>kontakt@ride24.pl">Kontakt z administratorem:<br>kontakt@ride24.pl</p>
 
-
-<h3>2. Zakres przetwarzanych danych</h3>
-<p>W ramach korzystania z platformy Ride24 mogą być przetwarzane następujące dane:</p>
+<h3 data-pl="2. Zakres przetwarzanych danych" data-en="2. Scope of Processed Data">2. Zakres przetwarzanych danych</h3>
+<p data-pl="W ramach korzystania z platformy Ride24 mogą być przetwarzane następujące dane:" data-en="While using the Ride24 platform, the following data may be processed:">W ramach korzystania z platformy Ride24 mogą być przetwarzane następujące dane:</p>
 <ul>
-<li>imię i nazwisko</li>
-<li>adres e-mail</li>
-<li>numer telefonu</li>
-<li>dane dotyczące rezerwacji</li>
-<li>dane techniczne dotyczące korzystania z serwisu</li>
+<li data-pl="imię i nazwisko" data-en="first and last name">imię i nazwisko</li>
+<li data-pl="adres e-mail" data-en="email address">adres e-mail</li>
+<li data-pl="numer telefonu" data-en="phone number">numer telefonu</li>
+<li data-pl="dane dotyczące rezerwacji" data-en="booking data">dane dotyczące rezerwacji</li>
+<li data-pl="dane techniczne dotyczące korzystania z serwisu" data-en="technical data regarding website usage">dane techniczne dotyczące korzystania z serwisu</li>
 </ul>
 
-
-<h3>3. Cele przetwarzania danych</h3>
-<p>Dane osobowe są przetwarzane w celu:</p>
+<h3 data-pl="3. Cele przetwarzania danych" data-en="3. Purposes of Data Processing">3. Cele przetwarzania danych</h3>
+<p data-pl="Dane osobowe są przetwarzane w celu:" data-en="Personal data is processed in order to:">Dane osobowe są przetwarzane w celu:</p>
 <ul>
-<li>realizacji rezerwacji</li>
-<li>obsługi użytkownika</li>
-<li>kontaktu w sprawach rezerwacji</li>
-<li>obsługi płatności za opłatę rezerwacyjną</li>
-<li>zapewnienia bezpieczeństwa serwisu</li>
+<li data-pl="realizacji rezerwacji" data-en="fulfill reservations">realizacji rezerwacji</li>
+<li data-pl="obsługi użytkownika" data-en="provide customer support">obsługi użytkownika</li>
+<li data-pl="kontaktu w sprawach rezerwacji" data-en="contact regarding bookings">kontaktu w sprawach rezerwacji</li>
+<li data-pl="obsługi płatności za opłatę rezerwacyjną" data-en="process booking fee payments">obsługi płatności za opłatę rezerwacyjną</li>
+<li data-pl="zapewnienia bezpieczeństwa serwisu" data-en="ensure website security">zapewnienia bezpieczeństwa serwisu</li>
 </ul>
 
+<h3 data-pl="4. Przekazywanie danych partnerom" data-en="4. Sharing Data with Partners">4. Przekazywanie danych partnerom</h3>
+<p data-pl="Ride24 działa jako platforma (marketplace) pośrednicząca w rezerwacji usług wynajmu pojazdów." data-en="Ride24 acts as a platform (marketplace) intermediary for vehicle rental bookings.">Ride24 działa jako platforma (marketplace) pośrednicząca w rezerwacji usług wynajmu pojazdów.</p>
+<p data-pl="W przypadku dokonania rezerwacji dane użytkownika są przekazywane partnerowi (wypożyczalni), który realizuje usługę wynajmu." data-en="When making a booking, user data is transferred to the partner (rental company) providing the rental service.">W przypadku dokonania rezerwacji dane użytkownika są przekazywane partnerowi (wypożyczalni), który realizuje usługę wynajmu.</p>
+<p data-pl="Partner staje się odrębnym administratorem danych w zakresie realizacji umowy wynajmu." data-en="The partner becomes a separate data controller for the fulfillment of the rental agreement.">Partner staje się odrębnym administratorem danych w zakresie realizacji umowy wynajmu.</p>
 
-<h3>4. Przekazywanie danych partnerom</h3>
-<p>Ride24 działa jako platforma (marketplace) pośrednicząca w rezerwacji usług wynajmu pojazdów.</p>
-
-<p>W przypadku dokonania rezerwacji dane użytkownika są przekazywane partnerowi (wypożyczalni), który realizuje usługę wynajmu.</p>
-
-<p>Partner staje się odrębnym administratorem danych w zakresie realizacji umowy wynajmu.</p>
-
-
-<h3>4a. Podstawa prawna przetwarzania</h3>
-<p>Dane osobowe przetwarzane są na podstawie:</p>
+<h3 data-pl="4a. Podstawa prawna przetwarzania" data-en="4a. Legal Basis for Processing">4a. Podstawa prawna przetwarzania</h3>
+<p data-pl="Dane osobowe przetwarzane są na podstawie:" data-en="Personal data is processed based on:">Dane osobowe przetwarzane są na podstawie:</p>
 <ul>
-<li>art. 6 ust. 1 lit. b RODO – realizacja rezerwacji</li>
-<li>art. 6 ust. 1 lit. f RODO – prawnie uzasadniony interes (obsługa platformy)</li>
-<li>art. 6 ust. 1 lit. a RODO – zgoda (np. cookies)</li>
+<li data-pl="art. 6 ust. 1 lit. b RODO – realizacja rezerwacji" data-en="Art. 6 sec. 1 lit. b GDPR – contract fulfillment">art. 6 ust. 1 lit. b RODO – realizacja rezerwacji</li>
+<li data-pl="art. 6 ust. 1 lit. f RODO – prawnie uzasadniony interes (obsługa platformy)" data-en="Art. 6 sec. 1 lit. f GDPR – legitimate interest (platform operation)">art. 6 ust. 1 lit. f RODO – prawnie uzasadniony interes (obsługa platformy)</li>
+<li data-pl="art. 6 ust. 1 lit. a RODO – zgoda (np. cookies)" data-en="Art. 6 sec. 1 lit. a GDPR – consent (e.g., cookies)">art. 6 ust. 1 lit. a RODO – zgoda (np. cookies)</li>
 </ul>
 
+<h3 data-pl="4b. Płatności" data-en="4b. Payments">4b. Płatności</h3>
+<p data-pl="Płatności online realizowane są za pośrednictwem zewnętrznych operatorów płatności (np. Stripe)." data-en="Online payments are processed through external payment operators (e.g., Stripe).">Płatności online realizowane są za pośrednictwem zewnętrznych operatorów płatności (np. Stripe).</p>
+<p data-pl="Dane płatnicze (np. dane karty) przetwarzane są bezpośrednio przez operatora płatności i nie są przechowywane przez Ride24." data-en="Payment data (e.g., card details) are processed directly by the payment operator and are not stored by Ride24.">Dane płatnicze (np. dane karty) przetwarzane są bezpośrednio przez operatora płatności i nie są przechowywane przez Ride24.</p>
 
-<h3>4b. Płatności</h3>
-<p>Płatności online realizowane są za pośrednictwem zewnętrznych operatorów płatności (np. Stripe).</p>
-
-<p>Dane płatnicze (np. dane karty) przetwarzane są bezpośrednio przez operatora płatności i nie są przechowywane przez Ride24.</p>
-
-
-<h3>5. Okres przechowywania danych</h3>
-<p>Dane związane z rezerwacjami przechowywane są przez okres nie dłuższy niż 180 dni od zakończenia rezerwacji.</p>
-
-<p>Po tym czasie dane mogą zostać:</p>
+<h3 data-pl="5. Okres przechowywania danych" data-en="5. Data Retention Period">5. Okres przechowywania danych</h3>
+<p data-pl="Dane związane z rezerwacjami przechowywane są przez okres nie dłuższy niż 180 dni od zakończenia rezerwacji." data-en="Booking-related data is stored for no longer than 180 days from the end of the reservation.">Dane związane z rezerwacjami przechowywane są przez okres nie dłuższy niż 180 dni od zakończenia rezerwacji.</p>
+<p data-pl="Po tym czasie dane mogą zostać:" data-en="After this time, data may be:">Po tym czasie dane mogą zostać:</p>
 <ul>
-<li>usunięte</li>
-<li>zanonimizowane</li>
+<li data-pl="usunięte" data-en="deleted">usunięte</li>
+<li data-pl="zanonimizowane" data-en="anonymized">zanonimizowane</li>
+</ul>
+<p data-pl="z wyjątkiem sytuacji wymaganych przez przepisy prawa." data-en="except in situations required by law.">z wyjątkiem sytuacji wymaganych przez przepisy prawa.</p>
+
+<h3 data-pl="6. Prawa użytkownika" data-en="6. User Rights">6. Prawa użytkownika</h3>
+<p data-pl="Użytkownik ma prawo do:" data-en="The user has the right to:">Użytkownik ma prawo do:</p>
+<ul>
+<li data-pl="dostępu do swoich danych" data-en="access their data">dostępu do swoich danych</li>
+<li data-pl="poprawiania danych" data-en="correct data">poprawiania danych</li>
+<li data-pl="usunięcia danych" data-en="delete data">usunięcia danych</li>
+<li data-pl="ograniczenia przetwarzania" data-en="restrict processing">ograniczenia przetwarzania</li>
+<li data-pl="wniesienia sprzeciwu wobec przetwarzania" data-en="object to processing">wniesienia sprzeciwu wobec przetwarzania</li>
+<li data-pl="cofnięcia zgody" data-en="withdraw consent">cofnięcia zgody</li>
 </ul>
 
-<p>z wyjątkiem sytuacji wymaganych przez przepisy prawa.</p>
-
-
-<h3>6. Prawa użytkownika</h3>
-<p>Użytkownik ma prawo do:</p>
+<h3 data-pl="7. Bezpieczeństwo danych" data-en="7. Data Security">7. Bezpieczeństwo danych</h3>
+<p data-pl="Administrator stosuje odpowiednie środki techniczne i organizacyjne zapewniające ochronę danych osobowych przed:" data-en="The Controller applies appropriate technical and organizational measures to protect personal data from:">Administrator stosuje odpowiednie środki techniczne i organizacyjne zapewniające ochronę danych osobowych przed:</p>
 <ul>
-<li>dostępu do swoich danych</li>
-<li>poprawiania danych</li>
-<li>usunięcia danych</li>
-<li>ograniczenia przetwarzania</li>
-<li>wniesienia sprzeciwu wobec przetwarzania</li>
-<li>cofnięcia zgody</li>
+<li data-pl="nieuprawnionym dostępem" data-en="unauthorized access">nieuprawnionym dostępem</li>
+<li data-pl="utratą danych" data-en="data loss">utratą danych</li>
+<li data-pl="nieautoryzowanym przetwarzaniem" data-en="unauthorized processing">nieautoryzowanym przetwarzaniem</li>
 </ul>
 
-
-<h3>7. Bezpieczeństwo danych</h3>
-<p>Administrator stosuje odpowiednie środki techniczne i organizacyjne zapewniające ochronę danych osobowych przed:</p>
+<h3 data-pl="8. Pliki cookies" data-en="8. Cookies">8. Pliki cookies</h3>
+<p data-pl="Serwis Ride24 może korzystać z plików cookies w celu:" data-en="The Ride24 service may use cookies to:">Serwis Ride24 może korzystać z plików cookies w celu:</p>
 <ul>
-<li>nieuprawnionym dostępem</li>
-<li>utratą danych</li>
-<li>nieautoryzowanym przetwarzaniem</li>
+<li data-pl="prawidłowego działania strony" data-en="ensure proper website functioning">prawidłowego działania strony</li>
+<li data-pl="analizy ruchu" data-en="analyze traffic">analizy ruchu</li>
+<li data-pl="poprawy jakości usług" data-en="improve service quality">poprawy jakości usług</li>
 </ul>
 
-
-<h3>8. Pliki cookies</h3>
-<p>Serwis Ride24 może korzystać z plików cookies w celu:</p>
-<ul>
-<li>prawidłowego działania strony</li>
-<li>analizy ruchu</li>
-<li>poprawy jakości usług</li>
-</ul>
-
-
-<h3>9. Zmiany polityki prywatności</h3>
-<p>Administrator zastrzega sobie prawo do wprowadzania zmian w polityce prywatności.</p>
-<p>Aktualna wersja dokumentu zawsze dostępna jest na stronie Ride24.pl.</p>
+<h3 data-pl="9. Zmiany polityki prywatności" data-en="9. Privacy Policy Changes">9. Zmiany polityki prywatności</h3>
+<p data-pl="Administrator zastrzega sobie prawo do wprowadzania zmian w polityce prywatności." data-en="The Controller reserves the right to make changes to the privacy policy.">Administrator zastrzega sobie prawo do wprowadzania zmian w polityce prywatności.</p>
+<p data-pl="Aktualna wersja dokumentu zawsze dostępna jest na stronie Ride24.pl." data-en="The current version of the document is always available at Ride24.pl.">Aktualna wersja dokumentu zawsze dostępna jest na stronie Ride24.pl.</p>
 `,
 kontakt: `
 <div class="saas-contact-wrapper">
     <div class="contact-header">
-        <h2 data-pl="Skontaktuj się z nami" data-en="Contact Us">Kontakt</h2>
+        <h2 data-pl="Skontaktuj się z nami" data-en="Contact Us">Skontaktuj się z nami</h2>
         <p data-pl="Napisz do nas, odpowiemy najszybciej jak to możliwe." data-en="Write to us, we will respond as soon as possible.">
-        Napisz do nas.
+        Napisz do nas, odpowiemy najszybciej jak to możliwe.
         </p>
     </div>
 
@@ -1837,7 +1809,7 @@ kontakt: `
 </button>
     </form>
 </div>
-`,
+`
 };
 
 window.openLegal = function(type) {
