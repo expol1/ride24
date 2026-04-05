@@ -1874,25 +1874,26 @@ window.closeLegal = function() {
 <div id="partnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); align-items:center; justify-content:center;">
     <div style="background:var(--green); color:white; width:100%; max-width:420px; border-radius:30px; padding:40px; position:relative; box-shadow:0 25px 50px rgba(0,0,0,0.4);">
         <span onclick="closePartnerAuth()" style="position:absolute; top:20px; right:20px; font-size:24px; cursor:pointer; color:white;">×</span>
-        <h2 style="text-align:center; margin-bottom:25px; color:white;">Partner Panel</h2>
+        <h2 style="text-align:center; margin-bottom:25px; color:white;" data-pl="Panel Partnera" data-en="Partner Panel">Panel Partnera</h2>
         
-        <input type="email" id="partner-email" placeholder="Partner email" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
-        <input type="password" id="partner-password" placeholder="Password" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+        <input type="email" id="partner-email" placeholder="Email partnera" data-pl="Email partnera" data-en="Partner email" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+        <input type="password" id="partner-password" placeholder="Hasło" data-pl="Hasło" data-en="Password" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
         <div style="text-align: right; margin-top: -8px; margin-bottom: 15px;">
     <a href="javascript:void(0)" onclick="handlePartnerPasswordReset(event)" 
        style="color: #F1FCE3; font-size: 13px; text-decoration: underline; font-weight: 600; cursor: pointer;"
        onmouseover="this.style.color='white'" 
-       onmouseout="this.style.color='#F1FCE3'">
+       onmouseout="this.style.color='#F1FCE3'"
+       data-pl="Zapomniałeś hasła?" data-en="Forgot password?">
        Zapomniałeś hasła?
     </a>
 </div>
         <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
-        <button id="partnerAuthBtn" onclick="partnerLogin()" style="width:100%; padding:14px; background:var(--blue); color:white; border:none; border-radius:12px; font-weight:600; font-size:16px; cursor:pointer; transition: background 0.2s;">
-            Log in to partner panel
+        <button id="partnerAuthBtn" onclick="partnerLogin()" style="width:100%; padding:14px; background:var(--blue); color:white; border:none; border-radius:12px; font-weight:600; font-size:16px; cursor:pointer; transition: background 0.2s;" data-pl="Zaloguj do panelu partnera" data-en="Log in to partner panel">
+            Zaloguj do panelu partnera
         </button>
         
-        <p style="margin-top:15px; font-size:13px; color:#F1FCE3; text-align:center;">
-            Partner accounts are created by Ride24.
+        <p style="margin-top:15px; font-size:13px; color:#F1FCE3; text-align:center;" data-pl="Konta partnerskie są tworzone przez Ride24." data-en="Partner accounts are created by Ride24.">
+            Konta partnerskie są tworzone przez Ride24.
         </p>
     </div>
 </div>
