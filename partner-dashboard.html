@@ -829,99 +829,99 @@
                 
                 <div class="settings-card">
                     
-                    <div class="form-group">
-                        <label data-pl="Nazwa firmy *" data-en="Company name *">Company name *</label>
-                        <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent">
-                    </div>
-                    <div class="form-group">
-                        <label data-pl="Nazwa firmy *" data-en="Company name *">Company name *</label>
-                        <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent">
-                    </div>
-                    
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label data-pl="Adres siedziby (wymagany do umowy) *" data-en="Company address (required for agreement) *">Company address (required for agreement) *</label>
-                        <input type="text" id="partnerAddress" placeholder="e.g. ul. Przykładowa 12, 00-000 Miasto">
-                    </div>
-                    
-                   <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
-                        <label for="partnerActive" id="visibilityBox" style="cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--green); border: 2px solid #58A300; border-radius: 8px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
-                            <div style="display: flex; align-items: center; gap: 8px; pointer-events: none;">
-                                <div id="visibilityDot" style="width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); transition: all 0.3s ease;"></div>
-                                <span style="font-size: 14px; font-weight: 700; color: #ffffff; transition: all 0.3s ease;" data-pl="Widoczność profilu" data-en="Profile visibility">Profile visibility</span>
-                            </div>
-                            <div class="checkbox-group" style="margin: 0; pointer-events: none;">
-                               <input type="checkbox" id="partnerActive" checked style="transform: scale(1.2); pointer-events: auto;" onchange="togglePartnerVisibility()">
-                                <span id="visibilityText" data-pl="AKTYWNY" data-en="ACTIVE" style="font-size: 14px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; transition: all 0.3s ease;">ACTIVE</span>
-                            </div>
-                        </label>
-                    </div>
+    <div class="form-group">
+        <label data-pl="Nazwa firmy *" data-en="Company name *">Company name *</label>
+        <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent">
+    </div>
 
-                    <div class="form-group">
-                        <label data-pl="Kraj *" data-en="Country *">Country *</label>
-                        <input type="text" id="partnerCountry" placeholder="e.g. Portugal">
-                    </div>
-                    <div class="form-group">
-                        <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
-                        <input type="text" id="partnerRegion" placeholder="e.g. Madeira">
-                    </div>
+    <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
+        <label for="partnerActive" id="visibilityBox" style="cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--green); border: 2px solid #58A300; border-radius: 8px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
+            <div style="display: flex; align-items: center; gap: 8px; pointer-events: none;">
+                <div id="visibilityDot" style="width: 10px; height: 10px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); transition: all 0.3s ease;"></div>
+                <span style="font-size: 14px; font-weight: 700; color: #ffffff; transition: all 0.3s ease;" data-pl="Widoczność profilu" data-en="Profile visibility">Profile visibility</span>
+            </div>
+            <div class="checkbox-group" style="margin: 0; pointer-events: none;">
+               <input type="checkbox" id="partnerActive" checked style="transform: scale(1.2); pointer-events: auto;" onchange="togglePartnerVisibility()">
+               <span id="visibilityText" data-pl="AKTYWNY" data-en="ACTIVE" style="font-size: 14px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; transition: all 0.3s ease;">ACTIVE</span>
+            </div>
+        </label>
+    </div>
+    
+    <div class="form-group" style="grid-column: span 2;">
+        <label data-pl="Adres siedziby (wymagany do umowy) *" data-en="Company address (required for agreement) *">Company address (required for agreement) *</label>
+        <input type="text" id="partnerAddress" placeholder="e.g. ul. Przykładowa 12, 00-000 Miasto">
+    </div>
 
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label data-pl="Główne miejsce odbioru" data-en="Main pickup location">Main pickup location</label>
-                        <input type="text" id="partnerPickup" placeholder="e.g. Madeira Airport / Hotel delivery">
-                    </div>
+    <div class="form-group">
+        <label data-pl="Kraj *" data-en="Country *">Country *</label>
+        <input type="text" id="partnerCountry" placeholder="e.g. Portugal">
+    </div>
+    
+    <div class="form-group">
+        <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
+        <input type="text" id="partnerRegion" placeholder="e.g. Madeira">
+    </div>
 
-                    <div class="form-group">
-                        <label data-pl="Telefon *" data-en="Phone *">Phone *</label>
-                        <input type="tel" id="partnerPhone" placeholder="+48 000 000 000">
-                    </div>
-                    <div class="form-group">
-                        <label data-pl="Email" data-en="Email">Email</label>
-                        <input type="email" id="partnerEmail" placeholder="contact@company.com">
-                    </div>
+    <div class="form-group" style="grid-column: span 2;">
+        <label data-pl="Główne miejsce odbioru" data-en="Main pickup location">Main pickup location</label>
+        <input type="text" id="partnerPickup" placeholder="e.g. Madeira Airport / Hotel delivery">
+    </div>
 
-                    <div class="form-group">
-                        <label data-pl="Telefon alarmowy" data-en="Emergency phone">Emergency phone</label>
-                        <input type="tel" id="partnerEmergency" placeholder="+48 000 000 000">
-                    </div>
-                    <div class="form-group">
-                        <label data-pl="Minimalny wiek kierowcy" data-en="Minimum driver age">Minimum driver age</label>
-                        <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21">
-                    </div>
+    <div class="form-group">
+        <label data-pl="Telefon *" data-en="Phone *">Phone *</label>
+        <input type="tel" id="partnerPhone" placeholder="+48 000 000 000">
+    </div>
+    
+    <div class="form-group">
+        <label data-pl="Email" data-en="Email">Email</label>
+        <input type="email" id="partnerEmail" placeholder="contact@company.com">
+    </div>
 
-                    <div class="form-group">
-                        <label data-pl="Waluta (Zablokowana)" data-en="Currency (Locked)">Currency (Locked)</label>
-                        <div id="partnerCurrency" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: #F1F5F9; color: var(--gray); font-weight: 700; cursor: not-allowed; height: 42px; display: flex; align-items: center;">
-                            EUR
-                        </div>
-                    </div>
+    <div class="form-group">
+        <label data-pl="Telefon alarmowy" data-en="Emergency phone">Emergency phone</label>
+        <input type="tel" id="partnerEmergency" placeholder="+48 000 000 000">
+    </div>
+    
+    <div class="form-group">
+        <label data-pl="Minimalny wiek kierowcy" data-en="Minimum driver age">Minimum driver age</label>
+        <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21">
+    </div>
 
-                    <div class="form-group" style="grid-column: span 2;">
-                       <label data-pl="Pliki i dokumenty (Wymagane PDF) *" data-en="Files & documents (Required PDF) *">Files & documents (Required PDF) *</label>
-                        <div class="file-tiles">
+    <div class="form-group">
+        <label data-pl="Waluta (Zablokowana)" data-en="Currency (Locked)">Currency (Locked)</label>
+        <div id="partnerCurrency" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: #F1F5F9; color: var(--gray); font-weight: 700; cursor: not-allowed; height: 42px; display: flex; align-items: center;">
+            EUR
+        </div>
+    </div>
 
-                            <label class="file-tile">
-                                <input type="file" id="avatarUpload" accept="image/*" style="display:none">
-                                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-avatar.svg'); mask-image: url('icons/icon-avatar.svg');"></div></div>
-                                <div class="file-title" data-pl="Avatar partnera" data-en="Partner avatar">Partner avatar</div>
-                                <div class="file-sub" data-pl="PNG / JPG" data-en="PNG / JPG">PNG / JPG</div>
-                            </label>
+    <div class="form-group" style="grid-column: span 2;">
+       <label data-pl="Pliki i dokumenty (Wymagane PDF) *" data-en="Files & documents (Required PDF) *">Files & documents (Required PDF) *</label>
+        <div class="file-tiles">
 
-                            <label class="file-tile">
-                                <input type="file" id="termsUpload" accept="application/pdf" style="display:none">
-                                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-doc.svg'); mask-image: url('icons/icon-doc.svg');"></div></div>
-                                <div class="file-title" data-pl="Warunki wynajmu" data-en="Rental terms">Rental terms</div>
-                                <div class="file-sub" data-pl="PDF" data-en="PDF">PDF</div>
-                            </label>
+            <label class="file-tile">
+                <input type="file" id="avatarUpload" accept="image/*" style="display:none">
+                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-avatar.svg'); mask-image: url('icons/icon-avatar.svg');"></div></div>
+                <div class="file-title" data-pl="Avatar partnera" data-en="Partner avatar">Partner avatar</div>
+                <div class="file-sub" data-pl="PNG / JPG" data-en="PNG / JPG">PNG / JPG</div>
+            </label>
 
-                            <label class="file-tile">
-                                <input type="file" id="rulesUpload" accept="application/pdf" style="display:none">
-                                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-policy.svg'); mask-image: url('icons/icon-policy.svg');"></div></div>
-                                <div class="file-title" data-pl="Regulamin wypożyczalni" data-en="Rental policy">Rental policy</div>
-                                <div class="file-sub" data-pl="PDF" data-en="PDF">PDF</div>
-                            </label>
+            <label class="file-tile">
+                <input type="file" id="termsUpload" accept="application/pdf" style="display:none">
+                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-doc.svg'); mask-image: url('icons/icon-doc.svg');"></div></div>
+                <div class="file-title" data-pl="Warunki wynajmu" data-en="Rental terms">Rental terms</div>
+                <div class="file-sub" data-pl="PDF" data-en="PDF">PDF</div>
+            </label>
 
-                        </div>
-                    </div>
+            <label class="file-tile">
+                <input type="file" id="rulesUpload" accept="application/pdf" style="display:none">
+                <div class="file-icon"><div class="icon-mask" style="-webkit-mask-image: url('icons/icon-policy.svg'); mask-image: url('icons/icon-policy.svg');"></div></div>
+                <div class="file-title" data-pl="Regulamin wypożyczalni" data-en="Rental policy">Rental policy</div>
+                <div class="file-sub" data-pl="PDF" data-en="PDF">PDF</div>
+            </label>
+
+        </div>
+    </div>
+
 
                     <div class="form-group" style="grid-column: span 2;">
                         <label data-pl="Wgrane dokumenty" data-en="Uploaded documents">Uploaded documents</label>
