@@ -3606,13 +3606,67 @@ const agreementTexts = {
         btnLoading: "Processing...",
         alertError: "You must accept the agreement to continue.",
         content: (company, country, discount) => `
-            <h3 style="text-align: center; margin-bottom: 15px;">PARTNER AGREEMENT v1.1</h3>
-            <p><strong>Ride24.pl</strong>, with its registered office at Przyszlosci 38/3, 70-893 Szczecin, Poland, email: <strong>partners@ride24.pl</strong>, represented by <strong>Krzysztof Sowa</strong>, hereinafter referred to as “Ride24”,</p>
+            <h2 style="text-align: center; font-size: 18px; text-decoration: underline; margin-bottom: 20px;">PARTNER AGREEMENT</h2>
+            <p>This Partner Agreement (“Agreement”) is entered into on <strong>${new Date().toLocaleDateString('en-GB')}</strong> between:</p>
+            
+            <p><strong>Ride24.pl</strong>, with its registered office at Przyszlosci 38/3, 70-893 Szczecin, Poland, email: <strong>kontakt@ride24.pl</strong>, represented by <strong>Emilia Sowa</strong>, hereinafter referred to as “Ride24”,</p>
+            
             <p>and</p>
+            
             <p><strong>${company}</strong>, with its registered office in <strong>${country}</strong>, hereinafter referred to as the “Partner”.</p>
-            <p>This Agreement defines the terms of cooperation between Ride24 and the Partner. Ride24 acts solely as a marketing and intermediary platform.</p>
-            <p>The Partner grants Ride24 a fixed partner discount of <strong>${discount}%</strong> (“Partner Discount”), calculated from the standard publicly available prices.</p>
-            <p><em>This Agreement may be executed electronically and is legally binding upon acceptance.</em></p>
+
+            <h3 style="font-size: 15px; margin-top: 20px;">§1. Subject of the Agreement</h3>
+            <p>This Agreement defines the terms of cooperation between Ride24 and the Partner regarding the promotion and facilitation of vehicle rental services via the Ride24 platform. Ride24 operates as an intermediary platform connecting customers with Partners.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§2. Nature of Cooperation</h3>
+            <p>Ride24 acts solely as a marketing and intermediary platform. The rental agreement is concluded directly between the Partner and the customer. The Partner is fully responsible for providing the rental service.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§3. Pricing and Discount (Commercial Terms)</h3>
+            <p>The Partner grants Ride24 a fixed partner discount of <strong>${discount}%</strong> (“Partner Discount”), calculated from the standard publicly available prices. The Partner Discount constitutes confidential commercial terms between the parties. Ride24 shall have full and exclusive discretion to determine the final price presented to the customer. Ride24 may apply any margin or pricing strategy without disclosure to the Partner. The Partner has no right to influence, question, or access Ride24’s final pricing. The Partner shall not disclose the Partner Discount or any pricing arrangements to customers or third parties.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§4. Payments</h3>
+            <p>All payments for rental services are made directly by the customer to the Partner. Ride24 does not collect payments on behalf of the Partner. No financial settlements shall take place between Ride24 and the Partner in relation to customer payments.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§5. Partner Account</h3>
+            <p>Ride24 provides the Partner with free access to a partner account. The Partner is responsible for maintaining accurate and up-to-date listings, prices, and availability. Ride24 reserves the right to suspend, limit or terminate access to the account at any time without prior notice.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§6. Reservations</h3>
+            <p>Ride24 transmits booking requests to the Partner. The Partner shall confirm or reject reservations within 24 hours. Confirmed reservations must be fulfilled, subject to availability. The Partner shall not modify agreed booking conditions after confirmation.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§7. Vouchers</h3>
+            <p>Ride24 may issue vouchers confirming bookings. The Partner agrees to honor valid vouchers issued by Ride24.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§8. Non-Circumvention</h3>
+            <p>The Partner shall not directly or indirectly bypass Ride24 by engaging with customers introduced through the platform outside of Ride24. This includes offering direct deals, discounts, or future cooperation outside Ride24. This obligation applies during the term of this Agreement and for 12 months after its termination.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§9. Rate Parity</h3>
+            <p>The Partner agrees that prices offered to Ride24 shall not be higher than prices offered through any other sales channel, including the Partner’s own website or third-party platforms.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§10. Confidentiality</h3>
+            <p>The Partner agrees to keep all commercial terms, including pricing, discounts, and cooperation conditions, strictly confidential. This obligation survives termination of the Agreement.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§11. Liability</h3>
+            <p>The Partner is solely responsible for the execution of rental services. Ride24 is not liable for services provided by the Partner. Ride24 shall not be liable for indirect or consequential damages.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§12. Data Protection</h3>
+            <p>The Partner shall process personal data in accordance with applicable laws, including GDPR. Personal data may only be used for reservation execution. The Partner shall implement appropriate technical and organizational measures to protect personal data.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§13. Term and Termination</h3>
+            <p>This Agreement is concluded for an indefinite period. Either party may terminate the Agreement with 14 days’ notice. Ride24 may terminate the Agreement immediately in case of breach or risk to platform integrity.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§14. Governing Law</h3>
+            <p>This Agreement shall be governed by the laws of Poland.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§15. Electronic Execution</h3>
+            <p>This Agreement may be executed electronically and is legally binding upon acceptance.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§16. Final Provisions</h3>
+            <p>This Agreement constitutes the entire agreement between the parties. Any amendments require written or electronic form. If any provision is found invalid, the remaining provisions shall remain in full force.</p>
+            
+            <p style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
+                <strong>Electronic Signature:</strong> Signed by the Partner representative on behalf of ${company}. 
+                IP and timestamp are recorded upon acceptance.
+            </p>
         `
     },
     pl: {
@@ -3625,13 +3679,67 @@ const agreementTexts = {
         btnLoading: "Trwa podpisywanie...",
         alertError: "Musisz zaakceptować umowę, aby kontynuować.",
         content: (company, country, discount) => `
-            <h3 style="text-align: center; margin-bottom: 15px;">UMOWA PARTNERSKA v1.1</h3>
-            <p><strong>Ride24.pl</strong>, z siedzibą przy ul. Przyszłości 38/3, 70-893 Szczecin, Polska, email: <strong>partners@ride24.pl</strong>, reprezentowana przez <strong>Krzysztofa Sowę</strong>, zwaną dalej „Ride24”,</p>
+            <h2 style="text-align: center; font-size: 18px; text-decoration: underline; margin-bottom: 20px;">UMOWA PARTNERSKA</h2>
+            <p>Niniejsza Umowa Partnerska („Umowa”) zostaje zawarta w dniu <strong>${new Date().toLocaleDateString('pl-PL')}</strong> pomiędzy:</p>
+            
+            <p><strong>Ride24.pl</strong>, z siedzibą przy ul. Przyszłości 38/3, 70-893 Szczecin, Polska, email: <strong>kontakt@ride24.pl</strong>, reprezentowaną przez <strong>Emilia Sowę</strong>, zwaną dalej „Ride24”,</p>
+            
             <p>oraz</p>
+            
             <p><strong>${company}</strong>, z siedzibą w <strong>${country}</strong>, zwanym dalej „Partnerem”.</p>
-            <p>Niniejsza Umowa określa zasady współpracy między Ride24 a Partnerem. Ride24 działa wyłącznie jako platforma marketingowa i pośrednicząca.</p>
-            <p>Partner udziela Ride24 stałego rabatu partnerskiego w wysokości <strong>${discount}%</strong> („Rabat Partnerski”), liczonego od standardowych, ogólnodostępnych cen.</p>
-            <p><em>Niniejsza Umowa może być zawarta drogą elektroniczną i jest prawnie wiążąca z chwilą jej akceptacji.</em></p>
+
+            <h3 style="font-size: 15px; margin-top: 20px;">§1. Przedmiot Umowy</h3>
+            <p>Niniejsza Umowa określa zasady współpracy między Ride24 a Partnerem w zakresie promocji i ułatwiania usług wynajmu pojazdów za pośrednictwem platformy Ride24. Ride24 działa jako platforma pośrednicząca łącząca klientów z Partnerami.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§2. Charakter Współpracy</h3>
+            <p>Ride24 działa wyłącznie jako platforma marketingowa i pośrednicząca. Umowa najmu zawierana jest bezpośrednio pomiędzy Partnerem a klientem. Partner ponosi pełną odpowiedzialność za świadczenie usługi wynajmu.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§3. Ceny i Rabaty (Warunki Handlowe)</h3>
+            <p>Partner udziela Ride24 stałego rabatu partnerskiego w wysokości <strong>${discount}%</strong> („Rabat Partnerski”), liczonego od standardowych, ogólnodostępnych cen. Rabat Partnerski stanowi poufne warunki handlowe między stronami. Ride24 ma pełną i wyłączną swobodę w ustalaniu ostatecznej ceny prezentowanej klientowi. Ride24 może stosować dowolną marżę lub strategię cenową bez ujawniania jej Partnerowi. Partner nie ma prawa wpływać na ostateczne ceny Ride24, kwestionować ich ani mieć do nich dostępu. Partner nie ujawni Rabatu Partnerskiego ani żadnych ustaleń cenowych klientom ani osobom trzecim.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§4. Płatności</h3>
+            <p>Wszystkie płatności za usługi wynajmu dokonywane są przez klienta bezpośrednio u Partnera. Ride24 nie pobiera płatności w imieniu Partnera. Między Ride24 a Partnerem nie dochodzi do żadnych rozliczeń finansowych w związku z płatnościami klientów.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§5. Konto Partnera</h3>
+            <p>Ride24 zapewnia Partnerowi bezpłatny dostęp do konta partnera. Partner jest odpowiedzialny za utrzymywanie dokładnych i aktualnych list pojazdów, cen i dostępności. Ride24 zastrzega sobie prawo do zawieszenia, ograniczenia lub odebrania dostępu do konta w dowolnym momencie bez wcześniejszego powiadomienia.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§6. Rezerwacje</h3>
+            <p>Ride24 przekazuje zapytania rezerwacyjne do Partnera. Partner potwierdzi lub odrzuci rezerwację w ciągu 24 godzin. Potwierdzone rezerwacje muszą zostać zrealizowane, w zależności od dostępności. Partner nie może zmieniać uzgodnionych warunków rezerwacji po potwierdzeniu.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§7. Vouchery</h3>
+            <p>Ride24 może wystawiać vouchery potwierdzające rezerwacje. Partner zgadza się honorować ważne vouchery wystawione przez Ride24.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§8. Zakaz Omijania Pośrednika</h3>
+            <p>Partner nie będzie bezpośrednio ani pośrednio omijać Ride24 poprzez kontaktowanie się z klientami wprowadzonymi przez platformę poza Ride24. Obejmuje to oferowanie bezpośrednich ofert, rabatów lub przyszłej współpracy poza Ride24. Obowiązek ten obowiązuje w okresie obowiązywania niniejszej Umowy oraz przez 12 miesięcy po jej rozwiązaniu.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§9. Parytet Stawek</h3>
+            <p>Partner zgadza się, że ceny oferowane Ride24 nie będą wyższe niż ceny oferowane za pośrednictwem jakiegokolwiek innego kanału sprzedaży, w tym własnej strony internetowej Partnera lub platform osób trzecich.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§10. Poufność</h3>
+            <p>Partner zgadza się zachować wszystkie warunki handlowe, w tym ceny, rabaty i warunki współpracy, w ścisłej tajemnicy. Obowiązek ten pozostaje w mocy po rozwiązaniu Umowy.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§11. Odpowiedzialność</h3>
+            <p>Partner ponosi wyłączną odpowiedzialność za wykonanie usług wynajmu. Ride24 nie ponosi odpowiedzialności za usługi świadczone przez Partnera. Ride24 nie ponosi odpowiedzialności za szkody pośrednie lub następcze.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§12. Ochrona Danych</h3>
+            <p>Partner będzie przetwarzać dane osobowe zgodnie z obowiązującymi przepisami, w tym RODO. Dane osobowe mogą być wykorzystywane wyłącznie do realizacji rezerwacji. Partner wdroży odpowiednie środki techniczne i organizacyjne w celu ochrony danych osobowych.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§13. Okres Obowiązywania i Rozwiązanie</h3>
+            <p>Niniejsza Umowa zostaje zawarta na czas nieokreślony. Każda ze stron może rozwiązać Umowę z zachowaniem 14-dniowego okresu wypowiedzenia. Ride24 może rozwiązać Umowę ze skutkiem natychmiastowym w przypadku naruszenia jej postanowień lub ryzyka dla integralności platformy.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§14. Prawo Właściwe</h3>
+            <p>Niniejsza Umowa podlega prawu polskiemu.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§15. Wykonanie Elektroniczne</h3>
+            <p>Niniejsza Umowa może zostać zawarta drogą elektroniczną i jest prawnie wiążąca po jej akceptacji.</p>
+
+            <h3 style="font-size: 15px; margin-top: 15px;">§16. Postanowienia Końcowe</h3>
+            <p>Niniejsza Umowa stanowi całość porozumienia między stronami. Wszelkie zmiany wymagają formy pisemnej lub elektronicznej. Jeśli którykolwiek z przepisów zostanie uznany za nieważny, pozostałe przepisy pozostają w pełnej mocy.</p>
+
+            <p style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
+                <strong>Podpis Elektroniczny:</strong> Zaakceptowano przez przedstawiciela Partnera w imieniu ${company}. 
+                Adres IP oraz znacznik czasu są rejestrowane w momencie akceptacji.
+            </p>
         `
     }
 };

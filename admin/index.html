@@ -1233,7 +1233,7 @@ window.processAddPartner = async function() {
         document.getElementById("new-p-discount").value = "15";
 
         loadPartnersData();
-
+        generateAgreement(data);
     } catch (err) {
 
         console.error("Błąd Edge Function:", err);
@@ -1484,6 +1484,80 @@ async function addDictionary() {
         loadSearchLogs();
     }
 }
+
+// --- GENERATOR UMOWY PARTNERSKIEJ ---
+window.generateAgreement = function(partnerData) {
+    const today = new Date().toLocaleDateString('pl-PL');
+    
+    // Szablon HTML dokumentu umowy - uzupełniony o dane z formularza
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Partner Agreement - ${partnerData.company_name}</title>
+        <style>
+            body { font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 40px; color: #000; }
+            h1 { text-align: center; font-size: 18px; margin-bottom: 30px; text-decoration: underline; }
+            p { text-align: justify; margin-bottom: 15px; }
+            .signatures { display: flex; justify-content: space-between; margin-top: 80px; }
+            .sign-box { width: 40%; border-top: 1px solid #000; padding-top: 10px; text-align: center; font-weight: bold; }
+            @media print { body { padding: 0; margin: 0; } }
+        </style>
+    </head>
+    <body>
+        <h1>PARTNER AGREEMENT</h1>
+        
+        <p>This Partner Agreement (“Agreement”) is entered into on <strong>${today}</strong> between:</p>
+        
+        <p><strong>Ride24.pl</strong>, with its registered office at Przyszłości 38/3, 70-893 Szczecin, Poland, email: <strong>kontakt@ride24.pl</strong>, represented by <strong>Emilia Sowa</strong>, hereinafter referred to as “Ride24”,</p>
+        
+        <p>and</p>
+        
+        <p><strong>${partnerData.company_name}</strong>, with its registered office in <strong>${partnerData.region}, ${partnerData.country}</strong>, email: <strong>${partnerData.email}</strong>, phone: <strong>${partnerData.phone}</strong>, hereinafter referred to as the “Partner”.</p>
+        
+        <p>This Agreement defines the terms of cooperation between Ride24 and the Partner regarding the promotion and facilitation of vehicle rental services via the Ride24 platform.</p>
+        
+        <p>Ride24 operates as an intermediary platform connecting customers with Partners. Ride24 acts solely as a marketing and intermediary platform. The rental agreement is concluded directly between the Partner and the customer. The Partner is fully responsible for providing the rental service.</p>
+        
+        <p>The Partner grants Ride24 a fixed partner discount of <strong>${partnerData.discount_percent}%</strong> (“Partner Discount”), calculated from the standard publicly available prices. The Partner Discount constitutes confidential commercial terms between the parties.</p>
+        
+        <p>Ride24 shall have full and exclusive discretion to determine the final price presented to the customer. Ride24 may apply any margin or pricing strategy without disclosure to the Partner. The Partner has no right to influence, question, or access Ride24’s final pricing. The Partner shall not disclose the Partner Discount or any pricing arrangements to customers or third parties. All payments for rental services are made directly by the customer to Ride24.</p>
+
+        <p>This obligation applies during the term of this Agreement and for 12 months after its termination. The Partner agrees that prices offered to Ride24 shall not be higher than prices offered through any other sales channel, including the Partner’s own website or third-party platforms. The Partner agrees to keep all commercial terms, including pricing, discounts, and cooperation conditions, strictly confidential. This obligation survives termination of the Agreement.</p>
+
+        <p>The Partner is solely responsible for the execution of rental services. Ride24 is not liable for services provided by the Partner. Ride24 shall not be liable for indirect or consequential damages.</p>
+
+        <p>The Partner shall process personal data in accordance with applicable laws, including GDPR. Personal data may only be used for reservation execution. The Partner shall implement appropriate technical and organizational measures to protect personal data.</p>
+
+        <p>This Agreement is concluded for an indefinite period. Either party may terminate the Agreement with 14 days’ notice. Ride24 may terminate the Agreement immediately in case of breach or risk to platform integrity. This Agreement shall be governed by the laws of Poland. This Agreement may be executed electronically and is legally binding upon acceptance. This Agreement constitutes the entire agreement between the parties. Any amendments require written or electronic form. If any provision is found invalid, the remaining provisions shall remain in full force.</p>
+
+        <div class="signatures">
+            <div class="sign-box">
+                Ride24<br>
+                <span style="font-weight: normal;">Emilia Sowa</span>
+            </div>
+            <div class="sign-box">
+                Partner<br>
+                <span style="font-weight: normal;">${partnerData.company_name}</span>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    // Otwórz nowe okno i wywołaj automatycznie widok druku (np. Zapisz jako PDF)
+    const printWin = window.open('', '_blank');
+    printWin.document.write(html);
+    printWin.document.close();
+    printWin.focus();
+    
+    // Małe opóźnienie aby upewnić się, że DOM się załadował przed drukiem
+    setTimeout(() => {
+        printWin.print();
+    }, 500);
+};
+
     </script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">
