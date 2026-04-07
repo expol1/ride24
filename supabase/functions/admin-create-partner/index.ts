@@ -63,15 +63,17 @@ serve(async (req) => {
 
 
     const {
-      email,
-      password,
-      company_name,
-      country,
-      region,
-      phone,
-      currency,
-      discount_percent
-    } = body
+  email,
+  password,
+  company_name,
+  country,
+  region,
+  phone,
+  currency,
+  discount_percent,
+  representative_name,
+  representative_surname
+} = body
 
     if (!email || !password || !company_name) {
       throw new Error("Brakuje wymaganych danych")
@@ -111,22 +113,28 @@ serve(async (req) => {
 const { error: partnerInsertError } = await supabaseAdmin
   .from("partners")
   .insert([
-    {
-      user_id: newPartnerId,
-      company_name,
-      country,
-      region,
-      phone,
-      currency,
-      discount_percent: discount_percent ?? 15,
-      active: false,              // 🔥 KLUCZOWE
-      account_status: "pending"   // 🔥 DODAJ
-    }
+  {
+    user_id: newPartnerId,
+    company_name,
+    email, // 🔥 DODAJ
+    country,
+    region,
+    phone,
+    currency,
+    discount_percent: discount_percent ?? 15,
+    representative_name,        
+    representative_surname,     
+    active: false,
+    account_status: "pending"
+  }
   ])
 
     if (partnerInsertError) {
-      throw new Error(partnerInsertError.message)
-    }
+  // rollback usera
+  await supabaseAdmin.auth.admin.deleteUser(newPartnerId)
+
+  throw new Error("Partner insert failed: " + partnerInsertError.message)
+}
 
     console.log("7. Email sending")
 

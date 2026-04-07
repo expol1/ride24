@@ -556,10 +556,9 @@
             if (!tbody) return;
 
             const { data, error } = await db
-    .from("partners")
-    .select("id, company_name, active, country, account_status")
-    .order("account_status", { ascending: true }) // 'pending' będzie przed 'active'
-    .order("created_at", { ascending: false });
+                .from("contact_messages")
+                .select("id, name, email, message, created_at")
+                .order("created_at", { ascending: false });
 
             if (error) {
                 tbody.innerHTML = "<tr><td colspan='4'>Błąd pobierania danych.</td></tr>";
@@ -1045,7 +1044,7 @@ ${statusMap[b.status] || b.status}
 async function loadPartnersData() {
     const { data, error } = await db
         .from("partners")
-        .select("id, company_name, active, country")
+        .select("id, company_name, active, country, account_status")
         .order("created_at", { ascending: false });
 
     const tbody = document.getElementById("admin-partners-tbody");
@@ -1081,13 +1080,20 @@ async function loadPartnersData() {
         // Dla pozostałych standardowe przyciski
         const isActive = p.active === true;
         actionBtn = `
-            <button class="btn-warn" onclick="togglePartner('${p.id}', ${!isActive})">
-                ${isActive ? "Zawieś" : "Odblokuj"}
-            </button>
-            <button class="btn-danger" style="margin-left:6px;" onclick="deletePartner('${p.id}')">
-                Usuń
-            </button>
-        `;
+    <button class="btn-warn" onclick="togglePartner('${p.id}', ${!isActive})">
+        ${isActive ? "Zawieś" : "Odblokuj"}
+    </button>
+
+    <button class="btn-primary" 
+        style="margin-left:6px;"
+        onclick="generateAgreementForPartner('${p.id}')">
+        Umowa PDF
+    </button>
+
+    <button class="btn-danger" style="margin-left:6px;" onclick="deletePartner('${p.id}')">
+        Usuń
+    </button>
+`;
     }
 
     // 3. Renderowanie wiersza do tabeli
@@ -1264,7 +1270,7 @@ document.getElementById("new-p-rep-surname").value = "";
 
     } finally {
         btn.disabled = false;
-        btn.innerText = "Utwórz i Aktywuj Partnera";
+        btn.innerText = "Utwórz Partnera";
         btn.style.opacity = "1";
         btn.style.pointerEvents = "auto";
     }
@@ -1537,10 +1543,17 @@ window.generateAgreement = function(partnerData) {
         
         <p>and</p>
         
-        // ... wewnątrz funkcji generateAgreement ...
-<p><strong>${partnerData.company_name}</strong>, with its registered office in <strong>${partnerData.region}, ${partnerData.country}</strong>, 
-represented by <strong>${partnerData.representative_name} ${partnerData.representative_surname}</strong>, 
-email: <strong>${partnerData.email}</strong>, phone: <strong>${partnerData.phone}</strong>, hereinafter referred to as the “Partner”.</p>
+        
+<p>
+<strong>${partnerData.company_name || "—"}</strong>, 
+with its registered office in 
+<strong>${partnerData.region || "—"}, ${partnerData.country || "—"}</strong>, 
+represented by 
+<strong>${partnerData.representative_name || "—"} ${partnerData.representative_surname || ""}</strong>, 
+email: <strong>${partnerData.email || "—"}</strong>, 
+phone: <strong>${partnerData.phone || "—"}</strong>, 
+hereinafter referred to as the “Partner”.
+</p>
         <p>The Partner grants Ride24 a fixed partner discount of <strong>${partnerData.discount_percent}%</strong> (“Partner Discount”), calculated from the standard publicly available prices. The Partner Discount constitutes confidential commercial terms between the parties.</p>
         
         <p>Ride24 shall have full and exclusive discretion to determine the final price presented to the customer. Ride24 may apply any margin or pricing strategy without disclosure to the Partner. The Partner has no right to influence, question, or access Ride24’s final pricing. The Partner shall not disclose the Partner Discount or any pricing arrangements to customers or third parties. All payments for rental services are made directly by the customer to Ride24.</p>
@@ -1578,8 +1591,31 @@ email: <strong>${partnerData.email}</strong>, phone: <strong>${partnerData.phone
     setTimeout(() => {
         printWin.print();
     }, 500);
-};
+};async function generateAgreementForPartner(partnerId) {
+    // 1. Pobieramy pełne dane partnera wraz z adresem email z profilu
+    const { data: partner, error } = await db
+        .from("partners")
+        .select(`
+            company_name,
+            country,
+            region,
+            phone,
+            discount_percent,
+            representative_name,
+            representative_surname,
+            email
+        `)
+        .eq("id", partnerId)
+        .single();
 
+    if (error || !partner) {
+        alert("Błąd ładowania danych do umowy: " + (error?.message || "Nie znaleziono partnera"));
+        return;
+    }
+
+    // 2. Przekazujemy pobrane dane do generatora PDF
+    generateAgreement(partner);
+}
     </script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">
@@ -1652,6 +1688,6 @@ email: <strong>${partnerData.email}</strong>, phone: <strong>${partnerData.phone
 
         <div style="padding: 20px 30px; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px;">
             <button onclick="closeAddPartnerModal()" style="padding: 10px 20px; background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Anuluj</button>
-            <button onclick="processAddPartner()" id="savePartnerBtn" style="padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Utwórz i Aktywuj Partnera</button>
+            <button onclick="processAddPartner()" id="savePartnerBtn" style="padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Utwórz Partnera</button>
       </div> </div> </div> </body>
 </html>
