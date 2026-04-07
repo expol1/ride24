@@ -1663,7 +1663,22 @@ async function executeDelete() {
           // POBRANIE FLAGI KOMPLETNOŚCI PROFILU, STATUSU KONTA I UMOWY
             const { data: partner } = await db
                 .from("partners")
-                .select("id, profile_completed, account_status, agreement_accepted, agreement_snapshot, company_name, country, discount_percent, avatar_url")
+                .select(`
+                    id, 
+                    profile_completed, 
+                    account_status, 
+                    agreement_accepted, 
+                    agreement_snapshot, 
+                    company_name, 
+                    country, 
+                    discount_percent, 
+                    avatar_url,
+                    representative_name,
+                    representative_surname,
+                    phone,
+                    region,
+                    email
+                `)
                 .eq("user_id", session.user.id)
                 .single();
 
@@ -1673,28 +1688,20 @@ async function executeDelete() {
                 document.getElementById("partnerAvatar").src = `${partner.avatar_url}?t=${Date.now()}`;
             }
 
-            // TWARDA BLOKADA WYMUSZAJĄCA AKCEPTACJĘ UMOWY (Jeśli jeszcze nie jest zaakceptowana)
-            if (partner && (partner.agreement_accepted === false || partner.agreement_accepted === null)) {
-                document.body.style.overflow = "hidden"; // Blokada przewijania tła
-                document.getElementById("agreement-modal").style.display = "flex";
-                const userLang = localStorage.getItem("partner_lang") || 'pl';
-                renderAgreement(userLang); 
-            }
+            // Aktualizacja 'last_seen' w tle
+            db.from('partners').update({ last_seen: new Date().toISOString() }).eq('user_id', session.user.id).then();
 
-            // TWARDA BLOKADA DLA ZDEZAKTYWOWANYCH KONT
+            // ODCZYT FLAG
+            const isProfileCompleted = partner?.profile_completed ?? false;
+
+            // 0. disabled
             if (partner?.account_status === "disabled") {
                 await db.auth.signOut();
-                // Dodajemy parametr msg, żeby strona logowania mogła pokazać ładnego Toasta
                 window.location.href = "index.html?msg=account_disabled"; 
                 return;
             }
 
-            const isProfileCompleted = partner?.profile_completed ?? false;
-
-            // Aktualizacja 'last_seen' w tle
-            db.from('partners').update({ last_seen: new Date().toISOString() }).eq('user_id', session.user.id).then();
-
-            // 1. SPRAWDZENIE BLOKADY HASŁA (Priorytet najwyższy)
+            // 1. hasło
             if (profile.must_change_password) {
                 document.querySelectorAll('.nav-item').forEach(item => {
                     item.style.opacity = "0.3";
@@ -1702,8 +1709,9 @@ async function executeDelete() {
                 });
                 openPasswordModal(true);
                 window.showToast("Password change required!", "error");
-            } 
-            // 2. BLOKADA NIEKOMPLETNEGO PROFILU (Krok 4 i 5)
+            }
+
+            // 2. profil (🔥 NAJPIERW!)
             else if (!isProfileCompleted) {
                 document.querySelectorAll('.nav-item').forEach(item => {
                     if (item.id !== 'nav-settings') {
@@ -1712,10 +1720,14 @@ async function executeDelete() {
                     }
                 });
                 switchTab('settings');
-                const isEn = localStorage.getItem("partner_lang") === "en";
-                setTimeout(() => {
-                    window.showToast(isEn ? "Complete your profile to unlock the panel." : "Uzupełnij profil i wgraj dokumenty, aby odblokować panel.", "error");
-                }, 500);
+                window.showToast("Uzupełnij profil aby wygenerować umowę", "error");
+            }
+
+            // 3. umowa (🔥 DOPIERO TERAZ)
+            else if (partner && !partner.agreement_accepted) {
+                document.body.style.overflow = "hidden";
+                document.getElementById("agreement-modal").style.display = "flex";
+                renderAgreement(localStorage.getItem("partner_lang") || "pl");
             }
 
             console.log("Partner logged in:", session.user.email);
@@ -3605,7 +3617,7 @@ const agreementTexts = {
         btnDefault: "Sign Electronically & Unlock Account",
         btnLoading: "Processing...",
         alertError: "You must accept the agreement to continue.",
-        content: (company, country, discount) => `
+        content: (comp, ctry, region, phone, email, rep, disc) => `
             <h2 style="text-align: center; font-size: 18px; text-decoration: underline; margin-bottom: 20px;">PARTNER AGREEMENT</h2>
             <p>This Partner Agreement (“Agreement”) is entered into on <strong>${new Date().toLocaleDateString('en-GB')}</strong> between:</p>
             
@@ -3678,7 +3690,7 @@ const agreementTexts = {
         btnDefault: "Podpisz elektronicznie i Aktywuj Konto",
         btnLoading: "Trwa podpisywanie...",
         alertError: "Musisz zaakceptować umowę, aby kontynuować.",
-        content: (company, country, discount) => `
+        content: (comp, ctry, region, phone, email, rep, disc) => `
             <h2 style="text-align: center; font-size: 18px; text-decoration: underline; margin-bottom: 20px;">UMOWA PARTNERSKA</h2>
             <p>Niniejsza Umowa Partnerska („Umowa”) zostaje zawarta w dniu <strong>${new Date().toLocaleDateString('pl-PL')}</strong> pomiędzy:</p>
             
@@ -3750,9 +3762,14 @@ function renderAgreement(lang) {
     currentAgLang = lang;
     const txt = agreementTexts[lang];
     
-    const comp = partnerData.company_name || "Brak nazwy firmy / No company name";
-    const ctry = partnerData.country || "Brak zdefiniowanego kraju / No country";
-    const disc = partnerData.discount_percent || 15;
+    const p = window.partnerData || {};
+    const comp = p.company_name || "Brak nazwy firmy";
+    const ctry = p.country || "Brak kraju";
+    const region = p.region || "";
+    const phone = p.phone || "";
+    const email = p.email || "";
+    const rep = `${p.representative_name || ""} ${p.representative_surname || ""}`.trim();
+    const disc = p.discount_percent ?? 0;
 
     document.getElementById("ag-title").innerText = txt.title;
     document.getElementById("ag-subtitle").innerText = txt.subtitle;
@@ -3760,7 +3777,9 @@ function renderAgreement(lang) {
     document.getElementById("ag-auth-text").innerText = txt.authText;
     document.getElementById("ag-legal-boost").innerText = txt.legalBoost;
     document.getElementById("sign-btn").innerText = txt.btnDefault;
-    document.getElementById("ag-content").innerHTML = txt.content(comp, ctry, disc);
+    
+    // Zaktualizowane przekazywanie zmiennych do szablonu HTML
+    document.getElementById("ag-content").innerHTML = txt.content(comp, ctry, region, phone, email, rep, disc);
     
     toggleSignButton();
 }
