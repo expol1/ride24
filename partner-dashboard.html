@@ -833,6 +833,15 @@
                         <label data-pl="Nazwa firmy *" data-en="Company name *">Company name *</label>
                         <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent">
                     </div>
+                    <div class="form-group">
+                        <label data-pl="Nazwa firmy *" data-en="Company name *">Company name *</label>
+                        <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent">
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label data-pl="Adres siedziby (wymagany do umowy) *" data-en="Company address (required for agreement) *">Company address (required for agreement) *</label>
+                        <input type="text" id="partnerAddress" placeholder="e.g. ul. Przykładowa 12, 00-000 Miasto">
+                    </div>
                     
                    <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
                         <label for="partnerActive" id="visibilityBox" style="cursor: pointer; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--green); border: 2px solid #58A300; border-radius: 8px; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);">
@@ -1661,6 +1670,7 @@ async function executeDelete() {
             }
 
           // POBRANIE FLAGI KOMPLETNOŚCI PROFILU, STATUSU KONTA I UMOWY
+           // POBRANIE FLAGI KOMPLETNOŚCI PROFILU, STATUSU KONTA I UMOWY
             const { data: partner } = await db
                 .from("partners")
                 .select(`
@@ -1677,12 +1687,14 @@ async function executeDelete() {
                     representative_surname,
                     phone,
                     region,
-                    email
+                    email,
+                    address
                 `)
                 .eq("user_id", session.user.id)
                 .single();
 
-            window.partnerData = partner || {}; // Przypisanie do zmiennej globalnej dla systemu umów!
+            // UWAGA: Zmieniamy window.partnerData na samo partnerData
+            partnerData = partner || {};
 
             if(partner?.avatar_url){
                 document.getElementById("partnerAvatar").src = `${partner.avatar_url}?t=${Date.now()}`;
@@ -1787,7 +1799,7 @@ async function executeDelete() {
         async function loadPartnerSettings(userId){
     const { data, error } = await db
         .from("partners")
-        .select("company_name, country, region, phone, emergency_phone, currency, active, discount_percent, currency_locked, avatar_url, rental_terms_url, rental_rules_url, min_driver_age")
+        .select("company_name, country, region, address, phone, emergency_phone, currency, active, discount_percent, currency_locked, avatar_url, rental_terms_url, rental_rules_url, min_driver_age")
 
         .eq("user_id", userId)
         .single();
@@ -1801,6 +1813,7 @@ async function executeDelete() {
             document.getElementById("partnerCompany").value = data.company_name;
             document.getElementById("partnerNameDisplay").innerText = data.company_name; 
         }
+        if(data.address) document.getElementById("partnerAddress").value = data.address;
                 if(data.avatar_url) {
                     document.getElementById("partnerAvatar").src = data.avatar_url;
                 }
@@ -1847,6 +1860,7 @@ async function executeDelete() {
                 if(!session) return;
 
                 const company = document.getElementById("partnerCompany").value.trim();
+                const address = document.getElementById("partnerAddress").value.trim();
                 const country = document.getElementById("partnerCountry").value.trim();
                 const region = document.getElementById("partnerRegion").value.trim();
                 const phone = document.getElementById("partnerPhone").value.trim();
@@ -1855,7 +1869,7 @@ async function executeDelete() {
                 const isEn = localStorage.getItem("partner_lang") === "en";
 
                 // KROK 6: WALIDACJA PÓL
-                if (!company || !country || !phone) {
+                if (!company || !country || !phone || !address) {
                     window.showToast(isEn ? "Please fill in all required fields (*)." : "Wypełnij wszystkie wymagane pola (*).", "error");
                     if(btn) { btn.disabled = false; btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany"; }
                     return;
@@ -1881,6 +1895,7 @@ console.log("🔥 MIN AGE INPUT:", minAgeInput);
 
 const updateData = {
     company_name: company,
+    address: address,
     country: country,
     region: region,
     phone: phone,
@@ -3617,15 +3632,15 @@ const agreementTexts = {
         btnDefault: "Sign Electronically & Unlock Account",
         btnLoading: "Processing...",
         alertError: "You must accept the agreement to continue.",
-        content: (comp, ctry, region, phone, email, rep, disc) => `
-            <h2 style="text-align: center; font-size: 18px; text-decoration: underline; margin-bottom: 20px;">PARTNER AGREEMENT</h2>
-            <p>This Partner Agreement (“Agreement”) is entered into on <strong>${new Date().toLocaleDateString('en-GB')}</strong> between:</p>
-            
-            <p><strong>Ride24.pl</strong>, with its registered office at Przyszlosci 38/3, 70-893 Szczecin, Poland, email: <strong>kontakt@ride24.pl</strong>, represented by <strong>Emilia Sowa</strong>, hereinafter referred to as “Ride24”,</p>
-            
-            <p>and</p>
-            
-           <p><strong>${comp}</strong>, with its registered office in <strong>${region}, ${ctry}</strong>, represented by <strong>${rep}</strong>, email: <strong>${email}</strong>, phone: <strong>${phone}</strong>, hereinafter referred to as the “Partner”.</p>
+        content: (comp, ctry, region, address, phone, email, rep, disc) =>`
+           <h2 style="text-align: center; font-size: 18px; text-decoration: underline; margin-bottom: 20px;">PARTNER AGREEMENT</h2>
+    <p>This Partner Agreement (“Agreement”) is entered into on <strong>${new Date().toLocaleDateString('en-GB')}</strong> between:</p>
+    
+    <p><strong>Ride24.pl</strong>, with its registered office at Przyszlosci 38/3, 70-893 Szczecin, Poland, email: <strong>kontakt@ride24.pl</strong>, represented by <strong>Emilia Sowa</strong>, hereinafter referred to as “Ride24”,</p>
+    
+    <p>and</p>
+    
+   <p><strong>${comp}</strong>, with its registered office at <strong>${address}, ${region}, ${ctry}</strong>, represented by <strong>${rep}</strong>, email: <strong>${email}</strong>, phone: <strong>${phone}</strong>, hereinafter referred to as the “Partner”.</p>
 
             <h3 style="font-size: 15px; margin-top: 20px;">§1. Subject of the Agreement</h3>
             <p>This Agreement defines the terms of cooperation between Ride24 and the Partner regarding the promotion and facilitation of vehicle rental services via the Ride24 platform. Ride24 operates as an intermediary platform connecting customers with Partners.</p>
@@ -3690,15 +3705,15 @@ const agreementTexts = {
         btnDefault: "Podpisz elektronicznie i Aktywuj Konto",
         btnLoading: "Trwa podpisywanie...",
         alertError: "Musisz zaakceptować umowę, aby kontynuować.",
-        content: (comp, ctry, region, phone, email, rep, disc) => `
+        content: (comp, ctry, region, address, phone, email, rep, disc) => `
             <h2 style="text-align: center; font-size: 18px; text-decoration: underline; margin-bottom: 20px;">UMOWA PARTNERSKA</h2>
-            <p>Niniejsza Umowa Partnerska („Umowa”) zostaje zawarta w dniu <strong>${new Date().toLocaleDateString('pl-PL')}</strong> pomiędzy:</p>
-            
-            <p><strong>Ride24.pl</strong>, z siedzibą przy ul. Przyszłości 38/3, 70-893 Szczecin, Polska, email: <strong>kontakt@ride24.pl</strong>, reprezentowaną przez <strong>Emilia Sowę</strong>, zwaną dalej „Ride24”,</p>
-            
-            <p>oraz</p>
-            
-           <p><strong>${comp}</strong>, z siedzibą w <strong>${region}, ${ctry}</strong>, zwanym dalej „Partnerem”.</p>
+    <p>Niniejsza Umowa Partnerska („Umowa”) zostaje zawarta w dniu <strong>${new Date().toLocaleDateString('pl-PL')}</strong> pomiędzy:</p>
+    
+    <p><strong>Ride24.pl</strong>, z siedzibą przy ul. Przyszłości 38/3, 70-893 Szczecin, Polska, email: <strong>kontakt@ride24.pl</strong>, reprezentowaną przez <strong>Emilia Sowę</strong>, zwaną dalej „Ride24”,</p>
+    
+    <p>oraz</p>
+    
+    <p><strong>${comp}</strong>, z siedzibą: <strong>${address}, ${region}, ${ctry}</strong>, zwanym dalej „Partnerem”.</p>
 
             <h3 style="font-size: 15px; margin-top: 20px;">§1. Przedmiot Umowy</h3>
             <p>Niniejsza Umowa określa zasady współpracy między Ride24 a Partnerem w zakresie promocji i ułatwiania usług wynajmu pojazdów za pośrednictwem platformy Ride24. Ride24 działa jako platforma pośrednicząca łącząca klientów z Partnerami.</p>
@@ -3757,13 +3772,13 @@ const agreementTexts = {
 };
 
 let currentAgLang = 'pl';
-
 function renderAgreement(lang) {
     currentAgLang = lang;
     const txt = agreementTexts[lang];
     
-    const p = window.partnerData || {};
+    const p = partnerData || {};
     const comp = p.company_name || "Brak nazwy firmy";
+    const address = p.address || "Brak adresu"; // <-- TO JEST NOWE
     const ctry = p.country || "Brak kraju";
     const region = p.region || "";
     const phone = p.phone || "";
@@ -3779,7 +3794,7 @@ function renderAgreement(lang) {
     document.getElementById("sign-btn").innerText = txt.btnDefault;
     
     // Zaktualizowane przekazywanie zmiennych do szablonu HTML
-    document.getElementById("ag-content").innerHTML = txt.content(comp, ctry, region, phone, email, rep, disc);
+    document.getElementById("ag-content").innerHTML = txt.content(comp, ctry, region, address, phone, email, rep, disc);
     
     toggleSignButton();
 }
