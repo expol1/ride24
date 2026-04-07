@@ -108,20 +108,21 @@ serve(async (req) => {
 
     console.log("6. Insert partners")
 
-    const { error: partnerInsertError } = await supabaseAdmin
-      .from("partners")
-      .insert([
-        {
-          user_id: newPartnerId,
-          company_name,
-          country,
-          region,
-          phone,
-          currency,
-          discount_percent: discount_percent ?? 15,
-          active: true
-        }
-      ])
+const { error: partnerInsertError } = await supabaseAdmin
+  .from("partners")
+  .insert([
+    {
+      user_id: newPartnerId,
+      company_name,
+      country,
+      region,
+      phone,
+      currency,
+      discount_percent: discount_percent ?? 15,
+      active: false,              // 🔥 KLUCZOWE
+      account_status: "pending"   // 🔥 DODAJ
+    }
+  ])
 
     if (partnerInsertError) {
       throw new Error(partnerInsertError.message)

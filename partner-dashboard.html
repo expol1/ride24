@@ -3781,11 +3781,11 @@ function toggleSignButton() {
 
 async function signAgreement() {
     const btn = document.getElementById("sign-btn");
-    
-    // 1. ZABEZPIECZENIE PRZED DOUBLE CLICK (Guard)
+
+    // 🔒 1. Double click guard
     if (btn.disabled) return;
 
-    // OCHRONA PRZED PUSTYM partnerData.id
+    // 🔒 2. Walidacja danych
     if (!partnerData || !partnerData.id) {
         alert("Brak danych partnera. Odśwież stronę.");
         return;
@@ -3803,20 +3803,25 @@ async function signAgreement() {
     btn.disabled = true;
 
     try {
-        // POBRANIE SESJI DO ZABEZPIECZENIA
+        // 🔐 3. Sesja
         const { data: { session }, error: sessionError } = await db.auth.getSession();
-        if (sessionError || !session) throw new Error("Brak autoryzacji / Unauthorized.");
+        if (sessionError || !session) {
+            throw new Error("Brak autoryzacji / Unauthorized.");
+        }
 
+        // 🌍 4. IP
         let userIp = "Unresolved";
         try {
             const ipResponse = await fetch('https://api.ipify.org?format=json');
             const ipData = await ipResponse.json();
             userIp = ipData.ip;
-        } catch (e) { console.warn("Brak IP", e); }
+        } catch (e) {
+            console.warn("Nie udało się pobrać IP", e);
+        }
 
+        // 📄 5. Treść umowy
         const rawContent = document.getElementById("ag-content").innerHTML;
 
-        // SANITY CHECK SNAPSHOTU
         if (!rawContent || rawContent.length < 50) {
             alert("Błąd: treść umowy nie została poprawnie załadowana.");
             btn.innerText = txt.btnDefault;
@@ -3824,10 +3829,10 @@ async function signAgreement() {
             return;
         }
 
-        // SPÓJNY TIMESTAMP
+        // ⏱ 6. Timestamp
         const now = new Date().toISOString();
 
-        // 2. TWORZENIE SNAPSHOTU JSON Z DODANIEM USER_AGENT (Dowód Pro)
+        // 📦 7. SNAPSHOT (pełny dowód)
         const finalSnapshot = JSON.stringify({
             version: "v1.1",
             lang: currentAgLang,
@@ -3836,43 +3841,59 @@ async function signAgreement() {
             discount: partnerData.discount_percent,
             content: rawContent,
             signed_at: now,
+            ip: userIp,
             user_agent: navigator.userAgent
         });
 
-        // 3. AKTUALIZACJA Z UŻYCIEM .select() DO WERYFIKACJI
-        const { data, error } = await db.from('partners')
+        // 🧠 8. UPDATE + SECURITY
+        const { data, error } = await db
+            .from('partners')
             .update({ 
                 agreement_accepted: true,
                 agreement_accepted_at: now,
                 agreement_version: "v1.1",
-                agreement_snapshot: finalSnapshot, 
+                agreement_snapshot: finalSnapshot,
                 agreement_ip: userIp,
-                profile_completed: true
+                profile_completed: true,
+                active: true,                // 🔥 ODBLOKOWANIE
+                account_status: "active"     // 🔥 STATUS
             })
             .eq('id', partnerData.id)
-            .eq('user_id', session.user.id) // Weryfikacja po sesji
+            .eq('user_id', session.user.id)
             .eq('agreement_accepted', false)
             .select();
 
         if (error) throw error;
 
-        // 4. SPRAWDZENIE, CZY ZAKTUALIZOWANO JAKIKOLWIEK WIERSZ
+        // 🔒 9. Sprawdzenie czy update przeszedł
         if (!data || data.length === 0) {
             throw new Error("Umowa została już podpisana lub brak dostępu.");
         }
 
-        // Aktualizacja lokalnego obiektu po sukcesie
+        // 🧠 10. Aktualizacja lokalna
         partnerData.agreement_accepted = true;
         partnerData.agreement_snapshot = finalSnapshot;
-        
-        document.body.style.overflow = "auto"; 
+
+        // 🎨 11. UI cleanup
+        document.body.style.overflow = "auto";
         document.getElementById("agreement-modal").style.display = "none";
-        
+
         const isEn = localStorage.getItem("partner_lang") === "en";
-        window.showToast(isEn ? "Agreement successfully signed!" : "Umowa została prawnie zawarta!", "success");
+        window.showToast(
+            isEn ? "Agreement successfully signed!" : "Umowa została prawnie zawarta!",
+            "success"
+        );
+
+        // 🔄 12. Reload → wpuszcza do panelu
+        setTimeout(() => {
+            window.location.reload();
+        }, 800);
 
     } catch (err) {
+        console.error("SIGN ERROR:", err);
+
         alert("Błąd / Error: " + err.message);
+
         btn.innerText = txt.btnDefault;
         btn.disabled = false;
     }

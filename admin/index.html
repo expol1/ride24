@@ -556,9 +556,10 @@
             if (!tbody) return;
 
             const { data, error } = await db
-                .from('contact_messages')
-                .select('*')
-                .order('created_at', { ascending: false });
+    .from("partners")
+    .select("id, company_name, active, country, account_status")
+    .order("account_status", { ascending: true }) // 'pending' będzie przed 'active'
+    .order("created_at", { ascending: false });
 
             if (error) {
                 tbody.innerHTML = "<tr><td colspan='4'>Błąd pobierania danych.</td></tr>";
@@ -1057,30 +1058,48 @@ async function loadPartnersData() {
     }
 
     data.forEach(p => {
-        // Kluczowa poprawka: zamiana null na false
-        const isActive = p.active === true; 
-        const statusHtml = isActive 
-            ? `<span class="status active">AKTYWNY</span>` 
-            : `<span class="status suspended">ZAWIESZONY</span>`;
-        
-        const actionBtn = `
+    // 1. Logika statusu (Badge)
+    let statusHtml = "";
+    if (p.account_status === "pending") {
+        statusHtml = `<span class="status pending">OCZEKUJE NA UMOWĘ</span>`;
+    } else if (p.active === true) {
+        statusHtml = `<span class="status active">AKTYWNY</span>`;
+    } else {
+        statusHtml = `<span class="status suspended">ZAWIESZONY</span>`;
+    }
+
+    // 2. Logika przycisków - PRECYZYJNA
+    let actionBtn = "";
+    if (p.account_status === "pending") {
+        // Dla nowych nie pokazujemy przycisków akcji, tylko informację
+        actionBtn = `
+            <span style="font-size:12px; color:#D97706; font-weight:700; padding: 6px;">
+                Czeka na ruch partnera
+            </span>
+        `;
+    } else {
+        // Dla pozostałych standardowe przyciski
+        const isActive = p.active === true;
+        actionBtn = `
             <button class="btn-warn" onclick="togglePartner('${p.id}', ${!isActive})">
-                ${isActive ? "Zawieś Partnera" : "Odblokuj"}
+                ${isActive ? "Zawieś" : "Odblokuj"}
             </button>
             <button class="btn-danger" style="margin-left:6px;" onclick="deletePartner('${p.id}')">
                 Usuń
             </button>
         `;
+    }
 
-        tbody.innerHTML += `
-            <tr>
-                <td class="company-name">${escapeHtml(p.company_name || "Brak nazwy")}</td>
-                <td>${escapeHtml(p.country ?? "---")}</td>
-                <td>${statusHtml}</td>
-                <td>${actionBtn}</td>
-            </tr>
-        `;
-    });
+    // 3. Renderowanie wiersza do tabeli
+    tbody.innerHTML += `
+        <tr>
+            <td class="company-name">${escapeHtml(p.company_name || "Brak nazwy")}</td>
+            <td>${escapeHtml(p.country ?? "---")}</td>
+            <td>${statusHtml}</td>
+            <td style="text-align: right;">${actionBtn}</td>
+        </tr>
+    `;
+});
 }
 
 async function togglePartner(partnerId, makeActive) {
@@ -1160,15 +1179,17 @@ window.processAddPartner = async function() {
     const btn = document.getElementById("savePartnerBtn");
 
     const data = {
-        email: document.getElementById("new-p-email").value.trim(),
-        password: document.getElementById("new-p-pass").value.trim(),
-        company_name: document.getElementById("new-p-company").value.trim(),
-        country: document.getElementById("new-p-country").value.trim(),
-        region: document.getElementById("new-p-region").value.trim(),
-        phone: document.getElementById("new-p-phone").value.trim(),
-        currency: document.getElementById("new-p-currency").value,
-        discount_percent: parseFloat(document.getElementById("new-p-discount").value) || 15
-    };
+    email: document.getElementById("new-p-email").value.trim(),
+    password: document.getElementById("new-p-pass").value.trim(),
+    company_name: document.getElementById("new-p-company").value.trim(),
+    representative_name: document.getElementById("new-p-rep-name").value.trim(), // DODANE
+    representative_surname: document.getElementById("new-p-rep-surname").value.trim(), // DODANE
+    country: document.getElementById("new-p-country").value.trim(),
+    region: document.getElementById("new-p-region").value.trim(),
+    phone: document.getElementById("new-p-phone").value.trim(),
+    currency: document.getElementById("new-p-currency").value,
+    discount_percent: parseFloat(document.getElementById("new-p-discount").value) || 15
+};
 
     if (!data.email.includes("@") || !data.company_name) {
         alert("Podaj poprawny email i nazwę firmy!");
@@ -1223,6 +1244,8 @@ window.processAddPartner = async function() {
         alert("Sukces! Partner " + data.company_name + " został utworzony.");
 
         closeAddPartnerModal();
+        document.getElementById("new-p-rep-name").value = "";
+document.getElementById("new-p-rep-surname").value = "";
 
         document.getElementById("new-p-email").value = "";
         document.getElementById("new-p-pass").value = "";
@@ -1233,7 +1256,7 @@ window.processAddPartner = async function() {
         document.getElementById("new-p-discount").value = "15";
 
         loadPartnersData();
-        generateAgreement(data);
+        
     } catch (err) {
 
         console.error("Błąd Edge Function:", err);
@@ -1514,12 +1537,10 @@ window.generateAgreement = function(partnerData) {
         
         <p>and</p>
         
-        <p><strong>${partnerData.company_name}</strong>, with its registered office in <strong>${partnerData.region}, ${partnerData.country}</strong>, email: <strong>${partnerData.email}</strong>, phone: <strong>${partnerData.phone}</strong>, hereinafter referred to as the “Partner”.</p>
-        
-        <p>This Agreement defines the terms of cooperation between Ride24 and the Partner regarding the promotion and facilitation of vehicle rental services via the Ride24 platform.</p>
-        
-        <p>Ride24 operates as an intermediary platform connecting customers with Partners. Ride24 acts solely as a marketing and intermediary platform. The rental agreement is concluded directly between the Partner and the customer. The Partner is fully responsible for providing the rental service.</p>
-        
+        // ... wewnątrz funkcji generateAgreement ...
+<p><strong>${partnerData.company_name}</strong>, with its registered office in <strong>${partnerData.region}, ${partnerData.country}</strong>, 
+represented by <strong>${partnerData.representative_name} ${partnerData.representative_surname}</strong>, 
+email: <strong>${partnerData.email}</strong>, phone: <strong>${partnerData.phone}</strong>, hereinafter referred to as the “Partner”.</p>
         <p>The Partner grants Ride24 a fixed partner discount of <strong>${partnerData.discount_percent}%</strong> (“Partner Discount”), calculated from the standard publicly available prices. The Partner Discount constitutes confidential commercial terms between the parties.</p>
         
         <p>Ride24 shall have full and exclusive discretion to determine the final price presented to the customer. Ride24 may apply any margin or pricing strategy without disclosure to the Partner. The Partner has no right to influence, question, or access Ride24’s final pricing. The Partner shall not disclose the Partner Discount or any pricing arrangements to customers or third parties. All payments for rental services are made directly by the customer to Ride24.</p>
@@ -1538,9 +1559,10 @@ window.generateAgreement = function(partnerData) {
                 <span style="font-weight: normal;">Emilia Sowa</span>
             </div>
             <div class="sign-box">
-                Partner<br>
-                <span style="font-weight: normal;">${partnerData.company_name}</span>
-            </div>
+    Partner<br>
+    <span style="font-weight: normal;">${partnerData.representative_name} ${partnerData.representative_surname}</span><br>
+    <span style="font-size: 10px; font-weight: normal;">${partnerData.company_name}</span>
+</div>
         </div>
     </body>
     </html>
@@ -1584,7 +1606,14 @@ window.generateAgreement = function(partnerData) {
             <div style="grid-column: span 2; margin-top: 10px;">
     <h3 style="font-size: 14px; color: var(--blue); text-transform: uppercase;">2. Informacje o Firmie</h3>
 </div>
-
+<div class="form-group">
+    <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Imię Reprezentanta</label>
+    <input type="text" id="new-p-rep-name" placeholder="np. Jan" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+</div>
+<div class="form-group">
+    <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Nazwisko Reprezentanta</label>
+    <input type="text" id="new-p-rep-surname" placeholder="np. Kowalski" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+</div>
 <div class="form-group" style="grid-column: span 2;">
     <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Nazwa Wypożyczalni (Publiczna)</label>
     <input type="text" id="new-p-company" placeholder="np. Ride24 Rent" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
