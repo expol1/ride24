@@ -637,6 +637,14 @@
                     <span class="nav-text" data-pl="Ustawienia" data-en="Settings">Settings</span>
                 </div>
             </div>
+            <div class="nav-item" onclick="showSignedAgreement()">
+    <div class="nav-item-inner">
+        <span class="nav-icon">
+            <div class="icon-mask" style="-webkit-mask-image: url('icons/icon-doc.svg'); mask-image: url('icons/icon-doc.svg');"></div>
+        </span>
+        <span class="nav-text" data-pl="Moja Umowa" data-en="My Agreement">Moja Umowa</span>
+    </div>
+</div>
         </nav>
         <div class="partner-discount-widget">
             <div class="discount-title" data-pl="Stały rabat  partnera" data-en="Partner commission">Partner commission</div>
@@ -1652,16 +1660,26 @@ async function executeDelete() {
                 return;
             }
 
-          // POBRANIE FLAGI KOMPLETNOŚCI PROFILU I STATUSU KONTA
+          // POBRANIE FLAGI KOMPLETNOŚCI PROFILU, STATUSU KONTA I UMOWY
             const { data: partner } = await db
                 .from("partners")
-                .select("profile_completed, account_status")
+                .select("id, profile_completed, account_status, agreement_accepted, agreement_snapshot, company_name, country, discount_percent, avatar_url")
                 .eq("user_id", session.user.id)
                 .single();
-                if(partner?.avatar_url){
-    document.getElementById("partnerAvatar").src =
-        `${partner.avatar_url}?t=${Date.now()}`
-}
+
+            window.partnerData = partner || {}; // Przypisanie do zmiennej globalnej dla systemu umów!
+
+            if(partner?.avatar_url){
+                document.getElementById("partnerAvatar").src = `${partner.avatar_url}?t=${Date.now()}`;
+            }
+
+            // TWARDA BLOKADA WYMUSZAJĄCA AKCEPTACJĘ UMOWY (Jeśli jeszcze nie jest zaakceptowana)
+            if (partner && (partner.agreement_accepted === false || partner.agreement_accepted === null)) {
+                document.body.style.overflow = "hidden"; // Blokada przewijania tła
+                document.getElementById("agreement-modal").style.display = "flex";
+                const userLang = localStorage.getItem("partner_lang") || 'pl';
+                renderAgreement(userLang); 
+            }
 
             // TWARDA BLOKADA DLA ZDEZAKTYWOWANYCH KONT
             if (partner?.account_status === "disabled") {
@@ -3571,7 +3589,260 @@ async function setupAutocomplete(inputId, dropdownId, category) {
             document.querySelectorAll('.guide-tab').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
         };
+        // ==========================================
+// --- SYSTEM UMÓW PARTNERSKICH B2B ---
+// ==========================================
 
+let partnerData = {}; // Globalna zmienna do przechowania danych dla umowy
+
+const agreementTexts = {
+    en: {
+        title: "Agreement Acceptance",
+        subtitle: "Mandatory: Please review and accept the partner agreement to unlock your dashboard.",
+        checkbox: "I declare that I have read the above agreement and accept its terms.",
+        authText: "I confirm that I am authorized to act on behalf of the Partner.",
+        legalBoost: "This is a legally binding electronic signature under applicable B2B regulations.",
+        btnDefault: "Sign Electronically & Unlock Account",
+        btnLoading: "Processing...",
+        alertError: "You must accept the agreement to continue.",
+        content: (company, country, discount) => `
+            <h3 style="text-align: center; margin-bottom: 15px;">PARTNER AGREEMENT v1.1</h3>
+            <p><strong>Ride24.pl</strong>, with its registered office at Przyszlosci 38/3, 70-893 Szczecin, Poland, email: <strong>partners@ride24.pl</strong>, represented by <strong>Krzysztof Sowa</strong>, hereinafter referred to as “Ride24”,</p>
+            <p>and</p>
+            <p><strong>${company}</strong>, with its registered office in <strong>${country}</strong>, hereinafter referred to as the “Partner”.</p>
+            <p>This Agreement defines the terms of cooperation between Ride24 and the Partner. Ride24 acts solely as a marketing and intermediary platform.</p>
+            <p>The Partner grants Ride24 a fixed partner discount of <strong>${discount}%</strong> (“Partner Discount”), calculated from the standard publicly available prices.</p>
+            <p><em>This Agreement may be executed electronically and is legally binding upon acceptance.</em></p>
+        `
+    },
+    pl: {
+        title: "Akceptacja Umowy Partnerskiej",
+        subtitle: "Wymagane: Prosimy o zaakceptowanie umowy partnerskiej, aby odblokować panel.",
+        checkbox: "Oświadczam, że zapoznałem się z powyższą umową i akceptuję jej warunki.",
+        authText: "Potwierdzam, że jestem upoważniony/a do reprezentowania Partnera.",
+        legalBoost: "Klikając przycisk, składasz prawnie wiążący podpis elektroniczny (B2B).",
+        btnDefault: "Podpisz elektronicznie i Aktywuj Konto",
+        btnLoading: "Trwa podpisywanie...",
+        alertError: "Musisz zaakceptować umowę, aby kontynuować.",
+        content: (company, country, discount) => `
+            <h3 style="text-align: center; margin-bottom: 15px;">UMOWA PARTNERSKA v1.1</h3>
+            <p><strong>Ride24.pl</strong>, z siedzibą przy ul. Przyszłości 38/3, 70-893 Szczecin, Polska, email: <strong>partners@ride24.pl</strong>, reprezentowana przez <strong>Krzysztofa Sowę</strong>, zwaną dalej „Ride24”,</p>
+            <p>oraz</p>
+            <p><strong>${company}</strong>, z siedzibą w <strong>${country}</strong>, zwanym dalej „Partnerem”.</p>
+            <p>Niniejsza Umowa określa zasady współpracy między Ride24 a Partnerem. Ride24 działa wyłącznie jako platforma marketingowa i pośrednicząca.</p>
+            <p>Partner udziela Ride24 stałego rabatu partnerskiego w wysokości <strong>${discount}%</strong> („Rabat Partnerski”), liczonego od standardowych, ogólnodostępnych cen.</p>
+            <p><em>Niniejsza Umowa może być zawarta drogą elektroniczną i jest prawnie wiążąca z chwilą jej akceptacji.</em></p>
+        `
+    }
+};
+
+let currentAgLang = 'pl';
+
+function renderAgreement(lang) {
+    currentAgLang = lang;
+    const txt = agreementTexts[lang];
+    
+    const comp = partnerData.company_name || "Brak nazwy firmy / No company name";
+    const ctry = partnerData.country || "Brak zdefiniowanego kraju / No country";
+    const disc = partnerData.discount_percent || 15;
+
+    document.getElementById("ag-title").innerText = txt.title;
+    document.getElementById("ag-subtitle").innerText = txt.subtitle;
+    document.getElementById("ag-checkbox-label").innerText = txt.checkbox;
+    document.getElementById("ag-auth-text").innerText = txt.authText;
+    document.getElementById("ag-legal-boost").innerText = txt.legalBoost;
+    document.getElementById("sign-btn").innerText = txt.btnDefault;
+    document.getElementById("ag-content").innerHTML = txt.content(comp, ctry, disc);
+    
+    toggleSignButton();
+}
+
+function toggleSignButton() {
+    const cb = document.getElementById("accept-cb");
+    const btn = document.getElementById("sign-btn");
+    if (cb.checked) {
+        btn.disabled = false;
+        btn.style.background = "#2563eb"; 
+        btn.style.cursor = "pointer";
+    } else {
+        btn.disabled = true;
+        btn.style.background = "#cbd5e1";
+        btn.style.cursor = "not-allowed";
+    }
+}
+
+async function signAgreement() {
+    const btn = document.getElementById("sign-btn");
+    
+    // 1. ZABEZPIECZENIE PRZED DOUBLE CLICK (Guard)
+    if (btn.disabled) return;
+
+    // OCHRONA PRZED PUSTYM partnerData.id
+    if (!partnerData || !partnerData.id) {
+        alert("Brak danych partnera. Odśwież stronę.");
+        return;
+    }
+
+    const cb = document.getElementById("accept-cb");
+    const txt = agreementTexts[currentAgLang];
+
+    if (!cb.checked) {
+        alert(txt.alertError);
+        return;
+    }
+
+    btn.innerText = txt.btnLoading;
+    btn.disabled = true;
+
+    try {
+        // POBRANIE SESJI DO ZABEZPIECZENIA
+        const { data: { session }, error: sessionError } = await db.auth.getSession();
+        if (sessionError || !session) throw new Error("Brak autoryzacji / Unauthorized.");
+
+        let userIp = "Unresolved";
+        try {
+            const ipResponse = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipResponse.json();
+            userIp = ipData.ip;
+        } catch (e) { console.warn("Brak IP", e); }
+
+        const rawContent = document.getElementById("ag-content").innerHTML;
+
+        // SANITY CHECK SNAPSHOTU
+        if (!rawContent || rawContent.length < 50) {
+            alert("Błąd: treść umowy nie została poprawnie załadowana.");
+            btn.innerText = txt.btnDefault;
+            btn.disabled = false;
+            return;
+        }
+
+        // SPÓJNY TIMESTAMP
+        const now = new Date().toISOString();
+
+        // 2. TWORZENIE SNAPSHOTU JSON Z DODANIEM USER_AGENT (Dowód Pro)
+        const finalSnapshot = JSON.stringify({
+            version: "v1.1",
+            lang: currentAgLang,
+            company: partnerData.company_name,
+            country: partnerData.country,
+            discount: partnerData.discount_percent,
+            content: rawContent,
+            signed_at: now,
+            user_agent: navigator.userAgent
+        });
+
+        // 3. AKTUALIZACJA Z UŻYCIEM .select() DO WERYFIKACJI
+        const { data, error } = await db.from('partners')
+            .update({ 
+                agreement_accepted: true,
+                agreement_accepted_at: now,
+                agreement_version: "v1.1",
+                agreement_snapshot: finalSnapshot, 
+                agreement_ip: userIp,
+                profile_completed: true
+            })
+            .eq('id', partnerData.id)
+            .eq('user_id', session.user.id) // Weryfikacja po sesji
+            .eq('agreement_accepted', false)
+            .select();
+
+        if (error) throw error;
+
+        // 4. SPRAWDZENIE, CZY ZAKTUALIZOWANO JAKIKOLWIEK WIERSZ
+        if (!data || data.length === 0) {
+            throw new Error("Umowa została już podpisana lub brak dostępu.");
+        }
+
+        // Aktualizacja lokalnego obiektu po sukcesie
+        partnerData.agreement_accepted = true;
+        partnerData.agreement_snapshot = finalSnapshot;
+        
+        document.body.style.overflow = "auto"; 
+        document.getElementById("agreement-modal").style.display = "none";
+        
+        const isEn = localStorage.getItem("partner_lang") === "en";
+        window.showToast(isEn ? "Agreement successfully signed!" : "Umowa została prawnie zawarta!", "success");
+
+    } catch (err) {
+        alert("Błąd / Error: " + err.message);
+        btn.innerText = txt.btnDefault;
+        btn.disabled = false;
+    }
+}
+
+// Funkcja otwierająca podgląd
+function showSignedAgreement() {
+    if (partnerData && partnerData.agreement_snapshot) {
+        try {
+            // 2. DETEKCJA JĘZYKA W PODGLĄDZIE POPRZEZ PARSOWANIE JSON
+            const snapshot = JSON.parse(partnerData.agreement_snapshot);
+            const isEnglish = snapshot.lang === "en";
+            
+            // Wstrzykujemy czysty HTML zawarty w polu content w zrzuconym JSONie
+            document.getElementById("signed-agreement-content").innerHTML = snapshot.content;
+            
+            // Tłumaczenie przycisków okienka na podstawie wykrytego języka umowy
+            document.getElementById("view-ag-title").innerText = isEnglish ? "Your Signed Agreement" : "Twoja Podpisana Umowa";
+            document.getElementById("view-ag-print").innerHTML = isEnglish ? "🖨️ Print" : "🖨️ Drukuj";
+            document.getElementById("view-ag-close").innerText = isEnglish ? "Close" : "Zamknij";
+
+            document.getElementById("view-agreement-modal").style.display = "flex";
+        } catch (e) {
+            console.error("Błąd parsowania snapshotu", e);
+            alert("Nie można odczytać formatu umowy. Skontaktuj się z administratorem.");
+        }
+    } else {
+        const isEn = localStorage.getItem("partner_lang") === "en";
+        alert(isEn ? "Agreement not found in database." : "Brak przypisanej umowy w systemie.");
+    }
+}
     </script>
+    <div id="agreement-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 99999; padding: 20px; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+    <div style="background: white; width: 100%; max-width: 850px; border-radius: 12px; padding: 30px; display: flex; flex-direction: column; max-height: 95vh; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 id="ag-title" style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0;">Akceptacja Umowy</h2>
+            <div style="background: #f1f5f9; padding: 4px; border-radius: 8px;">
+                <button onclick="renderAgreement('pl')" style="border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:700; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">PL</button>
+                <button onclick="renderAgreement('en')" style="border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:700; background: transparent;">EN</button>
+            </div>
+        </div>
+        
+        <p id="ag-subtitle" style="color: #64748b; font-size: 13px; margin-bottom: 20px;"></p>
+
+        <div id="ag-content" style="flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; padding: 20px; background: #f8fafc; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+            </div>
+
+        <div style="background: #f1f5f9; padding: 15px; border-radius: 8px;">
+            <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px;">
+                <input type="checkbox" id="accept-cb" onchange="toggleSignButton()" style="width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; margin-top: 2px;">
+                <label for="accept-cb" id="ag-checkbox-label" style="font-size: 14px; font-weight: 700; color: #1e293b; cursor: pointer;"></label>
+            </div>
+            <p id="ag-auth-text" style="font-size: 12px; color: #64748b; margin-left: 32px; font-style: italic;"></p>
+        </div>
+
+        <button id="sign-btn" onclick="signAgreement()" disabled style="margin-top: 20px; width: 100%; padding: 16px; background: #cbd5e1; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: not-allowed; transition: 0.2s;">
+        </button>
+        
+        <p id="ag-legal-boost" style="text-align: center; color: #94a3b8; font-size: 11px; margin-top: 15px;"></p>
+    </div>
+</div>
+
+<div id="view-agreement-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; padding: 20px; align-items: center; justify-content: center;">
+    <div style="background: white; width: 100%; max-width: 800px; border-radius: 12px; padding: 30px; display: flex; flex-direction: column; max-height: 90vh;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 id="view-ag-title" style="font-size: 20px; font-weight: 800; margin: 0;">Twoja Podpisana Umowa</h2>
+            <span onclick="document.getElementById('view-agreement-modal').style.display='none'" style="cursor: pointer; font-size: 24px; color: #64748b;">&times;</span>
+        </div>
+        
+        <div id="signed-agreement-content" style="flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; padding: 20px; background: #f8fafc; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="view-ag-print" onclick="window.print()" style="padding: 10px 20px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;">🖨️ Drukuj</button>
+            <button id="view-ag-close" onclick="document.getElementById('view-agreement-modal').style.display='none'" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Zamknij</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
