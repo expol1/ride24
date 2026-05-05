@@ -675,10 +675,10 @@ async function getExchangeRate(currency) {
 
 <div class="car-details-box">
     <h2 class="car-title">
-        ${car.class_code || 'Economy'} 
-        <span>${lang === 'pl' ? 'lub podobny' : 'or similar'}</span>
-        ${driverBadge}
-    </h2>
+    ${(car.description || car.example_model || car.model || car.class_code || 'Car')} 
+    <span>${lang === 'pl' ? 'lub podobny' : 'or similar'}</span>
+    ${driverBadge}
+</h2>
 
     <div class="class-badge-box" style="background-color: ${bc.bg}; border-color: ${bc.border};">
         <span class="class-letter" style="color: ${bc.color};">${classLetter}</span>
