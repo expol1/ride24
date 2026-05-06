@@ -548,18 +548,19 @@ let customBadgeHtml = '';
 
 if (specialLoc) {
     const needsContact = specialLoc.contact_required === true;
-    const hasFee = specialLoc.extra_fee === true;
-    const feeAmount = Number(specialLoc.extra_fee_amount || 0);
+const hasFee = specialLoc.extra_fee === true;
+const feeAmount = Number(specialLoc.extra_fee_amount || 0);
+const feeCurrency = car.partners?.currency || 'EUR';
 
     let badgeTextPl = '';
     let badgeTextEn = '';
 
     if (hasFee && feeAmount > 0 && needsContact) {
-        badgeTextPl = `Dopłata ${feeAmount} ${carCurrency} (wymagany kontakt)`;
-        badgeTextEn = `Extra fee ${feeAmount} ${carCurrency} (contact required)`;
+        badgeTextPl = `Dopłata ${feeAmount} ${feeCurrency} (wymagany kontakt)`;
+badgeTextEn = `Extra fee ${feeAmount} ${feeCurrency} (contact required)`;
     } else if (hasFee && feeAmount > 0) {
-        badgeTextPl = `Dopłata ${feeAmount} ${carCurrency}`;
-        badgeTextEn = `Extra fee ${feeAmount} ${carCurrency}`;
+        badgeTextPl = `Dopłata ${feeAmount} ${feeCurrency}`;
+badgeTextEn = `Extra fee ${feeAmount} ${feeCurrency}`;
     } else if (needsContact) {
         badgeTextPl = `Wymagany kontakt`;
         badgeTextEn = `Contact required`;
