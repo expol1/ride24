@@ -500,21 +500,22 @@ async function getExchangeRate(currency) {
                 });
 
                 // --- 💰 KROK 1: RANKING (Sortowanie po marży) ---
-                // --- 💰 KROK 1: RANKING (Sortowanie po marży + VIP) ---
                 cars.sort((a, b) => {
-                    // 💎 1. NAJPIERW auta z kierowcą na samą górę!
-                    const aVip = a.driver_included === true ? 1 : 0;
-                    const bVip = b.driver_included === true ? 1 : 0;
-                    if (aVip !== bVip) return bVip - aVip;
+    // 💎 VIP z kierowcą nadal na górze
+    const aVip = a.driver_included === true ? 1 : 0;
+    const bVip = b.driver_included === true ? 1 : 0;
 
-                    // 💰 2. Następnie sortujemy (wewnątrz grup VIP / Zwykłe) po marży
-                    const marginA = (a.final_customer_price || 0) - (a.base_price || 0);
-                    const marginB = (b.final_customer_price || 0) - (b.base_price || 0);
-                    if (marginB !== marginA) return marginB - marginA; 
-                    
-                    // 💵 3. A jeśli marże równe, wygrywa tańsze dla klienta
-                    return a.final_customer_price - b.final_customer_price;
-                });
+    if (aVip !== bVip) {
+        return bVip - aVip;
+    }
+
+    // 💰 Cena końcowa dla klienta
+    const priceA = Number(a.partner_net_price || 0) * days * 1.25;
+    const priceB = Number(b.partner_net_price || 0) * days * 1.25;
+
+    // 🔥 OD NAJTAŃSZYCH DO NAJDROŻSZYCH
+    return priceA - priceB;
+});
 
                 if (cars.length === 0) {
                     const lang = localStorage.getItem("lang") || "pl";
