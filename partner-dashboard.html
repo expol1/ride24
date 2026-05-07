@@ -2702,24 +2702,24 @@ const { data, error } = await db
                     ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
                     </td>
                     <td class="actions">
-    <td style="text-align: center; vertical-align: middle; padding: 8px 5px; width: 1%;">
-    <div style="display: flex; flex-direction: column; gap: 4px; align-items: center; margin: 0 auto;">
+    <td style="text-align: left; vertical-align: middle; padding: 10px 0 10px 15px;">
+    <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-start; width: fit-content;">
         <span class="action-link" 
-              style="display: block; width: 80px; color: #F59E0B; border: 1px solid #F59E0B; padding: 3px 0; border-radius: 4px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer;" 
+              style="display: inline-block; width: 85px; color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' 
               data-pl="Sezony" data-en="Seasons">
               ${isEn ? "Seasons" : "Sezony"}
         </span>
 
         <span class="action-link" 
-              style="display: block; width: 80px; color: #2563EB; border: 1px solid #2563EB; padding: 3px 0; border-radius: 4px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer;" 
+              style="display: inline-block; width: 85px; color: #2563EB; border: 1px solid #2563EB; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="editVehicle('${car.id}')" 
               data-pl="Edytuj" data-en="Edit">
               ${isEn ? "Edit" : "Edytuj"}
         </span>
 
         <span class="action-link" 
-              style="display: block; width: 80px; color: #EF4444; border: 1px solid #EF4444; padding: 3px 0; border-radius: 4px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer;" 
+              style="display: inline-block; width: 85px; color: #EF4444; border: 1px solid #EF4444; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="deleteVehicle('${car.id}', '${car.image || ''}')" 
               data-pl="Usuń" data-en="Delete">
               ${isEn ? "Delete" : "Usuń"}
