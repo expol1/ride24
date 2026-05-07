@@ -2702,27 +2702,29 @@ const { data, error } = await db
                     ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
                     </td>
                     <td class="actions">
-    <td class="actions" style="display: flex; gap: 8px; align-items: center; padding: 12px 8px;">
-    <span class="action-link" 
-          style="color: #F59E0B; border: 1px solid #F59E0B; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap;" 
-          onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' 
-          data-pl="Sezony" data-en="Seasons">
-          ${isEn ? "Seasons" : "Sezony"}
-    </span>
+    <td class="actions">
+    <div style="display: flex; flex-direction: column; gap: 4px; width: 100px; padding: 5px 0;">
+        <span class="action-link" 
+              style="color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; transition: all 0.2s; cursor: pointer;" 
+              onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' 
+              data-pl="Sezony" data-en="Seasons">
+              ${isEn ? "Seasons" : "Sezony"}
+        </span>
 
-    <span class="action-link" 
-          style="color: #2563EB; border: 1px solid #2563EB; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap;" 
-          onclick="editVehicle('${car.id}')" 
-          data-pl="Edytuj" data-en="Edit">
-          ${isEn ? "Edit" : "Edytuj"}
-    </span>
+        <span class="action-link" 
+              style="color: #2563EB; border: 1px solid #2563EB; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; transition: all 0.2s; cursor: pointer;" 
+              onclick="editVehicle('${car.id}')" 
+              data-pl="Edytuj" data-en="Edit">
+              ${isEn ? "Edit" : "Edytuj"}
+        </span>
 
-    <span class="action-link" 
-          style="color: #EF4444; border: 1px solid #EF4444; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap;" 
-          onclick="deleteVehicle('${car.id}', '${car.image || ''}')" 
-          data-pl="Usuń" data-en="Delete">
-          ${isEn ? "Delete" : "Usuń"}
-    </span>
+        <span class="action-link" 
+              style="color: #EF4444; border: 1px solid #EF4444; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; transition: all 0.2s; cursor: pointer;" 
+              onclick="deleteVehicle('${car.id}', '${car.image || ''}')" 
+              data-pl="Usuń" data-en="Delete">
+              ${isEn ? "Delete" : "Usuń"}
+        </span>
+    </div>
 </td>
                 `;
                 tbody.appendChild(tr);
