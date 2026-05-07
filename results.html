@@ -507,23 +507,45 @@ let query = db
                     timestamp: new Date().toISOString()
                 });
 
-                // --- 💰 KROK 1: RANKING (Sortowanie po marży) ---
+                // --- 💰 KROK 1: RANKING (Sortowanie sezonowe) ---
                 cars.sort((a, b) => {
-    // 💎 VIP z kierowcą nadal na górze
-    const aVip = a.driver_included === true ? 1 : 0;
-    const bVip = b.driver_included === true ? 1 : 0;
+                    // 💎 VIP z kierowcą nadal na górze
+                    const aVip = a.driver_included === true ? 1 : 0;
+                    const bVip = b.driver_included === true ? 1 : 0;
 
-    if (aVip !== bVip) {
-        return bVip - aVip;
-    }
+                    if (aVip !== bVip) {
+                        return bVip - aVip;
+                    }
 
-    // 💰 Cena końcowa dla klienta
-    const priceA = Number(a.partner_net_price || 0) * days * 1.25;
-    const priceB = Number(b.partner_net_price || 0) * days * 1.25;
+                    // Logika przeliczania ceny sezonowej do sortowania
+                    function getSeasonPrice(car) {
+                        const pickupMonth = new Date(filters.pickup_date).getMonth() + 1;
+                        let publicPrice = Number(car.public_price) || 0;
 
-    // 🔥 OD NAJTAŃSZYCH DO NAJDROŻSZYCH
-    return priceA - priceB;
-});
+                        const activeSeason = (car.seasonal_prices || []).find(s => {
+                            if (!s.active) return false;
+                            return s.start_month <= s.end_month
+                                ? (pickupMonth >= s.start_month && pickupMonth <= s.end_month)
+                                : (pickupMonth >= s.start_month || pickupMonth <= s.end_month);
+                        });
+
+                        if (activeSeason) {
+                            publicPrice = Number(activeSeason.public_price);
+                        }
+
+                        const discountPerc = Number(car.partner_discount_percent || 10);
+                        const marginPerc = Number(car.platform_margin_percent || 25);
+
+                        const partnerNet = publicPrice * (1 - (discountPerc / 100));
+                        return partnerNet * (1 + (marginPerc / 100));
+                    }
+
+                    const priceA = getSeasonPrice(a) * days;
+                    const priceB = getSeasonPrice(b) * days;
+
+                    // 🔥 OD NAJTAŃSZYCH DO NAJDROŻSZYCH
+                    return priceA - priceB;
+                });
 
                 if (cars.length === 0) {
                     const lang = localStorage.getItem("lang") || "pl";

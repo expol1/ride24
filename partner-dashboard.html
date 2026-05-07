@@ -2675,9 +2675,10 @@ const { data, error } = await db
                     ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
                     </td>
                     <td class="actions">
-                        <span class="action-link" onclick="editVehicle('${car.id}')" data-pl="Edytuj" data-en="Edit">${isEn ? "Edit" : "Edytuj"}</span>
-                        <span class="action-link reject" onclick="deleteVehicle('${car.id}', '${car.image || ''}')" data-pl="Usuń" data-en="Delete">${isEn ? "Delete" : "Usuń"}</span>
-                    </td>
+    <span class="action-link" style="color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 8px; border-radius: 6px;" onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' data-pl="Sezony" data-en="Seasons">${isEn ? "Seasons" : "Sezony"}</span>
+    <span class="action-link" onclick="editVehicle('${car.id}')" data-pl="Edytuj" data-en="Edit">${isEn ? "Edit" : "Edytuj"}</span>
+    <span class="action-link reject" onclick="deleteVehicle('${car.id}', '${car.image || ''}')" data-pl="Usuń" data-en="Delete">${isEn ? "Delete" : "Usuń"}</span>
+</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -3616,6 +3617,146 @@ async function setupAutocomplete(inputId, dropdownId, category) {
             document.querySelectorAll('.guide-tab').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
         };
+
+        // ==========================================
+// --- ZARZĄDZANIE CENAMI SEZONOWYMI ---
+// ==========================================
+
+let currentSeasonalCarId = null;
+
+function closeSeasonalModal() {
+    document.getElementById("seasonalModal").classList.remove("active");
+    currentSeasonalCarId = null;
+}
+
+async function openSeasonalModal(carId, carName, basePrice) {
+    currentSeasonalCarId = carId;
+    const isEn = localStorage.getItem("partner_lang") === "en";
+    
+    document.getElementById("seasonalModalTitle").innerText = isEn ? `Seasons: ${carName}` : `Sezony: ${carName}`;
+    document.getElementById("seasonalModalSub").innerText = isEn 
+        ? `Standard public price outside seasons: ${basePrice} ${currentPartnerCurrency}` 
+        : `Standardowa cena publiczna poza sezonem: ${basePrice} ${currentPartnerCurrency}`;
+    
+    document.getElementById("seasonPriceInput").value = ""; 
+    document.getElementById("seasonalModal").classList.add("active");
+    
+    await loadSeasonalPrices();
+}
+
+async function loadSeasonalPrices() {
+    const tbody = document.getElementById("seasonal-table-body");
+    const isEn = localStorage.getItem("partner_lang") === "en";
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">${isEn ? 'Loading...' : 'Ładowanie...'}</td></tr>`;
+
+    try {
+        const { data, error } = await db
+            .from("seasonal_prices")
+            .select("*")
+            .eq("car_class_id", currentSeasonalCarId)
+            .order("start_month", { ascending: true });
+
+        if (error) throw error;
+
+        tbody.innerHTML = "";
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--gray);">${isEn ? 'No seasonal prices set.' : 'Brak ustawionych cen sezonowych.'}</td></tr>`;
+            return;
+        }
+
+        data.forEach(season => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="font-weight: 800; color: ${season.season_type === 'HIGH' ? 'var(--red)' : (season.season_type === 'MID' ? '#F59E0B' : 'var(--blue)')}">${season.season_type}</td>
+                <td>${season.start_month}</td>
+                <td>${season.end_month}</td>
+                <td style="font-weight: 800; color: var(--green);">${season.public_price} ${currentPartnerCurrency}</td>
+                <td>
+                    <span class="action-link reject" onclick="deleteSeasonalPrice('${season.id}')">${isEn ? 'Delete' : 'Usuń'}</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (err) {
+        console.error("Error:", err);
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">${isEn ? 'Data loading error.' : 'Błąd pobierania danych.'}</td></tr>`;
+    }
+}
+
+async function saveSeasonalPrice() {
+    if (!currentSeasonalCarId) return;
+    const isEn = localStorage.getItem("partner_lang") === "en";
+
+    const type = document.getElementById("seasonTypeInput").value;
+    const startM = parseInt(document.getElementById("seasonStartInput").value);
+    const endM = parseInt(document.getElementById("seasonEndInput").value);
+    const price = parseFloat(document.getElementById("seasonPriceInput").value);
+
+    // Walidacja ceny
+    if (!price || price <= 0) {
+        window.showToast(isEn ? "Please enter a valid price." : "Wpisz poprawną cenę.", "error");
+        return;
+    }
+
+    // Walidacja miesięcy
+    if (startM < 1 || startM > 12 || endM < 1 || endM > 12) {
+        window.showToast(isEn ? "Invalid months." : "Nieprawidłowe miesiące.", "error");
+        return;
+    }
+
+    try {
+        // Blokada duplikatów z poziomu panelu (zapobiega double-click)
+        const { data: existing } = await db
+            .from("seasonal_prices")
+            .select("id")
+            .eq("car_class_id", currentSeasonalCarId)
+            .eq("season_type", type)
+            .eq("start_month", startM)
+            .eq("end_month", endM)
+            .limit(1);
+
+        if (existing && existing.length > 0) {
+            window.showToast(isEn ? "This season already exists." : "Taki sezon już istnieje.", "error");
+            return;
+        }
+
+        // Zapis do bazy
+        const { error } = await db.from("seasonal_prices").insert([{
+            car_class_id: currentSeasonalCarId,
+            season_type: type,
+            start_month: startM,
+            end_month: endM,
+            public_price: price,
+            active: true
+        }]);
+
+        if (error) throw error;
+
+        window.showToast(isEn ? "Season added!" : "Sezon dodany!", "success");
+        document.getElementById("seasonPriceInput").value = "";
+        await loadSeasonalPrices(); 
+    } catch (err) {
+        console.error(err);
+        window.showToast((isEn ? "Error saving: " : "Błąd zapisu: ") + err.message, "error");
+    }
+}
+
+async function deleteSeasonalPrice(seasonId) {
+    const isEn = localStorage.getItem("partner_lang") === "en";
+    if (!confirm(isEn ? "Delete this season?" : "Usunąć ten sezon?")) return;
+
+    try {
+        const { error } = await db.from("seasonal_prices").delete().eq("id", seasonId);
+        if (error) throw error;
+        
+        window.showToast(isEn ? "Season removed." : "Sezon usunięty.", "success");
+        await loadSeasonalPrices();
+    } catch (err) {
+        console.error(err);
+        window.showToast(isEn ? "Deletion error." : "Błąd usuwania.", "error");
+    }
+}
         // ==========================================
 // --- SYSTEM UMÓW PARTNERSKICH B2B ---
 // ==========================================
@@ -4004,6 +4145,93 @@ function showSignedAgreement() {
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
             <button id="view-ag-print" onclick="window.print()" style="padding: 10px 20px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;">🖨️ Drukuj</button>
             <button id="view-ag-close" onclick="document.getElementById('view-agreement-modal').style.display='none'" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Zamknij</button>
+        </div>
+    </div>
+</div>
+<div class="modal-overlay" id="seasonalModal">
+    <div class="modal-box" style="max-width: 750px;">
+        <div class="modal-header">
+            <div>
+                <h2 id="seasonalModalTitle">Ceny sezonowe</h2>
+                <p id="seasonalModalSub" style="font-size: 12px; color: var(--gray); margin-top: 4px;">Zarządzaj cenami na wysoki i niski sezon.</p>
+            </div>
+            <div class="modal-close" onclick="closeSeasonalModal()">&times;</div>
+        </div>
+        <div class="modal-body" style="background: white;">
+            
+            <div style="background: #F8FAFC; border: 1px solid var(--border); padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                <h3 style="font-size: 14px; margin-bottom: 15px; color: var(--blue-dark);" data-pl="➕ Dodaj nowy sezon" data-en="➕ Add new season">➕ Dodaj nowy sezon</h3>
+                <div class="form-row-3" style="margin-bottom: 10px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Typ sezonu" data-en="Season type">Typ sezonu</label>
+                        <select id="seasonTypeInput">
+                            <option value="HIGH" data-pl="HIGH (Wysoki)" data-en="HIGH">HIGH (Wysoki)</option>
+                            <option value="MID" data-pl="MID (Średni)" data-en="MID">MID (Średni)</option>
+                            <option value="LOW" data-pl="LOW (Niski)" data-en="LOW">LOW (Niski)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Miesiąc początkowy" data-en="Start month">Od (Miesiąc)</label>
+                        <select id="seasonStartInput">
+                            <option value="1" data-pl="1 - Styczeń" data-en="1 - January">1 - Styczeń</option>
+                            <option value="2" data-pl="2 - Luty" data-en="2 - February">2 - Luty</option>
+                            <option value="3" data-pl="3 - Marzec" data-en="3 - March">3 - Marzec</option>
+                            <option value="4" data-pl="4 - Kwiecień" data-en="4 - April">4 - Kwiecień</option>
+                            <option value="5" data-pl="5 - Maj" data-en="5 - May">5 - Maj</option>
+                            <option value="6" data-pl="6 - Czerwiec" data-en="6 - June">6 - Czerwiec</option>
+                            <option value="7" data-pl="7 - Lipiec" data-en="7 - July">7 - Lipiec</option>
+                            <option value="8" data-pl="8 - Sierpień" data-en="8 - August">8 - Sierpień</option>
+                            <option value="9" data-pl="9 - Wrzesień" data-en="9 - September">9 - Wrzesień</option>
+                            <option value="10" data-pl="10 - Październik" data-en="10 - October">10 - Październik</option>
+                            <option value="11" data-pl="11 - Listopad" data-en="11 - November">11 - Listopad</option>
+                            <option value="12" data-pl="12 - Grudzień" data-en="12 - December">12 - Grudzień</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Miesiąc końcowy" data-en="End month">Do (Miesiąc)</label>
+                        <select id="seasonEndInput">
+                            <option value="1" data-pl="1 - Styczeń" data-en="1 - January">1 - Styczeń</option>
+                            <option value="2" data-pl="2 - Luty" data-en="2 - February">2 - Luty</option>
+                            <option value="3" data-pl="3 - Marzec" data-en="3 - March">3 - Marzec</option>
+                            <option value="4" data-pl="4 - Kwiecień" data-en="4 - April">4 - Kwiecień</option>
+                            <option value="5" data-pl="5 - Maj" data-en="5 - May">5 - Maj</option>
+                            <option value="6" data-pl="6 - Czerwiec" data-en="6 - June">6 - Czerwiec</option>
+                            <option value="7" data-pl="7 - Lipiec" data-en="7 - July">7 - Lipiec</option>
+                            <option value="8" data-pl="8 - Sierpień" data-en="8 - August">8 - Sierpień</option>
+                            <option value="9" data-pl="9 - Wrzesień" data-en="9 - September">9 - Wrzesień</option>
+                            <option value="10" data-pl="10 - Październik" data-en="10 - October">10 - Październik</option>
+                            <option value="11" data-pl="11 - Listopad" data-en="11 - November">11 - Listopad</option>
+                            <option value="12" data-pl="12 - Grudzień" data-en="12 - December">12 - Grudzień</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Cena publiczna (przed rabatem)" data-en="Public price (before discount)">Cena publiczna (przed rabatem)</label>
+                        <input type="number" id="seasonPriceInput" data-pl="Np. 100" data-en="E.g. 100" placeholder="Np. 100">
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end; margin-bottom: 0;">
+                        <button class="btn-primary" style="width: 100%; background: #F59E0B;" onclick="saveSeasonalPrice()" data-pl="Zapisz sezon" data-en="Save season">Zapisz sezon</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container" style="max-height: 250px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-pl="Typ" data-en="Type">Typ</th>
+                            <th data-pl="Od" data-en="From">Od</th>
+                            <th data-pl="Do" data-en="To">Do</th>
+                            <th data-pl="Cena pub." data-en="Pub. Price">Cena pub.</th>
+                            <th data-pl="Akcje" data-en="Actions">Akcje</th>
+                        </tr>
+                    </thead>
+                    <tbody id="seasonal-table-body">
+                        </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 </div>
