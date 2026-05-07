@@ -624,7 +624,16 @@ const activeSeason = (car.seasonal_prices || []).find(s => {
 if (activeSeason) {
     currentPublicPrice = Number(activeSeason.public_price);
 }
-
+// --- 🔴 WKLEJ TEN BLOK DEBUGOWANIA TUTAJ ---
+    if (car.id === '042cab2e-146f-489b-a289-22f5cf395c4e') { // Ograniczamy logi tylko do Twojego testowego auta
+        console.log("=== DEBUG SEZONÓW ===");
+        console.log("SEASON DATA:", car.seasonal_prices);
+        console.log("PICKUP DATE:", filters.pickup_date);
+        console.log("PICKUP MONTH:", pickupMonth);
+        console.log("ACTIVE SEASON:", activeSeason);
+        console.log("CENA BAZOWA DO WYLICZEŃ:", currentPublicPrice);
+        console.log("=====================");
+    }
 // 4. Pobieramy prowizje z Twoimi bezpiecznymi fallbackami
 const discountPerc = Number(car.partner_discount_percent || 10);
 const marginPerc = Number(car.platform_margin_percent || 25);
