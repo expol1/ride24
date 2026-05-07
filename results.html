@@ -433,11 +433,19 @@ async function getExchangeRate(currency) {
                 const end = new Date(filters.drop_date);
                 const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
 
-                // 1. BUDOWANIE ZAPYTANIA Z UWZGLĘDNIENIEM MIAST I REGIONÓW
-                let query = db
+                
+                // 1. BUDOWANIE ZAPYTANIA Z UWZGLĘDNIENIEM MIAST, REGIONÓW I SEZONÓW
+let query = db
     .from('car_classes')
     .select(`
         *,
+        seasonal_prices (
+            season_type,
+            start_month,
+            end_month,
+            public_price,
+            active
+        ),
         partners!inner(
             id,
             company_name,
@@ -446,7 +454,7 @@ async function getExchangeRate(currency) {
             currency,
             min_driver_age,
             partner_locations!inner(
-              country,
+                country,
                 region,
                 city,
                 location_name,
@@ -591,9 +599,48 @@ badgeTextEn = `Extra fee ${feeAmount} ${feeCurrency}`;
     }
 }
                     // 🛡️ 1️⃣ WALIDACJA DANYCH (Safe Prices)
-                    const basePricePerDay = Number(car.partner_net_price) || 0;
-                    const baseTotal = Number((basePricePerDay * days).toFixed(2));
-                    const finalTotal = Number((baseTotal * 1.25).toFixed(2));
+                    // --- LOGIKA SEZONOWA RIDE24 ---
+
+// 1. Obliczamy liczbę dni (używając filters.drop_date)
+const days = Math.max(
+    1,
+    Math.ceil(
+        (new Date(filters.drop_date) - new Date(filters.pickup_date)) / (1000 * 60 * 60 * 24)
+    )
+);
+
+// 2. Pobieramy miesiąc odbioru
+const pickupMonth = new Date(filters.pickup_date).getMonth() + 1;
+
+// 3. Sprawdzamy sezon (z obsługą przełomu roku)
+let currentPublicPrice = Number(car.public_price) || 0;
+const activeSeason = (car.seasonal_prices || []).find(s => {
+    if (!s.active) return false;
+    return s.start_month <= s.end_month
+        ? (pickupMonth >= s.start_month && pickupMonth <= s.end_month)
+        : (pickupMonth >= s.start_month || pickupMonth <= s.end_month);
+});
+
+if (activeSeason) {
+    currentPublicPrice = Number(activeSeason.public_price);
+}
+
+// 4. Pobieramy prowizje z Twoimi bezpiecznymi fallbackami
+const discountPerc = Number(car.partner_discount_percent || 10);
+const marginPerc = Number(car.platform_margin_percent || 25);
+
+// 5. OBLICZENIA KOŃCOWE
+// Netto, które płacisz partnerowi (Cena publiczna - Twój rabat)
+const partnerNetPricePerDay = currentPublicPrice * (1 - (discountPerc / 100));
+
+// Cena dla klienta (Twoje netto + Twoja marża)
+const customerPricePerDay = partnerNetPricePerDay * (1 + (marginPerc / 100));
+
+// Sumy całkowite do wyświetlenia na karcie auta
+const baseTotal = Number((partnerNetPricePerDay * days).toFixed(2));
+const finalTotal = Number((customerPricePerDay * days).toFixed(2));
+
+// --- KONIEC LOGIKI ---
 
                     const classLetter = (car.class_code || "A").charAt(0).toUpperCase();
                     const bc = badgeColors[classLetter] || badgeColors['A'];
