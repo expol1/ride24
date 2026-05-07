@@ -2702,9 +2702,27 @@ const { data, error } = await db
                     ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
                     </td>
                     <td class="actions">
-    <span class="action-link" style="color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 8px; border-radius: 6px;" onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' data-pl="Sezony" data-en="Seasons">${isEn ? "Seasons" : "Sezony"}</span>
-    <span class="action-link" onclick="editVehicle('${car.id}')" data-pl="Edytuj" data-en="Edit">${isEn ? "Edit" : "Edytuj"}</span>
-    <span class="action-link reject" onclick="deleteVehicle('${car.id}', '${car.image || ''}')" data-pl="Usuń" data-en="Delete">${isEn ? "Delete" : "Usuń"}</span>
+    <td class="actions" style="display: flex; gap: 8px; align-items: center; padding: 12px 8px;">
+    <span class="action-link" 
+          style="color: #F59E0B; border: 1px solid #F59E0B; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap;" 
+          onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' 
+          data-pl="Sezony" data-en="Seasons">
+          ${isEn ? "Seasons" : "Sezony"}
+    </span>
+
+    <span class="action-link" 
+          style="color: #2563EB; border: 1px solid #2563EB; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap;" 
+          onclick="editVehicle('${car.id}')" 
+          data-pl="Edytuj" data-en="Edit">
+          ${isEn ? "Edit" : "Edytuj"}
+    </span>
+
+    <span class="action-link" 
+          style="color: #EF4444; border: 1px solid #EF4444; padding: 5px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; transition: all 0.2s; white-space: nowrap;" 
+          onclick="deleteVehicle('${car.id}', '${car.image || ''}')" 
+          data-pl="Usuń" data-en="Delete">
+          ${isEn ? "Delete" : "Usuń"}
+    </span>
 </td>
                 `;
                 tbody.appendChild(tr);
