@@ -753,7 +753,7 @@
                                 <th data-pl="Limit km" data-en="Mileage">Mileage</th>
                                 <th data-pl="Kaucja" data-en="Deposit">Deposit</th>
                                 <th data-pl="Cena/dzień" data-en="Price per day">Price per day</th>
-                                <th data-pl="Akcje" data-en="Actions">Actions</th>
+                                <th data-pl="Akcje" data-en="Actions" style="text-align: left; padding-left: 15px; width: 100px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="fleet-list-tbody">
@@ -2698,28 +2698,27 @@ const { data, error } = await db
                     <td>${car.bags || 2}</td>
                     <td data-pl="${isUnlimited ? 'Bez limitu' : car.mileage_limit + ' km/dzień'}" data-en="${isUnlimited ? 'Unlimited' : car.mileage_limit + ' km/day'}">${mileageText}</td>
                     <td data-pl="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'Brak kaucji'}" data-en="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'No deposit'}">${depositText}</td>
-                    <td class="price-cell" style="color: var(--green); font-weight: 800;">
-                    ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
-                    </td>
-                    <td class="actions">
-    <td style="text-align: left; vertical-align: middle; padding: 10px 0 10px 15px;">
-    <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-start; width: fit-content;">
+                    <td style="color: var(--green); font-weight: 800; text-align: center; vertical-align: middle;">
+    ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
+</td>
+<td style="width: 1%; white-space: nowrap; padding: 10px 0 10px 15px; vertical-align: middle; text-align: left;">
+    <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; width: fit-content;">
         <span class="action-link" 
-              style="display: inline-block; width: 85px; color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
+              style="display: block; width: 85px; color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' 
               data-pl="Sezony" data-en="Seasons">
               ${isEn ? "Seasons" : "Sezony"}
         </span>
 
         <span class="action-link" 
-              style="display: inline-block; width: 85px; color: #2563EB; border: 1px solid #2563EB; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
+              style="display: block; width: 85px; color: #2563EB; border: 1px solid #2563EB; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="editVehicle('${car.id}')" 
               data-pl="Edytuj" data-en="Edit">
               ${isEn ? "Edit" : "Edytuj"}
         </span>
 
         <span class="action-link" 
-              style="display: inline-block; width: 85px; color: #EF4444; border: 1px solid #EF4444; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
+              style="display: block; width: 85px; color: #EF4444; border: 1px solid #EF4444; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="deleteVehicle('${car.id}', '${car.image || ''}')" 
               data-pl="Usuń" data-en="Delete">
               ${isEn ? "Delete" : "Usuń"}
