@@ -592,6 +592,8 @@
             transition: background 0.2s, transform 0.1s;
             box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
             margin-top: 6px;
+            position: relative;
+            z-index: 1001;
         }
 
         .btn-submit:hover { background: var(--blue-hover); transform: translateY(-1px); }
@@ -2483,9 +2485,12 @@ function applySearch(item, type) {
 }
         
 
-        document.getElementById("searchBtn")?.addEventListener("click", async function() {
+       document.getElementById("searchBtn")?.addEventListener("click", async function() {
             // 1. Blokada przed wielokrotnym kliknięciem
             if (this.disabled) return; 
+
+            // DODANE: Wymuszone ukrycie list podpowiedzi przy kliknięciu (Zabezpieczenie przed nakładaniem warstw)
+            document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
 
             // 2. 🛡️ HONEYPOT - szybki stop dla botów
             const honeypot = document.querySelector('[name="website"]')?.value;
