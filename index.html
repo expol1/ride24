@@ -11,25 +11,30 @@
     <link rel="preload" href="fonts/inter-v20-latin_latin-ext-regular.woff2" as="font" type="font/woff2" crossorigin>
 
     <style>
-        /* --- SMART SEARCH DROPDOWN --- */
-        /* --- SMART SEARCH DROPDOWN --- */
+       /* --- SMART SEARCH DROPDOWN --- */
         .search-dropdown {
             position: absolute; top: 100%; left: 0; right: 0;
             background: white; border-radius: 8px; margin-top: 4px;
             z-index: 2000; max-height: 250px; overflow-y: auto;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border);
             opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s;
-            pointer-events: none;
+            
+            /* Zabezpieczenie przed kradzieżą kliknięć, gdy lista znika */
+            pointer-events: none; 
         }
         .search-dropdown.show { 
             opacity: 1; 
             visibility: visible; 
+            
+            /* Przywraca pełną klikalność listy, gdy jest otwarta */
             pointer-events: auto; 
         }
         .search-dropdown-item {
             padding: 12px 16px; cursor: pointer; font-size: 14px; font-weight: 600;
             color: var(--text); border-bottom: 1px solid #F8FAFC; display: flex;
             align-items: center; gap: 10px; transition: background 0.2s; text-align: left;
+            
+            /* TUTAJ BYŁ BŁĄD - USUNIĘTO pointer-events: none; */
         }
         .search-dropdown-item:last-child { border-bottom: none; }
         .search-dropdown-item:hover { background: #F1F5F9; color: var(--blue); }
