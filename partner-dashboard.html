@@ -2473,10 +2473,11 @@ const rowHtml = `
 if (booking.status === "pending" && dashTbody) {
 
     const timerHtml = `
-        <span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}">
-            ⌛ --:--:--
-        </span>
-    `;
+    <span class="timer-badge countdown-timer"
+          data-created="${booking.created_at}">
+        ⌛ --:--:--
+    </span>
+`;
 
    const dashRowHtml = `
     <tr class="clickable-row">
@@ -2519,42 +2520,47 @@ if (!window.partnerTimerRunning) {
     window.partnerTimerRunning = true;
 
     setInterval(() => {
-    document.querySelectorAll('.countdown-timer').forEach(el => {
-        const deadlineStr = el.getAttribute('data-deadline');
 
-        if (!deadlineStr || deadlineStr === "null" || deadlineStr === "undefined") {
-            el.innerHTML = "⌛ Brak danych";
-            return;
-        }
+        document.querySelectorAll('.countdown-timer').forEach(el => {
 
-        const deadline = new Date(deadlineStr).getTime();
+            const createdStr = el.getAttribute('data-created');
 
-        if (isNaN(deadline)) {
-            el.innerHTML = "⌛ Błąd";
-            return;
-        }
+            if (!createdStr) return;
 
-        const now = new Date().getTime();
-        const diff = deadline - now;
+            const createdAt = new Date(createdStr).getTime();
 
-        if (diff <= 0) {
-            el.innerHTML = "⌛ Expired";
-            el.style.color = "var(--gray)";
-            el.classList.remove("timer-urgent");
-            return;
-        }
+            const deadline = createdAt + (24 * 60 * 60 * 1000);
 
-        const h = Math.floor(diff / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
+            const now = new Date().getTime();
 
-        const format = v => v < 10 ? '0' + v : v;
+            const diff = deadline - now;
 
-        el.innerHTML = `⌛ ${format(h)}:${format(m)}:${format(s)}`;
+            if (diff <= 0) {
 
-        if (h < 2) el.classList.add("timer-urgent");
-    });
-}, 1000);
+                el.innerHTML = "⌛ Expired";
+                el.style.color = "var(--gray)";
+                el.classList.remove("timer-urgent");
+
+            } else {
+
+                const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+                const format = val => val < 10 ? '0' + val : val;
+
+                el.innerHTML = `⌛ ${format(h)}:${format(m)}:${format(s)}`;
+
+                if (h < 2) {
+                    el.classList.add("timer-urgent");
+                } else {
+                    el.classList.remove("timer-urgent");
+                }
+            }
+
+        });
+
+    }, 1000);
 }
 
             if (pendingCount > 0) {
