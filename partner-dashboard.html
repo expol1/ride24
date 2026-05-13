@@ -2457,7 +2457,7 @@ const rowHtml = `
                 ${actions}
                 ${
                     booking.status === "pending"
-                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="margin-top: 4px;">
+                    ? `<span class="timer-badge countdown-timer" data-created="${booking.created_at}" style="margin-top: 4px;">
                         ⌛ --:--:--
                        </span>`
                     : ""
