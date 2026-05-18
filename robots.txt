@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /assets/
+Disallow: /supabase/
+Disallow: /partner-dashboard.html
+Disallow: /reset-password.html
+Disallow: /verify.html
+Disallow: /klient.html
+
+Sitemap: https://ride24.pl/sitemap.xml
