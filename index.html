@@ -2515,9 +2515,26 @@ function renderSmartResults(results, lang, resultsBox, type) {
             applySearch(r, type); // Usunięto r.country z argumentów, zrobimy to mądrzej w applySearch
         };
 
-        // ZAMIANA z "click" na "mousedown" i "touchstart"
-        div.addEventListener("mousedown", selectItem);
-        div.addEventListener("touchstart", selectItem, { passive: false });
+                let isScrolling = false;
+
+        div.addEventListener("touchstart", () => {
+            isScrolling = false;
+        }, { passive: true });
+
+        div.addEventListener("touchmove", () => {
+            isScrolling = true;
+        }, { passive: true });
+
+        div.addEventListener("click", (e) => {
+
+            if (isScrolling) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            selectItem(e);
+        });
         
         resultsBox.appendChild(div);
     });
