@@ -114,7 +114,7 @@ serve(async (req) => {
           .select(`
             *,
             profiles!fk_client(email),
-            partners!bookings_partner_id_fkey(email),
+            partners!bookings_partner_id_fkey(email, phone),
             car_classes!bookings_car_class_id_fkey(class_code)
           `)
           .eq("id", log.booking_id)
@@ -259,14 +259,55 @@ serve(async (req) => {
         clearTimeout(timeout);
 
         if (res.ok) {
-          console.log("SENT:", finalEmail)
+  console.log("SENT:", finalEmail)
 
-          await supabase
-            .from("email_logs")
-            .update({ status: "sent" })
-            .eq("id", log.id)
-          
-          processedInThisSession++
+  // 🔥 WHATSAPP ALERT DLA PARTNERA
+  if (log.type.startsWith("partner_")) {
+
+    const partnerPhone = booking.partners?.phone;
+
+    if (partnerPhone) {
+
+      try {
+
+        const whatsappResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-alert`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              phone: partnerPhone.replace("+", "")
+            })
+          }
+        );
+
+        const whatsappData = await whatsappResponse.text();
+
+        console.log("WHATSAPP STATUS:", whatsappResponse.status);
+        console.log("WHATSAPP RESPONSE:", whatsappData);
+
+      } catch (err) {
+
+        console.error("WHATSAPP ERROR:", err);
+
+      }
+
+    } else {
+
+      console.log("NO PARTNER PHONE");
+
+    }
+
+  }
+
+  await supabase
+    .from("email_logs")
+    .update({ status: "sent" })
+    .eq("id", log.id)
+
+  processedInThisSession++
 
         } else {
           const err = await res.text()

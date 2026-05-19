@@ -21,8 +21,8 @@ serve(async (req) => {
           template: {
             name: "ride24_new_request",
             language: {
-              code: "en"
-            }
+            code: "en"
+          }
           }
         })
       }
