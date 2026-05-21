@@ -113,7 +113,7 @@ serve(async (req) => {
           .from("bookings")
           .select(`
             *,
-            profiles!fk_client(email),
+            profiles!fk_client(email, phone),
             partners!bookings_partner_id_fkey(email, phone),
             car_classes!bookings_car_class_id_fkey(class_code)
           `)
@@ -301,8 +301,49 @@ serve(async (req) => {
     }
 
   }
+     // 🔥 WHATSAPP ALERT DLA KLIENTA
+if (log.type === "client_payment_required") {
 
-  await supabase
+const clientPhone = booking.profiles?.phone;
+
+if (clientPhone) {
+
+  try {
+
+    const whatsappResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-alert`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          phone: clientPhone.replace("+", ""),
+          template: "ride24_booking_approved"
+        })
+      }
+    );
+
+    const whatsappData = await whatsappResponse.text();
+
+    console.log("CLIENT WHATSAPP STATUS:", whatsappResponse.status);
+    console.log("CLIENT WHATSAPP RESPONSE:", whatsappData);
+
+  } catch (err) {
+
+    console.error("CLIENT WHATSAPP ERROR:", err);
+
+  }
+
+} else {
+
+  console.log("NO CLIENT PHONE");
+
+}
+
+}
+
+     await supabase
     .from("email_logs")
     .update({ status: "sent" })
     .eq("id", log.id)

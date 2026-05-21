@@ -2417,7 +2417,8 @@ function collectSearchData(){
 let SELECTED_PICKUP = null;
 let SELECTED_DROP = null;
 let isDropManuallyChanged = false; 
-let lastQueryId = 0; // Zapobiega pokazywaniu starych wyników przy wolnym necie
+let lastQueryId = 0;
+let isSelectingLocation = false; // 🔥 NOWA FLAGA MOBILE
 
 function getMatchPriority(text, query) {
     const t = text.toLowerCase();
@@ -2520,12 +2521,13 @@ function renderSmartResults(results, lang, resultsBox, type) {
         div.addEventListener("touchstart", () => {
             isScrolling = false;
         }, { passive: true });
-
+        
         div.addEventListener("touchmove", () => {
             isScrolling = true;
         }, { passive: true });
-
-        div.addEventListener("click", (e) => {
+        
+        // 🔥 ZAMIANA "click" NA "pointerdown" + FLAGA BLOKUJĄCA
+        div.addEventListener("pointerdown", (e) => {
 
             if (isScrolling) {
                 e.preventDefault();
@@ -2533,7 +2535,21 @@ function renderSmartResults(results, lang, resultsBox, type) {
                 return;
             }
 
+            e.preventDefault();
+            e.stopPropagation();
+
+            // 1. Zamykamy na ułamek sekundy możliwość ponownego wyszukiwania
+            isSelectingLocation = true;
+
+            // 2. Wykonujemy właściwy wybór
             selectItem(e);
+
+            // 3. Po ułamku sekundy, gdy system się uspokoi, zdejmujemy blokadę
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    isSelectingLocation = false;
+                }, 250);
+            });
         });
         
         resultsBox.appendChild(div);
@@ -2547,6 +2563,9 @@ function setupSmartSearch(inputId, resultsId, type) {
     if (!input) return;
 
     input.addEventListener("input", (e) => {
+        // 🔥 BLOKADA MOBILE: Jeśli właśnie wybieramy z listy, ignorujemy event
+        if (isSelectingLocation) return; 
+
         if (type === 'drop') isDropManuallyChanged = true; 
         const query = e.target.value.trim().toLowerCase();
         clearTimeout(timeout);
