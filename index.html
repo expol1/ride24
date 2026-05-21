@@ -2512,11 +2512,22 @@ function renderSmartResults(results, lang, resultsBox, type) {
             
         // FUNKCJA WYBIERAJĄCA
         const selectItem = (e) => {
-            e.preventDefault(); // Ważne: powstrzymuje input przed przedwczesnym blurem!
-            applySearch(r, type); // Usunięto r.country z argumentów, zrobimy to mądrzej w applySearch
+            e.preventDefault(); 
+            e.stopPropagation();
+            
+            // 1. Zamykamy na ułamek sekundy możliwość ponownego wyszukiwania
+            isSelectingLocation = true; 
+            
+            // 2. Wykonujemy właściwy wybór (automatycznie wypełni Zwrot)
+            applySearch(r, type); 
+
+            // 3. Po ułamku sekundy, gdy klawiatura się schowa, zdejmujemy blokadę
+            setTimeout(() => {
+                isSelectingLocation = false; 
+            }, 300);
         };
 
-                let isScrolling = false;
+        let isScrolling = false;
 
         div.addEventListener("touchstart", () => {
             isScrolling = false;
@@ -2526,30 +2537,15 @@ function renderSmartResults(results, lang, resultsBox, type) {
             isScrolling = true;
         }, { passive: true });
         
-        // 🔥 ZAMIANA "click" NA "pointerdown" + FLAGA BLOKUJĄCA
-        div.addEventListener("pointerdown", (e) => {
-
+        // 🔥 WRACAMY DO "click"
+        div.addEventListener("click", (e) => {
+            // Jeśli użytkownik przesuwa palcem, pozwalamy przeglądarce działać (brak e.preventDefault)
             if (isScrolling) {
-                e.preventDefault();
-                e.stopPropagation();
-                return;
+                return; 
             }
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            // 1. Zamykamy na ułamek sekundy możliwość ponownego wyszukiwania
-            isSelectingLocation = true;
-
-            // 2. Wykonujemy właściwy wybór
+            
+            // Jeśli to było czyste kliknięcie, odpalamy wybór
             selectItem(e);
-
-            // 3. Po ułamku sekundy, gdy system się uspokoi, zdejmujemy blokadę
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    isSelectingLocation = false;
-                }, 250);
-            });
         });
         
         resultsBox.appendChild(div);
