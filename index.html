@@ -2307,19 +2307,20 @@ function collectSearchData(){
         // PREFIX MATCH
         if (name.startsWith(q)) score += 100;
         if (city.startsWith(q)) score += 90;
-        if (region.startsWith(q)) score += 60;
-        if (country.startsWith(q)) score += 40;
+        if (region.startsWith(q)) score += 100;
+        if (country.startsWith(q)) score += 20;
 
         // CONTAINS
         if (name.includes(q)) score += 30;
         if (city.includes(q)) score += 20;
-        if (region.includes(q)) score += 10;
+        if (region.includes(q)) score += 5;
         
         // TYPE PRIORITY
         const typePriority = {
             airport: 20,
             city: 15,
-            region: 10,
+            region: 14,
+            office: 8,
             hotel: 5
         };
         score += typePriority[location.type] || 0;
