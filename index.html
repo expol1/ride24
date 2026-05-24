@@ -2514,13 +2514,21 @@ else if (city.startsWith(query)) {
     }
 
     // CONTAINS
-    else if (
-        name.includes(query) ||
-        city.includes(query) ||
-        region.includes(query)
-    ) {
-        priority = 7;
-    }
+    // CONTAINS
+else if (
+    name.includes(query) ||
+    city.includes(query)
+) {
+    priority = 7;
+}
+
+// REGION tylko dla dłuższych fraz
+else if (
+    query.length >= 4 &&
+    region.includes(query)
+) {
+    priority = 8;
+}
 
     let locType = "country";
     if (item.city) locType = "city";
