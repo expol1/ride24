@@ -2306,7 +2306,7 @@ function collectSearchData(){
 
         // PREFIX MATCH
         if (name.startsWith(q)) score += 100;
-        if (city.startsWith(q)) score += 90;
+        if (city.startsWith(q)) score += 140;
         if (region.startsWith(q)) score += 100;
         if (country.startsWith(q)) score += 20;
 
@@ -2317,7 +2317,7 @@ function collectSearchData(){
         
         // TYPE PRIORITY
         const typePriority = {
-            airport: 20,
+            airport: 40,
             city: 15,
             region: 14,
             office: 8,
