@@ -40,57 +40,49 @@
     </script>
 
     <style>
-        /* --- SMART SEARCH DROPDOWN --- */
+       /* --- SMART SEARCH DROPDOWN --- */
         .search-dropdown {
-            position: absolute;
-            top: 100%; left: 0; right: 0;
+            position: absolute; top: 100%; left: 0; right: 0;
             background: white; border-radius: 8px; margin-top: 4px;
-            z-index: 2000; max-height: 280px; overflow-y: auto;
+            z-index: 2000; max-height: 250px; overflow-y: auto;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
             touch-action: pan-y;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border);
-            opacity: 0; visibility: hidden;
-            transition: opacity 0.2s, visibility 0.2s;
-            pointer-events: none;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s;
+            
+            /* Zabezpieczenie przed kradzieżą kliknięć, gdy lista znika */
+            pointer-events: none; 
         }
         .search-dropdown.show { 
-            opacity: 1;
+            opacity: 1; 
             visibility: visible; 
-            pointer-events: auto;
+            
+            /* Przywraca pełną klikalność listy, gdy jest otwarta */
+            pointer-events: auto; 
         }
         .search-dropdown-item {
-            padding: 16px 18px;
-            cursor: pointer; font-size: 14px; font-weight: 600;
+            padding: 12px 16px; cursor: pointer; font-size: 14px; font-weight: 600;
             color: var(--text); border-bottom: 1px solid #F8FAFC; display: flex;
-            align-items: center; gap: 10px;
-            transition: background 0.2s; text-align: left;
+            align-items: center; gap: 10px; transition: background 0.2s; text-align: left;
+            
+            /* TUTAJ BYŁ BŁĄD - USUNIĘTO pointer-events: none; */
             touch-action: manipulation;
         }
         .search-dropdown-item:last-child { border-bottom: none; }
         .search-dropdown-item:hover { background: #F1F5F9; color: var(--blue); }
-        .search-dropdown-item .sub-text { 
-            font-size: 12px; 
-            color: var(--gray); 
-            font-weight: 400;
-            opacity: 0.78;
-            margin-top: 3px;
-            line-height: 1.3;
-        }
-
+        .search-dropdown-item .sub-text { font-size: 12px; color: var(--gray); font-weight: 400; }
         /* --- NOWOCZESNE POWIADOMIENIA TOAST --- */
         #toast-container { 
-            position: fixed;
-            bottom: 30px; left: 50%; 
+            position: fixed; bottom: 30px; left: 50%; 
             transform: translateX(-50%); z-index: 10000; 
-            display: flex; flex-direction: column; gap: 10px;
+            display: flex; flex-direction: column; gap: 10px; 
         }
         .toast { 
-            background: white;
-            border-left: 6px solid var(--blue); 
+            background: white; border-left: 6px solid var(--blue); 
             padding: 16px 24px; border-radius: 12px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
-            font-weight: 700; font-size: 14px; color: var(--blue-dark);
+            font-weight: 700; font-size: 14px; color: var(--blue-dark); 
             display: flex; align-items: center; gap: 12px; 
             animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
             min-width: 320px;
@@ -105,74 +97,81 @@
         @keyframes fadeOutToast { 
             to { opacity: 0; transform: translateY(20px); } 
         }
-
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-v20-latin_latin-ext-regular.woff2') format('woff2');
-            font-weight: 400;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-v20-latin_latin-ext-500.woff2') format('woff2');
-            font-weight: 500;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-v20-latin_latin-ext-600.woff2') format('woff2');
-            font-weight: 600;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-v20-latin_latin-ext-700.woff2') format('woff2');
-            font-weight: 700;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-v20-latin_latin-ext-800.woff2') format('woff2');
-            font-weight: 800;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Manrope';
-            src: url('fonts/manrope-v20-latin-ext-regular.woff2') format('woff2');
-            font-weight: 400;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Manrope';
-            src: url('fonts/manrope-v20-latin-ext-500.woff2') format('woff2');
-            font-weight: 500;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Manrope';
-            src: url('fonts/manrope-v20-latin-ext-600.woff2') format('woff2');
-            font-weight: 600;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Manrope';
-            src: url('fonts/manrope-v20-latin-ext-700.woff2') format('woff2');
-            font-weight: 700;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Manrope';
-            src: url('fonts/manrope-v20-latin-ext-800.woff2') format('woff2');
-            font-weight: 800;
-            font-display: swap;
+        @font-face{
+        font-family:'Inter';
+        src:url('fonts/inter-v20-latin_latin-ext-regular.woff2') format('woff2');
+        font-weight:400;
+        font-display:swap;
         }
 
+        @font-face{
+        font-family:'Inter';
+        src:url('fonts/inter-v20-latin_latin-ext-500.woff2') format('woff2');
+        font-weight:500;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Inter';
+        src:url('fonts/inter-v20-latin_latin-ext-600.woff2') format('woff2');
+        font-weight:600;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Inter';
+        src:url('fonts/inter-v20-latin_latin-ext-700.woff2') format('woff2');
+        font-weight:700;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Inter';
+        src:url('fonts/inter-v20-latin_latin-ext-800.woff2') format('woff2');
+        font-weight:800;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Manrope';
+        src:url('fonts/manrope-v20-latin-ext-regular.woff2') format('woff2');
+        font-weight:400;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Manrope';
+        src:url('fonts/manrope-v20-latin-ext-500.woff2') format('woff2');
+        font-weight:500;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Manrope';
+        src:url('fonts/manrope-v20-latin-ext-600.woff2') format('woff2');
+        font-weight:600;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Manrope';
+        src:url('fonts/manrope-v20-latin-ext-700.woff2') format('woff2');
+        font-weight:700;
+        font-display:swap;
+        }
+
+        @font-face{
+        font-family:'Manrope';
+        src:url('fonts/manrope-v20-latin-ext-800.woff2') format('woff2');
+        font-weight:800;
+        font-display:swap;
+        }
         html {
-            scroll-behavior: smooth;
+            scroll-behavior: smooth; /* Powoduje płynny zjazd do sekcji #regulamin */
         }
 
         :root {
-            --blue: #2563EB;
+            --blue: #2563EB; 
             --blue-dark: #1E3A8A;
             --blue-hover: #1D4ED8;
             --green: #73D700;
@@ -204,7 +203,7 @@
         }
 
         .container {
-            max-width: 1320px;
+            max-width: 1320px; 
             margin: 0 auto;
             padding: 0 4%;
         }
@@ -214,6 +213,7 @@
         }
 
         /* --- HEADER --- */
+        /* --- HEADER --- */
         header {
             display: flex;
             justify-content: space-between;
@@ -222,28 +222,34 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            
+            /* 🔥 MORSKI GRADIENT: Granat (logo) -> Niebieski (środek) -> Błękit (przyciski) */
             background: linear-gradient(
                 90deg, 
-                rgba(15, 23, 42, 0.95) 0%,    
-                rgba(37, 99, 235, 0.95) 45%,  
-                rgba(56, 189, 248, 0.95) 100% 
+                rgba(15, 23, 42, 0.95) 0%,    /* Bardzo ciemny granat po lewej */
+                rgba(37, 99, 235, 0.95) 45%,  /* Klasyczny, żywy niebieski na środku */
+                rgba(56, 189, 248, 0.95) 100% /* Jasny błękit po prawej */
             );
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
         }
 
+        /* 🛡️ Delikatna poświata pod logo (wyciąga je z granatowego tła) */
         header .logo-container img {
             filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
         }
 
+        /* Jasne teksty języków z cieniem dla czytelności na błękicie */
         header .lang-btn, header .lang-divider {
             color: #FFFFFF;
             font-weight: 800;
             text-shadow: 0 2px 4px rgba(0,0,0,0.25);
         }
 
+        /* Ramki na przyciskach, żeby wyraźnie odcinały się od jasnego błękitu po prawej */
         header .auth-buttons button {
             border: 2px solid rgba(255, 255, 255, 0.9);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
@@ -274,7 +280,7 @@
 
         .nav-links a { text-decoration: none; color: #0F172A; cursor: pointer; transition: color 0.2s; }
         .nav-links a:hover { color: var(--blue); }
-        .nav-separator { color: #CBD5E1; font-weight: 400; }
+        .nav-separator { color: #CBD5E1; font-weight: 400;}
 
         /* --- PRZEŁĄCZNIK JĘZYKA I PRZYCISKI --- */
         .header-right {
@@ -295,26 +301,26 @@
 
         .lang-btn {
             display: flex;
-            flex-direction: column; 
+            flex-direction: column; /* Flaga ląduje nad tekstem */
             align-items: center;
             justify-content: center;
-            gap: 4px; 
+            gap: 4px; /* Zmniejszony odstęp w pionie */
             cursor: pointer;
             transition: transform 0.2s, color 0.2s;
-            font-size: 11px; 
+            font-size: 11px; /* Drobniejszy tekst, żeby całość wyglądała jak elegancka ikona */
             line-height: 1;
         }
 
         .lang-btn img {
-            width: 20px;
+            width: 20px; /* Nieco większa flaga w proporcji do tekstu */
             height: auto;
             border-radius: 3px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Lekki cień */
         }
 
         .lang-btn:hover { 
-            color: var(--blue-hover);
-            transform: translateY(-2px); 
+            color: var(--blue-hover); 
+            transform: translateY(-2px); /* Delikatne uniesienie przy najechaniu */
         }
         .lang-btn.active-lang { color: var(--blue); }
         .lang-divider { color: #94A3B8; font-weight: 400; opacity: 0.5; }
@@ -334,9 +340,13 @@
         .btn-green { background: var(--green); }
         .btn-green:hover { background: #5CAD00; transform: translateY(-1px); }
         .btn-blue { background: var(--blue); }
-        
-        #mainAuthBtn { transition: background-color 0.3s ease, transform 0.2s; }
-        #mainAuthBtn:disabled { cursor: not-allowed; opacity: 0.9; }
+        #mainAuthBtn {
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+#mainAuthBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.9;
+}
         .btn-blue:hover { background: var(--blue-hover); transform: translateY(-1px); }
 
         /* --- HERO SECTION --- */
@@ -358,7 +368,8 @@
                     rgba(248,250,252,0) 40%
                 ),
                 url("tlo.png") center right/cover no-repeat;
-            overflow: hidden;
+
+                overflow: hidden;
         }
 
         .hero-car {
@@ -504,6 +515,7 @@
         .hero-search {
             width: 100%;
             max-width: 640px; 
+
             position: relative;
             z-index: 10;
         }
@@ -553,7 +565,7 @@
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr; 
-            gap: 20px 16px; 
+            gap: 12px 16px; 
         }
 
         .full-width { grid-column: span 2; } 
@@ -611,7 +623,7 @@
         }
 
         .btn-submit {
-            grid-column: span 2;
+            grid-column: span 2; 
             height: 42px;
             width: 50%; 
             background: var(--blue);
@@ -677,7 +689,7 @@
         }
 
         .step-icon {
-            width: 75px;
+            width: 75px; 
             height: 75px; 
             border-radius: 12px;
             background: transparent;
@@ -743,6 +755,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 15px;
+            
         }
 
         .footer-links { display: flex; gap: 24px; }
@@ -768,14 +781,14 @@
             
             /* Wyszukiwarka idzie na samą górę */
             .hero-search { 
-                order: 1;
+                order: 1; 
                 max-width: 100%; 
                 width: 100%;
             }
             
             /* Opisy i benefity spadają pod wyszukiwarkę */
             .hero-text { 
-                order: 2;
+                order: 2; 
                 max-width: 100%; 
                 text-align: center;
             }
@@ -784,7 +797,8 @@
             .hero-benefits li { justify-content: center; }
             .flags-grid { justify-content: center; }
 
-            /* Auto na sam dół - Całkowite ukrycie auta na tabletach i telefonach */
+            /* Auto na sam dół */
+            /* Całkowite ukrycie auta na tabletach i telefonach */
             .hero-car { display: none !important; }
 
             /* PŁYNNY GRADIENT (ZIELONY -> BŁĘKIT -> GRANAT) */
@@ -794,10 +808,10 @@
                 min-height: auto; 
             }
             .how-it-works-section { 
-                background: linear-gradient(180deg, #38BDF8 0%, #1E3A8A 100%) !important;
+                background: linear-gradient(180deg, #38BDF8 0%, #1E3A8A 100%) !important; 
             }
             footer { 
-                background: #1E3A8A !important;
+                background: #1E3A8A !important; 
                 border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
             }
             .section-header { text-align: center; color: white; top: 0; margin-top: 30px; }
@@ -808,10 +822,11 @@
             
            /* HEADER: Premium Gradient (Granat -> Niebieski) */
             header { 
-                flex-wrap: wrap;
+                flex-wrap: wrap; 
                 padding: 12px 16px; 
                 gap: 12px;
-                background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(37, 99, 235, 0.95) 100%) !important;
+                /* Płynne przejście od granatu na górze do niebieskiego na dole */
+                background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(37, 99, 235, 0.95) 100%) !important; 
                 backdrop-filter: blur(12px);
                 -webkit-backdrop-filter: blur(12px);
                 border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -820,46 +835,44 @@
             .logo-container img { height: 36px; }
             
             .header-right { 
-                width: 100%;
+                width: 100%; 
                 justify-content: space-between; 
             }
             
             /* Przyciski w rzędzie */
             .auth-buttons { 
-                flex-direction: row;
+                flex-direction: row; 
                 gap: 8px; 
                 width: auto;
             }
             .auth-buttons button { 
-                padding: 10px 14px;
+                padding: 10px 14px; 
                 font-size: 13px; 
                 border-radius: 10px;
             }
 
             /* HERO: Typografia */
-            .hero { 
-                padding: 8px 0 18px 0;
-            }
+            .hero { padding: 10px 0 40px 0; }
             .hero-text h1 { 
-                font-size: 30px;
+                font-size: 30px; 
                 line-height: 1.15; 
                 margin-bottom: 12px; 
-                text-shadow: 0 2px 15px rgba(255, 255, 255, 0.6);
+                text-shadow: 0 2px 15px rgba(255, 255, 255, 0.6); 
             }
             .hero-text h2 { font-size: 16px; margin-bottom: 20px; }
 
             /* WYSZUKIWARKA PREMIUM (Glassmorphism & Touch Targets) */
             .search-form { 
-                padding: 18px;
+                padding: 20px; 
                 border-radius: 24px; 
-                background: #E0F2FE; 
+                background: #E0F2FE; /* Jasny, pastelowy błękit */
                 box-shadow: 0 15px 40px rgba(37, 99, 235, 0.12);
                 border: 1px solid rgba(255, 255, 255, 0.8);
             }
             .split-inputs { flex-direction: column; gap: 12px; }
             .input-wrapper input, .input-wrapper select { 
-                height: 52px;
-                font-size: 15px;
+                height: 52px; /* Touch-friendly */
+                font-size: 15px; 
                 border-radius: 14px;
                 background: #F8FAFC;
                 border: 1px solid #E2E8F0;
@@ -870,7 +883,7 @@
             
             /* GŁÓWNY PRZYCISK CTA */
             .btn-submit { 
-                grid-column: span 1;
+                grid-column: span 1; 
                 width: 100%; 
                 height: 56px; 
                 font-size: 17px; 
@@ -886,15 +899,15 @@
                 flex-direction: row;
                 flex-wrap: nowrap;
                 overflow-x: auto;
-                scrollbar-width: none; 
-                -ms-overflow-style: none;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE */
                 padding: 0 4px 12px 4px;
                 justify-content: flex-start;
                 gap: 12px;
             }
-            .trust-badges::-webkit-scrollbar { display: none; } 
+            .trust-badges::-webkit-scrollbar { display: none; } /* Chrome/Safari */
             .trust-badge { 
-                flex-shrink: 0;
+                flex-shrink: 0; 
                 padding: 8px 16px; 
                 border-radius: 20px;
                 font-size: 12px;
@@ -903,7 +916,7 @@
             /* Kafelki z krokami (Pionowo) */
             .steps-container { grid-template-columns: 1fr; gap: 16px; }
             .step-box { padding: 20px; align-items: flex-start; border-radius: 20px; }
-            .form-grid { grid-template-columns: 1fr; gap: 14px; }
+            .form-grid { grid-template-columns: 1fr; gap: 16px; }
             .full-width { grid-column: span 1; }
 
             .flags-grid { gap: 12px; }
@@ -915,7 +928,7 @@
             .legal-overlay, #authModal, #partnerModal { align-items: flex-end !important; padding: 0 !important; }
             
             .legal-modal, #authModal > div, #partnerModal > div { 
-                padding: 32px 24px;
+                padding: 32px 24px; 
                 max-height: 90vh; 
                 border-radius: 28px 28px 0 0 !important; 
                 position: absolute; 
@@ -924,23 +937,18 @@
                 max-width: 100% !important;
                 animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1) forwards;
             }
-
-            .hero-benefits,
-            .popular-destinations-bare {
-                display: none;
-            }
         }
 
         /* BANER COOKIES ODKLEJONY OD RAMKI */
         @media (max-width: 600px) {
             .cookie-banner { 
-                bottom: 0;
+                bottom: 0; 
                 border-radius: 28px 28px 0 0; 
                 width: 100%; 
                 max-width: 100%; 
                 border-bottom: none; 
                 padding: 24px;
-                padding-bottom: env(safe-area-inset-bottom, 24px);
+                padding-bottom: env(safe-area-inset-bottom, 24px); 
             }
             .cookie-buttons { flex-direction: column; gap: 8px; }
             .cookie-buttons button { width: 100%; height: 50px; font-size: 15px; border-radius: 12px;}
@@ -958,86 +966,73 @@
             from { transform: translateY(100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        
         /* Styl dla dokumentów prawnych Overlay */
-        .legal-overlay {
-            display: none;
-            position: fixed; inset: 0; z-index: 9999;
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
-            align-items: center; justify-content: center; padding: 20px;
-        }
-        .legal-modal {
-            background: white; width: 100%; max-width: 800px; max-height: 85vh;
-            border-radius: 24px; position: relative; overflow-y: auto;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 40px;
-            animation: modalFadeIn 0.3s ease;
-        }
-        @keyframes modalFadeIn { 
-            from { opacity: 0; transform: scale(0.95); } 
-            to { opacity: 1; transform: scale(1); } 
-        }
-        .legal-close {
-            position: sticky; top: 0;
-            float: right; font-size: 32px; font-weight: 800;
-            color: #64748B; cursor: pointer; line-height: 1; transition: color 0.2s;
-            background: white; border-radius: 50%;
-            width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center; z-index: 10;
-        }
-        .legal-close:hover { color: #EF4444; }
-        .legal-content h2 { color: #1E3A8A; margin-bottom: 20px; font-size: 28px; font-weight: 800; }
-        .legal-content h3 { 
-            color: #2563EB;
-            margin: 24px 0 12px 0; font-size: 18px; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;
-        }
-        .legal-content p, .legal-content li { font-size: 15px; line-height: 1.7; color: #334155; margin-bottom: 12px; }
-        
-        /* --- FORMULARZ KONTAKTOWY --- */
-        .saas-contact-wrapper input,
-        .saas-contact-wrapper textarea {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #E2E8F0;
-            margin-top: 6px;
-            margin-bottom: 12px;
-        }
+.legal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
+    align-items: center; justify-content: center; padding: 20px;
+}
+.legal-modal {
+    background: white; width: 100%; max-width: 800px; max-height: 85vh;
+    border-radius: 24px; position: relative; overflow-y: auto;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 40px;
+    animation: modalFadeIn 0.3s ease;
+}
+@keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.legal-close {
+    position: sticky; top: 0; float: right; font-size: 32px; font-weight: 800;
+    color: #64748B; cursor: pointer; line-height: 1; transition: color 0.2s;
+    background: white; border-radius: 50%; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center; z-index: 10;
+}
+.legal-close:hover { color: #EF4444; }
+.legal-content h2 { color: #1E3A8A; margin-bottom: 20px; font-size: 28px; font-weight: 800; }
+.legal-content h3 { color: #2563EB; margin: 24px 0 12px 0; font-size: 18px; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; }
+.legal-content p, .legal-content li { font-size: 15px; line-height: 1.7; color: #334155; margin-bottom: 12px; }
+/* --- FORMULARZ KONTAKTOWY --- */
+.saas-contact-wrapper input,
+.saas-contact-wrapper textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
+    margin-top: 6px;
+    margin-bottom: 12px;
+}
 
-        /* --- CONTACT BUTTON PREMIUM --- */
-        .contact-btn {
-            background: linear-gradient(135deg, #8BF21A, #16A34A);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 10px;
-            font-weight: 800;
-            font-size: 15px;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.25s ease;
-            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
-        }
-        .contact-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 28px rgba(34, 197, 94, 0.45);
-            background: linear-gradient(135deg, #A1FF33, #8BF21A);
-        }
-        .contact-btn:active {
-            transform: scale(0.98);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-        
-        /* --- COOKIE BANNER --- */
+/* --- CONTACT BUTTON PREMIUM --- */
+.contact-btn {
+    background: linear-gradient(135deg, #8BF21A, #16A34A);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.25s ease;
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
+}
+
+.contact-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(34, 197, 94, 0.45);
+    background: linear-gradient(135deg, #A1FF33, #8BF21A);
+}
+
+.contact-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+/* --- COOKIE BANNER --- */
         .cookie-banner {
-            position: fixed;
-            bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
             width: 90%; max-width: 600px; z-index: 10000;
-            background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 20px;
             padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column; gap: 16px;
+            display: flex; flex-direction: column; gap: 16px;
             opacity: 0; pointer-events: none; transition: opacity 0.4s ease, transform 0.4s ease;
         }
         .cookie-banner.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
@@ -1046,14 +1041,12 @@
         .cookie-content p { font-size: 13px; color: var(--gray); line-height: 1.6; margin: 0; }
         .cookie-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
         .btn-cookie-accept {
-            background: var(--blue);
-            color: white; border: none; padding: 10px 24px;
+            background: var(--blue); color: white; border: none; padding: 10px 24px;
             border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; transition: background 0.2s;
         }
         .btn-cookie-accept:hover { background: var(--blue-hover); }
         .btn-cookie-reject {
-            background: transparent;
-            color: var(--gray); border: 1px solid var(--border);
+            background: transparent; color: var(--gray); border: 1px solid var(--border);
             padding: 10px 24px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;
         }
         .btn-cookie-reject:hover { background: #F1F5F9; color: var(--text); }
@@ -1063,8 +1056,7 @@
             .cookie-buttons { flex-direction: column; }
             .cookie-buttons button { width: 100%; }
         }
-        
-        /* 🔥 POPRAWA WYGLĄDU CLOUDFLARE TURNSTILE (Logowanie i Partner) */
+    /* 🔥 POPRAWA WYGLĄDU CLOUDFLARE TURNSTILE (Logowanie i Partner) */
         .cf-turnstile {
             display: flex !important;
             justify-content: center !important;
@@ -1072,106 +1064,110 @@
             width: 100% !important;
             overflow: hidden !important;
         }
+
+        /* Delikatne dopasowanie ramki do Twojego designu */
         .cf-turnstile iframe {
             border-radius: 8px !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
         }
+
+        /* Na bardzo wąskich telefonach lekko go skalujemy, żeby nie rozpychał okna */
         @media (max-width: 380px) {
             .cf-turnstile {
                 transform: scale(0.9);
                 transform-origin: center;
             }
         }
-        
         /* --- PREMIUM SAAS CALENDAR (KOLORYSTYKA FLAGOWA) --- */
-        .flatpickr-calendar { font-family: 'Inter', sans-serif !important;
-            border: none !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; border-radius: 16px !important; padding: 10px !important; margin-top: 8px !important;
-            border-top: 4px solid var(--green) !important; }
-        .flatpickr-months .flatpickr-month { background: transparent !important;
-            color: var(--blue-dark) !important; fill: var(--blue-dark) !important; height: 40px !important; }
-        .flatpickr-current-month { font-size: 110% !important;
-            font-family: 'Manrope', sans-serif !important; font-weight: 800 !important; }
-        .flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 800 !important;
-            color: var(--blue-dark) !important; }
-        .flatpickr-weekday { color: var(--blue) !important; font-weight: 800 !important;
-            text-transform: uppercase; font-size: 11px !important; }
+        .flatpickr-calendar { font-family: 'Inter', sans-serif !important; border: none !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; border-radius: 16px !important; padding: 10px !important; margin-top: 8px !important; border-top: 4px solid var(--green) !important; }
+        .flatpickr-months .flatpickr-month { background: transparent !important; color: var(--blue-dark) !important; fill: var(--blue-dark) !important; height: 40px !important; }
+        .flatpickr-current-month { font-size: 110% !important; font-family: 'Manrope', sans-serif !important; font-weight: 800 !important; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 800 !important; color: var(--blue-dark) !important; }
+        .flatpickr-weekday { color: var(--blue) !important; font-weight: 800 !important; text-transform: uppercase; font-size: 11px !important; }
         
-        .flatpickr-day { border-radius: 8px !important;
-            font-weight: 600 !important; color: var(--text) !important; transition: all 0.2s ease !important;
-        }
-        .flatpickr-day:hover { background: #F1FCE3 !important;
-            border-color: #F1FCE3 !important; color: var(--green) !important; }
+        .flatpickr-day { border-radius: 8px !important; font-weight: 600 !important; color: var(--text) !important; transition: all 0.2s ease !important; }
+        
+        /* Najechanie na dzień - soczysta jasna zieleń */
+        .flatpickr-day:hover { background: #F1FCE3 !important; border-color: #F1FCE3 !important; color: var(--green) !important; }
+        
+        /* Wybrany dzień - mocna zieleń Ride24 */
         .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange, .flatpickr-day.selected:focus, .flatpickr-day.startRange:focus, .flatpickr-day.endRange:focus, .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover { 
-            background: var(--green) !important;
+            background: var(--green) !important; 
             border-color: var(--green) !important; 
             color: white !important; 
             box-shadow: 0 4px 10px rgba(115, 215, 0, 0.3) !important; 
-            transform: scale(1.05);
+            transform: scale(1.05); 
         }
-        .flatpickr-day.today { border-color: var(--blue) !important;
-            color: var(--blue) !important; font-weight: 800 !important; }
-        .flatpickr-day.today:hover { background: var(--blue) !important;
-            color: white !important; border-color: var(--blue) !important; }
+        
+        /* Dzisiejszy dzień - niebieski akcent */
+        .flatpickr-day.today { border-color: var(--blue) !important; color: var(--blue) !important; font-weight: 800 !important; }
+        .flatpickr-day.today:hover { background: var(--blue) !important; color: white !important; border-color: var(--blue) !important; }
+        
         .flatpickr-day.flatpickr-disabled { color: #CBD5E1 !important; }
-        
-        .flatpickr-calendar {
-            width: 320px !important;
-        }
-        .flatpickr-innerContainer, 
-        .flatpickr-rContainer, 
-        .dayContainer, 
-        .flatpickr-days {
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-        }
-        .dayContainer {
-            justify-content: space-around !important;
-        }
-        
-        /* Animacja koperty w oknie sukcesu */
-        #regSuccessModal .legal-modal div:first-child {
-            animation: envelopeFloat 2s ease-in-out infinite;
-            display: inline-block; 
-        }
-        @keyframes envelopeFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        /* --- PREMIUM SOCIAL ICONS (DARK FOOTER) --- */
-        .saas-social-container {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-        .social-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            color: #94A3B8; 
-            background-color: transparent;
-            border-radius: 10px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-decoration: none;
-        }
-        .social-icon:hover {
-            color: #FFFFFF;
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-        @media (max-width: 768px) {
-            .saas-social-container {
-                justify-content: center;
-                width: 100%;
-                margin-top: 10px;
-            }
-        }
+        /* Naprawa zawijania się dni w kalendarzu */
+.flatpickr-calendar {
+    width: 320px !important; /* Lekkie poszerzenie głównego okna */
+}
 
-        /* --- PREMIUM WHATSAPP FLOATING BUTTON --- */
+.flatpickr-innerContainer, 
+.flatpickr-rContainer, 
+.dayContainer, 
+.flatpickr-days {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+}
+
+.dayContainer {
+    justify-content: space-around !important; /* Równomierne rozłożenie cyfr */
+}
+        /* Animacja koperty w oknie sukcesu */
+#regSuccessModal .legal-modal div:first-child {
+    animation: envelopeFloat 2s ease-in-out infinite;
+    display: inline-block; /* Ważne, aby transformacja działała */
+}
+
+@keyframes envelopeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+/* --- PREMIUM SOCIAL ICONS (DARK FOOTER) --- */
+.saas-social-container {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    color: #94A3B8; /* Kolor zgrany z tekstami w Twojej stopce */
+    background-color: transparent;
+    border-radius: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+}
+
+.social-icon:hover {
+    color: #FFFFFF; /* Czysta biel na hover */
+    background-color: rgba(255, 255, 255, 0.1); /* Subtelne, półprzezroczyste tło */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Wyśrodkowanie na telefonach - dodane do Twojego media query @media (max-width: 768px) */
+@media (max-width: 768px) {
+    .saas-social-container {
+        justify-content: center;
+        width: 100%;
+        margin-top: 10px;
+    }
+}
+
+/* --- PREMIUM WHATSAPP FLOATING BUTTON --- */
         .whatsapp-float {
             position: fixed;
             width: 60px;
@@ -1185,29 +1181,35 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 10px 25px rgba(37, 211, 102, 0.4);
-            z-index: 8900;
+            z-index: 8900; /* Poniżej okien modalnych (9999), nad resztą strony */
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             animation: pulse-wa 2s infinite;
         }
+
         .whatsapp-float svg {
             width: 32px;
             height: 32px;
             fill: currentColor;
             transition: transform 0.3s ease;
         }
+
         .whatsapp-float:hover {
             transform: translateY(-5px) scale(1.05);
             box-shadow: 0 15px 35px rgba(37, 211, 102, 0.5);
             animation: none;
         }
+
         .whatsapp-float:hover svg {
             transform: scale(1.1);
         }
+
         @keyframes pulse-wa {
             0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5); }
             70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
             100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
         }
+
+        /* Responsywność dla smartfonów */
         @media (max-width: 768px) {
             .whatsapp-float {
                 width: 54px;
@@ -1249,7 +1251,6 @@
                 <img src="flagi/pl.svg" alt="PL">
                 PL
             </div>
-            
             <div class="lang-divider">|</div>
             <div id="lang-en" class="lang-btn" onclick="setLang('en')">
                 <img src="flagi/uk.svg" alt="EN">
@@ -1259,7 +1260,6 @@
 
         <div class="auth-buttons">
             <button class="btn-blue" onclick="openAuth()" data-pl="Zaloguj się" data-en="Log in">Zaloguj się</button>
-  
             <button class="btn-green" onclick="openPartnerAuth()" data-pl="For Partners" data-en="For Partners">Dla Partnerów</button>
         </div>
     </div>
@@ -1281,31 +1281,31 @@
             <div class="popular-destinations-bare">
                 <div class="popular-title" data-pl="Popularne kierunki" data-en="Popular destinations">Popularne kierunki</div>
                 <div class="flags-grid">
-                    <div class="flag-item active" data-country="Greece">
-                        <div class="flag-box" style="background-image: url('flagi/g.png');"></div>
-                        <span class="flag-name" data-pl="Grecja" data-en="Greece">Grecja</span>
-                    </div>
-                    <div class="flag-item" data-country="Italy">
-                        <div class="flag-box" style="background-image: url('flagi/w.png');"></div>
-                        <span class="flag-name" data-pl="Włochy" data-en="Italy">Włochy</span>
-                    </div>
-                    <div class="flag-item" data-country="Portugal">
-                        <div class="flag-box" style="background-image: url('flagi/p.png');"></div>
-                        <span class="flag-name" data-pl="Portugalia" data-en="Portugal">Portugalia</span>
-                    </div>
-                    <div class="flag-item" data-country="Cyprus">
-                        <div class="flag-box" style="background-image: url('flagi/c.png');"></div>
-                        <span class="flag-name" data-pl="Cypr" data-en="Cyprus">Cypr</span>
-                    </div>
-                    <div class="flag-item" data-country="Jordan">
-                        <div class="flag-box" style="background-image: url('flagi/j.png');"></div>
-                        <span class="flag-name" data-pl="Jordania" data-en="Jordan">Jordania</span>
-                    </div>
-                    <div class="flag-item" data-country="Morocco">
-                        <div class="flag-box" style="background-image: url('flagi/m.png');"></div>
-                        <span class="flag-name" data-pl="Maroko" data-en="Morocco">Maroko</span>
-                    </div>
-                </div>
+    <div class="flag-item active" data-country="Greece">
+        <div class="flag-box" style="background-image: url('flagi/g.png');"></div>
+        <span class="flag-name" data-pl="Grecja" data-en="Greece">Grecja</span>
+    </div>
+    <div class="flag-item" data-country="Italy">
+        <div class="flag-box" style="background-image: url('flagi/w.png');"></div>
+        <span class="flag-name" data-pl="Włochy" data-en="Italy">Włochy</span>
+    </div>
+    <div class="flag-item" data-country="Portugal">
+        <div class="flag-box" style="background-image: url('flagi/p.png');"></div>
+        <span class="flag-name" data-pl="Portugalia" data-en="Portugal">Portugalia</span>
+    </div>
+    <div class="flag-item" data-country="Cyprus">
+        <div class="flag-box" style="background-image: url('flagi/c.png');"></div>
+        <span class="flag-name" data-pl="Cypr" data-en="Cyprus">Cypr</span>
+    </div>
+    <div class="flag-item" data-country="Jordan">
+        <div class="flag-box" style="background-image: url('flagi/j.png');"></div>
+        <span class="flag-name" data-pl="Jordania" data-en="Jordan">Jordania</span>
+    </div>
+    <div class="flag-item" data-country="Morocco">
+        <div class="flag-box" style="background-image: url('flagi/m.png');"></div>
+        <span class="flag-name" data-pl="Maroko" data-en="Morocco">Maroko</span>
+    </div>
+</div>
             </div>
             <h3 class="section-header" data-pl="Jak działa Ride24 " data-en="How Ride24 works">Jak działa Ride24</h3>
         </div>
@@ -1317,16 +1317,17 @@
                 <div class="trust-badge"><img src="icons/handshake.svg" alt="icon"> <span data-pl="Globalni partnerzy" data-en="Global partners">Globalni partnerzy</span></div>
             </div>
 
-            <form id="searchForm" class="search-form" style="display: flex; flex-direction: column; justify-content: center;">
+            <form id="searchForm" class="search-form" style="min-height: 350px; display: flex; flex-direction: column; justify-content: center;">
                 <input type="text" name="website" style="position:absolute; left:-5000px;" tabindex="-1" autocomplete="off">
                 
-                <div class="form-grid">
+                <div class="form-grid" style="gap: 20px 16px;">
+
                     <div class="form-group full-width">
                         <label data-pl="Miejsce odbioru" data-en="Pick-up location">Miejsce odbioru</label>
                         <div class="input-wrapper">
                             <img src="icons/location-dot.svg">
                             <input type="text" id="smart-search-pickup" autocomplete="off" placeholder="Miasto, lotnisko lub region..." data-pl="Miasto, lotnisko lub region..." data-en="City, airport or region...">
-                             <div id="pickup-results" class="search-dropdown"></div>
+                            <div id="pickup-results" class="search-dropdown"></div>
                         </div>
                     </div>
 
@@ -1356,7 +1357,7 @@
                     <div class="form-group">
                         <label data-pl="Data i czas zwrotu" data-en="Drop-off date & time">Data i czas zwrotu</label>
                         <div class="split-inputs">
-                           <div class="input-wrapper">
+                            <div class="input-wrapper">
                                 <img src="icons/calendar-check.svg">
                                 <input type="text" id="drop-date" readonly style="background-color: white; cursor: pointer;" data-pl="Wybierz datę" data-en="Select date" placeholder="Wybierz datę">
                             </div>
@@ -1368,6 +1369,7 @@
                     </div>
 
                     <button id="searchBtn" type="button" class="btn-submit" data-pl="Szukaj aut" data-en="Search cars" style="margin-top: 8px;">Szukaj aut</button>
+                    
                 </div>
             </form>
         </div>
@@ -1393,7 +1395,12 @@
         <div class="step-icon"><img src="zarezerwuj.png" alt="Zarezerwuj" style="width: 100%; height: 100%; border-radius: inherit; object-fit: cover;"></div>
         <div class="step-text">
             <h4 data-pl="2. Zarezerwuj" data-en="2. Book">2. Zarezerwuj</h4>
-            <p data-pl="Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezerwację." data-en="Pay a small booking fee online to secure your reservation.">Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezerwację.</p>
+            <p 
+data-pl="Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezerwację." 
+data-en="Pay a small booking fee online to secure your reservation."
+>
+Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezerwację.
+</p>
         </div>
     </div>
 
@@ -1418,7 +1425,6 @@
 
 <footer>
     <div class="container footer-content">
-      
         <div data-pl="© 2026 Ride24.pl — Wszelkie prawa zastrzeżone." data-en="© 2026 Ride24.pl — All rights reserved.">
             © 2026 Ride24.pl — Wszelkie prawa zastrzeżone.
         </div>
@@ -1428,7 +1434,7 @@
                 <a href="javascript:void(0)" onclick="openLegal('regulamin')" data-pl="Regulamin" data-en="Terms">Regulamin</a>
                 <a href="javascript:void(0)" onclick="openLegal('polityka')" data-pl="Polityka prywatności" data-en="Privacy Policy">Polityka prywatności</a>
                 <a href="javascript:void(0)" onclick="openLegal('kontakt')" data-pl="Kontakt" data-en="Contact">Kontakt</a>
-        </div>
+            </div>
 
         <div class="saas-social-container">
             <a href="https://www.facebook.com/profile.php?id=61561090230180" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Facebook Ride24">
@@ -1438,15 +1444,15 @@
             </a>
             <a href="https://x.com/Ride24pl" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="X Ride24">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                   <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
-                   <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
+                    <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
+                    <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
                 </svg>
             </a>
             <a href="https://www.instagram.com/ride24.pl/" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Instagram Ride24">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                   <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                   <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                   <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
                 </svg>
             </a>
         </div>
@@ -1455,87 +1461,94 @@
 
 <script>
     function openRegSuccess() {
-        closeAuth();
-        const modal = document.getElementById("regSuccessModal");
-        modal.style.display = "flex";
-        const lang = localStorage.getItem("lang") || "pl";
-        setLang(lang);
-    }
+    closeAuth(); // Zamykamy okno logowania
+    const modal = document.getElementById("regSuccessModal");
+    modal.style.display = "flex";
+    
+    // Odświeżamy tłumaczenie w nowym oknie
+    const lang = localStorage.getItem("lang") || "pl";
+    setLang(lang);
+}
 
-    function closeRegSuccess() {
-        document.getElementById("regSuccessModal").style.display = "none";
-        document.body.style.overflow = "auto";
-    }
+function closeRegSuccess() {
+    document.getElementById("regSuccessModal").style.display = "none";
+    document.body.style.overflow = "auto";
+}
     
     // --- SKRYPT TŁUMACZENIA (PL / EN) ---
     window.showToast = function(msg, type = 'info') {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
-        
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        
-        const icon = type === 'error' ? '⚠️' : (type === 'success' ? '✅' : 'ℹ️');
-        
-        toast.innerHTML = `<span>${icon}</span> ${escapeHTML(msg)}`;
-        
-        function escapeHTML(str) {
-            return String(str)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;");
-        }
-        
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.animation = 'fadeOutToast 0.4s ease forwards';
-            setTimeout(() => toast.remove(), 400);
-        }, 4000);
-    };
+    const container = document.getElementById('toast-container');
+    if (!container) return;
     
-    function setLang(lang) {
-        localStorage.setItem("lang", lang);
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icon = type === 'error' ? '⚠️' : (type === 'success' ? '✅' : 'ℹ️');
+    
+    toast.innerHTML = `<span>${icon}</span> ${escapeHTML(msg)}`;
+    function escapeHTML(str) {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+    container.appendChild(toast);
 
-        document.querySelectorAll("[data-pl]").forEach(el => {
-            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-                el.placeholder = el.dataset[lang];
-            } else if (el.tagName === 'OPTION') {
-                el.innerText = el.dataset[lang];
-            } else {
-                el.innerHTML = el.dataset[lang];
-            }
-        });
+    setTimeout(() => {
+        toast.style.animation = 'fadeOutToast 0.4s ease forwards';
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
+};
+    
+   function setLang(lang) {
+    localStorage.setItem("lang", lang);
 
-        document.querySelectorAll(".lang-btn").forEach(btn => {
-            btn.classList.remove("active-lang");
-        });
-        document.getElementById("lang-" + lang).classList.add("active-lang");
-    }
+    document.querySelectorAll("[data-pl]").forEach(el => {
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            el.placeholder = el.dataset[lang];
+        } else if (el.tagName === 'OPTION') {
+            el.innerText = el.dataset[lang];
+        } else {
+            el.innerHTML = el.dataset[lang]; // ZMIANA: innerHTML pozwala na tagi <strong>, <a> itp. w tłumaczeniach
+        }
+    });
+
+    document.querySelectorAll(".lang-btn").forEach(btn => {
+        btn.classList.remove("active-lang");
+    });
+
+    document.getElementById("lang-" + lang).classList.add("active-lang");
+}
 
     function detectLang() {
-        let lang = localStorage.getItem("lang");
-        if (!lang) {
-            const browserLang = navigator.language || navigator.userLanguage;
-            lang = browserLang.toLowerCase().startsWith("pl") ? "pl" : "en";
-        }
-        setLang(lang);
-    }
+let lang = localStorage.getItem("lang");
+if (!lang) {
+const browserLang = navigator.language || navigator.userLanguage;
+lang = browserLang.toLowerCase().startsWith("pl") ? "pl" : "en";
+}
+setLang(lang);
+}
 
-    function handleCookieConsent(action) {
-        localStorage.setItem("cookie_consent", action);
-        const banner = document.getElementById("cookieConsent");
-        banner.classList.remove("show");
-        if (action === 'accept') {
-            console.log("Zgoda na analitykę wydana.");
-        } else {
-            console.log("Zgoda odrzucona. Działają tylko niezbędne cookies.");
-        }
-    }
+ 
+
+function handleCookieConsent(action) {
+    // Zapisujemy wybór w pamięci przeglądarki ('accept' lub 'reject')
+    localStorage.setItem("cookie_consent", action);
     
-    const legalData = {
-        regulamin: `
+    // Ukrywamy baner
+    const banner = document.getElementById("cookieConsent");
+    banner.classList.remove("show");
+    
+    if (action === 'accept') {
+        console.log("Zgoda na analitykę wydana.");
+        // W przyszłości tutaj dodasz kod ładujący np. Google Analytics
+    } else {
+        console.log("Zgoda odrzucona. Działają tylko niezbędne cookies.");
+    }
+}
+      const legalData = {
+    regulamin: `
 <h2 data-pl="Regulamin Serwisu" data-en="Terms of Service">Regulamin Serwisu</h2>
 <p><strong data-pl="Ride24.pl • Ostatnia aktualizacja: 01 maj 2026 r." data-en="Ride24.pl • Last update: May 01, 2026">Ride24.pl • Ostatnia aktualizacja: 01 maj 2026 r.</strong></p>
 
@@ -1657,48 +1670,99 @@
 <h3 data-pl="§14. Postanowienia końcowe" data-en="§14. Final Provisions">§14. Postanowienia końcowe</h3>
 <p data-pl="W sprawach nieuregulowanych zastosowanie ma prawo polskie. Spory rozstrzygane będą przez właściwe sądy powszechne." data-en="In matters not covered, Polish law applies. Disputes will be resolved by the competent common courts.">W sprawach nieuregulowanych zastosowanie ma prawo polskie. Spory rozstrzygane będą przez właściwe sądy powszechne.</p>
 `,
-        faq: `
+    faq: `
 <h2 data-pl="FAQ – Najczęściej zadawane pytania" data-en="FAQ – Frequently Asked Questions">FAQ – Najczęściej zadawane pytania</h2>
 
 <h3 data-pl="1. Czy Ride24 wynajmuje samochody?" data-en="1. Does Ride24 rent cars?">1. Czy Ride24 wynajmuje samochody?</h3>
-<p data-pl="Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów." data-en="No. Ride24 is a marketplace connecting users with car rental companies.">Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów.</p>
-<p data-pl="Umowa wynajmu zawierana jest bezpośrednio z partnerem." data-en="The rental agreement is concluded directly with the partner.">Umowa wynajmu zawierana jest bezpośrednio z partnerem.</p>
+<p data-pl="Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów."
+   data-en="No. Ride24 is a marketplace connecting users with car rental companies.">
+Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów.
+</p>
+
+<p data-pl="Umowa wynajmu zawierana jest bezpośrednio z partnerem."
+   data-en="The rental agreement is concluded directly with the partner.">
+Umowa wynajmu zawierana jest bezpośrednio z partnerem.
+</p>
 
 <h3 data-pl="2. Jak wygląda płatność?" data-en="2. How does payment work?">2. Jak wygląda płatność?</h3>
-<p data-pl="Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną." data-en="Booking is simple – you only pay a small booking fee online.">Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną.</p>
-<p data-pl="Pozostałą kwotę zapłacisz bezpośrednio przy odbiorze auta." data-en="The remaining amount is paid directly at pickup.">Pozostałą kwotę zapłacisz bezpośrednio przy odbiorze auta.</p>
+<p data-pl="Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną."
+   data-en="Booking is simple – you only pay a small booking fee online.">
+Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną.
+</p>
+
+<p data-pl="Pozostałą kwotę zapłacisz bezpośrednio przy odbiorze auta."
+   data-en="The remaining amount is paid directly at pickup.">
+Pozostałą kwotę zapłacisz bezpośrednio przy odbiorze auta.
+</p>
 
 <h3 data-pl="3. Czy muszę płacić całość z góry?" data-en="3. Do I have to pay everything upfront?">3. Czy muszę płacić całość z góry?</h3>
-<p data-pl="Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu." data-en="No. You only pay the booking fee, and the rest at pickup.">Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu.</p>
+<p data-pl="Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu."
+   data-en="No. You only pay the booking fee, and the rest at pickup.">
+Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu.
+</p>
 
 <h3 data-pl="4. Czym jest opłata rezerwacyjna?" data-en="4. What is a booking fee?">4. Czym jest opłata rezerwacyjna?</h3>
-<p data-pl="To niewielka opłata za rezerwację i obsługę platformy Ride24." data-en="It is a small fee for booking and using the Ride24 platform.">To niewielka opłata za rezerwację i obsługę platformy Ride24.</p>
-<p data-pl="Dzięki niej Twoja rezerwacja jest zabezpieczona." data-en="It helps secure your reservation.">Dzięki niej Twoja rezerwacja jest zabezpieczona.</p>
+<p data-pl="To niewielka opłata za rezerwację i obsługę platformy Ride24."
+   data-en="It is a small fee for booking and using the Ride24 platform.">
+To niewielka opłata za rezerwację i obsługę platformy Ride24.
+</p>
+
+<p data-pl="Dzięki niej Twoja rezerwacja jest zabezpieczona."
+   data-en="It helps secure your reservation.">
+Dzięki niej Twoja rezerwacja jest zabezpieczona.
+</p>
 
 <h3 data-pl="5. Czy opłata rezerwacyjna podlega zwrotowi?" data-en="5. Is the booking fee refundable?">5. Czy opłata rezerwacyjna podlega zwrotowi?</h3>
-<p data-pl="Tak – wysokość zwrotu zależy od momentu anulowania:" data-en="Yes – the refund depends on when you cancel:">Tak – wysokość zwrotu zależy od momentu anulowania:</p>
+<p data-pl="Tak – wysokość zwrotu zależy od momentu anulowania:"
+   data-en="Yes – the refund depends on when you cancel:">
+Tak – wysokość zwrotu zależy od momentu anulowania:
+</p>
+
 <ul>
-<li data-pl="60 dni i więcej – 90% zwrotu" data-en="60+ days – 90% refund">60 dni i więcej – 90% zwrotu</li>
-<li data-pl="30–59 dni – 50% zwrotu" data-en="30–59 days – 50% refund">30–59 dni – 50% zwrotu</li>
-<li data-pl="poniżej 30 dni – brak zwrotu" data-en="less than 30 days – no refund">poniżej 30 dni – brak zwrotu</li>
+<li data-pl="60 dni i więcej – 90% zwrotu"
+    data-en="60+ days – 90% refund">60 dni i więcej – 90% zwrotu</li>
+
+<li data-pl="30–59 dni – 50% zwrotu"
+    data-en="30–59 days – 50% refund">30–59 dni – 50% zwrotu</li>
+
+<li data-pl="poniżej 30 dni – brak zwrotu"
+    data-en="less than 30 days – no refund">poniżej 30 dni – brak zwrotu</li>
 </ul>
-<p data-pl="Rezerwacje last minute (poniżej 30 dni) są bezzwrotne." data-en="Last-minute bookings (under 30 days) are non-refundable.">Rezerwacje last minute (poniżej 30 dni) są bezzwrotne.</p>
+
+<p data-pl="Rezerwacje last minute (poniżej 30 dni) są bezzwrotne."
+   data-en="Last-minute bookings (under 30 days) are non-refundable.">
+Rezerwacje last minute (poniżej 30 dni) są bezzwrotne.
+</p>
 
 <div style="background:#F8FAFC; border-left:4px solid var(--blue); padding:12px; margin-top:15px; border-radius:6px;">
-    <p data-pl="Aby otrzymać zwrot, zaloguj się do Panelu Klienta, wejdź w zakładkę 'Płatności' i kliknij 'Zwrot'. System poprosi Cię o podanie numeru konta bankowego (musi być zgodne z danymi z Twojego profilu). Ride24 nie odpowiada za zwroty odrzucone z powodu podania błędnego numeru konta." data-en="To receive a refund, log in to your Client Dashboard, go to the 'Payments' tab and click 'Refund'. The system will ask for your bank account number (which must match your profile details). Ride24 is not responsible for refunds rejected due to an incorrect account number.">
+    <p data-pl="Aby otrzymać zwrot, zaloguj się do Panelu Klienta, wejdź w zakładkę 'Płatności' i kliknij 'Zwrot'. System poprosi Cię o podanie numeru konta bankowego (musi być zgodne z danymi z Twojego profilu). Ride24 nie odpowiada za zwroty odrzucone z powodu podania błędnego numeru konta." 
+       data-en="To receive a refund, log in to your Client Dashboard, go to the 'Payments' tab and click 'Refund'. The system will ask for your bank account number (which must match your profile details). Ride24 is not responsible for refunds rejected due to an incorrect account number.">
        Aby otrzymać zwrot, zaloguj się do Panelu Klienta, wejdź w zakładkę 'Płatności' i kliknij 'Zwrot'. System poprosi Cię o podanie numeru konta bankowego (musi być zgodne z danymi z Twojego profilu). Ride24 nie odpowiada za zwroty odrzucone z powodu podania błędnego numeru konta.
     </p>
 </div>
 
 <h3 data-pl="6. Co jeśli auto nie będzie dostępne?" data-en="6. What if the car is unavailable?">6. Co jeśli auto nie będzie dostępne?</h3>
-<p data-pl="W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej." data-en="In that case, you will receive a full refund of the booking fee.">W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej.</p>
+<p data-pl="W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej."
+   data-en="In that case, you will receive a full refund of the booking fee.">
+W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej.
+</p>
 
 <h3 data-pl="7. Czy Ride24 odpowiada za wynajem?" data-en="7. Is Ride24 responsible for the rental?">7. Czy Ride24 odpowiada za wynajem?</h3>
-<p data-pl="Za wynajem odpowiada partner (wypożyczalnia samochodów)." data-en="The rental is provided by the partner (car rental company).">Za wynajem odpowiada partner (wypożyczalnia samochodów).</p>
-<p data-pl="Ride24 odpowiada za proces rezerwacji online." data-en="Ride24 is responsible for the booking process.">Ride24 odpowiada za proces rezerwacji online.</p>
+<p data-pl="Za wynajem odpowiada partner (wypożyczalnia samochodów)."
+   data-en="The rental is provided by the partner (car rental company).">
+Za wynajem odpowiada partner (wypożyczalnia samochodów).
+</p>
+
+<p data-pl="Ride24 odpowiada za proces rezerwacji online."
+   data-en="Ride24 is responsible for the booking process.">
+Ride24 odpowiada za proces rezerwacji online.
+</p>
 
 <h3 data-pl="8. Czy potrzebuję karty kredytowej?" data-en="8. Do I need a credit card?">8. Czy potrzebuję karty kredytowej?</h3>
-<p data-pl="Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową." data-en="Not always – many partners accept cash or debit card.">Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową.</p>
+<p data-pl="Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową."
+   data-en="Not always – many partners accept cash or debit card.">
+Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową.
+</p>
 
 <h3 data-pl="9. Co zawiera voucher?" data-en="9. What does the voucher include?">9. Co zawiera voucher?</h3>
 <ul>
@@ -1709,9 +1773,11 @@
 </ul>
 
 <h3 data-pl="10. Jak się skontaktować?" data-en="10. How to get in touch?">10. Jak się skontaktować?</h3>
-<p data-pl="kontakt@ride24.pl" data-en="kontakt@ride24.pl">kontakt@ride24.pl</p>
+<p data-pl="kontakt@ride24.pl" data-en="kontakt@ride24.pl">
+kontakt@ride24.pl
+</p>
 `,
-        polityka: `
+  polityka: `
 <h2 data-pl="Polityka prywatności Ride24" data-en="Ride24 Privacy Policy">Polityka prywatności Ride24</h2>
 <p style="color: #64748B; font-size: 13px;" data-pl="Data wejścia w życie: 01.05.2026" data-en="Effective date: May 01, 2026">Data wejścia w życie: 01.05.2026</p>
 
@@ -1796,7 +1862,7 @@
 <p data-pl="Administrator zastrzega sobie prawo do wprowadzania zmian w polityce prywatności." data-en="The Controller reserves the right to make changes to the privacy policy.">Administrator zastrzega sobie prawo do wprowadzania zmian w polityce prywatności.</p>
 <p data-pl="Aktualna wersja dokumentu zawsze dostępna jest na stronie Ride24.pl." data-en="The current version of the document is always available at Ride24.pl.">Aktualna wersja dokumentu zawsze dostępna jest na stronie Ride24.pl.</p>
 `,
-        kontakt: `
+kontakt: `
 <div class="saas-contact-wrapper">
     <div class="contact-header">
         <h2 data-pl="Skontaktuj się z nami" data-en="Contact Us">Skontaktuj się z nami</h2>
@@ -1808,41 +1874,65 @@
     <form id="saasContactForm" onsubmit="handleContactSubmit(event)">
         <div class="form-row">
             <div class="form-group">
-                <label data-pl="Imię" data-en="Name">Imię</label>
-                <input type="text" required data-pl="Wpisz swoje imię" data-en="Enter your name" placeholder="Wpisz swoje imię">
-            </div>
+    <label data-pl="Imię" data-en="Name">Imię</label>
+    <input 
+        type="text" 
+        required 
+        data-pl="Wpisz swoje imię" 
+        data-en="Enter your name"
+        placeholder="Wpisz swoje imię"
+    >
+</div>
 
-            <div class="form-group">
-                <label data-pl="Email" data-en="Email">Email</label>
-                <input type="email" required data-pl="Wpisz swój email" data-en="Enter your email" placeholder="Wpisz swój email">
-            </div>
+<div class="form-group">
+    <label data-pl="Email" data-en="Email">Email</label>
+    <input 
+        type="email" 
+        required 
+        data-pl="Wpisz swój email" 
+        data-en="Enter your email"
+        placeholder="Wpisz swój email"
+    >
+</div>
+</div>
+
+<div class="form-group">
+    <label data-pl="Wiadomość" data-en="Message">Wiadomość</label>
+    <textarea
+    required
+    data-pl="Wpisz swoją wiadomość..."
+    data-en="Type your message..."
+    placeholder="Wpisz swoją wiadomość..."
+></textarea>
         </div>
 
-        <div class="form-group">
-            <label data-pl="Wiadomość" data-en="Message">Wiadomość</label>
-            <textarea required data-pl="Wpisz swoją wiadomość..." data-en="Type your message..." placeholder="Wpisz swoją wiadomość..."></textarea>
-        </div>
-
-        <button type="submit" class="contact-btn" data-pl="Wyślij" data-en="Send">
-            Wyślij
-        </button>
+        <button 
+    type="submit" 
+    class="contact-btn"
+    data-pl="Wyślij"
+    data-en="Send"
+>
+    Wyślij
+</button>
     </form>
 </div>
 `
-    };
+};
 
-    window.openLegal = function(type) {
-        document.getElementById('legalContent').innerHTML = legalData[type];
-        document.getElementById('legalOverlay').style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-        const currentLang = localStorage.getItem("lang") || "pl";
-        setLang(currentLang);
-    };
+window.openLegal = function(type) {
+    document.getElementById('legalContent').innerHTML = legalData[type];
+    document.getElementById('legalOverlay').style.display = 'flex';
+    document.body.style.overflow = 'hidden'; 
+    
+    const currentLang = localStorage.getItem("lang") || "pl";
+    setLang(currentLang);
+};
 
-    window.closeLegal = function() {
-        document.getElementById('legalOverlay').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    };
+window.closeLegal = function() {
+    document.getElementById('legalOverlay').style.display = 'none';
+    document.body.style.overflow = 'auto';
+};
+    
     
 </script>
 
@@ -1854,27 +1944,24 @@
         <div>
             <input type="text" id="reg-name" class="hidden" placeholder="Imię i nazwisko" data-pl="Imię i nazwisko" data-en="Full Name" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
             <input type="email" id="auth-email" placeholder="Adres e-mail" data-pl="Adres e-mail" data-en="Email address" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
-            <input type="password" id="auth-password" placeholder="Hasło (min. 8 znaków)" data-pl="Hasło (min. 8 znaków)" data-en="Password (min. 8 characters)" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
-            
-            <div id="forgot-password-group" style="text-align: right; margin-top: -8px; margin-bottom: 15px;">
-                <a href="javascript:void(0)" onclick="handlePasswordReset(event)" style="color: #CBD5E1; font-size: 13px; text-decoration: underline; font-weight: 600; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#CBD5E1'" data-pl="Zapomniałeś hasła?" data-en="Forgot password?">Zapomniałeś hasła?</a>
-            </div>
+           <input type="password" id="auth-password" placeholder="Hasło (min. 8 znaków)" data-pl="Hasło (min. 8 znaków)" data-en="Password (min. 8 characters)" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+           <div id="forgot-password-group" style="text-align: right; margin-top: -8px; margin-bottom: 15px;">
+    <a href="javascript:void(0)" onclick="handlePasswordReset(event)" style="color: #CBD5E1; font-size: 13px; text-decoration: underline; font-weight: 600; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#CBD5E1'" data-pl="Zapomniałeś hasła?" data-en="Forgot password?">Zapomniałeś hasła?</a>
+</div>
 
-            <div id="reg-terms-group" class="hidden" style="margin-bottom: 15px;">
-                <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #CBD5E1; cursor: pointer; line-height: 1.4; text-align: left;">
-                    <input type="checkbox" id="reg-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
-                    <span>
-                        Akceptuję <a href="regulamin.html" target="_blank" style="color: white; font-weight: 800; text-decoration: underline;">Regulamin Ride24</a> 
-                        oraz politykę prywatności i wyrażam zgodę na przetwarzanie danych.
-                    </span>
-                </label>
-            </div>
-            
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
-            
-            <button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 4px 15px rgba(115, 215, 0, 0.3);" data-pl="Zaloguj się" data-en="Log in">
-                Zaloguj się
-            </button>
+<div id="reg-terms-group" class="hidden" style="margin-bottom: 15px;">
+    <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #CBD5E1; cursor: pointer; line-height: 1.4; text-align: left;">
+        <input type="checkbox" id="reg-terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
+        <span>
+    Akceptuję <a href="regulamin.html" target="_blank" style="color: white; font-weight: 800; text-decoration: underline;">Regulamin Ride24</a> 
+    oraz politykę prywatności i wyrażam zgodę na przetwarzanie danych.
+</span>
+    </label>
+</div>
+<div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
+<button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 4px 15px rgba(115, 215, 0, 0.3);" data-pl="Zaloguj się" data-en="Log in">
+    Zaloguj się
+</button>
             
             <div style="text-align:center; margin:15px 0; color:#CBD5E1;" data-pl="lub" data-en="or">lub</div>
             
@@ -1898,15 +1985,16 @@
         
         <input type="email" id="partner-email" placeholder="Email partnera" data-pl="Email partnera" data-en="Partner email" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
         <input type="password" id="partner-password" placeholder="Hasło" data-pl="Hasło" data-en="Password" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
-        
         <div style="text-align: right; margin-top: -8px; margin-bottom: 15px;">
-            <a href="javascript:void(0)" onclick="handlePartnerPasswordReset(event)" style="color: #F1FCE3; font-size: 13px; text-decoration: underline; font-weight: 600; cursor: pointer;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#F1FCE3'" data-pl="Zapomniałeś hasła?" data-en="Forgot password?">
-               Zapomniałeś hasła?
-            </a>
-        </div>
-        
+    <a href="javascript:void(0)" onclick="handlePartnerPasswordReset(event)" 
+       style="color: #F1FCE3; font-size: 13px; text-decoration: underline; font-weight: 600; cursor: pointer;"
+       onmouseover="this.style.color='white'" 
+       onmouseout="this.style.color='#F1FCE3'"
+       data-pl="Zapomniałeś hasła?" data-en="Forgot password?">
+       Zapomniałeś hasła?
+    </a>
+</div>
         <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
-        
         <button id="partnerAuthBtn" onclick="partnerLogin()" style="width:100%; padding:14px; background:var(--blue); color:white; border:none; border-radius:12px; font-weight:600; font-size:16px; cursor:pointer; transition: background 0.2s;" data-pl="Zaloguj do panelu partnera" data-en="Log in to partner panel">
             Zaloguj do panelu partnera
         </button>
@@ -1919,14 +2007,17 @@
 
 <script>
 // --- FUNKCJE LOGOWANIA KLIENTA ---
+
 let mode = "login";
 
 function openAuth(){ document.getElementById("authModal").style.display="flex"; document.body.style.overflow="hidden"; }
 function closeAuth(){ document.getElementById("authModal").style.display="none"; document.body.style.overflow="auto"; }
-
 async function handlePasswordReset(e) {
     if (e) e.preventDefault();
+    
+    // 🛡️ FIX: Pobieramy połączenie bezpośrednio tutaj
     const db = window.supabaseClient; 
+    
     const emailInput = document.getElementById('auth-email'); 
     const email = emailInput?.value?.trim().toLowerCase();
     const isEn = localStorage.getItem("lang") === "en";
@@ -1939,7 +2030,7 @@ async function handlePasswordReset(e) {
     const { error } = await db.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password.html'
     });
-    
+
     if (error) {
         window.showToast(error.message, "error");
     } else {
@@ -1947,13 +2038,20 @@ async function handlePasswordReset(e) {
     }
 }
 
+
+
+/* ======= TU WKLEJASZ NOWĄ FUNKCJĘ ======= */
+
 async function handlePartnerPasswordReset(e) {
     if (e) e.preventDefault();
+
     const db = window.supabaseClient;
+
     const emailInput = document.getElementById('partner-email');
     const email = emailInput?.value?.trim().toLowerCase();
+
     const lang = localStorage.getItem("lang") || "pl";
-    
+
     if (!email) {
         return window.showToast(
             lang === "pl" ? "Podaj email w polu partnera" : "Enter partner email",
@@ -1964,20 +2062,22 @@ async function handlePartnerPasswordReset(e) {
     const { error } = await db.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password.html'
     });
-    
+
     if (error) {
         window.showToast(error.message, "error");
     } else {
         window.showToast(
-            lang === "pl" ? "Sprawdź email — link do resetu został wysłany" : "Check your email for reset link",
+            lang === "pl"
+                ? "Sprawdź email — link do resetu został wysłany"
+                : "Check your email for reset link",
             "success"
         );
     }
 }
-
 function toggleMode(){
     mode = mode === "login" ? "register" : "login";
     const isReg = mode === "register";
+
     document.getElementById("reg-name").classList.toggle("hidden", !isReg);
     document.getElementById("reg-terms-group").classList.toggle("hidden", !isReg);
     document.getElementById("forgot-password-group").style.display = isReg ? "none" : "block";
@@ -2005,14 +2105,16 @@ function toggleMode(){
 async function handleAuth() {
     const btn = document.getElementById("mainAuthBtn");
     const lang = localStorage.getItem("lang") || "pl";
-    const db = window.supabaseClient;
+    const db = window.supabaseClient; // Pobieramy stąd, tak jak w results
 
+    // 🛡️ 1. TURNSTILE CHECK
     const token = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
     if (!token) {
         if (window.turnstile) window.turnstile.reset();
         return window.showToast(lang === 'pl' ? "Potwierdź, że nie jesteś robotem" : "Confirm you are human", "error");
     }
 
+    // 🛡️ 2. WALIDACJA PÓL
     const email = document.getElementById("auth-email").value.trim().toLowerCase();
     const pass = document.getElementById("auth-password").value.trim();
     const name = document.getElementById("reg-name") ? document.getElementById("reg-name").value.trim() : "";
@@ -2024,13 +2126,14 @@ async function handleAuth() {
         return window.showToast(lang === 'pl' ? "Hasło min. 8 znaków" : "Password min. 8 chars", "error");
     }
 
-    if (mode === "register") { 
+    if (mode === "register") { // Upewnij się, że w index zmienna nazywa się 'mode'
         if (!name) return window.showToast(lang === 'pl' ? "Podaj imię i nazwisko" : "Enter full name", "error");
         if (!document.getElementById("reg-terms-checkbox").checked) {
             return window.showToast(lang === 'pl' ? "Musisz zaakceptować regulamin" : "Accept terms first", "error");
         }
     }
 
+    // 🚀 3. START PROCESU
     btn.innerText = lang === 'pl' ? "PRZETWARZANIE..." : "PROCESSING...";
     btn.disabled = true;
 
@@ -2039,8 +2142,10 @@ async function handleAuth() {
             const { data, error } = await db.auth.signInWithPassword({
                 email, password: pass, options: { captchaToken: token }
             });
+
             if (error) throw error;
             if (data.session) window.location.href = "klient.html";
+
         } else {
             const { data, error } = await db.auth.signUp({
                 email, password: pass,
@@ -2050,10 +2155,11 @@ async function handleAuth() {
                     captchaToken: token
                 }
             });
+
             if (error) throw error;
 
             if (data.user && !data.session) {
-                openRegSuccess();
+                openRegSuccess(); // To otworzy okno z kopertą
             } else {
                 window.location.href = "klient.html";
             }
@@ -2066,17 +2172,19 @@ async function handleAuth() {
         if (window.turnstile) window.turnstile.reset();
     }
 }
-
 async function smartRedirect() {
     const { data: { session } } = await db.auth.getSession();
-    if (!session) return;
+    
+    if (!session) {
+    return; // NIC NIE RÓB
+}
 
     const { data: profile } = await db
         .from("profiles")
         .select("role")
         .eq("id", session.user.id)
         .maybeSingle();
-        
+
     if (profile && profile.role === "admin") {
         window.location.href = "admin/index.html";
     } else if (profile && profile.role === "partner") {
@@ -2118,12 +2226,17 @@ function openPartnerAuth() { document.getElementById("partnerModal").style.displ
 function closePartnerAuth() { document.getElementById("partnerModal").style.display="none"; document.body.style.overflow="auto"; }
 
 async function partnerLogin() {
-    const db = window.supabaseClient;
+    // 🛡️ FIX: Pobieramy połączenie bezpośrednio tutaj
+    const db = window.supabaseClient; 
+
     const email = document.getElementById("partner-email").value.trim().toLowerCase();
     const pass = document.getElementById("partner-password").value.trim();
     const btn = document.getElementById("partnerAuthBtn");
-    
-    const turnstileToken = document.querySelector('#partnerModal [name="cf-turnstile-response"]')?.value;
+
+    // 🔐 Turnstile token
+    const turnstileToken = document
+        .querySelector('#partnerModal [name="cf-turnstile-response"]')?.value;
+
     if (!turnstileToken) {
         alert("Potwierdź, że nie jesteś robotem.");
         return;
@@ -2136,34 +2249,49 @@ async function partnerLogin() {
 
     btn.disabled = true;
     btn.innerText = "Loading...";
-    
+
     try {
         const { error } = await db.auth.signInWithPassword({
             email,
             password: pass,
-            options: { captchaToken: turnstileToken }
+            options: {
+                captchaToken: turnstileToken
+            }
         });
+
         if (error) throw error;
+
+        // Jeśli wszystko ok, przekierowujemy odpowiednio do roli
         await smartRedirect();
+
     } catch (err) {
         alert(err.message);
         btn.disabled = false;
         btn.innerText = "Log in to partner panel";
+
     } finally {
-        if (window.turnstile) window.turnstile.reset();
+        if (window.turnstile) {
+            window.turnstile.reset();
+        }
     }
 }
+
+
 
 document.addEventListener("keydown", function(e) {
     if(e.key === "Escape") { closeAuth(); closePartnerAuth(); }
 });
 
+// --- SEARCH STRUCTURE (READY FOR BACKEND) ---
+// --- OBSŁUGA FORMULARZA KONTAKTOWEGO ---
 window.handleContactSubmit = async function(e) {
-    e.preventDefault();
-    const db = window.supabaseClient; 
+    e.preventDefault(); 
+    
+    const db = window.supabaseClient; // 🛡️ Używamy stabilnego połączenia
     const lang = localStorage.getItem("lang") || "pl";
     const btn = e.target.querySelector('button[type="submit"]');
     
+    // Pobieramy dane z Twoich pól (wykorzystujemy querySelector, bo pola nie mają ID)
     const nameInput = e.target.querySelector('input[data-pl="Wpisz swoje imię"]');
     const emailInput = e.target.querySelector('input[data-pl="Wpisz swój email"]');
     const messageInput = e.target.querySelector('textarea');
@@ -2174,19 +2302,22 @@ window.handleContactSubmit = async function(e) {
 
     btn.disabled = true;
     btn.innerText = lang === 'pl' ? 'Wysyłanie...' : 'Sending...';
-    
+
     try {
+        // 🚀 WRZUCAMY DO BAZY
         const { error } = await db
             .from('contact_messages')
             .insert([{ name, email, message }]);
+
         if (error) throw error;
 
         window.showToast(
             lang === 'pl' ? "Wiadomość wysłana! Dziękujemy." : "Message sent! Thank you.", 
             "success"
         );
-        e.target.reset(); 
-        if(typeof closeLegal === "function") closeLegal();
+        
+        e.target.reset(); // Czyścimy pola
+        if(typeof closeLegal === "function") closeLegal(); // Zamykamy okno kontaktu
 
     } catch (err) {
         console.error("Błąd kontaktu:", err);
@@ -2196,7 +2327,6 @@ window.handleContactSubmit = async function(e) {
         btn.innerText = lang === 'pl' ? 'Wyślij' : 'Send';
     }
 };
-
 function collectSearchData(){
     return {
         pickup_location: SELECTED_PICKUP,
@@ -2207,439 +2337,448 @@ function collectSearchData(){
         drop_time: document.getElementById("drop-time").value
     };
 }
+
+
 </script>
 
 <script>
-    // --- JEDYNA I POPRAWNA OBSŁUGA DAT I CZASU ---
-    function generateTimeOptions() {
-        const pickup = document.getElementById("pickup-time");
-        const drop = document.getElementById("drop-time");
-        if (!pickup || !drop) return;
-        pickup.innerHTML = ""; drop.innerHTML = "";
-        
-        for(let h=0; h<24; h++) {
-            for(let m=0; m<60; m+=30) {
-                const time = String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
-                const opt1 = document.createElement("option");
-                opt1.value = time; opt1.textContent = time;
-                pickup.appendChild(opt1);
-                drop.appendChild(opt1.cloneNode(true));
-            }
-        }
-    }
-
-    let pickupPicker, dropPicker;
-    
-    function setDefaultDates() {
-        const today = new Date();
-        const todayStr = today.toISOString().split("T")[0];
-        
-        const drop = new Date();
-        drop.setDate(drop.getDate() + 3);
-        const dropStr = drop.toISOString().split("T")[0];
-        const currentLang = localStorage.getItem("lang") === "en" ? "en" : "pl";
-        
-        pickupPicker = flatpickr("#pickup-date", {
-            locale: currentLang,
-            minDate: "today",
-            defaultDate: todayStr,
-            dateFormat: "Y-m-d",
-            disableMobile: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                if (dropPicker && selectedDates.length > 0) {
-                    const pickupDate = selectedDates[0];
-                    dropPicker.set('minDate', dateStr);
-                    const autoDropDate = new Date(pickupDate);
-                    autoDropDate.setDate(autoDropDate.getDate() + 3);
-                    dropPicker.setDate(autoDropDate);
+   // --- JEDYNA I POPRAWNA OBSŁUGA DAT I CZASU ---
+        function generateTimeOptions() {
+            const pickup = document.getElementById("pickup-time");
+            const drop = document.getElementById("drop-time");
+            if (!pickup || !drop) return;
+            pickup.innerHTML = ""; drop.innerHTML = ""; 
+            for(let h=0; h<24; h++) {
+                for(let m=0; m<60; m+=30) {
+                    const time = String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+                    const opt1 = document.createElement("option");
+                    opt1.value = time; opt1.textContent = time;
+                    pickup.appendChild(opt1);
+                    drop.appendChild(opt1.cloneNode(true));
                 }
             }
-        });
-        
-        dropPicker = flatpickr("#drop-date", {
-            locale: currentLang,
-            minDate: "today",
-            defaultDate: dropStr,
-            dateFormat: "Y-m-d",
-            disableMobile: true
-        });
-    }
-
-    function setDefaultTime() {
-        const now = new Date();
-        now.setHours(now.getHours() + 1);
-        const time = String(now.getHours()).padStart(2, "0") + ":" + (now.getMinutes() < 30 ? "00" : "30");
-        const pickupTime = document.getElementById("pickup-time");
-        if (pickupTime) pickupTime.value = time;
-    }
-
-    function syncDropTime() {
-        const pTime = document.getElementById("pickup-time");
-        const dTime = document.getElementById("drop-time");
-        if (pTime && dTime) dTime.value = pTime.value;
-    }
-
-    // --- 🧠 INTELIGENTNA WYSZUKIWARKA (Wersja Pro) ---
-    let SELECTED_PICKUP = null;
-    let SELECTED_DROP = null;
-    let isDropManuallyChanged = false; 
-    let lastQueryId = 0;
-    let isSelectingLocation = false;
-
-    function getMatchPriority(text, query) {
-        const t = text.toLowerCase();
-        const q = query.toLowerCase();
-        if (t === q) return 1;          
-        if (t.startsWith(q)) return 2;  
-        if (t.includes(q)) return 3;    
-        return 4;                       
-    }
-
-    function scoreLocation(location, query) {
-        const q = query.toLowerCase();
-        const name = (location.location_name || '').toLowerCase();
-        const city = (location.city || '').toLowerCase();
-        const region = (location.region || '').toLowerCase();
-        const country = (location.country || '').toLowerCase();
-        
-        let score = 0;
-
-        // PREFIX MATCH
-        
-        if (name.startsWith(q)) score += 100;
-        if (city.startsWith(q)) score += 90;
-        if (region.startsWith(q)) score += 70;
-        if (country.startsWith(q)) score += 30;
-
-        // CONTAINS
-        if (name.includes(q)) score += 30;
-        if (city.includes(q)) score += 20;
-        if (region.includes(q)) score += 15;
-        
-        // TYPE PRIORITY
-        const typePriority = {
-            airport: 20,
-            city: 15,
-            region: 8,
-            office: 8,
-            hotel: 5
-        };
-        score += typePriority[location.type] || 0;
-        if (city.startsWith(q) && location.type === 'airport') {
-        score += 30;
-        }
-              
-
-        return score;
-    }
-
-    async function fetchSmartLocations(query, resultsBox, type) {
-        const db = window.supabaseClient;
-        if (!db) {
-            console.warn("Supabase nie jest jeszcze gotowy...");
-            return;
         }
 
-        const lang = localStorage.getItem("lang") || "pl";
-        
-        let { data: dictMatches } = await db
-            .from('locations_dictionary')
-            .select('name_en')
-            .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
+        let pickupPicker, dropPicker;
+
+        function setDefaultDates() {
+            const today = new Date();
+            const todayStr = today.toISOString().split("T")[0];
             
-        let translated = dictMatches?.map(m => m.name_en) || [];
-        translated.push(query);
+            const drop = new Date();
+            drop.setDate(drop.getDate() + 3);
+            const dropStr = drop.toISOString().split("T")[0];
 
-        const uniqueTerms = [...new Set(translated)].slice(0, 5);
-        let orFilters = uniqueTerms.map(t =>`location_name.ilike.%${t}%,city.ilike.%${t}%,region.ilike.%${t}%,country.ilike.%${t}%`).join(',');
+            const currentLang = localStorage.getItem("lang") === "en" ? "en" : "pl";
 
-        const { data: partnerData, error } = await db
-            .from('partner_locations')
-            .select('location_name, country, region, city')
-            .or(orFilters)
-            .eq('active', true)
-            .limit(10);
-            
-        if (error) {
-            console.error("Błąd wyszukiwania:", error);
-            return;
-        }
-
-        const results = (partnerData || []).map(item => {
-            let locType = "country";
-            if ((item.location_name || "").toLowerCase().includes("airport")) locType = "airport";
-            else if (item.city) locType = "city";
-            else if (item.region) locType = "region";
-
-            return {
-                name: item.location_name || item.city || item.country,
-                location_name: item.location_name,
-                country: item.country,
-                region: item.region,
-                city: item.city,
-                type: locType,
-                priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
-            };
-        });
-        
-        results.sort((a, b) => {
-            return scoreLocation(b, query) - scoreLocation(a, query);
-        });
-        
-        if (results.length === 0) {
-            resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
-        } else {
-            renderSmartResults(results, lang, resultsBox, type);
-        }
-        resultsBox.classList.add("show");
-    }
-
-    function renderSmartResults(results, lang, resultsBox, type) {
-        resultsBox.innerHTML = "";
-
-        results.forEach(r => {
-            const div = document.createElement("div");
-            div.className = "search-dropdown-item";
-
-            let subDetails = [];
-
-            if (r.city && r.location_name !== r.city) {
-                subDetails.push(r.city);
-            }
-            if (r.region && r.location_name !== r.region) {
-                subDetails.push(r.region);
-            }
-            if (r.country && r.location_name !== r.country) {
-                subDetails.push(r.country);
-            }
-
-            let subText = subDetails.join(", ");
-
-            div.innerHTML = `
-                <div style="display:flex; flex-direction:column;">
-                    <span style="font-weight:700; color: var(--blue-dark);">
-                        ${r.location_name || r.name}
-                    </span>
-                    <span class="sub-text">
-                        ${subText}
-                    </span>
-                </div>
-            `;
-
-            div.addEventListener("click", () => {
-                const input = document.getElementById(
-                    type === "pickup" ? "smart-search-pickup" : "smart-search-drop"
-                );
-
-                if (input) {
-                    input.value = r.location_name || r.name;
+            pickupPicker = flatpickr("#pickup-date", {
+                locale: currentLang,
+                minDate: "today",
+                defaultDate: todayStr,
+                dateFormat: "Y-m-d",
+                disableMobile: true,
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (dropPicker && selectedDates.length > 0) {
+                        const pickupDate = selectedDates[0];
+                        
+                        // 1. Zablokuj możliwość oddania auta przed datą odbioru
+                        dropPicker.set('minDate', dateStr);
+                        
+                        // 2. Automatycznie ustaw datę zwrotu na +3 dni od nowo wybranej daty
+                        const autoDropDate = new Date(pickupDate);
+                        autoDropDate.setDate(autoDropDate.getDate() + 3);
+                        dropPicker.setDate(autoDropDate);
+                    }
                 }
-
-                if (type === "pickup") {
-                    SELECTED_PICKUP = r;
-                } else {
-                    SELECTED_DROP = r;
-                }
-
-                resultsBox.classList.remove("show");
             });
 
-            resultsBox.appendChild(div);
-        });
+            dropPicker = flatpickr("#drop-date", {
+                locale: currentLang,
+                minDate: "today",
+                defaultDate: dropStr,
+                dateFormat: "Y-m-d",
+                disableMobile: true
+            });
+        }
+
+        function setDefaultTime() {
+            const now = new Date(); now.setHours(now.getHours() + 1);
+            const time = String(now.getHours()).padStart(2, "0") + ":" + (now.getMinutes() < 30 ? "00" : "30");
+            const pickupTime = document.getElementById("pickup-time");
+            if (pickupTime) pickupTime.value = time;
+        }
+
+        function syncDropTime() {
+            const pTime = document.getElementById("pickup-time");
+            const dTime = document.getElementById("drop-time");
+            if (pTime && dTime) dTime.value = pTime.value;
+        }
+        // --- 🧠 INTELIGENTNA WYSZUKIWARKA (Wersja Pro) ---
+let SELECTED_PICKUP = null;
+let SELECTED_DROP = null;
+let isDropManuallyChanged = false; 
+let lastQueryId = 0;
+let isSelectingLocation = false; // 🔥 NOWA FLAGA MOBILE
+
+function getMatchPriority(text, query) {
+    const t = text.toLowerCase();
+    const q = query.toLowerCase();
+
+    if (t === q) return 1;          // exact match
+    if (t.startsWith(q)) return 2; // startsWith
+    if (t.includes(q)) return 3;   // contains
+    return 4;                      // fallback
+}
+async function fetchSmartLocations(query, resultsBox, type) {
+    // 🛡️ POPRAWKA: Pobieramy klienta bezpośrednio z okna, tak jak w results.html
+    const db = window.supabaseClient; 
+    
+    if (!db) {
+        console.warn("Supabase nie jest jeszcze gotowy...");
+        return;
     }
 
-    function setupSmartSearch(inputId, resultsId, type) {
-        const input = document.getElementById(inputId);
-        const resultsBox = document.getElementById(resultsId);
-        let timeout = null;
+    const lang = localStorage.getItem("lang") || "pl";
+
+    // 1. Szukanie w słowniku
+    let { data: dictMatches } = await db
+        .from('locations_dictionary')
+        .select('name_en')
+        .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
+
+    let translated = dictMatches?.map(m => m.name_en) || [];
+    translated.push(query);
+
+    const uniqueTerms = [...new Set(translated)].slice(0, 5);
+    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,country.ilike.%${t}%`).join(',');
+
+    // 2. Pobieranie z partner_locations
+    const { data: partnerData, error } = await db
+        .from('partner_locations')
+        .select('location_name, country, region, city')
+        .or(orFilters)
+        .eq('active', true)
+        .limit(10);
+
+    if (error) {
+        console.error("Błąd wyszukiwania:", error);
+        return;
+    }
+
+    // 3. Mapowanie danych
+    const results = (partnerData || []).map(item => {
+        let locType = "country";
+        if (item.city) locType = "city";
+        else if (item.region) locType = "region";
+
+        return {
+            name: item.location_name || item.city || item.country,
+            country: item.country,
+            region: item.region,
+            city: item.city,
+            type: locType,
+            priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
+        };
+    }).sort((a, b) => a.priority - b.priority);
+
+    if (results.length === 0) {
+        resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
+    } else {
+        renderSmartResults(results, lang, resultsBox, type);
+    }
+    resultsBox.classList.add("show");
+}
+
+// Dodaj też tę brakującą funkcję pomocniczą:
+function renderSmartResults(results, lang, resultsBox, type) {
+    resultsBox.innerHTML = "";
+    results.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "search-dropdown-item";
         
-        if (!input) return;
+        // Dynamiczne budowanie sub-textu (Miasto, Region, Kraj)
+        let subDetails = [];
+        if (r.city && r.name !== r.city) subDetails.push(r.city);
+        if (r.region && r.name !== r.region) subDetails.push(r.region);
+        if (r.country && r.name !== r.country) subDetails.push(r.country);
+        let subText = subDetails.join(', ');
 
-        input.addEventListener("input", (e) => {
-            if (isSelectingLocation) return; 
+        // Wyświetlamy nazwę i szczegóły lokalizacji
+        div.innerHTML = `
+            <div style="display:flex; flex-direction:column;">
+                <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
+                <span class="sub-text" style="color: var(--gray); font-size: 12px;">${subText}</span>
+            </div>`;
+            
+        // FUNKCJA WYBIERAJĄCA
+        const selectItem = (e) => {
+            e.preventDefault(); 
+            e.stopPropagation();
+            
+            // 1. Zamykamy na ułamek sekundy możliwość ponownego wyszukiwania
+            isSelectingLocation = true; 
+            
+            // 2. Wykonujemy właściwy wybór (automatycznie wypełni Zwrot)
+            applySearch(r, type); 
 
-            if (type === 'drop') isDropManuallyChanged = true; 
-            const query = e.target.value.trim().toLowerCase();
-            clearTimeout(timeout);
+            // 3. Po ułamku sekundy, gdy klawiatura się schowa, zdejmujemy blokadę
+            setTimeout(() => {
+                isSelectingLocation = false; 
+            }, 300);
+        };
 
-            if (query.length < 2) {
-                resultsBox.classList.remove("show");
-                if (type === 'pickup') SELECTED_PICKUP = null;
-                if (type === 'drop') SELECTED_DROP = null;
+        let isScrolling = false;
+
+        div.addEventListener("touchstart", () => {
+            isScrolling = false;
+        }, { passive: true });
+        
+        div.addEventListener("touchmove", () => {
+            isScrolling = true;
+        }, { passive: true });
+        
+        // 🔥 WRACAMY DO "click"
+        div.addEventListener("click", (e) => {
+            // Jeśli użytkownik przesuwa palcem, pozwalamy przeglądarce działać (brak e.preventDefault)
+            if (isScrolling) {
+                return; 
+            }
+            
+            // Jeśli to było czyste kliknięcie, odpalamy wybór
+            selectItem(e);
+        });
+        
+        resultsBox.appendChild(div);
+    });
+}
+function setupSmartSearch(inputId, resultsId, type) {
+    const input = document.getElementById(inputId);
+    const resultsBox = document.getElementById(resultsId);
+    let timeout = null;
+
+    if (!input) return;
+
+    input.addEventListener("input", (e) => {
+        // 🔥 BLOKADA MOBILE: Jeśli właśnie wybieramy z listy, ignorujemy event
+        if (isSelectingLocation) return; 
+
+        if (type === 'drop') isDropManuallyChanged = true; 
+        const query = e.target.value.trim().toLowerCase();
+        clearTimeout(timeout);
+
+        if (query.length < 2) {
+            resultsBox.classList.remove("show");
+            if (type === 'pickup') SELECTED_PICKUP = null;
+            if (type === 'drop') SELECTED_DROP = null;
+            return;
+        }
+
+        const queryId = ++lastQueryId; 
+        timeout = setTimeout(async () => {
+            if (queryId !== lastQueryId) return; // Jeśli user pisał dalej, zignoruj ten wynik
+            await fetchSmartLocations(query, resultsBox, type);
+        }, 300);
+    });
+}
+
+// Funkcja wyboru lokalizacji z listy
+// Funkcja wyboru lokalizacji z listy
+function applySearch(item, type) {
+    // Formatujemy to, co wpadnie do inputa po kliknięciu
+    let inputDetails = [];
+    if (item.city && item.city !== item.name) inputDetails.push(item.city);
+    if (item.country && item.country !== item.name) inputDetails.push(item.country);
+    
+    let detailsStr = inputDetails.length > 0 ? ` (${inputDetails.join(', ')})` : '';
+    const formattedName = `${item.name}${detailsStr}`;
+
+    const inputId = type === 'pickup' ? "smart-search-pickup" : "smart-search-drop";
+    const resId = type === 'pickup' ? "pickup-results" : "drop-results";
+    
+    const input = document.getElementById(inputId);
+    if(input) {
+        input.value = formattedName;
+        input.blur(); // Chowa klawiaturę na smartfonach (UX!)
+    }
+    
+    document.getElementById(resId)?.classList.remove("show");
+
+    if (type === 'pickup') {
+        SELECTED_PICKUP = item;
+        // Jeśli user nie grzebał w polu "Zwrot", kopiujemy tam Odbiór
+        if (!isDropManuallyChanged) {
+            const dropInput = document.getElementById("smart-search-drop");
+            if(dropInput) dropInput.value = formattedName;
+            SELECTED_DROP = item;
+        }
+    } else {
+        SELECTED_DROP = item;
+    }
+}
+        
+
+       document.getElementById("searchBtn")?.addEventListener("click", async function() {
+            // 1. Blokada przed wielokrotnym kliknięciem
+            if (this.disabled) return; 
+
+            // DODANE: Wymuszone ukrycie list podpowiedzi przy kliknięciu (Zabezpieczenie przed nakładaniem warstw)
+            document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
+
+            // 2. 🛡️ HONEYPOT - szybki stop dla botów
+            const honeypot = document.querySelector('[name="website"]')?.value;
+            if (honeypot) {
+                console.warn("Bot blocked");
+                this.disabled = true;
                 return;
             }
 
-            const queryId = ++lastQueryId; 
-            timeout = setTimeout(async () => {
-                if (queryId !== lastQueryId) return; 
-                await fetchSmartLocations(query, resultsBox, type);
-            }, 300);
-        });
-    }
-
-    function applySearch(item, type) {
-        let inputDetails = [];
-        if (item.city && item.city !== item.name) inputDetails.push(item.city);
-        if (item.country && item.country !== item.name) inputDetails.push(item.country);
-        let detailsStr = inputDetails.length > 0 ? ` (${inputDetails.join(', ')})` : '';
-        const formattedName = `${item.name}${detailsStr}`;
-        const inputId = type === 'pickup' ? "smart-search-pickup" : "smart-search-drop";
-        const resId = type === 'pickup' ? "pickup-results" : "drop-results";
-        const input = document.getElementById(inputId);
-        
-        if(input) {
-            input.value = formattedName;
-            input.blur();
-        }
-        
-        document.getElementById(resId)?.classList.remove("show");
-        if (type === 'pickup') {
-            SELECTED_PICKUP = item;
-            if (!isDropManuallyChanged) {
+            // 3. Inteligenta poprawka: jeśli user wpisał odbiór, a olał zwrot - kopiujemy dane
+            if (!SELECTED_DROP && SELECTED_PICKUP) {
+                SELECTED_DROP = SELECTED_PICKUP;
                 const dropInput = document.getElementById("smart-search-drop");
-                if(dropInput) dropInput.value = formattedName;
-                SELECTED_DROP = item;
+                if(dropInput) dropInput.value = document.getElementById("smart-search-pickup").value;
             }
-        } else {
-            SELECTED_DROP = item;
-        }
-    }
+
+            const lang = localStorage.getItem("lang") || "pl";
             
-    document.getElementById("searchBtn")?.addEventListener("click", async function() {
-        if (this.disabled) return; 
+            // 4. Pobranie wartości do walidacji dat
+            const pDate = document.getElementById("pickup-date").value;
+            const pTime = document.getElementById("pickup-time").value;
+            const dDate = document.getElementById("drop-date").value;
+            const dTime = document.getElementById("drop-time").value;
 
-        document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
+            // Tworzymy pełne daty do porównania
+            const pickupFull = new Date(`${pDate}T${pTime}`);
+            const dropFull = new Date(`${dDate}T${dTime}`);
+            const now = new Date();
 
-        const honeypot = document.querySelector('[name="website"]')?.value;
-        if (honeypot) {
-            console.warn("Bot blocked");
-            this.disabled = true;
-            return;
-        }
+            // --- 🛑 WALIDACJA (LOGIKA STRAŻNIKA) ---
 
-        if (!SELECTED_DROP && SELECTED_PICKUP) {
-            SELECTED_DROP = SELECTED_PICKUP;
-            const dropInput = document.getElementById("smart-search-drop");
-            if(dropInput) dropInput.value = document.getElementById("smart-search-pickup").value;
-        }
+            // A. Czy wybrano lokalizację?
+            if (!SELECTED_PICKUP) {
+                window.showToast(lang === 'pl' ? "Proszę wybrać miejsce odbioru z listy!" : "Please select a pick-up location!", "error");
+                document.getElementById("smart-search-pickup").focus();
+                return;
+            }
 
-        const lang = localStorage.getItem("lang") || "pl";
-        
-        const pDate = document.getElementById("pickup-date").value;
-        const pTime = document.getElementById("pickup-time").value;
-        const dDate = document.getElementById("drop-date").value;
-        const dTime = document.getElementById("drop-time").value;
+            // B. Czy data odbioru nie jest w przeszłości? (z marginesem 5 min)
+            if (pickupFull < new Date(now.getTime() - 300000)) {
+                window.showToast(lang === 'pl' ? "Data odbioru nie może być w przeszłości!" : "Pick-up date cannot be in the past!", "error");
+                return;
+            }
 
-        const pickupFull = new Date(`${pDate}T${pTime}`);
-        const dropFull = new Date(`${dDate}T${dTime}`);
-        const now = new Date();
+            // C. Czy zwrot jest po odbiorze? (Zabezpieczenie przed "powrotem do przyszłości")
+            if (dropFull <= pickupFull) {
+                window.showToast(lang === 'pl' ? "Data zwrotu musi być późniejsza niż odbioru!" : "Drop-off must be after pick-up!", "error");
+                return;
+            }
 
-        if (!SELECTED_PICKUP) {
-            window.showToast(lang === 'pl' ? "Proszę wybrać miejsce odbioru z listy!" : "Please select a pick-up location!", "error");
-            document.getElementById("smart-search-pickup").focus();
-            return;
-        }
+            // --- ✅ WSZYSTKO OK -> PRZECHODZIMY DO WYNIKÓW ---
+            
+            this.disabled = true; 
+            this.innerHTML = lang === 'pl' ? 'SZUKAM AUT...' : 'SEARCHING...';
+            this.style.opacity = "0.8";
 
-        if (pickupFull < new Date(now.getTime() - 300000)) {
-            window.showToast(lang === 'pl' ? "Data odbioru nie może być w przeszłości!" : "Pick-up date cannot be in the past!", "error");
-            return;
-        }
+            const searchData = {
+                pickup_location: SELECTED_PICKUP,
+                drop_location: SELECTED_DROP || SELECTED_PICKUP,
+                pickup_date: pDate,
+                drop_date: dDate,
+                pickup_time: pTime,
+                drop_time: dTime
+            };
 
-        if (dropFull <= pickupFull) {
-            window.showToast(lang === 'pl' ? "Data zwrotu musi być późniejsza niż odbioru!" : "Drop-off must be after pick-up!", "error");
-            return;
-        }
-
-        this.disabled = true;
-        this.innerHTML = lang === 'pl' ? 'SZUKAM AUT...' : 'SEARCHING...';
-        this.style.opacity = "0.8";
-        
-        const searchData = {
-            pickup_location: SELECTED_PICKUP,
-            drop_location: SELECTED_DROP || SELECTED_PICKUP,
-            pickup_date: pDate,
-            drop_date: dDate,
-            pickup_time: pTime,
-            drop_time: dTime
-        };
-        localStorage.setItem("searchParams", JSON.stringify(searchData));
-        
-        setTimeout(() => {
-            window.location.href = "results.html";
-        }, 600);
-    });
-
-    document.addEventListener("DOMContentLoaded", async () => {
-        window.db = window.supabaseClient;
-        if (!window.db) {
-            console.error("Supabase nie załadowany!");
-            return;
-        }
-
-        detectLang();
-
-        if (!localStorage.getItem("cookie_consent")) {
+            localStorage.setItem("searchParams", JSON.stringify(searchData));
+            
             setTimeout(() => {
-                document.getElementById("cookieConsent")?.classList.add("show");
-            }, 1000);
+                window.location.href = "results.html";
+            }, 600);
+        });
+// --- JEDYNY I GŁÓWNY SILNIK STARTOWY STRONY ---
+document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Podpięcie bazy (Supabase)
+    window.db = window.supabaseClient;
+    if (!window.db) {
+        console.error("Supabase nie załadowany!");
+        return;
+    }
+
+    // 2. Ustawienie języka
+    detectLang();
+
+    // 3. Cookies
+    if (!localStorage.getItem("cookie_consent")) {
+        setTimeout(() => {
+            document.getElementById("cookieConsent")?.classList.add("show");
+        }, 1000);
+    }
+
+    // 4. Kliknięcia i zamykanie (Dropdowny, Modale, Warningi)
+    document.addEventListener("click", (e) => {
+        // Zamykanie listy wyszukiwarki
+        if (!e.target.closest(".input-wrapper") && !e.target.closest(".search-dropdown")) {
+            document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
         }
+        // Zamykanie modali tłem
+        const authModal = document.getElementById("authModal");
+        const partnerModal = document.getElementById("partnerModal");
+        
 
-        document.addEventListener("click", (e) => {
-            if (!e.target.closest(".input-wrapper") && !e.target.closest(".search-dropdown")) {
-                document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
-            }
-            const authModal = document.getElementById("authModal");
-            const partnerModal = document.getElementById("partnerModal");
+        if (e.target === authModal) closeAuth();
+        if (e.target === partnerModal) closePartnerAuth();
+        
+        
+    });
+
+    // Obsługa klawisza ESC
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeAuth();
+            closePartnerAuth();
             
-            if (e.target === authModal) closeAuth();
-            if (e.target === partnerModal) closePartnerAuth();
-        });
-
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Escape") {
-                closeAuth();
-                closePartnerAuth();
-                closeLegal();
-            }
-        });
-
-        generateTimeOptions();
-        setDefaultDates();
-        setDefaultTime();
-        syncDropTime();
-
-        document.getElementById("pickup-time")?.addEventListener("change", syncDropTime);
-        setupSmartSearch("smart-search-pickup", "pickup-results", "pickup");
-        setupSmartSearch("smart-search-drop", "drop-results", "drop");
-
-        try {
-            const { data: { session } } = await window.db.auth.getSession();
-            if (session) {
-                const btn = document.querySelector(".auth-buttons .btn-blue");
-                if (btn) {
-                    const lang = localStorage.getItem("lang") || "pl";
-                    btn.dataset.pl = "Mój profil";
-                    btn.dataset.en = "My profile";
-                    btn.innerText = lang === "en" ? "My profile" : "Mój profil";
-                    btn.onclick = (e) => { 
-                        e.preventDefault();
-                        window.location.href = "klient.html"; 
-                    };
-                }
-            }
-        } catch (err) {
-            console.warn("Użytkownik niezalogowany.");
+            closeLegal();
         }
     });
-</script>
 
+    // 5. Daty, Czas i Smart Search
+    generateTimeOptions();
+    setDefaultDates();
+    setDefaultTime();
+    syncDropTime();
+
+    document.getElementById("pickup-time")?.addEventListener("change", syncDropTime);
+    setupSmartSearch("smart-search-pickup", "pickup-results", "pickup");
+    setupSmartSearch("smart-search-drop", "drop-results", "drop");
+
+    // 6. Sesja użytkownika (Mój profil / Zaloguj)
+    try {
+        const { data: { session } } = await window.db.auth.getSession();
+        if (session) {
+            const btn = document.querySelector(".auth-buttons .btn-blue");
+            if (btn) {
+                const lang = localStorage.getItem("lang") || "pl";
+                btn.dataset.pl = "Mój profil";
+                btn.dataset.en = "My profile";
+                btn.innerText = lang === "en" ? "My profile" : "Mój profil";
+                btn.onclick = (e) => { 
+                    e.preventDefault(); 
+                    window.location.href = "klient.html"; 
+                };
+            }
+        }
+    } catch (err) {
+        console.warn("Użytkownik niezalogowany.");
+    }
+});
+        
+</script>
 <div id="legalOverlay" class="legal-overlay" onclick="if(event.target === this) closeLegal()">
     <div class="legal-modal">
         <span class="legal-close" onclick="closeLegal()">&times;</span>
-        <div id="legalContent" class="legal-content"></div>
+        <div id="legalContent" class="legal-content">
+            </div>
     </div>
 </div>
-
 <div id="cookieConsent" class="cookie-banner">
     <div class="cookie-content">
         <div class="cookie-header">
@@ -2655,7 +2794,6 @@ function collectSearchData(){
         </div>
     </div>
 </div>
-
 <div id="regSuccessModal" class="legal-overlay" style="display:none; align-items:center; justify-content:center;">
     <div class="legal-modal" style="text-align:center; max-width:450px;">
         <div style="font-size: 60px; margin-bottom: 20px; animation: envelopeFloat 2s ease-in-out infinite; display: inline-block;">📩</div>
@@ -2663,8 +2801,7 @@ function collectSearchData(){
         <p id="successDesc" style="font-size: 16px; color: var(--gray); margin-bottom: 25px; line-height: 1.6;" 
            data-pl="Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ Nadawcą wiadomości jest Supabase Auth (sprawdź folder SPAM)</span>" 
            data-en="We've sent an activation link to your email. Click it to log in and complete your booking.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ The email sender is Supabase Auth (check your SPAM folder)</span>">
-          Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.<br><br>
-          <span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ Nadawcą wiadomości jest Supabase Auth (sprawdź folder SPAM)</span>
+           Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ Nadawcą wiadomości jest Supabase Auth (sprawdź folder SPAM)</span>
         </p>
         <button onclick="closeRegSuccess()" class="btn-submit" style="width: 100%; margin: 0;" data-pl="Rozumiem" data-en="Got it">
             Rozumiem
