@@ -2460,7 +2460,7 @@ async function fetchSmartLocations(query, resultsBox, type) {
     if (query === 'pdl') translated.push('ponta delgada');
 
     const uniqueTerms = [...new Set(translated)].slice(0, 5);
-    let orFilters = uniqueTerms.map(t =>`location_name.ilike.%${t}%,city.ilike.%${t}%,region.ilike.%${t}%,country.ilike.%${t}%`).join(',');
+    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.${t}%,region.ilike.${t}%,country.ilike.${t}%`).join(',');
 
     // 2. Pobieranie z partner_locations
     const { data: partnerData, error } = await db
