@@ -2488,13 +2488,24 @@ async function fetchSmartLocations(query, resultsBox, type) {
     if (city === query) priority = 1;
 
     // CITY STARTS WITH
-    else if (city.startsWith(query)) {
-        priority = name.includes('airport') ? 2 : 3;
+    // CITY STARTS WITH
+else if (city.startsWith(query)) {
+
+    if (name.includes('airport')) {
+        priority = 1;
     }
 
-    // REGION STARTS WITH
-    else if (region.startsWith(query)) {
+    else if (name.includes('city')) {
+        priority = 2;
+    }
+
+    else if (name.includes('office')) {
+        priority = 3;
+    }
+
+    else {
         priority = 4;
+    }
     }
 
     // NAME STARTS WITH
