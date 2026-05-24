@@ -41,70 +41,61 @@
 
     <style>
        /* --- SMART SEARCH DROPDOWN --- */
-    
         .search-dropdown {
-            position: absolute;
-            top: 100%; left: 0; right: 0;
+            position: absolute; top: 100%; left: 0; right: 0;
             background: white; border-radius: 8px; margin-top: 4px;
             z-index: 2000; max-height: 250px; overflow-y: auto;
             overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
             touch-action: pan-y;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border);
-            opacity: 0; visibility: hidden;
-            transition: opacity 0.2s, visibility 0.2s;
-            pointer-events: none;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s;
+            
+            /* Zabezpieczenie przed kradzieżą kliknięć, gdy lista znika */
+            pointer-events: none; 
         }
         .search-dropdown.show { 
-            opacity: 1;
+            opacity: 1; 
             visibility: visible; 
-            pointer-events: auto;
+            
+            /* Przywraca pełną klikalność listy, gdy jest otwarta */
+            pointer-events: auto; 
         }
         .search-dropdown-item {
-            padding: 12px 16px;
-            cursor: pointer; font-size: 14px; font-weight: 600;
+            padding: 12px 16px; cursor: pointer; font-size: 14px; font-weight: 600;
             color: var(--text); border-bottom: 1px solid #F8FAFC; display: flex;
-            align-items: center; gap: 10px;
-            transition: background 0.2s; text-align: left;
+            align-items: center; gap: 10px; transition: background 0.2s; text-align: left;
+            
+            /* TUTAJ BYŁ BŁĄD - USUNIĘTO pointer-events: none; */
             touch-action: manipulation;
         }
-        .search-dropdown-item:last-child { border-bottom: none;
-        }
-        .search-dropdown-item:hover { background: #F1F5F9; color: var(--blue);
-        }
-        .search-dropdown-item .sub-text { font-size: 12px; color: var(--gray); font-weight: 400;
-        }
+        .search-dropdown-item:last-child { border-bottom: none; }
+        .search-dropdown-item:hover { background: #F1F5F9; color: var(--blue); }
+        .search-dropdown-item .sub-text { font-size: 12px; color: var(--gray); font-weight: 400; }
         /* --- NOWOCZESNE POWIADOMIENIA TOAST --- */
         #toast-container { 
-            position: fixed;
-            bottom: 30px; left: 50%; 
+            position: fixed; bottom: 30px; left: 50%; 
             transform: translateX(-50%); z-index: 10000; 
-            display: flex; flex-direction: column; gap: 10px;
+            display: flex; flex-direction: column; gap: 10px; 
         }
         .toast { 
-            background: white;
-            border-left: 6px solid var(--blue); 
+            background: white; border-left: 6px solid var(--blue); 
             padding: 16px 24px; border-radius: 12px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
-            font-weight: 700; font-size: 14px; color: var(--blue-dark);
+            font-weight: 700; font-size: 14px; color: var(--blue-dark); 
             display: flex; align-items: center; gap: 12px; 
             animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
             min-width: 320px;
         }
-        .toast.error { border-left-color: var(--red); color: var(--red);
-        }
-        .toast.success { border-left-color: var(--green);
-        }
+        .toast.error { border-left-color: var(--red); color: var(--red); }
+        .toast.success { border-left-color: var(--green); }
 
         @keyframes slideUp { 
-            from { transform: translateY(100px);
-            opacity: 0; } 
-            to { transform: translateY(0);
-            opacity: 1; } 
+            from { transform: translateY(100px); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; } 
         }
         @keyframes fadeOutToast { 
-            to { opacity: 0;
-            transform: translateY(20px); } 
+            to { opacity: 0; transform: translateY(20px); } 
         }
         @font-face{
         font-family:'Inter';
@@ -176,11 +167,11 @@
         font-display:swap;
         }
         html {
-            scroll-behavior: smooth;
+            scroll-behavior: smooth; /* Powoduje płynny zjazd do sekcji #regulamin */
         }
 
         :root {
-            --blue: #2563EB;
+            --blue: #2563EB; 
             --blue-dark: #1E3A8A;
             --blue-hover: #1D4ED8;
             --green: #73D700;
@@ -212,7 +203,7 @@
         }
 
         .container {
-            max-width: 1320px;
+            max-width: 1320px; 
             margin: 0 auto;
             padding: 0 4%;
         }
@@ -222,6 +213,7 @@
         }
 
         /* --- HEADER --- */
+        /* --- HEADER --- */
         header {
             display: flex;
             justify-content: space-between;
@@ -230,11 +222,13 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            
+            /* 🔥 MORSKI GRADIENT: Granat (logo) -> Niebieski (środek) -> Błękit (przyciski) */
             background: linear-gradient(
                 90deg, 
-                rgba(15, 23, 42, 0.95) 0%,    
-                rgba(37, 99, 235, 0.95) 45%,  
-                rgba(56, 189, 248, 0.95) 100% 
+                rgba(15, 23, 42, 0.95) 0%,    /* Bardzo ciemny granat po lewej */
+                rgba(37, 99, 235, 0.95) 45%,  /* Klasyczny, żywy niebieski na środku */
+                rgba(56, 189, 248, 0.95) 100% /* Jasny błękit po prawej */
             );
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -243,16 +237,19 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
         }
 
+        /* 🛡️ Delikatna poświata pod logo (wyciąga je z granatowego tła) */
         header .logo-container img {
             filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
         }
 
+        /* Jasne teksty języków z cieniem dla czytelności na błękicie */
         header .lang-btn, header .lang-divider {
             color: #FFFFFF;
             font-weight: 800;
             text-shadow: 0 2px 4px rgba(0,0,0,0.25);
         }
 
+        /* Ramki na przyciskach, żeby wyraźnie odcinały się od jasnego błękitu po prawej */
         header .auth-buttons button {
             border: 2px solid rgba(255, 255, 255, 0.9);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
@@ -281,12 +278,9 @@
             font-size: 15px;
         }
 
-        .nav-links a { text-decoration: none;
-            color: #0F172A; cursor: pointer; transition: color 0.2s; }
-        .nav-links a:hover { color: var(--blue);
-        }
-        .nav-separator { color: #CBD5E1;
-            font-weight: 400;}
+        .nav-links a { text-decoration: none; color: #0F172A; cursor: pointer; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--blue); }
+        .nav-separator { color: #CBD5E1; font-weight: 400;}
 
         /* --- PRZEŁĄCZNIK JĘZYKA I PRZYCISKI --- */
         .header-right {
@@ -307,34 +301,31 @@
 
         .lang-btn {
             display: flex;
-            flex-direction: column; 
+            flex-direction: column; /* Flaga ląduje nad tekstem */
             align-items: center;
             justify-content: center;
-            gap: 4px; 
+            gap: 4px; /* Zmniejszony odstęp w pionie */
             cursor: pointer;
             transition: transform 0.2s, color 0.2s;
-            font-size: 11px; 
+            font-size: 11px; /* Drobniejszy tekst, żeby całość wyglądała jak elegancka ikona */
             line-height: 1;
         }
 
         .lang-btn img {
-            width: 20px;
+            width: 20px; /* Nieco większa flaga w proporcji do tekstu */
             height: auto;
             border-radius: 3px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Lekki cień */
         }
 
         .lang-btn:hover { 
-            color: var(--blue-hover);
-            transform: translateY(-2px); 
+            color: var(--blue-hover); 
+            transform: translateY(-2px); /* Delikatne uniesienie przy najechaniu */
         }
-        .lang-btn.active-lang { color: var(--blue);
-        }
-        .lang-divider { color: #94A3B8; font-weight: 400; opacity: 0.5;
-        }
+        .lang-btn.active-lang { color: var(--blue); }
+        .lang-divider { color: #94A3B8; font-weight: 400; opacity: 0.5; }
 
-        .auth-buttons { display: flex; gap: 12px;
-        }
+        .auth-buttons { display: flex; gap: 12px; }
         .auth-buttons button {
             padding: 10px 18px;
             border: none;
@@ -346,21 +337,17 @@
             transition: all 0.2s ease;
         }
 
-        .btn-green { background: var(--green);
-        }
-        .btn-green:hover { background: #5CAD00; transform: translateY(-1px);
-        }
-        .btn-blue { background: var(--blue);
-        }
+        .btn-green { background: var(--green); }
+        .btn-green:hover { background: #5CAD00; transform: translateY(-1px); }
+        .btn-blue { background: var(--blue); }
         #mainAuthBtn {
-            transition: background-color 0.3s ease, transform 0.2s;
-        }
-        #mainAuthBtn:disabled {
-            cursor: not-allowed;
-            opacity: 0.9;
-        }
-        .btn-blue:hover { background: var(--blue-hover);
-            transform: translateY(-1px); }
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+#mainAuthBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.9;
+}
+        .btn-blue:hover { background: var(--blue-hover); transform: translateY(-1px); }
 
         /* --- HERO SECTION --- */
         .hero {
@@ -381,7 +368,8 @@
                     rgba(248,250,252,0) 40%
                 ),
                 url("tlo.png") center right/cover no-repeat;
-            overflow: hidden;
+
+                overflow: hidden;
         }
 
         .hero-car {
@@ -527,6 +515,7 @@
         .hero-search {
             width: 100%;
             max-width: 640px; 
+
             position: relative;
             z-index: 10;
         }
@@ -579,11 +568,9 @@
             gap: 12px 16px; 
         }
 
-        .full-width { grid-column: span 2;
-        } 
+        .full-width { grid-column: span 2; } 
         
-        .form-group { display: flex;
-            flex-direction: column; }
+        .form-group { display: flex; flex-direction: column; }
 
         .form-group label {
             font-size: 11px;
@@ -600,8 +587,7 @@
             width: 100%;
         }
 
-        .input-wrapper { position: relative; width: 100%;
-        }
+        .input-wrapper { position: relative; width: 100%; }
 
         .input-wrapper img {
             position: absolute;
@@ -637,7 +623,7 @@
         }
 
         .btn-submit {
-            grid-column: span 2;
+            grid-column: span 2; 
             height: 42px;
             width: 50%; 
             background: var(--blue);
@@ -654,10 +640,8 @@
             z-index: 1001;
         }
 
-        .btn-submit:hover { background: var(--blue-hover); transform: translateY(-1px);
-        }
-        .btn-submit:active { transform: translateY(1px);
-        }
+        .btn-submit:hover { background: var(--blue-hover); transform: translateY(-1px); }
+        .btn-submit:active { transform: translateY(1px); }
 
         /* --- SEKCJA "JAK DZIAŁA RIDE24" --- */
         .how-it-works-section {
@@ -695,12 +679,9 @@
         }
 
         /* TŁA KAFELKÓW - Jasna soczysta zieleń */
-        .steps-container .step-box.step1 { background: #F1FCE3;
-        }
-        .steps-container .step-box.step2 { background: #F1FCE3;
-        }
-        .steps-container .step-box.step3 { background: #F1FCE3;
-        }
+        .steps-container .step-box.step1 { background: #F1FCE3; }
+        .steps-container .step-box.step2 { background: #F1FCE3; }
+        .steps-container .step-box.step3 { background: #F1FCE3; }
 
         .step-box:hover {
             transform: translateY(-2px);
@@ -708,7 +689,7 @@
         }
 
         .step-icon {
-            width: 75px;
+            width: 75px; 
             height: 75px; 
             border-radius: 12px;
             background: transparent;
@@ -777,16 +758,14 @@
             
         }
 
-        .footer-links { display: flex;
-            gap: 24px; }
+        .footer-links { display: flex; gap: 24px; }
         .footer-links a {
             color: #CBD5E1;
             text-decoration: none;
             transition: color 0.2s;
             font-weight: 500;
         }
-        .footer-links a:hover { color: white;
-        }
+        .footer-links a:hover { color: white; }
 
         /* --- MEDIA QUERIES (PREMIUM SAAS MOBILE) --- */
         
@@ -802,30 +781,25 @@
             
             /* Wyszukiwarka idzie na samą górę */
             .hero-search { 
-                order: 1;
+                order: 1; 
                 max-width: 100%; 
                 width: 100%;
             }
             
             /* Opisy i benefity spadają pod wyszukiwarkę */
             .hero-text { 
-                order: 2;
+                order: 2; 
                 max-width: 100%; 
                 text-align: center;
             }
-            .hero-text h1 { font-size: 38px;
-            }
-            .hero-benefits { display: flex; flex-direction: column; align-items: center;
-            }
-            .hero-benefits li { justify-content: center;
-            }
-            .flags-grid { justify-content: center;
-            }
+            .hero-text h1 { font-size: 38px; }
+            .hero-benefits { display: flex; flex-direction: column; align-items: center; }
+            .hero-benefits li { justify-content: center; }
+            .flags-grid { justify-content: center; }
 
             /* Auto na sam dół */
             /* Całkowite ukrycie auta na tabletach i telefonach */
-            .hero-car { display: none !important;
-            }
+            .hero-car { display: none !important; }
 
             /* PŁYNNY GRADIENT (ZIELONY -> BŁĘKIT -> GRANAT) */
             .hero { 
@@ -834,14 +808,13 @@
                 min-height: auto; 
             }
             .how-it-works-section { 
-                background: linear-gradient(180deg, #38BDF8 0%, #1E3A8A 100%) !important;
+                background: linear-gradient(180deg, #38BDF8 0%, #1E3A8A 100%) !important; 
             }
             footer { 
-                background: #1E3A8A !important;
+                background: #1E3A8A !important; 
                 border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
             }
-            .section-header { text-align: center;
-                color: white; top: 0; margin-top: 30px; }
+            .section-header { text-align: center; color: white; top: 0; margin-top: 30px; }
         }
 
         /* 📱 SMARTFONY (APP-LIKE UX) */
@@ -849,63 +822,57 @@
             
            /* HEADER: Premium Gradient (Granat -> Niebieski) */
             header { 
-                flex-wrap: wrap;
+                flex-wrap: wrap; 
                 padding: 12px 16px; 
                 gap: 12px;
                 /* Płynne przejście od granatu na górze do niebieskiego na dole */
-                background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(37, 99, 235, 0.95) 100%) !important;
+                background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(37, 99, 235, 0.95) 100%) !important; 
                 backdrop-filter: blur(12px);
                 -webkit-backdrop-filter: blur(12px);
                 border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             }
-            .logo-container { font-size: 22px;
-            }
-            .logo-container img { height: 36px;
-            }
+            .logo-container { font-size: 22px; }
+            .logo-container img { height: 36px; }
             
             .header-right { 
-                width: 100%;
+                width: 100%; 
                 justify-content: space-between; 
             }
             
             /* Przyciski w rzędzie */
             .auth-buttons { 
-                flex-direction: row;
+                flex-direction: row; 
                 gap: 8px; 
                 width: auto;
             }
             .auth-buttons button { 
-                padding: 10px 14px;
+                padding: 10px 14px; 
                 font-size: 13px; 
                 border-radius: 10px;
             }
 
             /* HERO: Typografia */
-            .hero { padding: 10px 0 40px 0;
-            }
+            .hero { padding: 10px 0 40px 0; }
             .hero-text h1 { 
-                font-size: 30px;
+                font-size: 30px; 
                 line-height: 1.15; 
                 margin-bottom: 12px; 
-                text-shadow: 0 2px 15px rgba(255, 255, 255, 0.6);
+                text-shadow: 0 2px 15px rgba(255, 255, 255, 0.6); 
             }
-            .hero-text h2 { font-size: 16px; margin-bottom: 20px;
-            }
+            .hero-text h2 { font-size: 16px; margin-bottom: 20px; }
 
             /* WYSZUKIWARKA PREMIUM (Glassmorphism & Touch Targets) */
             .search-form { 
-                padding: 20px;
+                padding: 20px; 
                 border-radius: 24px; 
                 background: #E0F2FE; /* Jasny, pastelowy błękit */
                 box-shadow: 0 15px 40px rgba(37, 99, 235, 0.12);
                 border: 1px solid rgba(255, 255, 255, 0.8);
             }
-            .split-inputs { flex-direction: column;
-                gap: 12px; }
+            .split-inputs { flex-direction: column; gap: 12px; }
             .input-wrapper input, .input-wrapper select { 
-                height: 52px;
-                /* Touch-friendly */
-                font-size: 15px;
+                height: 52px; /* Touch-friendly */
+                font-size: 15px; 
                 border-radius: 14px;
                 background: #F8FAFC;
                 border: 1px solid #E2E8F0;
@@ -916,7 +883,7 @@
             
             /* GŁÓWNY PRZYCISK CTA */
             .btn-submit { 
-                grid-column: span 1;
+                grid-column: span 1; 
                 width: 100%; 
                 height: 56px; 
                 font-size: 17px; 
@@ -933,46 +900,35 @@
                 flex-wrap: nowrap;
                 overflow-x: auto;
                 scrollbar-width: none; /* Firefox */
-                -ms-overflow-style: none;
-                /* IE */
+                -ms-overflow-style: none; /* IE */
                 padding: 0 4px 12px 4px;
                 justify-content: flex-start;
                 gap: 12px;
             }
-            .trust-badges::-webkit-scrollbar { display: none;
-            } /* Chrome/Safari */
+            .trust-badges::-webkit-scrollbar { display: none; } /* Chrome/Safari */
             .trust-badge { 
-                flex-shrink: 0;
+                flex-shrink: 0; 
                 padding: 8px 16px; 
                 border-radius: 20px;
                 font-size: 12px;
             }
 
             /* Kafelki z krokami (Pionowo) */
-            .steps-container { grid-template-columns: 1fr;
-                gap: 16px; }
-            .step-box { padding: 20px; align-items: flex-start;
-                border-radius: 20px; }
-            .form-grid { grid-template-columns: 1fr; gap: 16px;
-            }
-            .full-width { grid-column: span 1;
-            }
+            .steps-container { grid-template-columns: 1fr; gap: 16px; }
+            .step-box { padding: 20px; align-items: flex-start; border-radius: 20px; }
+            .form-grid { grid-template-columns: 1fr; gap: 16px; }
+            .full-width { grid-column: span 1; }
 
-            .flags-grid { gap: 12px;
-            }
-            .bottom-badges { flex-direction: column; align-items: flex-start; gap: 12px;
-                padding: 20px 10px; }
-            .footer-content { flex-direction: column;
-                gap: 20px; text-align: center; }
-            .footer-links { flex-wrap: wrap;
-                justify-content: center; gap: 16px; }
+            .flags-grid { gap: 12px; }
+            .bottom-badges { flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px 10px; }
+            .footer-content { flex-direction: column; gap: 20px; text-align: center; }
+            .footer-links { flex-wrap: wrap; justify-content: center; gap: 16px; }
 
             /* NATIVE APP MODALS (Bottom Sheet z animacją) */
-            .legal-overlay, #authModal, #partnerModal { align-items: flex-end !important;
-                padding: 0 !important; }
+            .legal-overlay, #authModal, #partnerModal { align-items: flex-end !important; padding: 0 !important; }
             
             .legal-modal, #authModal > div, #partnerModal > div { 
-                padding: 32px 24px;
+                padding: 32px 24px; 
                 max-height: 90vh; 
                 border-radius: 28px 28px 0 0 !important; 
                 position: absolute; 
@@ -986,41 +942,33 @@
         /* BANER COOKIES ODKLEJONY OD RAMKI */
         @media (max-width: 600px) {
             .cookie-banner { 
-                bottom: 0;
+                bottom: 0; 
                 border-radius: 28px 28px 0 0; 
                 width: 100%; 
                 max-width: 100%; 
                 border-bottom: none; 
                 padding: 24px;
-                padding-bottom: env(safe-area-inset-bottom, 24px);
+                padding-bottom: env(safe-area-inset-bottom, 24px); 
             }
-            .cookie-buttons { flex-direction: column; gap: 8px;
-            }
-            .cookie-buttons button { width: 100%; height: 50px;
-                font-size: 15px; border-radius: 12px;}
+            .cookie-buttons { flex-direction: column; gap: 8px; }
+            .cookie-buttons button { width: 100%; height: 50px; font-size: 15px; border-radius: 12px;}
         }
 
         /* ULTRA MAŁE EKRANY (np. iPhone SE) */
         @media (max-width: 380px) {
-            .hero-text h1 { font-size: 26px;
-            }
-            .auth-buttons button { padding: 10px 12px; font-size: 12px;
-            }
-            .cf-turnstile { transform: scale(0.85); transform-origin: center;
-                margin: 16px auto !important; }
+            .hero-text h1 { font-size: 26px; }
+            .auth-buttons button { padding: 10px 12px; font-size: 12px; }
+            .cf-turnstile { transform: scale(0.85); transform-origin: center; margin: 16px auto !important; }
         }
 
         /* ANIMACJA WYSUNIĘCIA MODALA (BOTTOM SHEET) */
         @keyframes slideUp {
-            from { transform: translateY(100%);
-            opacity: 0; }
-            to { transform: translateY(0); opacity: 1;
-            }
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         /* Styl dla dokumentów prawnych Overlay */
 .legal-overlay {
-    display: none;
-    position: fixed; inset: 0; z-index: 9999;
+    display: none; position: fixed; inset: 0; z-index: 9999;
     background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px);
     align-items: center; justify-content: center; padding: 20px;
 }
@@ -1030,24 +978,17 @@
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); padding: 40px;
     animation: modalFadeIn 0.3s ease;
 }
-@keyframes modalFadeIn { from { opacity: 0;
-    transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 .legal-close {
-    position: sticky; top: 0;
-    float: right; font-size: 32px; font-weight: 800;
+    position: sticky; top: 0; float: right; font-size: 32px; font-weight: 800;
     color: #64748B; cursor: pointer; line-height: 1; transition: color 0.2s;
-    background: white; border-radius: 50%;
-    width: 40px; height: 40px;
+    background: white; border-radius: 50%; width: 40px; height: 40px;
     display: flex; align-items: center; justify-content: center; z-index: 10;
 }
-.legal-close:hover { color: #EF4444;
-}
+.legal-close:hover { color: #EF4444; }
 .legal-content h2 { color: #1E3A8A; margin-bottom: 20px; font-size: 28px; font-weight: 800; }
-.legal-content h3 { color: #2563EB;
-    margin: 24px 0 12px 0; font-size: 18px; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px;
-}
-.legal-content p, .legal-content li { font-size: 15px; line-height: 1.7; color: #334155; margin-bottom: 12px;
-}
+.legal-content h3 { color: #2563EB; margin: 24px 0 12px 0; font-size: 18px; font-weight: 700; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; }
+.legal-content p, .legal-content li { font-size: 15px; line-height: 1.7; color: #334155; margin-bottom: 12px; }
 /* --- FORMULARZ KONTAKTOWY --- */
 .saas-contact-wrapper input,
 .saas-contact-wrapper textarea {
@@ -1086,50 +1027,34 @@
 }
 /* --- COOKIE BANNER --- */
         .cookie-banner {
-            position: fixed;
-            bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
             width: 90%; max-width: 600px; z-index: 10000;
-            background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(226, 232, 240, 0.8); border-radius: 20px;
             padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column; gap: 16px;
+            display: flex; flex-direction: column; gap: 16px;
             opacity: 0; pointer-events: none; transition: opacity 0.4s ease, transform 0.4s ease;
         }
-        .cookie-banner.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0);
-        }
-        .cookie-header { display: flex; align-items: center; gap: 10px; color: var(--blue-dark);
-        }
-        .cookie-header h3 { font-size: 18px; font-weight: 800;
-        }
-        .cookie-content p { font-size: 13px; color: var(--gray); line-height: 1.6; margin: 0;
-        }
-        .cookie-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px;
-        }
+        .cookie-banner.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+        .cookie-header { display: flex; align-items: center; gap: 10px; color: var(--blue-dark); }
+        .cookie-header h3 { font-size: 18px; font-weight: 800; }
+        .cookie-content p { font-size: 13px; color: var(--gray); line-height: 1.6; margin: 0; }
+        .cookie-buttons { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
         .btn-cookie-accept {
-            background: var(--blue);
-            color: white; border: none; padding: 10px 24px;
+            background: var(--blue); color: white; border: none; padding: 10px 24px;
             border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; transition: background 0.2s;
         }
-        .btn-cookie-accept:hover { background: var(--blue-hover);
-        }
+        .btn-cookie-accept:hover { background: var(--blue-hover); }
         .btn-cookie-reject {
-            background: transparent;
-            color: var(--gray); border: 1px solid var(--border);
+            background: transparent; color: var(--gray); border: 1px solid var(--border);
             padding: 10px 24px; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s;
         }
-        .btn-cookie-reject:hover { background: #F1F5F9; color: var(--text);
-        }
+        .btn-cookie-reject:hover { background: #F1F5F9; color: var(--text); }
         
         @media (max-width: 600px) {
-            .cookie-banner { bottom: 0;
-            border-radius: 24px 24px 0 0; width: 100%; max-width: 100%; border-bottom: none;
-            }
-            .cookie-buttons { flex-direction: column;
-            }
-            .cookie-buttons button { width: 100%;
-            }
+            .cookie-banner { bottom: 0; border-radius: 24px 24px 0 0; width: 100%; max-width: 100%; border-bottom: none; }
+            .cookie-buttons { flex-direction: column; }
+            .cookie-buttons button { width: 100%; }
         }
     /* 🔥 POPRAWA WYGLĄDU CLOUDFLARE TURNSTILE (Logowanie i Partner) */
         .cf-turnstile {
@@ -1154,47 +1079,34 @@
             }
         }
         /* --- PREMIUM SAAS CALENDAR (KOLORYSTYKA FLAGOWA) --- */
-        .flatpickr-calendar { font-family: 'Inter', sans-serif !important;
-            border: none !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; border-radius: 16px !important; padding: 10px !important; margin-top: 8px !important;
-            border-top: 4px solid var(--green) !important; }
-        .flatpickr-months .flatpickr-month { background: transparent !important;
-            color: var(--blue-dark) !important; fill: var(--blue-dark) !important; height: 40px !important; }
-        .flatpickr-current-month { font-size: 110% !important;
-            font-family: 'Manrope', sans-serif !important; font-weight: 800 !important; }
-        .flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 800 !important;
-            color: var(--blue-dark) !important; }
-        .flatpickr-weekday { color: var(--blue) !important; font-weight: 800 !important;
-            text-transform: uppercase; font-size: 11px !important; }
+        .flatpickr-calendar { font-family: 'Inter', sans-serif !important; border: none !important; box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important; border-radius: 16px !important; padding: 10px !important; margin-top: 8px !important; border-top: 4px solid var(--green) !important; }
+        .flatpickr-months .flatpickr-month { background: transparent !important; color: var(--blue-dark) !important; fill: var(--blue-dark) !important; height: 40px !important; }
+        .flatpickr-current-month { font-size: 110% !important; font-family: 'Manrope', sans-serif !important; font-weight: 800 !important; }
+        .flatpickr-current-month .flatpickr-monthDropdown-months { font-weight: 800 !important; color: var(--blue-dark) !important; }
+        .flatpickr-weekday { color: var(--blue) !important; font-weight: 800 !important; text-transform: uppercase; font-size: 11px !important; }
         
-        .flatpickr-day { border-radius: 8px !important;
-            font-weight: 600 !important; color: var(--text) !important; transition: all 0.2s ease !important;
-        }
+        .flatpickr-day { border-radius: 8px !important; font-weight: 600 !important; color: var(--text) !important; transition: all 0.2s ease !important; }
         
         /* Najechanie na dzień - soczysta jasna zieleń */
-        .flatpickr-day:hover { background: #F1FCE3 !important;
-            border-color: #F1FCE3 !important; color: var(--green) !important; }
+        .flatpickr-day:hover { background: #F1FCE3 !important; border-color: #F1FCE3 !important; color: var(--green) !important; }
         
         /* Wybrany dzień - mocna zieleń Ride24 */
         .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange, .flatpickr-day.selected:focus, .flatpickr-day.startRange:focus, .flatpickr-day.endRange:focus, .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover { 
-            background: var(--green) !important;
+            background: var(--green) !important; 
             border-color: var(--green) !important; 
             color: white !important; 
             box-shadow: 0 4px 10px rgba(115, 215, 0, 0.3) !important; 
-            transform: scale(1.05);
+            transform: scale(1.05); 
         }
         
         /* Dzisiejszy dzień - niebieski akcent */
-        .flatpickr-day.today { border-color: var(--blue) !important;
-            color: var(--blue) !important; font-weight: 800 !important; }
-        .flatpickr-day.today:hover { background: var(--blue) !important;
-            color: white !important; border-color: var(--blue) !important; }
+        .flatpickr-day.today { border-color: var(--blue) !important; color: var(--blue) !important; font-weight: 800 !important; }
+        .flatpickr-day.today:hover { background: var(--blue) !important; color: white !important; border-color: var(--blue) !important; }
         
-        .flatpickr-day.flatpickr-disabled { color: #CBD5E1 !important;
-        }
+        .flatpickr-day.flatpickr-disabled { color: #CBD5E1 !important; }
         /* Naprawa zawijania się dni w kalendarzu */
 .flatpickr-calendar {
-    width: 320px !important;
-    /* Lekkie poszerzenie głównego okna */
+    width: 320px !important; /* Lekkie poszerzenie głównego okna */
 }
 
 .flatpickr-innerContainer, 
@@ -1207,8 +1119,7 @@
 }
 
 .dayContainer {
-    justify-content: space-around !important;
-    /* Równomierne rozłożenie cyfr */
+    justify-content: space-around !important; /* Równomierne rozłożenie cyfr */
 }
         /* Animacja koperty w oknie sukcesu */
 #regSuccessModal .legal-modal div:first-child {
@@ -1217,8 +1128,7 @@
 }
 
 @keyframes envelopeFloat {
-    0%, 100% { transform: translateY(0);
-    }
+    0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
 }
 /* --- PREMIUM SOCIAL ICONS (DARK FOOTER) --- */
@@ -1242,10 +1152,8 @@
 }
 
 .social-icon:hover {
-    color: #FFFFFF;
-    /* Czysta biel na hover */
-    background-color: rgba(255, 255, 255, 0.1);
-    /* Subtelne, półprzezroczyste tło */
+    color: #FFFFFF; /* Czysta biel na hover */
+    background-color: rgba(255, 255, 255, 0.1); /* Subtelne, półprzezroczyste tło */
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -1273,8 +1181,7 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 10px 25px rgba(37, 211, 102, 0.4);
-            z-index: 8900;
-            /* Poniżej okien modalnych (9999), nad resztą strony */
+            z-index: 8900; /* Poniżej okien modalnych (9999), nad resztą strony */
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             animation: pulse-wa 2s infinite;
         }
@@ -1297,12 +1204,9 @@
         }
 
         @keyframes pulse-wa {
-            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
-            }
-            70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
-            }
-            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-            }
+            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5); }
+            70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
         }
 
         /* Responsywność dla smartfonów */
@@ -1347,7 +1251,6 @@
                 <img src="flagi/pl.svg" alt="PL">
                 PL
             </div>
-            
             <div class="lang-divider">|</div>
             <div id="lang-en" class="lang-btn" onclick="setLang('en')">
                 <img src="flagi/uk.svg" alt="EN">
@@ -1357,7 +1260,6 @@
 
         <div class="auth-buttons">
             <button class="btn-blue" onclick="openAuth()" data-pl="Zaloguj się" data-en="Log in">Zaloguj się</button>
-  
             <button class="btn-green" onclick="openPartnerAuth()" data-pl="For Partners" data-en="For Partners">Dla Partnerów</button>
         </div>
     </div>
@@ -1493,7 +1395,10 @@
         <div class="step-icon"><img src="zarezerwuj.png" alt="Zarezerwuj" style="width: 100%; height: 100%; border-radius: inherit; object-fit: cover;"></div>
         <div class="step-text">
             <h4 data-pl="2. Zarezerwuj" data-en="2. Book">2. Zarezerwuj</h4>
-            <p data-pl="Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezerwację." data-en="Pay a small booking fee online to secure your reservation.">
+            <p 
+data-pl="Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezerwację." 
+data-en="Pay a small booking fee online to secure your reservation."
+>
 Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezerwację.
 </p>
         </div>
@@ -1529,7 +1434,7 @@ Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezer
                 <a href="javascript:void(0)" onclick="openLegal('regulamin')" data-pl="Regulamin" data-en="Terms">Regulamin</a>
                 <a href="javascript:void(0)" onclick="openLegal('polityka')" data-pl="Polityka prywatności" data-en="Privacy Policy">Polityka prywatności</a>
                 <a href="javascript:void(0)" onclick="openLegal('kontakt')" data-pl="Kontakt" data-en="Contact">Kontakt</a>
-        </div>
+            </div>
 
         <div class="saas-social-container">
             <a href="https://www.facebook.com/profile.php?id=61561090230180" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Facebook Ride24">
@@ -1556,9 +1461,11 @@ Opłać niewielką opłatę rezerwacyjną online, aby zabezpieczyć swoją rezer
 
 <script>
     function openRegSuccess() {
-    closeAuth();
+    closeAuth(); // Zamykamy okno logowania
     const modal = document.getElementById("regSuccessModal");
     modal.style.display = "flex";
+    
+    // Odświeżamy tłumaczenie w nowym oknie
     const lang = localStorage.getItem("lang") || "pl";
     setLang(lang);
 }
@@ -1571,7 +1478,7 @@ function closeRegSuccess() {
     // --- SKRYPT TŁUMACZENIA (PL / EN) ---
     window.showToast = function(msg, type = 'info') {
     const container = document.getElementById('toast-container');
-if (!container) return;
+    if (!container) return;
     
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -1579,7 +1486,7 @@ if (!container) return;
     const icon = type === 'error' ? '⚠️' : (type === 'success' ? '✅' : 'ℹ️');
     
     toast.innerHTML = `<span>${icon}</span> ${escapeHTML(msg)}`;
-function escapeHTML(str) {
+    function escapeHTML(str) {
     return String(str)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -1603,14 +1510,15 @@ function escapeHTML(str) {
         } else if (el.tagName === 'OPTION') {
             el.innerText = el.dataset[lang];
         } else {
-            el.innerHTML = el.dataset[lang]; 
+            el.innerHTML = el.dataset[lang]; // ZMIANA: innerHTML pozwala na tagi <strong>, <a> itp. w tłumaczeniach
         }
     });
 
     document.querySelectorAll(".lang-btn").forEach(btn => {
         btn.classList.remove("active-lang");
     });
-document.getElementById("lang-" + lang).classList.add("active-lang");
+
+    document.getElementById("lang-" + lang).classList.add("active-lang");
 }
 
     function detectLang() {
@@ -1622,15 +1530,22 @@ lang = browserLang.toLowerCase().startsWith("pl") ? "pl" : "en";
 setLang(lang);
 }
 
+ 
+
 function handleCookieConsent(action) {
+    // Zapisujemy wybór w pamięci przeglądarki ('accept' lub 'reject')
     localStorage.setItem("cookie_consent", action);
+    
+    // Ukrywamy baner
     const banner = document.getElementById("cookieConsent");
     banner.classList.remove("show");
-if (action === 'accept') {
+    
+    if (action === 'accept') {
         console.log("Zgoda na analitykę wydana.");
+        // W przyszłości tutaj dodasz kod ładujący np. Google Analytics
     } else {
         console.log("Zgoda odrzucona. Działają tylko niezbędne cookies.");
-}
+    }
 }
       const legalData = {
     regulamin: `
@@ -1759,16 +1674,19 @@ if (action === 'accept') {
 <h2 data-pl="FAQ – Najczęściej zadawane pytania" data-en="FAQ – Frequently Asked Questions">FAQ – Najczęściej zadawane pytania</h2>
 
 <h3 data-pl="1. Czy Ride24 wynajmuje samochody?" data-en="1. Does Ride24 rent cars?">1. Czy Ride24 wynajmuje samochody?</h3>
-<p data-pl="Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów." data-en="No. Ride24 is a marketplace connecting users with car rental companies.">
+<p data-pl="Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów."
+   data-en="No. Ride24 is a marketplace connecting users with car rental companies.">
 Nie. Ride24 to platforma (marketplace), która łączy użytkowników z wypożyczalniami samochodów.
 </p>
 
-<p data-pl="Umowa wynajmu zawierana jest bezpośrednio z partnerem." data-en="The rental agreement is concluded directly with the partner.">
+<p data-pl="Umowa wynajmu zawierana jest bezpośrednio z partnerem."
+   data-en="The rental agreement is concluded directly with the partner.">
 Umowa wynajmu zawierana jest bezpośrednio z partnerem.
 </p>
 
 <h3 data-pl="2. Jak wygląda płatność?" data-en="2. How does payment work?">2. Jak wygląda płatność?</h3>
-<p data-pl="Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną." data-en="Booking is simple – you only pay a small booking fee online.">
+<p data-pl="Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną."
+   data-en="Booking is simple – you only pay a small booking fee online.">
 Rezerwacja jest prosta – płacisz online tylko niewielką opłatę rezerwacyjną.
 </p>
 
@@ -1778,12 +1696,14 @@ Pozostałą kwotę zapłacisz bezpośrednio przy odbiorze auta.
 </p>
 
 <h3 data-pl="3. Czy muszę płacić całość z góry?" data-en="3. Do I have to pay everything upfront?">3. Czy muszę płacić całość z góry?</h3>
-<p data-pl="Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu." data-en="No. You only pay the booking fee, and the rest at pickup.">
+<p data-pl="Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu."
+   data-en="No. You only pay the booking fee, and the rest at pickup.">
 Nie. Płacisz tylko opłatę rezerwacyjną, a resztę dopiero przy odbiorze pojazdu.
 </p>
 
 <h3 data-pl="4. Czym jest opłata rezerwacyjna?" data-en="4. What is a booking fee?">4. Czym jest opłata rezerwacyjna?</h3>
-<p data-pl="To niewielka opłata za rezerwację i obsługę platformy Ride24." data-en="It is a small fee for booking and using the Ride24 platform.">
+<p data-pl="To niewielka opłata za rezerwację i obsługę platformy Ride24."
+   data-en="It is a small fee for booking and using the Ride24 platform.">
 To niewielka opłata za rezerwację i obsługę platformy Ride24.
 </p>
 
@@ -1809,25 +1729,27 @@ Tak – wysokość zwrotu zależy od momentu anulowania:
     data-en="less than 30 days – no refund">poniżej 30 dni – brak zwrotu</li>
 </ul>
 
-<p data-pl="Rezerwacje last minute (poniżej 30 dni) są bezzwrotne." data-en="Last-minute bookings (under 30 days) are non-refundable.">
+<p data-pl="Rezerwacje last minute (poniżej 30 dni) są bezzwrotne."
+   data-en="Last-minute bookings (under 30 days) are non-refundable.">
 Rezerwacje last minute (poniżej 30 dni) są bezzwrotne.
 </p>
 
 <div style="background:#F8FAFC; border-left:4px solid var(--blue); padding:12px; margin-top:15px; border-radius:6px;">
-    <p data-pl="Aby otrzymać zwrot, zaloguj się do Panelu Klienta, wejdź w zakładkę 'Płatności' i kliknij 'Zwrot'. System poprosi Cię o podanie numeru konta bankowego (musi być zgodne z danymi z Twojego profilu). Ride24 nie odpowiada za zwroty odrzucone z powodu podania błędnego numeru konta." data-en="To receive a refund, log in to your Client Dashboard, go to the 'Payments' tab and click 'Refund'. The system will ask for your bank account number (which must match your profile details). Ride24 is not responsible for refunds rejected due to an incorrect account number.">
-       Aby otrzymać zwrot, zaloguj się do Panelu Klienta, wejdź w zakładkę 'Płatności' i kliknij 'Zwrot'.
-System poprosi Cię o podanie numeru konta bankowego (musi być zgodne z danymi z Twojego profilu).
-Ride24 nie odpowiada za zwroty odrzucone z powodu podania błędnego numeru konta.
+    <p data-pl="Aby otrzymać zwrot, zaloguj się do Panelu Klienta, wejdź w zakładkę 'Płatności' i kliknij 'Zwrot'. System poprosi Cię o podanie numeru konta bankowego (musi być zgodne z danymi z Twojego profilu). Ride24 nie odpowiada za zwroty odrzucone z powodu podania błędnego numeru konta." 
+       data-en="To receive a refund, log in to your Client Dashboard, go to the 'Payments' tab and click 'Refund'. The system will ask for your bank account number (which must match your profile details). Ride24 is not responsible for refunds rejected due to an incorrect account number.">
+       Aby otrzymać zwrot, zaloguj się do Panelu Klienta, wejdź w zakładkę 'Płatności' i kliknij 'Zwrot'. System poprosi Cię o podanie numeru konta bankowego (musi być zgodne z danymi z Twojego profilu). Ride24 nie odpowiada za zwroty odrzucone z powodu podania błędnego numeru konta.
     </p>
 </div>
 
 <h3 data-pl="6. Co jeśli auto nie będzie dostępne?" data-en="6. What if the car is unavailable?">6. Co jeśli auto nie będzie dostępne?</h3>
-<p data-pl="W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej." data-en="In that case, you will receive a full refund of the booking fee.">
+<p data-pl="W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej."
+   data-en="In that case, you will receive a full refund of the booking fee.">
 W takiej sytuacji otrzymasz pełny zwrot opłaty rezerwacyjnej.
 </p>
 
 <h3 data-pl="7. Czy Ride24 odpowiada za wynajem?" data-en="7. Is Ride24 responsible for the rental?">7. Czy Ride24 odpowiada za wynajem?</h3>
-<p data-pl="Za wynajem odpowiada partner (wypożyczalnia samochodów)." data-en="The rental is provided by the partner (car rental company).">
+<p data-pl="Za wynajem odpowiada partner (wypożyczalnia samochodów)."
+   data-en="The rental is provided by the partner (car rental company).">
 Za wynajem odpowiada partner (wypożyczalnia samochodów).
 </p>
 
@@ -1837,7 +1759,8 @@ Ride24 odpowiada za proces rezerwacji online.
 </p>
 
 <h3 data-pl="8. Czy potrzebuję karty kredytowej?" data-en="8. Do I need a credit card?">8. Czy potrzebuję karty kredytowej?</h3>
-<p data-pl="Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową." data-en="Not always – many partners accept cash or debit card.">
+<p data-pl="Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową."
+   data-en="Not always – many partners accept cash or debit card.">
 Nie zawsze – wielu partnerów akceptuje płatność gotówką lub kartą debetową.
 </p>
 
@@ -1945,7 +1868,7 @@ kontakt: `
         <h2 data-pl="Skontaktuj się z nami" data-en="Contact Us">Skontaktuj się z nami</h2>
         <p data-pl="Napisz do nas, odpowiemy najszybciej jak to możliwe." data-en="Write to us, we will respond as soon as possible.">
         Napisz do nas, odpowiemy najszybciej jak to możliwe.
-</p>
+        </p>
     </div>
 
     <form id="saasContactForm" onsubmit="handleContactSubmit(event)">
@@ -1962,8 +1885,7 @@ kontakt: `
 </div>
 
 <div class="form-group">
-   
- <label data-pl="Email" data-en="Email">Email</label>
+    <label data-pl="Email" data-en="Email">Email</label>
     <input 
         type="email" 
         required 
@@ -1982,8 +1904,7 @@ kontakt: `
     data-en="Type your message..."
     placeholder="Wpisz swoją wiadomość..."
 ></textarea>
-      
-  </div>
+        </div>
 
         <button 
     type="submit" 
@@ -1997,17 +1918,19 @@ kontakt: `
 </div>
 `
 };
+
 window.openLegal = function(type) {
     document.getElementById('legalContent').innerHTML = legalData[type];
     document.getElementById('legalOverlay').style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-const currentLang = localStorage.getItem("lang") || "pl";
+    document.body.style.overflow = 'hidden'; 
+    
+    const currentLang = localStorage.getItem("lang") || "pl";
     setLang(currentLang);
 };
 
 window.closeLegal = function() {
     document.getElementById('legalOverlay').style.display = 'none';
-document.body.style.overflow = 'auto';
+    document.body.style.overflow = 'auto';
 };
     
     
@@ -2107,6 +2030,7 @@ async function handlePasswordReset(e) {
     const { error } = await db.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password.html'
     });
+
     if (error) {
         window.showToast(error.message, "error");
     } else {
@@ -2120,12 +2044,14 @@ async function handlePasswordReset(e) {
 
 async function handlePartnerPasswordReset(e) {
     if (e) e.preventDefault();
+
     const db = window.supabaseClient;
 
     const emailInput = document.getElementById('partner-email');
     const email = emailInput?.value?.trim().toLowerCase();
 
     const lang = localStorage.getItem("lang") || "pl";
+
     if (!email) {
         return window.showToast(
             lang === "pl" ? "Podaj email w polu partnera" : "Enter partner email",
@@ -2136,6 +2062,7 @@ async function handlePartnerPasswordReset(e) {
     const { error } = await db.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password.html'
     });
+
     if (error) {
         window.showToast(error.message, "error");
     } else {
@@ -2150,6 +2077,7 @@ async function handlePartnerPasswordReset(e) {
 function toggleMode(){
     mode = mode === "login" ? "register" : "login";
     const isReg = mode === "register";
+
     document.getElementById("reg-name").classList.toggle("hidden", !isReg);
     document.getElementById("reg-terms-group").classList.toggle("hidden", !isReg);
     document.getElementById("forgot-password-group").style.display = isReg ? "none" : "block";
@@ -2214,6 +2142,7 @@ async function handleAuth() {
             const { data, error } = await db.auth.signInWithPassword({
                 email, password: pass, options: { captchaToken: token }
             });
+
             if (error) throw error;
             if (data.session) window.location.href = "klient.html";
 
@@ -2222,16 +2151,15 @@ async function handleAuth() {
                 email, password: pass,
                 options: {
                     data: { full_name: name },
-           
                     emailRedirectTo: window.location.origin + '/auth/callback.html',
                     captchaToken: token
                 }
             });
+
             if (error) throw error;
 
             if (data.user && !data.session) {
-                openRegSuccess();
-                // To otworzy okno z kopertą
+                openRegSuccess(); // To otworzy okno z kopertą
             } else {
                 window.location.href = "klient.html";
             }
@@ -2246,6 +2174,7 @@ async function handleAuth() {
 }
 async function smartRedirect() {
     const { data: { session } } = await db.auth.getSession();
+    
     if (!session) {
     return; // NIC NIE RÓB
 }
@@ -2255,6 +2184,7 @@ async function smartRedirect() {
         .select("role")
         .eq("id", session.user.id)
         .maybeSingle();
+
     if (profile && profile.role === "admin") {
         window.location.href = "admin/index.html";
     } else if (profile && profile.role === "partner") {
@@ -2292,19 +2222,21 @@ async function loginGoogle() {
 }
 
 // --- FUNKCJE LOGOWANIA PARTNERA ---
-function openPartnerAuth() { document.getElementById("partnerModal").style.display="flex"; document.body.style.overflow="hidden";
-}
+function openPartnerAuth() { document.getElementById("partnerModal").style.display="flex"; document.body.style.overflow="hidden"; }
 function closePartnerAuth() { document.getElementById("partnerModal").style.display="none"; document.body.style.overflow="auto"; }
 
 async function partnerLogin() {
     // 🛡️ FIX: Pobieramy połączenie bezpośrednio tutaj
-    const db = window.supabaseClient;
+    const db = window.supabaseClient; 
+
     const email = document.getElementById("partner-email").value.trim().toLowerCase();
     const pass = document.getElementById("partner-password").value.trim();
     const btn = document.getElementById("partnerAuthBtn");
+
     // 🔐 Turnstile token
     const turnstileToken = document
         .querySelector('#partnerModal [name="cf-turnstile-response"]')?.value;
+
     if (!turnstileToken) {
         alert("Potwierdź, że nie jesteś robotem.");
         return;
@@ -2317,6 +2249,7 @@ async function partnerLogin() {
 
     btn.disabled = true;
     btn.innerText = "Loading...";
+
     try {
         const { error } = await db.auth.signInWithPassword({
             email,
@@ -2325,10 +2258,12 @@ async function partnerLogin() {
                 captchaToken: turnstileToken
             }
         });
+
         if (error) throw error;
 
         // Jeśli wszystko ok, przekierowujemy odpowiednio do roli
         await smartRedirect();
+
     } catch (err) {
         alert(err.message);
         btn.disabled = false;
@@ -2346,10 +2281,12 @@ async function partnerLogin() {
 document.addEventListener("keydown", function(e) {
     if(e.key === "Escape") { closeAuth(); closePartnerAuth(); }
 });
+
 // --- SEARCH STRUCTURE (READY FOR BACKEND) ---
 // --- OBSŁUGA FORMULARZA KONTAKTOWEGO ---
 window.handleContactSubmit = async function(e) {
-    e.preventDefault();
+    e.preventDefault(); 
+    
     const db = window.supabaseClient; // 🛡️ Używamy stabilnego połączenia
     const lang = localStorage.getItem("lang") || "pl";
     const btn = e.target.querySelector('button[type="submit"]');
@@ -2365,20 +2302,22 @@ window.handleContactSubmit = async function(e) {
 
     btn.disabled = true;
     btn.innerText = lang === 'pl' ? 'Wysyłanie...' : 'Sending...';
+
     try {
         // 🚀 WRZUCAMY DO BAZY
         const { error } = await db
             .from('contact_messages')
             .insert([{ name, email, message }]);
+
         if (error) throw error;
 
         window.showToast(
             lang === 'pl' ? "Wiadomość wysłana! Dziękujemy." : "Message sent! Thank you.", 
             "success"
         );
+        
         e.target.reset(); // Czyścimy pola
-        if(typeof closeLegal === "function") closeLegal();
-        // Zamykamy okno kontaktu
+        if(typeof closeLegal === "function") closeLegal(); // Zamykamy okno kontaktu
 
     } catch (err) {
         console.error("Błąd kontaktu:", err);
@@ -2408,7 +2347,7 @@ function collectSearchData(){
             const pickup = document.getElementById("pickup-time");
             const drop = document.getElementById("drop-time");
             if (!pickup || !drop) return;
-            pickup.innerHTML = ""; drop.innerHTML = "";
+            pickup.innerHTML = ""; drop.innerHTML = ""; 
             for(let h=0; h<24; h++) {
                 for(let m=0; m<60; m+=30) {
                     const time = String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
@@ -2421,6 +2360,7 @@ function collectSearchData(){
         }
 
         let pickupPicker, dropPicker;
+
         function setDefaultDates() {
             const today = new Date();
             const todayStr = today.toISOString().split("T")[0];
@@ -2428,19 +2368,19 @@ function collectSearchData(){
             const drop = new Date();
             drop.setDate(drop.getDate() + 3);
             const dropStr = drop.toISOString().split("T")[0];
+
             const currentLang = localStorage.getItem("lang") === "en" ? "en" : "pl";
+
             pickupPicker = flatpickr("#pickup-date", {
                 locale: currentLang,
                 minDate: "today",
                 defaultDate: todayStr,
                 dateFormat: "Y-m-d",
                 disableMobile: true,
-            
                 onChange: function(selectedDates, dateStr, instance) {
                     if (dropPicker && selectedDates.length > 0) {
                         const pickupDate = selectedDates[0];
                         
-               
                         // 1. Zablokuj możliwość oddania auta przed datą odbioru
                         dropPicker.set('minDate', dateStr);
                         
@@ -2448,23 +2388,21 @@ function collectSearchData(){
                         const autoDropDate = new Date(pickupDate);
                         autoDropDate.setDate(autoDropDate.getDate() + 3);
                         dropPicker.setDate(autoDropDate);
-                    
                     }
                 }
             });
+
             dropPicker = flatpickr("#drop-date", {
                 locale: currentLang,
                 minDate: "today",
                 defaultDate: dropStr,
                 dateFormat: "Y-m-d",
                 disableMobile: true
-            
             });
         }
 
         function setDefaultTime() {
-            const now = new Date();
-            now.setHours(now.getHours() + 1);
+            const now = new Date(); now.setHours(now.getHours() + 1);
             const time = String(now.getHours()).padStart(2, "0") + ":" + (now.getMinutes() < 30 ? "00" : "30");
             const pickupTime = document.getElementById("pickup-time");
             if (pickupTime) pickupTime.value = time;
@@ -2475,17 +2413,26 @@ function collectSearchData(){
             const dTime = document.getElementById("drop-time");
             if (pTime && dTime) dTime.value = pTime.value;
         }
-
-// --- 🧠 INTELIGENTNA WYSZUKIWARKA (Wersja Pro - Booking Style) ---
+        // --- 🧠 INTELIGENTNA WYSZUKIWARKA (Wersja Pro) ---
 let SELECTED_PICKUP = null;
 let SELECTED_DROP = null;
 let isDropManuallyChanged = false; 
 let lastQueryId = 0;
-let isSelectingLocation = false;
+let isSelectingLocation = false; // 🔥 NOWA FLAGA MOBILE
 
+function getMatchPriority(text, query) {
+    const t = text.toLowerCase();
+    const q = query.toLowerCase();
+
+    if (t === q) return 1;          // exact match
+    if (t.startsWith(q)) return 2; // startsWith
+    if (t.includes(q)) return 3;   // contains
+    return 4;                      // fallback
+}
 async function fetchSmartLocations(query, resultsBox, type) {
-    query = query.toLowerCase().trim();
-    const db = window.supabaseClient;
+    // 🛡️ POPRAWKA: Pobieramy klienta bezpośrednio z okna, tak jak w results.html
+    const db = window.supabaseClient; 
+    
     if (!db) {
         console.warn("Supabase nie jest jeszcze gotowy...");
         return;
@@ -2493,119 +2440,46 @@ async function fetchSmartLocations(query, resultsBox, type) {
 
     const lang = localStorage.getItem("lang") || "pl";
 
-    // 1. Słownik tłumaczeń i synonimów
-let translated = [];
+    // 1. Szukanie w słowniku
+    let { data: dictMatches } = await db
+        .from('locations_dictionary')
+        .select('name_en')
+        .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
 
-let { data: dictMatches } = await db
-    .from('locations_dictionary')
-    .select('name_en,name_pl,keywords')
-    .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
+    let translated = dictMatches?.map(m => m.name_en) || [];
+    translated.push(query);
 
-if (dictMatches && dictMatches.length) {
+    const uniqueTerms = [...new Set(translated)].slice(0, 5);
+    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,country.ilike.%${t}%`).join(',');
 
-    dictMatches.forEach(m => {
-
-        if (m.name_en)
-            translated.push(m.name_en.toLowerCase());
-
-        if (m.name_pl)
-            translated.push(m.name_pl.toLowerCase());
-
-        if (m.keywords)
-            translated.push(...m.keywords.toLowerCase().split(','));
-
-        });
-
-        }
-
-        let searchTerms = [query, ...translated];
-
-    // Twarde skróty (IATA)
-    if (query === 'mad' || query === 'fnc') searchTerms.push('funchal', 'madeira');
-    if (query === 'por' || query === 'opo') searchTerms.push('porto');
-    if (query === 'lis') searchTerms.push('lisbon');
-    if (query === 'fao') searchTerms.push('faro');
-    if (query === 'pdl') searchTerms.push('ponta delgada', 'azores');
-
-    const uniqueTerms = [...new Set(searchTerms)].slice(0, 8);
-    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.${t}%,region.ilike.${t}%`).join(',');
-
-    // 2. Pobieranie z partner_locations (pobieramy też pole 'type')
+    // 2. Pobieranie z partner_locations
     const { data: partnerData, error } = await db
         .from('partner_locations')
-        .select('location_name, country, region, city, type')
+        .select('location_name, country, region, city')
         .or(orFilters)
         .eq('active', true)
-        .limit(100);
+        .limit(10);
 
     if (error) {
         console.error("Błąd wyszukiwania:", error);
         return;
     }
 
-    // 3. Deduplikacja i Inteligentne Sortowanie (Scoring)
-    const resultsMap = new Map();
+    // 3. Mapowanie danych
+    const results = (partnerData || []).map(item => {
+        let locType = "country";
+        if (item.city) locType = "city";
+        else if (item.region) locType = "region";
 
-    (partnerData || []).forEach(item => {
-        const locName = item.location_name || item.city || item.country || '';
-        const city = item.city || '';
-        const region = item.region || '';
-        const country = item.country || '';
-        const locType = item.type || (locName.toLowerCase().includes('airport') || locName.toLowerCase().includes('lotnisko') ? 'airport' : 'office');
-
-        // Unikalny klucz zapobiegający duplikatom (np. wielu partnerów oferujących to samo lotnisko)
-        const uniqueKey = `${locName}-${city}-${country}`;
-
-        if (!resultsMap.has(uniqueKey)) {
-            let priority = 999;
-            const locNameLower = locName.toLowerCase();
-            const cityLower = city.toLowerCase();
-            const countryLower = country.toLowerCase();
-            const regionLower = region.toLowerCase();
-
-            const isAirport = locType === 'airport';
-
-            if (cityLower === query) {
-                priority = isAirport ? 1 : 2; 
-            } else if (cityLower.startsWith(query)) {
-                priority = isAirport ? 3 : 4; 
-            } else if (countryLower === query || countryLower.startsWith(query)) {
-                priority = isAirport ? 5 : 6; 
-            } else if (locNameLower.startsWith(query)) {
-                priority = isAirport ? 7 : 8; 
-            } else if (cityLower.includes(query) || locNameLower.includes(query)) {
-                priority = isAirport ? 9 : 10; 
-            } else if (regionLower.includes(query) || countryLower.includes(query)) {
-                priority = 11;
-            }
-
-            // Podbicie dla wyników z translate/słownika
-            if (priority > 11) {
-                for (let term of uniqueTerms) {
-                    if (term === query) continue;
-                    if (cityLower === term) priority = isAirport ? 1 : 2;
-                    else if (cityLower.startsWith(term)) priority = isAirport ? 3 : 4;
-                    else if (countryLower.startsWith(term)) priority = isAirport ? 5 : 6;
-                    else if (regionLower.startsWith(term)) priority = isAirport ? 7 : 8;
-                    else if (cityLower.includes(term) || locNameLower.includes(term)) priority = 9;
-                }
-            }
-
-            resultsMap.set(uniqueKey, {
-                name: locName,
-                country: country,
-                region: region,
-                city: city,
-                type: locType,
-                priority: priority
-            });
-        }
-    });
-
-    // 4. Konwersja na tablicę, sortowanie i przycięcie do top wyników
-    const results = Array.from(resultsMap.values())
-        .sort((a, b) => a.priority - b.priority)
-        .slice(0, 8);
+        return {
+            name: item.location_name || item.city || item.country,
+            country: item.country,
+            region: item.region,
+            city: item.city,
+            type: locType,
+            priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
+        };
+    }).sort((a, b) => a.priority - b.priority);
 
     if (results.length === 0) {
         resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
@@ -2615,39 +2489,42 @@ if (dictMatches && dictMatches.length) {
     resultsBox.classList.add("show");
 }
 
+// Dodaj też tę brakującą funkcję pomocniczą:
 function renderSmartResults(results, lang, resultsBox, type) {
     resultsBox.innerHTML = "";
     results.forEach(r => {
         const div = document.createElement("div");
         div.className = "search-dropdown-item";
         
-        // Dynamiczne budowanie sub-textu
+        // Dynamiczne budowanie sub-textu (Miasto, Region, Kraj)
         let subDetails = [];
         if (r.city && r.name !== r.city) subDetails.push(r.city);
-        if (r.region && r.name !== r.region && r.region !== r.city) subDetails.push(r.region);
+        if (r.region && r.name !== r.region) subDetails.push(r.region);
         if (r.country && r.name !== r.country) subDetails.push(r.country);
         let subText = subDetails.join(', ');
 
-        // Ikony lotniska i lokalizacji
-        const isAirport = r.type === 'airport' || r.name.toLowerCase().includes('airport') || r.name.toLowerCase().includes('lotnisko');
-        const icon = isAirport ? '✈️' : '📍';
-
-        // Layout podpowiedzi
+        // Wyświetlamy nazwę i szczegóły lokalizacji
         div.innerHTML = `
-            <div style="display:flex; align-items:center; gap:12px; width:100%;">
-                <div style="flex-shrink:0; font-size:18px; width:24px; text-align:center;">${icon}</div>
-                <div style="display:flex; flex-direction:column; overflow:hidden;">
-                    <span style="font-weight: 700; color: var(--blue-dark); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${r.name}</span>
-                    <span class="sub-text" style="color: var(--gray); font-size: 12px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${subText}</span>
-                </div>
+            <div style="display:flex; flex-direction:column;">
+                <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
+                <span class="sub-text" style="color: var(--gray); font-size: 12px;">${subText}</span>
             </div>`;
             
+        // FUNKCJA WYBIERAJĄCA
         const selectItem = (e) => {
             e.preventDefault(); 
             e.stopPropagation();
-            isSelectingLocation = true;
-            applySearch(r, type);
-            setTimeout(() => { isSelectingLocation = false; }, 300);
+            
+            // 1. Zamykamy na ułamek sekundy możliwość ponownego wyszukiwania
+            isSelectingLocation = true; 
+            
+            // 2. Wykonujemy właściwy wybór (automatycznie wypełni Zwrot)
+            applySearch(r, type); 
+
+            // 3. Po ułamku sekundy, gdy klawiatura się schowa, zdejmujemy blokadę
+            setTimeout(() => {
+                isSelectingLocation = false; 
+            }, 300);
         };
 
         let isScrolling = false;
@@ -2655,17 +2532,25 @@ function renderSmartResults(results, lang, resultsBox, type) {
         div.addEventListener("touchstart", () => {
             isScrolling = false;
         }, { passive: true });
+        
         div.addEventListener("touchmove", () => {
             isScrolling = true;
         }, { passive: true });
+        
+        // 🔥 WRACAMY DO "click"
         div.addEventListener("click", (e) => {
-            if (isScrolling) return; 
+            // Jeśli użytkownik przesuwa palcem, pozwalamy przeglądarce działać (brak e.preventDefault)
+            if (isScrolling) {
+                return; 
+            }
+            
+            // Jeśli to było czyste kliknięcie, odpalamy wybór
             selectItem(e);
         });
+        
         resultsBox.appendChild(div);
     });
 }
-
 function setupSmartSearch(inputId, resultsId, type) {
     const input = document.getElementById(inputId);
     const resultsBox = document.getElementById(resultsId);
@@ -2683,8 +2568,7 @@ function setupSmartSearch(inputId, resultsId, type) {
 
         if (query.length < 2) {
             resultsBox.classList.remove("show");
-   
-             if (type === 'pickup') SELECTED_PICKUP = null;
+            if (type === 'pickup') SELECTED_PICKUP = null;
             if (type === 'drop') SELECTED_DROP = null;
             return;
         }
@@ -2698,23 +2582,27 @@ function setupSmartSearch(inputId, resultsId, type) {
 }
 
 // Funkcja wyboru lokalizacji z listy
+// Funkcja wyboru lokalizacji z listy
 function applySearch(item, type) {
     // Formatujemy to, co wpadnie do inputa po kliknięciu
     let inputDetails = [];
     if (item.city && item.city !== item.name) inputDetails.push(item.city);
     if (item.country && item.country !== item.name) inputDetails.push(item.country);
+    
     let detailsStr = inputDetails.length > 0 ? ` (${inputDetails.join(', ')})` : '';
     const formattedName = `${item.name}${detailsStr}`;
+
     const inputId = type === 'pickup' ? "smart-search-pickup" : "smart-search-drop";
     const resId = type === 'pickup' ? "pickup-results" : "drop-results";
+    
     const input = document.getElementById(inputId);
     if(input) {
         input.value = formattedName;
-        input.blur();
-        // Chowa klawiaturę na smartfonach (UX!)
+        input.blur(); // Chowa klawiaturę na smartfonach (UX!)
     }
     
     document.getElementById(resId)?.classList.remove("show");
+
     if (type === 'pickup') {
         SELECTED_PICKUP = item;
         // Jeśli user nie grzebał w polu "Zwrot", kopiujemy tam Odbiór
@@ -2744,7 +2632,6 @@ function applySearch(item, type) {
                 return;
             }
 
- 
             // 3. Inteligenta poprawka: jeśli user wpisał odbiór, a olał zwrot - kopiujemy dane
             if (!SELECTED_DROP && SELECTED_PICKUP) {
                 SELECTED_DROP = SELECTED_PICKUP;
@@ -2759,10 +2646,12 @@ function applySearch(item, type) {
             const pTime = document.getElementById("pickup-time").value;
             const dDate = document.getElementById("drop-date").value;
             const dTime = document.getElementById("drop-time").value;
+
             // Tworzymy pełne daty do porównania
             const pickupFull = new Date(`${pDate}T${pTime}`);
             const dropFull = new Date(`${dDate}T${dTime}`);
             const now = new Date();
+
             // --- 🛑 WALIDACJA (LOGIKA STRAŻNIKA) ---
 
             // A. Czy wybrano lokalizację?
@@ -2786,9 +2675,10 @@ function applySearch(item, type) {
 
             // --- ✅ WSZYSTKO OK -> PRZECHODZIMY DO WYNIKÓW ---
             
-            this.disabled = true;
+            this.disabled = true; 
             this.innerHTML = lang === 'pl' ? 'SZUKAM AUT...' : 'SEARCHING...';
             this.style.opacity = "0.8";
+
             const searchData = {
                 pickup_location: SELECTED_PICKUP,
                 drop_location: SELECTED_DROP || SELECTED_PICKUP,
@@ -2797,12 +2687,13 @@ function applySearch(item, type) {
                 pickup_time: pTime,
                 drop_time: dTime
             };
+
             localStorage.setItem("searchParams", JSON.stringify(searchData));
             
             setTimeout(() => {
                 window.location.href = "results.html";
             }, 600);
-});
+        });
 // --- JEDYNY I GŁÓWNY SILNIK STARTOWY STRONY ---
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Podpięcie bazy (Supabase)
@@ -2818,7 +2709,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 3. Cookies
     if (!localStorage.getItem("cookie_consent")) {
         setTimeout(() => {
-            
             document.getElementById("cookieConsent")?.classList.add("show");
         }, 1000);
     }
@@ -2839,6 +2729,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         
     });
+
     // Obsługa klawisza ESC
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
@@ -2848,6 +2739,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             closeLegal();
         }
     });
+
     // 5. Daty, Czas i Smart Search
     generateTimeOptions();
     setDefaultDates();
@@ -2869,7 +2761,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 btn.dataset.en = "My profile";
                 btn.innerText = lang === "en" ? "My profile" : "Mój profil";
                 btn.onclick = (e) => { 
-                    e.preventDefault();
+                    e.preventDefault(); 
                     window.location.href = "klient.html"; 
                 };
             }
@@ -2892,11 +2784,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="cookie-header">
             <span style="font-size: 24px;">🍪</span>
             <h3 data-pl="Szanujemy Twoją prywatność" data-en="We respect your privacy">Szanujemy Twoją prywatność</h3>
- 
-       </div>
+        </div>
         <p data-pl="Używamy plików cookie, aby zapewnić prawidłowe działanie strony, analizować ruch i dopasowywać treści. Możesz zaakceptować wszystkie lub tylko te niezbędne." data-en="We use cookies to ensure the proper functioning of the website, analyze traffic and customize content. You can accept all or only necessary cookies.">
-            Używamy plików cookie, aby zapewnić prawidłowe działanie strony, analizować ruch i dopasowywać treści.
-Możesz zaakceptować wszystkie lub tylko te niezbędne.
+            Używamy plików cookie, aby zapewnić prawidłowe działanie strony, analizować ruch i dopasowywać treści. Możesz zaakceptować wszystkie lub tylko te niezbędne.
         </p>
         <div class="cookie-buttons">
             <button class="btn-cookie-reject" onclick="handleCookieConsent('reject')" data-pl="Tylko niezbędne" data-en="Necessary only">Tylko niezbędne</button>
@@ -2907,13 +2797,11 @@ Możesz zaakceptować wszystkie lub tylko te niezbędne.
 <div id="regSuccessModal" class="legal-overlay" style="display:none; align-items:center; justify-content:center;">
     <div class="legal-modal" style="text-align:center; max-width:450px;">
         <div style="font-size: 60px; margin-bottom: 20px; animation: envelopeFloat 2s ease-in-out infinite; display: inline-block;">📩</div>
-   
-     <h2 id="successTitle" style="color: var(--blue-dark); margin-bottom: 15px;" data-pl="Sprawdź skrzynkę!" data-en="Check your inbox!">Sprawdź skrzynkę!</h2>
-        <p id="successDesc" style="font-size: 16px; color: var(--gray); margin-bottom: 25px; line-height: 1.6;" data-pl="Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ Nadawcą wiadomości jest Supabase Auth (sprawdź folder SPAM)</span>" 
+        <h2 id="successTitle" style="color: var(--blue-dark); margin-bottom: 15px;" data-pl="Sprawdź skrzynkę!" data-en="Check your inbox!">Sprawdź skrzynkę!</h2>
+        <p id="successDesc" style="font-size: 16px; color: var(--gray); margin-bottom: 25px; line-height: 1.6;" 
+           data-pl="Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ Nadawcą wiadomości jest Supabase Auth (sprawdź folder SPAM)</span>" 
            data-en="We've sent an activation link to your email. Click it to log in and complete your booking.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ The email sender is Supabase Auth (check your SPAM folder)</span>">
-  
-         Wysłaliśmy link aktywacyjny na Twój e-mail.
-Kliknij go, aby móc się zalogować i dokończyć rezerwację.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ Nadawcą wiadomości jest Supabase Auth (sprawdź folder SPAM)</span>
+           Wysłaliśmy link aktywacyjny na Twój e-mail. Kliknij go, aby móc się zalogować i dokończyć rezerwację.<br><br><span style='font-size: 13px; background: #FEF2F2; color: #EF4444; border: 1px solid #FECACA; padding: 8px 12px; border-radius: 8px; display: inline-block; font-weight: 600;'>⚠️ Nadawcą wiadomości jest Supabase Auth (sprawdź folder SPAM)</span>
         </p>
         <button onclick="closeRegSuccess()" class="btn-submit" style="width: 100%; margin: 0;" data-pl="Rozumiem" data-en="Got it">
             Rozumiem
