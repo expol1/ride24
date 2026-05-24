@@ -2448,6 +2448,15 @@ async function fetchSmartLocations(query, resultsBox, type) {
 
     let translated = dictMatches?.map(m => m.name_en) || [];
     translated.push(query);
+    if (query === 'mad') translated.push('madeira');
+    if (query === 'fnc') translated.push('funchal');
+
+    if (query === 'por') translated.push('porto');
+    if (query === 'opo') translated.push('porto');
+
+    if (query === 'lis') translated.push('lisbon');
+    if (query === 'fao') translated.push('faro');
+    if (query === 'pdl') translated.push('ponta delgada');
 
     const uniqueTerms = [...new Set(translated)].slice(0, 5);
     let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,country.ilike.%${t}%`).join(',');
