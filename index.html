@@ -2313,7 +2313,7 @@ function collectSearchData(){
         // CONTAINS
         if (name.includes(q)) score += 30;
         if (city.includes(q)) score += 20;
-        if (region.includes(q)) score += 5;
+        if (region.includes(q)) score += 45;
         
         // TYPE PRIORITY
         const typePriority = {
@@ -2324,6 +2324,12 @@ function collectSearchData(){
             hotel: 5
         };
         score += typePriority[location.type] || 0;
+        if (city.startsWith(q) && location.type === 'airport') {
+        score += 120;
+        }
+        if (city.startsWith(q) && location.type === 'office') {
+        score -= 15;
+        }       
 
         return score;
     }
