@@ -2305,7 +2305,8 @@ function collectSearchData(){
         let score = 0;
 
         // PREFIX MATCH
-        if (name.startsWith(q)) score += 100;
+        if (name.startsWith(q)) score += location.type === 'airport' ? 180 : 100;
+        
         if (city.startsWith(q)) score += 140;
         if (region.startsWith(q)) score += 100;
         if (country.startsWith(q)) score += 20;
