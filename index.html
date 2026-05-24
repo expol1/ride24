@@ -2430,6 +2430,7 @@ function getMatchPriority(text, query) {
     return 4;                      // fallback
 }
 async function fetchSmartLocations(query, resultsBox, type) {
+    query = query.toLowerCase().trim();
     // 🛡️ POPRAWKA: Pobieramy klienta bezpośrednio z okna, tak jak w results.html
     const db = window.supabaseClient; 
     
@@ -2448,9 +2449,18 @@ async function fetchSmartLocations(query, resultsBox, type) {
 
     let translated = dictMatches?.map(m => m.name_en) || [];
     translated.push(query);
+    if (query === 'mad') translated.push('madeira');
+    if (query === 'fnc') translated.push('funchal');
+
+    if (query === 'por') translated.push('porto');
+    if (query === 'opo') translated.push('porto');
+
+    if (query === 'lis') translated.push('lisbon');
+    if (query === 'fao') translated.push('faro');
+    if (query === 'pdl') translated.push('ponta delgada');
 
     const uniqueTerms = [...new Set(translated)].slice(0, 5);
-    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,country.ilike.%${t}%`).join(',');
+    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.${t}%,region.ilike.${t}%,country.ilike.${t}%`).join(',');
 
     // 2. Pobieranie z partner_locations
     const { data: partnerData, error } = await db
@@ -2467,19 +2477,73 @@ async function fetchSmartLocations(query, resultsBox, type) {
 
     // 3. Mapowanie danych
     const results = (partnerData || []).map(item => {
-        let locType = "country";
-        if (item.city) locType = "city";
-        else if (item.region) locType = "region";
 
-        return {
-            name: item.location_name || item.city || item.country,
-            country: item.country,
-            region: item.region,
-            city: item.city,
-            type: locType,
-            priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
-        };
-    }).sort((a, b) => a.priority - b.priority);
+    const name = (item.location_name || '').toLowerCase();
+    const city = (item.city || '').toLowerCase();
+    const region = (item.region || '').toLowerCase();
+
+    let priority = 999;
+
+    // EXACT CITY
+    if (city === query) priority = 1;
+
+    // CITY STARTS WITH
+    // CITY STARTS WITH
+else if (city.startsWith(query)) {
+
+    if (name.includes('airport')) {
+        priority = 1;
+    }
+
+    else if (name.includes('city')) {
+        priority = 2;
+    }
+
+    else if (name.includes('office')) {
+        priority = 3;
+    }
+
+    else {
+        priority = 4;
+    }
+    }
+
+    // NAME STARTS WITH
+    else if (name.startsWith(query)) {
+        priority = name.includes('airport') ? 5 : 6;
+    }
+
+    // CONTAINS
+    // CONTAINS
+else if (
+    name.includes(query) ||
+    city.includes(query)
+) {
+    priority = 7;
+}
+
+// REGION tylko dla dłuższych fraz
+else if (
+    query.length >= 4 &&
+    region.includes(query)
+) {
+    priority = 8;
+}
+
+    let locType = "country";
+    if (item.city) locType = "city";
+    else if (item.region) locType = "region";
+
+    return {
+        name: item.location_name || item.city || item.country,
+        country: item.country,
+        region: item.region,
+        city: item.city,
+        type: locType,
+        priority
+    };
+
+}).sort((a, b) => a.priority - b.priority);
 
     if (results.length === 0) {
         resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
