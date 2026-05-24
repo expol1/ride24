@@ -2305,32 +2305,30 @@ function collectSearchData(){
         let score = 0;
 
         // PREFIX MATCH
-        if (name.startsWith(q)) score += location.type === 'airport' ? 180 : 100;
         
-        if (city.startsWith(q)) score += 140;
-        if (region.startsWith(q)) score += 100;
-        if (country.startsWith(q)) score += 20;
+        if (name.startsWith(q)) score += 100;
+        if (city.startsWith(q)) score += 90;
+        if (region.startsWith(q)) score += 70;
+        if (country.startsWith(q)) score += 30;
 
         // CONTAINS
         if (name.includes(q)) score += 30;
         if (city.includes(q)) score += 20;
-        if (region.includes(q)) score += 45;
+        if (region.includes(q)) score += 15;
         
         // TYPE PRIORITY
         const typePriority = {
-            airport: 40,
+            airport: 20,
             city: 15,
-            region: 14,
+            region: 8,
             office: 8,
             hotel: 5
         };
         score += typePriority[location.type] || 0;
         if (city.startsWith(q) && location.type === 'airport') {
-        score += 120;
+        score += 30;
         }
-        if (city.startsWith(q) && location.type === 'office') {
-        score -= 15;
-        }       
+              
 
         return score;
     }
@@ -2353,7 +2351,7 @@ function collectSearchData(){
         translated.push(query);
 
         const uniqueTerms = [...new Set(translated)].slice(0, 5);
-        let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,country.ilike.%${t}%`).join(',');
+        let orFilters = uniqueTerms.map(t =>`location_name.ilike.%${t}%,city.ilike.%${t}%,region.ilike.%${t}%,country.ilike.%${t}%`).join(',');
 
         const { data: partnerData, error } = await db
             .from('partner_locations')
