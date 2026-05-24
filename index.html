@@ -2494,27 +2494,41 @@ async function fetchSmartLocations(query, resultsBox, type) {
     const lang = localStorage.getItem("lang") || "pl";
 
     // 1. Słownik tłumaczeń i synonimów
-    let searchTerms = [query];
-    let { data: dictMatches } = await db
-        .from('locations_dictionary')
-        .select('name_en')
-        .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
+let translated = [];
 
-    if (dictMatches) {
-        dictMatches.forEach(m => {
-            if (m.name_en) searchTerms.push(m.name_en.toLowerCase());
+let { data: dictMatches } = await db
+    .from('locations_dictionary')
+    .select('name_en,name_pl,keywords')
+    .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
+
+if (dictMatches && dictMatches.length) {
+
+    dictMatches.forEach(m => {
+
+        if (m.name_en)
+            translated.push(m.name_en.toLowerCase());
+
+        if (m.name_pl)
+            translated.push(m.name_pl.toLowerCase());
+
+        if (m.keywords)
+            translated.push(...m.keywords.toLowerCase().split(','));
+
         });
-    }
+
+        }
+
+        let searchTerms = [query, ...translated];
 
     // Twarde skróty (IATA)
     if (query === 'mad' || query === 'fnc') searchTerms.push('funchal', 'madeira');
-    if (query === 'por' || query === 'opo') searchTerms.push('porto', 'portugal');
+    if (query === 'por' || query === 'opo') searchTerms.push('porto');
     if (query === 'lis') searchTerms.push('lisbon');
     if (query === 'fao') searchTerms.push('faro');
     if (query === 'pdl') searchTerms.push('ponta delgada', 'azores');
 
     const uniqueTerms = [...new Set(searchTerms)].slice(0, 8);
-    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,region.ilike.%${t}%,country.ilike.%${t}%`).join(',');
+    let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.${t}%,region.ilike.${t}%`).join(',');
 
     // 2. Pobieranie z partner_locations (pobieramy też pole 'type')
     const { data: partnerData, error } = await db
