@@ -2430,6 +2430,7 @@ function getMatchPriority(text, query) {
     return 4;                      // fallback
 }
 async function fetchSmartLocations(query, resultsBox, type) {
+    query = query.toLowerCase().trim();
     // 🛡️ POPRAWKA: Pobieramy klienta bezpośrednio z okna, tak jak w results.html
     const db = window.supabaseClient; 
     
@@ -2476,19 +2477,54 @@ async function fetchSmartLocations(query, resultsBox, type) {
 
     // 3. Mapowanie danych
     const results = (partnerData || []).map(item => {
-        let locType = "country";
-        if (item.city) locType = "city";
-        else if (item.region) locType = "region";
 
-        return {
-            name: item.location_name || item.city || item.country,
-            country: item.country,
-            region: item.region,
-            city: item.city,
-            type: locType,
-            priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
-        };
-    }).sort((a, b) => a.priority - b.priority);
+    const name = (item.location_name || '').toLowerCase();
+    const city = (item.city || '').toLowerCase();
+    const region = (item.region || '').toLowerCase();
+
+    let priority = 999;
+
+    // EXACT CITY
+    if (city === query) priority = 1;
+
+    // CITY STARTS WITH
+    else if (city.startsWith(query)) {
+        priority = name.includes('airport') ? 2 : 3;
+    }
+
+    // REGION STARTS WITH
+    else if (region.startsWith(query)) {
+        priority = 4;
+    }
+
+    // NAME STARTS WITH
+    else if (name.startsWith(query)) {
+        priority = name.includes('airport') ? 5 : 6;
+    }
+
+    // CONTAINS
+    else if (
+        name.includes(query) ||
+        city.includes(query) ||
+        region.includes(query)
+    ) {
+        priority = 7;
+    }
+
+    let locType = "country";
+    if (item.city) locType = "city";
+    else if (item.region) locType = "region";
+
+    return {
+        name: item.location_name || item.city || item.country,
+        country: item.country,
+        region: item.region,
+        city: item.city,
+        type: locType,
+        priority
+    };
+
+}).sort((a, b) => a.priority - b.priority);
 
     if (results.length === 0) {
         resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
