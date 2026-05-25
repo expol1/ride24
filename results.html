@@ -478,14 +478,57 @@ let query = db
     
                 
                 // 2. MAGICZNY FILTR INTENCJI
-                if (loc.type === "city") {
-                    query = query.eq('partners.partner_locations.city', loc.city);
-                } else if (loc.type === "region") {
-                    query = query.eq('partners.partner_locations.region', loc.region);
-                } else {
-                    query = query.eq('partners.partner_locations.country', loc.country);
-                }
+                
 
+             // 🔥 1. Dokładna lokalizacja partnera
+             if (loc.location_name) {
+
+              query = query.eq(
+             'partners.partner_locations.location_name',
+             loc.location_name
+             );
+
+             }
+
+             // 🔥 2. Lotnisko
+             else if (loc.type === "airport") {
+
+              query = query.eq(
+             'partners.partner_locations.city',
+             loc.city
+             );
+
+             }
+
+              // 🔥 3. Miasto
+              else if (loc.type === "city") {
+
+              query = query.eq(
+             'partners.partner_locations.city',
+              loc.city
+              );
+
+              }
+
+               // 🔥 4. Region
+               else if (loc.type === "region") {
+
+               query = query.eq(
+              'partners.partner_locations.region',
+               loc.region
+               );
+
+               }
+
+               // 🔥 5. Kraj (fallback)
+               else {
+
+                query = query.eq(
+               'partners.partner_locations.country',
+                loc.country
+                );
+
+                }            
                 // 📄 4️⃣ PAGINACJA (Limit wyników)
                 const PAGE_SIZE = 20;
                 const { data: rawCars, error } = await query.limit(PAGE_SIZE);
