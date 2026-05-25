@@ -2811,7 +2811,7 @@ function collectSearchData() {
             .map(t => t.toLowerCase().trim());
 
         const orFilters = uniqueTerms.map(t =>
-            `location_name.ilike.%${t}%,city.ilike.%${t}%,region.ilike.%${t}%,country.ilike.%${t}%`
+            `location_name.ilike.%${t}%,city.ilike.%${t}%,region.ilike.%${t}%`
         ).join(',');
 
         // 2. Pobieranie z partner_locations
