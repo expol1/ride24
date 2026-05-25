@@ -792,12 +792,9 @@
         }
 
         /* TŁA KAFELKÓW - Jasna soczysta zieleń */
-        .steps-container .step-box.step1 { background: #F1FCE3;
-        }
-        .steps-container .step-box.step2 { background: #F1FCE3;
-        }
-        .steps-container .step-box.step3 { background: #F1FCE3;
-        }
+        .steps-container .step-box.step1 { background: #F1FCE3; }
+        .steps-container .step-box.step2 { background: #F1FCE3; }
+        .steps-container .step-box.step3 { background: #F1FCE3; }
 
         .step-box:hover {
             transform: translateY(-2px);
@@ -1050,15 +1047,13 @@
                 flex-wrap: nowrap;
                 overflow-x: auto;
                 scrollbar-width: none; /* Firefox */
-                -ms-overflow-style: none;
-                /* IE */
+                -ms-overflow-style: none; /* IE */
                 padding: 0 4px 12px 4px;
                 justify-content: flex-start;
                 gap: 12px;
             }
             .trust-badges::-webkit-scrollbar { 
-                display: none;
-                /* Chrome/Safari */
+                display: none; /* Chrome/Safari */
             } 
             .trust-badge { 
                 flex-shrink: 0;
@@ -2689,11 +2684,19 @@ window.handleContactSubmit = async function(e) {
     }
 };
 function collectSearchData() {
+
+    if (!SELECTED_PICKUP?.slug) {
+        showToast("Wybierz miejsce odbioru", "error");
+        return null;
+    }
+
     return {
-        pickup_location: SELECTED_PICKUP,
-        drop_location: SELECTED_DROP,
+        pickup_slug: SELECTED_PICKUP.slug,
+        drop_slug: SELECTED_DROP?.slug || SELECTED_PICKUP.slug,
+
         pickup_date: document.getElementById("pickup-date").value,
         drop_date: document.getElementById("drop-date").value,
+
         pickup_time: document.getElementById("pickup-time").value,
         drop_time: document.getElementById("drop-time").value
     };
@@ -2777,46 +2780,19 @@ function collectSearchData() {
     let isDropManuallyChanged = false; 
     let lastQueryId = 0;
     let isSelectingLocation = false;
+    // 🔥 NOWA FLAGA MOBILE
+
     function getMatchPriority(text, query) {
         const t = text.toLowerCase();
         const q = query.toLowerCase();
-        if (t === q) return 1;          
-        if (t.startsWith(q)) return 2;  
-        if (t.includes(q)) return 3;    
-        return 4;
-    }
-
-    function scoreLocation(location, query) {
-        const q = query.toLowerCase();
-        const name = (location.location_name || '').toLowerCase();
-        const city = (location.city || '').toLowerCase();
-        const region = (location.region || '').toLowerCase();
-        const country = (location.country || '').toLowerCase();
-        
-        let score = 0;
-        // PREFIX MATCH
-        if (name.startsWith(q)) score += 100;
-        if (city.startsWith(q)) score += 90;
-        if (region.startsWith(q)) score += 60;
-        if (country.startsWith(q)) score += 40;
-        // CONTAINS
-        if (name.includes(q)) score += 30;
-        if (city.includes(q)) score += 20;
-        if (region.includes(q)) score += 10;
-        
-        // TYPE PRIORITY
-        const typePriority = {
-            airport: 20,
-            city: 15,
-            region: 10,
-            hotel: 5
-        };
-        score += typePriority[location.type] || 0;
-
-        return score;
+        if (t === q) return 1;          // exact match
+        if (t.startsWith(q)) return 2;  // startsWith
+        if (t.includes(q)) return 3;    // contains
+        return 4;                       // fallback
     }
 
     async function fetchSmartLocations(query, resultsBox, type) {
+        // 🛡️ POPRAWKA: Pobieramy klienta bezpośrednio z okna, tak jak w results.html
         const db = window.supabaseClient;
         if (!db) {
             console.warn("Supabase nie jest jeszcze gotowy...");
@@ -2824,133 +2800,111 @@ function collectSearchData() {
         }
 
         const lang = localStorage.getItem("lang") || "pl";
+        // 1. Szukanie w słowniku
         let { data: dictMatches } = await db
             .from('locations_dictionary')
             .select('name_en')
             .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
+            
         let translated = dictMatches?.map(m => m.name_en) || [];
         translated.push(query);
 
         const uniqueTerms = [...new Set(translated)].slice(0, 5);
         let orFilters = uniqueTerms.map(t => `location_name.ilike.%${t}%,city.ilike.%${t}%,country.ilike.%${t}%`).join(',');
 
+        // 2. Pobieranie z partner_locations
         const { data: partnerData, error } = await db
             .from('partner_locations')
             .select('location_name, country, region, city')
             .or(orFilters)
             .eq('active', true)
             .limit(10);
+            
         if (error) {
             console.error("Błąd wyszukiwania:", error);
             return;
         }
 
+        // 3. Mapowanie danych
         const results = (partnerData || []).map(item => {
             let locType = "country";
-            if ((item.location_name || "").toLowerCase().includes("airport")) locType = "airport";
-            else if (item.city) locType = "city";
+            if (item.city) locType = "city";
             else if (item.region) locType = "region";
 
             return {
-     
                 name: item.location_name || item.city || item.country,
-                location_name: item.location_name,
                 country: item.country,
                 region: item.region,
                 city: item.city,
-                
                 type: locType,
                 priority: (item.location_name || "").toLowerCase().includes("airport") ? 1 : 2
             };
-        });
-        results.sort((a, b) => {
-            return scoreLocation(b, query) - scoreLocation(a, query);
-        });
+        }).sort((a, b) => a.priority - b.priority);
+        
         if (results.length === 0) {
             resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak wyników' : 'No results found'}</span></div>`;
         } else {
             renderSmartResults(results, lang, resultsBox, type);
         }
-        
         resultsBox.classList.add("show");
     }
 
+    // Dodaj też tę brakującą funkcję pomocniczą:
     function renderSmartResults(results, lang, resultsBox, type) {
         resultsBox.innerHTML = "";
         results.forEach(r => {
             const div = document.createElement("div");
             div.className = "search-dropdown-item";
-
+            
+            // Dynamiczne budowanie sub-textu (Miasto, Region, Kraj)
             let subDetails = [];
+            if (r.city && r.name !== r.city) subDetails.push(r.city);
+            if (r.region && r.name !== r.region) subDetails.push(r.region);
+            if (r.country && r.name !== r.country) subDetails.push(r.country);
+      
+            let subText = subDetails.join(', ');
 
-            if (r.city && r.location_name !== r.city) {
-                subDetails.push(r.city);
-            }
-        
-            if (r.region && r.location_name !== r.region) {
-                subDetails.push(r.region);
-            }
-            if (r.country && r.location_name !== r.country) {
-                subDetails.push(r.country);
-            }
-
-            let subText = subDetails.join(", ");
-
+            // Wyświetlamy nazwę i szczegóły lokalizacji
             div.innerHTML = `
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-weight:700; color: var(--blue-dark);">
-                        ${r.location_name || r.name}
-                   
-                    </span>
-                    <span class="sub-text">
-                        ${subText}
-                    </span>
-                </div>
-            `;
+                    <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
+                    <span class="sub-text" style="color: var(--gray); font-size: 12px;">${subText}</span>
+                </div>`;
+                
+            // FUNKCJA WYBIERAJĄCA
+            const selectItem = (e) => {
+                e.preventDefault(); 
+                e.stopPropagation();
+                // 1. Zamykamy na ułamek sekundy możliwość ponownego wyszukiwania
+                isSelectingLocation = true;
+                // 2. Wykonujemy właściwy wybór (automatycznie wypełni Zwrot)
+                applySearch(r, type);
+                // 3. Po ułamku sekundy, gdy klawiatura się schowa, zdejmujemy blokadę
+                setTimeout(() => {
+                    isSelectingLocation = false; 
+                }, 300);
+            };
 
-      
-            div.addEventListener("click", () => {
-                const input = document.getElementById(
-                    type === "pickup" ? "smart-search-pickup" : "smart-search-drop"
-                );
-                if (input) {
-                    input.value = r.location_name || r.name;
+            let isScrolling = false;
+
+            div.addEventListener("touchstart", () => {
+                isScrolling = false;
+            }, { passive: true });
+            
+            div.addEventListener("touchmove", () => {
+                isScrolling = true;
+            }, { passive: true });
+            
+            // 🔥 WRACAMY DO "click"
+            div.addEventListener("click", (e) => {
+                // Jeśli użytkownik przesuwa palcem, pozwalamy przeglądarce działać (brak e.preventDefault)
+                if (isScrolling) {
+                    return; 
                 }
-
-                if (type === "pickup") {
-
-                    SELECTED_PICKUP = {
-                        ...r,
-                        name: r.location_name || r.name
-                    };
                 
-                    if (!isDropManuallyChanged) {
-                
-                        const dropInput = document.getElementById("smart-search-drop");
-                
-                        if (dropInput) {
-                            dropInput.value = r.location_name || r.name;
-                        }
-                
-                        SELECTED_DROP = {
-                            ...r,
-                            name: r.location_name || r.name
-                        };
-                    }
-                
-                } else {
-                
-                    SELECTED_DROP = {
-                        ...r,
-                        name: r.location_name || r.name
-                    };
-                
-                    isDropManuallyChanged = true;
-                }
-
-                resultsBox.classList.remove("show");
+                // Jeśli to było czyste kliknięcie, odpalamy wybór
+                selectItem(e);
             });
-
             resultsBox.appendChild(div);
         });
     }
@@ -2959,17 +2913,15 @@ function collectSearchData() {
         const input = document.getElementById(inputId);
         const resultsBox = document.getElementById(resultsId);
         let timeout = null;
-        
+
         if (!input) return;
+
         input.addEventListener("input", (e) => {
+            // 🔥 BLOKADA MOBILE: Jeśli właśnie wybieramy z listy, ignorujemy event
             if (isSelectingLocation) return; 
 
-            if (type === 'drop') {
-                isDropManuallyChanged = true; 
-            }
-            
+            if (type === 'drop') isDropManuallyChanged = true; 
             const query = e.target.value.trim().toLowerCase();
-        
             clearTimeout(timeout);
 
             if (query.length < 2) {
@@ -2977,77 +2929,81 @@ function collectSearchData() {
                 if (type === 'pickup') SELECTED_PICKUP = null;
                 if (type === 'drop') SELECTED_DROP = null;
                 return;
-    
             }
 
             const queryId = ++lastQueryId; 
             timeout = setTimeout(async () => {
-                if (queryId !== lastQueryId) return; 
+                if (queryId !== lastQueryId) return; // Jeśli user pisał dalej, zignoruj ten wynik
                 await fetchSmartLocations(query, resultsBox, type);
             }, 300);
-      
         });
     }
 
+    // Funkcja wyboru lokalizacji z listy
     function applySearch(item, type) {
+        // Formatujemy to, co wpadnie do inputa po kliknięciu
         let inputDetails = [];
         if (item.city && item.city !== item.name) inputDetails.push(item.city);
         if (item.country && item.country !== item.name) inputDetails.push(item.country);
         let detailsStr = inputDetails.length > 0 ? ` (${inputDetails.join(', ')})` : '';
         const formattedName = `${item.name}${detailsStr}`;
+        
         const inputId = type === 'pickup' ? "smart-search-pickup" : "smart-search-drop";
         const resId = type === 'pickup' ? "pickup-results" : "drop-results";
         const input = document.getElementById(inputId);
         
         if(input) {
             input.value = formattedName;
-            input.blur();
+            input.blur(); // Chowa klawiaturę na smartfonach (UX!)
         }
         
         document.getElementById(resId)?.classList.remove("show");
         if (type === 'pickup') {
-        
-            SELECTED_PICKUP = {
-                ...item,
-                name: item.location_name || item.name
-            };
-        
-            if (!isDropManuallyChanged) {
-        
-                const dropInput = document.getElementById("smart-search-drop");
-        
-                if(dropInput) {
-                    dropInput.value = formattedName;
-                }
-        
-                SELECTED_DROP = {
-                    ...item,
-                    name: item.location_name || item.name
-                };
-            }
-        
-        } else {
-        
-            SELECTED_DROP = {
-                ...item,
-                name: item.location_name || item.name
-            };
+
+    SELECTED_PICKUP = {
+        slug: item.slug,
+        name: formattedName
+    };
+
+    if (!isDropManuallyChanged) {
+
+        const dropInput = document.getElementById("smart-search-drop");
+
+        if (dropInput) {
+            dropInput.value = formattedName;
         }
+
+        SELECTED_DROP = {
+            slug: item.slug,
+            name: formattedName
+        };
+    }
+
+} else {
+
+    SELECTED_DROP = {
+        slug: item.slug,
+        name: formattedName
+    };
+}
     }
             
     document.getElementById("searchBtn")?.addEventListener("click", async function() {
+        // 1. Blokada przed wielokrotnym kliknięciem
         if (this.disabled) return; 
 
+        // DODANE: Wymuszone ukrycie list podpowiedzi przy kliknięciu (Zabezpieczenie przed nakładaniem warstw)
         document.querySelectorAll(".search-dropdown").forEach(el => el.classList.remove("show"));
 
+        // 2. 🛡️ HONEYPOT - szybki stop dla botów
         const honeypot = document.querySelector('[name="website"]')?.value;
         if (honeypot) {
             console.warn("Bot blocked");
             this.disabled = true;
-        
             return;
         }
 
+        // 3. Inteligenta poprawka: jeśli user wpisał odbiór, a olał zwrot - kopiujemy dane
         if (!SELECTED_DROP && SELECTED_PICKUP) {
             SELECTED_DROP = SELECTED_PICKUP;
             const dropInput = document.getElementById("smart-search-drop");
@@ -3056,31 +3012,40 @@ function collectSearchData() {
 
         const lang = localStorage.getItem("lang") || "pl";
         
-   
+        // 4. Pobranie wartości do walidacji dat
         const pDate = document.getElementById("pickup-date").value;
         const pTime = document.getElementById("pickup-time").value;
         const dDate = document.getElementById("drop-date").value;
         const dTime = document.getElementById("drop-time").value;
-
+        
+        // Tworzymy pełne daty do porównania
         const pickupFull = new Date(`${pDate}T${pTime}`);
         const dropFull = new Date(`${dDate}T${dTime}`);
         const now = new Date();
+        
+        // --- 🛑 WALIDACJA (LOGIKA STRAŻNIKA) ---
+
+        // A. Czy wybrano lokalizację?
         if (!SELECTED_PICKUP) {
             window.showToast(lang === 'pl' ? "Proszę wybrać miejsce odbioru z listy!" : "Please select a pick-up location!", "error");
             document.getElementById("smart-search-pickup").focus();
             return;
         }
 
+        // B. Czy data odbioru nie jest w przeszłości? (z marginesem 5 min)
         if (pickupFull < new Date(now.getTime() - 300000)) {
             window.showToast(lang === 'pl' ? "Data odbioru nie może być w przeszłości!" : "Pick-up date cannot be in the past!", "error");
             return;
         }
 
+        // C. Czy zwrot jest po odbiorze? (Zabezpieczenie przed "powrotem do przyszłości")
         if (dropFull <= pickupFull) {
             window.showToast(lang === 'pl' ? "Data zwrotu musi być późniejsza niż odbioru!" : "Drop-off must be after pick-up!", "error");
             return;
         }
 
+        // --- ✅ WSZYSTKO OK -> PRZECHODZIMY DO WYNIKÓW ---
+        
         this.disabled = true;
         this.innerHTML = lang === 'pl' ? 'SZUKAM AUT...' : 'SEARCHING...';
         this.style.opacity = "0.8";
@@ -3093,6 +3058,7 @@ function collectSearchData() {
             pickup_time: pTime,
             drop_time: dTime
         };
+        
         localStorage.setItem("searchParams", JSON.stringify(searchData));
         
         setTimeout(() => {
