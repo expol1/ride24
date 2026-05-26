@@ -257,34 +257,6 @@
             margin-left: auto;
         }
 
-.topbar-help{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    cursor:pointer;
-    padding:10px 14px;
-    border-radius:12px;
-    transition:all .25s ease;
-    background:rgba(255,255,255,.12);
-    backdrop-filter:blur(10px);
-    font-weight:700;
-    font-size:14px;
-    min-width:44px;
-    min-height:44px;
-    justify-content:center;
-}
-
-.topbar-help:hover{
-    background:rgba(255,255,255,.22);
-    transform:translateY(-1px);
-}
-
-.help-icon{
-    width:18px;
-    height:18px;
-    fill:white;
-}
-
         /* --- CLIENT BADGE --- */
         .client-badge {
             display: flex;
@@ -559,7 +531,7 @@
             -webkit-backdrop-filter: blur(12px);
             align-items: center; 
             justify-content: center; 
-            z-index: 99999;
+            z-index: 9999;
             animation: overlayFade 0.4s ease forwards;
         }
         
@@ -887,92 +859,8 @@
         left: 16px;
         right: 16px;
     }
-
-.topbar-help span{
-    display:none;
 }
-
-.help-modal-box{
-    width:100%;
-    height:92vh;
-    border-radius:28px 28px 0 0 !important;
-}
-
-.help-content{
-    overscroll-behavior: contain;
-    max-height:calc(92vh - 80px);
-    padding:20px;
-}
-
-.help-section{
-    padding:18px;
-}
-}
-    .help-modal-box{
-    width:min(900px,95vw);
-    max-height:90vh;
-    overflow:hidden;
-    padding:0;
-    z-index:99999;
-}
-
-.help-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:24px 28px;
-    border-bottom:1px solid var(--border);
-    background:#fff;
-    position:sticky;
-    top:0;
-    z-index:2;
-}
-
-.help-content{
-    overscroll-behavior: contain;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    max-height:75vh;
-    padding:28px;
-    background:#F8FAFC;
-}
-
-.help-section{
-    background:white;
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:22px;
-    margin-bottom:20px;
-    box-shadow:0 4px 12px rgba(0,0,0,.03);
-}
-
-.help-section h4{
-    margin-bottom:10px;
-    font-size:18px;
-    color:var(--blue-dark);
-}
-
-.help-section p{
-    color:#475569;
-    line-height:1.7;
-    font-size:14px;
-}
-
-.help-close{
-    border:none;
-    background:#F1F5F9;
-    width:40px;
-    height:40px;
-    border-radius:12px;
-    cursor:pointer;
-    font-size:18px;
-    transition:.2s;
-}
-
-.help-close:hover{
-    background:#E2E8F0;
-}
-</style>
+    </style>
 </head>
 <body> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -1056,23 +944,6 @@
             </div>
 
             <div class="topbar-icons">
-<div class="topbar-help" onclick="openHelpModal()">
-
-    <svg viewBox="0 0 24 24" class="help-icon">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 
-                 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75
-                 -.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 
-                 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 
-                 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 
-                 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
-    </svg>
-
-    <span data-pl="Pomoc" data-en="Help">
-        Pomoc
-    </span>
-
-</div>
-
                 <div class="lang-switch">
                     <div class="lang-btn" id="lang-pl" onclick="setLang('pl')">
                         <img src="flagi/pl.svg" style="height:24px;" alt="PL">
@@ -1254,134 +1125,10 @@ Potwierdź rezerwację
             </main>
     </div>
 
-   <!-- HELP MODAL -->
-<div id="helpModal" class="modal-overlay">
-
-    <div class="modal-box help-modal-box">
-
-        <div class="help-header">
-
-            <h3 data-pl="Centrum pomocy"
-                data-en="Help center">
-                Centrum pomocy
-            </h3>
-
-            <button class="help-close"
-                    onclick="closeHelpModal()">
-                ✕
-            </button>
-
-        </div>
-
-        <div class="help-content">
-
-            <div class="help-section">
-
-                <h4 data-pl="📊 Pulpit"
-                    data-en="📊 Dashboard">
-                    📊 Pulpit
-                </h4>
-
-                <p
-                    data-pl="Tutaj widzisz aktywne rezerwacje, statusy oraz szybki podgląd płatności."
-                    data-en="Here you can see active bookings, statuses and payment overview.">
-                    Tutaj widzisz aktywne rezerwacje.
-                </p>
-
-            </div>
-
-            <div class="help-section">
-
-                <h4
-                    data-pl="🚗 Rezerwacje"
-                    data-en="🚗 Bookings">
-                    🚗 Rezerwacje
-                </h4>
-
-                <p
-                    data-pl="Sekcja zawiera wszystkie Twoje rezerwacje wraz ze statusami i płatnościami."
-                    data-en="This section contains all bookings with statuses and payments.">
-                    Sekcja zawiera wszystkie rezerwacje.
-                </p>
-
-            </div>
-
-            <div class="help-section">
-
-                <h4
-                    data-pl="💳 Płatności"
-                    data-en="💳 Payments">
-                    💳 Płatności
-                </h4>
-
-                <p
-                    data-pl="Tutaj opłacisz rezerwację online i pobierzesz voucher."
-                    data-en="Here you can pay online and download vouchers.">
-                    Tutaj opłacisz rezerwację.
-                </p>
-
-            </div>
-
-            <div class="help-section">
-
-                <h4
-                    data-pl="👤 Profil"
-                    data-en="👤 Profile">
-                    👤 Profil
-                </h4>
-
-                <p
-                    data-pl="Możesz edytować dane właściciela konta i dodatkowych kierowców."
-                    data-en="You can edit owner and additional drivers data.">
-                    Możesz edytować dane.
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script type="module">
-window.openHelpModal = function(){
-
-    document.getElementById("helpModal").style.display = "flex";
-
-}
-
-window.closeHelpModal = function(){
-
-    document.getElementById("helpModal").style.display = "none";
-
-}
-
-        
-document.addEventListener("click", function(e){
-
-    const modal = document.getElementById("helpModal");
-
-    if(e.target === modal){
-
-        closeHelpModal();
-
-    }
-
-});
-
-document.addEventListener("keydown", function(e){
-
-    if(e.key === "Escape"){
-
-        closeHelpModal();
-
-    }
-
-});
-// Otwieranie modala
+        // Otwieranie modala
 window.requestDeleteAccount = function() {
     document.getElementById('deleteModal').style.display = 'flex';
     document.getElementById('deleteConfirmInput').value = ''; // Reset pola
@@ -1429,7 +1176,6 @@ window.closeDeleteModal = function() {
         };
         // --- LOYALTY TOOLTIP ---
 window.openLoyaltyModal = function() {
-    const isEn = localStorage.getItem("client_lang") === "en";
     const existing = document.getElementById("loyaltyTooltip");
 
     if (existing) {
@@ -1441,26 +1187,7 @@ window.openLoyaltyModal = function() {
     tooltip.id = "loyaltyTooltip";
     tooltip.className = "loyalty-tooltip";
 
-    tooltip.innerHTML = isEn ? `
-        <div class="lt-title">🎯 Loyalty Program</div>
-        <div class="lt-desc">
-            Collect paid bookings and get discounts on the booking fee.
-        </div>
-
-        <div class="lt-table">
-            <div>START <span>0%</span></div>
-            <div>SILVER <span>5%</span></div>
-            <div>GOLD <span>10%</span></div>
-            <div>PLATINUM <span>15%</span></div>
-            <div>VIP <span>20%</span></div>
-        </div>
-
-        <div class="lt-note">
-            ✔ Discount applies only to online booking fee<br>
-            ✔ It does not include Partner payment<br>
-            ✔ Applied automatically after payment
-        </div>
-    ` : `
+    tooltip.innerHTML = `
         <div class="lt-title">🎯 Program lojalnościowy</div>
         <div class="lt-desc">
             Zbieraj opłacone rezerwacje i otrzymuj rabaty na opłatę rezerwacyjną.
@@ -1523,13 +1250,7 @@ window.processAccountDeletion = async function() {
 
         if (error) throw error;
 
-        const isEn = localStorage.getItem("client_lang") === "en";
-
-alert(
-    isEn
-    ? "Request sent. You will be logged out."
-    : "Zgłoszenie wysłane. Zostaniesz wylogowany."
-);
+        alert("Zgłoszenie wysłane. Zostaniesz wylogowany.");
 
         await db.auth.signOut();
 
@@ -1581,13 +1302,7 @@ async function getExchangeRate(currency) {
 
 if (!user) {
   console.error("❌ BRAK USERA!");
-  const isEn = localStorage.getItem("client_lang") === "en";
-
-  alert(
-      isEn
-      ? "You must be logged in"
-      : "Musisz być zalogowany"
-  );
+  alert("Musisz być zalogowany");
   return;
 }
 
@@ -1596,13 +1311,7 @@ const { data: { session } } = await window.supabaseClient.auth.getSession();
 const token = session?.access_token;
 
 if (!token) {
-  const isEn = localStorage.getItem("client_lang") === "en";
-
-  alert(
-      isEn
-      ? "Refresh the page and try again"
-      : "Odśwież stronę i spróbuj ponownie"
-  );
+  alert("Odśwież stronę i spróbuj ponownie");
   return;
 }
 
