@@ -332,8 +332,14 @@
         .page-title { font-size: 24px; font-weight: 800; color: var(--blue-dark); display: flex; align-items: center; gap: 10px;}
         
         .section-heading { font-size: 18px; font-weight: 800; color: var(--blue-dark); margin-bottom: 16px; font-family: 'Manrope', sans-serif;}
-        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .profile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; }
         .profile-col { display: flex; flex-direction: column; }
+        .invoice-remember-row { margin-top: 4px; margin-bottom: 0; }
+        .invoice-remember-label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--blue-dark); }
+        .invoice-remember-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--blue); cursor: pointer; }
+        .invoice-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 18px; border-top: 1px solid var(--border); padding-top: 20px; }
+        .invoice-actions .btn-secondary,
+        .invoice-actions .btn-primary { white-space: nowrap; }
 
         .btn-primary { background: var(--blue); color: white; padding: 10px 18px; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; text-decoration: none; }
         .btn-primary:hover { background: var(--blue-hover); }
@@ -807,6 +813,9 @@
     .profile-grid { grid-template-columns: 1fr; gap: 24px; }
     .form-row { grid-template-columns: 1fr; gap: 16px; }
     .form-group input, .form-group select { height: 50px; font-size: 15px; } /* Idealne pod kciuk */
+    .invoice-actions { flex-direction: column; }
+    .invoice-actions .btn-secondary,
+    .invoice-actions .btn-primary { width: 100%; }
     
     /* Estetyczny styl dla dodawanych kierowców na mobile */
     .driver-row {
@@ -1116,6 +1125,50 @@ Potwierdź rezerwację
                             <div style="flex: 1;"></div>
                             <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
                                 <button type="button" class="btn-primary" onclick="saveDrivers()" data-pl="Zapisz kierowców" data-en="Save drivers">Zapisz kierowców</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-col">
+                        <h2 class="section-heading" data-pl="📄 Dane do rachunku" data-en="📄 Invoice details">📄 Dane do rachunku</h2>
+                        <div class="settings-card">
+                            <div class="form-group">
+                                <label for="invoice-company" data-pl="Nazwa firmy" data-en="Company name">Nazwa firmy</label>
+                                <input type="text" id="invoice-company" value="">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="invoice-nip" data-pl="NIP" data-en="Tax ID">NIP</label>
+                                <input type="text" id="invoice-nip" value="" inputmode="numeric" maxlength="10">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="invoice-street" data-pl="Ulica i numer" data-en="Street and number">Ulica i numer</label>
+                                <input type="text" id="invoice-street" value="">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="invoice-postal" data-pl="Kod pocztowy" data-en="Postal code">Kod pocztowy</label>
+                                <input type="text" id="invoice-postal" value="" inputmode="numeric" maxlength="6" placeholder="12-345">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="invoice-city" data-pl="Miasto" data-en="City">Miasto</label>
+                                <input type="text" id="invoice-city" value="">
+                            </div>
+
+                            <div class="form-group invoice-remember-row">
+                                <label class="invoice-remember-label" for="invoice-remember">
+                                    <input type="checkbox" id="invoice-remember" checked>
+                                    <span data-pl="Zapamiętaj dane" data-en="Remember data">Zapamiętaj dane</span>
+                                </label>
+                            </div>
+
+                            <div style="flex: 1;"></div>
+                            <div class="invoice-actions">
+                                <button type="button" class="btn-secondary" onclick="clearInvoiceForm()" data-pl="Wyczyść formularz" data-en="Clear form">Wyczyść formularz</button>
+                                <button type="button" class="btn-secondary btn-cancel-soft" onclick="deleteInvoiceData()" data-pl="Usuń zapisane dane" data-en="Delete saved data">Usuń zapisane dane</button>
+                                <button type="button" class="btn-primary" onclick="saveInvoiceData()" data-pl="Zapisz dane" data-en="Save data">Zapisz dane</button>
                             </div>
                         </div>
                     </div>
@@ -1552,6 +1605,7 @@ if (!currentUser || !currentUser.id) {
 }
 
             window.detectLang();
+            window.setupInvoiceFieldHandlers();
             await loadUserProfile();
             await loadClientBookings(); 
             await loadPayments();
@@ -2710,6 +2764,177 @@ function calculateRefundPercent(pickupDate) {
             }
         }
         
+        function sanitizeInvoiceNip(value) {
+            return (value || "").replace(/\D/g, "").slice(0, 10);
+        }
+
+        function formatInvoicePostalCode(value) {
+            const digits = (value || "").replace(/\D/g, "").slice(0, 5);
+            if (digits.length <= 2) return digits;
+            return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+        }
+
+        window.setupInvoiceFieldHandlers = function() {
+            const nipInput = document.getElementById("invoice-nip");
+            const postalInput = document.getElementById("invoice-postal");
+
+            if (nipInput && !nipInput.dataset.boundInvoice) {
+                nipInput.addEventListener("input", () => {
+                    nipInput.value = sanitizeInvoiceNip(nipInput.value);
+                });
+                nipInput.dataset.boundInvoice = "1";
+            }
+
+            if (postalInput && !postalInput.dataset.boundInvoice) {
+                postalInput.addEventListener("input", () => {
+                    postalInput.value = formatInvoicePostalCode(postalInput.value);
+                });
+                postalInput.dataset.boundInvoice = "1";
+            }
+        }
+
+        window.clearInvoiceForm = function() {
+            const fieldIds = [
+                "invoice-company",
+                "invoice-nip",
+                "invoice-street",
+                "invoice-postal",
+                "invoice-city"
+            ];
+
+            fieldIds.forEach((fieldId) => {
+                const input = document.getElementById(fieldId);
+                if (input) input.value = "";
+            });
+        }
+
+        window.loadInvoiceData = async function() {
+            if (!db || !currentUser) return;
+
+            window.setupInvoiceFieldHandlers();
+
+            const { data: invoiceData, error } = await db
+                .from("user_invoice_profiles")
+                .select("company_name, nip, street, postal_code, city")
+                .eq("user_id", currentUser.id)
+                .maybeSingle();
+
+            if (error) {
+                console.error("Błąd ładowania danych do rachunku:", error);
+                return;
+            }
+
+            window.clearInvoiceForm();
+
+            const rememberCheckbox = document.getElementById("invoice-remember");
+            if (rememberCheckbox) rememberCheckbox.checked = true;
+
+            if (!invoiceData) return;
+
+            const companyInput = document.getElementById("invoice-company");
+            const nipInput = document.getElementById("invoice-nip");
+            const streetInput = document.getElementById("invoice-street");
+            const postalInput = document.getElementById("invoice-postal");
+            const cityInput = document.getElementById("invoice-city");
+
+            if (companyInput) companyInput.value = invoiceData.company_name || "";
+            if (nipInput) nipInput.value = sanitizeInvoiceNip(invoiceData.nip || "");
+            if (streetInput) streetInput.value = invoiceData.street || "";
+            if (postalInput) postalInput.value = formatInvoicePostalCode(invoiceData.postal_code || "");
+            if (cityInput) cityInput.value = invoiceData.city || "";
+        }
+
+        window.saveInvoiceData = async function() {
+            const isEn = localStorage.getItem("client_lang") === "en";
+
+            if (!db || !currentUser) {
+                window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
+                return;
+            }
+
+            const rememberCheckbox = document.getElementById("invoice-remember");
+            const shouldRemember = rememberCheckbox ? rememberCheckbox.checked : false;
+
+            if (!shouldRemember) {
+                window.showToast(
+                    "Dane nie zostały zapisane, ponieważ opcja zapamiętywania jest wyłączona.",
+                    "info"
+                );
+                return;
+            }
+
+            const companyInput = document.getElementById("invoice-company");
+            const nipInput = document.getElementById("invoice-nip");
+            const streetInput = document.getElementById("invoice-street");
+            const postalInput = document.getElementById("invoice-postal");
+            const cityInput = document.getElementById("invoice-city");
+
+            const nipValue = sanitizeInvoiceNip(nipInput ? nipInput.value : "");
+            const postalValue = formatInvoicePostalCode(postalInput ? postalInput.value : "");
+
+            if (nipInput) nipInput.value = nipValue;
+            if (postalInput) postalInput.value = postalValue;
+
+            const payload = {
+                user_id: currentUser.id,
+                company_name: companyInput ? companyInput.value.trim() : "",
+                nip: nipValue,
+                street: streetInput ? streetInput.value.trim() : "",
+                postal_code: postalValue,
+                city: cityInput ? cityInput.value.trim() : "",
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await db
+                .from("user_invoice_profiles")
+                .upsert(payload, { onConflict: "user_id" });
+
+            if (error) {
+                console.error("Błąd zapisu danych do rachunku:", error);
+                window.showToast(
+                    isEn ? "Error while saving invoice data." : "Błąd podczas zapisu danych do rachunku.",
+                    "error"
+                );
+                return;
+            }
+
+            window.showToast(
+                isEn ? "Invoice data saved." : "Dane do rachunku zapisane.",
+                "success"
+            );
+        }
+
+        window.deleteInvoiceData = async function() {
+            const isEn = localStorage.getItem("client_lang") === "en";
+
+            if (!db || !currentUser) {
+                window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
+                return;
+            }
+
+            const confirmed = window.confirm("Czy na pewno usunąć zapisane dane do rachunku?");
+            if (!confirmed) return;
+
+            const { error } = await db
+                .from("user_invoice_profiles")
+                .delete()
+                .eq("user_id", currentUser.id);
+
+            if (error) {
+                console.error("Błąd usuwania danych do rachunku:", error);
+                window.showToast(
+                    isEn ? "Error while deleting invoice data." : "Błąd podczas usuwania danych do rachunku.",
+                    "error"
+                );
+                return;
+            }
+
+            window.clearInvoiceForm();
+            const rememberCheckbox = document.getElementById("invoice-remember");
+            if (rememberCheckbox) rememberCheckbox.checked = true;
+            window.showToast("Dane zostały usunięte.", "success");
+        }
+
 
         window.saveProfile = async function() {
             if(!db || !currentUser) {
@@ -2962,6 +3187,10 @@ window.cancelBooking = async function(id, currentStatus) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             const targetNav = document.getElementById('nav-' + tabId);
             if(targetNav) targetNav.classList.add('active');
+
+            if (tabId === "profile" && typeof window.loadInvoiceData === "function") {
+                window.loadInvoiceData();
+            }
         }
 
         window.toggleSidebar = function() { 
