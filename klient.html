@@ -3168,15 +3168,15 @@ window.cancelBooking = async function(id, currentStatus) {
     // 🔥 TU PÓŹNIEJ: Stripe redirect
 };
         function hasCompleteInvoiceProfile(profile) {
-            if (!profile) return false;
-            return Boolean(
-                (profile.company_name || "").trim() &&
-                (profile.nip || "").trim() &&
-                (profile.street || "").trim() &&
-                (profile.postal_code || "").trim() &&
-                (profile.city || "").trim()
-            );
-        }
+    if (!profile) return false;
+
+    return Boolean(
+        (profile.company_name || "").trim() &&
+        (profile.street || "").trim() &&
+        (profile.postal_code || "").trim() &&
+        (profile.city || "").trim()
+    );
+}
 
         window.openInvoiceMissingModal = function() {
             const modal = document.getElementById("invoiceMissingModal");

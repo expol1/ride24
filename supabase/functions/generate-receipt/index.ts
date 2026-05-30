@@ -63,7 +63,24 @@ if (paymentError || !payment) {
     "Paid payment record not found"
   )
 }
+// ===== INVOICE PROFILE =====
 
+const {
+  data: invoiceProfile
+} = await supabase
+  .from("user_invoice_profiles")
+  .select(`
+    company_name,
+    nip,
+    street,
+    postal_code,
+    city
+  `)
+  .eq(
+    "user_id",
+    booking.client_id
+  )
+  .single()
 
 if (booking.receipt_generated) {
   return new Response(
@@ -233,6 +250,60 @@ page.drawText(
     size:11,
     font,
     color:rgb(0.9,0.9,0.9)
+  }
+)
+
+// ===== NABYWCA =====
+
+page.drawText(
+  "NABYWCA",
+  {
+    x:320,
+    y:640,
+    size:14,
+    font:bold
+  }
+)
+
+page.drawText(
+  invoiceProfile?.company_name || booking.profiles?.name || "-",
+  {
+    x:320,
+    y:620,
+    size:11,
+    font
+  }
+)
+
+if (invoiceProfile?.nip) {
+  page.drawText(
+    `NIP: ${invoiceProfile.nip}`,
+    {
+      x:320,
+      y:605,
+      size:11,
+      font
+    }
+  )
+}
+
+page.drawText(
+  invoiceProfile?.street || "-",
+  {
+    x:320,
+    y:590,
+    size:11,
+    font
+  }
+)
+
+page.drawText(
+  `${invoiceProfile?.postal_code || ""} ${invoiceProfile?.city || ""}`,
+  {
+    x:320,
+    y:575,
+    size:11,
+    font
   }
 )
 
