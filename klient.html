@@ -3328,7 +3328,7 @@ window.cancelBooking = async function(id, currentStatus) {
                 window.showToast(isEn ? "Receipt is not ready yet." : "Rachunek nie jest jeszcze gotowy.", "info");
                 return;
             }
-
+            console.log("PDF URL:", receipt.pdf_url);
             const { data: signedData, error: signedError } = await db.storage
                 .from("receipts")
                 .createSignedUrl(receipt.pdf_url, 60);
