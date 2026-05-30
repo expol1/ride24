@@ -460,6 +460,18 @@
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
         }
         .btn-download-voucher:hover { box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
+        .btn-request-receipt {
+            background: linear-gradient(135deg,#16A34A,#15803D);
+            color: white;
+            box-shadow: 0 4px 10px rgba(21, 128, 61, 0.24);
+        }
+        .btn-request-receipt:hover { box-shadow: 0 6px 14px rgba(21, 128, 61, 0.34); transform: translateY(-1px); }
+        .btn-download-receipt {
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            color: white;
+            box-shadow: 0 4px 10px rgba(29, 78, 216, 0.24);
+        }
+        .btn-download-receipt:hover { box-shadow: 0 6px 14px rgba(29, 78, 216, 0.34); transform: translateY(-1px); }
 
         .btn-cancel-soft {
             background: white;
@@ -572,6 +584,10 @@
 
         .modal-actions { margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; }
         .modal-actions button { padding: 12px 24px; font-size: 15px; }
+        .receipt-summary-box { background: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .receipt-summary-row { font-size: 14px; color: var(--gray); margin-bottom: 8px; line-height: 1.5; }
+        .receipt-summary-row strong { color: var(--blue-dark); }
+        .receipt-summary-row:last-child { margin-bottom: 0; }
 
         @keyframes overlayFade { 0% { opacity: 0; } 100% { opacity: 1; } }
         @keyframes modalPop { 0% { opacity: 0; transform: scale(0.95) translateY(15px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
@@ -2190,6 +2206,7 @@ loyalty_discount_percent: discountPercent
     status,
     payment_deadline,
     refund_status,
+    receipt_generated,
 refund_completed_at,
     final_price_snapshot,
     online_payment_pln,
@@ -2351,6 +2368,16 @@ else if (s === 'paid') {
     actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')">
         📄 Voucher PDF
     </button>`;
+
+    if (booking.receipt_generated) {
+        actionsHtml += `<button class="action-btn-premium btn-download-receipt" onclick="window.downloadReceipt('${booking.id}')">
+        📥 ${isEn ? 'Download receipt' : 'Pobierz rachunek'}
+    </button>`;
+    } else {
+        actionsHtml += `<button class="action-btn-premium btn-request-receipt" onclick="window.requestReceipt('${booking.id}')">
+        📄 ${isEn ? 'I need an invoice' : 'Potrzebuję rachunku'}
+    </button>`;
+    }
 }
 else if (s === 'cancelled' || s === 'rejected' || s === 'expired' || s === 'payment_expired') {
     actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600; padding: 6px 0;">
@@ -3140,6 +3167,180 @@ window.cancelBooking = async function(id, currentStatus) {
 
     // 🔥 TU PÓŹNIEJ: Stripe redirect
 };
+        function hasCompleteInvoiceProfile(profile) {
+            if (!profile) return false;
+            return Boolean(
+                (profile.company_name || "").trim() &&
+                (profile.nip || "").trim() &&
+                (profile.street || "").trim() &&
+                (profile.postal_code || "").trim() &&
+                (profile.city || "").trim()
+            );
+        }
+
+        window.openInvoiceMissingModal = function() {
+            const modal = document.getElementById("invoiceMissingModal");
+            if (modal) modal.style.display = "flex";
+        }
+
+        window.closeInvoiceMissingModal = function() {
+            const modal = document.getElementById("invoiceMissingModal");
+            if (modal) modal.style.display = "none";
+        }
+
+        window.goToProfileForInvoiceData = function() {
+            window.closeInvoiceMissingModal();
+            window.switchTab("profile");
+        }
+
+        window.openReceiptSummaryModal = function(bookingId, profile) {
+            const modal = document.getElementById("receiptSummaryModal");
+            const company = document.getElementById("receiptSummaryCompany");
+            const nip = document.getElementById("receiptSummaryNip");
+            const addressLine1 = document.getElementById("receiptSummaryAddress1");
+            const addressLine2 = document.getElementById("receiptSummaryAddress2");
+            const confirmBtn = document.getElementById("generateReceiptConfirmBtn");
+
+            if (!modal || !company || !nip || !addressLine1 || !addressLine2 || !confirmBtn) return;
+
+            company.textContent = profile.company_name || "-";
+            nip.textContent = profile.nip || "-";
+            addressLine1.textContent = profile.street || "-";
+            addressLine2.textContent = `${profile.postal_code || "-"} ${profile.city || ""}`.trim();
+            confirmBtn.dataset.bookingId = bookingId;
+            modal.style.display = "flex";
+        }
+
+        window.closeReceiptSummaryModal = function() {
+            const modal = document.getElementById("receiptSummaryModal");
+            const confirmBtn = document.getElementById("generateReceiptConfirmBtn");
+            if (confirmBtn) delete confirmBtn.dataset.bookingId;
+            if (modal) modal.style.display = "none";
+        }
+
+        window.requestReceipt = async function(bookingId) {
+            const isEn = localStorage.getItem("client_lang") === "en";
+
+            if (!db || !currentUser) {
+                window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
+                return;
+            }
+
+            const { data: booking, error: bookingError } = await db
+                .from("bookings")
+                .select("id, status, receipt_generated")
+                .eq("id", bookingId)
+                .eq("client_id", currentUser.id)
+                .maybeSingle();
+
+            if (bookingError || !booking) {
+                window.showToast(isEn ? "Booking not found." : "Nie znaleziono rezerwacji.", "error");
+                return;
+            }
+
+            if (booking.status !== "paid") {
+                window.showToast(isEn ? "Receipt can be generated only for paid bookings." : "Rachunek można wygenerować tylko dla opłaconych rezerwacji.", "info");
+                return;
+            }
+
+            if (booking.receipt_generated) {
+                await window.downloadReceipt(booking.id);
+                return;
+            }
+
+            const { data: profile, error: profileError } = await db
+                .from("user_invoice_profiles")
+                .select("company_name, nip, street, postal_code, city")
+                .eq("user_id", currentUser.id)
+                .maybeSingle();
+
+            if (profileError) {
+                window.showToast(isEn ? "Error while loading invoice data." : "Błąd podczas pobierania danych do rachunku.", "error");
+                return;
+            }
+
+            if (!hasCompleteInvoiceProfile(profile)) {
+                window.openInvoiceMissingModal();
+                return;
+            }
+
+            window.openReceiptSummaryModal(booking.id, profile);
+        }
+
+        window.confirmGenerateReceipt = async function() {
+            const isEn = localStorage.getItem("client_lang") === "en";
+            const btn = document.getElementById("generateReceiptConfirmBtn");
+            const bookingId = btn?.dataset?.bookingId;
+
+            if (!bookingId) {
+                window.showToast(isEn ? "Booking ID missing." : "Brak ID rezerwacji.", "error");
+                return;
+            }
+
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = isEn ? "Generating..." : "Generowanie...";
+
+            try {
+                const { error } = await db.functions.invoke(
+                    "generate-receipt",
+                    {
+                        body: {
+                            booking_id: bookingId
+                        }
+                    }
+                );
+
+                if (error) throw error;
+
+                window.closeReceiptSummaryModal();
+                window.showToast("Rachunek został wygenerowany", "success");
+                await loadClientBookings();
+            } catch (err) {
+                console.error("Błąd generowania rachunku:", err);
+                window.showToast(
+                    isEn ? "Receipt generation failed." : "Nie udało się wygenerować rachunku.",
+                    "error"
+                );
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        }
+
+        window.downloadReceipt = async function(bookingId) {
+            const isEn = localStorage.getItem("client_lang") === "en";
+
+            if (!db || !currentUser) {
+                window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
+                return;
+            }
+
+            const { data: receipt, error } = await db
+                .from("receipts")
+                .select("pdf_url, created_at")
+                .eq("booking_id", bookingId)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (error || !receipt?.pdf_url) {
+                window.showToast(isEn ? "Receipt is not ready yet." : "Rachunek nie jest jeszcze gotowy.", "info");
+                return;
+            }
+
+            const { data: signedData, error: signedError } = await db.storage
+                .from("receipts")
+                .createSignedUrl(receipt.pdf_url, 60);
+
+            if (signedError || !signedData?.signedUrl) {
+                window.showToast(isEn ? "Download error" : "Błąd pobierania", "error");
+                return;
+            }
+
+            window.open(signedData.signedUrl, "_blank", "noopener");
+        }
+
         window.downloadVoucher = async function(id) {
             const isEn = localStorage.getItem("client_lang") === "en";
             const { data, error } = await db.from("vouchers").select("pdf_path").eq("booking_id", id).single();
@@ -3329,6 +3530,50 @@ window.goToHome = function() {
     window.location.href = "index.html";
 };
     </script>
+    <div id="invoiceMissingModal" class="modal-overlay">
+        <div class="modal-box" style="width: 500px;">
+            <h3 data-pl="Brak danych do rachunku" data-en="Missing invoice data">Brak danych do rachunku</h3>
+            <p class="modal-desc" data-pl="Uzupełnij dane w: Profil → Dane do rachunku" data-en="Complete your data in: Profile → Invoice details">
+                Uzupełnij dane w: <strong>Profil → Dane do rachunku</strong>
+            </p>
+
+            <div class="modal-actions" style="margin-top: 8px;">
+                <button class="btn-primary" onclick="goToProfileForInvoiceData()" data-pl="Przejdź do profilu" data-en="Go to profile">Przejdź do profilu</button>
+                <button class="btn-secondary" onclick="closeInvoiceMissingModal()" data-pl="Anuluj" data-en="Cancel">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="receiptSummaryModal" class="modal-overlay">
+        <div class="modal-box" style="width: 540px;">
+            <h3 data-pl="Generowanie rachunku" data-en="Receipt generation">Generowanie rachunku</h3>
+            <p class="modal-desc" data-pl="Sprawdź dane, które zostaną użyte do wystawienia rachunku." data-en="Review the details that will be used for your receipt.">
+                Sprawdź dane, które zostaną użyte do wystawienia rachunku.
+            </p>
+
+            <div class="receipt-summary-box">
+                <div class="receipt-summary-row">
+                    <strong data-pl="Nazwa firmy:" data-en="Company name:">Nazwa firmy:</strong>
+                    <span id="receiptSummaryCompany">-</span>
+                </div>
+                <div class="receipt-summary-row">
+                    <strong data-pl="NIP:" data-en="Tax ID:">NIP:</strong>
+                    <span id="receiptSummaryNip">-</span>
+                </div>
+                <div class="receipt-summary-row">
+                    <strong data-pl="Adres:" data-en="Address:">Adres:</strong><br>
+                    <span id="receiptSummaryAddress1">-</span><br>
+                    <span id="receiptSummaryAddress2">-</span>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 12px;">
+                <button class="btn-secondary" onclick="closeReceiptSummaryModal()" data-pl="Anuluj" data-en="Cancel">Anuluj</button>
+                <button id="generateReceiptConfirmBtn" class="btn-primary" onclick="confirmGenerateReceipt()" data-pl="Generuj rachunek" data-en="Generate receipt">Generuj rachunek</button>
+            </div>
+        </div>
+    </div>
+
     <div id="termsModal" class="modal-overlay">
         <div class="modal-box">
             <h3 data-pl="Potwierdzenie rezerwacji" data-en="Booking confirmation">Potwierdzenie rezerwacji</h3>
