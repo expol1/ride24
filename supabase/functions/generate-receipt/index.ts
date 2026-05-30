@@ -4,8 +4,25 @@ import { PDFDocument, rgb } from "https://esm.sh/pdf-lib"
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1"
 
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://ride24.pl",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods":
+    "POST, OPTIONS"
+}
+
+const jsonHeaders = {
+  ...corsHeaders,
+  "Content-Type": "application/json"
+}
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok")
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: corsHeaders
+    })
+  }
 
   let booking_id: string | null = null
   let supabase: any = null
@@ -15,7 +32,13 @@ serve(async (req) => {
     booking_id = body.booking_id || body.record?.id || body.id
 
     if (!booking_id) {
-      return new Response("Missing booking_id", { status: 400 })
+      return new Response(
+        "Missing booking_id",
+        {
+          status: 400,
+          headers: corsHeaders
+        }
+      )
     }
 
     supabase = createClient(
@@ -44,7 +67,13 @@ if (fetchError) {
 
 // 🔥 zostaje jak było
 if (!booking || booking.status !== "paid") {
-  return new Response("Ignored", { status: 200 });
+  return new Response(
+    "Ignored",
+    {
+      status: 200,
+      headers: corsHeaders
+    }
+  );
 }
 const { data: payment, error: paymentError } =
   await supabase
@@ -87,7 +116,10 @@ if (booking.receipt_generated) {
     JSON.stringify({
       error: "Receipt already exists"
     }),
-    { status: 409 }
+    {
+      status: 409,
+      headers: jsonHeaders
+    }
   )
 }
 
@@ -141,7 +173,7 @@ const reservation =
   booking.id.slice(0,8).toUpperCase()
 
 const page =
-  pdfDoc.addPage([600,800])
+  pdfDoc.addPage([595.28,841.89])
 
 const brandBlue =
   rgb(0.06,0.22,0.42)
@@ -151,312 +183,518 @@ const brandGreen =
 
 const lightGray =
   rgb(0.9,0.9,0.9)
+const borderGray =
+  rgb(0.84,0.88,0.92)
 
-// HEADER
+const cardGray =
+  rgb(0.97,0.98,0.99)
+
+const textDark =
+  rgb(0.13,0.17,0.23)
+
+const textMuted =
+  rgb(0.42,0.48,0.56)
+
+const pageWidth =
+  page.getWidth()
+
+const pageHeight =
+  page.getHeight()
+
+const marginX = 40
+const contentWidth =
+  pageWidth - marginX * 2
+
+const issuedDate =
+  new Date().toLocaleDateString("pl-PL")
+
+const paymentDate =
+  booking.updated_at
+    ? new Date(booking.updated_at)
+        .toLocaleDateString("pl-PL")
+    : issuedDate
+
+const paymentStatus =
+  payment.status === "paid"
+    ? "Opłacono online"
+    : payment.status
+
+const paymentIntent =
+  payment?.stripe_session_id || "-"
+
+const sellerLines = [
+  "Ride24 – Auta z różnych zakątków świata",
+  "Emilia Sowa",
+  "ul. Przyszłości 38/3",
+  "70-893 Szczecin",
+  "Polska"
+]
+
+const buyerLines = [
+  invoiceProfile?.company_name ||
+    booking.profiles?.name || "-",
+  ...(invoiceProfile?.nip
+    ? [`NIP: ${invoiceProfile.nip}`]
+    : []),
+  invoiceProfile?.street || "-",
+  `${invoiceProfile?.postal_code || ""} ${invoiceProfile?.city || ""}`.trim() || "-"
+]
+
+const drawCard = (
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color = cardGray
+) => {
+  page.drawRectangle({
+    x,
+    y,
+    width,
+    height,
+    color,
+    borderColor: borderGray,
+    borderWidth: 1
+  })
+}
+
+const drawCardLines = (
+  lines: string[],
+  x: number,
+  startY: number,
+  maxWidth: number
+) => {
+  lines.forEach((line, index) => {
+    page.drawText(
+      line,
+      {
+        x,
+        y: startY - index * 15,
+        size: 10.5,
+        font,
+        color: textDark,
+        maxWidth,
+        lineHeight: 13
+      }
+    )
+  })
+}
+
+let cursorY =
+  pageHeight - 36
+
+// ===== SEKCJA 1: HEADER =====
+const headerHeight = 114
+const headerY =
+  cursorY - headerHeight
+
+drawCard(
+  marginX,
+  headerY,
+  contentWidth,
+  headerHeight,
+  rgb(1,1,1)
+)
+
 page.drawRectangle({
-  x:0,
-  y:700,
-  width:600,
-  height:100,
-  color:brandBlue
+  x: marginX,
+  y: headerY + headerHeight - 6,
+  width: contentWidth,
+  height: 6,
+  color: brandBlue
 })
 
 page.drawRectangle({
-  x:0,
-  y:695,
-  width:600,
-  height:5,
-  color:brandGreen
+  x: marginX,
+  y: headerY + headerHeight - 10,
+  width: contentWidth,
+  height: 4,
+  color: brandGreen
 })
 
 page.drawImage(
   logoImage,
   {
-    x:50,
-    y:725,
-    width:130,
-    height:45
+    x: marginX + 16,
+    y: headerY + 28,
+    width: 128,
+    height: 44
   }
+)
+
+const headerInfoWidth = 228
+const headerInfoX =
+  marginX + contentWidth - headerInfoWidth - 14
+const headerInfoY =
+  headerY + 16
+
+drawCard(
+  headerInfoX,
+  headerInfoY,
+  headerInfoWidth,
+  headerHeight - 28,
+  rgb(0.96,0.98,1)
 )
 
 page.drawText(
   "RACHUNEK",
   {
-    x:380,
-    y:755,
-    size:18,
-    font:bold,
-    color:rgb(1,1,1)
+    x: headerInfoX + 14,
+    y: headerInfoY + 65,
+    size: 16,
+    font: bold,
+    color: brandBlue
   }
 )
 
 page.drawText(
   receiptNumber,
   {
-    x:380,
-    y:730,
-    size:12,
+    x: headerInfoX + 14,
+    y: headerInfoY + 47,
+    size: 11,
+    font: bold,
+    color: textDark
+  }
+)
+
+page.drawText(
+  `Data wystawienia: ${issuedDate}`,
+  {
+    x: headerInfoX + 14,
+    y: headerInfoY + 30,
+    size: 9.8,
     font,
-    color:rgb(0.9,0.9,0.9)
+    color: textMuted
   }
 )
 
 page.drawText(
-  "Ride24.pl",
+  `Numer rezerwacji: ${reservation}`,
   {
-    x:50,
-    y:640,
-    size:14,
-    font:bold
-  }
-)
-
-page.drawText(
-  "Emilia Sowa",
-  {
-    x:50,
-    y:620,
-    size:11,
-    font
-  }
-)
-
-page.drawText(
-  "ul. Przyszłości 38/3",
-  {
-    x:50,
-    y:605,
-    size:11,
-    font
-  }
-)
-
-page.drawText(
-  "70-893 Szczecin",
-  {
-    x:50,
-    y:590,
-    size:11,
-    font
-  }
-)
-
-page.drawText(
-  "Data wystawienia: " +
-  new Date().toLocaleDateString("pl-PL"),
-  {
-    x:380,
-    y:710,
-    size:11,
+    x: headerInfoX + 14,
+    y: headerInfoY + 14,
+    size: 9.8,
     font,
-    color:rgb(0.9,0.9,0.9)
+    color: textMuted,
+    maxWidth: headerInfoWidth - 24,
+    lineHeight: 12
   }
 )
 
-// ===== NABYWCA =====
+// ===== SEKCJA 2: SPRZEDAWCA / NABYWCA =====
+cursorY = headerY - 18
+
+const columnsGap = 16
+const columnWidth =
+  (contentWidth - columnsGap) / 2
+const cardsHeight = 136
+const cardsY =
+  cursorY - cardsHeight
+
+drawCard(
+  marginX,
+  cardsY,
+  columnWidth,
+  cardsHeight
+)
+
+drawCard(
+  marginX + columnWidth + columnsGap,
+  cardsY,
+  columnWidth,
+  cardsHeight
+)
+
+page.drawText(
+  "SPRZEDAWCA",
+  {
+    x: marginX + 14,
+    y: cardsY + cardsHeight - 22,
+    size: 11,
+    font: bold,
+    color: brandBlue
+  }
+)
+
+drawCardLines(
+  sellerLines,
+  marginX + 14,
+  cardsY + cardsHeight - 40,
+  columnWidth - 24
+)
+
+const buyerX =
+  marginX + columnWidth + columnsGap
 
 page.drawText(
   "NABYWCA",
   {
-    x:320,
-    y:640,
-    size:14,
-    font:bold
+    x: buyerX + 14,
+    y: cardsY + cardsHeight - 22,
+    size: 11,
+    font: bold,
+    color: brandBlue
   }
 )
+
+drawCardLines(
+  buyerLines,
+  buyerX + 14,
+  cardsY + cardsHeight - 40,
+  columnWidth - 24
+)
+
+// ===== SEKCJA 3: SZCZEGÓŁY TRANSAKCJI =====
+cursorY = cardsY - 20
 
 page.drawText(
-  invoiceProfile?.company_name || booking.profiles?.name || "-",
+  "SZCZEGÓŁY TRANSAKCJI",
   {
-    x:320,
-    y:620,
-    size:11,
-    font
+    x: marginX,
+    y: cursorY,
+    size: 12.5,
+    font: bold,
+    color: textDark
   }
 )
 
-if (invoiceProfile?.nip) {
-  page.drawText(
-    `NIP: ${invoiceProfile.nip}`,
-    {
-      x:320,
-      y:605,
-      size:11,
-      font
-    }
-  )
-}
+const tableTop =
+  cursorY - 16
 
-page.drawText(
-  invoiceProfile?.street || "-",
-  {
-    x:320,
-    y:590,
-    size:11,
-    font
-  }
+const transactionRows:
+  Array<[string, string]> = [
+    ["Numer rezerwacji", reservation],
+    [
+      "Klasa pojazdu",
+      booking.car_classes?.class_code || "-"
+    ],
+    ["Status płatności", paymentStatus],
+    [
+      "Payment Intent",
+      paymentIntent.length > 42
+        ? paymentIntent.slice(0, 42) + "..."
+        : paymentIntent
+    ],
+    ["Data płatności", paymentDate]
+  ]
+
+const tableHeaderHeight = 30
+const tableRowHeight = 28
+const tableHeight =
+  tableHeaderHeight +
+  transactionRows.length * tableRowHeight
+const tableBottom =
+  tableTop - tableHeight
+const splitX =
+  marginX + contentWidth * 0.44
+
+drawCard(
+  marginX,
+  tableBottom,
+  contentWidth,
+  tableHeight,
+  rgb(1,1,1)
 )
 
-page.drawText(
-  `${invoiceProfile?.postal_code || ""} ${invoiceProfile?.city || ""}`,
-  {
-    x:320,
-    y:575,
-    size:11,
-    font
-  }
-)
-
-page.drawText(
-  "Opłata rezerwacyjna Ride24",
-  {
-    x:50,
-    y:550,
-    size:12,
-    font
-  }
-)
+page.drawRectangle({
+  x: marginX,
+  y: tableTop - tableHeaderHeight,
+  width: contentWidth,
+  height: tableHeaderHeight,
+  color: lightGray
+})
 
 page.drawLine({
-  start:{x:50,y:535},
-  end:{x:550,y:535},
-  thickness:1,
-  color:lightGray
+  start: { x: splitX, y: tableBottom },
+  end: { x: splitX, y: tableTop },
+  thickness: 1,
+  color: borderGray
 })
 
 page.drawText(
-  "Numer rezerwacji:",
+  "Opis",
   {
-    x:50,
-    y:500,
-    size:12,
-    font
+    x: marginX + 12,
+    y: tableTop - 20,
+    size: 10.5,
+    font: bold,
+    color: textDark
   }
 )
 
 page.drawText(
-  reservation,
+  "Wartość",
   {
-    x:250,
-    y:500,
-    size:12,
-    font:bold
+    x: splitX + 12,
+    y: tableTop - 20,
+    size: 10.5,
+    font: bold,
+    color: textDark
   }
 )
 
-page.drawText(
-  "Klasa pojazdu:",
-  {
-    x:50,
-    y:470,
-    size:12,
-    font
+transactionRows.forEach(
+  ([label, value], index) => {
+    const rowTop =
+      tableTop -
+      tableHeaderHeight -
+      index * tableRowHeight
+    const rowY =
+      rowTop - tableRowHeight
+
+    page.drawLine({
+      start: { x: marginX, y: rowY },
+      end: { x: marginX + contentWidth, y: rowY },
+      thickness: 1,
+      color: borderGray
+    })
+
+    page.drawText(
+      label,
+      {
+        x: marginX + 12,
+        y: rowTop - 18,
+        size: 10.2,
+        font,
+        color: textDark
+      }
+    )
+
+    page.drawText(
+      value,
+      {
+        x: splitX + 12,
+        y: rowTop - 18,
+        size: 10.2,
+        font: label === "Payment Intent" ? font : bold,
+        color: textDark,
+        maxWidth: marginX + contentWidth - (splitX + 24),
+        lineHeight: 12
+      }
+    )
   }
 )
 
-page.drawText(
-  booking.car_classes?.class_code || "-",
-  {
-    x:250,
-    y:470,
-    size:12,
-    font:bold
-  }
-)
+// ===== SEKCJA 4: PODSUMOWANIE =====
+cursorY = tableBottom - 24
 
 page.drawLine({
-  start:{x:50,y:450},
-  end:{x:550,y:450},
-  thickness:1,
-  color:lightGray
+  start: { x: marginX, y: cursorY },
+  end: { x: marginX + contentWidth, y: cursorY },
+  thickness: 2,
+  color: brandBlue
 })
 
+const summaryHeight = 86
+const summaryY =
+  cursorY - summaryHeight - 10
+
+drawCard(
+  marginX,
+  summaryY,
+  contentWidth,
+  summaryHeight,
+  rgb(0.95,0.98,1)
+)
 
 page.drawText(
-  "Kwota:",
+  "KWOTA DO ZAPŁATY",
   {
-    x:50,
-    y:430,
-    size:14,
-    font:bold
+    x: marginX + 16,
+    y: summaryY + 52,
+    size: 11,
+    font: bold,
+    color: textMuted
   }
 )
+
 page.drawText(
   `${payment.amount} PLN`,
   {
-    x:230,
-    y:430,
-    size:24,
-    font:bold,
-    color:brandBlue
+    x: marginX + 16,
+    y: summaryY + 18,
+    size: 27,
+    font: bold,
+    color: brandBlue
   }
 )
 
+// ===== SEKCJA 5: INFORMACJE =====
+const infoBoxHeight = 62
+const infoBoxY =
+  summaryY - infoBoxHeight - 14
+
+drawCard(
+  marginX,
+  infoBoxY,
+  contentWidth,
+  infoBoxHeight,
+  lightGray
+)
+
+page.drawText(
+  "Rachunek dotyczy opłaty rezerwacyjnej Ride24.",
+  {
+    x: marginX + 14,
+    y: infoBoxY + 38,
+    size: 10,
+    font,
+    color: textMuted
+  }
+)
+
+page.drawText(
+  "Płatność została zrealizowana online.",
+  {
+    x: marginX + 14,
+    y: infoBoxY + 22,
+    size: 10,
+    font,
+    color: textMuted
+  }
+)
+
+// ===== SEKCJA 6: STOPKA =====
+const footerLineY = 84
+
 page.drawLine({
-  start:{x:50,y:410},
-  end:{x:550,y:410},
-  thickness:1,
-  color:lightGray
+  start: { x: marginX, y: footerLineY },
+  end: { x: marginX + contentWidth, y: footerLineY },
+  thickness: 1,
+  color: borderGray
 })
 
 page.drawText(
-  "Status:",
+  "Dziękujemy za skorzystanie z Ride24.",
   {
-    x:50,
-    y:390,
-    size:12,
-    font
+    x: marginX,
+    y: 62,
+    size: 10,
+    font: bold,
+    color: textDark
   }
 )
 
 page.drawText(
-  "Opłacono online",
+  "Zapraszamy ponownie na Ride24.pl",
   {
-    x:250,
-    y:390,
-    size:12,
-    font:bold
+    x: marginX,
+    y: 48,
+    size: 10,
+    font,
+    color: textDark
   }
 )
 
 page.drawText(
-  "Nr płatności:",
+  "Dokument wygenerowany automatycznie przez system Ride24.",
   {
-    x:50,
-    y:350,
-    size:12,
-    font
-  }
-)
-const shortPaymentId =
-  payment.stripe_session_id.length > 25
-    ? payment.stripe_session_id.substring(0, 25) + "..."
-    : payment.stripe_session_id
-
-page.drawText(
-  shortPaymentId,
-  {
-    x:250,
-    y:350,
-    size:10,
-    font
-  }
-)
-
-page.drawLine({
-  start:{x:50,y:120},
-  end:{x:550,y:120},
-  thickness:1,
-  color:lightGray
-})
-
-page.drawText(
-  "Dziękujemy za rezerwację i zapraszamy ponownie do Ride24.",
-  {
-    x:50,
-    y:90,
-    size:10,
-    font
+    x: marginX,
+    y: 32,
+    size: 9,
+    font,
+    color: textMuted
   }
 )
 
@@ -502,7 +740,10 @@ return new Response(
   JSON.stringify({
     ok:true,
     receipt_number:receiptNumber
-  })
+  }),
+  {
+    headers: jsonHeaders
+  }
 )
 } catch (err: any) {
   console.error(err)
@@ -511,8 +752,10 @@ return new Response(
     JSON.stringify({
       error: err.message
     }),
-    { status: 500 }
+    {
+      status: 500,
+      headers: jsonHeaders
+    }
   )
 }
 })
-
