@@ -3329,18 +3329,16 @@ window.cancelBooking = async function(id, currentStatus) {
                 return;
             }
             
-            const { data } =
-    db.storage
-      .from("receipts")
-      .getPublicUrl(receipt.pdf_url);
+            const { data: signedData, error: signedError } = await db.storage
+                .from("receipts")
+                .createSignedUrl(receipt.pdf_url, 60);
 
-console.log(data.publicUrl);
+            if (signedError || !signedData?.signedUrl) {
+                window.showToast(isEn ? "Download error" : "Błąd pobierania", "error");
+                return;
+            }
 
-window.open(
-    data.publicUrl,
-    "_blank",
-    "noopener"
-);
+            window.open(signedData.signedUrl, "_blank", "noopener");
         }
 
         window.downloadVoucher = async function(id) {
