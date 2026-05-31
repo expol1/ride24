@@ -490,8 +490,9 @@
         .form-group input:focus { outline: none; border-color: var(--green); }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-        .driver-row { display: grid; grid-template-columns: 2fr 1fr 2fr auto; gap: 16px; align-items: end; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-        .driver-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .driver-row { display: grid; grid-template-columns: 1fr; gap: 12px; background: white; padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 16px; }
+
+        .driver-row:last-child { margin-bottom: 16px; }
         .btn-icon-remove { background: #FEE2E2; color: var(--red); border: none; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; line-height: 1; transition: 0.2s;}
         .btn-icon-remove:hover { background: var(--red); color: white; }
 
