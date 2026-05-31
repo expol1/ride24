@@ -2692,7 +2692,7 @@ const { data, error } = await db
                 tr.innerHTML = `
                     <td>
                         <div class="fleet-thumb">
-                            ${car.image ? `<img src="${car.image}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
+                            ${car.image ? `<img src="${car.image}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
                         </div>
                     </td>
                     <td style="font-weight: 700;">${car.model || car.description || "Auto"}</td>
