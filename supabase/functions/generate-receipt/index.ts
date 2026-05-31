@@ -81,7 +81,8 @@ const { data: payment, error: paymentError } =
     .select(`
       amount,
       stripe_session_id,
-      status
+      status,
+      created_at
     `)
     .eq("booking_id", booking.id)
     .eq("status", "paid")
@@ -209,8 +210,8 @@ const issuedDate =
   new Date().toLocaleDateString("pl-PL")
 
 const paymentDate =
-  booking.updated_at
-    ? new Date(booking.updated_at)
+  payment?.created_at
+    ? new Date(payment.created_at)
         .toLocaleDateString("pl-PL")
     : issuedDate
 
@@ -223,7 +224,7 @@ const paymentIntent =
   payment?.stripe_session_id || "-"
 
 const sellerLines = [
-  "Ride24 – Auta z różnych zakątków świata",
+  "Ride24.pl",
   "Emilia Sowa",
   "ul. Przyszłości 38/3",
   "70-893 Szczecin",
@@ -471,7 +472,7 @@ const transactionRows:
     ],
     ["Status płatności", paymentStatus],
     [
-      "Payment Intent",
+      "Numer transakcji",
       paymentIntent.length > 42
         ? paymentIntent.slice(0, 42) + "..."
         : paymentIntent
