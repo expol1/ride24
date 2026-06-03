@@ -839,6 +839,39 @@
     border-color:#00B67A;
 
 }
+.review-modal-box{
+    max-width:760px !important;
+    padding:32px;
+    border-radius:24px;
+    overflow:visible;
+}
+
+.review-modal-header{
+    margin-bottom:24px;
+}
+
+.review-modal-header h3{
+    font-size:32px;
+    font-weight:800;
+    margin-bottom:8px;
+}
+
+.review-modal-header p{
+    color:#64748B;
+    font-size:15px;
+}
+
+.modal-actions{
+    margin-top:24px;
+    display:flex;
+    justify-content:center;
+}
+
+.modal-actions .btn-secondary{
+    width:220px;
+    height:48px;
+    border-radius:12px;
+}
     </style>
 <!-- TrustBox script -->
 <script type="text/javascript"
@@ -1278,19 +1311,23 @@ async>
 </div> 
 <div id="reviewModal" class="modal-overlay">
 
-    <div class="modal-box">
+    <div class="modal-box review-modal-box">
 
-       <h3
-data-pl="⭐ Oceń Partnera"
-data-en="⭐ Rate Partner">
-⭐ Oceń Partnera
-</h3>
+      <div class="review-modal-header">
 
-<p class="modal-desc"
-data-pl="Wybierz platformę, na której chcesz ocenić Partnera."
-data-en="Choose a platform where you would like to rate the Partner.">
-Wybierz platformę, na której chcesz ocenić Partnera.
-</p>
+    <h3
+    data-pl="⭐ Oceń Partnera"
+    data-en="⭐ Rate Partner">
+    ⭐ Oceń Partnera
+    </h3>
+
+    <p class="modal-desc"
+    data-pl="Wybierz platformę, na której chcesz ocenić Partnera."
+    data-en="Choose a platform where you would like to rate the Partner.">
+    Wybierz platformę, na której chcesz ocenić Partnera.
+    </p>
+
+</div>
 
        <div class="review-premium-list">
 
