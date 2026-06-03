@@ -950,11 +950,26 @@
     color:#4285F4;
     border:1px solid #E2E8F0;
 }
-
+.google-g{
+    font-size:36px;
+    font-weight:800;
+    font-family:Arial,sans-serif;
+    background:conic-gradient(
+        #4285F4 0deg 90deg,
+        #34A853 90deg 180deg,
+        #FBBC05 180deg 270deg,
+        #EA4335 270deg 360deg
+    );
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
 .trust-icon{
     background:#00B67A;
     color:white;
+    font-size:32px;
+    box-shadow:0 8px 20px rgba(0,182,122,.25);
 }
+
 
 .review-premium-content{
     flex:1;
@@ -1050,7 +1065,7 @@ async>
         <span class="nav-text"
               data-pl="Opinie Ride24"
               data-en="Ride24 Reviews">
-            Opinie Ride24
+            Oceń Ride24
         </span>
     </div>
 </div>  
@@ -1343,7 +1358,8 @@ Potwierdź rezerwację
          onclick="window.open('https://g.page/r/Ccf7up0gmBeUEAE/review','_blank')">
 
         <div class="review-premium-icon google-icon">
-            G
+        <img src="https://www.google.com/favicon.ico"
+         style="width:32px;height:32px;">
         </div>
 
         <div class="review-premium-content">
