@@ -878,6 +878,7 @@
         to { transform: translateY(0); opacity: 1; }
     }
 
+
     /* 8. POWIADOMIENIA (Toasty) na dole ekranu (nad nawigacją) */
     #toast-container {
         top: auto !important;
@@ -886,6 +887,20 @@
         right: 16px;
     }
 }
+  @keyframes sheetSlideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+
+    /* 8. POWIADOMIENIA (Toasty) na dole ekranu (nad nawigacją) */
+    #toast-container {
+        top: auto !important;
+        bottom: 90px !important;
+        left: 16px;
+        right: 16px;
+    }
+
     </style>
     <!-- TrustBox script -->
 <script type="text/javascript"
@@ -928,13 +943,13 @@ async>
                 </div>
             </div>
 
-            <div class="nav-item" onclick="window.open('https://www.trustpilot.com/review/ride24.pl','_blank')">
+            <div class="nav-item" onclick="showReviewModal()">
     <div class="nav-item-inner">
         <span class="nav-icon">⭐</span>
         <span class="nav-text"
-              data-pl="Oceń Ride24"
-              data-en="Review Ride24">
-            Oceń Ride24
+              data-pl="Opinie Ride24"
+              data-en="Ride24 Reviews">
+            Opinie Ride24
         </span>
     </div>
 </div>  
@@ -1210,6 +1225,62 @@ Potwierdź rezerwację
                 </div>
 
             </div>
+
+            <div id="reviewModal" class="modal-overlay">
+
+    <div class="modal-box">
+
+        <h3>⭐ Opinie Ride24</h3>
+
+        <p class="modal-desc">
+            Wybierz platformę, na której chcesz ocenić Ride24.
+        </p>
+
+        <div class="review-platforms">
+
+            <div class="review-platform-card"
+                 onclick="window.open('https://g.page/r/Ccf7up0gmBeUEAE/review','_blank')">
+
+                <img src="google.png" alt="Google">
+
+                <h4>Google Reviews</h4>
+
+                <div class="review-stars">
+                    ⭐⭐⭐⭐⭐
+                </div>
+
+                <p>Oceń Ride24 w Google</p>
+
+            </div>
+
+            <div class="review-platform-card"
+                 onclick="window.open('https://pl.trustpilot.com/review/ride24.pl','_blank')">
+
+                <img src="trustpilot.png" alt="Trustpilot">
+
+                <h4>Trustpilot</h4>
+
+                <div class="review-stars">
+                    ⭐⭐⭐⭐⭐
+                </div>
+
+                <p>Dodaj opinię w Trustpilot</p>
+
+            </div>
+
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-secondary"
+                    onclick="closeReviewModal()">
+                Zamknij
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
             </main>
     </div>
 
@@ -3548,6 +3619,14 @@ window.loadPayments = async function() {
 window.goToHome = function() {
     window.location.href = "index.html";
 };
+
+window.showReviewModal = function() {
+    document.getElementById("reviewModal").style.display = "flex";
+}
+
+window.closeReviewModal = function() {
+    document.getElementById("reviewModal").style.display = "none";
+}
     </script>
     <div id="invoiceMissingModal" class="modal-overlay">
         <div class="modal-box" style="width: 500px;">
