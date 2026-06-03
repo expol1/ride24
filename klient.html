@@ -900,7 +900,108 @@
         left: 16px;
         right: 16px;
     }
+/* ===== PREMIUM REVIEWS ===== */
 
+.review-premium-list{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    margin-top:20px;
+}
+
+.review-premium-card{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:20px;
+    border-radius:18px;
+    border:1px solid #E2E8F0;
+    cursor:pointer;
+    transition:all .25s ease;
+}
+
+.review-premium-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 15px 35px rgba(0,0,0,.12);
+}
+
+.google-card{
+    background:#F8FAFF;
+}
+
+.trust-card{
+    background:#F4FFF9;
+}
+
+.review-premium-icon{
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    font-weight:700;
+    flex-shrink:0;
+}
+
+.google-icon{
+    background:white;
+    color:#4285F4;
+    border:1px solid #E2E8F0;
+}
+
+.trust-icon{
+    background:#00B67A;
+    color:white;
+}
+
+.review-premium-content{
+    flex:1;
+}
+
+.review-premium-content h4{
+    margin:0 0 6px 0;
+    font-size:18px;
+    color:#111827;
+}
+
+.review-premium-content p{
+    margin:0;
+    color:#64748B;
+    font-size:14px;
+}
+
+.review-stars{
+    color:#F59E0B;
+    font-size:18px;
+    letter-spacing:2px;
+    margin-bottom:6px;
+}
+
+.review-arrow{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#2563EB;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    font-weight:700;
+    transition:all .25s ease;
+}
+
+.google-card:hover .review-arrow{
+    transform:translateX(4px);
+    background:#1D4ED8;
+}
+
+.trust-card:hover .review-arrow{
+    transform:translateX(4px);
+    background:#059669;
+}
     </style>
     <!-- TrustBox script -->
 <script type="text/javascript"
@@ -1230,7 +1331,7 @@ Potwierdź rezerwację
 
     <div class="modal-box">
 
-        <h3>⭐ Opinie Ride24</h3>
+        <h3>⭐ Oceń Ride24</h3>
 
         <p class="modal-desc">
             Wybierz platformę, na której chcesz ocenić Ride24.
