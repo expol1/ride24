@@ -951,11 +951,25 @@
 }
 
 .google-g{
-    font-size:18px;
-    font-weight:800;
+    font-size:42px;
+    font-weight:900;
     font-family:Arial,sans-serif;
     line-height:1;
-    letter-spacing:-1px;
+    background:linear-gradient(
+        45deg,
+        #4285F4 0%,
+        #4285F4 25%,
+        #EA4335 25%,
+        #EA4335 50%,
+        #FBBC05 50%,
+        #FBBC05 75%,
+        #34A853 75%,
+        #34A853 100%
+    );
+    background-clip:text;
+    -webkit-background-clip:text;
+    color:transparent;
+    -webkit-text-fill-color:transparent;
 }
 
 .trust-icon{
@@ -1375,14 +1389,8 @@ Wybierz platformę, na której chcesz ocenić Ride24.
          onclick="window.open('https://g.page/r/Ccf7up0gmBeUEAE/review','_blank')">
 
         <div class="review-premium-icon google-icon">
-    <span class="google-g">
-        <span style="color:#4285F4;">G</span>
-        <span style="color:#EA4335;">o</span>
-        <span style="color:#FBBC05;">o</span>
-        <span style="color:#4285F4;">g</span>
-        <span style="color:#34A853;">l</span>
-        <span style="color:#EA4335;">e</span>
-    </span>
+    <div class="review-premium-icon google-icon">
+    <span class="google-g">G</span>
 </div>
 
         <div class="review-premium-content">
@@ -1434,11 +1442,13 @@ Dodaj opinię w Trustpilot
 
 </div>
         <div class="modal-actions">
-            <button class="btn-secondary"
-                    onclick="closeReviewModal()">
-                Zamknij
-            </button>
-        </div>
+    <button class="btn-secondary"
+            onclick="closeReviewModal()"
+            data-pl="Zamknij"
+            data-en="Close">
+        Zamknij
+    </button>
+</div>
 
     </div>
 
