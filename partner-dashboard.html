@@ -4518,6 +4518,14 @@ function showSignedAgreement() {
         alert(isEn ? "Agreement not found in database." : "Brak przypisanej umowy w systemie.");
     }
 }
+
+window.showReviewModal = function() {
+    document.getElementById('reviewModal').classList.add('active');
+};
+
+window.closeReviewModal = function() {
+    document.getElementById('reviewModal').classList.remove('active');
+};
     </script>
     <div id="agreement-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 99999; padding: 20px; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
     <div style="background: white; width: 100%; max-width: 850px; border-radius: 12px; padding: 30px; display: flex; flex-direction: column; max-height: 95vh; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
