@@ -800,41 +800,17 @@
             transform: translateY(-2px);
             box-shadow: 0 15px 35px rgba(0,0,0,0.05);
         }
-        .review-badge{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:2px;
-
-    min-width:95px;
-    padding:8px 14px;
-
-    background:#ffffff;
-    border:2px solid #E2E8F0;
-    border-radius:12px;
-
-    text-align:center;
-}
-
-.review-badge div{
-    color:#F59E0B;
-    font-size:12px;
-    line-height:1;
-}
-
-.review-badge strong{
-    font-size:13px;
-    font-weight:800;
-    color:#111827;
-}
-
-.google-review{
-    border-color:#4285F4;
-}
-
+        
+.google-review,
 .trust-review{
-    border-color:#00B67A;
+    min-height:58px;
+    justify-content:center;
+}
+
+.google-review strong,
+.trust-review strong{
+    display:block;
+    line-height:1.1;
 }
         .step-icon {
             width: 75px;
@@ -1769,14 +1745,12 @@
 
         <div class="hero-search">
             <div class="trust-badges">
-                <div class="trust-badge review-badge google-review">
-    <div>⭐⭐⭐⭐⭐</div>
-    <strong>5.0 Google</strong>
+                <div class="trust-badge">
+    ⭐ 5.0 Google
 </div>
 
-<div class="trust-badge review-badge trust-review">
-    <div>⭐⭐⭐⭐⭐</div>
-    <strong>4.1 Trustpilot</strong>
+<div class="trust-badge">
+    ⭐ 4.1 Trustpilot
 </div>
                 <div class="trust-badge"><img src="icons/globe-blue.svg" alt="icon"> <span data-pl="30+ krajów" data-en="30+ countries">30+ krajów</span></div>
                 <div class="trust-badge"><img src="icons/handshake.svg" alt="icon"> <span data-pl="Globalni partnerzy" data-en="Global partners">Globalni partnerzy</span></div>
