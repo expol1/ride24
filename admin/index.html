@@ -1703,29 +1703,48 @@ async function loadMarketingSettings() {
 async function saveMarketingSettings() {
 
     const monthly =
-        document.getElementById("monthly-budget").value;
+        Number(
+            document.getElementById(
+                "monthly-budget"
+            ).value
+        );
 
     const daily =
-        document.getElementById("daily-budget").value;
+        Number(
+            document.getElementById(
+                "daily-budget"
+            ).value
+        );
 
-    await db
+    const { error } = await db
         .from("marketing_settings")
-        .upsert({
-            id: 1,
+        .update({
             monthly_budget: monthly,
             daily_budget: daily
-        });
+        })
+        .eq("id", 1);
 
-    const monthlyStat = document.getElementById("marketing-budget");
-    const dailyStat = document.getElementById("marketing-daily");
+    if (error) {
 
-    if (monthlyStat) {
-        monthlyStat.innerText = `${monthly} zł`;
+        console.error(error);
+
+        alert(
+            "Błąd zapisu: " +
+            error.message
+        );
+
+        return;
     }
 
-    if (dailyStat) {
-        dailyStat.innerText = `${daily} zł`;
-    }
+    document.getElementById(
+        "marketing-budget"
+    ).innerText =
+        `${monthly} zł`;
+
+    document.getElementById(
+        "marketing-daily"
+    ).innerText =
+        `${daily} zł`;
 
     alert("Zapisano");
 }
