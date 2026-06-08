@@ -580,7 +580,7 @@
         </div>
 
         <div class="stat-card">
-            <div class="stat-title">Posty wygenerowane</div>
+            <div class="stat-title">Posty w kolejce</div>
             <div class="stat-value" id="marketing-posts">
                 0
             </div>
@@ -1972,12 +1972,13 @@ async function approveMarketingPost(
 }
 async function loadMarketingStats() {
 
-    const { count } = await db
-        .from("marketing_posts")
-        .select("*", {
-            count: "exact",
-            head: true
-        });
+    const { count } =
+        await db
+            .from("marketing_queue")
+            .select("*", {
+                count: "exact",
+                head: true
+            });
 
     document.getElementById(
         "marketing-posts"
