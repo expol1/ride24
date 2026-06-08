@@ -2006,20 +2006,61 @@ if (post.status === "scheduled") {
 
         <td>
 
-            <button
-                class="btn-primary"
-                onclick="showMarketingPost(${post.id})">
+    <button
+        class="btn-primary"
+        onclick="showMarketingPost(${post.id})">
 
-                Podgląd
+        Podgląd
 
-            </button>
+    </button>
 
-        </td>
+    <button
+        class="btn-danger"
+        style="margin-left:8px;"
+        onclick="deleteMarketingPost(${post.id})">
+
+        Usuń
+
+    </button>
+
+</td>
 
     </tr>
     `;
 });
 }
+
+async function deleteMarketingPost(id) {
+
+    const confirmed =
+        confirm(
+            "Czy usunąć ten post?"
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const { error } =
+        await db
+            .from("marketing_queue")
+            .delete()
+            .eq("id", id);
+
+    if (error) {
+
+        alert(
+            "Błąd: " +
+            error.message
+        );
+
+        return;
+    }
+
+    await loadMarketingQueue();
+    await loadMarketingStats();
+}
+
 function closeMarketingModal() {
 
     document.getElementById(
@@ -2076,30 +2117,7 @@ ${data.content}
         "marketing-modal"
     ).style.display = "flex";
 }
-async function approveMarketingPost(
-    id
-) {
 
-    const { error } =
-        await db
-            .from("marketing_queue")
-            .update({
-                status: "approved"
-            })
-            .eq("id", id);
-
-    if (error) {
-
-        alert(
-            error.message
-        );
-
-        return;
-    }
-
-    loadMarketingQueue();
-    loadMarketingStats();
-}
 async function loadMarketingStats() {
 
     const { count } =
