@@ -698,7 +698,56 @@
 </div>
 
         </main>
+<div id="marketing-modal"
+     style="
+     display:none;
+     position:fixed;
+     top:0;
+     left:0;
+     width:100%;
+     height:100%;
+     background:rgba(0,0,0,0.6);
+     z-index:9999;
+     justify-content:center;
+     align-items:center;">
 
+    <div style="
+         background:white;
+         width:900px;
+         max-width:95%;
+         border-radius:12px;
+         padding:24px;">
+
+        <h2 style="margin-bottom:15px;">
+            Podgląd posta
+        </h2>
+
+        <div id="marketing-modal-content"
+             style="
+             white-space:pre-wrap;
+             background:#F8FAFC;
+             border:1px solid #E2E8F0;
+             padding:20px;
+             border-radius:8px;
+             max-height:500px;
+             overflow:auto;">
+        </div>
+
+        <div style="margin-top:15px;text-align:right;">
+
+            <button
+                class="btn-primary"
+                onclick="closeMarketingModal()">
+
+                Zamknij
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../assets/helper/supabaseConfig.js"></script>
 
@@ -1930,6 +1979,48 @@ async function loadMarketingQueue() {
     </tr>
     `;
 });
+}
+function closeMarketingModal() {
+
+    document.getElementById(
+        "marketing-modal"
+    ).style.display = "none";
+}
+
+async function showMarketingPost(id) {
+
+    const { data } = await db
+        .from("marketing_queue")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+    if (!data) return;
+
+    document.getElementById(
+        "marketing-modal-content"
+    ).innerText =
+`
+Platforma:
+${data.platform}
+
+Miasto:
+${data.city}
+
+Kraj:
+${data.country}
+
+Status:
+${data.status}
+
+────────────────────────
+
+${data.content}
+`;
+
+    document.getElementById(
+        "marketing-modal"
+    ).style.display = "flex";
 }
 async function approveMarketingPost(
     id
