@@ -672,8 +672,9 @@
 
     <table>
 
-        <thead>
+       <thead>
     <tr>
+        <th>Data</th>
         <th>Platforma</th>
         <th>Lokalizacja</th>
         <th>Status</th>
@@ -685,7 +686,7 @@
         <tbody id="marketing-queue-tbody">
 
             <tr>
-                <td colspan="5">
+                <td colspan="6">
                     Ładowanie...
                 </td>
             </tr>
@@ -1898,7 +1899,7 @@ async function loadMarketingQueue() {
         tbody.innerHTML =
             `
             <tr>
-                <td colspan="5">
+                <td colspan="6">
                     Błąd
                 </td>
             </tr>
@@ -1914,7 +1915,7 @@ async function loadMarketingQueue() {
         tbody.innerHTML =
             `
             <tr>
-                <td colspan="5">
+                <td colspan="6">
                     Brak postów
                 </td>
             </tr>
@@ -1947,18 +1948,35 @@ const platformName =
 const statusName =
     statusMap[post.status] ||
     post.status;
+let statusBadge = "#94A3B8";
 
+if (post.status === "draft") {
+    statusBadge = "#64748B";
+}
+
+if (post.status === "published") {
+    statusBadge = "#16A34A";
+}
+
+if (post.status === "scheduled") {
+    statusBadge = "#2563EB";
+}
     const shortContent =
         (post.content || "")
             .replace(/\n/g, " ")
             .substring(0, 80);
 
     tbody.innerHTML += `
-    <tr>
+<tr>
 
-        <td>
-            ${platformName}
-        </td>
+    <td>
+        ${new Date(post.created_at)
+            .toLocaleString("pl-PL")}
+    </td>
+
+    <td>
+        ${platformName}
+    </td>
 
         <td>
             ${post.city || "-"},
@@ -1966,8 +1984,21 @@ const statusName =
         </td>
 
         <td>
-            ${statusName}
-        </td>
+
+    <span
+        style="
+        background:${statusBadge};
+        color:white;
+        padding:4px 10px;
+        border-radius:20px;
+        font-size:12px;
+        font-weight:600;">
+
+        ${statusName}
+
+    </span>
+
+</td>
 
         <td>
             ${shortContent}...
@@ -2011,7 +2042,15 @@ async function showMarketingPost(id) {
     ).innerText =
 `
 Platforma:
-${data.platform}
+${
+    data.platform === "facebook"
+        ? "Facebook"
+        : data.platform === "instagram"
+        ? "Instagram"
+        : data.platform === "x"
+        ? "X (Twitter)"
+        : data.platform
+}
 
 Miasto:
 ${data.city}
@@ -2020,7 +2059,13 @@ Kraj:
 ${data.country}
 
 Status:
-${data.status}
+${
+    data.status === "draft"
+        ? "Szkic"
+        : data.status === "published"
+        ? "Opublikowany"
+        : data.status
+}
 
 ────────────────────────
 
