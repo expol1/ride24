@@ -13,7 +13,7 @@ serve(async (req) => {
 
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      
+
       headers: corsHeaders
     });
   }
@@ -65,13 +65,17 @@ serve(async (req) => {
     ];
 
     const shuffled =
-      uniqueLocations.sort(
-        () => Math.random() - 0.5
-      );
+  [...uniqueLocations].sort(
+    () => Math.random() - 0.5
+  );
 
     const selected =
       shuffled.slice(0, 3);
-
+if (selected.length === 0) {
+  throw new Error(
+    "No active locations found"
+  );
+}
     const facebookLocation =
       selected[0];
 
@@ -81,19 +85,217 @@ serve(async (req) => {
     const xLocation =
       selected[2] || selected[0];
 
-    const posts = [
-      {
-        platform: "facebook",
-        city: facebookLocation.city,
-        country: facebookLocation.country,
-        content:
-          `🚗 Odkrywaj ${facebookLocation.city} bez ograniczeń.
+    const templates = [
+      (city: string) =>
+`🚗 Odkrywaj ${city} bez ograniczeń.
 
 Bez depozytu.
 Bez karty kredytowej.
 Pełne ubezpieczenie.
 
 Ride24.`,
+
+      (city: string) =>
+`☀️ ${city} czeka na Twoje wakacje.
+
+Zwiedzaj własnym tempem.
+Bez depozytu.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`✈️ City break w ${city} zaczyna się wygodnie.
+
+Bez karty kredytowej.
+Bez depozytu.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`👨‍👩‍👧‍👦 Rodzinny wyjazd do ${city} bez stresu.
+
+Więcej swobody.
+Pełne ubezpieczenie.
+Bez depozytu.
+
+Ride24.`,
+
+      (city: string) =>
+`💼 Podróż służbowa do ${city} może być prostsza.
+
+Szybki wynajem.
+Bez karty kredytowej.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`🌍 Zwiedzaj ${city} bez zbędnych formalności.
+
+Bez depozytu.
+Program lojalnościowy Ride24.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`🛡️ Bezpieczeństwo w ${city} ma znaczenie.
+
+Pełne ubezpieczenie.
+Bez karty kredytowej.
+Spokojna podróż z Ride24.`,
+
+      (city: string) =>
+`🏨 Ruszasz do hotelu w ${city}?
+
+Odbierz auto szybko.
+Bez depozytu.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`🛬 Lądujesz w ${city}?
+
+Wynajmij auto bez karty kredytowej.
+Bez depozytu.
+Ride24.`,
+
+      (city: string) =>
+`🎒 Weekend w ${city} bez ograniczeń.
+
+Zwiedzaj więcej.
+Pełne ubezpieczenie.
+Bez depozytu.
+
+Ride24.`,
+
+      (city: string) =>
+`🚙 Komfort podróżowania po ${city} zaczyna się tutaj.
+
+Pełne ubezpieczenie.
+Bez depozytu.
+Bez karty kredytowej.
+
+Ride24.`,
+
+      (city: string) =>
+`📍 Odkrywaj najlepsze zakątki ${city}.
+
+Bez depozytu.
+Program lojalnościowy.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`🌴 Wakacje w ${city} smakują lepiej z pełną swobodą.
+
+Bez karty kredytowej.
+Bez depozytu.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`🧳 Biznes, hotel i lotnisko w ${city}?
+
+Jedno auto.
+Pełna wygoda.
+Ride24.`,
+
+      (city: string) =>
+`📸 Zobacz więcej w ${city}.
+
+Wynajem auta bez depozytu.
+Pełne ubezpieczenie.
+Ride24.`,
+
+      (city: string) =>
+`🚘 Podróżuj po ${city} wygodnie i bez stresu.
+
+Bez karty kredytowej.
+Pełne ubezpieczenie.
+Ride24.`,
+
+      (city: string) =>
+`✨ Krótki wypad do ${city}, maksymalna niezależność.
+
+Bez depozytu.
+Program lojalnościowy Ride24.
+Ride24.`,
+
+      (city: string) =>
+`🔑 Odbierz kluczyki i ruszaj przez ${city}.
+
+Bez depozytu.
+Bez karty kredytowej.
+Pełne ubezpieczenie.
+
+Ride24.`,
+
+      (city: string) =>
+`🌆 ${city} na city break?
+
+Wybierz wygodę.
+Wybierz pełne ubezpieczenie.
+Wybierz Ride24.`,
+
+      (city: string) =>
+`🗺️ Zwiedzanie ${city} po swojemu.
+
+Bez depozytu.
+Bez karty kredytowej.
+Program lojalnościowy.
+
+Ride24.`
+    ];
+
+    function buildHashtags(
+      city: string,
+      country: string
+    ): string {
+      return `
+
+#Ride24
+#CarRental
+#NoDeposit
+#NoCreditCard
+#FullInsurance
+#${country.replace(/\s/g, "")}
+#${city.replace(/\s/g, "")}`;
+    }
+
+    function randomTemplate(
+      city: string
+    ): string {
+
+      const template =
+        templates[
+          Math.floor(
+            Math.random() *
+            templates.length
+          )
+        ];
+
+      return template(city);
+    }
+
+    const posts = [
+      {
+        platform: "facebook",
+        city: facebookLocation.city,
+        country: facebookLocation.country,
+        content:
+          randomTemplate(
+            facebookLocation.city
+          ) +
+          buildHashtags(
+            facebookLocation.city,
+            facebookLocation.country
+          ),
         status: "draft"
       },
 
@@ -102,13 +304,13 @@ Ride24.`,
         city: instagramLocation.city,
         country: instagramLocation.country,
         content:
-          `☀️ ${instagramLocation.city} czeka.
-
-Zwiedzaj własnym tempem.
-
-Bez depozytu.
-Pełne ubezpieczenie.
-Program lojalnościowy Ride24.`,
+          randomTemplate(
+            instagramLocation.city
+          ) +
+          buildHashtags(
+            instagramLocation.city,
+            instagramLocation.country
+          ),
         status: "draft"
       },
 
@@ -117,10 +319,13 @@ Program lojalnościowy Ride24.`,
         city: xLocation.city,
         country: xLocation.country,
         content:
-          `✈️ ${xLocation.city} bez karty kredytowej.
-
-Pełne ubezpieczenie.
-Ride24.`,
+          randomTemplate(
+            xLocation.city
+          ) +
+          buildHashtags(
+            xLocation.city,
+            xLocation.country
+          ),
         status: "draft"
       }
     ];
