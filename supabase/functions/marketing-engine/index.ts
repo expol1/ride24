@@ -133,23 +133,25 @@ Ride24.`,
     if (insertError) {
       throw insertError;
     }
+
     const citiesUsed =
-    posts
-    .map(post => post.city)
-    .join(", ");
+      posts
+        .map(post => post.city)
+        .join(", ");
 
     await supabase
-       .from("marketing_runs")
-       .insert({
-         posts_generated:
-      posts.length,
+      .from("marketing_runs")
+      .insert({
+        posts_generated:
+          posts.length,
 
-    status:
-      "success",
+        status:
+          "success",
 
-    error_message:
-      citiesUsed
-    });
+        error_message:
+          citiesUsed
+      });
+
     return new Response(
       JSON.stringify({
         success: true,
