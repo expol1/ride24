@@ -652,68 +652,35 @@
 
     </div>
 
-    <div class="table-container" style="margin-top:20px;">
-
-        <div class="table-header">
-            Posty AI
-        </div>
-
-        <div style="padding:20px;">
-
-            <button
-                class="btn-primary"
-                onclick="runMarketingEngine()"
-                id="generate-posts-btn">
-                Generuj posty
-            </button>
-
-            <button
-                class="btn-primary"
-                style="margin-left:10px;"
-                onclick="loadMarketingPosts()">
-                Odśwież
-            </button>
-
-        </div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Platforma</th>
-                    <th>Status</th>
-                    <th>Data</th>
-                    <th>Treść</th>
-                </tr>
-            </thead>
-
-            <tbody id="marketing-posts-tbody">
-                <tr>
-                    <td colspan="4">
-                        Brak danych
-                    </td>
-                </tr>
-            </tbody>
-
-        </table>
-
-    </div>
+    
 <div class="table-container" style="margin-top:20px;">
 
-    <div class="table-header">
-        Kolejka publikacji
-    </div>
+   <div class="table-header">
+    Wygenerowane posty AI
+</div>
+
+<div style="padding:20px;">
+
+    <button
+        class="btn-primary"
+        onclick="runMarketingEngine()"
+        id="generate-posts-btn">
+        Generuj posty
+    </button>
+
+</div>
 
     <table>
 
         <thead>
-            <tr>
-                <th>Platforma</th>
-                <th>Miasto</th>
-                <th>Kraj</th>
-                <th>Status</th>
-                <th>Akcja</th>
-            </tr>
-        </thead>
+    <tr>
+        <th>Platforma</th>
+        <th>Lokalizacja</th>
+        <th>Status</th>
+        <th>Treść posta</th>
+        <th>Akcja</th>
+    </tr>
+</thead>
 
         <tbody id="marketing-queue-tbody">
 
@@ -1909,43 +1876,60 @@ async function loadMarketingQueue() {
 
     data.forEach(post => {
 
-        tbody.innerHTML += `
-        <tr>
+    const platformName =
+        post.platform === "facebook"
+            ? "Facebook"
+            : post.platform === "instagram"
+            ? "Instagram"
+            : post.platform === "x"
+            ? "X (Twitter)"
+            : post.platform;
 
-            <td>
-                ${post.platform}
-            </td>
+    const statusName =
+        post.status === "draft"
+            ? "Szkic"
+            : post.status;
 
-            <td>
-                ${post.city || "-"}
-            </td>
+    const shortContent =
+        (post.content || "")
+            .replace(/\n/g, " ")
+            .substring(0, 80);
 
-            <td>
-                ${post.country || "-"}
-            </td>
+    tbody.innerHTML += `
+    <tr>
 
-            <td>
-                ${post.status}
-            </td>
+        <td>
+            ${platformName}
+        </td>
 
-            <td>
+        <td>
+            ${post.city || "-"},
+            ${post.country || "-"}
+        </td>
 
-                <button
-                    class="btn-primary"
-                    onclick="
-                    approveMarketingPost(
-                    ${post.id}
-                    )">
+        <td>
+            ${statusName}
+        </td>
 
-                    Approve
+        <td>
+            ${shortContent}...
+        </td>
 
-                </button>
+        <td>
 
-            </td>
+            <button
+                class="btn-primary"
+                onclick="showMarketingPost(${post.id})">
 
-        </tr>
-        `;
-    });
+                Podgląd
+
+            </button>
+
+        </td>
+
+    </tr>
+    `;
+});
 }
 async function approveMarketingPost(
     id
