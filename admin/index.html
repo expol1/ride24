@@ -1925,19 +1925,28 @@ async function loadMarketingQueue() {
 
     data.forEach(post => {
 
-    const platformName =
-        post.platform === "facebook"
-            ? "Facebook"
-            : post.platform === "instagram"
-            ? "Instagram"
-            : post.platform === "x"
-            ? "X (Twitter)"
-            : post.platform;
+    const platformMap = {
+    facebook: "Facebook",
+    instagram: "Instagram",
+    x: "X (Twitter)"
+};
 
-    const statusName =
-        post.status === "draft"
-            ? "Szkic"
-            : post.status;
+const platformName =
+    platformMap[post.platform] ||
+    post.platform;
+
+    const statusMap = {
+    draft: "Szkic",
+    published: "Opublikowany",
+    scheduled: "Zaplanowany",
+    pending: "Oczekuje",
+    approved: "Zatwierdzony",
+    rejected: "Odrzucony"
+};
+
+const statusName =
+    statusMap[post.status] ||
+    post.status;
 
     const shortContent =
         (post.content || "")
