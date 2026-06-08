@@ -273,6 +273,9 @@
     <span class="nav-text">Wiadomości (Kontakt)</span>
 </div>
 
+<div class="nav-item" onclick="switchTab('marketing')" id="nav-marketing">
+    <span class="nav-text">Marketing AI</span>
+</div>
 </nav>
     </aside>
 <nav class="mobile-nav">
@@ -291,6 +294,10 @@
         <div class="mobile-nav-item" onclick="switchTab('search')" id="m-nav-search">
             <span>🔍</span>
             <span>Search</span>
+        </div>
+        <div class="mobile-nav-item" onclick="switchTab('marketing')" id="m-nav-marketing">
+            <span>🚀</span>
+            <span>Marketing</span>
         </div>
     </nav>
     <div class="main-wrapper">
@@ -548,6 +555,80 @@
             <button onclick="sendReply()" style="background:var(--blue); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">Wyślij wiadomość</button>
         </div>
     </div>
+</div>
+<div id="view-marketing" class="view-section">
+
+    <div class="page-header">
+        <h1 class="page-title">Marketing AI</h1>
+    </div>
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+            <div class="stat-title">Budżet miesięczny</div>
+            <div class="stat-value" id="marketing-budget">
+                1000 zł
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-title">Budżet dzienny</div>
+            <div class="stat-value" id="marketing-daily">
+                33 zł
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-title">Posty wygenerowane</div>
+            <div class="stat-value" id="marketing-posts">
+                0
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-title">Status</div>
+            <div class="stat-value" style="color:#16A34A;">
+                AKTYWNY
+            </div>
+        </div>
+
+    </div>
+
+    <div class="table-container">
+
+        <div class="table-header">
+            Ustawienia Marketing AI
+        </div>
+
+        <div style="padding:20px;">
+
+            <label>Budżet miesięczny</label>
+            <input
+                id="monthly-budget"
+                class="smart-input"
+                value="1000"
+                style="margin-bottom:15px;"
+            >
+
+            <label>Budżet dzienny</label>
+            <input
+                id="daily-budget"
+                class="smart-input"
+                value="33"
+                style="margin-bottom:15px;"
+            >
+
+            <button
+                class="btn-primary"
+                onclick="saveMarketingSettings()"
+            >
+                Zapisz
+            </button>
+
+        </div>
+
+    </div>
+
 </div>
         </main>
 
@@ -857,6 +938,7 @@ async function loadDeletionRequests() {
             loadPartnersData();
             loadDeletionRequests();
             loadMessages();
+            loadMarketingSettings();
         });
 
         // --- NAWIGACJA ---
@@ -1516,6 +1598,64 @@ async function addDictionary() {
         loadUnmappedLocations();
         loadSearchLogs();
     }
+}
+
+async function loadMarketingSettings() {
+
+    const { data } = await db
+        .from("marketing_settings")
+        .select("*")
+        .limit(1)
+        .single();
+
+    if (!data) return;
+
+    document.getElementById("monthly-budget").value =
+        data.monthly_budget;
+
+    document.getElementById("daily-budget").value =
+        data.daily_budget;
+
+    const monthlyStat = document.getElementById("marketing-budget");
+    const dailyStat = document.getElementById("marketing-daily");
+
+    if (monthlyStat) {
+        monthlyStat.innerText = `${data.monthly_budget} zł`;
+    }
+
+    if (dailyStat) {
+        dailyStat.innerText = `${data.daily_budget} zł`;
+    }
+}
+
+async function saveMarketingSettings() {
+
+    const monthly =
+        document.getElementById("monthly-budget").value;
+
+    const daily =
+        document.getElementById("daily-budget").value;
+
+    await db
+        .from("marketing_settings")
+        .upsert({
+            id: 1,
+            monthly_budget: monthly,
+            daily_budget: daily
+        });
+
+    const monthlyStat = document.getElementById("marketing-budget");
+    const dailyStat = document.getElementById("marketing-daily");
+
+    if (monthlyStat) {
+        monthlyStat.innerText = `${monthly} zł`;
+    }
+
+    if (dailyStat) {
+        dailyStat.innerText = `${daily} zł`;
+    }
+
+    alert("Zapisano");
 }
 
 // --- GENERATOR UMOWY PARTNERSKIEJ ---
