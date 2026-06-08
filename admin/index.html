@@ -1655,29 +1655,48 @@ async function addDictionary() {
 
 async function loadMarketingSettings() {
 
-    const { data } = await db
+    const { data, error } = await db
         .from("marketing_settings")
         .select("*")
-        .limit(1)
+        .eq("id", 1)
         .single();
+
+    if (error) {
+        console.error(
+            "Marketing settings error:",
+            error
+        );
+        return;
+    }
 
     if (!data) return;
 
-    document.getElementById("monthly-budget").value =
-        data.monthly_budget;
+    document.getElementById(
+        "monthly-budget"
+    ).value = data.monthly_budget;
 
-    document.getElementById("daily-budget").value =
-        data.daily_budget;
+    document.getElementById(
+        "daily-budget"
+    ).value = data.daily_budget;
 
-    const monthlyStat = document.getElementById("marketing-budget");
-    const dailyStat = document.getElementById("marketing-daily");
+    const monthlyStat =
+        document.getElementById(
+            "marketing-budget"
+        );
+
+    const dailyStat =
+        document.getElementById(
+            "marketing-daily"
+        );
 
     if (monthlyStat) {
-        monthlyStat.innerText = `${data.monthly_budget} zł`;
+        monthlyStat.innerText =
+            `${data.monthly_budget} zł`;
     }
 
     if (dailyStat) {
-        dailyStat.innerText = `${data.daily_budget} zł`;
+        dailyStat.innerText =
+            `${data.daily_budget} zł`;
     }
 }
 
