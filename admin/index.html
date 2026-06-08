@@ -697,8 +697,39 @@
         </table>
 
     </div>
+<div class="table-container" style="margin-top:20px;">
+
+    <div class="table-header">
+        Kolejka publikacji
+    </div>
+
+    <table>
+
+        <thead>
+            <tr>
+                <th>Platforma</th>
+                <th>Miasto</th>
+                <th>Kraj</th>
+                <th>Status</th>
+                <th>Akcja</th>
+            </tr>
+        </thead>
+
+        <tbody id="marketing-queue-tbody">
+
+            <tr>
+                <td colspan="5">
+                    Ładowanie...
+                </td>
+            </tr>
+
+        </tbody>
+
+    </table>
 
 </div>
+</div>
+
         </main>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -1011,6 +1042,7 @@ async function loadDeletionRequests() {
             loadMarketingPosts();
             loadMarketingStats();
             loadMarketingRuns();
+            loadMarketingQueue();
         });
 
         // --- NAWIGACJA ---
@@ -1026,6 +1058,7 @@ async function loadDeletionRequests() {
                 loadMarketingPosts();
                 loadMarketingStats();
                 loadMarketingRuns();
+                loadMarketingQueue();
             }
             
             // Ukrywamy wszystkie sekcje i pokazujemy wybraną
@@ -1822,6 +1855,120 @@ async function loadMarketingPosts() {
             </tr>
         `;
     });
+}
+async function loadMarketingQueue() {
+
+    const tbody =
+        document.getElementById(
+            "marketing-queue-tbody"
+        );
+
+    if (!tbody) return;
+
+    const { data, error } =
+        await db
+            .from("marketing_queue")
+            .select("*")
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
+            )
+            .limit(50);
+
+    if (error) {
+
+        tbody.innerHTML =
+            `
+            <tr>
+                <td colspan="5">
+                    Błąd
+                </td>
+            </tr>
+            `;
+
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    if (!data.length) {
+
+        tbody.innerHTML =
+            `
+            <tr>
+                <td colspan="5">
+                    Brak postów
+                </td>
+            </tr>
+            `;
+
+        return;
+    }
+
+    data.forEach(post => {
+
+        tbody.innerHTML += `
+        <tr>
+
+            <td>
+                ${post.platform}
+            </td>
+
+            <td>
+                ${post.city || "-"}
+            </td>
+
+            <td>
+                ${post.country || "-"}
+            </td>
+
+            <td>
+                ${post.status}
+            </td>
+
+            <td>
+
+                <button
+                    class="btn-primary"
+                    onclick="
+                    approveMarketingPost(
+                    ${post.id}
+                    )">
+
+                    Approve
+
+                </button>
+
+            </td>
+
+        </tr>
+        `;
+    });
+}
+async function approveMarketingPost(
+    id
+) {
+
+    const { error } =
+        await db
+            .from("marketing_queue")
+            .update({
+                status: "approved"
+            })
+            .eq("id", id);
+
+    if (error) {
+
+        alert(
+            error.message
+        );
+
+        return;
+    }
+
+    loadMarketingQueue();
 }
 async function loadMarketingStats() {
 

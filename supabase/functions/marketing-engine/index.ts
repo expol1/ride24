@@ -48,21 +48,68 @@ serve(async (req) => {
     if (locationsError) {
       throw locationsError;
     }
+    const { data: recentRuns } =
+  await supabase
+    .from("marketing_runs")
+    .select("cities_used")
+    .order("created_at", {
+      ascending: false
+    })
+    .limit(5);
 
+const recentCities =
+  new Set(
+    (recentRuns || [])
+      .flatMap(run =>
+        (run.cities_used || "")
+          .split(",")
+          .map(city => city.trim())
+      )
+      .filter(Boolean)
+  );
+
+    
     const uniqueLocations = [
-      ...new Map(
-        (locations || [])
-          .filter(
-            loc =>
-              loc.city &&
-              loc.city.trim() !== ""
+  ...new Map(
+    (locations || [])
+      .filter(
+        loc =>
+          loc.city &&
+          loc.city.trim() !== "" &&
+          !recentCities.has(
+            loc.city
           )
-          .map(loc => [
-            `${loc.city}-${loc.country}`,
-            loc
-          ])
-      ).values()
-    ];
+      )
+      .map(loc => [
+        `${loc.city}-${loc.country}`,
+        loc
+      ])
+  ).values()
+];
+if (
+  uniqueLocations.length < 3
+) {
+
+  const fallbackLocations = [
+    ...new Map(
+      (locations || [])
+        .filter(
+          loc =>
+            loc.city &&
+            loc.city.trim() !== ""
+        )
+        .map(loc => [
+          `${loc.city}-${loc.country}`,
+          loc
+        ])
+    ).values()
+  ];
+
+  uniqueLocations.length = 0;
+  uniqueLocations.push(
+    ...fallbackLocations
+  );
+}
 
     const shuffled =
   [...uniqueLocations].sort(
@@ -332,8 +379,8 @@ Ride24.`
 
     const { error: insertError } =
       await supabase
-        .from("marketing_posts")
-        .insert(posts);
+  .from("marketing_queue")
+  .insert(posts);
 
     if (insertError) {
       throw insertError;
@@ -345,17 +392,17 @@ Ride24.`
         .join(", ");
 
     await supabase
-      .from("marketing_runs")
-      .insert({
-        posts_generated:
-          posts.length,
+  .from("marketing_runs")
+  .insert({
+    posts_generated:
+      posts.length,
 
-        status:
-          "success",
+    status:
+      "success",
 
-        error_message:
-          citiesUsed
-      });
+    cities_used:
+      citiesUsed
+  });
 
     return new Response(
       JSON.stringify({
