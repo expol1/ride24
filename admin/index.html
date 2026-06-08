@@ -587,28 +587,6 @@
         </div>
 
         <div class="stat-card">
-            <div class="stat-value"
-                 id="marketing-runs">
-                 0
-            </div>
-
-            <div class="stat-label">
-                 Uruchomień AI
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-value"
-                 id="marketing-generated">
-                 0
-            </div>
-
-            <div class="stat-label">
-                 Wygenerowanych postów
-            </div>
-        </div>
-
-        <div class="stat-card">
             <div class="stat-title">Status</div>
             <div class="stat-value" style="color:#16A34A;">
                 AKTYWNY
@@ -697,39 +675,8 @@
         </table>
 
     </div>
-<div class="table-container" style="margin-top:20px;">
-
-    <div class="table-header">
-        Kolejka publikacji
-    </div>
-
-    <table>
-
-        <thead>
-            <tr>
-                <th>Platforma</th>
-                <th>Miasto</th>
-                <th>Kraj</th>
-                <th>Status</th>
-                <th>Akcja</th>
-            </tr>
-        </thead>
-
-        <tbody id="marketing-queue-tbody">
-
-            <tr>
-                <td colspan="5">
-                    Ładowanie...
-                </td>
-            </tr>
-
-        </tbody>
-
-    </table>
 
 </div>
-</div>
-
         </main>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -1041,7 +988,6 @@ async function loadDeletionRequests() {
             loadMarketingSettings();
             loadMarketingPosts();
             loadMarketingStats();
-            loadMarketingRuns();
         });
 
         // --- NAWIGACJA ---
@@ -1056,7 +1002,6 @@ async function loadDeletionRequests() {
             if (tabId === "marketing") {
                 loadMarketingPosts();
                 loadMarketingStats();
-                loadMarketingRuns();
             }
             
             // Ukrywamy wszystkie sekcje i pokazujemy wybraną
@@ -1854,7 +1799,6 @@ async function loadMarketingPosts() {
         `;
     });
 }
-
 async function loadMarketingStats() {
 
     const { count } = await db
@@ -1867,30 +1811,6 @@ async function loadMarketingStats() {
     document.getElementById(
         "marketing-posts"
     ).innerText = count || 0;
-}
-async function loadMarketingRuns() {
-
-    const { data } = await db
-        .from("marketing_runs")
-        .select("*");
-
-    if (!data) return;
-
-    document.getElementById(
-        "marketing-runs"
-    ).innerText = data.length;
-
-    const generated =
-        data.reduce(
-            (sum, row) =>
-                sum +
-                (row.posts_generated || 0),
-            0
-        );
-
-    document.getElementById(
-        "marketing-generated"
-    ).innerText = generated;
 }
 async function runMarketingEngine() {
 
@@ -1922,7 +1842,6 @@ async function runMarketingEngine() {
 
         await loadMarketingPosts();
         await loadMarketingStats();
-        await loadMarketingRuns();
 
     } catch (err) {
 
