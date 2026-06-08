@@ -1832,7 +1832,12 @@ async function runMarketingEngine() {
         if (error) throw error;
 
         alert(
-            `Wygenerowano ${data.generated_posts} posty`
+        `Posty: ${data.generated_posts}
+
+        Lokalizacje: ${data.locations_found}
+
+        Miasto:
+        ${data.sample_location?.city || "BRAK"}`
         );
 
         await loadMarketingPosts();

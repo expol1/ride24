@@ -13,6 +13,7 @@ serve(async (req) => {
 
   if (req.method === "OPTIONS") {
     return new Response("ok", {
+      version: "v2-test",
       headers: corsHeaders
     });
   }
@@ -32,20 +33,20 @@ serve(async (req) => {
         .single();
 
     if (settingsError) {
+      throw settingsError;
+    }
 
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: settingsError.message
-        }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+    const {
+      data: locations,
+      error: locationsError
+    } = await supabase
+      .from("partner_locations")
+      .select("city,country")
+      .eq("active", true)
+      .not("city", "is", null);
+
+    if (locationsError) {
+      throw locationsError;
     }
 
     const posts = [
@@ -75,20 +76,7 @@ serve(async (req) => {
         .insert(posts);
 
     if (insertError) {
-
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: insertError.message
-        }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json"
-          }
-        }
-      );
+      throw insertError;
     }
 
     return new Response(
@@ -98,11 +86,22 @@ serve(async (req) => {
         status: settings?.is_active
           ? "ACTIVE"
           : "DISABLED",
+
         monthly_budget:
           settings?.monthly_budget ?? 0,
+
         daily_budget:
           settings?.daily_budget ?? 0,
-        generated_posts: posts.length,
+
+        generated_posts:
+          posts.length,
+
+        locations_found:
+          locations?.length || 0,
+
+        sample_location:
+          locations?.[0] || null,
+
         timestamp:
           new Date().toISOString()
       }),
