@@ -1056,7 +1056,7 @@ async function loadDeletionRequests() {
             loadDeletionRequests();
             loadMessages();
             loadMarketingSettings();
-            loadMarketingPosts();
+            
             loadMarketingStats();
             loadMarketingRuns();
             loadMarketingQueue();
@@ -1072,7 +1072,7 @@ async function loadDeletionRequests() {
             if (tabId === "refunds") loadRefunds();
             if (tabId === "messages") loadMessages();
             if (tabId === "marketing") {
-                loadMarketingPosts();
+                
                 loadMarketingStats();
                 loadMarketingRuns();
                 loadMarketingQueue();
@@ -1823,56 +1823,7 @@ async function saveMarketingSettings() {
     alert("Zapisano");
 }
 
-async function loadMarketingPosts() {
 
-    const tbody =
-        document.getElementById(
-            "marketing-posts-tbody"
-        );
-
-    if (!tbody) return;
-
-    const { data, error } = await db
-        .from("marketing_posts")
-        .select("*")
-        .order("created_at", {
-            ascending: false
-        })
-        .limit(50);
-
-    if (error) {
-        tbody.innerHTML =
-            "<tr><td colspan='4'>Błąd</td></tr>";
-        return;
-    }
-
-    tbody.innerHTML = "";
-
-    if (!data.length) {
-
-        tbody.innerHTML =
-            "<tr><td colspan='4'>Brak postów</td></tr>";
-
-        return;
-    }
-
-    data.forEach(post => {
-
-        tbody.innerHTML += `
-            <tr>
-                <td>${escapeHtml(post.platform)}</td>
-                <td>${escapeHtml(post.status)}</td>
-                <td>
-                    ${new Date(post.created_at)
-                        .toLocaleString("pl-PL")}
-                </td>
-                <td>
-                    ${escapeHtml(post.content)}
-                </td>
-            </tr>
-        `;
-    });
-}
 async function loadMarketingQueue() {
 
     const tbody =
@@ -2184,7 +2135,7 @@ async function runMarketingEngine() {
         ${data.sample_location?.city || "BRAK"}`
         );
 
-        await loadMarketingPosts();
+        
         await loadMarketingStats();
         await loadMarketingRuns();
 
