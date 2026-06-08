@@ -13,7 +13,7 @@ serve(async (req) => {
 
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      version: "v2-test",
+      
       headers: corsHeaders
     });
   }
@@ -49,23 +49,78 @@ serve(async (req) => {
       throw locationsError;
     }
 
+    const uniqueLocations = [
+      ...new Map(
+        (locations || [])
+          .filter(
+            loc =>
+              loc.city &&
+              loc.city.trim() !== ""
+          )
+          .map(loc => [
+            `${loc.city}-${loc.country}`,
+            loc
+          ])
+      ).values()
+    ];
+
+    const shuffled =
+      uniqueLocations.sort(
+        () => Math.random() - 0.5
+      );
+
+    const selected =
+      shuffled.slice(0, 3);
+
+    const facebookLocation =
+      selected[0];
+
+    const instagramLocation =
+      selected[1] || selected[0];
+
+    const xLocation =
+      selected[2] || selected[0];
+
     const posts = [
       {
         platform: "facebook",
+        city: facebookLocation.city,
+        country: facebookLocation.country,
         content:
-          "🚗 Wynajem auta bez depozytu. Pełne ubezpieczenie i program lojalnościowy Ride24.",
+          `🚗 Odkrywaj ${facebookLocation.city} bez ograniczeń.
+
+Bez depozytu.
+Bez karty kredytowej.
+Pełne ubezpieczenie.
+
+Ride24.`,
         status: "draft"
       },
+
       {
         platform: "instagram",
+        city: instagramLocation.city,
+        country: instagramLocation.country,
         content:
-          "☀️ Wakacje bez stresu. Bez depozytu. Bez karty kredytowej. Ride24.",
+          `☀️ ${instagramLocation.city} czeka.
+
+Zwiedzaj własnym tempem.
+
+Bez depozytu.
+Pełne ubezpieczenie.
+Program lojalnościowy Ride24.`,
         status: "draft"
       },
+
       {
         platform: "x",
+        city: xLocation.city,
+        country: xLocation.country,
         content:
-          "✈️ Wynajem samochodu bez karty kredytowej. Ride24.",
+          `✈️ ${xLocation.city} bez karty kredytowej.
+
+Pełne ubezpieczenie.
+Ride24.`,
         status: "draft"
       }
     ];
@@ -78,7 +133,23 @@ serve(async (req) => {
     if (insertError) {
       throw insertError;
     }
+    const citiesUsed =
+    posts
+    .map(post => post.city)
+    .join(", ");
 
+    await supabase
+       .from("marketing_runs")
+       .insert({
+         posts_generated:
+      posts.length,
+
+    status:
+      "success",
+
+    error_message:
+      citiesUsed
+    });
     return new Response(
       JSON.stringify({
         success: true,
