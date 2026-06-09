@@ -2112,8 +2112,14 @@ async function publishMarketingPost(id) {
     .from("marketing_queue")
     .update({
         status: "published",
+
+        published_facebook: true,
+        published_instagram: true,
+        published_x: true,
+
         published_at:
-            new Date().toISOString()
+            new Date()
+                .toISOString()
     })
     .eq("id", id);
 
