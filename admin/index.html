@@ -2178,37 +2178,97 @@ async function showMarketingPost(id) {
 
     document.getElementById(
         "marketing-modal-content"
-    ).innerText =
+    ).innerHTML =
 `
-Platforma:
-${
-    data.platform === "facebook"
-        ? "Facebook"
-        : data.platform === "instagram"
-        ? "Instagram"
-        : data.platform === "x"
-        ? "X (Twitter)"
-        : data.platform
-}
+<div style="line-height:1.7;">
 
-Miasto:
-${data.city}
+    <div style="
+        margin-bottom:20px;
+        padding-bottom:15px;
+        border-bottom:1px solid #e5e7eb;
+    ">
 
-Kraj:
-${data.country}
+        <div>
+            <strong>Platforma:</strong>
+            ${
+                data.platform === "facebook"
+                    ? "Facebook"
+                    : data.platform === "instagram"
+                    ? "Instagram"
+                    : data.platform === "x"
+                    ? "X (Twitter)"
+                    : data.platform
+            }
+        </div>
 
-Status:
-${
-    data.status === "draft"
-        ? "Szkic"
-        : data.status === "published"
-        ? "Opublikowany"
-        : data.status
-}
+        <div>
+            <strong>Miasto:</strong>
+            ${data.city || "-"}
+        </div>
 
-────────────────────────
+        <div>
+            <strong>Kraj:</strong>
+            ${data.country || "-"}
+        </div>
 
-${data.content}
+        <div>
+            <strong>Status:</strong>
+            ${
+                data.status === "draft"
+                    ? "Szkic"
+                    : data.status === "approved"
+                    ? "Zatwierdzony"
+                    : data.status === "published"
+                    ? "Opublikowany"
+                    : data.status
+            }
+        </div>
+
+        <div>
+            <strong>Data utworzenia:</strong>
+            ${new Date(data.created_at)
+                .toLocaleString("pl-PL")}
+        </div>
+
+    </div>
+
+    <h3 style="
+        margin-bottom:10px;
+        color:#1e293b;
+    ">
+        Treść posta
+    </h3>
+
+    <div style="
+        white-space:pre-wrap;
+        background:#f8fafc;
+        padding:15px;
+        border-radius:10px;
+        border:1px solid #e2e8f0;
+        margin-bottom:20px;
+    ">
+        ${escapeHtml(data.content)}
+    </div>
+
+    <h3 style="
+        margin-bottom:10px;
+        color:#1e293b;
+    ">
+        Grafika
+    </h3>
+
+    <div style="
+        background:#f8fafc;
+        border:2px dashed #cbd5e1;
+        border-radius:10px;
+        padding:40px;
+        text-align:center;
+        color:#64748b;
+    ">
+        Grafika nie została jeszcze wygenerowana
+    </div>
+
+</div>
 `;
 
     document.getElementById(
