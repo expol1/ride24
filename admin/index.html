@@ -2299,7 +2299,7 @@ async function loadMarketingRuns() {
 async function connectFacebook() {
 
     const APP_ID =
-    "2439195086585479";
+    "1781897099847188";
 
     const REDIRECT_URI =
         "https://ride24.pl/admin/facebook-callback.html";
@@ -2313,7 +2313,7 @@ async function connectFacebook() {
         ].join(",");
 
     const url =
-        `https://www.facebook.com/v23.0/dialog/oauth?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=token`;
+     `https://www.facebook.com/dialog/oauth?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=token`;
 
     window.open(
         url,
