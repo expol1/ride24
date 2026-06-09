@@ -60,12 +60,17 @@ try {
     }
 
     const meResponse =
-        await fetch(
-            `https://graph.facebook.com/v23.0/me/accounts?access_token=${userToken}`
-        );
+    await fetch(
+        `https://graph.facebook.com/v23.0/me/accounts?access_token=${userToken}`
+    );
 
-    const meData =
-        await meResponse.json();
+const meData =
+    await meResponse.json();
+
+alert(
+    "TOKEN:\n\n" +
+    userToken.substring(0,40)
+);
 console.log("TOKEN:");
 console.log(userToken);
 
