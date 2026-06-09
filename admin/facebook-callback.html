@@ -65,20 +65,7 @@ try {
         );
 
     const meData =
-    await meResponse.json();
-
-document.body.innerHTML =
-`
-<pre>
-${JSON.stringify(
-    meData,
-    null,
-    2
-)}
-</pre>
-`;
-
-return;
+        await meResponse.json();
 
     if (
         !meData.data ||
@@ -93,7 +80,7 @@ return;
 
     const page =
     meData.data.find(
-        p => p.id === "61561090230180"
+        p => p.id === "350164911514309"
     );
 
 if (!page) {
