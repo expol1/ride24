@@ -2107,21 +2107,22 @@ async function deleteMarketingPost(id) {
 
 async function publishMarketingPost(id) {
 
-    const { error } =
+    const { data, error } =
         await db
-    .from("marketing_queue")
-    .update({
-        status: "published",
+            .from("marketing_queue")
+            .update({
+                status: "published",
+                published_facebook: true,
+                published_instagram: true,
+                published_x: true,
+                published_at:
+                    new Date().toISOString()
+            })
+            .eq("id", id)
+            .select();
 
-        published_facebook: true,
-        published_instagram: true,
-        published_x: true,
-
-        published_at:
-            new Date()
-                .toISOString()
-    })
-    .eq("id", id);
+    console.log(data);
+    console.log(error);
 
     if (error) {
 
