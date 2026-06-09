@@ -2109,11 +2109,13 @@ async function publishMarketingPost(id) {
 
     const { error } =
         await db
-            .from("marketing_queue")
-            .update({
-                status: "published"
-            })
-            .eq("id", id);
+    .from("marketing_queue")
+    .update({
+        status: "published",
+        published_at:
+            new Date().toISOString()
+    })
+    .eq("id", id);
 
     if (error) {
 
