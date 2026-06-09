@@ -346,51 +346,25 @@ Ride24.`
     }
 
     const posts = [
-      {
-        platform: "facebook",
-        city: facebookLocation.city,
-        country: facebookLocation.country,
-        content:
-          randomTemplate(
-            facebookLocation.city
-          ) +
-          buildHashtags(
-            facebookLocation.city,
-            facebookLocation.country
-          ),
-        status: "draft"
-      },
+  {
+    platform: "facebook,instagram,x",
 
-      {
-        platform: "instagram",
-        city: instagramLocation.city,
-        country: instagramLocation.country,
-        content:
-          randomTemplate(
-            instagramLocation.city
-          ) +
-          buildHashtags(
-            instagramLocation.city,
-            instagramLocation.country
-          ),
-        status: "draft"
-      },
+    city: facebookLocation.city,
 
-      {
-        platform: "x",
-        city: xLocation.city,
-        country: xLocation.country,
-        content:
-          randomTemplate(
-            xLocation.city
-          ) +
-          buildHashtags(
-            xLocation.city,
-            xLocation.country
-          ),
-        status: "draft"
-      }
-    ];
+    country: facebookLocation.country,
+
+    content:
+      randomTemplate(
+        facebookLocation.city
+      ) +
+      buildHashtags(
+        facebookLocation.city,
+        facebookLocation.country
+      ),
+
+    status: "draft"
+  }
+];
 
     const { error: insertError } =
       await supabase

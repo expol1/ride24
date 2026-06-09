@@ -1939,7 +1939,8 @@ async function loadMarketingQueue() {
     const platformMap = {
     facebook: "Facebook",
     instagram: "Instagram",
-    x: "X (Twitter)"
+    x: "X (Twitter)",
+    all: "Facebook + Instagram + X"
 };
 
 const platformName =
@@ -2336,13 +2337,13 @@ async function runMarketingEngine() {
         if (error) throw error;
 
         alert(
-        `Posty: ${data.generated_posts}
+`Kampanii wygenerowano: ${data.generated_posts}
 
-        Lokalizacje: ${data.locations_found}
+Przeanalizowano lokalizacji: ${data.locations_found}
 
-        Miasto:
-        ${data.sample_location?.city || "BRAK"}`
-        );
+Wybrana lokalizacja:
+${data.sample_location?.city || "BRAK"}`
+);
 
         
         await loadMarketingStats();
