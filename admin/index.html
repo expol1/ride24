@@ -2000,16 +2000,38 @@ if (post.status === "rejected") {
 
     <button
         class="btn-primary"
-        onclick="showMarketingPost(${post.id})">
+        onclick="
+        showMarketingPost(
+        ${post.id}
+        )">
 
         Podgląd
 
     </button>
 
+    ${
+        post.status === "draft"
+        ? `
+        <button
+            class="btn-warning"
+            onclick="
+            approveMarketingPost(
+            ${post.id}
+            )">
+
+            Zatwierdź
+
+        </button>
+        `
+        : ""
+    }
+
     <button
         class="btn-danger"
-        style="margin-left:8px;"
-        onclick="deleteMarketingPost(${post.id})">
+        onclick="
+        deleteMarketingPost(
+        ${post.id}
+        )">
 
         Usuń
 
@@ -2052,7 +2074,24 @@ async function deleteMarketingPost(id) {
     await loadMarketingQueue();
     await loadMarketingStats();
 }
+async function approveMarketingPost(id) {
 
+    const { error } =
+        await db
+            .from("marketing_queue")
+            .update({
+                status: "approved"
+            })
+            .eq("id", id);
+
+    if (error) {
+
+        alert(error.message);
+        return;
+    }
+
+    loadMarketingQueue();
+}
 function closeMarketingModal() {
 
     document.getElementById(
