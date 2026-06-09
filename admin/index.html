@@ -2119,6 +2119,11 @@ async function loadMarketingRuns() {
         .from("marketing_runs")
         .select("*");
 
+    console.log(
+        "marketing_runs:",
+        data
+    );
+
     if (!data) return;
 
     document.getElementById(
@@ -2136,6 +2141,16 @@ async function loadMarketingRuns() {
     document.getElementById(
         "marketing-generated"
     ).innerText = generated;
+
+    console.log(
+        "runs:",
+        data.length
+    );
+
+    console.log(
+        "generated:",
+        generated
+    );
 }
 async function runMarketingEngine() {
 
