@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ride24 Facebook Connect</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<h2>Łączenie Facebook i Instagram...</h2>
+
+<script>
+
+const supabaseUrl =
+    "https://zwyerdeuvyzgkgwglowr.supabase.co";
+
+const supabaseKey =
+    "sb_publishable_KMeRBCZCQH-S0Ubnr80v6w_Gub3vcQf";
+
+const db =
+    supabase.createClient(
+        supabaseUrl,
+        supabaseKey
+    );
+
+(async () => {
+
+try {
+
+    const hash =
+        window.location.hash.substring(1);
+
+    const params =
+        new URLSearchParams(hash);
+
+    const userToken =
+        params.get("access_token");
+
+    if (!userToken) {
+
+        document.body.innerHTML =
+            "<h2>Brak tokena Facebook</h2>";
+
+        return;
+    }
+
+    const {
+        data: { session }
+    } =
+        await db.auth.getSession();
+
+    if (!session) {
+
+        document.body.innerHTML =
+            "<h2>Zaloguj się ponownie do panelu Ride24</h2>";
+
+        return;
+    }
+
+    const meResponse =
+        await fetch(
+            `https://graph.facebook.com/v23.0/me/accounts?access_token=${userToken}`
+        );
+
+    const meData =
+        await meResponse.json();
+
+    if (
+        !meData.data ||
+        !meData.data.length
+    ) {
+
+        document.body.innerHTML =
+            "<h2>Nie znaleziono stron Facebook</h2>";
+
+        return;
+    }
+
+    const page =
+        meData.data[0];
+
+    let instagramId = null;
+    let instagramName = null;
+
+    try {
+
+        const igResponse =
+            await fetch(
+                `https://graph.facebook.com/v23.0/${page.id}?fields=instagram_business_account{id,username}&access_token=${page.access_token}`
+            );
+
+        const igData =
+            await igResponse.json();
+
+        instagramId =
+            igData?.instagram_business_account?.id || null;
+
+        instagramName =
+            igData?.instagram_business_account?.username || null;
+
+    } catch(e) {
+
+        console.log(
+            "Instagram not found"
+        );
+
+    }
+
+    await db
+        .from("social_connections")
+        .delete()
+        .eq("platform", "facebook")
+        .eq(
+            "user_id",
+            session.user.id
+        );
+
+    const { error } =
+        await db
+            .from("social_connections")
+            .insert({
+
+                user_id:
+                    session.user.id,
+
+                platform:
+                    "facebook",
+
+                page_id:
+                    page.id,
+
+                page_name:
+                    page.name,
+
+                instagram_id:
+                    instagramId,
+
+                instagram_name:
+                    instagramName,
+
+                access_token:
+                    page.access_token,
+
+                connected_at:
+                    new Date()
+                        .toISOString()
+            });
+
+    if (error) {
+
+        throw error;
+
+    }
+
+    document.body.innerHTML =
+`
+<h2>
+✅ Facebook połączony
+</h2>
+
+<p>
+Strona:
+<b>${page.name}</b>
+</p>
+
+<p>
+Instagram:
+<b>${instagramName || "brak"}</b>
+</p>
+
+<p>
+Możesz zamknąć okno.
+</p>
+`;
+
+}
+catch(err) {
+
+    document.body.innerHTML =
+`
+<h2>Błąd</h2>
+<pre>${err.message}</pre>
+`;
+
+    console.error(err);
+
+}
+
+})();
+
+</script>
+
+</body>
+</html>
