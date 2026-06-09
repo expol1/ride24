@@ -104,6 +104,7 @@
     font-size: 13px;
     cursor: pointer;
     transition: 0.2s;
+    width:130px;
 }
 
 .btn-success:hover {
@@ -2045,10 +2046,8 @@ post.status === "draft"
 ? `
 <button
     class="btn-success"
-    onclick="
-    publishMarketingPost(
-    ${post.id}
-    )">
+    style="width:130px;"
+    onclick="publishMarketingPost(${post.id})">
 
     Publikuj
 
