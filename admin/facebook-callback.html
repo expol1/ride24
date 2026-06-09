@@ -79,7 +79,17 @@ try {
     }
 
     const page =
-        meData.data[0];
+    meData.data.find(
+        p => p.id === "61561090230180"
+    );
+
+if (!page) {
+
+    document.body.innerHTML =
+        "<h2>Nie znaleziono strony Ride24.</h2>";
+
+    return;
+}
 
     let instagramId = null;
     let instagramName = null;
