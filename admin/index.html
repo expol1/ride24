@@ -1952,7 +1952,6 @@ const platformName =
     published: "Opublikowany",
     scheduled: "Zaplanowany",
     pending: "Oczekuje",
-    approved: "Zatwierdzony",
     rejected: "Odrzucony"
 };
 
@@ -2040,39 +2039,22 @@ if (post.status === "rejected") {
 
     </button>
 
+    
     ${
-        post.status === "draft"
-        ? `
-        <button
-            class="btn-warning"
-            style="min-width:130px;"
-            onclick="
-            approveMarketingPost(
-            ${post.id}
-            )">
+post.status === "draft"
+? `
+<button
+    class="btn-success"
+    onclick="
+    publishMarketingPost(
+    ${post.id}
+    )">
 
-            ✅ Zatwierdź
+    Publikuj
 
-        </button>
-        `
-        : ""
-    }
-    ${
-    post.status === "approved"
-    ? `
-    <button
-        class="btn-success"
-        style="min-width:130px;"
-        onclick="
-        publishMarketingPost(
-        ${post.id}
-        )">
-
-        🚀 Publikuj
-
-    </button>
-    `
-    : ""
+</button>
+`
+: ""
 }
     <button
         class="btn-danger"
@@ -2123,24 +2105,7 @@ async function deleteMarketingPost(id) {
     await loadMarketingQueue();
     await loadMarketingStats();
 }
-async function approveMarketingPost(id) {
 
-    const { error } =
-        await db
-            .from("marketing_queue")
-            .update({
-                status: "approved"
-            })
-            .eq("id", id);
-
-    if (error) {
-
-        alert(error.message);
-        return;
-    }
-
-    loadMarketingQueue();
-}
 async function publishMarketingPost(id) {
 
     const { error } =
@@ -2219,8 +2184,7 @@ async function showMarketingPost(id) {
             ${
                 data.status === "draft"
                     ? "Szkic"
-                    : data.status === "approved"
-                    ? "Zatwierdzony"
+                    
                     : data.status === "published"
                     ? "Opublikowany"
                     : data.status

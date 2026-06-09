@@ -141,11 +141,7 @@ if (selected.length === 0) {
     const facebookLocation =
       selected[0];
 
-    const instagramLocation =
-      selected[1] || selected[0];
-
-    const xLocation =
-      selected[2] || selected[0];
+    
 
     const templates = [
       (city: string) =>
@@ -347,7 +343,7 @@ Ride24.`
 
     const posts = [
   {
-    platform: "facebook,instagram,x",
+    platform: "all",
 
     city: facebookLocation.city,
 
