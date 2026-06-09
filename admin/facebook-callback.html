@@ -64,8 +64,12 @@ try {
         `https://graph.facebook.com/v23.0/me/accounts?access_token=${userToken}`
     );
 
-const meData =
-    await meResponse.json();
+const responseText =
+    await meResponse.text();
+
+alert(responseText);
+
+return;
 
 alert(
     "TOKEN:\n\n" +
