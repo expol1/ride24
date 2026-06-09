@@ -565,19 +565,7 @@
 
     <div class="stats-grid">
 
-        <div class="stat-card">
-            <div class="stat-title">Budżet miesięczny</div>
-            <div class="stat-value" id="marketing-budget">
-                1000 zł
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-title">Budżet dzienny</div>
-            <div class="stat-value" id="marketing-daily">
-                33 zł
-            </div>
-        </div>
+        
 
         <div class="stat-card">
             <div class="stat-title">Posty w kolejce</div>
@@ -614,43 +602,71 @@
                 AKTYWNY
             </div>
         </div>
+        <div class="stat-card"
+     style="grid-column: span 2;">
 
+    <div class="stat-title">
+        Ustawienia Marketing AI
     </div>
 
-    <div class="table-container">
+    <div style="
+        display:flex;
+        gap:12px;
+        align-items:end;
+        margin-top:10px;">
 
-        <div class="table-header">
-            Ustawienia Marketing AI
-        </div>
+        <div style="flex:1;">
 
-        <div style="padding:20px;">
+            <label
+                style="
+                font-size:12px;
+                color:#64748B;
+                display:block;
+                margin-bottom:5px;">
 
-            <label>Budżet miesięczny</label>
+                Budżet miesięczny
+
+            </label>
+
             <input
                 id="monthly-budget"
-                class="smart-input"
-                value="1000"
-                style="margin-bottom:15px;"
-            >
-
-            <label>Budżet dzienny</label>
-            <input
-                id="daily-budget"
-                class="smart-input"
-                value="33"
-                style="margin-bottom:15px;"
-            >
-
-            <button
-                class="btn-primary"
-                onclick="saveMarketingSettings()"
-            >
-                Zapisz
-            </button>
+                class="smart-input">
 
         </div>
 
+        <div style="flex:1;">
+
+            <label
+                style="
+                font-size:12px;
+                color:#64748B;
+                display:block;
+                margin-bottom:5px;">
+
+                Budżet dzienny
+
+            </label>
+
+            <input
+                id="daily-budget"
+                class="smart-input">
+
+        </div>
+
+        <button
+            class="btn-primary"
+            onclick="saveMarketingSettings()">
+
+            Zapisz
+
+        </button>
+
     </div>
+
+</div>
+    </div>
+
+   
 
     
 <div class="table-container" style="margin-top:20px;">
