@@ -720,13 +720,20 @@
     Wygenerowane posty AI
 </div>
 
-<div style="padding:20px;">
+<div style="padding:20px; display:flex; gap:12px; flex-wrap:wrap;">
 
     <button
         class="btn-primary"
         onclick="runMarketingEngine()"
         id="generate-posts-btn">
         Generuj posty
+    </button>
+
+    <button
+        class="btn-success"
+        onclick="connectFacebook()"
+        id="connect-facebook-btn">
+        Połącz Facebook & Instagram
     </button>
 
 </div>
@@ -2288,6 +2295,33 @@ async function loadMarketingRuns() {
         "marketing-generated"
     ).innerText = generated;
 }
+
+async function connectFacebook() {
+
+    const APP_ID =
+    "2439195086585479";
+
+    const REDIRECT_URI =
+        "https://ride24.pl/admin/facebook-callback.html";
+
+    const scope =
+        [
+            "pages_show_list",
+            "pages_manage_posts",
+            "pages_read_engagement",
+            "pages_manage_metadata"
+        ].join(",");
+
+    const url =
+        `https://www.facebook.com/v23.0/dialog/oauth?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=token`;
+
+    window.open(
+        url,
+        "_blank",
+        "width=800,height=700"
+    );
+}
+
 async function runMarketingEngine() {
 
     const btn =
