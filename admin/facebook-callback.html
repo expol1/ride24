@@ -65,7 +65,20 @@ try {
         );
 
     const meData =
-        await meResponse.json();
+    await meResponse.json();
+
+document.body.innerHTML =
+`
+<pre>
+${JSON.stringify(
+    meData,
+    null,
+    2
+)}
+</pre>
+`;
+
+return;
 
     if (
         !meData.data ||
