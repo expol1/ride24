@@ -1942,6 +1942,17 @@ if (post.status === "published") {
 if (post.status === "scheduled") {
     statusBadge = "#2563EB";
 }
+if (post.status === "approved") {
+    statusBadge = "#F59E0B";
+}
+
+if (post.status === "pending") {
+    statusBadge = "#EAB308";
+}
+
+if (post.status === "rejected") {
+    statusBadge = "#DC2626";
+}
     const shortContent =
         (post.content || "")
             .replace(/\n/g, " ")
@@ -2119,11 +2130,6 @@ async function loadMarketingRuns() {
         .from("marketing_runs")
         .select("*");
 
-    console.log(
-        "marketing_runs:",
-        data
-    );
-
     if (!data) return;
 
     document.getElementById(
@@ -2141,16 +2147,6 @@ async function loadMarketingRuns() {
     document.getElementById(
         "marketing-generated"
     ).innerText = generated;
-
-    console.log(
-        "runs:",
-        data.length
-    );
-
-    console.log(
-        "generated:",
-        generated
-    );
 }
 async function runMarketingEngine() {
 
