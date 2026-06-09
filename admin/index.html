@@ -2000,12 +2000,13 @@ if (post.status === "rejected") {
 
     <button
         class="btn-primary"
+        style="min-width:130px;"
         onclick="
         showMarketingPost(
         ${post.id}
         )">
 
-        Podgląd
+        🔍 Podgląd
 
     </button>
 
@@ -2014,12 +2015,13 @@ if (post.status === "rejected") {
         ? `
         <button
             class="btn-warning"
+            style="min-width:130px;"
             onclick="
             approveMarketingPost(
             ${post.id}
             )">
 
-            Zatwierdź
+            ✅ Zatwierdź
 
         </button>
         `
@@ -2030,12 +2032,13 @@ if (post.status === "rejected") {
     ? `
     <button
         class="btn-success"
+        style="min-width:130px;"
         onclick="
         publishMarketingPost(
         ${post.id}
         )">
 
-        Publikuj
+        🚀 Publikuj
 
     </button>
     `
@@ -2043,12 +2046,13 @@ if (post.status === "rejected") {
 }
     <button
         class="btn-danger"
+        style="min-width:130px;"
         onclick="
         deleteMarketingPost(
         ${post.id}
         )">
 
-        Usuń
+        🗑 Usuń
 
     </button>
 
