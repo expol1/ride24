@@ -21,10 +21,25 @@ serve(async (req) => {
   try {
 
     const supabase = createClient(
+
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    // usuwanie postów starszych niż 30 dni
 
+const thirtyDaysAgo =
+  new Date(
+    Date.now() -
+    30 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+await supabase
+  .from("marketing_queue")
+  .delete()
+  .lt(
+    "created_at",
+    thirtyDaysAgo
+  );
     const { data: settings, error: settingsError } =
       await supabase
         .from("marketing_settings")
