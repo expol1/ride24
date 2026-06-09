@@ -2025,7 +2025,22 @@ if (post.status === "rejected") {
         `
         : ""
     }
+    ${
+    post.status === "approved"
+    ? `
+    <button
+        class="btn-success"
+        onclick="
+        publishMarketingPost(
+        ${post.id}
+        )">
 
+        Publikuj
+
+    </button>
+    `
+    : ""
+}
     <button
         class="btn-danger"
         onclick="
@@ -2081,6 +2096,24 @@ async function approveMarketingPost(id) {
             .from("marketing_queue")
             .update({
                 status: "approved"
+            })
+            .eq("id", id);
+
+    if (error) {
+
+        alert(error.message);
+        return;
+    }
+
+    loadMarketingQueue();
+}
+async function publishMarketingPost(id) {
+
+    const { error } =
+        await db
+            .from("marketing_queue")
+            .update({
+                status: "published"
             })
             .eq("id", id);
 
