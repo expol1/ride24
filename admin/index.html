@@ -2114,29 +2114,38 @@ async function deleteMarketingPost(id) {
 
 async function publishMarketingPost(id) {
 
-    const { error } =
-        await db
-            .from("marketing_queue")
-            .update({
-                status: "published",
+    try {
 
-                published_facebook: true,
-                published_instagram: true,
-                published_x: true,
+        const { data, error } =
+            await db.functions.invoke(
+                "publish-facebook",
+                {
+                    body: {
+                        postId: id
+                    }
+                }
+            );
 
-                published_at:
-                    new Date()
-                        .toISOString()
-            })
-            .eq("id", id);
+        if (error) {
+            throw error;
+        }
 
-    if (error) {
+        alert(
+            "Post opublikowany na Facebooku.\n\nID: " +
+            data.facebook_post_id
+        );
 
-        alert(error.message);
-        return;
+        await loadMarketingQueue();
+
+    } catch (err) {
+
+        alert(
+            "Błąd publikacji:\n\n" +
+            err.message
+        );
+
     }
 
-    loadMarketingQueue();
 }
 function closeMarketingModal() {
 
