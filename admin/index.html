@@ -2054,7 +2054,7 @@ post.status === "draft"
 <button
     class="btn-success"
     style="width:130px;"
-    onclick="publishMarketingPost(${post.id})">
+    onclick="publishMarketingPost(${post.id}, this)">
 
     Publikuj
 
@@ -2112,7 +2112,10 @@ async function deleteMarketingPost(id) {
     await loadMarketingStats();
 }
 
-async function publishMarketingPost(id) {
+async function publishMarketingPost(id, btn) {
+
+    btn.disabled = true;
+    btn.innerText = "Publikowanie...";
 
     try {
 
@@ -2138,6 +2141,9 @@ async function publishMarketingPost(id) {
         await loadMarketingQueue();
 
     } catch (err) {
+
+        btn.disabled = false;
+        btn.innerText = "Publikuj";
 
         alert(
             "Błąd publikacji:\n\n" +

@@ -36,7 +36,11 @@ serve(async (req) => {
     if (!post) {
       throw new Error("Post not found");
     }
-
+    if (post.facebook_post_id) {
+  throw new Error(
+    "Post already published"
+  );
+}
     const { data: social } = await supabase
       .from("social_connections")
       .select("*")
