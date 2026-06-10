@@ -91,22 +91,14 @@ if (!page) {
     try {
 
        const igResponse =
-    await fetch(
-        `https://graph.facebook.com/v23.0/${page.id}?fields=instagram_business_account{id,username}&access_token=${userToken}`
-    );
+await fetch(
+    `https://graph.facebook.com/v23.0/${page.id}?fields=instagram_business_account{id,username}&access_token=${page.access_token}`
+);
 
 const igData =
     await igResponse.json();
 
-alert(
-    JSON.stringify(
-        igData,
-        null,
-        2
-    )
-);
 
-return;
 
         instagramId =
             igData?.instagram_business_account?.id || null;
