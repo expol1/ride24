@@ -98,12 +98,10 @@ await fetch(
 const igData =
     await igResponse.json();
 
-console.log(igData);
 
-document.body.innerHTML =
-`<pre>${JSON.stringify(igData,null,2)}</pre>`;
 
-return;
+        instagramId =
+            igData?.instagram_business_account?.id || null;
 
         instagramName =
             igData?.instagram_business_account?.username || null;
