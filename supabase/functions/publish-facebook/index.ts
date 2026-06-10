@@ -28,15 +28,22 @@ serve(async (req) => {
     const { postId } = await req.json();
 
     const { data: post } = await supabase
-      .from("marketing_queue")
-      .select("*")
-      .eq("id", postId)
-      .single();
+  .from("marketing_queue")
+  .select("*")
+  .eq("id", postId)
+  .single();
 
-    if (!post) {
-      throw new Error("Post not found");
-    }
-    if (post.facebook_post_id) {
+if (!post) {
+  throw new Error("Post not found");
+}
+
+if (post.status === "published") {
+  throw new Error(
+    "Post already published"
+  );
+}
+
+if (post.facebook_post_id) {
   throw new Error(
     "Post already published"
   );

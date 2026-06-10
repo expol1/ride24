@@ -140,7 +140,47 @@ if (selected.length === 0) {
 }
     const facebookLocation =
       selected[0];
+      let cityPL =
+  facebookLocation.city;
 
+let countryPL =
+  facebookLocation.country;
+
+const { data: cityDict } =
+  await supabase
+    .from("locations_dictionary")
+    .select("name_pl")
+    .eq("category", "city")
+    .eq(
+      "name_en",
+      facebookLocation.city
+    )
+    .maybeSingle();
+
+if (cityDict?.name_pl) {
+
+  cityPL =
+    cityDict.name_pl;
+
+}
+
+const { data: countryDict } =
+  await supabase
+    .from("locations_dictionary")
+    .select("name_pl")
+    .eq("category", "country")
+    .eq(
+      "name_en",
+      facebookLocation.country
+    )
+    .maybeSingle();
+
+if (countryDict?.name_pl) {
+
+  countryPL =
+    countryDict.name_pl;
+
+}
     
 
     const templates = [
@@ -341,24 +381,64 @@ Ride24.`
       return template(city);
     }
 
-    const posts = [
+    const { data: contentData, error: contentError } =
+  await supabase.functions.invoke(
+    "generate-marketing-content",
+    {
+      body: {
+        city: cityPL,
+        country: countryPL
+      }
+    }
+  );
+
+if (contentError) {
+  throw contentError;
+}
+
+const { data: imageData, error: imageError } =
+  await supabase.functions.invoke(
+    "generate-marketing-image",
+    {
+      body: {
+        city: cityPL,
+        country: countryPL
+      }
+    }
+  );
+
+if (imageError) {
+  throw imageError;
+}
+
+const posts = [
   {
     platform: "all",
 
-    city: facebookLocation.city,
+    city: cityPL,
 
-    country: facebookLocation.country,
+    country: countryPL,
 
     content:
-      randomTemplate(
-        facebookLocation.city
-      ) +
-      buildHashtags(
-        facebookLocation.city,
-        facebookLocation.country
-      ),
+      contentData.content,
 
-    status: "draft"
+    image_url:
+      imageData.image_url,
+
+    image_status:
+      "ready",
+
+    image_prompt:
+      `${cityPL}, ${countryPL}`,
+
+    image_generated_at:
+      new Date().toISOString(),
+
+    generation_version:
+      "v2",
+
+    status:
+      "draft"
   }
 ];
 
