@@ -90,9 +90,9 @@ if (!page) {
 
     try {
 
-        const igResponse =
+       const igResponse =
     await fetch(
-        `https://graph.facebook.com/v23.0/${page.id}?fields=connected_instagram_account,instagram_business_account&access_token=${userToken}`
+        `https://graph.facebook.com/v23.0/${page.id}?fields=connected_instagram_account&access_token=${userToken}`
     );
 
 const igData =
