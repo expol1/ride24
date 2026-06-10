@@ -98,6 +98,16 @@ if (!page) {
         const igData =
             await igResponse.json();
 
+        alert(
+    JSON.stringify(
+        igData,
+        null,
+        2
+    )
+);
+
+return;
+
         instagramId =
             igData?.instagram_business_account?.id || null;
 
