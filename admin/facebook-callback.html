@@ -59,50 +59,23 @@ try {
         return;
     }
 
-    const meResponse =
+    const pageResponse =
     await fetch(
-        `https://graph.facebook.com/v23.0/350164911514309?fields=id,name&access_token=${userToken}`
+        `https://graph.facebook.com/v23.0/350164911514309?fields=id,name,access_token&access_token=${userToken}`
     );
 
-const responseText =
-    await meResponse.text();
+const page =
+    await pageResponse.json();
 
-alert(responseText);
+console.log(page);
 
-return;
+if (!page.id) {
 
-alert(
-    "TOKEN:\n\n" +
-    userToken.substring(0,40)
-);
-console.log("TOKEN:");
-console.log(userToken);
+    document.body.innerHTML =
+        "<h2>Nie znaleziono strony Ride24.</h2>";
 
-console.log("ME DATA:");
-console.log(meData);
-
-alert(
-    JSON.stringify(
-        meData,
-        null,
-        2
-    )
-);
-    if (
-        !meData.data ||
-        !meData.data.length
-    ) {
-
-        document.body.innerHTML =
-            "<h2>Nie znaleziono stron Facebook</h2>";
-
-        return;
-    }
-
-    const page =
-    meData.data.find(
-        p => p.id === "350164911514309"
-    );
+    return;
+}
 
 if (!page) {
 
