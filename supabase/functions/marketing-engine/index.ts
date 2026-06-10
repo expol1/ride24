@@ -381,36 +381,71 @@ Ride24.`
       return template(city);
     }
 
-    const { data: contentData, error: contentError } =
-  await supabase.functions.invoke(
-    "generate-marketing-content",
+    const contentResponse =
+  await fetch(
+    `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-marketing-content`,
     {
-      body: {
+      method: "POST",
+      headers: {
+        Authorization:
+          `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
         city: cityPL,
         country: countryPL
-      }
+      })
     }
   );
 
-if (contentError) {
-  throw contentError;
+const contentData =
+  await contentResponse.json();
+
+if (!contentResponse.ok) {
+
+  console.error(
+    "CONTENT RESPONSE ERROR",
+    contentData
+  );
+
+  throw new Error(
+    JSON.stringify(contentData)
+  );
 }
 
-const { data: imageData, error: imageError } =
-  await supabase.functions.invoke(
-    "generate-marketing-image",
+const imageResponse =
+  await fetch(
+    `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-marketing-image`,
     {
-      body: {
+      method: "POST",
+      headers: {
+        Authorization:
+          `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        "Content-Type":
+          "application/json"
+      },
+      body: JSON.stringify({
         city: cityPL,
         country: countryPL
-      }
+      })
     }
   );
 
-if (imageError) {
-  throw imageError;
-}
+const imageData =
+  await imageResponse.json();
 
+if (!imageResponse.ok) {
+
+  console.error(
+    "IMAGE RESPONSE ERROR",
+    imageData
+  );
+
+  throw new Error(
+    JSON.stringify(imageData)
+  );
+}
 const posts = [
   {
     platform: "all",
@@ -504,7 +539,10 @@ const posts = [
     );
 
   } catch (err) {
-
+    console.error(
+  "MARKETING ENGINE ERROR",
+  err
+);
     return new Response(
       JSON.stringify({
         success: false,
