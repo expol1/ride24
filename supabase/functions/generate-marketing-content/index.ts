@@ -190,7 +190,16 @@ Rotate naturally between:
 * Magia
 * Perła
 * Do not overuse any single opening phrase.
+No opening word may be used in more than 15% of generated headlines.
 
+Strongly prioritize headline diversity.
+
+Avoid repeatedly generating:
+
+* Odkryj
+* Poznaj
+
+if other options are available.
 Avoid generating "Odkryj" in consecutive advertisements.
 
 Prefer a different opening phrase than the previous generation whenever possible.
@@ -198,7 +207,28 @@ Preferowane konstrukcje:
 
 * Odkryj ${city}
 * Poznaj ${city}
-* Witaj w ${city}
+For headlines starting with:
+
+"Witaj w"
+
+or
+
+"Poznaj"
+
+use the correct Polish grammatical form.
+
+Examples:
+
+Witaj w Lizbonie
+Witaj w Porto
+Witaj w Pafos
+Witaj w Funchal
+
+Never write:
+
+Witaj w Lizbona
+
+Never use incorrect Polish declension.
 * ${city} czeka
 * ${city} w ${country}
 If the destination belongs to a well-known island,

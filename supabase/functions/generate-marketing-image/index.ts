@@ -115,7 +115,24 @@ Green (#31A100) must be used ONLY for:
 * separator lines
 * geometric accents
 * decorative details
+Use significantly more green decorative accents.
 
+Target approximately:
+
+15%-20% visible green accents.
+
+Examples:
+
+* flowing contour lines
+* premium location markers
+* decorative curves
+* tourism route lines
+* premium separators
+* luxury accent shapes
+
+The design should visibly reflect Ride24 green branding.
+
+Green accents must be noticeable but never dominate the advertisement.
 Green must NEVER be a dominant background color.
 
 Never create large green areas.
@@ -251,7 +268,120 @@ Headline must:
 Avoid oversized typography.
 
 Prefer elegant typography over giant typography.
+TYPOGRAPHY VARIATION:
 
+Every advertisement must use a different typography style.
+
+Randomly choose ONE style:
+
+STYLE A
+Luxury magazine serif headline
+Modern sans-serif body
+
+STYLE B
+Bold geometric tourism headline
+Elegant light body font
+
+STYLE C
+Premium travel poster typography
+Condensed headline
+Wide spacing body text
+
+STYLE D
+Luxury editorial typography
+High contrast serif headline
+Modern sans-serif benefits
+
+STYLE E
+Contemporary travel campaign
+Rounded headline
+Minimalist body font
+PREMIUM FONT DIRECTION:
+
+Typography must feel like a luxury tourism campaign.
+
+Frequently use:
+
+* elegant serif typography
+* editorial magazine typography
+* handwritten luxury script accents
+* premium calligraphy-inspired typography
+* boutique hotel style typography
+* luxury travel brochure typography
+
+For some advertisements:
+
+use a beautiful handwritten or calligraphic style
+for one headline line only.
+
+Examples:
+
+"Witaj w"
+(handwritten luxury script)
+
+"Lizbonie"
+(elegant serif)
+
+or
+
+"Poznaj"
+(calligraphic accent)
+
+"Maderę"
+(luxury magazine serif)
+
+Mix font families creatively.
+
+Avoid using the same font style
+for all headline lines.
+
+The headline should feel designed
+by a premium advertising agency.
+
+Create visual WOW effect through typography.
+
+Typography should resemble:
+
+* luxury travel magazines
+* premium resort campaigns
+* boutique hotel advertising
+* high-end tourism brands
+
+Avoid generic corporate fonts.
+Avoid using the same typography in consecutive generations.
+Avoid using the same typography style repeatedly.
+
+Headlines and benefit text should not always use the same font family.
+
+The advertisement should resemble a professionally designed tourism campaign.
+
+Never use identical typography across consecutive generations.
+HEADLINE STYLING VARIATION:
+
+Randomly choose ONE headline styling:
+
+STYLE A
+First line white
+Location green
+
+STYLE B
+Location white
+Country or region green
+
+STYLE C
+All white headline
+
+STYLE D
+Luxury mixed emphasis
+
+STYLE E
+Green accent only on one keyword
+
+Do not always highlight the same word.
+
+Do not always use green on the location.
+
+Use different visual emphasis in different advertisements.
 Information panel content:
 
 ONLY display:
