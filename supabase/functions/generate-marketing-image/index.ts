@@ -1,3 +1,4 @@
+import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -9,10 +10,12 @@ serve(async (req) => {
 
     const city = body.city;
     const country = body.country;
+    const headline =
+  body.headline || "";
 
     const apiKey =
       Deno.env.get("OPENAI_API_KEY");
-
+     
     const response =
       await fetch(
         "https://api.openai.com/v1/images/generations",
@@ -26,46 +29,399 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             model: "gpt-image-1",
-            size: "1024x1024",
+            size: "1536x1024",
             prompt: `
-Professional travel advertisement for Ride24.
+LAYOUT VARIATION RULE:
 
-Location: ${city}, ${country}
+Randomly choose ONE style:
 
-Ultra realistic photography.
+STYLE A
+Classic left panel
 
-Style:
-Booking.com
-Expedia
-Rentalcars
+STYLE B
+Floating luxury card
 
-Requirements:
+STYLE C
+Bottom-left information block
 
-- real photography
-- photorealistic
-- travel magazine quality
-- airport pickup experience
-- luxury vacation atmosphere
-- natural sunlight
-- realistic shadows
-- realistic reflections
-- authentic modern rental car
-- no futuristic vehicles
-- no concept cars
-- no distorted wheels
-- no distorted headlights
-- no unrealistic details
+STYLE D
+Diagonal split composition
 
-Scene:
+STYLE E
+Minimal luxury tourism poster
 
-Tourist arriving at airport and collecting a premium rental car.
-Beautiful destination in background.
-Luxury travel experience.
-High-end commercial photography.
+Use a different style whenever possible.
 
-No text.
-No logos.
-No watermark.
+Avoid repeating the same composition.
+Create a PREMIUM TRAVEL ADVERTISEMENT.
+
+Location:
+${city}, ${country}
+
+Headline:
+${headline}
+
+IMPORTANT:
+
+The provided headline is FINAL.
+
+Use the headline exactly as provided.
+
+Do NOT rewrite it.
+Do NOT shorten it.
+Do NOT improve it.
+Do NOT generate a new headline.
+
+Design references:
+
+* DiscoverCars
+* Rentalcars
+* Booking.com
+* FlixBus
+* Premium travel magazines
+
+Corporate colors:
+
+Primary Green:
+#64e62c
+
+Primary Navy:
+#043268
+
+Secondary Navy:
+#26548b
+
+Premium Sky Blue:
+#2E8BFF
+
+Premium Light Blue:
+#5CAEFF
+
+Color balance:
+
+60% destination photography
+
+30% navy design elements
+
+7% blue accent elements
+
+9%-15% green highlights
+
+Green (#31A100) must be used ONLY for:
+
+* highlighted headline words
+* icon accents
+* contour lines
+* separator lines
+* geometric accents
+* decorative details
+
+Green must NEVER be a dominant background color.
+
+Never create large green areas.
+
+Blue accents (#2E8BFF and #5CAEFF) should appear more frequently than green.
+
+Use premium gradients between:
+
+#002B5C
+#0A3D7A
+#2E8BFF
+
+The design should feel brighter, more modern and more premium.
+Ride24 visual accents:
+
+Use bright premium green accents frequently.
+
+Examples:
+
+* flowing green contour lines
+* luxury curved strokes
+* dynamic travel paths
+* premium glow accents
+* elegant separators
+* modern geometric details
+* destination markers
+* subtle motion trails
+
+Every advertisement must contain multiple green accent elements.
+
+The advertisement should immediately feel connected to Ride24 branding.
+
+Destination photography:
+
+The destination is ALWAYS the hero.
+
+Show iconic landmarks and beautiful scenery.
+
+Photography must feel:
+
+* premium
+* aspirational
+* luxurious
+* realistic
+* magazine quality
+
+Avoid generic stock-photo appearance.
+
+Information panel:
+
+Randomly choose one position:
+
+* left side
+* bottom left
+* floating card
+
+All layouts should be used equally often.
+
+Do not favor left side.
+
+Avoid repeating the same layout in consecutive generations.
+
+Width:
+35%-45%
+
+The text area must always be larger than the headline area.
+
+For headlines containing 3 or more words:
+
+automatically increase panel width.
+
+Never allow text to touch the photo area.
+Text must remain 100% inside the information panel.
+
+No text may cross the panel boundary.
+
+No letters may overlap photography.
+Keep at least 8% empty margin
+between text and photography.
+
+Every advertisement should use a different composition.
+
+Photography:
+55%-65%
+
+Panel requirements:
+
+* premium luxury appearance
+* curved geometry
+* asymmetric design
+* layered shapes
+* flowing transitions
+* organic contours
+* premium agency styling
+
+Never use:
+
+* rectangles
+* square boxes
+* PowerPoint layouts
+* flat corporate panels
+
+Avoid straight vertical separations.
+
+Create elegant flowing transitions between panel and photography.
+The information panel must remain fully readable.
+
+Do not allow destination photography
+to overlap text areas.
+
+Text must always sit on a clean navy background.
+
+The photography must start only after
+the panel boundary.
+
+Avoid photo elements entering the text zone.
+Typography:
+
+Use premium tourism typography.
+
+Headline must:
+
+* fit comfortably
+* prefer 1-2 lines
+* maximum 3 lines
+* automatically reduce font size for long locations
+* never overlap benefits
+* never touch image area
+* never exceed 4 words
+* never occupy more than 18% of panel height
+* maintain generous margins
+
+Avoid oversized typography.
+
+Prefer elegant typography over giant typography.
+
+Information panel content:
+
+ONLY display:
+
+${headline}
+
+✓ Bez depozytu
+
+✓ Bez karty kredytowej
+
+✓ Pełne ubezpieczenie
+
+Below the benefits add:
+
+one unique travel slogan.
+
+Never repeat the same slogan.
+Avoid overusing words:
+
+* odkrywaj
+* zwiedzaj
+* podróżuj
+
+Use a wide variety of premium travel phrases.
+Examples:
+
+Podróżuj bez ograniczeń.
+Więcej podróży, mniej formalności.
+Komfort zaczyna się tutaj.
+Podróżuj na własnych zasadach.
+Każda trasa to nowa historia.
+Zwiedzaj swobodnie.
+Odkrywaj więcej każdego dnia.
+
+maximum 10 words
+
+Examples:
+
+Podróżuj wygodnie i odkrywaj więcej.
+
+Zwiedzaj swobodnie bez zbędnych formalności.
+
+Odkrywaj świat w swoim tempie.
+
+This text must remain secondary.
+
+Icons:
+
+Randomize between:
+
+* premium checkmarks
+* shield icons
+* payment card icons
+* location icons
+* decorative dots
+* premium accent lines
+
+Do not repeat the same icon set every time.
+
+Each advertisement should look unique.
+
+Vehicle rules:
+Vehicle variation:
+
+Randomize between:
+
+* SUV
+* sedan
+* hatchback
+* crossover
+* cabrio
+
+Do not always use SUVs.
+Vehicle is optional.
+Vehicle should appear in no more than 50% of advertisements.
+
+Many advertisements should contain no vehicle at all.
+
+If the destination scenery is strong enough,
+omit the vehicle completely.
+If a vehicle appears:
+
+* realistic
+* premium
+* maximum 10% image area
+* secondary element
+* near image edge
+* partially cropped if necessary
+* never centered
+* never larger than landmarks
+
+Branding:
+
+TOP-RIGHT CORNER IS A STRICT LOGO SAFE ZONE.
+
+Reserve the entire top-right area.
+
+Minimum reserved area:
+
+20% image width
+20% image height
+
+This area must remain completely empty.
+
+Do not place:
+
+text
+headlines
+slogans
+icons
+decorative elements
+vehicles
+buildings
+landmarks
+accent lines
+graphic details
+
+Nothing may appear inside this area.
+
+The area is reserved exclusively for the real Ride24 logo added later.
+
+Keep this corner visually clean and uncluttered.
+
+Do not generate any logo.
+
+Do not generate any branding.
+
+ABSOLUTE RESTRICTIONS:
+
+Never generate:
+
+* Ride24
+* RIDE24
+* ride24
+* company names
+* business names
+* logos
+* branding text
+* wordmarks
+* website addresses
+* trademarks
+* watermarks
+
+The advertisement must contain ZERO generated branding.
+
+Branding will be added later externally.
+
+Visual quality:
+
+Use:
+
+* realistic shadows
+* realistic reflections
+* premium depth
+* luxury composition
+* high-end tourism aesthetics
+
+Avoid:
+
+* stock-photo appearance
+* cartoon style
+* illustration style
+* flat corporate templates
+* giant typography
+* distorted vehicles
+* large green backgrounds
+
+The final result should look like a €50,000 agency-created luxury travel campaign.
+
+
 `
           })
         }
@@ -92,16 +448,51 @@ const imageBytes =
     atob(imageBase64),
     c => c.charCodeAt(0)
   );
+const logoResponse =
+  await fetch(
+    "https://zwyerdeuvyzgkgwglowr.supabase.co/storage/v1/object/public/assets/ride24-logo-v2.png"
+  );
 
+const logoBytes =
+  new Uint8Array(
+    await logoResponse.arrayBuffer()
+  );
+
+const image =
+  await Image.decode(
+    imageBytes
+  );
+
+const logo =
+  await Image.decode(
+    logoBytes
+  );
+
+
+
+logo.resize(
+  300,
+  Image.RESIZE_AUTO
+);
+
+image.composite(
+  logo,
+  image.width -
+    logo.width -
+    40,
+  40
+);
 const fileName =
   `marketing-${Date.now()}.png`;
+  const finalImage =
+  await image.encode();
 
 const { error: uploadError } =
   await supabase.storage
     .from("marketing-images")
     .upload(
-      fileName,
-      imageBytes,
+  fileName,
+  finalImage,
       {
         contentType: "image/png",
         upsert: false
@@ -123,7 +514,9 @@ const imageUrl =
   JSON.stringify({
     success: true,
     image_url: imageUrl,
-    file_name: fileName
+    file_name: fileName,
+    prompt:
+  `${headline} | ${city}, ${country}`
   }),
   {
     headers: {

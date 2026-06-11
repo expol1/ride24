@@ -401,6 +401,10 @@ Ride24.`
 
 const contentData =
   await contentResponse.json();
+  console.log(
+  "CONTENT DATA",
+  contentData
+);
 
 if (!contentResponse.ok) {
 
@@ -426,9 +430,12 @@ const imageResponse =
           "application/json"
       },
       body: JSON.stringify({
-        city: cityPL,
-        country: countryPL
-      })
+  city: cityPL,
+  country: countryPL,
+
+  headline:
+    contentData.headline
+})
     }
   );
 
@@ -446,7 +453,7 @@ if (!imageResponse.ok) {
     JSON.stringify(imageData)
   );
 }
-const posts = [
+  const posts = [
   {
     platform: "all",
 
@@ -454,8 +461,13 @@ const posts = [
 
     country: countryPL,
 
+    headline:
+      contentData.headline,
+
     content:
-      contentData.content,
+  `${contentData.content}
+
+${contentData.hashtags}`,
 
     image_url:
       imageData.image_url,
@@ -464,7 +476,7 @@ const posts = [
       "ready",
 
     image_prompt:
-      `${cityPL}, ${countryPL}`,
+      imageData.prompt,
 
     image_generated_at:
       new Date().toISOString(),
