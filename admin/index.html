@@ -1980,9 +1980,7 @@ else if (
     statusName = "Promocja zakończona";
 }
 
-if (post.promoted) {
-    statusName = "Promowany";
-}
+
 let statusBadge = "#94A3B8";
 
 if (post.status === "draft") {
@@ -2005,9 +2003,7 @@ if (
 ) {
     statusBadge = "#6B7280";
 }
-if (post.promoted) {
-    statusBadge = "#7C3AED";
-}
+
 if (post.status === "scheduled") {
     statusBadge = "#2563EB";
 }
@@ -2097,8 +2093,8 @@ post.status === "draft"
 ${
 post.status === "published" &&
 (
- !post.promoted ||
- post.promotion_stopped_at
+    !post.promoted ||
+    post.promotion_stopped_at
 )
 ? `
 <button
@@ -2121,7 +2117,7 @@ post.promoted &&
     style="width:130px;"
     onclick="stopPromotion(${post.id})">
 
-     Zakończ
+    Zakończ
 
 </button>
 `
