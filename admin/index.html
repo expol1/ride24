@@ -2453,11 +2453,22 @@ async function connectFacebook() {
     const REDIRECT_URI =
         "https://ride24.pl/admin/facebook-callback.html";
 
+    const scope =
+        [
+            "pages_show_list",
+            "pages_manage_posts",
+            "pages_read_engagement",
+            "instagram_basic",
+            "instagram_content_publish",
+            "business_management"
+        ].join(",");
+
     const url =
         `https://www.facebook.com/v23.0/dialog/oauth` +
         `?client_id=${APP_ID}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&response_type=token`;
+        `&response_type=token` +
+        `&scope=${scope}`;
 
     window.open(
         url,
