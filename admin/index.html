@@ -1086,7 +1086,7 @@ async function loadDeletionRequests() {
   });
 }
         const db = window.supabaseClient;
-
+        let currentPromotionPostId = null;
         // XSS Sanitizer
         function escapeHtml(text) {
             if (!text) return "";
@@ -1971,13 +1971,13 @@ if (
     post.promoted &&
     !post.promotion_stopped_at
 ) {
-    statusName = "🚀 Promowany";
+    statusName = "Promowany";
 }
 else if (
     post.promoted &&
     post.promotion_stopped_at
 ) {
-    statusName = "🏁 Promocja zakończona";
+    statusName = "Promocja zakończona";
 }
 
 if (post.promoted) {
@@ -2103,7 +2103,7 @@ post.status === "published" &&
     style="width:130px;"
     onclick="promoteMarketingPost(${post.id})">
 
-    🚀 Promuj
+     Promuj
 
 </button>
 `
@@ -2117,7 +2117,7 @@ post.promoted
     style="width:130px;"
     onclick="stopPromotion(${post.id})">
 
-    🛑 Zakończ
+     Zakończ
 
 </button>
 `
@@ -2693,5 +2693,66 @@ hereinafter referred to as the “Partner”.
         <div style="padding: 20px 30px; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px;">
             <button onclick="closeAddPartnerModal()" style="padding: 10px 20px; background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Anuluj</button>
             <button onclick="processAddPartner()" id="savePartnerBtn" style="padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Utwórz Partnera</button>
-      </div> </div> </div> </body>
+      </div> </div> </div>
+    <div id="promotion-modal"
+     style="
+     display:none;
+     position:fixed;
+     top:0;
+     left:0;
+     width:100%;
+     height:100%;
+     background:rgba(0,0,0,.6);
+     z-index:99999;
+     justify-content:center;
+     align-items:center;">
+
+    <div style="
+        background:white;
+        padding:30px;
+        border-radius:12px;
+        width:400px;
+        text-align:center;">
+
+        <h3>Wybierz czas promocji</h3>
+
+        <div style="
+            display:flex;
+            gap:10px;
+            justify-content:center;
+            margin-top:20px;">
+
+            <button class="btn-primary"
+                onclick="startPromotion(3)">
+                3 dni
+            </button>
+
+            <button class="btn-primary"
+                onclick="startPromotion(5)">
+                5 dni
+            </button>
+
+            <button class="btn-primary"
+                onclick="startPromotion(7)">
+                7 dni
+            </button>
+
+        </div>
+
+        <div style="margin-top:20px;">
+
+            <button
+                class="btn-danger"
+                onclick="closePromotionModal()">
+
+                Anuluj
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+    </body>
 </html>
