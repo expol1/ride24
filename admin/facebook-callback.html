@@ -86,7 +86,7 @@ if (!page.id) {
 
        const igResponse =
 await fetch(
-    `https://graph.facebook.com/v23.0/${page.id}?fields=connected_instagram_account,instagram_business_account&access_token=${page.access_token}`
+    `https://graph.facebook.com/v23.0/${page.id}?fields=id,name,connected_instagram_account,instagram_business_account&access_token=${page.access_token}`
 );
 const igData =
     await igResponse.json();
