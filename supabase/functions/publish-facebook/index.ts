@@ -59,14 +59,15 @@ if (post.facebook_post_id) {
     }
 
     const fbResponse = await fetch(
-      `https://graph.facebook.com/v23.0/${social.page_id}/feed`,
+      `https://graph.facebook.com/v23.0/${social.page_id}/photos`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          message: post.content,
+          url: post.image_url,
+          caption: post.content,
           access_token: social.access_token
         })
       }
