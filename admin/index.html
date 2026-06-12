@@ -2096,7 +2096,10 @@ post.status === "draft"
 }
 ${
 post.status === "published" &&
-!post.promoted
+(
+ !post.promoted ||
+ post.promotion_stopped_at
+)
 ? `
 <button
     class="btn-warning"
@@ -2110,7 +2113,8 @@ post.status === "published" &&
 : ""
 }
 ${
-post.promoted
+post.promoted &&
+!post.promotion_stopped_at
 ? `
 <button
     class="btn-danger"
