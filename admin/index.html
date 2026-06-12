@@ -2448,26 +2448,20 @@ async function loadMarketingRuns() {
 async function connectFacebook() {
 
     const APP_ID =
-    "1781897099847188";
+        "1781897099847188";
+
+    const CONFIG_ID =
+        "1545290006933188";
 
     const REDIRECT_URI =
         "https://ride24.pl/admin/facebook-callback.html";
 
-    const scope =
-[
-    "pages_show_list",
-    "pages_manage_posts",
-    "pages_read_engagement",
-    "pages_manage_metadata",
-
-    "instagram_basic",
-    "instagram_content_publish",
-
-    "business_management"
-].join(",");
-
     const url =
-     `https://www.facebook.com/dialog/oauth?client_id=${APP_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${scope}&response_type=token`;
+        `https://www.facebook.com/v23.0/dialog/oauth` +
+        `?client_id=${APP_ID}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&response_type=token` +
+        `&config_id=${CONFIG_ID}`;
 
     window.open(
         url,
@@ -2475,7 +2469,6 @@ async function connectFacebook() {
         "width=800,height=700"
     );
 }
-
 async function runMarketingEngine() {
 
     const btn =
