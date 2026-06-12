@@ -1963,9 +1963,26 @@ const platformName =
     rejected: "Odrzucony"
 };
 
-const statusName =
+let statusName =
     statusMap[post.status] ||
     post.status;
+
+if (
+    post.promoted &&
+    !post.promotion_stopped_at
+) {
+    statusName = "🚀 Promowany";
+}
+else if (
+    post.promoted &&
+    post.promotion_stopped_at
+) {
+    statusName = "🏁 Promocja zakończona";
+}
+
+if (post.promoted) {
+    statusName = "🚀 Promowany";
+}
 let statusBadge = "#94A3B8";
 
 if (post.status === "draft") {
@@ -1975,7 +1992,22 @@ if (post.status === "draft") {
 if (post.status === "published") {
     statusBadge = "#16A34A";
 }
+if (
+    post.promoted &&
+    !post.promotion_stopped_at
+) {
+    statusBadge = "#7C3AED";
+}
 
+if (
+    post.promoted &&
+    post.promotion_stopped_at
+) {
+    statusBadge = "#6B7280";
+}
+if (post.promoted) {
+    statusBadge = "#7C3AED";
+}
 if (post.status === "scheduled") {
     statusBadge = "#2563EB";
 }
@@ -2057,6 +2089,35 @@ post.status === "draft"
     onclick="publishMarketingPost(${post.id}, this)">
 
     Publikuj
+
+</button>
+`
+: ""
+}
+${
+post.status === "published" &&
+!post.promoted
+? `
+<button
+    class="btn-warning"
+    style="width:130px;"
+    onclick="promoteMarketingPost(${post.id})">
+
+    🚀 Promuj
+
+</button>
+`
+: ""
+}
+${
+post.promoted
+? `
+<button
+    class="btn-danger"
+    style="width:130px;"
+    onclick="stopPromotion(${post.id})">
+
+    🛑 Zakończ
 
 </button>
 `
@@ -2153,6 +2214,45 @@ async function publishMarketingPost(id, btn) {
     }
 
 }
+async function promoteMarketingPost(id) {
+
+    const { error } =
+        await db
+            .from("marketing_queue")
+            .update({
+                promoted: true,
+                promotion_started_at:
+                    new Date().toISOString(),
+                promotion_stopped_at: null
+            })
+            .eq("id", id);
+
+    if (error) {
+        alert(error.message);
+        return;
+    }
+
+    await loadMarketingQueue();
+}
+async function stopPromotion(id) {
+
+    const { error } =
+        await db
+            .from("marketing_queue")
+            .update({
+                promotion_stopped_at:
+                    new Date().toISOString()
+            })
+            .eq("id", id);
+
+    if (error) {
+        alert(error.message);
+        return;
+    }
+
+    await loadMarketingQueue();
+}
+
 function closeMarketingModal() {
 
     document.getElementById(
