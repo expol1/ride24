@@ -2450,8 +2450,7 @@ async function connectFacebook() {
     const APP_ID =
         "1781897099847188";
 
-    const CONFIG_ID =
-        "1545290006933188";
+    
 
     const REDIRECT_URI =
         "https://ride24.pl/admin/facebook-callback.html";
@@ -2461,7 +2460,7 @@ async function connectFacebook() {
         `?client_id=${APP_ID}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&response_type=token` +
-        `&config_id=${CONFIG_ID}`;
+        
 
     window.open(
         url,
