@@ -2454,15 +2454,12 @@ async function connectFacebook() {
         "https://ride24.pl/admin/facebook-callback.html";
 
     const scope =
-[
-    "pages_show_list",
-    "pages_manage_posts",
-    "pages_read_engagement",
-    "business_management",
-
-    "instagram_basic",
-    "instagram_content_publish"
-].join(",");
+    [
+        "pages_show_list",
+        "pages_manage_posts",
+        "pages_read_engagement",
+        "business_management"
+    ].join(",");
 
     const url =
         `https://www.facebook.com/v23.0/dialog/oauth` +
@@ -2477,6 +2474,7 @@ async function connectFacebook() {
         "width=800,height=700"
     );
 }
+
 async function runMarketingEngine() {
 
     const btn =
