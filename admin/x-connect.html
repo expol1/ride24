@@ -17,20 +17,60 @@ const CLIENT_ID =
 const REDIRECT_URI =
     "https://ride24.pl/admin/x-callback.html";
 
-const state =
-    crypto.randomUUID();
+async function generateChallenge() {
 
-const authUrl =
-    "https://twitter.com/i/oauth2/authorize" +
-    "?response_type=code" +
-    "&client_id=" + CLIENT_ID +
-    "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-    "&scope=tweet.read tweet.write users.read offline.access" +
-    "&state=" + state +
-    "&code_challenge=challenge" +
-    "&code_challenge_method=plain";
+    const verifier =
+        crypto.randomUUID() +
+        crypto.randomUUID();
 
-window.location.href = authUrl;
+    sessionStorage.setItem(
+        "x_code_verifier",
+        verifier
+    );
+
+    const encoder =
+        new TextEncoder();
+
+    const data =
+        encoder.encode(verifier);
+
+    const digest =
+        await crypto.subtle.digest(
+            "SHA-256",
+            data
+        );
+
+    const challenge =
+        btoa(
+            String.fromCharCode(
+                ...new Uint8Array(digest)
+            )
+        )
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+
+    const state =
+        crypto.randomUUID();
+
+    const authUrl =
+        "https://twitter.com/i/oauth2/authorize" +
+        "?response_type=code" +
+        "&client_id=" + CLIENT_ID +
+        "&redirect_uri=" +
+        encodeURIComponent(
+            REDIRECT_URI
+        ) +
+        "&scope=tweet.read tweet.write users.read offline.access" +
+        "&state=" + state +
+        "&code_challenge=" + challenge +
+        "&code_challenge_method=S256";
+
+    window.location.href =
+        authUrl;
+}
+
+generateChallenge();
 
 </script>
 
