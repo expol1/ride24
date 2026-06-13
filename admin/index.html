@@ -2455,12 +2455,11 @@ async function connectFacebook() {
 
     const scope =
     [
-"pages_show_list",
-"pages_manage_posts",
-"pages_read_engagement",
-"business_management",
-"instagram_basic"
-].join(",");
+        "pages_show_list",
+        "pages_manage_posts",
+        "pages_read_engagement",
+        "business_management"
+    ].join(",");
 
     const url =
         `https://www.facebook.com/v23.0/dialog/oauth` +
