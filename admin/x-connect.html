@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Łączenie X</title>
+</head>
+
+<body>
+
+<h2>Łączenie konta X...</h2>
+
+<script>
+
+const CLIENT_ID =
+    "c01GN2Y5cUFtOW1iR0NxUkk4cG06MTpjaQ";
+
+const REDIRECT_URI =
+    "https://ride24.pl/admin/x-callback.html";
+
+const state =
+    crypto.randomUUID();
+
+const authUrl =
+    "https://twitter.com/i/oauth2/authorize" +
+    "?response_type=code" +
+    "&client_id=" + CLIENT_ID +
+    "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+    "&scope=tweet.read tweet.write users.read offline.access" +
+    "&state=" + state +
+    "&code_challenge=challenge" +
+    "&code_challenge_method=plain";
+
+window.location.href = authUrl;
+
+</script>
+
+</body>
+</html>

@@ -733,7 +733,14 @@
         class="btn-success"
         onclick="connectFacebook()"
         id="connect-facebook-btn">
-        Połącz Facebook & Instagram
+        Facebook
+    </button>
+
+    <button
+        class="btn-success"
+        onclick="connectX()"
+        id="connect-x-btn">
+        X (Twitter)
     </button>
 
 </div>
@@ -2180,7 +2187,7 @@ async function publishMarketingPost(id, btn) {
 
     try {
 
-        const { data, error } =
+        const fb =
             await db.functions.invoke(
                 "publish-facebook",
                 {
@@ -2190,30 +2197,25 @@ async function publishMarketingPost(id, btn) {
                 }
             );
 
-        if (error) {
-            throw error;
-        }
+        let xResult = null;
 
-        alert(
-            "Post opublikowany na Facebooku.\n\nID: " +
-            data.facebook_post_id
-        );
+        try {
 
-        await loadMarketingQueue();
+            xResult =
+                await db.functions.invoke(
+                    "publish-x",
+                    {
+                        body: {
+                            postId: id
+                        }
+                    }
+                );
 
-    } catch (err) {
+        } catch(e) {
 
-        btn.disabled = false;
-        btn.innerText = "Publikuj";
-
-        alert(
-            "Błąd publikacji:\n\n" +
-            err.message
-        );
-
-    }
-
-}
+            console.log(
+                "X publish skipped:",
+               
 async function promoteMarketingPost(id) {
 
     const { error } =
@@ -2474,7 +2476,29 @@ async function connectFacebook() {
         "width=800,height=700"
     );
 }
+async function connectX() {
 
+    try {
+
+        const { data: { session } } =
+            await db.auth.getSession();
+
+        if (!session) {
+            alert("Sesja wygasła.");
+            return;
+        }
+
+        window.location.href =
+            "https://ride24.pl/x-connect.html";
+
+    } catch (err) {
+
+        console.error(err);
+        alert(err.message);
+
+    }
+
+}
 async function runMarketingEngine() {
 
     const btn =
@@ -2624,6 +2648,31 @@ hereinafter referred to as the “Partner”.
     // 2. Przekazujemy pobrane dane do generatora PDF
     generateAgreement(partner);
 }
+  
+async function connectX() {
+
+    try {
+
+        const { data: { session } } =
+            await db.auth.getSession();
+
+        if (!session) {
+            alert("Sesja wygasła.");
+            return;
+        }
+
+        window.location.href =
+            "https://ride24.pl/x-connect.html";
+
+    } catch(err) {
+
+        console.error(err);
+        alert(err.message);
+
+    }
+
+}
+
     </script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">

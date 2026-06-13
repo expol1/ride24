@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ride24 X Connect</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+<h2>Łączenie X...</h2>
+
+<script>
+
+const supabaseUrl =
+    "https://zwyerdeuvyzgkgwglowr.supabase.co";
+
+const supabaseKey =
+    "sb_publishable_KMeRBCZCQH-S0Ubnr80v6w_Gub3vcQf";
+
+const db =
+    supabase.createClient(
+        supabaseUrl,
+        supabaseKey
+    );
+
+const params =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const code =
+    params.get("code");
+
+document.body.innerHTML =
+`
+<h2>
+Kod OAuth odebrany
+</h2>
+
+<p>
+${code ? "OK" : "BRAK"}
+</p>
+`;
+
+console.log(
+    "X CODE:",
+    code
+);
+
+</script>
+
+</body>
+</html>
