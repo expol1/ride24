@@ -2192,7 +2192,7 @@ async function publishMarketingPost(id, btn) {
 
     try {
 
-        const { data, error } =
+        const fb =
             await db.functions.invoke(
                 "publish-facebook",
                 {
@@ -2202,13 +2202,39 @@ async function publishMarketingPost(id, btn) {
                 }
             );
 
-        if (error) {
-            throw error;
+        if (fb.error) {
+            throw fb.error;
+        }
+
+        let xResult = null;
+
+        try {
+
+            xResult =
+                await db.functions.invoke(
+                    "publish-x",
+                    {
+                        body: {
+                            postId: id
+                        }
+                    }
+                );
+
+        } catch (e) {
+
+            console.error(
+                "X publish error:",
+                e
+            );
+
         }
 
         alert(
-            "Post opublikowany na Facebooku.\n\nID: " +
-            data.facebook_post_id
+`Facebook OK
+
+${xResult?.data?.x_post_id
+    ? "X OK\nID: " + xResult.data.x_post_id
+    : "X nie opublikował posta"}`
         );
 
         await loadMarketingQueue();

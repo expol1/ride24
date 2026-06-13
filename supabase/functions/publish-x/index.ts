@@ -45,14 +45,18 @@ serve(async (req) => {
     if (!social) {
       throw new Error("X not connected");
     }
-
+   
+    console.log(
+  "X TOKEN LEN:",
+  social.x_access_token?.length
+);
     const response = await fetch(
       "https://api.twitter.com/2/tweets",
       {
         method: "POST",
         headers: {
           "Authorization":
-            `Bearer ${social.access_token}`,
+            `Bearer ${social.x_access_token}`,
           "Content-Type":
             "application/json"
         },
@@ -63,6 +67,11 @@ serve(async (req) => {
     );
 
     const result = await response.json();
+
+    console.log(
+  "X RESPONSE:",
+  JSON.stringify(result)
+);
 
     console.log(result);
 
