@@ -2187,7 +2187,7 @@ async function publishMarketingPost(id, btn) {
 
     try {
 
-        const fb =
+        const { data, error } =
             await db.functions.invoke(
                 "publish-facebook",
                 {
@@ -2197,24 +2197,32 @@ async function publishMarketingPost(id, btn) {
                 }
             );
 
-        let xResult = null;
+        if (error) {
+            throw error;
+        }
 
-        try {
+        alert(
+            "Post opublikowany na Facebooku.\n\nID: " +
+            data.facebook_post_id
+        );
 
-            xResult =
-                await db.functions.invoke(
-                    "publish-x",
-                    {
-                        body: {
-                            postId: id
-                        }
-                    }
-                );
+        await loadMarketingQueue();
 
-        } catch(e) {
+    } catch (err) {
 
-            console.log(
-                "X publish skipped:",
+        alert(
+            "Błąd publikacji:\n\n" +
+            err.message
+        );
+
+    } finally {
+
+        btn.disabled = false;
+        btn.innerText = "Publikuj";
+
+    }
+
+}
                
 async function promoteMarketingPost(id) {
 
