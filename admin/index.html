@@ -748,6 +748,18 @@
     X (Twitter)
 </button>
 
+<button
+    class="btn-success"
+    onclick="connectGoogleAds()"
+    id="connect-google-btn"
+    style="
+        background:#EA4335;
+        border-color:#EA4335;
+        color:#fff;
+    ">
+    Google Ads
+</button>
+
 </div>
 
     <table>
@@ -2538,6 +2550,36 @@ async function connectX() {
     }
 
 }
+
+async function connectGoogleAds() {
+
+    try {
+
+        const { data: { session } } =
+            await db.auth.getSession();
+
+        if (!session) {
+
+            alert("Sesja wygasła.");
+            return;
+
+        }
+
+        window.open(
+            "https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/google-ads-connect",
+            "_blank",
+            "width=900,height=800"
+        );
+
+    } catch (err) {
+
+        console.error(err);
+        alert(err.message);
+
+    }
+
+}
+
 async function runMarketingEngine() {
 
     const btn =
