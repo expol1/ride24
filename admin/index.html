@@ -2565,8 +2565,11 @@ async function connectGoogleAds() {
 
         }
 
+        const token =
+            session.access_token;
+
         window.open(
-            "https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/google-ads-connect",
+            `https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/google-ads-connect?token=${encodeURIComponent(token)}`,
             "_blank",
             "width=900,height=800"
         );

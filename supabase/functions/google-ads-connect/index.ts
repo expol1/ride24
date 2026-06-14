@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 serve(async () => {
+
   const clientId =
     Deno.env.get("GOOGLE_ADS_CLIENT_ID");
 
@@ -11,6 +12,7 @@ serve(async () => {
     Deno.env.get("GOOGLE_ADS_STATE_SECRET");
 
   if (!clientId || !redirectUri || !stateSecret) {
+
     return new Response(
       JSON.stringify({
         success: false,
@@ -23,6 +25,7 @@ serve(async () => {
         }
       }
     );
+
   }
 
   const state = btoa(
@@ -33,28 +36,15 @@ serve(async () => {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-
     access_type: "offline",
     prompt: "consent",
-
-    scope:
-      "https://www.googleapis.com/auth/adwords",
-
+    scope: "https://www.googleapis.com/auth/adwords",
     state
   });
 
   const authUrl =
     `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 
-  return new Response(
-    JSON.stringify({
-      success: true,
-      auth_url: authUrl
-    }),
-    {
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }
-  );
+  return Response.redirect(authUrl, 302);
+
 });
