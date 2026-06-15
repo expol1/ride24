@@ -83,7 +83,23 @@ Design references:
 Corporate colors:
 
 Primary Green:
-#64e62c
+#73D700
+
+Primary Navy:
+#043268
+
+Secondary Navy:
+#26548b
+
+Premium Sky Blue:
+#2E8BFF
+
+Premium Light Blue:
+#5CAEFF
+Corporate colors:
+
+Primary Green:
+#73D700
 
 Primary Navy:
 #043268
@@ -97,6 +113,25 @@ Premium Sky Blue:
 Premium Light Blue:
 #5CAEFF
 
+IMPORTANT GREEN COLOR RULE:
+
+Use ONLY this exact green color:
+#73D700
+
+Do not use:
+#31A100
+#64E62C
+dark green
+olive green
+lime green variations
+
+All green accents must match the bright FlixBus-style green.
+
+Color balance:
+
+60% destination photography
+30% navy design elements
+... 
 Color balance:
 
 60% destination photography
@@ -107,7 +142,7 @@ Color balance:
 
 9%-15% green highlights
 
-Green (#31A100) must be used ONLY for:
+Green (#73D700) must be used ONLY for:
 
 * highlighted headline words
 * icon accents

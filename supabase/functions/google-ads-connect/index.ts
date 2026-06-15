@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-serve(async () => {
+serve(async (req) => {
 
   const clientId =
     Deno.env.get("GOOGLE_ADS_CLIENT_ID");
@@ -28,9 +28,36 @@ serve(async () => {
 
   }
 
-  const state = btoa(
-    `${stateSecret}:${Date.now()}`
-  );
+  const url = new URL(req.url);
+
+  const token =
+    url.searchParams.get("token");
+
+  if (!token) {
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "Missing token"
+      }),
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+  }
+
+  const statePayload = {
+    token,
+    ts: Date.now(),
+    secret: stateSecret
+  };
+
+  const state =
+    btoa(JSON.stringify(statePayload));
 
   const params = new URLSearchParams({
     client_id: clientId,

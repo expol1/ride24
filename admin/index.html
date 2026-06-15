@@ -2116,6 +2116,24 @@ post.status === "draft"
 }
 ${
 post.status === "published" &&
+!post.promoted
+? `
+<button
+    class="btn-warning"
+    style="min-width:130px;"
+    onclick="
+    promoteMarketingPost(
+    ${post.id}
+    )">
+
+    📢 Promuj
+
+</button>
+`
+: ""
+}
+${
+post.status === "published" &&
 (
     !post.promoted ||
     post.promotion_stopped_at
@@ -2266,27 +2284,39 @@ ${xResult?.data?.x_post_id
     }
 
 }
-               
+
 async function promoteMarketingPost(id) {
 
-    const { error } =
-        await db
-            .from("marketing_queue")
-            .update({
-                promoted: true,
-                promotion_started_at:
-                    new Date().toISOString(),
-                promotion_stopped_at: null
-            })
-            .eq("id", id);
+    const days =
+    confirm(
+        "OK = 7 dni\n\nANULUJ = 3 dni"
+    )
+    ? 7
+    : 3;
+
+    const { data, error } =
+        await db.rpc(
+            "start_post_promotion",
+            {
+                p_post_id: id,
+                p_days: Number(days)
+            }
+        );
 
     if (error) {
+
         alert(error.message);
         return;
     }
 
+    alert(
+        "Promocja uruchomiona."
+    );
+
     await loadMarketingQueue();
 }
+               
+
 async function stopPromotion(id) {
 
     const { error } =
