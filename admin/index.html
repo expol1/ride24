@@ -1111,6 +1111,25 @@ async function loadDeletionRequests() {
 }
         const db = window.supabaseClient;
         let currentPromotionPostId = null;
+        function openPromotionModal(id) {
+
+    currentPromotionPostId = id;
+
+    document
+        .getElementById(
+            "promotion-modal"
+        )
+        .style.display = "flex";
+}
+
+function closePromotionModal() {
+
+    document
+        .getElementById(
+            "promotion-modal"
+        )
+        .style.display = "none";
+}
         // XSS Sanitizer
         function escapeHtml(text) {
             if (!text) return "";
@@ -2270,19 +2289,26 @@ ${xResult?.data?.x_post_id
 
 async function promoteMarketingPost(id) {
 
-    const days =
-    confirm(
-        "OK = 7 dni\n\nANULUJ = 3 dni"
-    )
-    ? 7
-    : 3;
+    openPromotionModal(id);
+}
+async function confirmPromotion() {
 
-    const { data, error } =
+    const days =
+        Number(
+            document.querySelector(
+                'input[name="promotion-days"]:checked'
+            ).value
+        );
+
+    const { error } =
         await db.rpc(
             "start_post_promotion",
             {
-                p_post_id: id,
-                p_days: Number(days)
+                p_post_id:
+                    currentPromotionPostId,
+
+                p_days:
+                    days
             }
         );
 
@@ -2291,6 +2317,8 @@ async function promoteMarketingPost(id) {
         alert(error.message);
         return;
     }
+
+    closePromotionModal();
 
     alert(
         "Promocja uruchomiona."
@@ -2902,6 +2930,78 @@ async function connectX() {
         </div>
 
     </div>
+
+</div>
+<div id="promotion-modal"
+style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.6);
+z-index:99999;
+justify-content:center;
+align-items:center;
+">
+
+<div
+style="
+background:white;
+padding:25px;
+border-radius:12px;
+width:400px;
+max-width:90%;
+">
+
+<h2 style="margin-bottom:20px;">
+📢 Promuj post
+</h2>
+
+<label style="display:block;margin-bottom:10px;">
+<input
+type="radio"
+name="promotion-days"
+value="3"
+checked>
+3 dni
+</label>
+
+<label style="display:block;margin-bottom:20px;">
+<input
+type="radio"
+name="promotion-days"
+value="7">
+7 dni
+</label>
+
+<div
+style="
+display:flex;
+justify-content:flex-end;
+gap:10px;
+">
+
+<button
+class="btn-danger"
+onclick="closePromotionModal()">
+
+Anuluj
+
+</button>
+
+<button
+class="btn-primary"
+onclick="confirmPromotion()">
+
+Uruchom
+
+</button>
+
+</div>
+
+</div>
 
 </div>
     </body>
