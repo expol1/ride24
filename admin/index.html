@@ -710,6 +710,37 @@
     </div>
 
 </div>
+<div class="stat-card">
+
+    <div class="stat-title">
+        Wydano dziś
+    </div>
+
+    <div
+        class="stat-value"
+        id="marketing-daily-spent">
+
+        0 zł
+
+    </div>
+
+</div>
+
+<div class="stat-card">
+
+    <div class="stat-title">
+        Wydano miesiąc
+    </div>
+
+    <div
+        class="stat-value"
+        id="marketing-monthly-spent">
+
+        0 zł
+
+    </div>
+
+</div>
         <div class="stat-card"
      style="grid-column: span 2;">
 
@@ -1949,8 +1980,24 @@ async function loadMarketingSettings() {
     await db.rpc(
         "get_marketing_dashboard"
     );
-
+    const { data: budgetData } =
+    await db.rpc(
+        "get_marketing_budget_status"
+    );
 if (dashboard) {
+if (budgetData) {
+
+    document.getElementById(
+        "marketing-daily-spent"
+    ).innerText =
+        `${budgetData.daily_spent} zł`;
+
+    document.getElementById(
+        "marketing-monthly-spent"
+    ).innerText =
+        `${budgetData.monthly_spent} zł`;
+}
+    
 
     document.getElementById(
         "marketing-active-promotions"
