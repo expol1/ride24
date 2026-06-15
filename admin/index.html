@@ -647,6 +647,69 @@
                 AKTYWNY
             </div>
         </div>
+        <div class="stat-card">
+
+    <div class="stat-title">
+        Aktywne promocje
+    </div>
+
+    <div
+        class="stat-value"
+        id="marketing-active-promotions">
+
+        0
+
+    </div>
+
+</div>
+
+<div class="stat-card">
+
+    <div class="stat-title">
+        Budżet na promocję
+    </div>
+
+    <div
+        class="stat-value"
+        id="marketing-per-promotion">
+
+        0 zł
+
+    </div>
+
+</div>
+
+<div class="stat-card">
+
+    <div class="stat-title">
+        Pozostało dziś
+    </div>
+
+    <div
+        class="stat-value"
+        id="marketing-daily-left">
+
+        0 zł
+
+    </div>
+
+</div>
+
+<div class="stat-card">
+
+    <div class="stat-title">
+        Pozostało miesiąc
+    </div>
+
+    <div
+        class="stat-value"
+        id="marketing-monthly-left">
+
+        0 zł
+
+    </div>
+
+</div>
         <div class="stat-card"
      style="grid-column: span 2;">
 
@@ -1882,6 +1945,41 @@ async function loadMarketingSettings() {
         dailyStat.innerText =
             `${data.daily_budget} zł`;
     }
+    const { data: dashboard } =
+    await db.rpc(
+        "get_marketing_dashboard"
+    );
+
+if (dashboard) {
+
+    document.getElementById(
+        "marketing-active-promotions"
+    ).innerText =
+        dashboard.active_promotions || 0;
+
+    document.getElementById(
+        "marketing-daily-left"
+    ).innerText =
+        `${dashboard.budget.daily_left} zł`;
+
+    document.getElementById(
+        "marketing-monthly-left"
+    ).innerText =
+        `${dashboard.budget.monthly_left} zł`;
+}
+
+const { data: promotionData } =
+    await db.rpc(
+        "get_daily_budget_per_promotion"
+    );
+
+if (promotionData) {
+
+    document.getElementById(
+        "marketing-per-promotion"
+    ).innerText =
+        `${promotionData.per_promotion_budget} zł`;
+}
 }
 
 async function saveMarketingSettings() {
