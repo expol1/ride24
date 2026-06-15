@@ -2330,19 +2330,32 @@ async function confirmPromotion() {
 
 async function stopPromotion(id) {
 
+    const confirmed =
+        confirm(
+            "Zakończyć promocję?"
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
     const { error } =
-        await db
-            .from("marketing_queue")
-            .update({
-                promotion_stopped_at:
-                    new Date().toISOString()
-            })
-            .eq("id", id);
+        await db.rpc(
+            "stop_post_promotion",
+            {
+                p_post_id: id
+            }
+        );
 
     if (error) {
+
         alert(error.message);
         return;
     }
+
+    alert(
+        "Promocja zakończona."
+    );
 
     await loadMarketingQueue();
 }
