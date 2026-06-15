@@ -2892,32 +2892,49 @@ async function connectX() {
         width:400px;
         text-align:center;">
 
-        <h3>Wybierz czas promocji</h3>
+        <h3>📢 Uruchom promocję</h3>
 
         <div style="
+            margin-top:20px;
+            text-align:left;
             display:flex;
-            gap:10px;
-            justify-content:center;
-            margin-top:20px;">
+            flex-direction:column;
+            gap:12px;">
 
-            <button class="btn-primary"
-                onclick="startPromotion(3)">
+            <label>
+                <input
+                    type="radio"
+                    name="promotion-days"
+                    value="3"
+                    checked>
+
                 3 dni
-            </button>
+            </label>
 
-            <button class="btn-primary"
-                onclick="startPromotion(5)">
-                5 dni
-            </button>
+            <label>
+                <input
+                    type="radio"
+                    name="promotion-days"
+                    value="7">
 
-            <button class="btn-primary"
-                onclick="startPromotion(7)">
                 7 dni
-            </button>
+            </label>
 
         </div>
 
-        <div style="margin-top:20px;">
+        <div style="
+            margin-top:25px;
+            display:flex;
+            justify-content:center;
+            gap:10px;">
+
+            <button
+                class="btn-primary"
+                onclick="confirmPromotion()">
+
+                Uruchom
+
+            </button>
 
             <button
                 class="btn-danger"
