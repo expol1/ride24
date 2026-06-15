@@ -2114,24 +2114,7 @@ post.status === "draft"
 `
 : ""
 }
-${
-post.status === "published" &&
-!post.promoted
-? `
-<button
-    class="btn-warning"
-    style="min-width:130px;"
-    onclick="
-    promoteMarketingPost(
-    ${post.id}
-    )">
 
-    📢 Promuj
-
-</button>
-`
-: ""
-}
 ${
 post.status === "published" &&
 (
