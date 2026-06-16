@@ -2864,23 +2864,23 @@ const fileName =
         return;
     }
 
-    alert(
-        "Kampania zapisana"
-    );
+    await loadMarketingQueue();
 
-    closeManualPostModal();
+closeManualPostModal();
 
-    document.getElementById(
-        "manual-title"
-    ).value = "";
+document.getElementById(
+    "manual-title"
+).value = "";
 
-    document.getElementById(
-        "manual-content"
-    ).value = "";
+document.getElementById(
+    "manual-content"
+).value = "";
 
-    document.getElementById(
-        "manual-image"
-    ).value = "";
+document.getElementById(
+    "manual-image"
+).value = "";
+
+
 }
 async function showMarketingPost(
     id,
