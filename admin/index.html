@@ -110,6 +110,23 @@
 .btn-success:hover {
     background: #15803D;
 }
+
+.btn-secondary {
+    background: #64748B;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+}
+
         .btn-primary:hover {
             background: var(--blue-dark);
             transform: translateY(-1px);
@@ -823,9 +840,11 @@
         Generuj posty
     </button>
 
-    <button onclick="openManualCampaignModal()">
+    <button
+    class="btn-secondary"
+    onclick="openManualPostModal()">
     ➕ Dodaj ręcznie
-    </button>
+</button>
 
     <button
         class="btn-success"
