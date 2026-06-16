@@ -2654,6 +2654,20 @@ async function saveManualPost() {
     } =
         await db.auth.getUser();
 
+    console.log(
+        "USER DEBUG:",
+        user
+    );
+
+    if (!user) {
+
+        alert(
+            "Brak zalogowanego użytkownika"
+        );
+
+        return;
+    }
+
     let imageUrl = null;
 
     if (image) {
@@ -2661,7 +2675,9 @@ async function saveManualPost() {
         const fileName =
             `manual/${Date.now()}-${image.name}`;
 
-        const { error: uploadError } =
+        const {
+            error: uploadError
+        } =
             await db.storage
                 .from(
                     "marketing-images"
@@ -2693,26 +2709,31 @@ async function saveManualPost() {
             data.publicUrl;
     }
 
+    console.log({
+        user_id: user.id,
+        title,
+        content,
+        image_url: imageUrl
+    });
+
     const { error } =
         await db
             .from(
                 "manual_posts"
             )
             .insert({
-                user_id:
-                    user.id,
-
-                title:
-                    title,
-
-                content:
-                    content,
-
-                image_url:
-                    imageUrl
+                user_id: user.id,
+                title: title,
+                content: content,
+                image_url: imageUrl
             });
 
     if (error) {
+
+        console.error(
+            "INSERT ERROR:",
+            error
+        );
 
         alert(
             error.message
@@ -2739,7 +2760,6 @@ async function saveManualPost() {
         "manual-image"
     ).value = "";
 }
-
 async function showMarketingPost(id) {
 
     const { data } = await db
