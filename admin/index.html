@@ -2230,19 +2230,21 @@ const data = [
     ...(aiPosts || []),
 
     ...(manualPosts || []).map(
-        post => ({
+    post => ({
 
-            ...post,
+        ...post,
 
-            platform: "manual",
+        platform: "manual",
 
-            source_type: "manual",
+        source_type: "manual",
 
-            generation_version:
-                "manual"
+        is_manual: true,
 
-        })
-    )
+        generation_version:
+            "manual"
+
+    })
+)
 
 ];
 
@@ -2397,9 +2399,10 @@ if (post.status === "rejected") {
         class="btn-primary"
         style="min-width:130px;"
         onclick="
-        showMarketingPost(
-        ${post.id}
-        )">
+showMarketingPost(
+${post.id},
+${post.is_manual ? true : false}
+)">
 
         🔍 Podgląd
 
@@ -2813,13 +2816,22 @@ const fileName =
         "manual-image"
     ).value = "";
 }
-async function showMarketingPost(id) {
+async function showMarketingPost(
+    id,
+    isManual = false
+) {
 
-    const { data } = await db
-        .from("marketing_queue")
-        .select("*")
-        .eq("id", id)
-        .single();
+    const table =
+        isManual
+            ? "manual_posts"
+            : "marketing_queue";
+
+    const { data } =
+        await db
+            .from(table)
+            .select("*")
+            .eq("id", id)
+            .single();
 
     if (!data) return;
 
@@ -2839,57 +2851,31 @@ async function showMarketingPost(id) {
 ">
 
         <div>
-            <strong>Platforma:</strong>
+            <strong>Źródło:</strong>
             ${
-                data.platform === "facebook"
-                    ? "Facebook"
-                    : data.platform === "instagram"
-                    ? "Instagram"
-                    : data.platform === "x"
-                    ? "X (Twitter)"
-                    : data.platform
+                isManual
+                    ? "Manual"
+                    : "AI"
             }
-        </div>
-
-        <div>
-            <strong>Miasto:</strong>
-            ${data.city || "-"}
-        </div>
-
-        <div>
-            <strong>Kraj:</strong>
-            ${data.country || "-"}
         </div>
 
         <div>
             <strong>Status:</strong>
-            ${
-                data.status === "draft"
-                    ? "Szkic"
-                    
-                    : data.status === "published"
-                    ? "Opublikowany"
-                    : data.status
-            }
+            ${data.status || "-"}
         </div>
 
         <div>
-            <strong>Data utworzenia:</strong>
-            ${new Date(data.created_at)
-                .toLocaleString("pl-PL")}
+            <strong>Data:</strong>
+            ${new Date(
+                data.created_at
+            ).toLocaleString("pl-PL")}
         </div>
 
     </div>
 
-    <h3 style="
-        margin-bottom:10px;
-        color:#1e293b;
-    ">
-        Treść posta
-    </h3>
+    <h3>Treść posta</h3>
 
     <div style="
-        
         background:#f8fafc;
         padding:15px;
         border-radius:10px;
@@ -2899,17 +2885,11 @@ async function showMarketingPost(id) {
         ${escapeHtml(data.content)}
     </div>
 
-    <h3 style="
-    margin-bottom:10px;
-    color:#1e293b;
-">
-    Grafika
-</h3>
+    ${
+        data.image_url
+        ? `
+            <h3>Grafika</h3>
 
-${
-    data.image_url
-    ? `
-        <div style="margin-bottom:15px;">
             <img
                 src="${data.image_url}"
                 style="
@@ -2921,42 +2901,28 @@ ${
                     margin:auto;
                 "
             >
-        </div>
-
-        <div style="
-            background:#f8fafc;
-            padding:12px;
-            border-radius:10px;
-            border:1px solid #e2e8f0;
-            font-size:14px;
-        ">
-            <strong>Status obrazu:</strong>
-            ${data.image_status || "-"}
-            <br>
-            <strong>Wersja:</strong>
-            ${data.generation_version || "-"}
-        </div>
-    `
-    : `
-        <div style="
-            background:#f8fafc;
-            border:2px dashed #cbd5e1;
-            border-radius:10px;
-            padding:15px;
-            text-align:center;
-            color:#64748b;
-        ">
-            Grafika nie została jeszcze wygenerowana
-        </div>
-    `
-}
+        `
+        : `
+            <div style="
+                background:#f8fafc;
+                border:2px dashed #cbd5e1;
+                border-radius:10px;
+                padding:15px;
+                text-align:center;
+                color:#64748b;
+            ">
+                Brak grafiki
+            </div>
+        `
+    }
 
 </div>
 `;
 
     document.getElementById(
         "marketing-modal"
-    ).style.display = "flex";
+    ).style.display =
+        "flex";
 }
 
 async function loadMarketingStats() {
