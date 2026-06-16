@@ -2672,8 +2672,12 @@ async function saveManualPost() {
 
     if (image) {
 
-        const fileName =
-            `manual/${Date.now()}-${image.name}`;
+        const safeName =
+    image.name
+        .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+const fileName =
+    `manual/${Date.now()}-${safeName}`;
 
         const {
             error: uploadError
