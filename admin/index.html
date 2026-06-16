@@ -2623,6 +2623,123 @@ function closeManualPostModal() {
         .style.display = "none";
 }
 
+async function saveManualPost() {
+
+    const title =
+        document.getElementById(
+            "manual-title"
+        ).value.trim();
+
+    const content =
+        document.getElementById(
+            "manual-content"
+        ).value.trim();
+
+    const image =
+        document.getElementById(
+            "manual-image"
+        ).files[0];
+
+    if (!content) {
+
+        alert(
+            "Podaj treść posta"
+        );
+
+        return;
+    }
+
+    const {
+        data: { user }
+    } =
+        await db.auth.getUser();
+
+    let imageUrl = null;
+
+    if (image) {
+
+        const fileName =
+            `manual/${Date.now()}-${image.name}`;
+
+        const { error: uploadError } =
+            await db.storage
+                .from(
+                    "marketing-images"
+                )
+                .upload(
+                    fileName,
+                    image
+                );
+
+        if (uploadError) {
+
+            alert(
+                uploadError.message
+            );
+
+            return;
+        }
+
+        const { data } =
+            db.storage
+                .from(
+                    "marketing-images"
+                )
+                .getPublicUrl(
+                    fileName
+                );
+
+        imageUrl =
+            data.publicUrl;
+    }
+
+    const { error } =
+        await db
+            .from(
+                "manual_posts"
+            )
+            .insert({
+                user_id:
+                    user.id,
+
+                title:
+                    title,
+
+                content:
+                    content,
+
+                image_url:
+                    imageUrl
+            });
+
+    if (error) {
+
+        alert(
+            error.message
+        );
+
+        return;
+    }
+
+    alert(
+        "Kampania zapisana"
+    );
+
+    closeManualPostModal();
+
+    document.getElementById(
+        "manual-title"
+    ).value = "";
+
+    document.getElementById(
+        "manual-content"
+    ).value = "";
+
+    document.getElementById(
+        "manual-image"
+    ).value = "";
+}
+
 async function showMarketingPost(id) {
 
     const { data } = await db
