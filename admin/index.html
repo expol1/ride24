@@ -2500,6 +2500,95 @@ async function deleteMarketingPost(
             ? "manual_posts"
             : "marketing_queue";
 
+    if (isManual) {
+
+        const {
+            data: post
+        } =
+            await db
+                .from(
+                    "manual_posts"
+                )
+                .select(
+                    "image_url"
+                )
+                .eq(
+                    "id",
+                    id
+                )
+                .single();
+
+        if (
+            post?.image_url
+        ) {
+
+            console.log(
+    "IMAGE URL:",
+    post.image_url
+);
+
+const filePath =
+    post.image_url
+        .split(
+            "/marketing-images/"
+        )[1];
+
+console.log(
+    "FILE PATH:",
+    filePath
+);
+
+if (filePath) {
+
+    const {
+        data: removeData,
+        error: storageError
+    } =
+        await db.storage
+            .from(
+                "marketing-images"
+            )
+            .remove([
+                filePath
+            ]);
+
+    console.log(
+        "REMOVE DATA:",
+        removeData
+    );
+
+    console.log(
+        "REMOVE ERROR:",
+        storageError
+    );
+}
+
+            if (filePath) {
+
+                const {
+                    error: storageError
+                } =
+                    await db.storage
+                        .from(
+                            "marketing-images"
+                        )
+                        .remove([
+                            filePath
+                        ]);
+
+                if (
+                    storageError
+                ) {
+
+                    console.error(
+                        "Storage delete error:",
+                        storageError
+                    );
+                }
+            }
+        }
+    }
+
     const { error } =
         await db
             .from(table)
