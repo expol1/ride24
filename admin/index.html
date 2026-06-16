@@ -2415,7 +2415,12 @@ post.status === "draft"
 <button
     class="btn-success"
     style="width:130px;"
-    onclick="publishMarketingPost(${post.id}, this)">
+    onclick="
+publishMarketingPost(
+${post.id},
+this,
+${post.is_manual ? true : false}
+)">
 
     Publikuj
 
@@ -2461,9 +2466,10 @@ post.promoted &&
         class="btn-danger"
         style="min-width:130px;"
         onclick="
-        deleteMarketingPost(
-        ${post.id}
-        )">
+deleteMarketingPost(
+${post.id},
+${post.is_manual ? true : false}
+)">
 
         🗑 Usuń
 
@@ -2476,27 +2482,36 @@ post.promoted &&
 });
 }
 
-async function deleteMarketingPost(id) {
+async function deleteMarketingPost(
+    id,
+    isManual = false
+) {
 
-    const confirmed =
-        confirm(
+    if (
+        !confirm(
             "Czy usunąć ten post?"
-        );
-
-    if (!confirmed) {
+        )
+    ) {
         return;
     }
 
+    const table =
+        isManual
+            ? "manual_posts"
+            : "marketing_queue";
+
     const { error } =
         await db
-            .from("marketing_queue")
+            .from(table)
             .delete()
-            .eq("id", id);
+            .eq(
+                "id",
+                id
+            );
 
     if (error) {
 
         alert(
-            "Błąd: " +
             error.message
         );
 
@@ -2507,12 +2522,93 @@ async function deleteMarketingPost(id) {
     await loadMarketingStats();
 }
 
-async function publishMarketingPost(id, btn) {
+async function publishMarketingPost(
+    id,
+    btn,
+    isManual = false
+) {
 
     btn.disabled = true;
-    btn.innerText = "Publikowanie...";
+    btn.innerText =
+        "Publikowanie...";
 
     try {
+
+        if (isManual) {
+
+            const {
+                data: manualPost,
+                error: manualError
+            } =
+                await db
+                    .from(
+                        "manual_posts"
+                    )
+                    .select("*")
+                    .eq("id", id)
+                    .single();
+
+            if (
+                manualError ||
+                !manualPost
+            ) {
+                throw new Error(
+                    "Nie znaleziono posta ręcznego"
+                );
+            }
+
+            const {
+                error: insertError
+            } =
+                await db
+                    .from(
+                        "marketing_queue"
+                    )
+                    .insert({
+
+                        platform:
+                            "facebook",
+
+                        status:
+                            "draft",
+
+                        content:
+                            manualPost.content,
+
+                        image_url:
+                            manualPost.image_url,
+
+                        created_at:
+                            new Date()
+                                .toISOString()
+
+                    });
+
+            if (insertError) {
+                throw insertError;
+            }
+
+            await db
+                .from(
+                    "manual_posts"
+                )
+                .update({
+                    status:
+                        "published"
+                })
+                .eq(
+                    "id",
+                    id
+                );
+
+            alert(
+                "Post ręczny został dodany do kolejki marketingowej."
+            );
+
+            await loadMarketingQueue();
+
+            return;
+        }
 
         const fb =
             await db.functions.invoke(
@@ -2528,53 +2624,21 @@ async function publishMarketingPost(id, btn) {
             throw fb.error;
         }
 
-        let xResult = null;
-
-        try {
-
-            xResult =
-                await db.functions.invoke(
-                    "publish-x",
-                    {
-                        body: {
-                            postId: id
-                        }
-                    }
-                );
-
-        } catch (e) {
-
-            console.error(
-                "X publish error:",
-                e
-            );
-
-        }
-
-        alert(
-`Facebook OK
-
-${xResult?.data?.x_post_id
-    ? "X OK\nID: " + xResult.data.x_post_id
-    : "X nie opublikował posta"}`
-        );
-
         await loadMarketingQueue();
 
     } catch (err) {
 
         alert(
-            "Błąd publikacji:\n\n" +
+            "Błąd:\n\n" +
             err.message
         );
 
     } finally {
 
         btn.disabled = false;
-        btn.innerText = "Publikuj";
-
+        btn.innerText =
+            "Publikuj";
     }
-
 }
 
 async function promoteMarketingPost(id) {
