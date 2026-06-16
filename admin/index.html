@@ -823,6 +823,10 @@
         Generuj posty
     </button>
 
+    <button onclick="openManualCampaignModal()">
+    ➕ Dodaj ręcznie
+    </button>
+
     <button
         class="btn-success"
         onclick="connectFacebook()"
@@ -932,8 +936,78 @@
         </div>
 
     </div>
+     
+    
+</div>
+
+<div id="manual-post-modal"
+     style="
+     display:none;
+     position:fixed;
+     top:0;
+     left:0;
+     width:100%;
+     height:100%;
+     background:rgba(0,0,0,0.6);
+     z-index:9999;
+     justify-content:center;
+     align-items:center;">
+
+    <div style="
+        background:white;
+        width:700px;
+        max-width:90vw;
+        border-radius:12px;
+        padding:24px;">
+
+        <h2>Nowa kampania ręczna</h2>
+
+        <input
+            id="manual-title"
+            placeholder="Tytuł"
+            class="smart-input"
+            style="margin-top:15px;">
+
+        <textarea
+            id="manual-content"
+            placeholder="Treść posta"
+            class="smart-input"
+            style="
+                margin-top:15px;
+                min-height:180px;
+                resize:vertical;">
+        </textarea>
+
+        <input
+            type="file"
+            id="manual-image"
+            accept="image/*"
+            style="margin-top:15px;">
+
+        <div style="
+            margin-top:20px;
+            display:flex;
+            gap:10px;
+            justify-content:flex-end;">
+
+            <button
+                class="btn-danger"
+                onclick="closeManualPostModal()">
+                Anuluj
+            </button>
+
+            <button
+                class="btn-primary"
+                onclick="saveManualPost()">
+                Zapisz
+            </button>
+
+        </div>
+
+    </div>
 
 </div>
+
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../assets/helper/supabaseConfig.js"></script>
 
@@ -2510,6 +2584,24 @@ function closeMarketingModal() {
     document.getElementById(
         "marketing-modal"
     ).style.display = "none";
+}
+
+function openManualPostModal() {
+
+    document
+        .getElementById(
+            "manual-post-modal"
+        )
+        .style.display = "flex";
+}
+
+function closeManualPostModal() {
+
+    document
+        .getElementById(
+            "manual-post-modal"
+        )
+        .style.display = "none";
 }
 
 async function showMarketingPost(id) {
