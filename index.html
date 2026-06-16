@@ -632,6 +632,11 @@
             font-weight:700;
             margin-bottom:18px;
         }
+        
+        .world-explorer-mobile .world-explorer-summary{
+    color:white;
+    font-weight:800;
+        }
 
         .world-map-btn{
             background:
@@ -732,28 +737,19 @@
         }
 
         .world-locations-panel{
-            border:1px solid #E2E8F0;
-            border-radius:18px;
-            padding:18px;
-            overflow:auto;
-            background:#F8FAFC;
-        }
+    border:1px solid #E2E8F0;
+    border-radius:18px;
+    padding:18px;
 
-        .world-map-stats{
-            display:grid;
-            gap:10px;
-            margin-bottom:18px;
-        }
+    height:520px;
 
-        .world-map-stat{
-            background:white;
-            border:1px solid #E2E8F0;
-            border-radius:12px;
-            color:#0F172A;
-            font-size:14px;
-            font-weight:800;
-            padding:10px 12px;
-        }
+    overflow-y:auto;
+    overflow-x:hidden;
+
+    background:#F8FAFC;
+}
+
+        
 
         .world-map-empty{
             color:#64748B;
@@ -1220,9 +1216,9 @@
                 padding:0 8px;
             }
             .world-explorer-mobile h3{
-                color:#2563EB;
-                font-size:26px;
-            }
+    color:white;
+    font-size:26px;
+}
             .world-explorer-mobile .world-map-btn{
                 width:100%;
                 max-width:320px;
@@ -1259,9 +1255,11 @@
                 height:360px;
             }
             .world-locations-panel{
-                max-height:none;
-                overflow:visible;
-            }
+    max-height:45vh;
+
+    overflow-y:auto;
+    overflow-x:hidden;
+}
             .hero-text h1 { 
                 font-size: 30px;
                 line-height: 1.15; 
@@ -3526,9 +3524,10 @@ class="world-map-modal">
         class="world-map-header">
 
             <h2
-                data-pl="🌍 Ride24 World Explorer"
-                data-en="🌍 Ride24 World Explorer">
-            </h2>
+data-pl="🌍 Mapa Ride24"
+data-en="🌍 Ride24 World Map">
+🌍 Ride24 World Map
+</h2>
 
             <span
             onclick="closeWorldMap()"
@@ -3555,31 +3554,7 @@ class="world-map-modal">
             <aside
             class="world-locations-panel">
 
-                <div
-                class="world-map-stats">
-
-                    <div
-                    id="worldCountriesCounter"
-                    class="world-map-stat"
-                    data-pl="🌍 Ładowanie krajów"
-                    data-en="🌍 Loading countries">
-                    </div>
-
-                    <div
-                    id="worldLocationsCounter"
-                    class="world-map-stat"
-                    data-pl="📍 Ładowanie lokalizacji"
-                    data-en="📍 Loading locations">
-                    </div>
-
-                    <div
-                    id="worldPartnersCounter"
-                    class="world-map-stat"
-                    data-pl="🚗 Ładowanie partnerów"
-                    data-en="🚗 Loading partners">
-                    </div>
-
-                </div>
+                
 
                 <h3
                 id="countryLocationsTitle"
@@ -4014,10 +3989,17 @@ class="world-map-modal">
             .filter(Boolean);
 
         ride24WorldMap = new jsVectorMap({
-            selector: "#worldMapSvg",
-            map: "world",
-            zoomOnScroll: false,
-            regionsSelectable: false,
+    selector: "#worldMapSvg",
+    map: "world",
+
+    zoomOnScroll: true,
+    zoomButtons: true,
+    zoomAnimate: true,
+
+    minZoom: 1,
+    maxZoom: 12,
+
+    regionsSelectable: false,
             selectedRegions: activeCodes,
             regionStyle: {
                 initial: {
@@ -4066,7 +4048,10 @@ class="world-map-modal">
         if (!countries.length) {
             showWorldMapMessage("Brak aktywnych krajów do wyświetlenia.", "No active countries to display.");
         } else {
-            showWorldMapMessage("Wybierz zielony kraj na mapie.", "Select a green country on the map.");
+           showWorldMapMessage(
+    "Kliknij zielony kraj aby zobaczyć lokalizacje.",
+    "Click a green country to view locations."
+);
         }
     }
 
@@ -4186,6 +4171,23 @@ class="world-map-modal">
             dropoffInput.dispatchEvent(new Event("input", { bubbles: true }));
             dropoffInput.dispatchEvent(new Event("change", { bubbles: true }));
         }
+        closeWorldMap();
+
+setTimeout(() => {
+
+    const searchSection =
+        document.querySelector('.hero-search') ||
+        document.querySelector('.search-card') ||
+        document.querySelector('#search-form');
+
+    if (searchSection) {
+        searchSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+    }
+
+}, 300);
 
         const selectedLocation = {
             name: locationName,
