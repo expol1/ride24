@@ -424,7 +424,7 @@
         }
 
         .btn-green:hover { 
-            background: #5CAD00;
+            background: #97D700;
             transform: translateY(-1px);
         }
 
@@ -611,16 +611,26 @@
             margin-top:40px;
         }
 
+        .world-explorer-mobile{
+            display:none;
+        }
+
+        .mobile-how-heading{
+            display:none;
+        }
+
         .world-explorer h3{
             color:#2563EB;
             font-size:30px;
             font-weight:800;
-            margin-bottom:10px;
+            margin-bottom:8px;
         }
 
-        .world-explorer p{
+        .world-explorer-summary{
             color:#64748B;
-            margin-bottom:20px;
+            font-size:16px;
+            font-weight:700;
+            margin-bottom:18px;
         }
 
         .world-map-btn{
@@ -640,6 +650,12 @@
             font-weight:700;
 
             cursor:pointer;
+            transition:transform 0.2s, box-shadow 0.2s;
+        }
+
+        .world-map-btn:hover{
+            transform:translateY(-1px);
+            box-shadow:0 10px 24px rgba(37,99,235,0.22);
         }
 
         .world-map-modal{
@@ -656,9 +672,9 @@
 
         .world-map-content{
             width:100%;
-            max-width:980px;
+            max-width:1120px;
             max-height:90vh;
-            overflow:auto;
+            overflow:hidden;
             background:white;
             border-radius:24px;
             padding:28px;
@@ -699,29 +715,62 @@
             background:#F8FAFC;
         }
 
+        .world-map-body{
+            display:grid;
+            grid-template-columns:2fr 1fr;
+            gap:22px;
+            min-height:520px;
+        }
+
         #worldMapSvg{
             width:100%;
-            min-height:420px;
+            height:520px;
             border:1px solid #E2E8F0;
             border-radius:18px;
             overflow:hidden;
             background:#F8FAFC;
         }
 
-        #countryLocations{
-            margin-top:22px;
+        .world-locations-panel{
+            border:1px solid #E2E8F0;
+            border-radius:18px;
+            padding:18px;
+            overflow:auto;
+            background:#F8FAFC;
         }
 
-        #countryLocations h3{
+        .world-map-stats{
+            display:grid;
+            gap:10px;
+            margin-bottom:18px;
+        }
+
+        .world-map-stat{
+            background:white;
+            border:1px solid #E2E8F0;
+            border-radius:12px;
+            color:#0F172A;
+            font-size:14px;
+            font-weight:800;
+            padding:10px 12px;
+        }
+
+        .world-map-empty{
+            color:#64748B;
+            font-weight:700;
+            line-height:1.5;
+        }
+
+        #countryLocations{
+            display:grid;
+            gap:10px;
+        }
+
+        .country-locations-title{
             color:#1E3A8A;
             font-size:20px;
             font-weight:800;
             margin-bottom:12px;
-        }
-
-        .country-locations-list{
-            display:grid;
-            gap:10px;
         }
 
         .country-location-item{
@@ -735,6 +784,22 @@
             font-weight:700;
             cursor:pointer;
             transition:all 0.2s;
+        }
+
+        .country-location-name{
+            display:block;
+            color:#0F172A;
+            font-size:15px;
+            font-weight:800;
+            margin-bottom:4px;
+        }
+
+        .country-location-type{
+            display:block;
+            color:#64748B;
+            font-size:12px;
+            font-weight:800;
+            text-transform:uppercase;
         }
 
         .country-location-item:hover{
@@ -956,7 +1021,7 @@
             font-size: 16px;
             font-weight: 800;
             margin-bottom: 6px;
-            color: #16A34A;
+            color: #2563EB;
         }
 
         .step-text p {
@@ -1071,12 +1136,12 @@
 
             /* PŁYNNY GRADIENT (ZIELONY -> BŁĘKIT -> GRANAT) */
             .hero { 
-                background: linear-gradient(180deg, #8BF21A 0%, #38BDF8 100%) !important;
+                background: linear-gradient(180deg, #97D700 0%, #2563EB 100%) !important;
                 padding: 20px 0 60px 0; 
                 min-height: auto; 
             }
             .how-it-works-section { 
-                background: linear-gradient(180deg, #38BDF8 0%, #1E3A8A 100%) !important;
+                background: linear-gradient(180deg, #2563EB 0%, #1E3A8A 100%) !important;
             }
             footer { 
                 background: #1E3A8A !important;
@@ -1131,6 +1196,71 @@
             /* HERO: Typografia */
             .hero { 
                 padding: 10px 0 40px 0;
+            }
+            .hero .container{
+                display:flex;
+                flex-direction:column;
+            }
+            .hero-text{
+                order:1;
+            }
+            .hero-search{
+                order:2;
+            }
+            .world-explorer-desktop{
+                display:none;
+            }
+            .world-explorer-mobile{
+                display:block;
+                order:3;
+                width:100%;
+                max-width:640px;
+                margin:24px auto 0 auto;
+                text-align:center;
+                padding:0 8px;
+            }
+            .world-explorer-mobile h3{
+                color:#2563EB;
+                font-size:26px;
+            }
+            .world-explorer-mobile .world-map-btn{
+                width:100%;
+                max-width:320px;
+            }
+            .hero-text .section-header{
+                display:none;
+            }
+            .mobile-how-heading{
+                display:block !important;
+                order:4;
+                width:100%;
+                color:white;
+                text-align:center;
+                top:0;
+                margin:28px 0 0 0;
+            }
+            .world-map-modal{
+                padding:0;
+                align-items:stretch;
+            }
+            .world-map-content{
+                max-width:100%;
+                max-height:100vh;
+                min-height:100vh;
+                border-radius:0;
+                padding:20px;
+                overflow:auto;
+            }
+            .world-map-body{
+                grid-template-columns:1fr;
+                min-height:auto;
+            }
+            #worldMapSvg{
+                height:360px;
+            }
+            .world-locations-panel{
+                max-height:none;
+                overflow:visible;
             }
             .hero-text h1 { 
                 font-size: 30px;
@@ -1404,7 +1534,7 @@
 
         /* --- CONTACT BUTTON PREMIUM --- */
         .contact-btn {
-            background: linear-gradient(135deg, #8BF21A, #16A34A);
+            background: linear-gradient(135deg, #97D700, #2563EB);
             color: white;
             border: none;
             padding: 14px;
@@ -1420,7 +1550,7 @@
         .contact-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 28px rgba(34, 197, 94, 0.45);
-            background: linear-gradient(135deg, #A1FF33, #8BF21A);
+            background: linear-gradient(135deg, #2563EB, #97D700);
         }
 
         .contact-btn:active {
@@ -1835,22 +1965,24 @@
                 <li><img src="icons/check-circle.svg" alt="icon"> <span data-pl="Pełne ubezpieczenie w cenie" data-en="Full insurance included">Pełne ubezpieczenie w cenie</span></li>
             </ul>
 
-            <div class="world-explorer">
+            <div class="world-explorer world-explorer-desktop">
 
-                <h3>
-                    🌍 Tu jesteśmy
+                <h3
+                    data-pl="🌍 Tu jesteśmy"
+                    data-en="🌍 Where We Are">
                 </h3>
 
-                <p>
-                    Sprawdź wszystkie kraje i lokalizacje dostępne w Ride24
+                <p
+                    class="world-explorer-summary"
+                    data-pl="Ładowanie danych"
+                    data-en="Loading data">
                 </p>
 
                 <button
                     class="world-map-btn"
-                    onclick="openWorldMap()">
-
-                    Otwórz mapę świata
-
+                    onclick="openWorldMap()"
+                    data-pl="Otwórz mapę"
+                    data-en="Open Map">
                 </button>
 
             </div>
@@ -1954,8 +2086,36 @@
                 </div>
             </form>
         </div>
-        
-    
+
+        <div class="world-explorer world-explorer-mobile">
+
+            <h3
+                data-pl="🌍 Tu jesteśmy"
+                data-en="🌍 Where We Are">
+            </h3>
+
+            <p
+                class="world-explorer-summary"
+                data-pl="Ładowanie danych"
+                data-en="Loading data">
+            </p>
+
+            <button
+                class="world-map-btn"
+                onclick="openWorldMap()"
+                data-pl="Otwórz mapę"
+                data-en="Open Map">
+            </button>
+
+        </div>
+
+        <h3
+            class="section-header mobile-how-heading"
+            data-pl="Jak działa Ride24 "
+            data-en="How Ride24 works">
+        </h3>
+         
+     
     </div>
     <img src="auto.png" class="hero-car">
 </section>
@@ -2106,6 +2266,10 @@ function setLang(lang) {
         btn.classList.remove("active-lang");
     });
     document.getElementById("lang-" + lang).classList.add("active-lang");
+
+    if (typeof updateWorldExplorerLanguage === "function") {
+        updateWorldExplorerLanguage();
+    }
 }
 
 function detectLang() {
@@ -2720,7 +2884,7 @@ async function smartRedirect() {
 function showStatus(msg, type) {
     const btn = document.getElementById("mainAuthBtn");
     btn.innerText = msg;
-    btn.style.background = type === "success" ? "#16A34A" : "#DC2626"; 
+    btn.style.background = type === "success" ? "#97D700" : "#DC2626"; 
     
     if (type === "error") {
         setTimeout(() => {
@@ -3361,26 +3525,75 @@ class="world-map-modal">
         <div
         class="world-map-header">
 
-            <h2>
-                🌍 Ride24 World Map
+            <h2
+                data-pl="🌍 Ride24 World Explorer"
+                data-en="🌍 Ride24 World Explorer">
             </h2>
 
             <span
-            onclick="closeWorldMap()">
-
-                ✕
-
+            onclick="closeWorldMap()"
+            data-pl="✕"
+            data-en="✕"
+            aria-label="Close">
             </span>
 
         </div>
 
         <div
-        id="worldMapSvg">
+        class="world-map-body">
 
-        </div>
+            <div
+            class="world-map-panel">
 
-        <div
-        id="countryLocations">
+                <div
+                id="worldMapSvg">
+
+                </div>
+
+            </div>
+
+            <aside
+            class="world-locations-panel">
+
+                <div
+                class="world-map-stats">
+
+                    <div
+                    id="worldCountriesCounter"
+                    class="world-map-stat"
+                    data-pl="🌍 Ładowanie krajów"
+                    data-en="🌍 Loading countries">
+                    </div>
+
+                    <div
+                    id="worldLocationsCounter"
+                    class="world-map-stat"
+                    data-pl="📍 Ładowanie lokalizacji"
+                    data-en="📍 Loading locations">
+                    </div>
+
+                    <div
+                    id="worldPartnersCounter"
+                    class="world-map-stat"
+                    data-pl="🚗 Ładowanie partnerów"
+                    data-en="🚗 Loading partners">
+                    </div>
+
+                </div>
+
+                <h3
+                id="countryLocationsTitle"
+                class="country-locations-title"
+                data-pl="Lokalizacje"
+                data-en="Locations">
+                </h3>
+
+                <div
+                id="countryLocations">
+
+                </div>
+
+            </aside>
 
         </div>
 
@@ -3391,34 +3604,146 @@ class="world-map-modal">
 <script>
     let ride24WorldMap = null;
     let ride24ActiveCountries = [];
+    let ride24WorldStats = {
+        countries: 0,
+        locations: 0,
+        partners: 0
+    };
+    let ride24CountryLocationCounts = {};
+    let ride24SelectedCountry = null;
+    let ride24SelectedLocations = [];
 
-    const ride24CountryCodes = {
-        Portugal: "PT",
-        Spain: "ES",
-        Italy: "IT",
-        Greece: "GR",
-        Cyprus: "CY"
+    const ride24Countries = {
+        Portugal: { code: "PT", pl: "Portugalia", en: "Portugal", flag: "🇵🇹" },
+        Spain: { code: "ES", pl: "Hiszpania", en: "Spain", flag: "🇪🇸" },
+        Italy: { code: "IT", pl: "Włochy", en: "Italy", flag: "🇮🇹" },
+        Greece: { code: "GR", pl: "Grecja", en: "Greece", flag: "🇬🇷" },
+        Cyprus: { code: "CY", pl: "Cypr", en: "Cyprus", flag: "🇨🇾" },
+        Indonesia: { code: "ID", pl: "Indonezja", en: "Indonesia", flag: "🇮🇩" },
+        Jordan: { code: "JO", pl: "Jordania", en: "Jordan", flag: "🇯🇴" },
+        Morocco: { code: "MA", pl: "Maroko", en: "Morocco", flag: "🇲🇦" },
+        France: { code: "FR", pl: "Francja", en: "France", flag: "🇫🇷" },
+        Germany: { code: "DE", pl: "Niemcy", en: "Germany", flag: "🇩🇪" },
+        Croatia: { code: "HR", pl: "Chorwacja", en: "Croatia", flag: "🇭🇷" },
+        Malta: { code: "MT", pl: "Malta", en: "Malta", flag: "🇲🇹" },
+        Turkey: { code: "TR", pl: "Turcja", en: "Turkey", flag: "🇹🇷" },
+        Albania: { code: "AL", pl: "Albania", en: "Albania", flag: "🇦🇱" },
+        Montenegro: { code: "ME", pl: "Czarnogóra", en: "Montenegro", flag: "🇲🇪" },
+        Bulgaria: { code: "BG", pl: "Bułgaria", en: "Bulgaria", flag: "🇧🇬" },
+        Romania: { code: "RO", pl: "Rumunia", en: "Romania", flag: "🇷🇴" },
+        Poland: { code: "PL", pl: "Polska", en: "Poland", flag: "🇵🇱" },
+        Czechia: { code: "CZ", pl: "Czechy", en: "Czechia", flag: "🇨🇿" },
+        Slovakia: { code: "SK", pl: "Słowacja", en: "Slovakia", flag: "🇸🇰" },
+        Austria: { code: "AT", pl: "Austria", en: "Austria", flag: "🇦🇹" },
+        Hungary: { code: "HU", pl: "Węgry", en: "Hungary", flag: "🇭🇺" },
+        Slovenia: { code: "SI", pl: "Słowenia", en: "Slovenia", flag: "🇸🇮" },
+        Netherlands: { code: "NL", pl: "Holandia", en: "Netherlands", flag: "🇳🇱" },
+        Belgium: { code: "BE", pl: "Belgia", en: "Belgium", flag: "🇧🇪" },
+        Switzerland: { code: "CH", pl: "Szwajcaria", en: "Switzerland", flag: "🇨🇭" },
+        Ireland: { code: "IE", pl: "Irlandia", en: "Ireland", flag: "🇮🇪" },
+        "United Kingdom": { code: "GB", pl: "Wielka Brytania", en: "United Kingdom", flag: "🇬🇧" },
+        Norway: { code: "NO", pl: "Norwegia", en: "Norway", flag: "🇳🇴" },
+        Sweden: { code: "SE", pl: "Szwecja", en: "Sweden", flag: "🇸🇪" },
+        Denmark: { code: "DK", pl: "Dania", en: "Denmark", flag: "🇩🇰" },
+        Finland: { code: "FI", pl: "Finlandia", en: "Finland", flag: "🇫🇮" },
+        Estonia: { code: "EE", pl: "Estonia", en: "Estonia", flag: "🇪🇪" },
+        Latvia: { code: "LV", pl: "Łotwa", en: "Latvia", flag: "🇱🇻" },
+        Lithuania: { code: "LT", pl: "Litwa", en: "Lithuania", flag: "🇱🇹" },
+        Egypt: { code: "EG", pl: "Egipt", en: "Egypt", flag: "🇪🇬" },
+        Tunisia: { code: "TN", pl: "Tunezja", en: "Tunisia", flag: "🇹🇳" },
+        "United Arab Emirates": { code: "AE", pl: "Zjednoczone Emiraty Arabskie", en: "United Arab Emirates", flag: "🇦🇪" },
+        Thailand: { code: "TH", pl: "Tajlandia", en: "Thailand", flag: "🇹🇭" },
+        Mexico: { code: "MX", pl: "Meksyk", en: "Mexico", flag: "🇲🇽" },
+        "United States": { code: "US", pl: "Stany Zjednoczone", en: "United States", flag: "🇺🇸" }
+    };
+
+    const ride24CountryAliases = {
+        portugalia: "Portugal",
+        portugal: "Portugal",
+        hiszpania: "Spain",
+        spain: "Spain",
+        espana: "Spain",
+        italy: "Italy",
+        italia: "Italy",
+        wlochy: "Italy",
+        grecja: "Greece",
+        greece: "Greece",
+        cypr: "Cyprus",
+        cyprus: "Cyprus",
+        indonezja: "Indonesia",
+        indonesia: "Indonesia",
+        jordania: "Jordan",
+        jordan: "Jordan",
+        maroko: "Morocco",
+        morocco: "Morocco",
+        francja: "France",
+        france: "France",
+        niemcy: "Germany",
+        germany: "Germany",
+        chorwacja: "Croatia",
+        croatia: "Croatia",
+        malta: "Malta",
+        turcja: "Turkey",
+        turkey: "Turkey",
+        albania: "Albania",
+        czarnogora: "Montenegro",
+        montenegro: "Montenegro",
+        bulgaria: "Bulgaria",
+        rumunia: "Romania",
+        romania: "Romania",
+        polska: "Poland",
+        poland: "Poland",
+        czechy: "Czechia",
+        czechia: "Czechia",
+        slowacja: "Slovakia",
+        slovakia: "Slovakia",
+        austria: "Austria",
+        wegry: "Hungary",
+        hungary: "Hungary",
+        slowenia: "Slovenia",
+        slovenia: "Slovenia",
+        holandia: "Netherlands",
+        netherlands: "Netherlands",
+        belgium: "Belgium",
+        belgia: "Belgium",
+        szwajcaria: "Switzerland",
+        switzerland: "Switzerland",
+        irlandia: "Ireland",
+        ireland: "Ireland",
+        wielka_brytania: "United Kingdom",
+        united_kingdom: "United Kingdom",
+        uk: "United Kingdom",
+        norwegia: "Norway",
+        norway: "Norway",
+        szwecja: "Sweden",
+        sweden: "Sweden",
+        dania: "Denmark",
+        denmark: "Denmark",
+        finlandia: "Finland",
+        finland: "Finland",
+        estonia: "Estonia",
+        lotwa: "Latvia",
+        latvia: "Latvia",
+        litwa: "Lithuania",
+        lithuania: "Lithuania",
+        egipt: "Egypt",
+        egypt: "Egypt",
+        tunezja: "Tunisia",
+        tunisia: "Tunisia",
+        zjednoczone_emiraty_arabskie: "United Arab Emirates",
+        united_arab_emirates: "United Arab Emirates",
+        tajlandia: "Thailand",
+        thailand: "Thailand",
+        meksyk: "Mexico",
+        mexico: "Mexico",
+        stany_zjednoczone: "United States",
+        united_states: "United States",
+        usa: "United States"
     };
 
     const ride24CountryNamesByCode = Object.fromEntries(
-        Object.entries(ride24CountryCodes).map(([country, code]) => [code, country])
+        Object.entries(ride24Countries).map(([country, config]) => [config.code, country])
     );
-
-    const ride24CountryLabels = {
-        Portugal: "Portugalia",
-        Spain: "Hiszpania",
-        Italy: "Włochy",
-        Greece: "Grecja",
-        Cyprus: "Cypr"
-    };
-
-    const ride24CountryFlags = {
-        Portugal: "🇵🇹",
-        Spain: "🇪🇸",
-        Italy: "🇮🇹",
-        Greece: "🇬🇷",
-        Cyprus: "🇨🇾"
-    };
 
     function getRide24SupabaseClient(){
         if (window.supabaseClient && typeof window.supabaseClient.from === "function") {
@@ -3432,17 +3757,118 @@ class="world-map-modal">
         return null;
     }
 
-    function normalizeRide24Country(country){
-        const value = String(country || "").trim();
-        return Object.keys(ride24CountryCodes).find(
-            item => item.toLowerCase() === value.toLowerCase()
-        ) || value;
+    function getRide24Lang(){
+        return localStorage.getItem("lang") || "pl";
     }
 
-    function showWorldMapMessage(message){
+    function normalizeRide24Key(value){
+        return String(value || "")
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+    }
+
+    function normalizeRide24Country(country){
+        const key = normalizeRide24Key(country);
+        return ride24CountryAliases[key] || Object.keys(ride24Countries).find(
+            item => normalizeRide24Key(item) === key
+        ) || String(country || "").trim();
+    }
+
+    function getRide24CountryLabel(country, lang = getRide24Lang()){
+        const config = ride24Countries[country];
+        return config ? config[lang] : country;
+    }
+
+    function getRide24CountryCode(country){
+        return ride24Countries[country]?.code || null;
+    }
+
+    function getRide24CountryFlag(country){
+        return ride24Countries[country]?.flag || "🌍";
+    }
+
+    function ride24Plural(value, singularPl, pluralPl, singularEn, pluralEn){
+        const lang = getRide24Lang();
+
+        if (lang === "en") {
+            return `${value} ${value === 1 ? singularEn : pluralEn}`;
+        }
+
+        return `${value} ${value === 1 ? singularPl : pluralPl}`;
+    }
+
+    function getRide24LocationCountText(count){
+        return ride24Plural(count, "lokalizacja", "lokalizacje", "location", "locations");
+    }
+
+    function getRide24StatsText(){
+        return {
+            summaryPl: `${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "kraj" : "kraje"} • ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "lokalizacja" : "lokalizacje"}`,
+            summaryEn: `${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "country" : "countries"} • ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "location" : "locations"}`,
+            countriesPl: `🌍 ${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "kraj" : "kraje"}`,
+            countriesEn: `🌍 ${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "country" : "countries"}`,
+            locationsPl: `📍 ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "lokalizacja" : "lokalizacje"}`,
+            locationsEn: `📍 ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "location" : "locations"}`,
+            partnersPl: `🚗 ${ride24WorldStats.partners} ${ride24WorldStats.partners === 1 ? "partner" : "partnerów"}`,
+            partnersEn: `🚗 ${ride24WorldStats.partners} ${ride24WorldStats.partners === 1 ? "partner" : "partners"}`
+        };
+    }
+
+    function updateWorldExplorerCounters(){
+        const statsText = getRide24StatsText();
+
+        document.querySelectorAll(".world-explorer-summary").forEach(item => {
+            item.dataset.pl = statsText.summaryPl;
+            item.dataset.en = statsText.summaryEn;
+        });
+
+        const counters = [
+            ["worldCountriesCounter", statsText.countriesPl, statsText.countriesEn],
+            ["worldLocationsCounter", statsText.locationsPl, statsText.locationsEn],
+            ["worldPartnersCounter", statsText.partnersPl, statsText.partnersEn]
+        ];
+
+        counters.forEach(([id, pl, en]) => {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.dataset.pl = pl;
+                element.dataset.en = en;
+            }
+        });
+
+        setLang(getRide24Lang());
+    }
+
+    function updateWorldExplorerLanguage(){
+        if (ride24WorldMap && typeof ride24WorldMap.updateSize === "function") {
+            ride24WorldMap.updateSize();
+        }
+    }
+
+    function showWorldMapMessage(pl, en){
         const panel = document.getElementById("countryLocations");
+        const title = document.getElementById("countryLocationsTitle");
+
+        if (title) {
+            title.dataset.pl = "Lokalizacje";
+            title.dataset.en = "Locations";
+        }
+
         if (panel) {
-            panel.textContent = message;
+            panel.innerHTML = "";
+
+            const message = document.createElement("div");
+            message.className = "world-map-empty";
+            message.dataset.pl = pl;
+            message.dataset.en = en;
+            panel.appendChild(message);
+
+            setLang(getRide24Lang());
         }
     }
 
@@ -3454,7 +3880,10 @@ class="world-map-modal">
             document.body.style.overflow = "hidden";
         }
 
-        showWorldMapMessage("Ładowanie krajów...");
+        ride24SelectedCountry = null;
+        ride24SelectedLocations = [];
+        showWorldMapMessage("Ładowanie krajów...", "Loading countries...");
+        await loadWorldExplorerStats();
         await loadCountries();
     }
 
@@ -3471,7 +3900,7 @@ class="world-map-modal">
         const supabase = getRide24SupabaseClient();
 
         if (!supabase) {
-            showWorldMapMessage("Mapa świata nie może połączyć się z bazą danych.");
+            showWorldMapMessage("Mapa świata nie może połączyć się z bazą danych.", "World map cannot connect to the database.");
             return [];
         }
 
@@ -3483,7 +3912,7 @@ class="world-map-modal">
 
         if (error) {
             console.error("Błąd pobierania krajów:", error);
-            showWorldMapMessage("Nie udało się pobrać krajów.");
+            showWorldMapMessage("Nie udało się pobrać krajów.", "Could not load countries.");
             return [];
         }
 
@@ -3497,9 +3926,69 @@ class="world-map-modal">
         )];
 
         ride24ActiveCountries = countries;
+        ride24WorldStats.countries = countries.length;
+        updateWorldExplorerCounters();
         renderWorldMap(countries);
 
         return countries;
+    }
+
+    async function loadWorldExplorerStats(){
+        const supabase = getRide24SupabaseClient();
+
+        if (!supabase) {
+            return;
+        }
+
+        const { data, error } =
+        await supabase
+        .from('partner_locations')
+        .select('*')
+        .eq('active', true);
+
+        if (error) {
+            console.error("Błąd pobierania liczników mapy:", error);
+            return;
+        }
+
+        const rows = data || [];
+        const countries = rows
+            .map(item => normalizeRide24Country(item.country))
+            .filter(Boolean);
+
+        const partnerKeys = [
+            "partner_id",
+            "partner_uuid",
+            "owner_id",
+            "profile_id",
+            "user_id",
+            "partner_email",
+            "partner_name",
+            "company_name",
+            "rental_company"
+        ];
+
+        const partners = rows
+            .map(item => partnerKeys.map(key => item[key]).find(Boolean))
+            .filter(Boolean);
+
+        ride24CountryLocationCounts = rows.reduce((acc, item) => {
+            const country = normalizeRide24Country(item.country);
+
+            if (country) {
+                acc[country] = (acc[country] || 0) + 1;
+            }
+
+            return acc;
+        }, {});
+
+        ride24WorldStats = {
+            countries: new Set(countries).size,
+            locations: rows.filter(item => item.location_name).length,
+            partners: new Set(partners).size
+        };
+
+        updateWorldExplorerCounters();
     }
 
     function renderWorldMap(countries){
@@ -3510,7 +3999,7 @@ class="world-map-modal">
         }
 
         if (typeof jsVectorMap === "undefined") {
-            mapContainer.textContent = "Nie udało się załadować mapy świata.";
+            mapContainer.textContent = getRide24Lang() === "pl" ? "Nie udało się załadować mapy świata." : "Could not load the world map.";
             return;
         }
 
@@ -3521,13 +4010,14 @@ class="world-map-modal">
         mapContainer.innerHTML = "";
 
         const activeCodes = countries
-            .map(country => ride24CountryCodes[country])
+            .map(country => getRide24CountryCode(country))
             .filter(Boolean);
 
         ride24WorldMap = new jsVectorMap({
             selector: "#worldMapSvg",
             map: "world",
             zoomOnScroll: false,
+            regionsSelectable: false,
             selectedRegions: activeCodes,
             regionStyle: {
                 initial: {
@@ -3543,11 +4033,28 @@ class="world-map-modal">
                     fill: "#97D700"
                 }
             },
+            onRegionTooltipShow: function(event, tooltip, code){
+                const country = ride24CountryNamesByCode[String(code).toUpperCase()];
+
+                if (!country || !ride24ActiveCountries.includes(country)) {
+                    return;
+                }
+
+                const count = ride24CountryLocationCounts[country] || 0;
+                tooltip.text(`${getRide24CountryLabel(country)}\n${getRide24LocationCountText(count)}`);
+            },
             onRegionClick: function(event, code){
                 const country = ride24CountryNamesByCode[String(code).toUpperCase()];
 
                 if (!country || !ride24ActiveCountries.includes(country)) {
                     return;
+                }
+
+                if (ride24WorldMap && typeof ride24WorldMap.setFocus === "function") {
+                    ride24WorldMap.setFocus({
+                        region: String(code).toUpperCase(),
+                        animate: true
+                    });
                 }
 
                 loadLocations(
@@ -3557,9 +4064,9 @@ class="world-map-modal">
         });
 
         if (!countries.length) {
-            showWorldMapMessage("Brak aktywnych krajów do wyświetlenia.");
+            showWorldMapMessage("Brak aktywnych krajów do wyświetlenia.", "No active countries to display.");
         } else {
-            showWorldMapMessage("Wybierz zielony kraj na mapie.");
+            showWorldMapMessage("Wybierz zielony kraj na mapie.", "Select a green country on the map.");
         }
     }
 
@@ -3567,7 +4074,7 @@ class="world-map-modal">
         const supabase = getRide24SupabaseClient();
 
         if (!supabase) {
-            showWorldMapMessage("Nie można połączyć się z bazą danych.");
+            showWorldMapMessage("Nie można połączyć się z bazą danych.", "Could not connect to the database.");
             return;
         }
 
@@ -3580,15 +4087,18 @@ class="world-map-modal">
 
         if (error) {
             console.error("Błąd pobierania lokalizacji:", error);
-            showWorldMapMessage("Nie udało się pobrać lokalizacji.");
+            showWorldMapMessage("Nie udało się pobrać lokalizacji.", "Could not load locations.");
             return;
         }
 
+        ride24SelectedCountry = country;
+        ride24SelectedLocations = data || [];
         renderCountryLocations(country, data || []);
     }
 
     function renderCountryLocations(country, locations){
         const panel = document.getElementById("countryLocations");
+        const title = document.getElementById("countryLocationsTitle");
 
         if (!panel) {
             return;
@@ -3596,13 +4106,10 @@ class="world-map-modal">
 
         panel.innerHTML = "";
 
-        const title = document.createElement("h3");
-        title.textContent = `${ride24CountryFlags[country] || "🌍"} ${(ride24CountryLabels[country] || country).toUpperCase()}`;
-        panel.appendChild(title);
-
-        const list = document.createElement("div");
-        list.className = "country-locations-list";
-        panel.appendChild(list);
+        if (title) {
+            title.dataset.pl = `${getRide24CountryFlag(country)} ${getRide24CountryLabel(country, "pl").toUpperCase()}`;
+            title.dataset.en = `${getRide24CountryFlag(country)} ${getRide24CountryLabel(country, "en").toUpperCase()}`;
+        }
 
         locations.forEach(location => {
             const locationName = location.location_name;
@@ -3614,21 +4121,54 @@ class="world-map-modal">
             const button = document.createElement("button");
             button.type = "button";
             button.className = "country-location-item";
-            button.textContent = `📍 ${locationName}`;
-            button.addEventListener("click", () => selectWorldLocation(locationName));
-            list.appendChild(button);
+
+            const name = document.createElement("span");
+            name.className = "country-location-name";
+            name.textContent = `📍 ${locationName}`;
+            button.appendChild(name);
+
+            const type = document.createElement("span");
+            type.className = "country-location-type";
+            type.dataset.pl = getRide24LocationType(location, "pl");
+            type.dataset.en = getRide24LocationType(location, "en");
+            button.appendChild(type);
+
+            button.addEventListener("click", () => selectWorldLocation(location));
+            panel.appendChild(button);
         });
 
-        if (!list.children.length) {
-            showWorldMapMessage("Brak aktywnych lokalizacji w tym kraju.");
+        if (!panel.children.length) {
+            showWorldMapMessage("Brak aktywnych lokalizacji w tym kraju.", "No active locations in this country.");
         }
+
+        setLang(getRide24Lang());
     }
 
-    function selectWorldLocation(locationName){
+    function getRide24LocationType(location, lang = getRide24Lang()){
+        const value = `${location.location_type || ""} ${location.type || ""} ${location.location_name || ""}`.toLowerCase();
+
+        if (value.includes("airport") || value.includes("lotnisko")) {
+            return lang === "pl" ? "Lotnisko" : "Airport";
+        }
+
+        if (value.includes("hotel")) {
+            return lang === "pl" ? "Hotel" : "Hotel";
+        }
+
+        return lang === "pl" ? "Centrum miasta" : "City Center";
+    }
+
+    function selectWorldLocation(location){
+        const locationName = location.location_name;
         const pickupInput =
         document
         .getElementById(
         'smart-search-pickup'
+        );
+        const dropoffInput =
+        document
+        .getElementById(
+        'smart-search-drop'
         );
 
         if (pickupInput) {
@@ -3639,8 +4179,42 @@ class="world-map-modal">
             pickupInput.dispatchEvent(new Event("change", { bubbles: true }));
         }
 
+        if (dropoffInput) {
+            dropoffInput.value =
+            locationName;
+
+            dropoffInput.dispatchEvent(new Event("input", { bubbles: true }));
+            dropoffInput.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        const selectedLocation = {
+            name: locationName,
+            location_name: locationName,
+            country: location.country,
+            region: location.region,
+            city: location.city,
+            type: getRide24LocationType(location, "en").toLowerCase()
+        };
+
+        if (typeof SELECTED_PICKUP !== "undefined") {
+            SELECTED_PICKUP = selectedLocation;
+        }
+
+        if (typeof SELECTED_DROP !== "undefined") {
+            SELECTED_DROP = selectedLocation;
+        }
+
+        if (typeof isDropManuallyChanged !== "undefined") {
+            isDropManuallyChanged = false;
+        }
+
         closeWorldMap();
     }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadWorldExplorerStats();
+        updateWorldExplorerCounters();
+    });
 </script>
 </body>
 </html>
