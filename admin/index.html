@@ -2588,18 +2588,20 @@ async function publishMarketingPost(
                 throw insertError;
             }
 
-            await db
-                .from(
-                    "manual_posts"
-                )
-                .update({
-                    status:
-                        "published"
-                })
-                .eq(
-                    "id",
-                    id
-                );
+            const { error: deleteError } =
+    await db
+        .from(
+            "manual_posts"
+        )
+        .delete()
+        .eq(
+            "id",
+            id
+        );
+
+if (deleteError) {
+    console.error(deleteError);
+}
 
             alert(
                 "Post ręczny został dodany do kolejki marketingowej."
