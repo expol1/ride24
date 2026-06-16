@@ -620,11 +620,11 @@
         }
 
         .world-explorer h3{
-            color:#2563EB;
-            font-size:30px;
-            font-weight:800;
-            margin-bottom:8px;
-        }
+    color:#97D700;
+    font-size:30px;
+    font-weight:800;
+    margin-bottom:8px;
+}
 
         .world-explorer-summary{
             color:#64748B;
@@ -1216,8 +1216,9 @@
                 padding:0 8px;
             }
             .world-explorer-mobile h3{
-    color:white;
+    color:#97D700;
     font-size:26px;
+    font-weight:800;
 }
             .world-explorer-mobile .world-map-btn{
                 width:100%;
@@ -1265,6 +1266,10 @@
                 line-height: 1.15; 
                 margin-bottom: 12px; 
                 text-shadow: 0 2px 15px rgba(255, 255, 255, 0.6);
+            }
+
+            .hero-text h1 span:last-child{
+               color:white !important;
             }
             .hero-text h2 { 
                 font-size: 16px;
@@ -4008,12 +4013,14 @@ data-en="🌍 Ride24 World Map">
                     strokeWidth: 0.5
                 },
                 hover: {
-                    fill: "#CBD5E1",
-                    cursor: "pointer"
-                },
+    fill: "#B7F11A",
+    cursor: "pointer"
+},
                 selected: {
-                    fill: "#97D700"
-                }
+    fill: "#97D700",
+    stroke: "#2563EB",
+    strokeWidth: 2
+}
             },
             onRegionTooltipShow: function(event, tooltip, code){
                 const country = ride24CountryNamesByCode[String(code).toUpperCase()];
