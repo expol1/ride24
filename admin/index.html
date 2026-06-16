@@ -2252,19 +2252,7 @@ data.sort(
         new Date(a.created_at)
 );
 
-    if (error) {
-
-        tbody.innerHTML =
-            `
-            <tr>
-                <td colspan="6">
-                    Błąd
-                </td>
-            </tr>
-            `;
-
-        return;
-    }
+    
 
     tbody.innerHTML = "";
 
