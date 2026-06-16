@@ -2181,17 +2181,76 @@ async function loadMarketingQueue() {
 
     if (!tbody) return;
 
-    const { data, error } =
-        await db
-            .from("marketing_queue")
-            .select("*")
-            .order(
-                "created_at",
-                {
-                    ascending: false
-                }
-            )
-            .limit(50);
+    const {
+    data: aiPosts,
+    error: aiError
+} =
+    await db
+        .from("marketing_queue")
+        .select("*")
+        .order(
+            "created_at",
+            {
+                ascending: false
+            }
+        )
+        .limit(50);
+
+const {
+    data: manualPosts,
+    error: manualError
+} =
+    await db
+        .from("manual_posts")
+        .select("*")
+        .order(
+            "created_at",
+            {
+                ascending: false
+            }
+        )
+        .limit(50);
+
+if (aiError || manualError) {
+
+    tbody.innerHTML =
+        `
+        <tr>
+            <td colspan="6">
+                Błąd
+            </td>
+        </tr>
+        `;
+
+    return;
+}
+
+const data = [
+
+    ...(aiPosts || []),
+
+    ...(manualPosts || []).map(
+        post => ({
+
+            ...post,
+
+            platform: "manual",
+
+            source_type: "manual",
+
+            generation_version:
+                "manual"
+
+        })
+    )
+
+];
+
+data.sort(
+    (a, b) =>
+        new Date(b.created_at) -
+        new Date(a.created_at)
+);
 
     if (error) {
 
@@ -2229,7 +2288,9 @@ async function loadMarketingQueue() {
     facebook: "Facebook",
     instagram: "Instagram",
     x: "X (Twitter)",
-    all: "Facebook + Instagram + X"
+    all: "Facebook + Instagram + X",
+    manual: "Manual"
+    
 };
 
 const platformName =
