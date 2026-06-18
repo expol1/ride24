@@ -1694,17 +1694,42 @@ window.processAddPartner = async function() {
 
     const btn = document.getElementById("savePartnerBtn");
 
-    const data = {
+    const providerType = document.getElementById("new-p-provider-type").value;
+
+const data = {
     email: document.getElementById("new-p-email").value.trim(),
     password: document.getElementById("new-p-pass").value.trim(),
     company_name: document.getElementById("new-p-company").value.trim(),
-    representative_name: document.getElementById("new-p-rep-name").value.trim(), // DODANE
-    representative_surname: document.getElementById("new-p-rep-surname").value.trim(), // DODANE
+    representative_name: document.getElementById("new-p-rep-name").value.trim(),
+    representative_surname: document.getElementById("new-p-rep-surname").value.trim(),
     country: document.getElementById("new-p-country").value.trim(),
     region: document.getElementById("new-p-region").value.trim(),
     phone: document.getElementById("new-p-phone").value.trim(),
     currency: document.getElementById("new-p-currency").value,
-    discount_percent: parseFloat(document.getElementById("new-p-discount").value) || 15
+    discount_percent: parseFloat(document.getElementById("new-p-discount").value) || 15,
+
+    // ===== NOWE POLA =====
+
+    provider_type: providerType,
+
+    api_provider:
+        providerType === "api"
+            ? document.getElementById("new-p-api-provider").value
+            : null,
+
+    api_enabled:
+        providerType === "api",
+
+    api_settings:
+        providerType === "api"
+            ? {
+                api_url: document.getElementById("new-p-api-url").value.trim(),
+                api_key: document.getElementById("new-p-api-key").value.trim(),
+                api_secret: document.getElementById("new-p-api-secret").value.trim(),
+                username: document.getElementById("new-p-api-user").value.trim(),
+                password: document.getElementById("new-p-api-password").value.trim()
+            }
+            : null
 };
 
     if (!data.email.includes("@") || !data.company_name) {
