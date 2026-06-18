@@ -23,9 +23,18 @@ export const apiProvider = {
     },
 
     async search(filters) {
-        console.log("Search", filters, config);
-        return [];
-    },
+
+    console.log("API SEARCH");
+
+    console.log("Filters:", filters);
+
+    console.log("Config:", config);
+
+    // Tutaj później wywołamy API partnera
+
+    return [];
+
+},
 
     async createBooking(data) {
         console.log("Create Booking", data, config);

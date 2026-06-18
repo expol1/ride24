@@ -2,6 +2,7 @@ import { carClasses } from "../mock/carClasses.js";
 import { bookings as defaultBookings } from "../mock/bookings.js";
 import { calculatePricing } from "../modules/pricing.js";
 import { apiProvider } from "../providers/apiProvider.js";
+import { providerManager } from "../providers/providerManager.js";
 
 // Funkcje pomocnicze do synchronizacji bazy między zakładkami (RAM -> LocalStorage)
 function getBookings() {
@@ -33,6 +34,20 @@ export const API = {
 
   // 2. Pobieranie floty z wykorzystaniem PRICING ENGINE
   async getCars(filters) {
+
+    // ===== API PROVIDER (na razie wyłączony) =====
+
+const selectedProvider = null;
+
+// W następnym etapie:
+// const selectedProvider = providerManager.getProvider(...);
+
+if (selectedProvider) {
+    return await selectedProvider.search(filters);
+}
+
+// ===== KONIEC API PROVIDER =====
+
     const availableClasses = [];
     for (let carClass of carClasses) {
         
