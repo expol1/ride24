@@ -1883,7 +1883,14 @@ window.togglePartnerType = function () {
 };
 window.openApiConfiguration = function(partnerId) {
 
-    alert("Konfiguracja API partnera:\n\n" + partnerId);
+    window.currentApiPartnerId = partnerId;
+
+    document.getElementById("apiPartnerModal").style.display = "flex";
+
+};
+window.closeApiPartnerModal = function () {
+
+    document.getElementById("apiPartnerModal").style.display = "none";
 
 };
 // --- SUPER-KANAŁ REALTIME (JEDEN ZAMIAST TRZECH) ---
@@ -3579,6 +3586,76 @@ async function connectX() {
             <button onclick="closeAddPartnerModal()" style="padding: 10px 20px; background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Anuluj</button>
             <button onclick="processAddPartner()" id="savePartnerBtn" style="padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Utwórz Partnera</button>
       </div> </div> </div>
+      <div id="apiPartnerModal"
+     style="
+     display:none;
+     position:fixed;
+     inset:0;
+     z-index:99999;
+     background:rgba(2,6,23,.75);
+     backdrop-filter:blur(8px);
+     justify-content:center;
+     align-items:center;
+     padding:20px;">
+
+    <div style="
+        background:white;
+        width:100%;
+        max-width:850px;
+        border-radius:16px;
+        overflow:hidden;
+        display:flex;
+        flex-direction:column;">
+
+        <div style="
+            padding:20px 30px;
+            background:#F8FAFC;
+            border-bottom:1px solid #E2E8F0;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;">
+
+            <h2 style="font-size:20px;font-weight:800;">
+                Konfiguracja Partnera API
+            </h2>
+
+            <span
+                onclick="closeApiPartnerModal()"
+                style="cursor:pointer;font-size:28px;">
+                ×
+            </span>
+
+        </div>
+
+        <div
+            id="apiPartnerContent"
+            style="
+            padding:30px;
+            min-height:400px;">
+
+            Ładowanie...
+
+        </div>
+
+        <div style="
+            padding:20px 30px;
+            background:#F8FAFC;
+            border-top:1px solid #E2E8F0;
+            text-align:right;">
+
+            <button
+                onclick="closeApiPartnerModal()"
+                class="btn-danger">
+
+                Zamknij
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
     <div id="promotion-modal"
      style="
      display:none;
