@@ -3628,14 +3628,56 @@ async function connectX() {
         </div>
 
         <div
-            id="apiPartnerContent"
-            style="
-            padding:30px;
-            min-height:400px;">
+    id="apiPartnerContent"
+    style="
+    padding:30px;
+    min-height:400px;">
 
-            Ładowanie...
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
 
-        </div>
+<div class="form-group">
+<label>Firma</label>
+<input id="api-company-name" disabled>
+</div>
+
+<div class="form-group">
+<label>Provider</label>
+<select id="api-provider">
+<option value="custom">Custom API</option>
+<option value="carwiz">Carwiz</option>
+<option value="avis">Avis</option>
+<option value="hertz">Hertz</option>
+</select>
+</div>
+
+<div class="form-group">
+<label>API URL</label>
+<input id="api-url">
+</div>
+
+<div class="form-group">
+<label>API KEY</label>
+<input id="api-key">
+</div>
+
+<div class="form-group">
+<label>SECRET</label>
+<input id="api-secret" type="password">
+</div>
+
+<div class="form-group">
+<label>Username</label>
+<input id="api-user">
+</div>
+
+<div class="form-group">
+<label>Password</label>
+<input id="api-password" type="password">
+</div>
+
+</div>
+
+</div>>
 
         <div style="
             padding:20px 30px;
