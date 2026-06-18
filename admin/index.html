@@ -1553,9 +1553,16 @@ ${statusMap[b.status] || b.status}
 
 async function loadPartnersData() {
     const { data, error } = await db
-        .from("partners")
-        .select("id, company_name, active, country, account_status")
-        .order("created_at", { ascending: false });
+    .from("partners")
+    .select(`
+        id,
+        company_name,
+        active,
+        country,
+        account_status,
+        provider_type
+    `)
+    .order("created_at", { ascending: false });
 
     const tbody = document.getElementById("admin-partners-tbody");
     if (!tbody) return;
@@ -1605,11 +1612,31 @@ async function loadPartnersData() {
     </button>
 `;
     }
+let providerBadge = "";
 
+if ((p.provider_type ?? "local") === "api") {
+    providerBadge = `
+        <span style="
+            display:inline-block;
+            margin-left:8px;
+            padding:2px 8px;
+            background:#DBEAFE;
+            color:#1D4ED8;
+            border-radius:999px;
+            font-size:11px;
+            font-weight:700;
+        ">
+            API
+        </span>
+    `;
+}
     // 3. Renderowanie wiersza do tabeli
     tbody.innerHTML += `
         <tr>
-            <td class="company-name">${escapeHtml(p.company_name || "Brak nazwy")}</td>
+            <td class="company-name">
+    ${escapeHtml(p.company_name || "Brak nazwy")}
+    ${providerBadge}
+</td>
             <td>${escapeHtml(p.country ?? "---")}</td>
             <td>${statusHtml}</td>
             <td style="text-align: right;">${actionBtn}</td>

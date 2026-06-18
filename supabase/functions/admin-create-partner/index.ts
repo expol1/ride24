@@ -85,6 +85,9 @@ serve(async (req) => {
     if (!email || !password || !company_name) {
       throw new Error("Brakuje wymaganych danych")
     }
+    // Domyślne wartości dla partnerów LOCAL
+const finalProviderType = provider_type ?? "local";
+const finalApiEnabled = finalProviderType === "api";
 
     console.log("4. Tworzenie użytkownika auth")
 
@@ -142,22 +145,20 @@ const { error: partnerInsertError } = await supabaseAdmin
 
     // ===== PARTNER API =====
 
-    provider_type: provider_type ?? "local",
+    provider_type:
+    finalProviderType.toLowerCase(),
 
-    api_provider:
-      provider_type === "api"
-        ? api_provider
-        : null,
+api_provider:
+  finalProviderType === "api"
+    ? api_provider
+    : null,
 
-    api_enabled:
-      provider_type === "api"
-        ? true
-        : false,
+api_enabled: finalApiEnabled,
 
-    api_settings:
-      provider_type === "api"
-        ? api_settings
-        : null
+api_settings:
+  finalProviderType === "api"
+    ? (api_settings ?? {})
+    : null
   }
 ])
 
