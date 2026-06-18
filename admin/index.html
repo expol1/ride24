@@ -1961,6 +1961,11 @@ window.saveApiConfiguration = async function () {
     alert("Konfiguracja API została zapisana.");
 
 };
+window.testApiConnection = async function(){
+
+    alert("Tutaj będzie test połączenia z API partnera.");
+
+};
 window.closeApiPartnerModal = function () {
 
     document.getElementById("apiPartnerModal").style.display = "none";
@@ -3760,11 +3765,21 @@ async function connectX() {
 
             <div style="display:flex;justify-content:flex-end;gap:10px;padding:20px;border-top:1px solid #E5E7EB;">
 
+<div style="display:flex;justify-content:flex-end;gap:10px;padding:20px;border-top:1px solid #E5E7EB;">
+
 <button
 onclick="closeApiPartnerModal()"
 class="btn-danger">
 
 Zamknij
+
+</button>
+
+<button
+onclick="testApiConnection()"
+class="btn-warn">
+
+🔌 Test połączenia
 
 </button>
 
@@ -3776,6 +3791,7 @@ class="btn-primary">
 
 </button>
 
+</div>
 </div>
 
         </div>
