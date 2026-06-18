@@ -1898,25 +1898,25 @@ console.log("Error:", error);
     }
     console.log(data);
 
-    document.getElementById("api-partner-id").value = data.id;
+    
 
-    document.getElementById("edit-api-provider").value =
-        data.api_provider || "";
+    document.getElementById("api-provider").value =
+    data.api_provider || "";
 
-    document.getElementById("edit-api-url").value =
-        data.api_settings?.api_url || "";
+    document.getElementById("api-url").value =
+    data.api_settings?.api_url || "";
 
-    document.getElementById("edit-api-key").value =
-        data.api_settings?.api_key || "";
+    document.getElementById("api-key").value =
+    data.api_settings?.api_key || "";
 
-    document.getElementById("edit-api-secret").value =
-        data.api_settings?.api_secret || "";
+    document.getElementById("api-secret").value =
+    data.api_settings?.api_secret || "";
 
-    document.getElementById("edit-api-user").value =
-        data.api_settings?.username || "";
+   document.getElementById("api-user").value =
+    data.api_settings?.username || "";
 
-    document.getElementById("edit-api-password").value =
-        data.api_settings?.password || "";
+    document.getElementById("api-password").value =
+    data.api_settings?.password || "";
 
     document.getElementById("apiPartnerModal").style.display="flex";
 
