@@ -1881,6 +1881,44 @@ window.togglePartnerType = function () {
     }
 
 };
+
+window.openApiConfiguration = async function(partnerId){
+
+    const { data, error } = await db
+        .from("partners")
+        .select("*")
+        .eq("id", partnerId)
+        .single();
+
+    if(error){
+        alert(error.message);
+        return;
+    }
+
+    document.getElementById("api-partner-id").value = data.id;
+
+    document.getElementById("edit-api-provider").value =
+        data.api_provider || "";
+
+    document.getElementById("edit-api-url").value =
+        data.api_settings?.api_url || "";
+
+    document.getElementById("edit-api-key").value =
+        data.api_settings?.api_key || "";
+
+    document.getElementById("edit-api-secret").value =
+        data.api_settings?.api_secret || "";
+
+    document.getElementById("edit-api-user").value =
+        data.api_settings?.username || "";
+
+    document.getElementById("edit-api-password").value =
+        data.api_settings?.password || "";
+
+    document.getElementById("apiPartnerModal").style.display="flex";
+
+};
+
 window.openApiConfiguration = function(partnerId) {
 
     window.currentApiPartnerId = partnerId;
