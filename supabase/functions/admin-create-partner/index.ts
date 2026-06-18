@@ -72,7 +72,14 @@ serve(async (req) => {
   currency,
   discount_percent,
   representative_name,
-  representative_surname
+  representative_surname,
+
+  // API
+  provider_type,
+  api_provider,
+  api_enabled,
+  api_settings
+
 } = body
 
     if (!email || !password || !company_name) {
@@ -115,19 +122,44 @@ const { error: partnerInsertError } = await supabaseAdmin
   .insert([
   {
     user_id: newPartnerId,
+
     company_name,
-    email, // 🔥 DODAJ
+    email,
+
     country,
     region,
     phone,
+
     currency,
+
     discount_percent: discount_percent ?? 15,
-    representative_name,        
-    representative_surname,     
+
+    representative_name,
+    representative_surname,
+
     active: false,
-    account_status: "pending"
+    account_status: "pending",
+
+    // ===== PARTNER API =====
+
+    provider_type: provider_type ?? "local",
+
+    api_provider:
+      provider_type === "api"
+        ? api_provider
+        : null,
+
+    api_enabled:
+      provider_type === "api"
+        ? true
+        : false,
+
+    api_settings:
+      provider_type === "api"
+        ? api_settings
+        : null
   }
-  ])
+])
 
     if (partnerInsertError) {
   // rollback usera
