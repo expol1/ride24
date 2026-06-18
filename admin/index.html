@@ -1891,13 +1891,14 @@ window.openApiConfiguration = async function(partnerId){
         .single();
     console.log("Partner ID:", partnerId);
 console.log("Data:", data);
+
 console.log("Error:", error);
     if(error){
         alert(error.message);
         return;
     }
     console.log(data);
-
+    window.currentApiPartnerId = partnerId;
     document.getElementById("api-company-name").value =
     data.company_name || "";
 
@@ -1922,7 +1923,44 @@ console.log("Error:", error);
     document.getElementById("apiPartnerModal").style.display="flex";
 
 };
+window.saveApiConfiguration = async function () {
 
+    const apiSettings = {
+
+        api_url: document.getElementById("api-url").value.trim(),
+
+        api_key: document.getElementById("api-key").value.trim(),
+
+        api_secret: document.getElementById("api-secret").value.trim(),
+
+        username: document.getElementById("api-user").value.trim(),
+
+        password: document.getElementById("api-password").value.trim()
+
+    };
+
+    const { error } = await db
+        .from("partners")
+        .update({
+
+            api_provider: document.getElementById("api-provider").value,
+
+            api_settings: apiSettings
+
+        })
+        .eq("id", window.currentApiPartnerId);
+
+    if (error) {
+
+        alert(error.message);
+
+        return;
+
+    }
+
+    alert("Konfiguracja API została zapisana.");
+
+};
 window.closeApiPartnerModal = function () {
 
     document.getElementById("apiPartnerModal").style.display = "none";
