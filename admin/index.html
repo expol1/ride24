@@ -1961,17 +1961,52 @@ window.saveApiConfiguration = async function () {
     alert("Konfiguracja API została zapisana.");
 
 };
-window.testApiConnection = async function(){
+window.testApiConnection = async function () {
 
-    document.getElementById("api-test-status").innerHTML =
-        "🟡 Trwa sprawdzanie połączenia...";
+    const status = document.getElementById("api-test-status");
 
-    setTimeout(() => {
+    status.innerHTML = "🟡 Łączenie z partnerem...";
 
-        document.getElementById("api-test-status").innerHTML =
-            "🟢 Panel gotowy do integracji z API.";
+    try {
 
-    },1000);
+        const provider = providerManager.getProvider(
+            document.getElementById("api-provider").value
+        );
+
+        if (!provider) {
+            throw new Error("Nie znaleziono providera.");
+        }
+
+        const config = {
+            api_url: document.getElementById("api-url").value.trim(),
+            api_key: document.getElementById("api-key").value.trim(),
+            api_secret: document.getElementById("api-secret").value.trim(),
+            username: document.getElementById("api-user").value.trim(),
+            password: document.getElementById("api-password").value.trim()
+        };
+
+        const result = await provider.testConnection(config);
+
+        if (result.success) {
+
+            status.innerHTML =
+                "🟢 Połączenie poprawne";
+
+        } else {
+
+            status.innerHTML =
+                "🔴 " + (result.message || "Błąd połączenia");
+
+        }
+
+    } catch (e) {
+
+        console.error(e);
+
+        status.innerHTML =
+            "🔴 " + e.message;
+
+    }
 
 };
 window.closeApiPartnerModal = function () {
