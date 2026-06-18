@@ -1595,22 +1595,51 @@ async function loadPartnersData() {
         `;
     } else {
         // Dla pozostałych standardowe przyciski
-        const isActive = p.active === true;
-        actionBtn = `
-    <button class="btn-warn" onclick="togglePartner('${p.id}', ${!isActive})">
-        ${isActive ? "Zawieś" : "Odblokuj"}
-    </button>
+const isActive = p.active === true;
 
-    <button class="btn-primary" 
-        style="margin-left:6px;"
-        onclick="generateAgreementForPartner('${p.id}')">
-        Umowa PDF
-    </button>
+if ((p.provider_type ?? "local") === "api") {
 
-    <button class="btn-danger" style="margin-left:6px;" onclick="deletePartner('${p.id}')">
-        Usuń
-    </button>
-`;
+    actionBtn = `
+        <button class="btn-primary"
+            onclick="openApiConfiguration('${p.id}')">
+            API
+        </button>
+
+        <button class="btn-primary"
+            style="margin-left:6px;"
+            onclick="generateAgreementForPartner('${p.id}')">
+            Umowa PDF
+        </button>
+
+        <button class="btn-danger"
+            style="margin-left:6px;"
+            onclick="deletePartner('${p.id}')">
+            Usuń
+        </button>
+    `;
+
+} else {
+
+    actionBtn = `
+        <button class="btn-warn"
+            onclick="togglePartner('${p.id}', ${!isActive})">
+            ${isActive ? "Zawieś" : "Odblokuj"}
+        </button>
+
+        <button class="btn-primary"
+            style="margin-left:6px;"
+            onclick="generateAgreementForPartner('${p.id}')">
+            Umowa PDF
+        </button>
+
+        <button class="btn-danger"
+            style="margin-left:6px;"
+            onclick="deletePartner('${p.id}')">
+            Usuń
+        </button>
+    `;
+
+}
     }
 let providerBadge = "";
 
@@ -1852,7 +1881,11 @@ window.togglePartnerType = function () {
     }
 
 };
+window.openApiConfiguration = function(partnerId) {
 
+    alert("Konfiguracja API partnera:\n\n" + partnerId);
+
+};
 // --- SUPER-KANAŁ REALTIME (JEDEN ZAMIAST TRZECH) ---
 db.channel('admin-general')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
