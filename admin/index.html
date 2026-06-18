@@ -1898,7 +1898,8 @@ console.log("Error:", error);
     }
     console.log(data);
 
-    
+    document.getElementById("api-company-name").value =
+    data.company_name || "";
 
     document.getElementById("api-provider").value =
     data.api_provider || "";
