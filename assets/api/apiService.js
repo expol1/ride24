@@ -1,6 +1,7 @@
 import { carClasses } from "../mock/carClasses.js";
 import { bookings as defaultBookings } from "../mock/bookings.js";
 import { calculatePricing } from "../modules/pricing.js";
+import { apiProvider } from "../providers/apiProvider.js";
 
 // Funkcje pomocnicze do synchronizacji bazy między zakładkami (RAM -> LocalStorage)
 function getBookings() {
