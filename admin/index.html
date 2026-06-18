@@ -1731,6 +1731,7 @@ window.processAddPartner = async function() {
     window.location.href = "../index.html";
     return;
 }
+    
 
         // --- RĘCZNY FETCH: WYMUSZAMY OBA NAGŁÓWKI (Kolejność dla Kong Gateway) ---
         const controller = new AbortController();
@@ -1784,6 +1785,20 @@ document.getElementById("new-p-rep-surname").value = "";
         btn.style.opacity = "1";
         btn.style.pointerEvents = "auto";
     }
+};
+
+window.togglePartnerType = function () {
+
+    const type = document.getElementById("new-p-provider-type").value;
+
+    const apiBox = document.getElementById("api-config-box");
+
+    if (type === "api") {
+        apiBox.style.display = "block";
+    } else {
+        apiBox.style.display = "none";
+    }
+
 };
 
 // --- SUPER-KANAŁ REALTIME (JEDEN ZAMIAST TRZECH) ---
@@ -3411,7 +3426,8 @@ async function connectX() {
     </label>
 
     <select id="new-p-provider-type"
-            style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+        onchange="togglePartnerType()"
+        style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
 
         <option value="local" selected>
             Partner lokalny
@@ -3422,6 +3438,54 @@ async function connectX() {
         </option>
 
     </select>
+</div>
+<div id="api-config-box"
+     style="display:none; grid-column:span 2; border:1px solid #E2E8F0; border-radius:12px; padding:20px; background:#F8FAFC;">
+
+    <h3 style="margin-bottom:20px;">
+        Konfiguracja Partnera API
+    </h3>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+        <div class="form-group">
+            <label>Provider</label>
+            <select id="new-p-api-provider">
+                <option value="">Wybierz...</option>
+                <option value="custom">Custom API</option>
+                <option value="carwiz">Carwiz</option>
+                <option value="avis">Avis</option>
+                <option value="hertz">Hertz</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>API URL</label>
+            <input id="new-p-api-url" type="text">
+        </div>
+
+        <div class="form-group">
+            <label>API KEY</label>
+            <input id="new-p-api-key" type="text">
+        </div>
+
+        <div class="form-group">
+            <label>SECRET</label>
+            <input id="new-p-api-secret" type="password">
+        </div>
+
+        <div class="form-group">
+            <label>Username</label>
+            <input id="new-p-api-user" type="text">
+        </div>
+
+        <div class="form-group">
+            <label>Password</label>
+            <input id="new-p-api-password" type="password">
+        </div>
+
+    </div>
+
 </div>
 </div>
 
