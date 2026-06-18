@@ -3720,13 +3720,25 @@ async function connectX() {
             border-top:1px solid #E2E8F0;
             text-align:right;">
 
-            <button
-                onclick="closeApiPartnerModal()"
-                class="btn-danger">
+            <div style="display:flex;justify-content:flex-end;gap:10px;padding:20px;border-top:1px solid #E5E7EB;">
 
-                Zamknij
+<button
+onclick="closeApiPartnerModal()"
+class="btn-danger">
 
-            </button>
+Zamknij
+
+</button>
+
+<button
+onclick="saveApiConfiguration()"
+class="btn-primary">
+
+💾 Zapisz konfigurację
+
+</button>
+
+</div>
 
         </div>
 
