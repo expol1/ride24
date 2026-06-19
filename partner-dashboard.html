@@ -2053,781 +2053,197 @@ Dodaj opinię o Partnerze
         </div>
 
     </div>
-    <div class="guide-overlay" id="guideModal">
-        <div class="guide-box">
-            <div class="guide-header">
-                <h2 data-pl="📚 Instrukcja obsługi panelu" data-en="📚 Partner Panel Guide">📚 Instrukcja obsługi panelu</h2>
-                <div class="guide-close" onclick="closeGuide()">&times;</div>
+   <div class="guide-overlay" id="guideModal">
+    <div class="guide-box">
+        <div class="guide-header">
+            <h2 data-pl="📚 Instrukcja obsługi panelu" data-en="📚 Partner Panel Guide">📚 Partner Panel Guide</h2>
+            <div class="guide-close" onclick="closeGuide()">&times;</div>
+        </div>
+        
+        <div class="guide-body">
+            <div class="guide-sidebar">
+                <div class="guide-tab active" onclick="switchGuideTab('g-start')" id="tab-g-start">
+                    🚀 <span data-pl="Start / Witamy" data-en="Start / Welcome">Start / Welcome</span>
+                </div>
+                <div class="guide-tab" onclick="switchGuideTab('g-settings')" id="tab-g-settings">
+                    ⚙️ <span data-pl="Ustawienia i Profil" data-en="Settings & Profile">Settings & Profile</span>
+                </div>
+                <div class="guide-tab" onclick="switchGuideTab('g-locations')" id="tab-g-locations">
+                    🌍 <span data-pl="Lokalizacje" data-en="Locations">Locations</span>
+                </div>
+                <div class="guide-tab" onclick="switchGuideTab('g-fleet')" id="tab-g-fleet">
+                    🚗 <span data-pl="Flota" data-en="Fleet">Fleet</span>
+                </div>
+                <div class="guide-tab" onclick="switchGuideTab('g-bookings')" id="tab-g-bookings">
+                    📅 <span data-pl="Rezerwacje" data-en="Bookings">Bookings</span>
+                </div>
             </div>
-            
-            <div class="guide-body">
-                <div class="guide-sidebar">
-                    <div class="guide-tab active" onclick="switchGuideTab('g-start')" id="tab-g-start">
-                        🚀 <span data-pl="Start / Profil" data-en="Start / Profile">Start / Profil</span>
+
+            <div class="guide-content-area">
+                
+                <!-- START / WELCOME SECTION -->
+                <div id="g-start" class="guide-section active">
+                    <div class="guide-card">
+                        <h3 data-pl="👋 Witamy w Ride24" data-en="👋 Welcome to Ride24">👋 Welcome to Ride24</h3>
+                        <p data-pl="Gratulujemy dołączenia do sieci partnerów Ride24! Panel automatycznie dostosowuje się do typu Twojego konta." data-en="Congratulations on joining the Ride24 partner network! The panel automatically adapts to your account type."></p>
                     </div>
-                    <div class="guide-tab" onclick="switchGuideTab('g-locations')" id="tab-g-locations">
-                        🌍 <span data-pl="Lokalizacje" data-en="Locations">Lokalizacje</span>
+
+                    <!-- DASHBOARD OVERVIEW -->
+                    <div class="guide-card">
+                        <h3 data-pl="📊 Przegląd Dashboardu" data-en="📊 Dashboard Overview">📊 Dashboard Overview</h3>
+                        <p data-pl="Codziennie zaczynasz pracę od Dashboardu. Oto co oznaczają poszczególne karty:" data-en="You start your daily work on the Dashboard. Here is what each card means:"></p>
+                        <ul>
+                            <li><strong data-pl="Pending Requests" data-en="Pending Requests">Pending Requests</strong> – <span data-pl="Nowe zapytania wymagające Twojej reakcji." data-en="New booking requests requiring your action."></span></li>
+                            <li><strong data-pl="Pending Confirmation" data-en="Pending Confirmation">Pending Confirmation</strong> – <span data-pl="Klient kończy proces płatności." data-en="The client is completing the payment process."></span></li>
+                            <li><strong data-pl="Confirmed Bookings" data-en="Confirmed Bookings">Confirmed Bookings</strong> – <span data-pl="Gotowe i opłacone rezerwacje." data-en="Ready and paid bookings."></span></li>
+                            <li><strong data-pl="Your Revenue" data-en="Your Revenue">Your Revenue</strong> – <span data-pl="Suma przychodów z potwierdzonych rezerwacji." data-en="Total revenue from confirmed bookings."></span></li>
+                        </ul>
                     </div>
-                    <div class="guide-tab" onclick="switchGuideTab('g-fleet')" id="tab-g-fleet">
-                        🚗 <span data-pl="Flota aut" data-en="Fleet">Flota aut</span>
+
+                    <div class="guide-card guide-local" style="border-left:4px solid #2563EB; background:#EFF6FF;">
+                        <h4 data-pl="🚗 PART I – Partner LOCAL" data-en="🚗 PART I – LOCAL PARTNER">🚗 PART I – LOCAL PARTNER</h4>
+                        <p data-pl="Zarządzasz całą swoją flotą bezpośrednio w panelu partnerskim Ride24. Twoje obowiązki to:" data-en="You manage your entire rental fleet directly inside the Ride24 Partner Panel. Your responsibilities include:"></p>
+                        <ul>
+                            <li data-pl="Uzupełnienie profilu firmy i dokumentów" data-en="Completing your company profile & documents"></li>
+                            <li data-pl="Tworzenie punktów odbioru i zarządzanie flotą/grupami aut" data-en="Creating pickup locations & managing fleet / car groups"></li>
+                            <li data-pl="Ustawianie cen oraz odpowiadanie na rezerwacje" data-en="Setting prices & responding to bookings"></li>
+                        </ul>
                     </div>
-                    <div class="guide-tab" onclick="switchGuideTab('g-bookings')" id="tab-g-bookings">
-                        📅 <span data-pl="Rezerwacje" data-en="Bookings">Rezerwacje</span>
-                    </div>
-                    <div class="guide-tab" onclick="switchGuideTab('g-settings')" id="tab-g-settings">
-                        ⚙️ <span data-pl="Ustawienia" data-en="Settings">Ustawienia</span>
+
+                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A; background:#F0FDF4;">
+                        <h4 data-pl="🔗 PART II – Partner API" data-en="🔗 PART II – API PARTNER">🔗 PART II – API PARTNER</h4>
+                        <p data-pl="Ride24 automatycznie synchronizuje się z Twoim systemem rezerwacyjnym. Nie zarządzasz pojazdami ani lokalizacjami ręcznie." data-en="Ride24 automatically synchronizes your rental system. You do not manually manage vehicles or locations."></p>
+                        <ul>
+                            <li data-pl="Twoim głównym zadaniem jest utrzymanie prawidłowego połączenia API" data-en="Your responsibility is maintaining a correct API connection"></li>
+                            <li data-pl="Wszystkie dane pobierane są bezpośrednio z Twojego oprogramowania" data-en="All data comes directly from your software"></li>
+                        </ul>
                     </div>
                 </div>
 
-                <div class="guide-content-area">
-                    
-                    <div id="g-start" class="guide-section active">
-
-<div class="guide-card">
-
-<h3 data-pl="🚀 Pierwsze kroki" data-en="🚀 First steps">
-🚀 First steps
-</h3>
-
-<p
-data-pl="Panel Ride24 automatycznie dostosowuje się do typu Twojego konta."
-data-en="The Ride24 panel automatically adapts to your account type.">
-</p>
-
-<div style="margin-top:20px;padding:18px;background:#EFF6FF;border-left:4px solid #2563EB;border-radius:10px;">
-
-<h4
-data-pl="🚗 Partner LOCAL"
-data-en="🚗 LOCAL Partner">
-🚗 LOCAL Partner
-</h4>
-
-<ul>
-
-<li
-data-pl="Samodzielnie dodajesz samochody."
-data-en="You add vehicles manually.">
-</li>
-
-<li
-data-pl="Samodzielnie dodajesz lokalizacje."
-data-en="You manage pickup locations yourself.">
-</li>
-
-<li
-data-pl="Samodzielnie ustawiasz ceny i sezony."
-data-en="You manage prices and seasonal rates yourself.">
-</li>
-
-<li
-data-pl="Ride24 automatycznie wylicza cenę partnerską."
-data-en="Ride24 automatically calculates your partner rate.">
-</li>
-
-</ul>
-
-</div>
-
-<div style="margin-top:20px;padding:18px;background:#F0FDF4;border-left:4px solid #16A34A;border-radius:10px;">
-
-<h4
-data-pl="🔗 Partner API"
-data-en="🔗 API Partner">
-🔗 API Partner
-</h4>
-
-<ul>
-
-<li
-data-pl="Samochody synchronizowane są z Twojego systemu."
-data-en="Vehicles are synchronized from your system.">
-</li>
-
-<li
-data-pl="Ceny pobierane są automatycznie."
-data-en="Prices are downloaded automatically.">
-</li>
-
-<li
-data-pl="Dostępność aktualizowana jest przez API."
-data-en="Availability is updated through the API.">
-</li>
-
-<li
-data-pl="W panelu konfigurujesz wyłącznie połączenie API."
-data-en="You only configure the API connection in the panel.">
-</li>
-
-</ul>
-
-</div>
-
-</div>
-
-<div class="guide-card">
-
-<h3
-data-pl="📊 Dashboard"
-data-en="📊 Dashboard">
-Dashboard
-</h3>
-
-<ul>
-
-<li>
-<strong data-pl="Pending Requests" data-en="Pending Requests">
-Pending Requests
-</strong>
-
-<span
-data-pl="Nowe zapytania wymagające Twojej reakcji."
-data-en="New booking requests requiring your action.">
-</span>
-
-</li>
-
-<li>
-
-<strong
-data-pl="Pending Confirmation"
-data-en="Pending Confirmation">
-
-Pending Confirmation
-
-</strong>
-
-<span
-data-pl="Klient musi jeszcze potwierdzić rezerwację."
-data-en="The client still needs to confirm the booking.">
-</span>
-
-</li>
-
-<li>
-
-<strong
-data-pl="Confirmed Bookings"
-data-en="Confirmed Bookings">
-
-Confirmed Bookings
-
-</strong>
-
-<span
-data-pl="Gotowe do realizacji."
-data-en="Ready for pickup.">
-</span>
-
-</li>
-
-<li>
-
-<strong
-data-pl="Your Revenue"
-data-en="Your Revenue">
-
-Your Revenue
-
-</strong>
-
-<span
-data-pl="Łączna wartość potwierdzonych rezerwacji."
-data-en="Total value of confirmed bookings.">
-</span>
-
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card">
-
-<h3
-data-pl="💡 Ważna informacja"
-data-en="💡 Important">
-
-💡 Important
-
-</h3>
-
-<p
-data-pl="Partner LOCAL zarządza flotą i lokalizacjami ręcznie. Partner API zarządza jedynie konfiguracją integracji — dane pojazdów pobierane są automatycznie."
-data-en="LOCAL partners manage vehicles manually. API partners only manage the API integration while vehicles are synchronized automatically.">
-</p>
-
-</div>
-
-</div>
-
-                    <div id="g-locations" class="guide-section">
-
-<div class="guide-card">
-
-<h3
-data-pl="🌍 Partner LOCAL"
-data-en="🌍 LOCAL Partner">
-🌍 LOCAL Partner
-</h3>
-
-<p
-data-pl="Partner LOCAL sam zarządza wszystkimi punktami odbioru i zwrotu pojazdów."
-data-en="LOCAL partners manage all pickup and return locations manually.">
-</p>
-
-<ul>
-
-<li
-data-pl="Dodawaj wszystkie lokalizacje w języku angielskim."
-data-en="Always add locations in English.">
-</li>
-
-<li
-data-pl="Możesz dodać lotnisko, biuro, hotel lub dowolny punkt odbioru."
-data-en="You can add airports, offices, hotels or custom pickup points.">
-</li>
-
-<li
-data-pl="Możesz ustawić dodatkową opłatę za odbiór."
-data-en="You can define an additional pickup fee.">
-</li>
-
-<li
-data-pl="Możesz wymagać kontaktu przed odbiorem."
-data-en="You can require customer contact before pickup.">
-</li>
-
-<li
-data-pl="Każdą lokalizację możesz aktywować lub ukryć."
-data-en="Every location can be enabled or hidden.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:4px solid #16A34A;">
-
-<h3
-data-pl="🔗 Partner API"
-data-en="🔗 API Partner">
-🔗 API Partner
-</h3>
-
-<p
-data-pl="Partner API nie dodaje lokalizacji ręcznie."
-data-en="API partners do not add locations manually.">
-</p>
-
-<ul>
-
-<li
-data-pl="Lokalizacje pobierane są automatycznie z systemu Partnera."
-data-en="Locations are synchronized from the partner system.">
-</li>
-
-<li
-data-pl="Ride24 wyświetla tylko lokalizacje zwrócone przez API."
-data-en="Ride24 displays only locations returned by the API.">
-</li>
-
-<li
-data-pl="Po każdej synchronizacji lista może zostać automatycznie zaktualizowana."
-data-en="The list can be updated automatically after synchronization.">
-</li>
-
-<li
-data-pl="Nie należy edytować lokalizacji ręcznie."
-data-en="Locations should not be edited manually.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:4px solid #2563EB;">
-
-<h3
-data-pl="💡 Dobra praktyka"
-data-en="💡 Best practice">
-💡 Best practice
-</h3>
-
-<p
-data-pl="Nazwy krajów, regionów i miast zawsze zapisuj po angielsku. Dzięki temu Twoja oferta będzie poprawnie wyszukiwana przez klientów z całego świata."
-data-en="Always use English names for countries, regions and cities so your offers can be found by customers worldwide.">
-</p>
-
-</div>
-
-</div>
-
-                 <div id="g-fleet" class="guide-section">
-
-<div class="guide-card">
-
-<h3
-data-pl="🚗 Partner LOCAL"
-data-en="🚗 LOCAL Partner">
-🚗 LOCAL Partner
-</h3>
-
-<p
-data-pl="Partner LOCAL sam zarządza całą flotą pojazdów."
-data-en="LOCAL partners manage their entire vehicle fleet manually.">
-</p>
-
-<ul>
-
-<li
-data-pl="Dodawaj rzeczywiste zdjęcia pojazdów."
-data-en="Upload real vehicle photos.">
-</li>
-
-<li
-data-pl="Uzupełnij model, klasę, skrzynię biegów, paliwo oraz liczbę miejsc."
-data-en="Complete model, class, transmission, fuel type and seats.">
-</li>
-
-<li
-data-pl="Podaj cenę publiczną za dobę. Ride24 automatycznie obliczy Twoją stawkę partnerską."
-data-en="Enter the public daily price. Ride24 automatically calculates your partner rate.">
-</li>
-
-<li
-data-pl="Możesz ustawić sezonowe ceny dla wybranych miesięcy."
-data-en="You can configure seasonal pricing for selected months.">
-</li>
-
-<li
-data-pl="Możesz określić limit kilometrów, kaucję oraz opcję kierowcy."
-data-en="You can define mileage limits, deposits and chauffeur options.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:4px solid #16A34A;">
-
-<h3
-data-pl="🔗 Partner API"
-data-en="🔗 API Partner">
-
-🔗 API Partner
-
-</h3>
-
-<p
-data-pl="Partner API nie dodaje samochodów ręcznie."
-data-en="API partners do not add vehicles manually.">
-</p>
-
-<ul>
-
-<li
-data-pl="Pojazdy pobierane są z Twojego systemu."
-data-en="Vehicles are synchronized from your system.">
-</li>
-
-<li
-data-pl="Ceny pobierane są automatycznie."
-data-en="Prices are synchronized automatically.">
-</li>
-
-<li
-data-pl="Dostępność aktualizowana jest przez API."
-data-en="Availability is updated through the API.">
-</li>
-
-<li
-data-pl="Ride24 wyświetla wyłącznie dane zwrócone przez API."
-data-en="Ride24 only displays information received from the API.">
-</li>
-
-<li
-data-pl="Nie należy ręcznie tworzyć ani edytować pojazdów."
-data-en="Vehicles should not be created or edited manually.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:4px solid #F59E0B;">
-
-<h3
-data-pl="⭐ Dobra praktyka"
-data-en="⭐ Best practice">
-
-⭐ Best practice
-
-</h3>
-
-<p
-data-pl="Dbaj o aktualne zdjęcia, ceny i dostępność. Aktualne dane zwiększają liczbę rezerwacji oraz poprawiają pozycję ofert w wyszukiwarce Ride24."
-data-en="Keep photos, prices and availability up to date. Accurate information improves booking conversion and search ranking in Ride24.">
-</p>
-
-</div>
-
-</div>
-
-                    <div id="g-bookings" class="guide-section">
-
-<div class="guide-card">
-
-<h3
-data-pl="📅 Cykl życia rezerwacji"
-data-en="📅 Booking lifecycle">
-
-📅 Booking lifecycle
-
-</h3>
-
-<p
-data-pl="Każda rezerwacja przechodzi przez poniższe etapy."
-data-en="Every booking goes through the following stages.">
-</p>
-
-</div>
-
-<div class="guide-card"
-style="border-left:5px solid #F59E0B;">
-
-<h3 style="color:#D97706;">
-🟡 Pending
-</h3>
-
-<p
-data-pl="Klient wysłał nowe zapytanie."
-data-en="The customer submitted a new booking request.">
-</p>
-
-<ul>
-
-<li
-data-pl="Masz 24 godziny na odpowiedź."
-data-en="You have 24 hours to respond.">
-</li>
-
-<li
-data-pl="Możesz zaakceptować lub odrzucić rezerwację."
-data-en="You can accept or reject the booking.">
-</li>
-
-<li
-data-pl="Brak odpowiedzi spowoduje automatyczne wygaśnięcie."
-data-en="No response will automatically expire the booking.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:5px solid #2563EB;">
-
-<h3 style="color:#2563EB;">
-🔵 Awaiting Payment
-</h3>
-
-<p
-data-pl="Partner zaakceptował rezerwację."
-data-en="The booking has been accepted by the partner.">
-</p>
-
-<ul>
-
-<li
-data-pl="Klient oczekuje na dokonanie płatności."
-data-en="The customer is completing the payment.">
-</li>
-
-<li
-data-pl="Na tym etapie nic więcej nie musisz robić."
-data-en="No further action is required at this stage.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:5px solid #16A34A;">
-
-<h3 style="color:#16A34A;">
-🟢 Paid
-</h3>
-
-<p
-data-pl="Rezerwacja została opłacona."
-data-en="The booking has been paid.">
-</p>
-
-<ul>
-
-<li
-data-pl="Otrzymujesz dane kontaktowe klienta."
-data-en="Customer contact details become available.">
-</li>
-
-<li
-data-pl="Skontaktuj się z klientem i przygotuj pojazd."
-data-en="Contact the customer and prepare the vehicle.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:5px solid #DC2626;">
-
-<h3 style="color:#DC2626;">
-🔴 Cancelled
-</h3>
-
-<p
-data-pl="Rezerwacja została anulowana."
-data-en="The booking has been cancelled.">
-</p>
-
-<ul>
-
-<li
-data-pl="Nie wykonuj już żadnych działań."
-data-en="No further action is required.">
-</li>
-
-<li
-data-pl="Samochód ponownie staje się dostępny."
-data-en="The vehicle becomes available again.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:5px solid #6B7280;">
-
-<h3 style="color:#6B7280;">
-⏰ Expired
-</h3>
-
-<p
-data-pl="Nie odpowiedziano w wymaganym czasie."
-data-en="No response was provided within the required time.">
-</p>
-
-<ul>
-
-<li
-data-pl="Zapytanie zostało automatycznie zamknięte."
-data-en="The request has been automatically closed.">
-</li>
-
-<li
-data-pl="Klient może złożyć nowe zapytanie."
-data-en="The customer may submit a new booking request.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:5px solid #9333EA;">
-
-<h3 style="color:#9333EA;">
-💡 Ride24
-</h3>
-
-<p
-data-pl="Im szybciej odpowiadasz na zapytania, tym wyższą pozycję mogą osiągać Twoje oferty w wynikach wyszukiwania Ride24."
-data-en="Faster response times may improve your ranking in Ride24 search results.">
-</p>
-
-</div>
-
-</div>
-
-                   <div id="g-settings" class="guide-section">
-
-<div class="guide-card">
-
-<h3
-data-pl="⚙️ Zarządzanie profilem"
-data-en="⚙️ Profile Management">
-
-⚙️ Profile Management
-
-</h3>
-
-<p
-data-pl="W tej sekcji zarządzasz swoim kontem partnera."
-data-en="This section allows you to manage your partner account.">
-</p>
-
-</div>
-
-<div class="guide-card">
-
-<h3
-data-pl="🚗 Partner LOCAL"
-data-en="🚗 LOCAL Partner">
-
-🚗 LOCAL Partner
-
-</h3>
-
-<ul>
-
-<li
-data-pl="Aktualizuj dane firmy oraz dane kontaktowe."
-data-en="Keep your company and contact details up to date.">
-</li>
-
-<li
-data-pl="Dodawaj aktualne Warunki Wynajmu oraz Regulamin."
-data-en="Upload your latest Rental Terms and Rental Policy.">
-</li>
-
-<li
-data-pl="Możesz zmienić avatar swojej firmy."
-data-en="You can change your company avatar.">
-</li>
-
-<li
-data-pl="Widoczność profilu możesz włączyć lub wyłączyć w każdej chwili."
-data-en="Profile visibility can be enabled or disabled at any time.">
-</li>
-
-<li
-data-pl="Zmiana widoczności nie usuwa Twoich pojazdów."
-data-en="Changing visibility does not remove your vehicles.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:4px solid #16A34A;">
-
-<h3
-data-pl="🔗 Partner API"
-data-en="🔗 API Partner">
-
-🔗 API Partner
-
-</h3>
-
-<ul>
-
-<li
-data-pl="Skonfiguruj dostawcę API."
-data-en="Configure your API provider.">
-</li>
-
-<li
-data-pl="Wprowadź poprawny adres API."
-data-en="Enter the correct API URL.">
-</li>
-
-<li
-data-pl="Uzupełnij login oraz hasło."
-data-en="Provide your username and password.">
-</li>
-
-<li
-data-pl="Jeżeli dostawca wymaga kluczy API, wpisz API Key oraz API Secret."
-data-en="If required, enter your API Key and API Secret.">
-</li>
-
-<li
-data-pl="Po zapisaniu Ride24 wykorzysta te dane podczas komunikacji z Twoim systemem."
-data-en="Ride24 will use these credentials to communicate with your system.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card">
-
-<h3
-data-pl="📄 Dokumenty"
-data-en="📄 Documents">
-
-📄 Documents
-
-</h3>
-
-<ul>
-
-<li
-data-pl="Warunki Wynajmu są prezentowane klientowi podczas rezerwacji."
-data-en="Rental Terms are displayed during booking.">
-</li>
-
-<li
-data-pl="Regulamin Wypożyczalni również musi być zawsze aktualny."
-data-en="Rental Policy should always be up to date.">
-</li>
-
-<li
-data-pl="Oba dokumenty są obowiązkowe."
-data-en="Both documents are mandatory.">
-</li>
-
-</ul>
-
-</div>
-
-<div class="guide-card"
-style="border-left:4px solid #2563EB;">
-
-<h3
-data-pl="💡 Dobra praktyka"
-data-en="💡 Best Practice">
-
-💡 Best Practice
-
-</h3>
-
-<p
-data-pl="Regularnie sprawdzaj poprawność danych kontaktowych oraz dokumentów. Aktualne informacje zwiększają zaufanie klientów i przyspieszają realizację rezerwacji."
-data-en="Regularly verify your contact details and uploaded documents. Accurate information increases customer trust and speeds up the booking process.">
-</p>
-
-</div>
-
-<div class="guide-card"
-style="border-left:4px solid #DC2626;background:#FEF2F2;">
-
-<h3
-style="color:#DC2626;"
-data-pl="⚠️ Ważne"
-data-en="⚠️ Important">
-
-⚠️ Important
-
-</h3>
-
-<p
-data-pl="Nie usuwaj dokumentów ani nie zmieniaj konfiguracji API bez konsultacji ze swoim dostawcą systemu. Nieprawidłowa konfiguracja może uniemożliwić synchronizację danych."
-data-en="Do not remove documents or modify your API configuration without consulting your software provider. Incorrect settings may interrupt synchronization.">
-</p>
-
-</div>
-
-</div>
+                <!-- SETTINGS & PROFILE SECTION -->
+                <div id="g-settings" class="guide-section">
+                    <div class="guide-card">
+                        <h3 data-pl="✅ STEP 1 – Profil Firmy" data-en="✅ STEP 1 – Company Profile">✅ STEP 1 – Company Profile</h3>
+                        <p data-pl="Przejdź do: Ustawienia. Wypełnij wymagane pola:" data-en="Open: Settings. Complete all required fields:"></p>
+                        <ul>
+                            <li><strong data-pl="Nazwa firmy:" data-en="Company name:">Company name:</strong> <span data-pl="Oficjalna nazwa wyświetlana klientom." data-en="Legal name displayed to customers."></span></li>
+                            <li><strong data-pl="Adres i Kraj:" data-en="Address & Country:">Address & Country:</strong> <span data-pl="Dane rejestracyjne do umowy partnerskiej." data-en="Business address used for the Partner Agreement."></span></li>
+                            <li><strong data-pl="Region / Wyspa:" data-en="Region / Island:">Region / Island:</strong> <span data-pl="Obszar działalności (np. Madera, Majorka, Kreta)." data-en="Operating region (e.g. Madeira, Mallorca, Crete)."></span></li>
+                            <li><strong data-pl="Główna lokalizacja:" data-en="Main Pickup Location:">Main Pickup Location:</strong> <span data-pl="Główny punkt (np. Lotnisko Madera, Dostawa do hotelu)." data-en="Primary pickup point (e.g. Madeira Airport, Hotel Delivery)."></span></li>
+                            <li><strong data-pl="Kontakt (E-mail / Tel / Tel awaryjny):" data-en="Contact (Email / Phone / Emergency):">Contact (Email / Phone / Emergency):</strong> <span data-pl="Dane do powiadomień oraz dla klientów." data-en="Used for notifications and customer assistance."></span></li>
+                            <li><strong data-pl="Wiek kierowcy i Awatar:" data-en="Driver Age & Avatar:">Driver Age & Avatar:</strong> <span data-pl="Minimalny wiek oraz logo firmy (PNG/JPG, kwadratowe)." data-en="Minimum accepted driver age and company logo (PNG/JPG, square)."></span></li>
+                        </ul>
+                    </div>
+
+                    <div class="guide-card">
+                        <h3 data-pl="✅ STEP 2 – Wymagane Dokumenty (LOCAL & API)" data-en="✅ STEP 2 – Required Documents (LOCAL & API)">✅ STEP 2 – Required Documents (LOCAL & API)</h3>
+                        <p data-pl="Każdy partner musi przesłać dwa dokumenty PDF, które klient akceptuje przed rezerwacją:" data-en="Every partner must upload two PDF documents. Customers must accept them before completing a reservation:"></p>
+                        <ul>
+                            <li><strong data-pl="Warunki Wynajmu (Rental Terms):" data-en="Rental Terms:">Rental Terms:</strong> <span data-pl="Kaucja, polityka paliwowa, opóźnienia, ubezpieczenia." data-en="Deposit, fuel policy, late return, damage, insurance."></span></li>
+                            <li><strong data-pl="Regulamin Wypożyczalni (Rental Policy):" data-en="Rental Policy:">Rental Policy:</strong> <span data-pl="Regulamin firmy, procedury odbioru i zwrotu." data-en="Company regulations, pickup/return procedures."></span></li>
+                        </ul>
+                        <p style="color:#DC2626; font-weight:bold;" data-pl="⚠️ Bez tych dokumentów Twój profil nie może zostać zatwierdzony." data-en="⚠️ Without these documents your profile cannot be completed."></p>
+                    </div>
+
+                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A;">
+                        <h3 data-pl="✅ STEP 3 – Integracja API (Tylko API)" data-en="✅ STEP 3 – API Integration (API Only)">✅ STEP 3 – API Integration (API Only)</h3>
+                        <p data-pl="Przejdź do: Ustawienia -> Integracja API i uzupełnij dane od swojego dostawcy:" data-en="Open: Settings -> API Integration and complete credentials from your software provider:"></p>
+                        <ul>
+                            <li><strong data-pl="Dostawca API:" data-en="API Provider:">API Provider:</strong> <span data-pl="Wybierz system (np. Custom, Carwiz, AutoRent, RentalCars)." data-en="Choose your provider (e.g. Custom, Carwiz, AutoRent, RentalCars)."></span></li>
+                            <li><strong data-pl="Adres URL, Login i Hasło API" data-en="API URL, Username & Password">API URL, Username & Password</strong></li>
+                            <li><strong data-pl="API Key / API Secret" data-en="API Key / API Secret">API Key / API Secret</strong> <span data-pl="(Jeśli są wymagane)" data-en="(If required by provider)"></span></li>
+                        </ul>
+                        <blockquote data-pl="⚠️ Nie zmieniaj danych API bez konsultacji z dostawcą — błędna konfiguracja przerwie synchronizację!" data-en="⚠️ Do not change API credentials without consulting your provider — incorrect settings will interrupt synchronization!"></blockquote>
+                    </div>
+                </div>
+
+                <!-- LOCATIONS SECTION -->
+                <div id="g-locations" class="guide-section">
+                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A;">
+                        <h3 data-pl="✅ STEP 3 – Tworzenie Lokalizacji (LOCAL)" data-en="✅ STEP 3 – Create Locations (LOCAL)">✅ STEP 3 – Create Locations (LOCAL)</h3>
+                        <p data-pl="Przejdź do: Lokalizacje -> Dodaj lokalizację. Dla każdego punktu podaj:" data-en="Open: Locations -> Add Location. For every location provide:"></p>
+                        <ul>
+                            <li data-pl="Nazwę lokalizacji (Airport, Hotel, Office), miasto oraz dokładny adres" data-en="Location name (Airport, Hotel, Office), city and address"></li>
+                            <li data-pl="Instrukcje odbioru dla klienta" data-en="Clear pickup instructions"></li>
+                            <li data-pl="Dodatkową opłatę za odbiór (jeśli występuje) oraz godziny otwarcia" data-en="Additional fee (if any) and opening hours"></li>
+                        </ul>
+                        <p data-pl="💡 Dobra praktyka: Zapisuj nazwy krajów, miast i regionów po angielsku, aby ułatwić wyszukiwanie klientom z całego świata." data-en="💡 Best practice: Always use English names for countries, regions and cities to ensure global customers can find them."></p>
+                    </div>
+
+                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A;">
+                        <h3 data-pl="ℹ️ Lokalizacje API" data-en="ℹ️ API Locations">ℹ️ API Locations</h3>
+                        <p data-pl="Partner API nie dodaje lokalizacji ręcznie. Zostaną one pobrane podczas automatycznej synchronizacji opisanej w następnym kroku." data-en="API partners do not add locations manually. They will be fetched during the automatic synchronization described in the next step."></p>
+                    </div>
+                </div>
+
+                <!-- FLEET SECTION -->
+                <div id="g-fleet" class="guide-section">
+                    <div class="guide-card guide-local" style="border-left:4px solid #2563EB;">
+                        <h3 data-pl="✅ STEP 4 – Zarządzanie Flotą (LOCAL)" data-en="✅ STEP 4 – Vehicle Fleet (LOCAL)">✅ STEP 4 – Vehicle Fleet (LOCAL)</h3>
+                        <p data-pl="Przejdź do: Flota aut -> Dodaj pojazd. Uzupełnij dokładnie wszystkie pola:" data-en="Open: Fleet -> Add Vehicle. Complete every field carefully:"></p>
+                        <ul>
+                            <li data-pl="Model, klasa pojazdu, skrzynia biegów, paliwo, miejsca, drzwi, pojemność bagażnika" data-en="Vehicle model, class, transmission, fuel type, seats, doors, baggage capacity"></li>
+                            <li data-pl="Limit kilometrów, kaucja oraz opcja kierowcy" data-en="Mileage limit, deposit and chauffeur options"></li>
+                            <li data-pl="Publiczna cena za dobę oraz ceny sezonowe dla wybranych miesięcy" data-en="Daily public price and seasonal pricing for selected months"></li>
+                            <li data-pl="Dodawaj rzeczywiste zdjęcia aut wysokiej jakości" data-en="Upload high-quality, real vehicle photos whenever possible"></li>
+                        </ul>
+                        <blockquote data-pl="ℹ️ Ride24 automatycznie wylicza cenę partnerską na podstawie Twojej ustalonej zniżki." data-en="ℹ️ Ride24 automatically calculates your partner rate using your agreed partner discount."></blockquote>
+                    </div>
+
+                    <div class="guide-card" style="border-left:4px solid #16A34A;">
+                        <h3 data-pl="✅ STEP 4 – Synchronizacja Danych (API)" data-en="✅ STEP 4 – Data Synchronization (API)">✅ STEP 4 – Data Synchronization (API)</h3>
+                        <p data-pl="Po aktywacji API, Ride24 automatycznie synchronizuje:" data-en="Once the API connection is active, Ride24 automatically synchronizes:"></p>
+                        <ul>
+                            <li data-pl="Pojazdy (Vehicles)" data-en="Vehicles"></li>
+                            <li data-pl="Klasy pojazdów (Vehicle Classes)" data-en="Vehicle Classes"></li>
+                            <li data-pl="Lokalizacje odbioru (Pickup Locations)" data-en="Pickup Locations"></li>
+                            <li data-pl="Ceny (Prices)" data-en="Prices"></li>
+                            <li data-pl="Dostępność (Availability)" data-en="Availability"></li>
+                            <li data-pl="Restrykcje (Restrictions)" data-en="Restrictions"></li>
+                            <li data-pl="Warunki wynajmu (Rental Conditions - jeśli wspierane)" data-en="Rental Conditions (if supported)"></li>
+                        </ul>
+                        <p data-pl="Nie należy ręcznie tworzyć ani edytować pojazdów. Wszystkie dane pochodzą bezpośrednio z Twojego systemu." data-en="You do not need to manually create or edit vehicles. All data comes directly from your reservation system."></p>
+                    </div>
+                </div>
+
+                <!-- BOOKINGS SECTION -->
+                <div id="g-bookings" class="guide-section">
+                    <div class="guide-card">
+                        <h3 data-pl="✅ STEP 5 – Zarządzanie Rezerwacjami" data-en="✅ STEP 5 – Booking Management">✅ STEP 5 – Booking Management</h3>
+                        <p data-pl="Cykl życia rezerwacji (wspólny dla LOCAL i API):" data-en="Booking Lifecycle (common for LOCAL and API):"></p>
+                    </div>
+
+                    <div class="guide-card" style="border-left:5px solid #F59E0B;">
+                        <h4 style="color:#D97706;">🟡 Pending (Oczekująca)</h4>
+                        <p data-pl="Nowe zapytanie od klienta. Masz 24 godziny na odpowiedź (Zaakceptuj / Odrzuć). Brak reakcji spowoduje automatyczne wygaśnięcie." data-en="New booking request. You have 24 hours to respond (Accept / Reject). No response will automatically expire the booking."></p>
+                    </div>
+
+                    <div class="guide-card" style="border-left:5px solid #2563EB;">
+                        <h4 style="color:#2563EB;">🔵 Awaiting Payment (Oczekiwanie na płatność)</h4>
+                        <p data-pl="Rezerwacja zaakceptowana przez partnera. Klient ma czas na dokonanie płatności. Nie musisz teraz nic robić." data-en="The booking has been accepted. The customer is completing payment. No action is required at this stage."></p>
+                    </div>
+
+                    <div class="guide-card" style="border-left:5px solid #16A34A;">
+                        <h4 style="color:#16A34A;">🟢 Paid (Opłacona / Potwierdzona)</h4>
+                        <p data-pl="Rezerwacja została opłacona. Otrzymujesz pełne dane kontaktowe klienta. Przygotuj pojazd i zrealizuj podstawienie na czas." data-en="The booking has been paid and confirmed. Customer contact details become available. Prepare the vehicle and deliver it on time."></p>
+                    </div>
+
+                    <div class="guide-card" style="border-left:5px solid #DC2626;">
+                        <h4 style="color:#DC2626;">🔴 Cancelled (Anulowana)</h4>
+                        <p data-pl="Rezerwacja została anulowana. Brak dalszych działań. Pojazd automatycznie wraca do puli dostępnych." data-en="The booking has been cancelled. No further action is required. The vehicle becomes available again."></p>
+                    </div>
+
+                    <div class="guide-card" style="border-left:4px solid #9333EA; background:#FAF5FF;">
+                        <h4 data-pl="✅ STEP 6 – Dobre Praktyki" data-en="✅ STEP 6 – Best Practices">✅ STEP 6 – Best Practices</h4>
+                        <p data-pl="Dbaj o aktualność cen, dostępności oraz dokumentów. Szybki czas odpowiedzi na zapytania (Pending) bezpośrednio podnosi pozycję Twoich ofert w wynikach wyszukiwania Ride24!" data-en="Keep prices, availability, and documents up to date. Faster response times to pending requests directly improve your ranking and visibility in Ride24 search results."></p>
+                    </div>
+
+                    <!-- NEED HELP / SUPPORT FINISH CARD -->
+                    <div class="guide-card" style="border-left:4px solid #EF4444; background:#FEF2F2; margin-top:20px;">
+                        <h3 style="color:#B91C1C;" data-pl="🆘 Potrzebujesz pomocy?" data-en="🆘 Need Help?">🆘 Need Help?</h3>
+                        <p data-pl="Jeżeli napotkasz problem z panelem lub integracją API, skontaktuj się z zespołem Ride24." data-en="If you experience any issues with your Partner Panel or API integration, please contact Ride24 Support."></p>
+                    </div>
+                </div>
 
                 </div>
             </div>
@@ -3050,6 +2466,7 @@ console.log("API settings:", partnerData.api_settings);
             await loadFleet();
             await loadLocations();
             updatePartnerInterface();
+            updateGuideForPartnerType();
         });
 
         // --- STATUS WIDOCZNOŚCI ---
@@ -4272,8 +3689,9 @@ const { data, error } = await db
         }
         
         function updatePartnerInterface() {
-
+        
     if (!partnerData) return;
+    
 
     console.log("=== UPDATE PARTNER INTERFACE ===");
     console.log("Provider type:", partnerData.provider_type);
@@ -4305,7 +3723,21 @@ const { data, error } = await db
             : "🔴 Not connected";
 
 }
+function updateGuideForPartnerType() {
 
+    if (!partnerData) return;
+
+    const isApi = partnerData.provider_type === "api";
+
+    document.querySelectorAll(".guide-local").forEach(card => {
+        card.style.display = isApi ? "none" : "";
+    });
+
+    document.querySelectorAll(".guide-api").forEach(card => {
+        card.style.display = isApi ? "" : "none";
+    });
+
+}
 }
 
         function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('collapsed'); }
