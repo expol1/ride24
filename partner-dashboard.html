@@ -3331,10 +3331,13 @@ const { data, error } = await db
 
     if (partnerData.provider_type === "api") {
 
-        console.log("API PARTNER");
+    console.log("API PARTNER");
 
-        return;
-    }
+    document.getElementById("nav-fleet").style.display = "none";
+    document.getElementById("nav-locations").style.display = "none";
+
+    return;
+}
 
 }
 
