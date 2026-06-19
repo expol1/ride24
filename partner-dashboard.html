@@ -2190,6 +2190,7 @@ console.log("API settings:", partnerData.api_settings);
             await loadPartnerBookings();
             await loadFleet();
             await loadLocations();
+            updatePartnerInterface();
         });
 
         // --- STATUS WIDOCZNOŚCI ---
@@ -3313,6 +3314,29 @@ const { data, error } = await db
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById('nav-' + tabId).classList.add('active');
         }
+        
+        function updatePartnerInterface() {
+
+    if (!partnerData) return;
+
+    console.log("=== UPDATE PARTNER INTERFACE ===");
+    console.log("Provider type:", partnerData.provider_type);
+
+    if (partnerData.provider_type === "local") {
+
+        console.log("LOCAL PARTNER");
+
+        return;
+    }
+
+    if (partnerData.provider_type === "api") {
+
+        console.log("API PARTNER");
+
+        return;
+    }
+
+}
 
         function toggleSidebar() { document.querySelector('.sidebar').classList.toggle('collapsed'); }
         
