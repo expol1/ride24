@@ -2053,7 +2053,7 @@ Dodaj opinię o Partnerze
         </div>
 
     </div>
-   <div class="guide-overlay" id="guideModal">
+  <div class="guide-overlay" id="guideModal">
     <div class="guide-box">
         <div class="guide-header">
             <h2 data-pl="📚 Instrukcja obsługi panelu" data-en="📚 Partner Panel Guide">📚 Partner Panel Guide</h2>
@@ -2061,219 +2061,246 @@ Dodaj opinię o Partnerze
         </div>
         
         <div class="guide-body">
+            <!-- SIDEBAR NAVIGATION -->
             <div class="guide-sidebar">
-                <div class="guide-tab active" onclick="switchGuideTab('g-start')" id="tab-g-start">
+                <div class="guide-tab active" onclick="switchGuideTab('g-welcome')" id="tab-g-welcome">
                     🚀 <span data-pl="Start / Witamy" data-en="Start / Welcome">Start / Welcome</span>
                 </div>
                 <div class="guide-tab" onclick="switchGuideTab('g-settings')" id="tab-g-settings">
-                    ⚙️ <span data-pl="Ustawienia i Profil" data-en="Settings & Profile">Settings & Profile</span>
+                    ⚙️ <span data-pl="Krok 1: Konto" data-en="Step 1: Account">Step 1: Account</span>
                 </div>
-                <div class="guide-tab" onclick="switchGuideTab('g-locations')" id="tab-g-locations">
-                    🌍 <span data-pl="Lokalizacje" data-en="Locations">Locations</span>
+                <div class="guide-tab" onclick="switchGuideTab('g-documents')" id="tab-g-documents">
+                    📄 <span data-pl="Krok 2: Dokumenty" data-en="Step 2: Documents">Step 2: Documents</span>
                 </div>
-                <div class="guide-tab" onclick="switchGuideTab('g-fleet')" id="tab-g-fleet">
-                    🚗 <span data-pl="Flota" data-en="Fleet">Fleet</span>
+                
+                <!-- LOCAL TABS -->
+                <div class="guide-tab guide-local" onclick="switchGuideTab('g-locations')" id="tab-g-locations">
+                    🌍 <span data-pl="Krok 3: Lokalizacje" data-en="Step 3: Locations">Step 3: Locations</span>
                 </div>
+                <div class="guide-tab guide-local" onclick="switchGuideTab('g-fleet')" id="tab-g-fleet">
+                    🚗 <span data-pl="Krok 4: Flota" data-en="Step 4: Fleet">Step 4: Fleet</span>
+                </div>
+
+                <!-- API TABS -->
+                <div class="guide-tab guide-api" onclick="switchGuideTab('g-api')" id="tab-g-api">
+                    🔗 <span data-pl="Krok 3: API" data-en="Step 3: API">Step 3: API</span>
+                </div>
+                <div class="guide-tab guide-api" onclick="switchGuideTab('g-sync')" id="tab-g-sync">
+                    🔄 <span data-pl="Krok 4: Synchronizacja" data-en="Step 4: Sync">Step 4: Sync</span>
+                </div>
+
+                <!-- COMMON TABS -->
                 <div class="guide-tab" onclick="switchGuideTab('g-bookings')" id="tab-g-bookings">
-                    📅 <span data-pl="Rezerwacje" data-en="Bookings">Bookings</span>
+                    📅 <span data-pl="Krok 5: Rezerwacje" data-en="Step 5: Bookings">Step 5: Bookings</span>
+                </div>
+                <div class="guide-tab" onclick="switchGuideTab('g-workflow')" id="tab-g-workflow">
+                    📈 <span data-pl="Krok 6: Codzienna praca" data-en="Step 6: Daily Workflow">Step 6: Daily Workflow</span>
+                </div>
+                <div class="guide-tab" onclick="switchGuideTab('g-best-practices')" id="tab-g-best-practices">
+                    ⭐ <span data-pl="Dobre Praktyki" data-en="Best Practices">Best Practices</span>
+                </div>
+                <div class="guide-tab" onclick="switchGuideTab('g-help')" id="tab-g-help">
+                    🆘 <span data-pl="Pomoc" data-en="Need Help">Need Help</span>
                 </div>
             </div>
 
+            <!-- CONTENT AREA -->
             <div class="guide-content-area">
                 
-                <!-- START / WELCOME SECTION -->
-                <div id="g-start" class="guide-section active">
-                    <div class="guide-card">
-                       <div class="guide-card" style="border-left:4px solid #2563EB; background:#EFF6FF;">
-
-<h3
-data-pl="👋 Witamy w Ride24"
-data-en="👋 Welcome to Ride24">
-👋 Welcome to Ride24
-</h3>
-
-<p
-data-pl="Dziękujemy za dołączenie do sieci partnerów Ride24."
-data-en="Thank you for joining the Ride24 partner network.">
-Thank you for joining the Ride24 partner network.
-</p>
-
-<p
-data-pl="Przy pierwszym logowaniu panel automatycznie otworzy zakładkę Ustawienia. Dopóki nie uzupełnisz wszystkich wymaganych danych oraz nie zapiszesz profilu, pozostałe funkcje panelu pozostaną zablokowane."
-data-en="When you sign in for the first time, the panel automatically opens the Settings page. Until all required information has been completed and saved, the remaining features of the Partner Panel will stay locked.">
-When you sign in for the first time...
-</p>
-
-<p
-style="font-weight:700;color:#2563EB;"
-data-pl="Po poprawnym zapisaniu ustawień konto zostanie automatycznie odblokowane."
-data-en="After saving your settings successfully, your account will be unlocked automatically.">
-After saving your settings successfully...
-</p>
-
-</div>
-
-                    <!-- DASHBOARD OVERVIEW -->
-                    <div class="guide-card">
-                        <h3 data-pl="📊 Przegląd Dashboardu" data-en="📊 Dashboard Overview">📊 Dashboard Overview</h3>
-                        <p data-pl="Codziennie zaczynasz pracę od Dashboardu. Oto co oznaczają poszczególne karty:" data-en="You start your daily work on the Dashboard. Here is what each card means:"></p>
-                        <ul>
-                            <li><strong data-pl="Pending Requests" data-en="Pending Requests">Pending Requests</strong> – <span data-pl="Nowe zapytania wymagające Twojej reakcji." data-en="New booking requests requiring your action."></span></li>
-                            <li><strong data-pl="Pending Confirmation" data-en="Pending Confirmation">Pending Confirmation</strong> – <span data-pl="Klient kończy proces płatności." data-en="The client is completing the payment process."></span></li>
-                            <li><strong data-pl="Confirmed Bookings" data-en="Confirmed Bookings">Confirmed Bookings</strong> – <span data-pl="Gotowe i opłacone rezerwacje." data-en="Ready and paid bookings."></span></li>
-                            <li><strong data-pl="Your Revenue" data-en="Your Revenue">Your Revenue</strong> – <span data-pl="Suma przychodów z potwierdzonych rezerwacji." data-en="Total revenue from confirmed bookings."></span></li>
-                        </ul>
-                    </div>
-
-                    <div class="guide-card guide-local" style="border-left:4px solid #2563EB; background:#EFF6FF;">
-                        <h4 data-pl="🚗 PART I – Partner LOCAL" data-en="🚗 PART I – LOCAL PARTNER">🚗 PART I – LOCAL PARTNER</h4>
-                        <p data-pl="Zarządzasz całą swoją flotą bezpośrednio w panelu partnerskim Ride24. Twoje obowiązki to:" data-en="You manage your entire rental fleet directly inside the Ride24 Partner Panel. Your responsibilities include:"></p>
-                        <ul>
-                            <li data-pl="Uzupełnienie profilu firmy i dokumentów" data-en="Completing your company profile & documents"></li>
-                            <li data-pl="Tworzenie punktów odbioru i zarządzanie flotą/grupami aut" data-en="Creating pickup locations & managing fleet / car groups"></li>
-                            <li data-pl="Ustawianie cen oraz odpowiadanie na rezerwacje" data-en="Setting prices & responding to bookings"></li>
-                        </ul>
-                    </div>
-
-                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A; background:#F0FDF4;">
-                        <h4 data-pl="🔗 PART II – Partner API" data-en="🔗 PART II – API PARTNER">🔗 PART II – API PARTNER</h4>
-                        <p data-pl="Ride24 automatycznie synchronizuje się z Twoim systemem rezerwacyjnym. Nie zarządzasz pojazdami ani lokalizacjami ręcznie." data-en="Ride24 automatically synchronizes your rental system. You do not manually manage vehicles or locations."></p>
-                        <ul>
-                            <li data-pl="Twoim głównym zadaniem jest utrzymanie prawidłowego połączenia API" data-en="Your responsibility is maintaining a correct API connection"></li>
-                            <li data-pl="Wszystkie dane pobierane są bezpośrednio z Twojego oprogramowania" data-en="All data comes directly from your software"></li>
-                        </ul>
+                <!-- WELCOME SECTION (COMMON) -->
+                <div id="g-welcome" class="guide-section active">
+                    <div class="guide-card" style="border-left:4px solid #2563EB; background:#EFF6FF;">
+                        <h3 data-pl="👋 Witamy w Ride24" data-en="👋 Welcome to Ride24">👋 Welcome to Ride24</h3>
+                        <p data-pl="Dziękujemy za utworzenie konta i dołączenie do sieci partnerów Ride24." data-en="Thank you for creating an account and joining the Ride24 partner network.">Thank you for creating an account and joining the Ride24 partner network.</p>
+                        
+                        <p data-pl="Po pierwszym logowaniu panel automatycznie otwiera zakładkę Ustawienia (Settings). Dopóki nie uzupełnisz profilu, pozostałe zakładki takie jak Dashboard, Flota, Lokalizacje oraz Rezerwacje pozostają zablokowane." data-en="After your first login, the panel automatically opens the Settings tab. Until your profile is completed, tabs such as Dashboard, Fleet, Locations, and Bookings remain locked.">After your first login, the panel automatically opens the Settings tab...</p>
+                        
+                        <p style="font-weight:700;color:#2563EB;" data-pl="Po wypełnieniu danych i kliknięciu 'Save Changes', Twoje konto zostanie automatycznie odblokowane." data-en="After filling in your details and clicking 'Save Changes', your account will be unlocked automatically.">After filling in your details and clicking 'Save Changes'...</p>
                     </div>
                 </div>
 
-                <!-- SETTINGS & PROFILE SECTION -->
+                <!-- STEP 1: SETTINGS (COMMON) -->
                 <div id="g-settings" class="guide-section">
                     <div class="guide-card">
-                        <h3 data-pl="✅ STEP 1 – Profil Firmy" data-en="✅ STEP 1 – Company Profile">✅ STEP 1 – Company Profile</h3>
-                        <p data-pl="Przejdź do: Ustawienia. Wypełnij wymagane pola:" data-en="Open: Settings. Complete all required fields:"></p>
+                        <h3 data-pl="✅ STEP 1 – Konfiguracja Konta (Settings)" data-en="✅ STEP 1 – Complete Your Account (Settings)">✅ STEP 1 – Complete Your Account (Settings)</h3>
+                        <p data-pl="Przejdź do zakładki Settings. Znajdziesz tam wszystkie kluczowe dane o Twojej firmie. Poniżej znajduje się opis poszczególnych pól:" data-en="Go to the Settings tab. Here you will find all the key information about your business. Below is a description of each field:"></p>
                         <ul>
-                            <li><strong data-pl="Nazwa firmy:" data-en="Company name:">Company name:</strong> <span data-pl="Oficjalna nazwa wyświetlana klientom." data-en="Legal name displayed to customers."></span></li>
-                            <li><strong data-pl="Adres i Kraj:" data-en="Address & Country:">Address & Country:</strong> <span data-pl="Dane rejestracyjne do umowy partnerskiej." data-en="Business address used for the Partner Agreement."></span></li>
-                            <li><strong data-pl="Region / Wyspa:" data-en="Region / Island:">Region / Island:</strong> <span data-pl="Obszar działalności (np. Madera, Majorka, Kreta)." data-en="Operating region (e.g. Madeira, Mallorca, Crete)."></span></li>
-                            <li><strong data-pl="Główna lokalizacja:" data-en="Main Pickup Location:">Main Pickup Location:</strong> <span data-pl="Główny punkt (np. Lotnisko Madera, Dostawa do hotelu)." data-en="Primary pickup point (e.g. Madeira Airport, Hotel Delivery)."></span></li>
-                            <li><strong data-pl="Kontakt (E-mail / Tel / Tel awaryjny):" data-en="Contact (Email / Phone / Emergency):">Contact (Email / Phone / Emergency):</strong> <span data-pl="Dane do powiadomień oraz dla klientów." data-en="Used for notifications and customer assistance."></span></li>
-                            <li><strong data-pl="Wiek kierowcy i Awatar:" data-en="Driver Age & Avatar:">Driver Age & Avatar:</strong> <span data-pl="Minimalny wiek oraz logo firmy (PNG/JPG, kwadratowe)." data-en="Minimum accepted driver age and company logo (PNG/JPG, square)."></span></li>
+                            <li><strong data-pl="Company Name:" data-en="Company Name:">Company Name:</strong> <span data-pl="Oficjalna nazwa Twojej firmy, która będzie wyświetlana klientom." data-en="The legal name of your business displayed to customers."></span></li>
+                            <li><strong data-pl="Country & Region:" data-en="Country & Region:">Country & Region:</strong> <span data-pl="Kraj i obszar Twojej działalności. Wymagane do umów." data-en="Your operating country and region. Required for contracts."></span></li>
+                            <li><strong data-pl="Address:" data-en="Address:">Address:</strong> <span data-pl="Pełny adres rejestracyjny Twojej firmy." data-en="Your company's full registered address."></span></li>
+                            <li><strong data-pl="Phone & Emergency Phone:" data-en="Phone & Emergency Phone:">Phone & Emergency Phone:</strong> <span data-pl="Główny numer kontaktowy oraz awaryjny numer dla klientów." data-en="Main contact number and emergency phone for clients."></span></li>
+                            <li><strong data-pl="Minimum Driver Age:" data-en="Minimum Driver Age:">Minimum Driver Age:</strong> <span data-pl="Wymagany wiek kierowcy, aby móc wynająć u Ciebie auto." data-en="The minimum age required to rent your vehicles."></span></li>
+                            <li><strong data-pl="Logo:" data-en="Logo:">Logo:</strong> <span data-pl="Grafika z logo Twojej firmy." data-en="Your company's logo graphic."></span></li>
+                            <li><strong data-pl="Visibility (Visible / Hidden):" data-en="Visibility (Visible / Hidden):">Visibility (Visible / Hidden):</strong> <span data-pl="Pozwala ukryć wszystkie Twoje oferty w wynikach wyszukiwania, jeśli to konieczne." data-en="Allows you to hide all your offers from search results if necessary."></span></li>
+                            <li><strong data-pl="Discount:" data-en="Discount:">Discount:</strong> <span data-pl="Ustalony procent zniżki partnerskiej dla Ride24." data-en="The agreed partner discount percentage for Ride24."></span></li>
                         </ul>
+                        <blockquote data-pl="💡 Pamiętaj, aby po wprowadzeniu danych zawsze użyć przycisku 'Save Changes'. Spowoduje to zapisanie ustawień i odblokowanie funkcji panelu." data-en="💡 Remember to always click 'Save Changes' after entering your data. This will save your settings and unlock the panel's features."></blockquote>
                     </div>
+                </div>
 
+                <!-- STEP 2: DOCUMENTS (COMMON) -->
+                <div id="g-documents" class="guide-section">
                     <div class="guide-card">
-                        <h3 data-pl="✅ STEP 2 – Wymagane Dokumenty (LOCAL & API)" data-en="✅ STEP 2 – Required Documents (LOCAL & API)">✅ STEP 2 – Required Documents (LOCAL & API)</h3>
-                        <p data-pl="Każdy partner musi przesłać dwa dokumenty PDF, które klient akceptuje przed rezerwacją:" data-en="Every partner must upload two PDF documents. Customers must accept them before completing a reservation:"></p>
+                        <h3 data-pl="✅ STEP 2 – Wymagane Dokumenty" data-en="✅ STEP 2 – Required Documents">✅ STEP 2 – Required Documents</h3>
+                        <p data-pl="Aby Twoje konto zostało w pełni aktywowane, musisz dodać do systemu wymagane pliki w zakładce Documents:" data-en="To fully activate your account, you must upload the required files in the Documents tab:"></p>
                         <ul>
-                            <li><strong data-pl="Warunki Wynajmu (Rental Terms):" data-en="Rental Terms:">Rental Terms:</strong> <span data-pl="Kaucja, polityka paliwowa, opóźnienia, ubezpieczenia." data-en="Deposit, fuel policy, late return, damage, insurance."></span></li>
-                            <li><strong data-pl="Regulamin Wypożyczalni (Rental Policy):" data-en="Rental Policy:">Rental Policy:</strong> <span data-pl="Regulamin firmy, procedury odbioru i zwrotu." data-en="Company regulations, pickup/return procedures."></span></li>
+                            <li><strong data-pl="Rental Terms PDF:" data-en="Rental Terms PDF:">Rental Terms PDF:</strong> <span data-pl="Oficjalne warunki wynajmu. Powinny zawierać zasady dotyczące kaucji, polityki paliwowej, ubezpieczenia oraz kosztów uszkodzeń." data-en="Official rental terms. Must include deposit rules, fuel policy, insurance, and damage costs."></span></li>
+                            <li><strong data-pl="Rental Rules PDF:" data-en="Rental Rules PDF:">Rental Rules PDF:</strong> <span data-pl="Zasady wypożyczalni. Dokument powinien opisywać procedury odbioru, zwrotu auta i inne instrukcje." data-en="Rental guidelines. This document should cover pickup procedures, vehicle return, and other instructions."></span></li>
                         </ul>
-                        <p style="color:#DC2626; font-weight:bold;" data-pl="⚠️ Bez tych dokumentów Twój profil nie może zostać zatwierdzony." data-en="⚠️ Without these documents your profile cannot be completed."></p>
-                    </div>
-
-                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A;">
-                        <h3 data-pl="✅ STEP 3 – Integracja API (Tylko API)" data-en="✅ STEP 3 – API Integration (API Only)">✅ STEP 3 – API Integration (API Only)</h3>
-                        <p data-pl="Przejdź do: Ustawienia -> Integracja API i uzupełnij dane od swojego dostawcy:" data-en="Open: Settings -> API Integration and complete credentials from your software provider:"></p>
-                        <ul>
-                            <li><strong data-pl="Dostawca API:" data-en="API Provider:">API Provider:</strong> <span data-pl="Wybierz system (np. Custom, Carwiz, AutoRent, RentalCars)." data-en="Choose your provider (e.g. Custom, Carwiz, AutoRent, RentalCars)."></span></li>
-                            <li><strong data-pl="Adres URL, Login i Hasło API" data-en="API URL, Username & Password">API URL, Username & Password</strong></li>
-                            <li><strong data-pl="API Key / API Secret" data-en="API Key / API Secret">API Key / API Secret</strong> <span data-pl="(Jeśli są wymagane)" data-en="(If required by provider)"></span></li>
-                        </ul>
-                        <blockquote data-pl="⚠️ Nie zmieniaj danych API bez konsultacji z dostawcą — błędna konfiguracja przerwie synchronizację!" data-en="⚠️ Do not change API credentials without consulting your provider — incorrect settings will interrupt synchronization!"></blockquote>
+                        <p style="color:#DC2626; font-weight:bold;" data-pl="⚠️ Uwaga: Bez wgrania tych dokumentów, konto nie zostanie w pełni aktywowane i rezerwacje nie będą mogły być realizowane." data-en="⚠️ Note: Without uploading these documents, your account will not be fully activated and bookings cannot be processed."></p>
                     </div>
                 </div>
 
-                <!-- LOCATIONS SECTION -->
-                <div id="g-locations" class="guide-section">
-                    <div class="guide-card guide-local" style="border-left:4px solid #2563EB;">
-                        <h3 data-pl="✅ STEP 3 – Tworzenie Lokalizacji (LOCAL)" data-en="✅ STEP 3 – Create Locations (LOCAL)">✅ STEP 3 – Create Locations (LOCAL)</h3>
-                        <p data-pl="Przejdź do: Lokalizacje -> Dodaj lokalizację. Dla każdego punktu podaj:" data-en="Open: Locations -> Add Location. For every location provide:"></p>
-                        <ul>
-                            <li data-pl="Nazwę lokalizacji (Airport, Hotel, Office), miasto oraz dokładny adres" data-en="Location name (Airport, Hotel, Office), city and address"></li>
-                            <li data-pl="Instrukcje odbioru dla klienta" data-en="Clear pickup instructions"></li>
-                            <li data-pl="Dodatkową opłatę za odbiór (jeśli występuje) oraz godziny otwarcia" data-en="Additional fee (if any) and opening hours"></li>
-                        </ul>
-                        <p data-pl="💡 Dobra praktyka: Zapisuj nazwy krajów, miast i regionów po angielsku, aby ułatwić wyszukiwanie klientom z całego świata." data-en="💡 Best practice: Always use English names for countries, regions and cities to ensure global customers can find them."></p>
-                    </div>
-
-                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A;">
-                        <h3 data-pl="ℹ️ Lokalizacje API" data-en="ℹ️ API Locations">ℹ️ API Locations</h3>
-                        <p data-pl="Partner API nie dodaje lokalizacji ręcznie. Zostaną one pobrane podczas automatycznej synchronizacji opisanej w następnym kroku." data-en="API partners do not add locations manually. They will be fetched during the automatic synchronization described in the next step."></p>
+                <!-- STEP 3: LOCATIONS (LOCAL ONLY) -->
+                <div id="g-locations" class="guide-section guide-local">
+                    <div class="guide-card" style="border-left:4px solid #2563EB;">
+                        <h3 data-pl="✅ STEP 3 – Lokalizacje (Locations)" data-en="✅ STEP 3 – Locations">✅ STEP 3 – Locations</h3>
+                        <p data-pl="Dodaj miejsca, w których klienci mogą odebrać Twoje pojazdy." data-en="Add locations where customers can pick up your vehicles."></p>
+                        <ol>
+                            <li data-pl="Kliknij zakładkę <b>Locations</b> w lewym menu." data-en="Click the <b>Locations</b> tab in the left menu."></li>
+                            <li data-pl="Wybierz <b>Add Location</b>." data-en="Click <b>Add Location</b>."></li>
+                            <li data-pl="Uzupełnij szczegóły formularza: Location Name, Country, Region, City, Address, Opening Hours, Pickup Instructions, oraz Extra Fee (dodatkowa opłata, jeśli dotyczy)." data-en="Fill in the form details: Location Name, Country, Region, City, Address, Opening Hours, Pickup Instructions, and Extra Fee (if applicable)."></li>
+                            <li data-pl="Kliknij przycisk <b>Save</b>." data-en="Click the <b>Save</b> button."></li>
+                            <li data-pl="Po zapisaniu, punkt pojawi się na Twojej liście lokalizacji." data-en="Once saved, the point will appear in your locations list."></li>
+                        </ol>
+                        <p data-pl="W każdej chwili możesz powrócić do listy, aby wybrać opcję <b>Edit</b> (edytuj), <b>Deactivate</b> (tymczasowo ukryj lokalizację) lub <b>Delete</b> (usuń lokalizację na stałe)." data-en="You can return to the list at any time to select <b>Edit</b>, <b>Deactivate</b> (temporarily hide location), or <b>Delete</b> (permanently remove)."></p>
                     </div>
                 </div>
 
-                <!-- FLEET SECTION -->
-                <div id="g-fleet" class="guide-section">
-                    <div class="guide-card guide-local" style="border-left:4px solid #2563EB;">
-                        <h3 data-pl="✅ STEP 4 – Zarządzanie Flotą (LOCAL)" data-en="✅ STEP 4 – Vehicle Fleet (LOCAL)">✅ STEP 4 – Vehicle Fleet (LOCAL)</h3>
-                        <p data-pl="Przejdź do: Flota aut -> Dodaj pojazd. Uzupełnij dokładnie wszystkie pola:" data-en="Open: Fleet -> Add Vehicle. Complete every field carefully:"></p>
+                <!-- STEP 4: FLEET (LOCAL ONLY) -->
+                <div id="g-fleet" class="guide-section guide-local">
+                    <div class="guide-card" style="border-left:4px solid #2563EB;">
+                        <h3 data-pl="✅ STEP 4 – Zarządzanie Flotą (Fleet)" data-en="✅ STEP 4 – Fleet Management">✅ STEP 4 – Fleet Management</h3>
+                        <p data-pl="Przejdź do zakładki Fleet i kliknij Add Vehicle. Musisz precyzyjnie opisać wszystkie pojazdy dostępne w Twojej ofercie." data-en="Go to the Fleet tab and click Add Vehicle. You must accurately describe all vehicles available in your offer."></p>
                         <ul>
-                            <li data-pl="Model, klasa pojazdu, skrzynia biegów, paliwo, miejsca, drzwi, pojemność bagażnika" data-en="Vehicle model, class, transmission, fuel type, seats, doors, baggage capacity"></li>
-                            <li data-pl="Limit kilometrów, kaucja oraz opcja kierowcy" data-en="Mileage limit, deposit and chauffeur options"></li>
-                            <li data-pl="Publiczna cena za dobę oraz ceny sezonowe dla wybranych miesięcy" data-en="Daily public price and seasonal pricing for selected months"></li>
-                            <li data-pl="Dodawaj rzeczywiste zdjęcia aut wysokiej jakości" data-en="Upload high-quality, real vehicle photos whenever possible"></li>
+                            <li data-pl="<b>Specyfikacja:</b> Wypełnij pola takie jak Vehicle Model, Vehicle Class, Transmission (skrzynia), Fuel (paliwo), Seats (miejsca), Doors (drzwi), Bags (pojemność bagażnika)." data-en="<b>Specification:</b> Fill in fields like Vehicle Model, Vehicle Class, Transmission, Fuel, Seats, Doors, Bags."></li>
+                            <li data-pl="<b>Zasady:</b> Określ Mileage (limit km), Deposit (wysokość kaucji) oraz Driver Option." data-en="<b>Rules:</b> Define Mileage limit, Deposit amount, and Driver Option."></li>
+                            <li data-pl="<b>Ceny i Zdjęcia:</b> Podaj bazową cenę w polu Price, uzupełnij Seasonal Prices dla różnych okresów roku i wgraj atrakcyjne Photos (zdjęcia auta)." data-en="<b>Pricing & Photos:</b> Enter the base Price, add Seasonal Prices for different times of the year, and upload high-quality Photos."></li>
                         </ul>
-                        <blockquote data-pl="ℹ️ Ride24 automatycznie wylicza cenę partnerską na podstawie Twojej ustalonej zniżki." data-en="ℹ️ Ride24 automatically calculates your partner rate using your agreed partner discount."></blockquote>
-                    </div>
-
-                    <div class="guide-card guide-api" style="border-left:4px solid #16A34A;">
-                        <h3 data-pl="✅ STEP 4 – Synchronizacja Danych (API)" data-en="✅ STEP 4 – Data Synchronization (API)">✅ STEP 4 – Data Synchronization (API)</h3>
-                        <p data-pl="Po aktywacji API, Ride24 automatycznie synchronizuje:" data-en="Once the API connection is active, Ride24 automatically synchronizes:"></p>
-                        <ul>
-                            <li data-pl="Pojazdy (Vehicles)" data-en="Vehicles"></li>
-                            <li data-pl="Klasy pojazdów (Vehicle Classes)" data-en="Vehicle Classes"></li>
-                            <li data-pl="Lokalizacje odbioru (Pickup Locations)" data-en="Pickup Locations"></li>
-                            <li data-pl="Ceny (Prices)" data-en="Prices"></li>
-                            <li data-pl="Dostępność (Availability)" data-en="Availability"></li>
-                            <li data-pl="Restrykcje (Restrictions)" data-en="Restrictions"></li>
-                            <li data-pl="Warunki wynajmu (Rental Conditions - jeśli wspierane)" data-en="Rental Conditions (if supported)"></li>
-                        </ul>
-                        <p data-pl="Nie należy ręcznie tworzyć ani edytować pojazdów. Wszystkie dane pochodzą bezpośrednio z Twojego systemu." data-en="You do not need to manually create or edit vehicles. All data comes directly from your reservation system."></p>
+                        <blockquote data-pl="ℹ️ Zwróć uwagę na Ride24 Partner Discount. Ostateczna cena dla klienta jest wyliczana automatycznie na podstawie Twojej zniżki." data-en="ℹ️ Note the Ride24 Partner Discount. The final price for the client is calculated automatically based on your discount rate."></blockquote>
+                        <p data-pl="Zarządzaj pojazdami za pomocą opcji <b>Edit Vehicle</b> lub <b>Delete Vehicle</b>." data-en="Manage your vehicles using the <b>Edit Vehicle</b> or <b>Delete Vehicle</b> options."></p>
                     </div>
                 </div>
 
-                <!-- BOOKINGS SECTION -->
+                <!-- STEP 3: API INTEGRATION (API ONLY) -->
+                <div id="g-api" class="guide-section guide-api">
+                    <div class="guide-card" style="border-left:4px solid #16A34A;">
+                        <h3 data-pl="✅ STEP 3 – Integracja API" data-en="✅ STEP 3 – API Integration">✅ STEP 3 – API Integration</h3>
+                        <p data-pl="Przejdź do zakładki API Integration, aby skonfigurować połączenie między Twoim oprogramowaniem, a Ride24. Skonfiguruj następujące pola:" data-en="Go to the API Integration tab to configure the connection between your software and Ride24. Configure the following fields:"></p>
+                        <ul>
+                            <li><strong data-pl="API Provider:" data-en="API Provider:">API Provider:</strong> <span data-pl="Dostawca oprogramowania, z którego korzystasz." data-en="The software provider you are using."></span></li>
+                            <li><strong data-pl="API URL, Username, Password:" data-en="API URL, Username, Password:">API URL, Username, Password:</strong> <span data-pl="Standardowe dane dostępowe." data-en="Standard access credentials."></span></li>
+                            <li><strong data-pl="API Key & API Secret:" data-en="API Key & API Secret:">API Key & API Secret:</strong> <span data-pl="Dodatkowe klucze bezpieczeństwa (jeśli dostawca ich wymaga)." data-en="Additional security keys (if required by your provider)."></span></li>
+                        </ul>
+                        <p data-pl="Dane API otrzymujesz od dostawcy swojego systemu zarządzania wypożyczalnią. Ride24 ich nie generuje." data-en="You receive your API data from your rental management system provider. Ride24 does not generate them."></p>
+                        <p data-pl="Status <b>Connected</b> oznacza poprawne połączenie. Jeśli widzisz <b>Not Connected</b>, upewnij się, że dane są poprawne." data-en="A <b>Connected</b> status means successful connection. If you see <b>Not Connected</b>, verify your details."></p>
+                    </div>
+                </div>
+
+                <!-- STEP 4: API SYNCHRONIZATION (API ONLY) -->
+                <div id="g-sync" class="guide-section guide-api">
+                    <div class="guide-card" style="border-left:4px solid #16A34A;">
+                        <h3 data-pl="✅ STEP 4 – Automatyczna Synchronizacja" data-en="✅ STEP 4 – Automatic Synchronization">✅ STEP 4 – Automatic Synchronization</h3>
+                        <p data-pl="Jako partner połączony przez API, wszystkie Twoje informacje biznesowe utrzymywane są automatycznie." data-en="As an API partner, all your business information is maintained automatically."></p>
+                        <p data-pl="Ride24 stale pobiera i aktualizuje z Twojego systemu:" data-en="Ride24 continuously fetches and updates from your system:"></p>
+                        <ul>
+                            <li data-pl="Vehicles (Pojazdy) i Vehicle Classes (Klasy)" data-en="Vehicles and Vehicle Classes"></li>
+                            <li data-pl="Locations (Lokalizacje)" data-en="Locations"></li>
+                            <li data-pl="Availability (Dostępność aut)" data-en="Availability"></li>
+                            <li data-pl="Prices (Ceny i sezony)" data-en="Prices"></li>
+                            <li data-pl="Restrictions (Restrykcje wynajmu)" data-en="Restrictions"></li>
+                            <li data-pl="Rental Conditions (Warunki wynajmu, jeśli obsługiwane przez dostawcę)" data-en="Rental Conditions (if supported by your provider)"></li>
+                        </ul>
+                        <blockquote data-pl="⚠️ Ważne: NIE wykonujesz ręcznie dodawania aut, lokalizacji ani aktualizacji cen. Wszystkie zmiany wprowadzaj w swoim docelowym oprogramowaniu, a Ride24 zsynchronizuje je automatycznie." data-en="⚠️ Important: You DO NOT manually add cars, locations, or update prices. Make all changes in your core software, and Ride24 will sync them automatically."></blockquote>
+                    </div>
+                </div>
+
+                <!-- STEP 5: BOOKINGS (COMMON) -->
                 <div id="g-bookings" class="guide-section">
                     <div class="guide-card">
-                        <h3 data-pl="✅ STEP 5 – Zarządzanie Rezerwacjami" data-en="✅ STEP 5 – Booking Management">✅ STEP 5 – Booking Management</h3>
-                        <p data-pl="Cykl życia rezerwacji (wspólny dla LOCAL i API):" data-en="Booking Lifecycle (common for LOCAL and API):"></p>
+                        <h3 data-pl="✅ STEP 5 – Cykl Rezerwacji (Bookings)" data-en="✅ STEP 5 – Booking Lifecycle (Bookings)">✅ STEP 5 – Booking Lifecycle (Bookings)</h3>
+                        <p data-pl="Znajomość etapów i statusów rezerwacji jest kluczowa dla Twojej pracy:" data-en="Knowing the booking stages and statuses is crucial for your daily work:"></p>
                     </div>
-
+                    
                     <div class="guide-card" style="border-left:5px solid #F59E0B;">
-                        <h4 style="color:#D97706;">🟡 Pending (Oczekująca)</h4>
-                        <p data-pl="Nowe zapytanie od klienta. Masz 24 godziny na odpowiedź (Zaakceptuj / Odrzuć). Brak reakcji spowoduje automatyczne wygaśnięcie." data-en="New booking request. You have 24 hours to respond (Accept / Reject). No response will automatically expire the booking."></p>
+                        <h4 style="color:#D97706;">🟡 Pending</h4>
+                        <p data-pl="Nowe zapytanie rezerwacyjne od klienta. Twoim zadaniem jest zdecydować: <b>Accept</b> (Akceptuj) lub <b>Reject</b> (Odrzuć). Jeśli nie odpowiesz, po określonym czasie rezerwacja otrzyma status <b>Expired</b>." data-en="New booking request from a customer. Your task is to decide: <b>Accept</b> or <b>Reject</b>. If you do not respond, the booking will eventually transition to <b>Expired</b>."></p>
                     </div>
 
                     <div class="guide-card" style="border-left:5px solid #2563EB;">
-                        <h4 style="color:#2563EB;">🔵 Awaiting Payment (Oczekiwanie na płatność)</h4>
-                        <p data-pl="Rezerwacja zaakceptowana przez partnera. Klient ma czas na dokonanie płatności. Nie musisz teraz nic robić." data-en="The booking has been accepted. The customer is completing payment. No action is required at this stage."></p>
+                        <h4 style="color:#2563EB;">🔵 Awaiting Payment</h4>
+                        <p data-pl="Rezerwacja została zaakceptowana przez Ciebie. Teraz klient kończy płatność w systemie Ride24." data-en="The booking has been accepted by you. Now, the customer is completing the payment process via Ride24."></p>
                     </div>
 
                     <div class="guide-card" style="border-left:5px solid #16A34A;">
-                        <h4 style="color:#16A34A;">🟢 Paid (Opłacona / Potwierdzona)</h4>
-                        <p data-pl="Rezerwacja została opłacona. Otrzymujesz pełne dane kontaktowe klienta. Przygotuj pojazd i zrealizuj podstawienie na czas." data-en="The booking has been paid and confirmed. Customer contact details become available. Prepare the vehicle and deliver it on time."></p>
+                        <h4 style="color:#16A34A;">🟢 Paid</h4>
+                        <p data-pl="Rezerwacja została opłacona i potwierdzona. Otrzymujesz wszystkie dane klienta i przygotowujesz auto." data-en="The booking is paid and confirmed. You receive full customer details and prepare the vehicle for delivery."></p>
+                    </div>
+
+                    <div class="guide-card" style="border-left:5px solid #8B5CF6;">
+                        <h4 style="color:#8B5CF6;">🟣 Rental & Completed</h4>
+                        <p data-pl="Wynajem trwa (<b>Rental</b>). Po zakończeniu okresu najmu, rezerwacja zmienia status na ostateczny: <b>Completed</b> (Zakończona)." data-en="The rental is ongoing (<b>Rental</b>). After the rental period ends, the booking switches to its final status: <b>Completed</b>."></p>
                     </div>
 
                     <div class="guide-card" style="border-left:5px solid #DC2626;">
-                        <h4 style="color:#DC2626;">🔴 Cancelled (Anulowana)</h4>
-                        <p data-pl="Rezerwacja została anulowana. Brak dalszych działań. Pojazd automatycznie wraca do puli dostępnych." data-en="The booking has been cancelled. No further action is required. The vehicle becomes available again."></p>
+                        <h4 style="color:#DC2626;">🔴 Cancelled</h4>
+                        <p data-pl="Rezerwacja została anulowana przez klienta. Auto automatycznie wraca do puli dostępnych na ten termin." data-en="The booking has been cancelled by the customer. The vehicle automatically returns to available status for those dates."></p>
+                    </div>
+                </div>
+
+                <!-- STEP 6: DAILY WORKFLOW (COMMON) -->
+                <div id="g-workflow" class="guide-section">
+                    <div class="guide-card" style="border-left:4px solid #64748B;">
+                        <h3 data-pl="✅ STEP 6 – Codzienna Praca" data-en="✅ STEP 6 – Daily Workflow">✅ STEP 6 – Daily Workflow</h3>
+                        <p data-pl="Zalecamy wyrabianie następujących rutyn na początku każdego dnia pracy:" data-en="We recommend following these routines at the beginning of your workday:"></p>
+                        <ul>
+                            <li data-pl="Otwórz Dashboard, by sprawdzić podsumowanie całego biznesu." data-en="Open the Dashboard to check the overall summary of your business."></li>
+                            <li data-pl="Sprawdź zakładkę Bookings w poszukiwaniu zgłoszeń o statusie <b>Pending</b> i odpowiedz na nowe zapytania (Accept / Reject)." data-en="Check the Bookings tab for <b>Pending</b> requests and reply to them (Accept / Reject)."></li>
+                            <li data-pl="Zweryfikuj listę nadchodzących wydań aut w statusie <b>Paid</b>." data-en="Verify the list of upcoming car deliveries that are currently <b>Paid</b>."></li>
+                            <li data-pl="Zadbaj o aktualizację wszystkich brakujących danych na profilu." data-en="Ensure all missing profile data is updated."></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- BEST PRACTICES (SPLIT LOGIC) -->
+                <div id="g-best-practices" class="guide-section">
+                    <!-- BEST PRACTICES LOCAL -->
+                    <div class="guide-card guide-local" style="border-left:4px solid #9333EA; background:#FAF5FF;">
+                        <h3 data-pl="⭐ Dobre Praktyki (LOCAL)" data-en="⭐ Best Practices (LOCAL)">⭐ Best Practices (LOCAL)</h3>
+                        <ul>
+                            <li data-pl="Dodawaj ostre, profesjonalne zdjęcia pojazdów (Photos) – to zwiększa szansę na rezerwację." data-en="Add sharp, professional vehicle Photos – it increases booking chances."></li>
+                            <li data-pl="Bieżąco aktualizuj ceny i zniżki (Prices/Discount), aby Twoja oferta była zawsze konkurencyjna." data-en="Consistently update Prices and Discounts to keep your offer competitive."></li>
+                            <li data-pl="Sprawdzaj godziny otwarcia we wszystkich swoich lokalizacjach (Locations)." data-en="Check the opening hours across all your Locations."></li>
+                            <li data-pl="Odpowiadaj błyskawicznie na zgłoszenia Pending. Szybki czas reakcji pozycjonuje Cię wyżej!" data-en="Respond lightning-fast to Pending requests. Fast response times rank you higher!"></li>
+                            <li data-pl="Usuwaj lub dezaktywuj pojazdy, których już nie wynajmujesz." data-en="Delete or deactivate vehicles you no longer rent out."></li>
+                        </ul>
                     </div>
 
-                    <div class="guide-card" style="border-left:4px solid #9333EA; background:#FAF5FF;">
-                        <h4 data-pl="✅ STEP 6 – Dobre Praktyki" data-en="✅ STEP 6 – Best Practices">✅ STEP 6 – Best Practices</h4>
-                        <p data-pl="Dbaj o aktualność cen, dostępności oraz dokumentów. Szybki czas odpowiedzi na zapytania (Pending) bezpośrednio podnosi pozycję Twoich ofert w wynikach wyszukiwania Ride24!" data-en="Keep prices, availability, and documents up to date. Faster response times to pending requests directly improve your ranking and visibility in Ride24 search results."></p>
+                    <!-- BEST PRACTICES API -->
+                    <div class="guide-card guide-api" style="border-left:4px solid #9333EA; background:#FAF5FF;">
+                        <h3 data-pl="⭐ Dobre Praktyki (API)" data-en="⭐ Best Practices (API)">⭐ Best Practices (API)</h3>
+                        <ul>
+                            <li data-pl="Nigdy nie zmieniaj wpisanych kluczy integracji API bez wyraźnej potrzeby." data-en="Never change entered API integration keys without a clear need."></li>
+                            <li data-pl="Regularnie sprawdzaj zakładkę API Integration, by upewnić się, że status wynosi 'Connected'." data-en="Regularly check the API Integration tab to ensure the status reads 'Connected'."></li>
+                            <li data-pl="Jeżeli API przestanie nagle działać, w pierwszej kolejności skontaktuj się ze swoim dostawcą oprogramowania." data-en="If the API suddenly stops working, contact your core software provider first."></li>
+                            <li data-pl="Reaguj szybko na rezerwacje w systemie Ride24." data-en="Respond quickly to bookings within the Ride24 system."></li>
+                        </ul>
                     </div>
+                </div>
 
-                    <!-- NEED HELP / SUPPORT FINISH CARD -->
+                <!-- NEED HELP (COMMON) -->
+                <div id="g-help" class="guide-section">
                     <div class="guide-card" style="border-left:4px solid #EF4444; background:#FEF2F2; margin-top:20px;">
                         <h3 style="color:#B91C1C;" data-pl="🆘 Potrzebujesz pomocy?" data-en="🆘 Need Help?">🆘 Need Help?</h3>
-                        <p data-pl="Jeżeli napotkasz problem z panelem lub integracją API, skontaktuj się z zespołem Ride24." data-en="If you experience any issues with your Partner Panel or API integration, please contact Ride24 Support."></p>
+                        <p data-pl="W przypadku jakichkolwiek problemów z panelem partnerskim, przesyłaniem dokumentów lub działaniem połączenia API, skontaktuj się bezpośrednio z naszym działem wsparcia." data-en="For any issues with the partner panel, document uploads, or API connections, please contact our support team directly."></p>
+                        <p data-pl="Wszelkie usterki zgłaszaj zespołowi wsparcia na adres mailowy dostępny na naszej oficjalnej stronie Ride24." data-en="Report all technical issues to our support team at the email address provided on the official Ride24 website."></p>
                     </div>
                 </div>
 
-                </div>
             </div>
         </div>
     </div>
+</div>
 
     <div id="toast-container"></div>
 
