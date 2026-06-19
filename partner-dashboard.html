@@ -987,6 +987,84 @@ async>
                     <h1 class="page-title" data-pl="Pulpit" data-en="Dashboard">Dashboard</h1>
                 </div>
 
+                <div id="apiDashboardCard"
+     style="
+        display:none;
+        margin-bottom:25px;
+        padding:24px;
+        background:#F8FAFC;
+        border:1px solid var(--border);
+        border-radius:12px;">
+
+    <h3
+        style="margin:0 0 20px 0;font-size:18px;font-weight:800;color:var(--blue-dark);"
+        data-pl="Integracja API"
+        data-en="API Integration">
+
+        API Integration
+
+    </h3>
+
+    <div class="form-row">
+
+        <div class="form-group">
+
+            <label
+                data-pl="Dostawca API"
+                data-en="API Provider">
+
+                API Provider
+
+            </label>
+
+            <div id="dashboardApiProvider"
+                 style="
+                    height:42px;
+                    display:flex;
+                    align-items:center;
+                    padding:0 12px;
+                    border:1px solid var(--border);
+                    border-radius:8px;
+                    background:#fff;
+                    font-weight:700;">
+
+                -
+
+            </div>
+
+        </div>
+
+        <div class="form-group">
+
+            <label
+                data-pl="Status integracji"
+                data-en="Integration status">
+
+                Integration status
+
+            </label>
+
+            <div id="dashboardApiStatus"
+                 style="
+                    height:42px;
+                    display:flex;
+                    align-items:center;
+                    padding:0 12px;
+                    border:1px solid var(--border);
+                    border-radius:8px;
+                    background:#fff;
+                    font-weight:700;">
+
+                -
+                
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
                 <div class="stats-grid">
                     <div class="stat-card highlight">
                         <div class="stat-title">
@@ -3577,6 +3655,21 @@ const { data, error } = await db
     // SETTINGS
     document.getElementById("apiSettingsSection").style.display =
         isApi ? "block" : "none";
+    
+    // DASHBOARD
+    document.getElementById("apiDashboardCard").style.display =
+    isApi ? "block" : "none";
+    if (isApi) {
+
+    document.getElementById("dashboardApiProvider").innerText =
+        partnerData.api_provider || "-";
+
+    document.getElementById("dashboardApiStatus").innerHTML =
+        partnerData.api_enabled
+            ? "🟢 Connected"
+            : "🔴 Not connected";
+
+}
 
 }
 
