@@ -2098,29 +2098,39 @@ async function executeDelete() {
           // POBRANIE FLAGI KOMPLETNOŚCI PROFILU, STATUSU KONTA I UMOWY
            // POBRANIE FLAGI KOMPLETNOŚCI PROFILU, STATUSU KONTA I UMOWY
             const { data: partner } = await db
-                .from("partners")
-                .select(`
-                    id, 
-                    profile_completed, 
-                    account_status, 
-                    agreement_accepted, 
-                    agreement_snapshot, 
-                    company_name, 
-                    country, 
-                    discount_percent, 
-                    avatar_url,
-                    representative_name,
-                    representative_surname,
-                    phone,
-                    region,
-                    email,
-                    address
-                `)
+    .from("partners")
+    .select(`
+        id,
+        profile_completed,
+        account_status,
+        agreement_accepted,
+        agreement_snapshot,
+        company_name,
+        country,
+        discount_percent,
+        avatar_url,
+        representative_name,
+        representative_surname,
+        phone,
+        region,
+        email,
+        address,
+
+        provider_type,
+        api_provider,
+        api_enabled,
+        api_settings
+    `)
                 .eq("user_id", session.user.id)
                 .single();
 
             // UWAGA: Zmieniamy window.partnerData na samo partnerData
             partnerData = partner || {};
+
+            console.log("Partner type:", partnerData.provider_type);
+console.log("API provider:", partnerData.api_provider);
+console.log("API enabled:", partnerData.api_enabled);
+console.log("API settings:", partnerData.api_settings);
 
             if(partner?.avatar_url){
                 document.getElementById("partnerAvatar").src = `${partner.avatar_url}?t=${Date.now()}`;
