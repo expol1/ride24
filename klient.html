@@ -459,6 +459,19 @@
             color: white;
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
         }
+        .btn-download-guide{
+
+    background:#FACC15;
+    color:#1E293B;
+    border:none;
+
+}
+
+.btn-download-guide:hover{
+
+    background:#EAB308;
+
+}
         .btn-download-voucher:hover { box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3); transform: translateY(-1px); }
         .btn-request-receipt {
             background: linear-gradient(135deg,#16A34A,#15803D);
@@ -2674,9 +2687,11 @@ else if (s === 'paid') {
     
     actionsHtml += `<button
     class="action-btn-premium btn-download-guide"
-    onclick="window.openGuide('${booking.id}')">
+    onclick="window.openGuide('${booking.id}')"
+    data-pl="🎁 Darmowy Autoprzewodnik"
+    data-en="🎁 Free Travel Guide">
 
-    🎁 ${isEn ? 'Free Travel Guide' : 'Darmowy Autoprzewodnik'}
+    ${isEn ? "🎁 Free Travel Guide" : "🎁 Darmowy Autoprzewodnik"}
 
 </button>`;
 
