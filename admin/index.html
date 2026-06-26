@@ -3754,7 +3754,8 @@ async function saveLocationGuide(locationId){
         document
             .getElementById(`guide-${locationId}`)
             .value;
-
+console.log("Location:", locationId);
+console.log("Guide:", guideId);
     const { error } = await db
         .from("partner_locations")
         .update({
