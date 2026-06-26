@@ -1478,6 +1478,7 @@ function closePromotionModal() {
             if (tabId === "guides") {
 
     loadGuides();
+    loadGuideLocations();
 
 }
             // Ukrywamy wszystkie sekcje i pokazujemy wybraną
@@ -3636,6 +3637,104 @@ ${g.active ? "✅ Aktywny" : "❌ Wyłączony"}
     });
 
 }
+
+async function loadGuideLocations() {
+
+    const tbody = document.getElementById("guide-locations-tbody");
+
+    if (!tbody) return;
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="4">Ładowanie...</td>
+        </tr>
+    `;
+
+    const { data: locations, error: locError } = await db
+        .from("partner_locations")
+        .select(`
+            id,
+            country,
+            city,
+            location_name,
+            guide_id
+        `)
+        .eq("active", true)
+        .order("country")
+        .order("city");
+
+    if (locError) {
+        console.error(locError);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4">Błąd ładowania lokalizacji.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    const { data: guides, error: guideError } = await db
+        .from("travel_guides")
+        .select("id,title")
+        .eq("active", true)
+        .order("title");
+
+    if (guideError) {
+        console.error(guideError);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4">Błąd ładowania przewodników.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    locations.forEach(loc => {
+
+        let options = `<option value="">— brak —</option>`;
+
+        guides.forEach(g => {
+
+            options += `
+                <option value="${g.id}"
+                    ${loc.guide_id === g.id ? "selected" : ""}>
+                    ${g.title}
+                </option>
+            `;
+
+        });
+
+        tbody.innerHTML += `
+
+            <tr>
+
+                <td>${escapeHtml(loc.country || "")}</td>
+
+                <td>${escapeHtml(loc.city || "")}</td>
+
+                <td>${escapeHtml(loc.location_name || "")}</td>
+
+                <td>
+
+                    <select
+                        onchange="saveLocationGuide('${loc.id}', this.value)">
+
+                        ${options}
+
+                    </select>
+
+                </td>
+
+            </tr>
+
+        `;
+
+    });
+
+}
+
 async function saveGuide(){
 
     alert("Jeszcze nie podłączone.");
