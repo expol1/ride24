@@ -3691,7 +3691,15 @@ async function loadGuideLocations() {
     }
 
     tbody.innerHTML = "";
+locations.sort((a, b) => {
 
+    if (!a.guide_id && b.guide_id) return -1;
+
+    if (a.guide_id && !b.guide_id) return 1;
+
+    return 0;
+
+});
     locations.forEach(loc => {
 
         let options = `<option value="">— brak —</option>`;
