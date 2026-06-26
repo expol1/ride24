@@ -3505,13 +3505,84 @@ ${data.sample_location?.city || "BRAK"}`
 }
 async function loadGuides() {
 
-    document.getElementById("guides-tbody").innerHTML = `
+    const tbody = document.getElementById("guides-tbody");
+
+    tbody.innerHTML = `
         <tr>
             <td colspan="5" style="text-align:center;padding:30px;">
-                Ładowanie przewodników...
+                Ładowanie...
             </td>
         </tr>
     `;
+
+    const { data, error } = await db
+        .from("travel_guides")
+        .select("*")
+        .order("title");
+
+    if (error) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    ${error.message}
+                </td>
+            </tr>
+        `;
+
+        console.error(error);
+
+        return;
+    }
+
+    if (!data.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    Brak przewodników.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    tbody.innerHTML = "";
+
+    data.forEach(g => {
+
+        tbody.innerHTML += `
+
+<tr>
+
+<td>${g.title}</td>
+
+<td>${g.slug}</td>
+
+<td>
+
+${g.active ? "✅ Aktywny" : "❌ Wyłączony"}
+
+</td>
+
+<td>-</td>
+
+<td>
+
+<button class="btn-primary">
+
+Edytuj
+
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+    });
 
 }
 // --- GENERATOR UMOWY PARTNERSKIEJ ---
