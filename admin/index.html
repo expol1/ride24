@@ -3735,6 +3735,29 @@ async function loadGuideLocations() {
 
 }
 
+async function saveLocationGuide(locationId, guideId) {
+
+    const { error } = await db
+        .from("partner_locations")
+        .update({
+            guide_id: guideId || null
+        })
+        .eq("id", locationId);
+
+    if (error) {
+
+        console.error(error);
+
+        alert("Nie udało się zapisać przewodnika.");
+
+        return;
+
+    }
+
+    console.log("Przewodnik zapisany.");
+
+}
+
 async function saveGuide(){
 
     alert("Jeszcze nie podłączone.");
