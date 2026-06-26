@@ -978,22 +978,23 @@
 
         <thead>
 
-            <tr>
+<tr>
 
-                <th>Kraj</th>
-                <th>Miasto</th>
-                <th>Lokalizacja</th>
-                <th>Przewodnik</th>
+    <th>Kraj</th>
+    <th>Miasto</th>
+    <th>Lokalizacja</th>
+    <th>Przewodnik</th>
+    <th>Akcja</th>
 
-            </tr>
+</tr>
 
-        </thead>
+</thead>
 
         <tbody id="guide-locations-tbody">
 
             <tr>
 
-                <td colspan="4">
+                <td colspan="5">
 
                     Ładowanie...
 
@@ -3646,7 +3647,7 @@ async function loadGuideLocations() {
 
     tbody.innerHTML = `
         <tr>
-            <td colspan="4">Ładowanie...</td>
+            <td colspan="5">Ładowanie...</td>
         </tr>
     `;
 
@@ -3667,7 +3668,7 @@ async function loadGuideLocations() {
         console.error(locError);
         tbody.innerHTML = `
             <tr>
-                <td colspan="4">Błąd ładowania lokalizacji.</td>
+                <td colspan="5">Błąd ładowania lokalizacji.</td>
             </tr>
         `;
         return;
@@ -3683,7 +3684,7 @@ async function loadGuideLocations() {
         console.error(guideError);
         tbody.innerHTML = `
             <tr>
-                <td colspan="4">Błąd ładowania przewodników.</td>
+                <td colspan="5">Błąd ładowania przewodników.</td>
             </tr>
         `;
         return;
@@ -3718,14 +3719,26 @@ async function loadGuideLocations() {
 
                 <td>
 
-                    <select
-                        onchange="saveLocationGuide('${loc.id}', this.value)">
+    <select
+        id="guide-${loc.id}">
 
-                        ${options}
+        ${options}
 
-                    </select>
+    </select>
 
-                </td>
+</td>
+
+<td>
+
+    <button
+        class="btn-primary"
+        onclick="saveLocationGuide('${loc.id}')">
+
+        💾 Zapisz
+
+    </button>
+
+</td>
 
             </tr>
 
@@ -3735,7 +3748,12 @@ async function loadGuideLocations() {
 
 }
 
-async function saveLocationGuide(locationId, guideId) {
+async function saveLocationGuide(locationId){
+
+    const guideId =
+        document
+            .getElementById(`guide-${locationId}`)
+            .value;
 
     const { error } = await db
         .from("partner_locations")
@@ -3744,17 +3762,17 @@ async function saveLocationGuide(locationId, guideId) {
         })
         .eq("id", locationId);
 
-    if (error) {
+    if(error){
 
         console.error(error);
 
-        alert("Nie udało się zapisać przewodnika.");
+        alert("Błąd zapisu.");
 
         return;
 
     }
 
-    console.log("Przewodnik zapisany.");
+    alert("Przypisano przewodnik.");
 
 }
 
