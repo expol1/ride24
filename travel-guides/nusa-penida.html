@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#075af3">
+  <meta name="description" content="Ride24: interaktywny autoprzewodnik po Nusa Penida — 5 tras tematycznych z punktami Google Maps.">
+  <title>Nusa Penida — Ultimate Autoprzewodnik | Ride24</title>
+  <style>
+    :root{--blue:#075af3;--blue2:#063cd6;--lime:#79df00;--ink:#14213d;--muted:#637087;--paper:#fff;--soft:#f4f7fb;--line:#dbe5f1;--shadow:0 18px 55px rgba(15,47,103,.13)}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:#edf3fa;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+    a{color:inherit}
+    button,input{font:inherit}
+    .hero{min-height:94vh;display:grid;place-items:center;padding:34px 18px 58px;color:#fff;background:linear-gradient(135deg,#0947e8 0%,#0867f5 52%,#83e000 145%)}
+    .hero-inner{width:min(920px,100%);text-align:center}
+    .logo{width:min(330px,70vw);height:auto;filter:drop-shadow(0 10px 25px rgba(1,34,95,.2))}
+    .eyebrow{margin:28px 0 4px;font-size:.86rem;font-weight:800;letter-spacing:.16em}
+    h1{margin:0;font-size:clamp(3.2rem,10vw,6.8rem);line-height:.95;letter-spacing:-.055em}
+    .cover{display:block;width:min(760px,100%);max-height:480px;object-fit:cover;margin:28px auto 24px;border:9px solid #fff;border-radius:14px;box-shadow:var(--shadow)}
+    .subtitle{margin:0;font-size:clamp(1.1rem,3vw,1.7rem);font-weight:900;letter-spacing:.16em}
+    .hero-stats{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin-top:18px;padding:10px 26px;border-radius:999px;background:rgba(8,32,32,.9);font-size:.82rem;letter-spacing:.08em}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(7,90,243,.96);border-bottom:4px solid var(--lime);backdrop-filter:blur(10px)}
+    .topbar-inner{width:min(1120px,calc(100% - 28px));height:64px;margin:auto;display:flex;align-items:center;gap:18px}
+    .mini-logo{width:108px;height:auto}
+    .topnav{margin-left:auto;display:flex;gap:18px;font-size:.82rem;font-weight:750;color:#fff}
+    .topnav a{text-decoration:none}
+    main{width:min(1120px,calc(100% - 28px));margin:34px auto 80px}
+    .guide,.routes-shell{background:var(--paper);border-radius:24px;box-shadow:var(--shadow)}
+    .guide{padding:clamp(22px,5vw,44px)}
+    .section-title{margin:0 0 24px;color:var(--blue);font-size:clamp(1.55rem,4vw,2.3rem);letter-spacing:-.03em}
+    .guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .guide-card{padding:20px;border:1px solid var(--line);border-top:5px solid var(--blue);border-radius:16px;background:#fff}
+    .guide-card h3{margin:0 0 12px;color:var(--blue);font-size:1rem}
+    .guide-card p{margin:.7em 0;font-size:.92rem}
+    .howto{margin-top:18px;padding:22px 24px;border-left:7px solid var(--lime);border-radius:14px;background:var(--soft)}
+    .howto h3{margin:0 0 8px;color:var(--blue)}
+    .routes-shell{margin-top:28px;padding:clamp(18px,4vw,34px)}
+    .routes-head{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:18px}
+    .routes-head .section-title{margin:0}
+    .counter{color:var(--muted);font-size:.9rem;font-weight:700}
+    .tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;margin-bottom:22px}
+    .search{width:100%;padding:13px 15px;border:1px solid #bdcbe0;border-radius:12px;outline:none}
+    .search:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(7,90,243,.1)}
+    .expand-all{border:0;border-radius:12px;padding:0 18px;background:#e7efff;color:var(--blue);font-weight:800;cursor:pointer}
+    .route-list{display:grid;gap:18px}
+    .route-card{overflow:hidden;border:2px solid var(--blue);border-radius:18px;background:#fff}
+    .route-card[hidden]{display:none}
+    .route-card summary{list-style:none;cursor:pointer}
+    .route-card summary::-webkit-details-marker{display:none}
+    .route-head{position:relative;padding:18px 56px 17px 20px;color:#fff;background:linear-gradient(120deg,var(--blue2),var(--blue))}
+    .route-head:after{content:"+";position:absolute;right:21px;top:50%;translate:0 -50%;font-size:2rem;font-weight:300}
+    details[open] .route-head:after{content:"−"}
+    .route-number{display:block;margin-bottom:3px;font-size:.72rem;font-weight:850;letter-spacing:.13em;opacity:.8}
+    .route-name{font-size:clamp(1rem,2.7vw,1.28rem);font-weight:900;line-height:1.25}
+    .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+    .tag{padding:3px 9px;border-radius:999px;background:rgba(118,226,0,.98);color:#113c23;font-size:.66rem;font-weight:900}
+    .meta{display:flex;flex-wrap:wrap;gap:10px 20px;padding:11px 18px;background:#eef3f8;color:#33445e;font-size:.82rem;font-weight:760}
+    .points{padding:4px 18px 10px}
+    .point{padding:15px 0;border-bottom:1px solid var(--line)}
+    .point:last-child{border-bottom:0}
+    .point h3{margin:0 0 8px;padding-left:11px;border-left:4px solid var(--lime);font-size:.98rem;color:var(--blue)}
+    .point h3 a{text-decoration:none}
+    .point h3 a:hover{text-decoration:underline}
+    .translations{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .translations p{margin:0;color:#3f4a5c;font-size:.88rem;text-align:justify}
+    .translations p+ p{padding-left:24px;border-left:1px solid #e2e7ee;color:#647084}
+    .map-note{margin:10px 18px 0;padding:12px 14px;border-radius:12px;background:#fff8df;color:#665016;font-size:.84rem}
+    .route-actions{display:grid;grid-template-columns:1fr;gap:9px;padding:14px 18px 18px}
+    .map-button{display:block;padding:14px 18px;border-radius:12px;background:var(--lime);color:#12300a;text-align:center;text-decoration:none;font-size:.86rem;font-weight:950}
+    .map-button:hover{filter:brightness(.94)}
+    .map-button.secondary{background:#e7efff;color:var(--blue)}
+    .empty{display:none;padding:36px 10px;text-align:center;color:var(--muted)}
+    footer{padding:30px 18px 44px;background:#08254f;color:#dbe7ff;text-align:center;font-size:.85rem}
+    footer strong{color:#91f000}
+    .to-top{display:inline-block;margin-top:10px;color:#fff}
+    @media(max-width:720px){
+      .hero{min-height:auto;padding-top:28px}
+      .cover{border-width:6px}
+      .topnav a:first-child{display:none}
+      .guide-grid,.translations{grid-template-columns:1fr}
+      .translations p{text-align:left}
+      .translations p+ p{padding:0;border:0}
+      .tools{grid-template-columns:1fr}
+      .expand-all{padding:12px}
+      .routes-head{align-items:start;flex-direction:column;gap:4px}
+    }
+    @media print{
+      body{background:#fff}
+      .hero{min-height:auto;break-after:page}
+      .topbar,.tools,.route-actions,.to-top{display:none!important}
+      main{width:100%;margin:0}
+      .guide,.routes-shell{box-shadow:none;border-radius:0}
+      .route-card{break-inside:avoid}
+      details:not([open])>:not(summary){display:block}
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" id="start">
+    <div class="hero-inner">
+      <img class="logo" src="ride24-logo-v2.png" alt="Ride24 Autoprzewodnik">
+      <p class="eyebrow">INDONEZJA | INDONESIA</p>
+      <h1>NUSA PENIDA</h1>
+      <img class="cover" src="nusa-penida.jpg" alt="Nusa Penida - Ultimate Autoprzewodnik">
+      <p class="subtitle">ULTIMATE AUTOPRZEWODNIK</p>
+      <div class="hero-stats">
+        <span>TRASY: 5</span>
+        <span>|</span>
+        <span>DYSTANS: ~195 KM</span>
+        <span>|</span>
+        <span>START: PORT TOYA PAKEH</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="topbar">
+    <div class="topbar-inner">
+      <img class="mini-logo" src="ride24-logo-v2.png" alt="Ride24">
+      <nav class="topnav">
+        <a href="#przewodnik">O wyspie</a>
+        <a href="#trasy">Trasy zwiedzania</a>
+      </nav>
+    </div>
+  </div>
+
+  <main>
+    <section class="guide" id="przewodnik">
+      <h2 class="section-title">Interaktywny Przewodnik po Nusa Penida</h2>
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h3>Odkryj Dziki Raj Indonezji</h3>
+          <p>Nusa Penida to spektakularna wyspa położona na południowy wschód od Bali, słynąca z monumentalnych klifów wapiennych, krystalicznie czystej wody i zapierających dech w piersiach punktów widokowych.</p>
+          <p>W przeciwieństwie do skomercjalizowanego Bali, Penida zachowuje swój surowy, wyspiarski charakter, oferując niezapomniane wrażenia z jazdy samochodem terenowym lub skuterem.</p>
+        </div>
+        <div class="guide-card">
+          <h3>Logistyka i Drogi na Wyspie</h3>
+          <p>Wszystkie nasze trasy zaczynają się i kończą w głównym węźle komunikacyjnym wyspy — <strong>Porcie Toya Pakeh</strong>. To tutaj przypływają łodzie motorowe (speedboats) z Sanur na Bali.</p>
+          <p>Infrastruktura drogowa dynamicznie się rozwija, jednak trasy bywają wąskie, strome i pełne zakrętów. Zalecamy wynajem pewnego auta z kierowcą lub ostrożną jazdę jednośladem.</p>
+        </div>
+      </div>
+      <div class="howto">
+        <h3>Jak korzystać z autoprzewodnika?</h3>
+        <p>Wybierz jedną z poniższych tras tematycznych odpowiadającą Twoim zainteresowaniom. Kliknij interesujący Cię punkt, aby zobaczyć jego opis, lub użyj głównego przycisku nawigacji na dole karty danej trasy — automatycznie wytyczy on całą pętlę ze wszystkimi przystankami bezpośrednio w aplikacji Google Maps na Twoim telefonie!</p>
+      </div>
+    </section>
+
+    <section class="routes-shell" id="trasy">
+      <div class="routes-head">
+        <h2 class="section-title">Trasy Autoprzewodnika</h2>
+        <span class="counter">Dostępne programy: 5</span>
+      </div>
+
+      <div class="tools">
+        <input type="text" class="search" placeholder="Szukaj trasy (np. przyroda, plaże, kultura)...">
+        <button class="expand-all">Rozwiń wszystkie</button>
+      </div>
+
+      <div class="route-list">
+        
+        <!-- TRASA 1: PRZYRODA -->
+        <details class="route-card">
+          <summary>
+            <div class="route-head">
+              <span class="route-number">TRASA 01</span>
+              <div class="route-name">Dzika Przyroda i Monumentalne Klify Zachodu</div>
+              <div class="tags">
+                <span class="tag">PRZYRODA</span>
+                <span class="tag">WIDOKI</span>
+                <span class="tag">PRZYGODA</span>
+              </div>
+            </div>
+          </summary>
+          <div class="meta">
+            <span>📍 Dystans: ok. 42 km</span>
+            <span>⏱ Czas jazdy: ok. 2.5h (cały dzień ze zwiedzaniem)</span>
+            <span>⚓ Start/Meta: Port Toya Pakeh</span>
+          </div>
+          <div class="points">
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.672620,115.487349" target="_blank">1. Port Toya Pakeh (Start)</a></h3>
+              <p>Punkt początkowy pętli. Stąd kierujemy się na południowy zachód wyspy przez lokalne wioski.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.711294,115.453308" target="_blank">2. Crystal Bay</a></h3>
+              <p>Cudowna zatoka z piaszczystą plażą, idealna na poranny snorkeling lub odpoczynek w cieniu palm.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.732560,115.449176" target="_blank">3. Angel's Billabong & Broken Beach (Pasih Uug)</a></h3>
+              <p>Naturalny basen nieskończoności formowany przez ocean oraz spektakularny, wapienny łuk skalny nad zapadniętą zatoką.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.745404,115.472141" target="_blank">4. Kelingking Beach (T-Rex Cliff)</a></h3>
+              <p>Najsłynniejszy punkt widokowy w Indonezji. Formacja skalna przypominająca kształtem Tyranozaura, pod którą rozciąga się rajska plaża.</p>
+            </div>
+          </div>
+          <div class="translations">
+            <p><strong>PL:</strong> Ta trasa obejmuje absolutne ikony zachodniego wybrzeża Nusa Penida. Pozwala zobaczyć najbardziej spektakularne klify i cuda hydrogeologiczne wyspy podczas intensywnego, jednodniowego planu podróży.</p>
+            <p><strong>EN:</strong> This route covers the absolute icons of the western coast of Nusa Penida. It showcases the island's most spectacular cliffs and hydrogeological wonders during an intensive, single-day road trip.</p>
+          </div>
+          <div class="map-note">
+            ⚠️ <strong>Uwaga dotycząca drogi:</strong> Odcinek prowadzący do Broken Beach bywa wyboisty. Jedź powoli i zachowaj szczególną ostrożność.
+          </div>
+          <div class="route-actions">
+            <a href="https://www.google.com/maps/dir/Toyapakeh+Harbour,+Nusa+Penida/Crystal+Bay,+Nusa+Penida/Angel's+Billabong,+Nusa+Penida/Broken+Beach,+Nusa+Penida/Kelingking+Beach,+Nusa+Penida/Toyapakeh+Harbour,+Nusa+Penida" target="_blank" class="map-button">Uruchom Nawigację Google Maps (Pętla Zachodnia)</a>
+          </div>
+        </details>
+
+        <!-- TRASA 2: KULTURA -->
+        <details class="route-card">
+          <summary>
+            <div class="route-head">
+              <span class="route-number">TRASA 02</span>
+              <div class="route-name">Kultura, Mistycyzm i Świątynie Penidy</div>
+              <div class="tags">
+                <span class="tag">KULTURA</span>
+                <span class="tag">ŚWIĄTYNIE</span>
+                <span class="tag">TRADYCJA</span>
+              </div>
+            </div>
+          </summary>
+          <div class="meta">
+            <span>📍 Dystans: ok. 48 km</span>
+            <span>⏱ Czas jazdy: ok. 2h (plus czas na ceremonie)</span>
+            <span>⚓ Start/Meta: Port Toya Pakeh</span>
+          </div>
+          <div class="points">
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.672620,115.487349" target="_blank">1. Port Toya Pakeh (Start)</a></h3>
+              <p>Ruszamy na wschód wzdłuż północnego wybrzeża wyspy, mijając tradycyjne farmy alg morskich.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.671329,115.556272" target="_blank">2. Pura Goa Giri Putri</a></h3>
+              <p>Niezwykle mistyczna świątynia hinduistyczna ukryta wewnątrz ogromnej, naturalnej jaskini skalnej. Wejście odbywa się przez wąską szczelinę.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.749021,115.508573" target="_blank">3. Pura Carub & Pura Paluang (Car Temple)</a></h3>
+              <p>Świątynia słynąca z nietypowych kapliczek w kształcie... samochodów. Miejsce głęboko zakorzenione w lokalnych legendach chroniących kierowców.</p>
+            </div>
+          </div>
+          <div class="translations">
+            <p><strong>PL:</strong> Poznaj duchowe oblicze wyspy. Trasa prowadzi przez święte miejsca kultu, gdzie turyści mogą doświadczyć tradycyjnych balijskich ceremonii oczyszczenia w jaskiniach oraz unikalnych obiektów sakralnych.</p>
+            <p><strong>EN:</strong> Explore the spiritual side of the island. The route leads through sacred places of worship, where travelers can experience traditional Balinese purification rituals inside massive caves.</p>
+          </div>
+          <div class="map-note">
+            🥻 <strong>Wymagany dress code:</strong> Aby wejść do świątyń, musisz mieć założony tradycyjny sarong. Można go wypożyczyć przed wejściem do Goa Giri Putri.
+          </div>
+          <div class="route-actions">
+            <a href="https://www.google.com/maps/dir/Toyapakeh+Harbour,+Nusa+Penida/Pura+Goa+Giri+Putri,+Nusa+Penida/Pura+Paluang,+Nusa+Penida/Toyapakeh+Harbour,+Nusa+Penida" target="_blank" class="map-button">Uruchom Nawigację Google Maps (Pętla Kulturowa)</a>
+          </div>
+        </details>
+
+        <!-- TRASA 3: PLAŻE -->
+        <details class="route-card">
+          <summary>
+            <div class="route-head">
+              <span class="route-number">TRASA 03</span>
+              <div class="route-name">Rajskie Plaże Wschodniego Wybrzeża</div>
+              <div class="tags">
+                <span class="tag">PLAŻE</span>
+                <span class="tag">FOTOGRAFIA</span>
+                <span class="tag">RELAKS</span>
+              </div>
+            </div>
+          </summary>
+          <div class="meta">
+            <span>📍 Dystans: ok. 58 km</span>
+            <span>⏱ Czas jazdy: ok. 3h</span>
+            <span>⚓ Start/Meta: Port Toya Pakeh</span>
+          </div>
+          <div class="points">
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.672620,115.487349" target="_blank">1. Port Toya Pakeh (Start)</a></h3>
+              <p>Jedziemy w głąb wyspy przez wzgórza, kierując się na wschodnie, dziewicze rubieże Nusa Penida.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.775833,115.572778" target="_blank">2. Teletubbies Hills (Bukit Teletubbies)</a></h3>
+              <p>Zdumiewające formacje zielonych, zaokrąglonych wzgórz, przypominających krajobraz z popularnej bajki dla dzieci.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.769165,115.618683" target="_blank">3. Diamond Beach & Atuh Beach</a></h3>
+              <p>Dwie spektakularne zatoki położone obok siebie. Diamond Beach zachwyca schodami wykutymi w klifie oraz białym piaskiem i skałami w kształcie diamentów.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.775988,115.614828" target="_blank">4. Thousand Islands Viewpoint & Rumah Pohon (Tree House)</a></h3>
+              <p>Kultowy punkt widokowy na tysiące ostrych skał wyłaniających się z oceanu oraz słynny domek na drzewie.</p>
+            </div>
+          </div>
+          <div class="translations">
+            <p><strong>PL:</strong> Prawdziwa gratka dla miłośników pocztówkowych widoków i fotografii. Wschodnie wybrzeże oferuje najbardziej spektakularne plaże i lazurową wodę, jakiej nie znajdziesz nigdzie indziej.</p>
+            <p><strong>EN:</strong> A real treat for postcard view lovers and photographers. The east coast offers the most spectacular beaches and azure waters you won't find anywhere else.</p>
+          </div>
+          <div class="map-note">
+            🧗 <strong>Wymagany wysiłek:</strong> Zejście na Diamond Beach oraz Atuh Beach wymaga pokonania wielu stromych schodów. Zabierz wygodne obuwie i dużo wody.
+          </div>
+          <div class="route-actions">
+            <a href="https://www.google.com/maps/dir/Toyapakeh+Harbour,+Nusa+Penida/Teletubbies+Hill,+Nusa+Penida/Diamond+Beach,+Nusa+Penida/Atuh+Beach,+Nusa+Penida/Rumah+Pohon+Tree+House,+Nusa+Penida/Toyapakeh+Harbour,+Nusa+Penida" target="_blank" class="map-button">Uruchom Nawigację Google Maps (Pętla Wschodnia)</a>
+          </div>
+        </details>
+
+        <!-- TRASA 4: DLA DZIECI -->
+        <details class="route-card">
+          <summary>
+            <div class="route-head">
+              <span class="route-number">TRASA 04</span>
+              <div class="route-name">Rodzinna Przygoda — Łagodne Wybrzeże i Snorkeling</div>
+              <div class="tags">
+                <span class="tag">DLA DZIECI</span>
+                <span class="tag">RODZINA</span>
+                <span class="tag">BEZPIECZNA</span>
+              </div>
+            </div>
+          </summary>
+          <div class="meta">
+            <span>📍 Dystans: ok. 18 km</span>
+            <span>⏱ Czas jazdy: ok. 45 minut (krótkie odległości, płaski teren)</span>
+            <span>⚓ Start/Meta: Port Toya Pakeh</span>
+          </div>
+          <div class="points">
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.672620,115.487349" target="_blank">1. Port Toya Pakeh (Start)</a></h3>
+              <p>Trasa rodzinna unika niebezpiecznych, stromych serpentyn górskich i skupia się wokół bezpiecznego, północnego pasa wyspy.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.690854,115.467843" target="_blank">2. Zatoka Gamat Bay (Wycieczka Łodzią)</a></h3>
+              <p>Płytka zatoka z łagodnymi falami. Doskonałe miejsce na bezpieczny rodzinny snorkeling z łodzi, podczas którego dzieci mogą zobaczyć kolorowe rybki oraz żółwie morskie.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.674122,115.503411" target="_blank">3. Plaża Kutampi & Restauracje Rodzinne</a></h3>
+              <p>Szeroka, spokojna plaża z łagodnym zejściem do wody. Wzdłuż wybrzeża znajdują się restauracje serwujące świeże soki i europejskie menu przyjazne dzieciom.</p>
+            </div>
+          </div>
+          <div class="translations">
+            <p><strong>PL:</strong> Bezpieczna i relaksująca trasa dedykowana rodzinom z dziećmi. Eliminujemy trudne zjazdy serpentynami, skupiając się na bezpiecznych kąpieliskach, podziwianiu morskiej fauny i komforcie podróżowania.</p>
+            <p><strong>EN:</strong> A safe and relaxing route dedicated to families with children. We eliminate difficult cliff descents, focusing instead on calm swimming areas, marine life spotting, and travel comfort.</p>
+          </div>
+          <div class="map-note">
+            🐢 <strong>Atrakcja dla najmłodszych:</strong> W porcie Toya Pakeh łatwo wynajmiesz lokalną łódź ze szklanym dnem (glass-bottom boat) na prywatny rejs do Gamat Bay.
+          </div>
+          <div class="route-actions">
+            <a href="https://www.google.com/maps/dir/Toyapakeh+Harbour,+Nusa+Penida/Gamat+Bay,+Nusa+Penida/Kutampi+Beach,+Nusa+Penida/Toyapakeh+Harbour,+Nusa+Penida" target="_blank" class="map-button">Uruchom Nawigację Google Maps (Trasa Rodzinna)</a>
+          </div>
+        </details>
+
+        <!-- TRASA 5: UKRYTE SKARBY -->
+        <details class="route-card">
+          <summary>
+            <div class="route-head">
+              <span class="route-number">TRASA 05</span>
+              <div class="route-name">Sekrety Południa — Tembeling Forest i Peguyangan</div>
+              <div class="tags">
+                <span class="tag">PRZYGODA</span>
+                <span class="tag">OFF-ROAD</span>
+                <span class="tag">UKRYTE</span>
+              </div>
+            </div>
+          </summary>
+          <div class="meta">
+            <span>📍 Dystans: ok. 29 km</span>
+            <span>⏱ Czas jazdy: ok. 1.5h (wymagająca nawierzchnia górskia)</span>
+            <span>⚓ Start/Meta: Port Toya Pakeh</span>
+          </div>
+          <div class="points">
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.672620,115.487349" target="_blank">1. Port Toya Pakeh (Start)</a></h3>
+              <p>Kierujemy się prosto na południe wyspy, przecinając gęste, dziewicze lasy tropikalne.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.750894,115.483955" target="_blank">2. Tembeling Beach and Forest</a></h3>
+              <p>Ukryty w pierwotnym lesie tropikalnym kompleks naturalnych basenów ze słodką wodą źródlaną, tuż obok dzikiej, skalistej plaży.</p>
+            </div>
+            <div class="point">
+              <h3><a href="https://maps.google.com/?q=-8.775010,115.490124" target="_blank">3. Wodospad Peguyangan (Niebieskie Schody)</a></h3>
+              <p>Ikoniczne, strome, niebieskie schody przyczepione do pionowego klifu. Na samym dole znajduje się święte źródło i naturalne jacuzzi nad oceanem.</p>
+            </div>
+          </div>
+          <div class="translations">
+            <p><strong>PL:</strong> Trasa dla prawdziwych poszukiwaczy przygód, chcących zejść z utartych szlaków. Południe Nusa Penida kryje najmniej dotknięte masową turystyką zakątki, mistyczny las oraz ekstremalne zejścia klifowe.</p>
+            <p><strong>EN:</strong> A route for true adventurers looking to step off the beaten track. The southern coast of Nusa Penida hides pristine rainforests, freshwater pools, and extreme cliff descents.</p>
+          </div>
+          <div class="map-note">
+            🛵 <strong>Wymagane doświadczenie:</strong> Ostatni odcinek drogi do lasu Tembeling jest bardzo stromy i kamienisty. Mniej doświadczonym kierowcom zaleca się zostawienie pojazdu wyżej i spacer lub skorzystanie z lokalnego taxi skuterowego.
+          </div>
+          <div class="route-actions">
+            <a href="https://www.google.com/maps/dir/Toyapakeh+Harbour,+Nusa+Penida/Tembeling+Beach+and+Forest,+Nusa+Penida/Peguyangan+Waterfall,+Nusa+Penida/Toyapakeh+Harbour,+Nusa+Penida" target="_blank" class="map-button">Uruchom Nawigację Google Maps (Pętla Południowa)</a>
+          </div>
+        </details>
+
+      </div>
+
+      <div class="empty">Nie znaleziono tras spełniających kryteria wyszukiwania.</div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Autoprzewodnik stworzony przez <strong>Ride24</strong> &copy; 2026. Życzymy bezpiecznej i niezapomnianej podróży po Nusa Penida!</p>
+    <a href="#start" class="to-top">Powrót do góry ↑</a>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.querySelector('.search');
+      const expandBtn = document.querySelector('.expand-all');
+      const cards = document.querySelectorAll('.route-card');
+      const emptyMsg = document.querySelector('.empty');
+
+      // Filtrowanie tras
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        let hasResults = false;
+
+        cards.forEach(card => {
+          const name = card.querySelector('.route-name').textContent.toLowerCase();
+          const number = card.querySelector('.route-number').textContent.toLowerCase();
+          const tags = card.querySelector('.tags').textContent.toLowerCase();
+          
+          if (name.includes(query) || number.includes(query) || tags.includes(query)) {
+            card.removeAttribute('hidden');
+            hasResults = true;
+          } else {
+            card.setAttribute('hidden', '');
+          }
+        });
+
+        emptyMsg.style.display = hasResults ? 'none' : 'block';
+      });
+
+      // Rozwijanie / Zwijanie wszystkich tras
+      let allOpen = false;
+      expandBtn.addEventListener('click', () => {
+        allOpen = !allOpen;
+        cards.forEach(card => {
+          if (allOpen) {
+            card.setAttribute('open', '');
+          } else {
+            card.removeAttribute('open');
+          }
+        });
+        expandBtn.textContent = allOpen ? 'Zwiń wszystkie' : 'Rozwiń wszystkie';
+      });
+    });
+  </script>
+</body>
+</html>
