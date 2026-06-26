@@ -2671,6 +2671,14 @@ else if (s === 'paid') {
     actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')">
         📄 Voucher PDF
     </button>`;
+    
+    actionsHtml += `<button
+    class="action-btn-premium btn-download-voucher"
+    onclick="window.openGuide('${booking.id}')">
+
+    🎁 Darmowy Autoprzewodnik
+
+</button>`;
 
     if (booking.receipt_generated) {
         actionsHtml += `<button class="action-btn-premium btn-download-receipt" onclick="window.downloadReceipt('${booking.id}')">
@@ -3659,6 +3667,61 @@ window.cancelBooking = async function(id, currentStatus) {
             }
             window.location.href = sData.signedUrl;
         }
+     
+        window.openGuide = async function (bookingId) {
+
+    const isEn = localStorage.getItem("client_lang") === "en";
+
+    // 1. Pobierz booking
+    const { data: booking, error: bookingError } = await db
+        .from("bookings")
+        .select("partner_id")
+        .eq("id", bookingId)
+        .single();
+
+    if (bookingError || !booking) {
+        window.showToast(
+            isEn ? "Guide unavailable" : "Nie znaleziono przewodnika",
+            "error"
+        );
+        return;
+    }
+
+    // 2. Pobierz guide_id partnera
+    const { data: partnerLocation, error: locationError } = await db
+        .from("partner_locations")
+        .select("guide_id")
+        .eq("partner_id", booking.partner_id)
+        .limit(1)
+        .single();
+
+    if (locationError || !partnerLocation?.guide_id) {
+        window.showToast(
+            isEn ? "Guide unavailable" : "Brak przypisanego przewodnika",
+            "error"
+        );
+        return;
+    }
+
+    // 3. Pobierz folder z travel_guides
+    const { data: guide, error: guideError } = await db
+        .from("travel_guides")
+        .select("folder_name")
+        .eq("id", partnerLocation.guide_id)
+        .single();
+
+    if (guideError || !guide) {
+        window.showToast(
+            isEn ? "Guide unavailable" : "Nie znaleziono przewodnika",
+            "error"
+        );
+        return;
+    }
+
+    // 4. Otwórz przewodnik
+    window.open(`/travel-guides/${guide.folder_name}.html`, "_blank");
+
+}; 
 
         window.setLang = function(lang) {
             localStorage.setItem("client_lang", lang);
