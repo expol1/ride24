@@ -324,7 +324,9 @@
 <div class="nav-item" onclick="switchTab('marketing')" id="nav-marketing">
     <span class="nav-text">Marketing AI</span>
 </div>
-    
+    <div class="nav-item" onclick="switchTab('guides')" id="nav-guides">
+    <span class="nav-text">Autoprzewodniki</span>
+</div>
 </nav>
     </aside>
 <nav class="mobile-nav">
@@ -348,6 +350,10 @@
             <span>🚀</span>
             <span>Marketing</span>
         </div>
+        <div class="mobile-nav-item" onclick="switchTab('guides')" id="m-nav-guides">
+    <span>🗺️</span>
+    <span>Guides</span>
+</div>
     </nav>
     <div class="main-wrapper">
         <header class="topbar">
@@ -906,7 +912,62 @@
 
 </div>
 </div>
+<div id="view-guides" class="view-section">
 
+    <div class="page-header">
+        <h1 class="page-title">Autoprzewodniki</h1>
+
+        <button
+            class="btn-primary"
+            onclick="openAddGuideModal()">
+            + Dodaj przewodnik
+        </button>
+
+    </div>
+
+    <div class="table-container">
+
+        <div class="table-header">
+
+            Lista przewodników
+
+        </div>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Nazwa</th>
+                    <th>Slug</th>
+                    <th>Status</th>
+                    <th>Lokalizacji</th>
+                    <th>Akcja</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="guides-tbody">
+
+                <tr>
+
+                    <td colspan="5">
+
+                        Ładowanie...
+
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
         </main>
 <div id="marketing-modal"
      style="
@@ -1374,7 +1435,11 @@ function closePromotionModal() {
                 loadMarketingRuns();
                 loadMarketingQueue();
             }
-            
+            if (tabId === "guides") {
+
+    loadGuides();
+
+}
             // Ukrywamy wszystkie sekcje i pokazujemy wybraną
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById('view-' + tabId).classList.add('active');
@@ -3438,7 +3503,17 @@ ${data.sample_location?.city || "BRAK"}`
             "Generuj posty";
     }
 }
+async function loadGuides() {
 
+    document.getElementById("guides-tbody").innerHTML = `
+        <tr>
+            <td colspan="5" style="text-align:center;padding:30px;">
+                Ładowanie przewodników...
+            </td>
+        </tr>
+    `;
+
+}
 // --- GENERATOR UMOWY PARTNERSKIEJ ---
 window.generateAgreement = function(partnerData) {
     const today = new Date().toLocaleDateString('pl-PL');
