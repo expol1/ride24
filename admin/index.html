@@ -431,7 +431,7 @@
     <th>%</th>
     <th>Konto</th>
     <th>Powód</th>
-    <th>Akcja</th>
+    <th>Podgląd</th>
 </tr>
 </thead>
             <tbody id="refunds-tbody">
@@ -891,7 +891,7 @@
     <tr>
         <th>Data</th>
         <th>Platforma</th>
-        <th>Lokalizacja</th>
+        
         <th>Status</th>
         <th>Treść posta</th>
         <th>Akcja</th>
@@ -924,46 +924,93 @@
 </button>
 
     </div>
+<div style="
+background:#FEF3C7;
+border:1px solid #FCD34D;
+border-radius:10px;
+padding:18px 22px;
+margin-bottom:25px;
+font-size:13px;
+line-height:1.8;
+color:#92400E;">
 
+<h3 style="margin-bottom:12px;color:#78350F;">
+📘 Jak dodać nowy Autoprzewodnik?
+</h3>
+
+<b>Krok 1.</b><br>
+Utwórz nowy plik HTML w katalogu:
+
+<code>/travel-guides/</code>
+
+np.
+
+<b>madeira.html</b>,
+<b>cyprus.html</b>,
+<b>azores.html</b>
+
+<br><br>
+
+<b>Krok 2.</b><br>
+
+Jeżeli przewodnik zawiera zdjęcia lub inne pliki,
+wgraj je również do projektu i popraw ścieżki w HTML.
+
+<br><br>
+
+<b>Krok 3.</b><br>
+
+Kliknij przycisk
+
+<b>➕ Dodaj przewodnik do bazy</b>
+
+i wpisz:
+
+<ul style="margin:8px 0 8px 20px;">
+<li>Nazwa przewodnika (np. Madera)</li>
+<li>Slug (np. madeira)</li>
+</ul>
+
+Slug musi być identyczny z nazwą pliku HTML bez rozszerzenia.
+
+<br><br>
+
+<b>Krok 4.</b><br>
+
+W sekcji
+
+<b>Przypisanie przewodników do lokalizacji</b>
+
+przypisz przewodnik do odpowiednich lokalizacji.
+
+<br><br>
+
+<b>Krok 5.</b><br>
+
+Po dokonaniu rezerwacji klient automatycznie otrzyma przycisk
+
+<b>🎁 Darmowy Autoprzewodnik</b>
+
+który otworzy odpowiedni przewodnik.
+
+</div>
     <div class="table-container">
 
     <div class="table-header">
 
-        Przewodniki w bazie danych
+        Lista Autoprzewodników
 
     </div>
+<div style="
+padding:12px 20px;
+font-size:13px;
+color:#64748B;
+border-bottom:1px solid #E5E7EB;">
 
-    <div style="
-        background:#FEF3C7;
-        border-bottom:1px solid #FCD34D;
-        padding:16px 20px;
-        line-height:1.7;
-        font-size:13px;
-        color:#92400E;">
+Lista wszystkich przewodników dodanych do bazy danych. Możesz sprawdzić ich status oraz otworzyć przewodnik w nowej karcie.
 
-        <b>⚠️ Jak dodać nowy Autoprzewodnik?</b><br><br>
-
-        <b>Krok 1.</b> Utwórz folder przewodnika w projekcie Ride24:<br>
-        <code>guides/nazwa-folderu/</code><br><br>
-
-        <b>Krok 2.</b> Wgraj do folderu wszystkie pliki przez VS Code / FTP:
-        <ul style="margin:8px 0 8px 18px;">
-            <li>index.html</li>
-            <li>zdjęcia</li>
-            <li>pozostałe pliki przewodnika</li>
-        </ul>
-
-        <b>Krok 3.</b> Dodaj wpis do tabeli <b>Travel Guides</b> przyciskiem <b>+ Dodaj przewodnik</b>.
-
-        <br><br>
-
-        <b>Krok 4.</b> Przypisz przewodnik do lokalizacji poniżej.
-
-        <br><br>
-
-        ✅ Dopiero wtedy klient otrzyma Autoprzewodnik po rezerwacji.
-
-    </div>
+</div>
+    
 
         <table>
 
@@ -3667,7 +3714,7 @@ ${g.active ? "✅ Aktywny" : "❌ Wyłączony"}
 
 </td>
 
-<td>-</td>
+
 
 <td style="text-align:center;">
 
@@ -3849,7 +3896,7 @@ async function saveGuide() {
     const { data: existing } = await db
         .from("travel_guides")
         .select("id")
-        .eq("slug", slug)
+        .or(`slug.eq.${slug},folder_name.eq.${slug}`)
         .maybeSingle();
 
     if (existing) {
@@ -3880,7 +3927,7 @@ async function saveGuide() {
 
     await loadGuides();
 
-    alert("Przewodnik został dodany.");
+    alert("Przewodnik został dodany do bazy. Teraz przypisz go do odpowiednich lokalizacji.");
 
 }
 // --- GENERATOR UMOWY PARTNERSKIEJ ---
@@ -4461,7 +4508,7 @@ Uruchom
 
         <div class="modal-header">
 
-            <h2>Dodaj Autoprzewodnik</h2>
+            <h2>➕ Dodaj przewodnik do bazy</h2>
 
         </div>
 
@@ -4481,23 +4528,50 @@ Uruchom
                 class="form-control"
                 placeholder="cyprus">
 
-            <div style="
+           
+<div style="
 margin-top:20px;
-padding:12px;
-background:#FEF3C7;
-border:1px solid #FCD34D;
+padding:16px;
+background:#EFF6FF;
+border:1px solid #BFDBFE;
 border-radius:8px;
 font-size:13px;
-color:#92400E;">
+line-height:1.8;
+color:#1E3A8A;">
 
-📁 Pliki HTML i JPG dodawane są ręcznie przez VS Code do katalogu:
+<b>📘 Jak dodać nowy Autoprzewodnik?</b><br><br>
 
-<b>/travel-guides/</b>
+<b>Krok 1.</b> Wgraj plik HTML do katalogu:<br>
+<b>/travel-guides/</b><br><br>
 
-Tutaj dodajesz tylko wpis przewodnika do bazy.
+Przykład:<br>
+
+madeira.html<br>
+cyprus.html<br>
+azores.html
+
+<br><br>
+
+<b>Krok 2.</b> Dodaj wpis do bazy:
+
+<ul style="margin:8px 0 8px 20px;">
+<li><b>Nazwa</b> (np. Madera)</li>
+<li><b>Slug</b> (np. madeira)</li>
+</ul>
+
+<b>Slug musi być identyczny jak nazwa pliku HTML bez rozszerzenia.</b>
+
+<br><br>
+
+Przykład:
+
+madeira.html
+
+↓
+
+Slug = <b>madeira</b>
 
 </div>
-
         </div>
 
         <div class="modal-footer">
