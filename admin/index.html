@@ -127,6 +127,86 @@
     background: #475569;
 }
 
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.62);
+            backdrop-filter: blur(6px);
+        }
+
+        .modal-box {
+            width: 100%;
+            max-width: 460px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+            background: #F8FAFC;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .modal-body {
+            padding: 20px 22px;
+        }
+
+        .modal-body label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--gray);
+            text-transform: uppercase;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        .guide-modal-note {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border: 1px solid #BFDBFE;
+            border-radius: 8px;
+            background: #EFF6FF;
+            color: #1E3A8A;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 22px;
+            border-top: 1px solid var(--border);
+            background: #F8FAFC;
+        }
+
         .btn-primary:hover {
             background: var(--blue-dark);
             transform: translateY(-1px);
@@ -1217,74 +1297,34 @@ Klient po opłaceniu rezerwacji automatycznie zobaczy przycisk
 </div>
 <div id="guide-modal" class="modal-overlay" style="display:none;">
 
-    <div class="modal-box" style="max-width:700px;">
+    <div class="modal-box">
 
         <div class="modal-header">
 
-            <h2>➕ Dodaj przewodnik do bazy</h2>
+            <h2>Dodaj przewodnik do bazy</h2>
 
         </div>
 
         <div class="modal-body">
 
-            <label>Nazwa przewodnika</label>
+            <label for="guide-title">Nazwa przewodnika</label>
 
             <input
                 id="guide-title"
                 class="form-control"
-                placeholder="Cypr">
+                placeholder="np. Cypr">
 
-            <label style="margin-top:15px;">Slug</label>
+            <label for="guide-slug" style="margin-top:15px;">Slug</label>
 
             <input
                 id="guide-slug"
                 class="form-control"
-                placeholder="cyprus">
+                placeholder="np. cyprus">
 
-           
-<div style="
-margin-top:20px;
-padding:16px;
-background:#EFF6FF;
-border:1px solid #BFDBFE;
-border-radius:8px;
-font-size:13px;
-line-height:1.8;
-color:#1E3A8A;">
+            <div class="guide-modal-note">
+                Slug musi być identyczny jak nazwa pliku HTML bez rozszerzenia, np. <b>madeira</b> dla pliku <b>madeira.html</b>.
+            </div>
 
-<b>📘 Jak dodać nowy Autoprzewodnik?</b><br><br>
-
-<b>Krok 1.</b> Wgraj plik HTML do katalogu:<br>
-<b>/travel-guides/</b><br><br>
-
-Przykład:<br>
-
-madeira.html<br>
-cyprus.html<br>
-azores.html
-
-<br><br>
-
-<b>Krok 2.</b> Dodaj wpis do bazy:
-
-<ul style="margin:8px 0 8px 20px;">
-<li><b>Nazwa</b> (np. Madera)</li>
-<li><b>Slug</b> (np. madeira)</li>
-</ul>
-
-<b>Slug musi być identyczny jak nazwa pliku HTML bez rozszerzenia.</b>
-
-<br><br>
-
-Przykład:
-
-madeira.html
-
-↓
-
-Slug = <b>madeira</b>
-
-</div>
         </div>
 
         <div class="modal-footer">
@@ -1301,7 +1341,7 @@ Slug = <b>madeira</b>
                 class="btn-primary"
                 onclick="saveGuide()">
 
-                Dodaj
+                Zapisz
 
             </button>
 
@@ -4557,43 +4597,3 @@ checked>
 3 dni
 </label>
 
-<label style="display:block;margin-bottom:20px;">
-<input
-type="radio"
-name="promotion-days"
-value="7">
-7 dni
-</label>
-
-<div
-style="
-display:flex;
-justify-content:flex-end;
-gap:10px;
-">
-
-<button
-class="btn-danger"
-onclick="closePromotionModal()">
-
-Anuluj
-
-</button>
-
-<button
-class="btn-primary"
-onclick="confirmPromotion()">
-
-Uruchom
-
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-
-    </body>
-</html>
