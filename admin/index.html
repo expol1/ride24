@@ -3673,7 +3673,7 @@ ${g.active ? "✅ Aktywny" : "❌ Wyłączony"}
 
 <button
 class="btn-secondary"
-onclick="window.open('/guides/${g.folder_name}/','_blank')">
+onclick="window.open('/travel-guides/${g.folder_name}.html','_blank')">
 
 👁 Otwórz
 
@@ -4438,19 +4438,22 @@ Uruchom
                 class="form-control"
                 placeholder="cyprus">
 
-            <label style="margin-top:15px;">Plik HTML</label>
+            <div style="
+margin-top:20px;
+padding:12px;
+background:#FEF3C7;
+border:1px solid #FCD34D;
+border-radius:8px;
+font-size:13px;
+color:#92400E;">
 
-            <input
-                id="guide-html"
-                type="file"
-                accept=".html">
+📁 Pliki HTML i JPG dodawane są ręcznie przez VS Code do katalogu:
 
-            <label style="margin-top:15px;">Zdjęcie JPG</label>
+<b>/travel-guides/</b>
 
-            <input
-                id="guide-image"
-                type="file"
-                accept=".jpg,.jpeg">
+Tutaj dodajesz tylko wpis przewodnika do bazy.
+
+</div>
 
         </div>
 
