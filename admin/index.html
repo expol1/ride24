@@ -918,10 +918,10 @@
         <h1 class="page-title">Autoprzewodniki</h1>
 
         <button
-            class="btn-primary"
-            onclick="openAddGuideModal()">
-            + Dodaj przewodnik
-        </button>
+    class="btn-primary"
+    onclick="openAddGuideModal()">
+    + Dodaj wpis przewodnika
+</button>
 
     </div>
 
@@ -929,7 +929,7 @@
 
     <div class="table-header">
 
-        Lista przewodników
+        Przewodniki w bazie danych
 
     </div>
 
@@ -974,7 +974,17 @@
                     <th>Nazwa</th>
                     <th>Slug</th>
                     <th>Status</th>
-                    <th>Lokalizacji</th>
+                    <th>
+    Lokalizacji
+    <div style="
+        font-size:11px;
+        font-weight:400;
+        color:#94A3B8;
+        margin-top:3px;
+        text-transform:none;">
+        przypisanych
+    </div>
+</th>
                     <th>Akcja</th>
 
                 </tr>
@@ -3659,8 +3669,16 @@ ${g.active ? "✅ Aktywny" : "❌ Wyłączony"}
 
 <td>-</td>
 
-<<td style="text-align:center;">
-—
+<td style="text-align:center;">
+
+<button
+class="btn-secondary"
+onclick="window.open('/guides/${g.folder_name}/','_blank')">
+
+👁 Otwórz
+
+</button>
+
 </td>
 
 </tr>
