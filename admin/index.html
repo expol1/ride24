@@ -3835,9 +3835,52 @@ console.log("Guide:", guideId);
 
 }
 
-async function saveGuide(){
+async function saveGuide() {
 
-    alert("Jeszcze nie podłączone.");
+    const title = document.getElementById("guide-title").value.trim();
+    const slug = document.getElementById("guide-slug").value.trim().toLowerCase();
+
+    if (!title || !slug) {
+        alert("Uzupełnij nazwę i slug.");
+        return;
+    }
+
+    // sprawdzenie czy już istnieje
+    const { data: existing } = await db
+        .from("travel_guides")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+
+    if (existing) {
+        alert("Przewodnik o takim slug już istnieje.");
+        return;
+    }
+
+    const { error } = await db
+        .from("travel_guides")
+        .insert({
+            title: title,
+            slug: slug,
+            folder_name: slug,
+            active: true
+        });
+
+    if (error) {
+        console.error(error);
+        alert("Błąd zapisu.");
+        return;
+    }
+
+    // wyczyść formularz
+    document.getElementById("guide-title").value = "";
+    document.getElementById("guide-slug").value = "";
+
+    closeGuideModal();
+
+    await loadGuides();
+
+    alert("Przewodnik został dodany.");
 
 }
 // --- GENERATOR UMOWY PARTNERSKIEJ ---
