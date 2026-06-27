@@ -1217,7 +1217,97 @@ Lista wszystkich przewodników dodanych do bazy danych. Możesz sprawdzić ich s
     </div>
 
 </div>
+<div id="guide-modal" class="modal-overlay" style="display:none;">
 
+    <div class="modal-box" style="max-width:700px;">
+
+        <div class="modal-header">
+
+            <h2>➕ Dodaj przewodnik do bazy</h2>
+
+        </div>
+
+        <div class="modal-body">
+
+            <label>Nazwa przewodnika</label>
+
+            <input
+                id="guide-title"
+                class="form-control"
+                placeholder="Cypr">
+
+            <label style="margin-top:15px;">Slug</label>
+
+            <input
+                id="guide-slug"
+                class="form-control"
+                placeholder="cyprus">
+
+           
+<div style="
+margin-top:20px;
+padding:16px;
+background:#EFF6FF;
+border:1px solid #BFDBFE;
+border-radius:8px;
+font-size:13px;
+line-height:1.8;
+color:#1E3A8A;">
+
+<b>📘 Jak dodać nowy Autoprzewodnik?</b><br><br>
+
+<b>Krok 1.</b> Wgraj plik HTML do katalogu:<br>
+<b>/travel-guides/</b><br><br>
+
+Przykład:<br>
+
+madeira.html<br>
+cyprus.html<br>
+azores.html
+
+<br><br>
+
+<b>Krok 2.</b> Dodaj wpis do bazy:
+
+<ul style="margin:8px 0 8px 20px;">
+<li><b>Nazwa</b> (np. Madera)</li>
+<li><b>Slug</b> (np. madeira)</li>
+</ul>
+
+<b>Slug musi być identyczny jak nazwa pliku HTML bez rozszerzenia.</b>
+
+<br><br>
+
+Przykład:
+
+madeira.html
+
+↓
+
+Slug = <b>madeira</b>
+
+</div>
+        </div>
+
+        <div class="modal-footer">
+
+            <button
+                class="btn-secondary"
+                onclick="closeGuideModal()">
+
+                Anuluj
+
+            </button>
+
+            <button
+                class="btn-primary"
+                onclick="saveGuide()">
+
+                Dodaj
+
+            </button>
+
+        </div>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../assets/helper/supabaseConfig.js"></script>
 
@@ -4502,97 +4592,7 @@ Uruchom
 </div>
 
 </div>
-<div id="guide-modal" class="modal-overlay" style="display:none;">
 
-    <div class="modal-box" style="max-width:700px;">
-
-        <div class="modal-header">
-
-            <h2>➕ Dodaj przewodnik do bazy</h2>
-
-        </div>
-
-        <div class="modal-body">
-
-            <label>Nazwa przewodnika</label>
-
-            <input
-                id="guide-title"
-                class="form-control"
-                placeholder="Cypr">
-
-            <label style="margin-top:15px;">Slug</label>
-
-            <input
-                id="guide-slug"
-                class="form-control"
-                placeholder="cyprus">
-
-           
-<div style="
-margin-top:20px;
-padding:16px;
-background:#EFF6FF;
-border:1px solid #BFDBFE;
-border-radius:8px;
-font-size:13px;
-line-height:1.8;
-color:#1E3A8A;">
-
-<b>📘 Jak dodać nowy Autoprzewodnik?</b><br><br>
-
-<b>Krok 1.</b> Wgraj plik HTML do katalogu:<br>
-<b>/travel-guides/</b><br><br>
-
-Przykład:<br>
-
-madeira.html<br>
-cyprus.html<br>
-azores.html
-
-<br><br>
-
-<b>Krok 2.</b> Dodaj wpis do bazy:
-
-<ul style="margin:8px 0 8px 20px;">
-<li><b>Nazwa</b> (np. Madera)</li>
-<li><b>Slug</b> (np. madeira)</li>
-</ul>
-
-<b>Slug musi być identyczny jak nazwa pliku HTML bez rozszerzenia.</b>
-
-<br><br>
-
-Przykład:
-
-madeira.html
-
-↓
-
-Slug = <b>madeira</b>
-
-</div>
-        </div>
-
-        <div class="modal-footer">
-
-            <button
-                class="btn-secondary"
-                onclick="closeGuideModal()">
-
-                Anuluj
-
-            </button>
-
-            <button
-                class="btn-primary"
-                onclick="saveGuide()">
-
-                Dodaj
-
-            </button>
-
-        </div>
 
     </div>
 
