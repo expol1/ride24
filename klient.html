@@ -1591,28 +1591,55 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
     `;
 
     if (partnerTermsSnapshot) {
-        html += `
-            <div style="margin-bottom:10px;">
-                <a href="${partnerTermsSnapshot}"
-                   target="_blank"
-                   style="color:var(--blue);text-decoration:none;">
-                    📘 ${isEn ? "Rental regulations" : "Regulamin partnera"}
-                </a>
-            </div>
-        `;
-    }
+    html += `
+        <button
+            onclick="window.open('${partnerTermsSnapshot}','_blank','noopener,noreferrer')"
+            style="
+                width:100%;
+                margin-bottom:10px;
+                padding:12px;
+                background:#1E293B;
+                border:1px solid #334155;
+                border-radius:10px;
+                color:white;
+                cursor:pointer;
+                font-weight:600;
+                text-align:left;
+                transition:.2s;
+            "
+            onmouseover="this.style.background='#334155'"
+            onmouseout="this.style.background='#1E293B'">
 
-    if (partnerRulesSnapshot) {
-        html += `
-            <div>
-                <a href="${partnerRulesSnapshot}"
-                   target="_blank"
-                   style="color:var(--blue);text-decoration:none;">
-                    📗 ${isEn ? "Rental conditions" : "Warunki wynajmu"}
-                </a>
-            </div>
-        `;
-    }
+            📘 ${isEn ? "Partner regulations" : "Regulamin partnera"}
+
+        </button>
+    `;
+}
+
+   if (partnerRulesSnapshot) {
+    html += `
+        <button
+            onclick="window.open('${partnerRulesSnapshot}','_blank','noopener,noreferrer')"
+            style="
+                width:100%;
+                padding:12px;
+                background:#1E293B;
+                border:1px solid #334155;
+                border-radius:10px;
+                color:white;
+                cursor:pointer;
+                font-weight:600;
+                text-align:left;
+                transition:.2s;
+            "
+            onmouseover="this.style.background='#334155'"
+            onmouseout="this.style.background='#1E293B'">
+
+            📗 ${isEn ? "Rental conditions" : "Warunki wynajmu"}
+
+        </button>
+    `;
+}
 
     html += `</div>`;
 }
