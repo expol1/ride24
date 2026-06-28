@@ -1534,10 +1534,6 @@ window.closeDeleteModal = function() {
 };
 // --- LOGIKA MODALA SZCZEGÓŁÓW ---
         window.openDetailsModal = function(
-
-        console.log("partnerTermsSnapshot:", partnerTermsSnapshot);
-console.log("partnerRulesSnapshot:", partnerRulesSnapshot);
-
     deposit,
     mileage,
     driverIncluded,
@@ -1546,6 +1542,10 @@ console.log("partnerRulesSnapshot:", partnerRulesSnapshot);
     partnerTermsSnapshot,
     partnerRulesSnapshot
 ) {
+
+           console.log("partnerTermsSnapshot:", partnerTermsSnapshot);
+           console.log("partnerRulesSnapshot:", partnerRulesSnapshot);
+
             const isEn = localStorage.getItem("client_lang") === "en";
             const body = document.getElementById("bookingDetailsBody");
             
