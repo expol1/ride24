@@ -1533,7 +1533,15 @@ window.closeDeleteModal = function() {
     document.getElementById('deleteModal').style.display = 'none';
 };
 // --- LOGIKA MODALA SZCZEGÓŁÓW ---
-        window.openDetailsModal = function(deposit, mileage, driverIncluded, driverHours, currency) {
+        window.openDetailsModal = function(
+    deposit,
+    mileage,
+    driverIncluded,
+    driverHours,
+    currency,
+    partnerTermsSnapshot,
+    partnerRulesSnapshot
+) {
             const isEn = localStorage.getItem("client_lang") === "en";
             const body = document.getElementById("bookingDetailsBody");
             
@@ -1559,7 +1567,51 @@ window.closeDeleteModal = function() {
                     <strong style="color: var(--blue); font-size: 15px;">🧑 ${isEn ? 'Driver included' : 'Kierowca w cenie'}${hrsText}</strong>
                 </div>`;
             }
-            
+            // Dokumenty partnera
+if (partnerTermsSnapshot || partnerRulesSnapshot) {
+
+    html += `
+        <div style="
+            margin-top:20px;
+            padding-top:20px;
+            border-top:1px solid #334155;
+        ">
+            <strong style="
+                display:block;
+                margin-bottom:12px;
+                color:white;
+                font-size:15px;
+            ">
+                📄 ${isEn ? "Partner documents" : "Dokumenty partnera"}
+            </strong>
+    `;
+
+    if (partnerTermsSnapshot) {
+        html += `
+            <div style="margin-bottom:10px;">
+                <a href="${partnerTermsSnapshot}"
+                   target="_blank"
+                   style="color:var(--blue);text-decoration:none;">
+                    📘 ${isEn ? "Rental regulations" : "Regulamin partnera"}
+                </a>
+            </div>
+        `;
+    }
+
+    if (partnerRulesSnapshot) {
+        html += `
+            <div>
+                <a href="${partnerRulesSnapshot}"
+                   target="_blank"
+                   style="color:var(--blue);text-decoration:none;">
+                    📗 ${isEn ? "Rental conditions" : "Warunki wynajmu"}
+                </a>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+}
             body.innerHTML = html;
             document.getElementById("bookingDetailsModal").style.display = "flex";
         };
@@ -2745,7 +2797,15 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     <span class="class-label">${carName}</span>
     
     <div style="margin-top: 6px;">
-        <span onclick="window.openDetailsModal('${booking.deposit_snapshot ?? 0}', '${booking.mileage_limit_snapshot ?? ''}', ${booking.driver_included_snapshot === true}, '${booking.driver_hours_snapshot ?? ''}', '${partnerCurrency}')" 
+        <span onclick="window.openDetailsModal(
+    '${booking.deposit_snapshot ?? 0}',
+    '${booking.mileage_limit_snapshot ?? ""}',
+    ${booking.driver_included_snapshot === true},
+    '${booking.driver_hours_snapshot ?? ""}',
+    '${partnerCurrency}',
+    '${booking.partner_terms_snapshot ?? ""}',
+    '${booking.partner_rules_snapshot ?? ""}'
+)" 
               style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
             ${localStorage.getItem("client_lang") === "en" ? 'View details' : 'Zobacz szczegóły'}
         </span>
