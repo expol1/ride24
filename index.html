@@ -847,6 +847,427 @@
             transform: translateY(-2px);
         }
 
+        .r24-premium-sales-grid {
+            align-items: stretch;
+        }
+
+        .r24-premium-sales-tile {
+            min-height: 34px;
+            border: 1px solid rgba(255,255,255,0.72);
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .r24-premium-sales-tile::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            z-index: -1;
+        }
+
+        .r24-premium-sales-tile:hover::before {
+            opacity: 1;
+        }
+
+        .r24-premium-sales-tile-yellow {
+            background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,246,214,0.96));
+            box-shadow: 0 12px 30px rgba(190, 132, 20, 0.14);
+        }
+
+        .r24-premium-sales-tile-yellow::before {
+            background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(246,190,70,0.34));
+        }
+
+        .r24-premium-sales-tile-red {
+            background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(255,226,226,0.96));
+            box-shadow: 0 12px 30px rgba(220, 38, 38, 0.13);
+        }
+
+        .r24-premium-sales-tile-red::before {
+            background: linear-gradient(135deg, rgba(255,255,255,0.44), rgba(239,68,68,0.26));
+        }
+
+        .r24-premium-sales-tile-stars {
+            background: rgba(255,255,255,0.95);
+        }
+
+        .r24-premium-sales-tile button,
+        button.r24-premium-sales-tile {
+            border: 0;
+            font: inherit;
+        }
+
+        .r24-premium-sales-icon {
+            width: 18px;
+            height: 18px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 999px;
+            font-size: 13px;
+            line-height: 1;
+            flex: 0 0 auto;
+        }
+
+        .r24-premium-sales-icon-yellow {
+            background: linear-gradient(135deg, #fff7cc, #f6be46);
+        }
+
+        .r24-premium-sales-icon-red {
+            background: linear-gradient(135deg, #fff1f1, #ef4444);
+        }
+
+        .r24-premium-sales-stars {
+            color: #f6b600;
+            letter-spacing: 0;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .r24-premium-sales-discount {
+            display: inline-flex;
+            flex-direction: column;
+            line-height: 0.92;
+            align-items: flex-start;
+        }
+
+        .r24-premium-sales-discount small {
+            font-size: 10px;
+            font-weight: 750;
+            color: #7f1d1d;
+        }
+
+        .r24-premium-sales-discount strong {
+            font-size: 15px;
+            color: #dc2626;
+        }
+
+        .r24-premium-sales-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            display: flex;
+            justify-content: flex-end;
+            background: rgba(15, 23, 42, 0);
+            backdrop-filter: blur(0);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.28s ease, background 0.28s ease, backdrop-filter 0.28s ease, visibility 0.28s ease;
+        }
+
+        .r24-premium-sales-overlay.is-open {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            background: rgba(15, 23, 42, 0.42);
+            backdrop-filter: blur(10px);
+        }
+
+        .r24-premium-sales-panel {
+            width: min(520px, calc(100vw - 32px));
+            height: 100%;
+            overflow-y: auto;
+            background: rgba(255,255,255,0.88);
+            border-left: 1px solid rgba(255,255,255,0.72);
+            box-shadow: -28px 0 70px rgba(15,23,42,0.22);
+            transform: translateX(104%);
+            transition: transform 0.34s cubic-bezier(.2,.8,.2,1);
+        }
+
+        .r24-premium-sales-overlay.is-open .r24-premium-sales-panel {
+            transform: translateX(0);
+        }
+
+        .r24-premium-sales-panel-shell {
+            min-height: 100%;
+            padding: 22px;
+            background:
+                radial-gradient(circle at 16% 0%, rgba(246,190,70,0.18), transparent 30%),
+                radial-gradient(circle at 100% 12%, rgba(37,99,235,0.12), transparent 26%),
+                rgba(255,255,255,0.72);
+        }
+
+        .r24-premium-sales-panel-red .r24-premium-sales-panel-shell {
+            background:
+                radial-gradient(circle at 12% 0%, rgba(239,68,68,0.18), transparent 30%),
+                radial-gradient(circle at 100% 12%, rgba(37,99,235,0.10), transparent 26%),
+                rgba(255,255,255,0.72);
+        }
+
+        .r24-premium-sales-panel-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .r24-premium-sales-panel-kicker {
+            margin: 0 0 6px;
+            color: #64748B;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .r24-premium-sales-panel-title {
+            margin: 0;
+            color: var(--blue-dark);
+            font-size: clamp(25px, 4vw, 34px);
+            line-height: 1.04;
+            letter-spacing: 0;
+        }
+
+        .r24-premium-sales-panel-close {
+            width: 38px;
+            height: 38px;
+            border: 1px solid rgba(15,23,42,0.08);
+            border-radius: 50%;
+            background: rgba(255,255,255,0.78);
+            color: #0f172a;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.08);
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+
+        .r24-premium-sales-panel-copy {
+            margin: 0 0 18px;
+            color: #475569;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .r24-premium-sales-cover {
+            min-height: 310px;
+            margin-bottom: 18px;
+            padding: 22px;
+            border: 1px solid rgba(255,255,255,0.7);
+            border-radius: 28px;
+            background:
+                linear-gradient(160deg, rgba(7,90,243,0.96), rgba(8,103,245,0.82) 48%, rgba(246,190,70,0.92)),
+                linear-gradient(135deg, #075af3, #f6be46);
+            box-shadow: 0 24px 58px rgba(7,90,243,0.22);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .r24-premium-sales-cover::after {
+            content: "";
+            position: absolute;
+            right: -54px;
+            bottom: -70px;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 34px solid rgba(255,255,255,0.16);
+        }
+
+        .r24-premium-sales-cover-mark {
+            width: 54px;
+            height: 54px;
+            display: grid;
+            place-items: center;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(10px);
+            font-size: 28px;
+        }
+
+        .r24-premium-sales-cover h3 {
+            margin: 34px 0 8px;
+            font-size: 38px;
+            line-height: 0.96;
+            letter-spacing: 0;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .r24-premium-sales-cover p {
+            margin: 0;
+            max-width: 280px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .r24-premium-sales-feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin: 16px 0 18px;
+        }
+
+        .r24-premium-sales-feature {
+            padding: 14px;
+            border: 1px solid rgba(226,232,240,0.82);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.76);
+            box-shadow: 0 12px 28px rgba(15,23,42,0.05);
+        }
+
+        .r24-premium-sales-feature strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--blue-dark);
+            font-size: 14px;
+        }
+
+        .r24-premium-sales-feature span {
+            color: #64748B;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .r24-premium-sales-route-grid {
+            display: grid;
+            gap: 10px;
+            margin: 16px 0 20px;
+        }
+
+        .r24-premium-sales-route {
+            display: grid;
+            grid-template-columns: 74px minmax(0, 1fr);
+            gap: 12px;
+            align-items: center;
+            padding: 10px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.78);
+            border: 1px solid rgba(226,232,240,0.88);
+        }
+
+        .r24-premium-sales-route-thumb {
+            height: 58px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #dbeafe, #fef3c7);
+            display: grid;
+            place-items: center;
+            font-size: 22px;
+        }
+
+        .r24-premium-sales-route strong {
+            display: block;
+            color: #0f172a;
+            font-size: 14px;
+        }
+
+        .r24-premium-sales-route span {
+            color: #64748B;
+            font-size: 12px;
+        }
+
+        .r24-premium-sales-cta,
+        .r24-premium-sales-link {
+            width: 100%;
+            min-height: 48px;
+            border: 0;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .r24-premium-sales-cta {
+            background: linear-gradient(135deg, #0f172a, #1d4ed8);
+            color: #fff;
+            box-shadow: 0 18px 38px rgba(29,78,216,0.22);
+        }
+
+        .r24-premium-sales-link {
+            margin-top: 14px;
+            background: rgba(15,23,42,0.06);
+            color: #0f172a;
+        }
+
+        .r24-premium-sales-levels {
+            display: grid;
+            gap: 8px;
+            margin: 18px 0;
+        }
+
+        .r24-premium-sales-level {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 14px;
+            border: 1px solid rgba(226,232,240,0.9);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.78);
+            box-shadow: 0 12px 26px rgba(15,23,42,0.05);
+        }
+
+        .r24-premium-sales-level + .r24-premium-sales-level {
+            position: relative;
+        }
+
+        .r24-premium-sales-level + .r24-premium-sales-level::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: 28px;
+            width: 2px;
+            height: 10px;
+            background: linear-gradient(#cbd5e1, #ef4444);
+        }
+
+        .r24-premium-sales-level strong {
+            color: #0f172a;
+            letter-spacing: 0.05em;
+        }
+
+        .r24-premium-sales-level span {
+            min-width: 58px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #fff1f1, #fecaca);
+            color: #b91c1c;
+            text-align: center;
+            font-weight: 900;
+        }
+
+        .r24-premium-sales-info-list {
+            display: grid;
+            gap: 9px;
+            margin: 16px 0 18px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .r24-premium-sales-info-list li {
+            display: flex;
+            gap: 9px;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .r24-premium-sales-info-list li::before {
+            content: "✓";
+            color: #16a34a;
+            font-weight: 900;
+        }
+
+        .r24-premium-sales-note {
+            margin: 18px 0 0;
+            color: #64748B;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
         .search-form {
             background: rgba(255, 255, 255, 0.40);
             backdrop-filter: blur(16px);
@@ -1331,6 +1752,52 @@
                 padding: 8px 16px; 
                 border-radius: 20px;
                 font-size: 12px;
+            }
+
+            .trust-badges.r24-premium-sales-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                overflow: visible;
+                gap: 10px;
+                padding: 0 0 12px;
+            }
+
+            .trust-badges.r24-premium-sales-grid .trust-badge {
+                min-width: 0;
+                width: 100%;
+                justify-content: center;
+                padding: 10px 9px;
+                white-space: nowrap;
+            }
+
+            .r24-premium-sales-overlay {
+                align-items: flex-end;
+            }
+
+            .r24-premium-sales-panel {
+                width: 100%;
+                height: min(88vh, 760px);
+                border-left: 0;
+                border-radius: 28px 28px 0 0;
+                box-shadow: 0 -24px 60px rgba(15,23,42,0.24);
+                transform: translateY(104%);
+            }
+
+            .r24-premium-sales-overlay.is-open .r24-premium-sales-panel {
+                transform: translateY(0);
+            }
+
+            .r24-premium-sales-panel-shell {
+                padding: 18px;
+            }
+
+            .r24-premium-sales-cover {
+                min-height: 250px;
+                border-radius: 24px;
+            }
+
+            .r24-premium-sales-feature-grid {
+                grid-template-columns: 1fr;
             }
 
             /* Kafelki z krokami (Pionowo) */
@@ -1993,36 +2460,35 @@
         </div>
 
         <div class="hero-search">
-            <div class="trust-badges">
-                <a class="trust-badge"
+            <div class="trust-badges r24-premium-sales-grid">
+                <button class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-yellow" type="button" onclick="openR24PremiumSalesPanel('guide')">
+                    <span class="r24-premium-sales-icon r24-premium-sales-icon-yellow">📖</span>
+                    <span data-pl="Autoprzewodnik GRATIS" data-en="Free Auto Guide">Autoprzewodnik GRATIS</span>
+                </button>
+
+                <a class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-stars"
    href="https://g.page/r/Ccf7up0gmBeUEAE"
    target="_blank"
    rel="noopener">
 
-    <svg width="16" height="16" viewBox="0 0 48 48">
-        <path fill="#EA4335" d="M24 9.5c3.54 0 6.74 1.22 9.26 3.6l6.9-6.9C35.96 2.34 30.41 0 24 0 14.62 0 6.51 5.38 2.56 13.22l8.04 6.24C12.47 13.61 17.76 9.5 24 9.5z"/>
-        <path fill="#4285F4" d="M46.5 24.55c0-1.64-.15-3.21-.42-4.73H24v9.05h12.67c-.55 2.97-2.22 5.49-4.74 7.18l7.66 5.95C44.06 37.84 46.5 31.8 46.5 24.55z"/>
-        <path fill="#34A853" d="M10.6 28.54l-8.04 6.24C6.51 42.62 14.62 48 24 48c6.41 0 11.96-2.12 15.95-5.77l-7.66-5.95c-2.12 1.43-4.84 2.27-8.29 2.27-6.24 0-11.53-4.11-13.4-9.96z"/>
-        <path fill="#FBBC05" d="M2.56 13.22A23.89 23.89 0 0 0 0 24c0 3.85.92 7.49 2.56 10.78l8.04-6.24A14.32 14.32 0 0 1 9.5 24c0-1.58.39-3.09 1.1-4.54z"/>
-    </svg>
-
-    <span>5.0 Google</span>
+    <span class="r24-premium-sales-stars">★★★★★</span>
+    <span>Google</span>
 </a>
 
-<a class="trust-badge"
+                <button class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-red" type="button" onclick="openR24PremiumSalesPanel('discounts')">
+                    <span class="r24-premium-sales-icon r24-premium-sales-icon-red">💎</span>
+                    <span data-pl="Rabaty" data-en="Discounts">Rabaty</span>
+                    <span class="r24-premium-sales-discount"><small data-pl="do" data-en="up to">do</small><strong>-20%</strong></span>
+                </button>
+
+<a class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-stars"
    href="https://pl.trustpilot.com/review/ride24.pl"
    target="_blank"
    rel="noopener">
 
-    <svg width="16" height="16" viewBox="0 0 24 24">
-        <path fill="#00B67A"
-              d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/>
-    </svg>
-
-    <span>4.3 Trustpilot</span>
+    <span class="r24-premium-sales-stars">★★★★★</span>
+    <span>Trustpilot</span>
 </a>
-                <div class="trust-badge"><img src="icons/globe-blue.svg" alt="icon"> <span data-pl="30+ krajów" data-en="30+ countries">30+ krajów</span></div>
-                <div class="trust-badge"><img src="icons/handshake.svg" alt="icon"> <span data-pl="Globalni partnerzy" data-en="Global partners">Globalni partnerzy</span></div>
             </div>
 
             <form id="searchForm" class="search-form" style="min-height: 350px; display: flex; flex-direction: column; justify-content: center;">
@@ -4224,6 +4690,161 @@ setTimeout(() => {
         loadWorldExplorerStats();
         updateWorldExplorerCounters();
     });
+</script>
+
+<div class="r24-premium-sales-overlay" id="r24PremiumSalesGuide" aria-hidden="true" onclick="if(event.target === this) closeR24PremiumSalesPanel()">
+    <aside class="r24-premium-sales-panel" role="dialog" aria-modal="true">
+        <div class="r24-premium-sales-panel-shell">
+            <div class="r24-premium-sales-panel-head">
+                <div>
+                    <p class="r24-premium-sales-panel-kicker" data-pl="Gratis po rezerwacji" data-en="Free after booking">Gratis po rezerwacji</p>
+                    <h2 class="r24-premium-sales-panel-title" data-pl="Autoprzewodnik Ride24" data-en="Ride24 Auto Guide">Autoprzewodnik Ride24</h2>
+                </div>
+                <button class="r24-premium-sales-panel-close" type="button" onclick="closeR24PremiumSalesPanel()" data-pl="×" data-en="×">×</button>
+            </div>
+
+            <div class="r24-premium-sales-cover">
+                <div class="r24-premium-sales-cover-mark">📖</div>
+                <div>
+                    <p data-pl="PORTUGALIA / PORTUGAL" data-en="PORTUGAL">PORTUGALIA / PORTUGAL</p>
+                    <h3 data-pl="LIZBONA" data-en="LISBON">LIZBONA</h3>
+                    <p data-pl="ULTIMATE AUTOPRZEWODNIK • GOOGLE MAPS" data-en="ULTIMATE AUTO GUIDE • GOOGLE MAPS">ULTIMATE AUTOPRZEWODNIK • GOOGLE MAPS</p>
+                </div>
+            </div>
+
+            <p class="r24-premium-sales-panel-copy" data-pl="Po rezerwacji otrzymasz kompaktowy przewodnik samochodowy przygotowany pod konkretny kierunek. To podgląd formatu: trasy, miejsca i wskazówki dla kierowcy w jednym miejscu." data-en="After booking, you receive a compact driving guide prepared for your destination. This is a preview of the format: routes, places and driver notes in one place.">Po rezerwacji otrzymasz kompaktowy przewodnik samochodowy przygotowany pod konkretny kierunek. To podgląd formatu: trasy, miejsca i wskazówki dla kierowcy w jednym miejscu.</p>
+
+            <p class="r24-premium-sales-panel-kicker" data-pl="Każdy Autoprzewodnik zawiera około" data-en="Each Auto Guide includes around">Każdy Autoprzewodnik zawiera około</p>
+            <div class="r24-premium-sales-feature-grid">
+                <article class="r24-premium-sales-feature">
+                    <strong data-pl="15 gotowych tras" data-en="15 ready routes">15 gotowych tras</strong>
+                    <span data-pl="Ułożonych pod jazdę autem i zwiedzanie bez chaosu." data-en="Built for driving and sightseeing without chaos.">Ułożonych pod jazdę autem i zwiedzanie bez chaosu.</span>
+                </article>
+                <article class="r24-premium-sales-feature">
+                    <strong data-pl="Około 75 miejsc" data-en="Around 75 places">Około 75 miejsc</strong>
+                    <span data-pl="Krótkie opisy atrakcji, punktów widokowych i przystanków." data-en="Short notes on sights, viewpoints and stops.">Krótkie opisy atrakcji, punktów widokowych i przystanków.</span>
+                </article>
+                <article class="r24-premium-sales-feature">
+                    <strong data-pl="Przewodnik kierowcy" data-en="Driver guide">Przewodnik kierowcy</strong>
+                    <span data-pl="Parkowanie, drogi płatne i lokalne zasady w pigułce." data-en="Parking, toll roads and local rules in a compact form.">Parkowanie, drogi płatne i lokalne zasady w pigułce.</span>
+                </article>
+                <article class="r24-premium-sales-feature">
+                    <strong data-pl="Google Maps" data-en="Google Maps">Google Maps</strong>
+                    <span data-pl="Bezpośrednia nawigacja do tras i wybranych punktów." data-en="Direct navigation to routes and selected places.">Bezpośrednia nawigacja do tras i wybranych punktów.</span>
+                </article>
+                <article class="r24-premium-sales-feature">
+                    <strong data-pl="PL i EN" data-en="PL and EN">PL i EN</strong>
+                    <span data-pl="Wersja polska i angielska w jednym materiale." data-en="Polish and English versions in one material.">Wersja polska i angielska w jednym materiale.</span>
+                </article>
+                <article class="r24-premium-sales-feature">
+                    <strong data-pl="Gotowy po rezerwacji" data-en="Ready after booking">Gotowy po rezerwacji</strong>
+                    <span data-pl="Dostęp do przewodnika pojawia się po potwierdzeniu rezerwacji." data-en="Guide access appears after booking confirmation.">Dostęp do przewodnika pojawia się po potwierdzeniu rezerwacji.</span>
+                </article>
+            </div>
+
+            <p class="r24-premium-sales-panel-kicker" data-pl="Przykładowe trasy" data-en="Sample routes">Przykładowe trasy</p>
+            <div class="r24-premium-sales-route-grid">
+                <article class="r24-premium-sales-route">
+                    <div class="r24-premium-sales-route-thumb">🏛️</div>
+                    <div>
+                        <strong data-pl="Klasyczna Lizbona" data-en="Classic Lisbon">Klasyczna Lizbona</strong>
+                        <span data-pl="Belém, centrum i punkty widokowe." data-en="Belém, the center and viewpoints.">Belém, centrum i punkty widokowe.</span>
+                    </div>
+                </article>
+                <article class="r24-premium-sales-route">
+                    <div class="r24-premium-sales-route-thumb">🏰</div>
+                    <div>
+                        <strong data-pl="Królewski szlak Sintry" data-en="Sintra Royal Trail">Królewski szlak Sintry</strong>
+                        <span data-pl="Pałace, góry i Cabo da Roca." data-en="Palaces, hills and Cabo da Roca.">Pałace, góry i Cabo da Roca.</span>
+                    </div>
+                </article>
+                <article class="r24-premium-sales-route">
+                    <div class="r24-premium-sales-route-thumb">🌊</div>
+                    <div>
+                        <strong data-pl="Riwiera Lizbońska" data-en="Lisbon Riviera">Riwiera Lizbońska</strong>
+                        <span data-pl="Cascais, klify i wybrzeże Atlantyku." data-en="Cascais, cliffs and the Atlantic coast.">Cascais, klify i wybrzeże Atlantyku.</span>
+                    </div>
+                </article>
+            </div>
+
+            <button class="r24-premium-sales-cta" type="button" data-pl="Dostęp po rezerwacji" data-en="Access after booking">Dostęp po rezerwacji</button>
+        </div>
+    </aside>
+</div>
+
+<div class="r24-premium-sales-overlay r24-premium-sales-panel-red" id="r24PremiumSalesDiscounts" aria-hidden="true" onclick="if(event.target === this) closeR24PremiumSalesPanel()">
+    <aside class="r24-premium-sales-panel" role="dialog" aria-modal="true">
+        <div class="r24-premium-sales-panel-shell">
+            <div class="r24-premium-sales-panel-head">
+                <div>
+                    <p class="r24-premium-sales-panel-kicker" data-pl="Rabaty Ride24" data-en="Ride24 discounts">Rabaty Ride24</p>
+                    <h2 class="r24-premium-sales-panel-title" data-pl="Rabaty do -20%" data-en="Discounts up to -20%">Rabaty do -20%</h2>
+                </div>
+                <button class="r24-premium-sales-panel-close" type="button" onclick="closeR24PremiumSalesPanel()" data-pl="×" data-en="×">×</button>
+            </div>
+
+            <p class="r24-premium-sales-panel-copy" data-pl="Poziom rabatu zależy od liczby zakończonych i opłaconych rezerwacji. Rabat naliczany jest automatycznie zgodnie z zasadami Ride24." data-en="The discount level depends on the number of completed and paid bookings. The discount is applied automatically under Ride24 rules.">Poziom rabatu zależy od liczby zakończonych i opłaconych rezerwacji. Rabat naliczany jest automatycznie zgodnie z zasadami Ride24.</p>
+
+            <div class="r24-premium-sales-levels">
+                <div class="r24-premium-sales-level"><strong>START</strong><span>0%</span></div>
+                <div class="r24-premium-sales-level"><strong>SILVER</strong><span>5%</span></div>
+                <div class="r24-premium-sales-level"><strong>GOLD</strong><span>10%</span></div>
+                <div class="r24-premium-sales-level"><strong>PLATINUM</strong><span>15%</span></div>
+                <div class="r24-premium-sales-level"><strong>VIP</strong><span>20%</span></div>
+            </div>
+
+            <ul class="r24-premium-sales-info-list">
+                <li data-pl="Rabaty naliczane są automatycznie." data-en="Discounts are applied automatically.">Rabaty naliczane są automatycznie.</li>
+                <li data-pl="Maksymalny rabat wynosi 20%." data-en="The maximum discount is 20%.">Maksymalny rabat wynosi 20%.</li>
+                <li data-pl="Rabaty dotyczą wyłącznie opłaty rezerwacyjnej Ride24." data-en="Discounts apply only to the Ride24 booking fee.">Rabaty dotyczą wyłącznie opłaty rezerwacyjnej Ride24.</li>
+                <li data-pl="Rabaty nie obejmują płatności dla partnera." data-en="Discounts do not include payments made to the partner.">Rabaty nie obejmują płatności dla partnera.</li>
+                <li data-pl="Wysokość rabatu zależy od liczby zakończonych i opłaconych rezerwacji." data-en="The discount level depends on the number of completed and paid bookings.">Wysokość rabatu zależy od liczby zakończonych i opłaconych rezerwacji.</li>
+            </ul>
+
+            <p class="r24-premium-sales-note" data-pl="Program lojalnościowy ma charakter promocyjny. Szczegółowe zasady znajdują się w Regulaminie Ride24." data-en="The loyalty program is promotional. Detailed rules are available in the Ride24 Terms.">Program lojalnościowy ma charakter promocyjny. Szczegółowe zasady znajdują się w Regulaminie Ride24.</p>
+            <button class="r24-premium-sales-link" type="button" onclick="closeR24PremiumSalesPanel(); openLegal('regulamin')" data-pl="Poznaj regulamin" data-en="Read the terms">Poznaj regulamin</button>
+        </div>
+    </aside>
+</div>
+
+<script>
+function openR24PremiumSalesPanel(type) {
+    closeR24PremiumSalesPanel();
+    const id = type === "discounts" ? "r24PremiumSalesDiscounts" : "r24PremiumSalesGuide";
+    const panel = document.getElementById(id);
+
+    if (!panel) {
+        return;
+    }
+
+    panel.classList.add("is-open");
+    panel.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    setLang(localStorage.getItem("lang") || "pl");
+}
+
+function closeR24PremiumSalesPanel() {
+    let wasOpen = false;
+
+    document.querySelectorAll(".r24-premium-sales-overlay").forEach(panel => {
+        if (panel.classList.contains("is-open")) {
+            wasOpen = true;
+        }
+
+        panel.classList.remove("is-open");
+        panel.setAttribute("aria-hidden", "true");
+    });
+
+    if (wasOpen) {
+        document.body.style.overflow = "auto";
+    }
+}
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        closeR24PremiumSalesPanel();
+    }
+});
 </script>
 </body>
 </html>
