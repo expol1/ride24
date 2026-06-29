@@ -848,15 +848,29 @@
         }
 
         .r24-premium-sales-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.38fr) minmax(82px, 0.78fr) minmax(0, 1.02fr) minmax(96px, 0.86fr);
             align-items: stretch;
+            justify-content: stretch;
+            flex-wrap: nowrap;
+            gap: 8px;
+            width: 100%;
         }
 
         .r24-premium-sales-tile {
-            min-height: 34px;
+            min-width: 0;
+            min-height: 48px;
+            height: 48px;
             border: 1px solid rgba(255,255,255,0.72);
             position: relative;
             overflow: hidden;
             isolation: isolate;
+            justify-content: center;
+            border-radius: 24px;
+            padding: 7px 10px;
+            gap: 6px;
+            white-space: nowrap;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
 
         .r24-premium-sales-tile::before {
@@ -909,6 +923,76 @@
             font-size: 13px;
             line-height: 1;
             flex: 0 0 auto;
+        }
+
+        .r24-premium-sales-copy {
+            min-width: 0;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2px;
+            line-height: 1.05;
+        }
+
+        .r24-premium-sales-copy-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .r24-premium-sales-title {
+            min-width: 0;
+            color: var(--blue-dark);
+            font-size: 13px;
+            font-weight: 750;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .r24-premium-sales-badge-free {
+            padding: 2px 5px;
+            border-radius: 999px;
+            background: rgba(246, 190, 70, 0.2);
+            color: #8a5a00;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: 0;
+            line-height: 1;
+            flex: 0 0 auto;
+        }
+
+        .r24-premium-sales-desc {
+            display: block;
+            min-width: 0;
+            color: #64748B;
+            font-size: 10px;
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .r24-premium-sales-rating {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+            line-height: 1;
+        }
+
+        .r24-premium-sales-rating svg {
+            width: 16px;
+            height: 16px;
+            flex: 0 0 auto;
+        }
+
+        .r24-premium-sales-rating span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .r24-premium-sales-icon-yellow {
@@ -2463,16 +2547,27 @@
             <div class="trust-badges r24-premium-sales-grid">
                 <button class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-yellow" type="button" onclick="openR24PremiumSalesPanel('guide')">
                     <span class="r24-premium-sales-icon r24-premium-sales-icon-yellow">📖</span>
-                    <span data-pl="Autoprzewodnik GRATIS" data-en="Free Auto Guide">Autoprzewodnik GRATIS</span>
+                    <span class="r24-premium-sales-copy">
+                        <span class="r24-premium-sales-copy-row">
+                            <span class="r24-premium-sales-title" data-pl="Autoprzewodnik" data-en="Auto Guide">Autoprzewodnik</span>
+                            <span class="r24-premium-sales-badge-free" data-pl="GRATIS" data-en="FREE">GRATIS</span>
+                        </span>
+                        <span class="r24-premium-sales-desc" data-pl="Tematyczne trasy • Google Maps" data-en="Themed routes • Google Maps">Tematyczne trasy • Google Maps</span>
+                    </span>
                 </button>
 
-                <a class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-stars"
+                <a class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-stars r24-premium-sales-rating"
    href="https://g.page/r/Ccf7up0gmBeUEAE"
    target="_blank"
    rel="noopener">
 
-    <span class="r24-premium-sales-stars">★★★★★</span>
-    <span>Google</span>
+    <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.74 1.22 9.26 3.6l6.9-6.9C35.96 2.34 30.41 0 24 0 14.62 0 6.51 5.38 2.56 13.22l8.04 6.24C12.47 13.61 17.76 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.5 24.55c0-1.64-.15-3.21-.42-4.73H24v9.05h12.67c-.55 2.97-2.22 5.49-4.74 7.18l7.66 5.95C44.06 37.84 46.5 31.8 46.5 24.55z"/>
+        <path fill="#34A853" d="M10.6 28.54l-8.04 6.24C6.51 42.62 14.62 48 24 48c6.41 0 11.96-2.12 15.95-5.77l-7.66-5.95c-2.12 1.43-4.84 2.27-8.29 2.27-6.24 0-11.53-4.11-13.4-9.96z"/>
+        <path fill="#FBBC05" d="M2.56 13.22A23.89 23.89 0 0 0 0 24c0 3.85.92 7.49 2.56 10.78l8.04-6.24A14.32 14.32 0 0 1 9.5 24c0-1.58.39-3.09 1.1-4.54z"/>
+    </svg>
+    <span>Google 5.0</span>
 </a>
 
                 <button class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-red" type="button" onclick="openR24PremiumSalesPanel('discounts')">
@@ -2481,13 +2576,16 @@
                     <span class="r24-premium-sales-discount"><small data-pl="do" data-en="up to">do</small><strong>-20%</strong></span>
                 </button>
 
-<a class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-stars"
+<a class="trust-badge r24-premium-sales-tile r24-premium-sales-tile-stars r24-premium-sales-rating"
    href="https://pl.trustpilot.com/review/ride24.pl"
    target="_blank"
    rel="noopener">
 
-    <span class="r24-premium-sales-stars">★★★★★</span>
-    <span>Trustpilot</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#00B67A"
+              d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z"/>
+    </svg>
+    <span>Trustpilot 4.3</span>
 </a>
             </div>
 
