@@ -178,9 +178,9 @@ serve(async (req) => {
                  <div class="label">Reservation Code</div>
                  <div class="value">${booking.reservation_code}</div>
                </div>
-               <p>Please log in to your dashboard to accept or decline this request.</p>`,
-              "Open Partner Dashboard",
-              "https://ride24.pl/partner-dashboard"
+               <p>Please log in to your Ride24 partner account to accept or decline this request.</p>`,
+              "Log in to Ride24",
+              "https://ride24.pl/"
             )
             break
 
@@ -196,10 +196,10 @@ serve(async (req) => {
                  <div class="label" style="margin-top:10px">Car Class</div>
                  <div class="value">${booking.car_classes?.class_code || "-"}</div>
                </div>
-               <p>Please prepare the vehicle for the scheduled pickup. Full reservation details are available in your dashboard.</p>
+               <p>Please prepare the vehicle for the scheduled pickup. Full reservation details are available after logging in to your Ride24 partner account.</p>
                <p>Thank you for your partnership!</p>`,
-              "Open Partner Dashboard",
-              "https://ride24.pl/partner-dashboard"
+              "Log in to Ride24",
+              "https://ride24.pl/"
             )
             break
 
