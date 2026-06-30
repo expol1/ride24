@@ -514,6 +514,119 @@
     font-weight: 800;
     color: #2563eb;
 }
+        
+         /* ================= WYPOSAŻENIE DODATKOWE — INFO W MODALU ================= */
+
+.equipment-info-card {
+    margin-bottom: 18px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #DBEAFE;
+    background:
+        radial-gradient(circle at top left, rgba(115, 215, 0, 0.16), transparent 34%),
+        linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+
+.equipment-info-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.equipment-info-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.equipment-info-title {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--blue-dark);
+    margin-bottom: 3px;
+    line-height: 1.25;
+}
+
+.equipment-info-desc {
+    font-size: 13px;
+    color: #475569;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.equipment-info-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.equipment-info-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #EFF6FF;
+    color: #1E40AF;
+    border: 1px solid #BFDBFE;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.equipment-info-note {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+    color: #166534;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .equipment-info-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .equipment-info-head {
+        gap: 10px;
+    }
+
+    .equipment-info-icon {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        font-size: 19px;
+    }
+
+    .equipment-info-title {
+        font-size: 14px;
+    }
+
+    .equipment-info-desc,
+    .equipment-info-note {
+        font-size: 12px;
+    }
+
+    .equipment-info-tag {
+        font-size: 11px;
+        padding: 6px 9px;
+    }
+}
 
         /* --- NOWE STYLE DLA IKON --- */
         .feature-icons {
@@ -4081,6 +4194,52 @@ window.closeReviewModal = function() {
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
                 </div>
             </div>
+
+             <div class="equipment-info-card">
+    <div class="equipment-info-head">
+        <div class="equipment-info-icon">🧸</div>
+
+        <div>
+            <div class="equipment-info-title"
+                 data-pl="Wyposażenie dodatkowe"
+                 data-en="Additional equipment">
+                Wyposażenie dodatkowe
+            </div>
+
+            <div class="equipment-info-desc"
+                 data-pl="Potrzebujesz fotelika dziecięcego, podstawki, nawigacji GPS lub innego wyposażenia? Skontaktuj się bezpośrednio z partnerem po potwierdzeniu rezerwacji."
+                 data-en="Need a child seat, booster seat, GPS navigation or other equipment? Contact the partner directly after your reservation is confirmed.">
+                Potrzebujesz fotelika dziecięcego, podstawki, nawigacji GPS lub innego wyposażenia? Skontaktuj się bezpośrednio z partnerem po potwierdzeniu rezerwacji.
+            </div>
+        </div>
+    </div>
+
+    <div class="equipment-info-tags">
+        <span class="equipment-info-tag"
+              data-pl="👶 Fotelik dziecięcy"
+              data-en="👶 Child seat">
+            👶 Fotelik dziecięcy
+        </span>
+
+        <span class="equipment-info-tag"
+              data-pl="🧒 Podstawka"
+              data-en="🧒 Booster seat">
+            🧒 Podstawka
+        </span>
+
+        <span class="equipment-info-tag"
+              data-pl="🧭 Nawigacja GPS"
+              data-en="🧭 GPS navigation">
+            🧭 Nawigacja GPS
+        </span>
+    </div>
+
+    <div class="equipment-info-note"
+         data-pl="Partner potwierdzi dostępność oraz ewentualną cenę wyposażenia. Dodatki nie są wliczone w cenę wynajmu ani w opłatę rezerwacyjną Ride24."
+         data-en="The partner will confirm availability and any additional equipment cost. Extras are not included in the rental price or in the Ride24 booking fee.">
+        Partner potwierdzi dostępność oraz ewentualną cenę wyposażenia. Dodatki nie są wliczone w cenę wynajmu ani w opłatę rezerwacyjną Ride24.
+    </div>
+</div>
 
             <div class="docs-container">
                 <a href="/regulamin.html" target="_blank">

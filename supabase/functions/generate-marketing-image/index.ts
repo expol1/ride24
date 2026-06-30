@@ -429,7 +429,17 @@ ${headline}
 
 ✓ Pełne ubezpieczenie
 
-Below the benefits add:
+Below the benefits add two premium value tiles.
+
+Tile 1:
+AUTOPRZEWODNIK
+GRATIS
+
+Tile 2:
+RABATY
+do -20%
+
+Below the tiles add:
 
 one unique travel slogan.
 
@@ -441,28 +451,107 @@ Avoid overusing words:
 * podróżuj
 
 Use a wide variety of premium travel phrases.
+
 Examples:
 
-Podróżuj bez ograniczeń.
-Więcej podróży, mniej formalności.
+Wynajem auta w lepszym stylu.
 Komfort zaczyna się tutaj.
-Podróżuj na własnych zasadach.
+Twoja trasa, Twoje tempo.
+Więcej podróży, mniej formalności.
+Lepszy wynajem, lepsza podróż.
+Swoboda zaczyna się tutaj.
 Każda trasa to nowa historia.
-Zwiedzaj swobodnie.
-Odkrywaj więcej każdego dnia.
 
-maximum 10 words
-
-Examples:
-
-Podróżuj wygodnie i odkrywaj więcej.
-
-Zwiedzaj swobodnie bez zbędnych formalności.
-
-Odkrywaj świat w swoim tempie.
+maximum 8 words
 
 This text must remain secondary.
 
+PREMIUM VALUE TILES:
+
+Create two visually strong premium tiles inside the information panel.
+
+Tile 1 must promote the free thematic driver guide.
+
+Meaning of this tile:
+The customer receives a free thematic autoprzewodnik with driver information and ready-made thematic routes with direct Google Maps navigation.
+
+But on the image display ONLY short readable text:
+
+AUTOPRZEWODNIK
+GRATIS
+
+Tile 2 must promote discounts.
+
+Display ONLY:
+
+RABATY
+do -20%
+
+Do NOT write:
+LOYALTY
+Loyalty Program
+opłaty rezerwacyjnej
+reservation fee
+15 tras Google Maps
+Google Maps
+Driver Guide
+
+Tile design rules:
+
+* both tiles must feel premium, modern and elegant
+* both tiles should use Ride24 green #73D700 as the main visual accent
+* at least one tile should have a strong green background
+* preferably both tiles should use green #73D700 as the main fill
+* use white or navy text depending on readability
+* tiles must be rounded, polished and agency-quality
+* tiles must look like premium travel benefit cards
+* tiles must not look like cheap coupons
+* tiles must not look like supermarket discount labels
+* tiles must not dominate the whole image
+* tiles should be placed below the main benefits
+* tiles should be clearly readable
+* tiles should have elegant shadows, subtle glow or premium depth
+* tiles should be visually aligned and consistent
+
+Discount tile special style:
+
+The "RABATY do -20%" tile may use a premium radial burst, spotlight, glow, elegant starburst, or luxury highlight effect.
+
+Important:
+The burst must look luxury, modern and refined.
+It must NOT look like a comic explosion.
+It must NOT look cheap.
+It should feel like a premium travel campaign highlight.
+
+Autoprzewodnik tile special style:
+
+The "AUTOPRZEWODNIK GRATIS" tile should feel like a valuable premium travel bonus.
+
+It may include subtle premium icons:
+* map pin
+* route line
+* steering wheel
+* small map outline
+* navigation arrow
+
+Green accents around the tiles:
+
+Add clearly visible Ride24 green decorative accents near and around the tiles:
+
+* short horizontal green bars
+* thin contour lines
+* flowing route lines
+* small green dots
+* premium separators
+* elegant motion stripes
+* subtle travel path curves
+* refined green glow accents
+
+The design should clearly show that the green tiles are part of Ride24 premium branding.
+
+Green accents must be more visible than in previous versions, but still elegant.
+Do not create large green backgrounds outside the tiles.
+Do not overload the layout.
 Icons:
 
 Randomize between:
