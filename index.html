@@ -3,7 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+(function () {
+    try {
+        if (window.opener) {
+            window.opener = null;
+        }
+    } catch (e) {}
 
+    try {
+        const ref = document.referrer || "";
+        const params = new URLSearchParams(window.location.search);
+        const alreadyClean = sessionStorage.getItem("ride24_mail_clean") === "1";
+
+        const openedFromMail =
+            ref.includes("t.pl") ||
+            ref.includes("poczta") ||
+            ref.includes("mail") ||
+            params.get("from_email") === "1";
+
+        if (openedFromMail && !alreadyClean) {
+            sessionStorage.setItem("ride24_mail_clean", "1");
+            window.location.replace("https://ride24.pl/");
+        }
+    } catch (e) {}
+})();
+</script>
     <title>Ride24.pl – Local Car Rental with Full Insurance</title>
     <meta name="description" content="Compare local car rental offers with full insurance included. Ride24 helps travelers book cars from trusted local providers without a credit card requirement.">
     <meta name="robots" content="index, follow">

@@ -51,7 +51,7 @@ const getBaseTemplate = (title: string, content: string, buttonText?: string, bu
       <div class="content">
         <h1>${title}</h1>
         ${content}
-        ${buttonText && buttonUrl ? `<div style="text-align:center;margin-top:35px"><a href="${buttonUrl}" class="btn">${buttonText}</a></div>` : ''}
+        ${buttonText && buttonUrl ? `<div style="text-align:center;margin-top:35px"><a href="${buttonUrl}" class="btn" target="_blank" rel="noopener noreferrer">${buttonText}</a></div>` : ''}
       </div>
       <div class="footer">
         &copy; 2026 Ride24.pl — Samochody z różnych zakątków świata.<br>
