@@ -514,117 +514,230 @@
     font-weight: 800;
     color: #2563eb;
 }
-        
-         /* ================= WYPOSAŻENIE DODATKOWE — INFO W MODALU ================= */
 
-.equipment-info-card {
-    margin-bottom: 18px;
-    padding: 16px;
-    border-radius: 16px;
-    border: 1px solid #DBEAFE;
-    background:
-        radial-gradient(circle at top left, rgba(115, 215, 0, 0.16), transparent 34%),
-        linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%);
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+        /* ================= DODATKI — MINI PRZYCISK + OKNO INFO ================= */
+
+#termsModal .modal-box {
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
 }
 
-.equipment-info-head {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 12px;
+.equipment-mini-card {
+    margin-bottom: 14px;
 }
 
-.equipment-info-icon {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
+.equipment-mini-btn {
+    width: 100%;
+    border: 1px solid #BFDBFE;
+    background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
     border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+    transition: all .2s ease;
+}
+
+.equipment-mini-btn:hover {
+    border-color: #2563EB;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
+    transform: translateY(-1px);
+}
+
+.equipment-mini-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 12px;
     background: linear-gradient(135deg, #2563EB, #1D4ED8);
-    color: white;
+    color: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 21px;
+    font-size: 20px;
     box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
 }
 
-.equipment-info-title {
-    font-size: 15px;
-    font-weight: 900;
+.equipment-mini-text {
+    flex: 1;
+    min-width: 0;
+}
+
+equipment-mini-text strong {
+    display: block;
     color: var(--blue-dark);
-    margin-bottom: 3px;
+    font-size: 14px;
+    font-weight: 900;
     line-height: 1.25;
 }
 
-.equipment-info-desc {
-    font-size: 13px;
-    color: #475569;
-    font-weight: 600;
-    line-height: 1.5;
+/* krótka wersja przycisku: "Dodatki?" */
+.equipment-mini-btn-simple {
+    min-height: 54px;
 }
 
-.equipment-info-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0;
+.equipment-mini-btn-simple .equipment-mini-text strong {
+    font-size: 15px;
 }
 
-.equipment-info-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: #EFF6FF;
-    color: #1E40AF;
-    border: 1px solid #BFDBFE;
+.equipment-mini-text span {
+    display: block;
+    margin-top: 2px;
+    color: #64748B;
     font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.equipment-mini-arrow {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 999px;
+    background: #DBEAFE;
+    color: #2563EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+}
+
+/* osobne okno informacji — NIE używamy klasy modal-overlay */
+.equipment-info-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.equipment-info-box {
+    width: 420px;
+    max-width: 100%;
+    background: #FFFFFF;
+    border-radius: 22px;
+    padding: 26px;
+    box-shadow: 0 25px 60px rgba(15, 23, 42, 0.30);
+    border: 1px solid #E2E8F0;
+    position: relative;
+    overflow: hidden;
+    animation: modalPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.equipment-info-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--blue), var(--green));
+}
+
+.equipment-info-box h3 {
+    margin: 4px 0 8px 0;
+    color: var(--sidebar-bg);
+    font-size: 21px;
+    font-weight: 900;
+}
+
+.equipment-info-box p {
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.55;
+    margin-bottom: 16px;
+}
+
+.equipment-info-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.equipment-info-list div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    color: #0F172A;
+    font-size: 13px;
     font-weight: 800;
 }
 
-.equipment-info-note {
-    margin-top: 12px;
+.equipment-info-warning {
+    margin-top: 14px;
     padding: 12px;
     border-radius: 12px;
     background: #F0FDF4;
     border: 1px solid #BBF7D0;
     color: #166534;
     font-size: 12px;
-    font-weight: 750;
+    font-weight: 800;
     line-height: 1.5;
 }
 
+.equipment-info-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.equipment-info-actions .btn-primary {
+    min-width: 120px;
+}
+
 @media (max-width: 768px) {
-    .equipment-info-card {
-        padding: 14px;
-        border-radius: 14px;
+    #termsModal .modal-box {
+        max-height: 92vh;
+        overflow-y: auto;
     }
 
-    .equipment-info-head {
-        gap: 10px;
+    .equipment-mini-btn {
+        padding: 11px 12px;
     }
 
-    .equipment-info-icon {
-        width: 38px;
-        height: 38px;
-        min-width: 38px;
-        font-size: 19px;
+    .equipment-mini-icon {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        font-size: 18px;
     }
 
-    .equipment-info-title {
-        font-size: 14px;
+    .equipment-mini-text strong {
+        font-size: 13px;
     }
 
-    .equipment-info-desc,
-    .equipment-info-note {
-        font-size: 12px;
-    }
-
-    .equipment-info-tag {
+    .equipment-mini-text span {
         font-size: 11px;
-        padding: 6px 9px;
+    }
+
+    .equipment-info-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .equipment-info-box {
+        width: 100%;
+        border-radius: 24px 24px 0 0;
+        padding: 26px 22px calc(22px + env(safe-area-inset-bottom, 16px));
+    }
+
+    .equipment-info-actions .btn-primary {
+        width: 100%;
+        height: 50px;
     }
 }
 
@@ -2690,6 +2803,17 @@ loyalty_discount_percent: discountPercent
        window.closeTermsModal = function() {
             document.getElementById("termsModal").style.display = "none";
         }
+                window.openEquipmentInfoModal = function() {
+            const modal = document.getElementById("equipmentInfoModal");
+            if (!modal) return;
+            modal.style.display = "flex";
+        }
+
+        window.closeEquipmentInfoModal = function() {
+            const modal = document.getElementById("equipmentInfoModal");
+            if (!modal) return;
+            modal.style.display = "none";
+        } 
 
         window.getTimeLeft = function(deadline) {
             const diff = new Date(deadline) - new Date();
@@ -4194,53 +4318,22 @@ window.closeReviewModal = function() {
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
                 </div>
             </div>
+                        <div class="equipment-mini-card">
+    <button type="button"
+            class="equipment-mini-btn equipment-mini-btn-simple"
+            onclick="openEquipmentInfoModal()">
 
-             <div class="equipment-info-card">
-    <div class="equipment-info-head">
-        <div class="equipment-info-icon">🧸</div>
+        <span class="equipment-mini-icon">🧸</span>
 
-        <div>
-            <div class="equipment-info-title"
-                 data-pl="Wyposażenie dodatkowe"
-                 data-en="Additional equipment">
-                Wyposażenie dodatkowe
-            </div>
-
-            <div class="equipment-info-desc"
-                 data-pl="Potrzebujesz fotelika dziecięcego, podstawki, nawigacji GPS lub innego wyposażenia? Skontaktuj się bezpośrednio z partnerem po potwierdzeniu rezerwacji."
-                 data-en="Need a child seat, booster seat, GPS navigation or other equipment? Contact the partner directly after your reservation is confirmed.">
-                Potrzebujesz fotelika dziecięcego, podstawki, nawigacji GPS lub innego wyposażenia? Skontaktuj się bezpośrednio z partnerem po potwierdzeniu rezerwacji.
-            </div>
-        </div>
-    </div>
-
-    <div class="equipment-info-tags">
-        <span class="equipment-info-tag"
-              data-pl="👶 Fotelik dziecięcy"
-              data-en="👶 Child seat">
-            👶 Fotelik dziecięcy
+        <span class="equipment-mini-text">
+            <strong data-pl="Dodatki?" data-en="Extras?">
+                Dodatki?
+            </strong>
         </span>
 
-        <span class="equipment-info-tag"
-              data-pl="🧒 Podstawka"
-              data-en="🧒 Booster seat">
-            🧒 Podstawka
-        </span>
-
-        <span class="equipment-info-tag"
-              data-pl="🧭 Nawigacja GPS"
-              data-en="🧭 GPS navigation">
-            🧭 Nawigacja GPS
-        </span>
-    </div>
-
-    <div class="equipment-info-note"
-         data-pl="Partner potwierdzi dostępność oraz ewentualną cenę wyposażenia. Dodatki nie są wliczone w cenę wynajmu ani w opłatę rezerwacyjną Ride24."
-         data-en="The partner will confirm availability and any additional equipment cost. Extras are not included in the rental price or in the Ride24 booking fee.">
-        Partner potwierdzi dostępność oraz ewentualną cenę wyposażenia. Dodatki nie są wliczone w cenę wynajmu ani w opłatę rezerwacyjną Ride24.
-    </div>
+        <span class="equipment-mini-arrow">i</span>
+    </button>
 </div>
-
             <div class="docs-container">
                 <a href="/regulamin.html" target="_blank">
                     <span style="font-size: 18px;">📄</span> Regulamin platformy Ride24
@@ -4264,6 +4357,53 @@ window.closeReviewModal = function() {
                 <button class="btn-secondary" onclick="window.closeTermsModal()" data-pl="Anuluj" data-en="Cancel">Anuluj</button>
                 <button id="confirmBookingBtn" class="btn-primary" style="box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);" data-pl="Potwierdzam i rezerwuję" data-en="Confirm & Book">
                     Potwierdzam i rezerwuję
+                </button>
+            </div>
+        </div>
+    </div>
+        <div id="equipmentInfoModal" class="equipment-info-overlay" onclick="closeEquipmentInfoModal()">
+        <div class="equipment-info-box" onclick="event.stopPropagation()">
+            <h3 data-pl="Wyposażenie dodatkowe" data-en="Additional equipment">
+                Wyposażenie dodatkowe
+            </h3>
+
+            <p data-pl="Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem."
+               data-en="If you need additional equipment, arrange the details directly with the partner.">
+                Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem.
+            </p>
+
+            <div class="equipment-info-list">
+                <div data-pl="👶 Fotelik dziecięcy" data-en="👶 Child seat">
+                    👶 Fotelik dziecięcy
+                </div>
+
+                <div data-pl="🧒 Podstawka dla dziecka" data-en="🧒 Booster seat">
+                    🧒 Podstawka dla dziecka
+                </div>
+
+                <div data-pl="🧭 Nawigacja GPS" data-en="🧭 GPS navigation">
+                    🧭 Nawigacja GPS
+                </div>
+
+                <div data-pl="➕ Inne wyposażenie według dostępności partnera"
+                     data-en="➕ Other equipment subject to partner availability">
+                    ➕ Inne wyposażenie według dostępności partnera
+                </div>
+            </div>
+
+            <div class="equipment-info-warning"
+                 data-pl="Partner potwierdzi dostępność oraz ewentualną cenę. Dodatki nie są wliczone w cenę wynajmu ani w opłatę rezerwacyjną Ride24."
+                 data-en="The partner will confirm availability and any additional cost. Extras are not included in the rental price or in the Ride24 booking fee.">
+                Partner potwierdzi dostępność oraz ewentualną cenę. Dodatki nie są wliczone w cenę wynajmu ani w opłatę rezerwacyjną Ride24.
+            </div>
+
+            <div class="equipment-info-actions">
+                <button type="button"
+                        class="btn-primary"
+                        onclick="closeEquipmentInfoModal()"
+                        data-pl="OK, rozumiem"
+                        data-en="OK, I understand">
+                    OK, rozumiem
                 </button>
             </div>
         </div>
