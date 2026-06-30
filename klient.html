@@ -522,86 +522,56 @@
     overflow-y: auto;
 }
 
-.equipment-mini-card {
-    margin-bottom: 14px;
-}
+/* ================= DODATKI — MAŁA POZYCJA W DOKUMENTACH ================= */
 
-.equipment-mini-btn {
+.docs-extra-item {
     width: 100%;
-    border: 1px solid #BFDBFE;
-    background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
-    border-radius: 14px;
-    padding: 12px 14px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: var(--blue-dark);
+    font-weight: 700;
+    font-size: 14px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 8px;
     cursor: pointer;
     text-align: left;
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
-    transition: all .2s ease;
+    transition: color 0.2s;
+    font-family: 'Inter', sans-serif;
 }
 
-.equipment-mini-btn:hover {
-    border-color: #2563EB;
-    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
-    transform: translateY(-1px);
+.docs-extra-item:hover {
+    color: var(--blue);
 }
 
-.equipment-mini-icon {
-    width: 38px;
-    height: 38px;
-    min-width: 38px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
-    color: #FFFFFF;
+.docs-extra-left {
     display: flex;
     align-items: center;
+    gap: 8px;
+}
+
+.docs-extra-icon {
+    font-size: 18px;
+    width: 22px;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
 }
 
-.equipment-mini-text {
-    flex: 1;
-    min-width: 0;
-}
-
-equipment-mini-text strong {
-    display: block;
-    color: var(--blue-dark);
-    font-size: 14px;
-    font-weight: 900;
-    line-height: 1.25;
-}
-
-/* krótka wersja przycisku: "Dodatki?" */
-.equipment-mini-btn-simple {
-    min-height: 54px;
-}
-
-.equipment-mini-btn-simple .equipment-mini-text strong {
-    font-size: 15px;
-}
-
-.equipment-mini-text span {
-    display: block;
-    margin-top: 2px;
-    color: #64748B;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.35;
-}
-
-.equipment-mini-arrow {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
+.docs-extra-info {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
     border-radius: 999px;
-    background: #DBEAFE;
+    background: #EFF6FF;
     color: #2563EB;
-    display: flex;
+    border: 1px solid #BFDBFE;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    font-size: 12px;
     font-weight: 900;
 }
 
@@ -816,6 +786,57 @@ equipment-mini-text strong {
         .docs-container { background: #F8FAFC; border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
         .modal-box a { color: var(--blue-dark); text-decoration: none; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
         .modal-box a:hover { color: var(--blue); }
+        /* ================= DODATKI — MAŁA POZYCJA W DOKUMENTACH ================= */
+
+.docs-extra-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: var(--blue-dark);
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.2s;
+}
+
+.docs-extra-item:hover {
+    color: var(--blue);
+}
+
+.docs-extra-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.docs-extra-icon {
+    font-size: 18px;
+    width: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.docs-extra-info {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 999px;
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #BFDBFE;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+}
 
         .premium-checkbox-wrapper { margin-top: 24px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; padding: 16px; border-radius: 12px; transition: background 0.2s; }
         .premium-checkbox-wrapper:hover { background: #F1F5F9; }
@@ -4318,33 +4339,40 @@ window.closeReviewModal = function() {
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
                 </div>
             </div>
-                        <div class="equipment-mini-card">
+                        
+            <div class="docs-container">
+    <a href="/regulamin.html" target="_blank">
+        <span style="font-size: 18px;">📄</span>
+        <span data-pl="Regulamin platformy Ride24" data-en="Ride24 platform terms">
+            Regulamin platformy Ride24
+        </span>
+    </a>
+
+    <a id="partnerTermsLink" target="_blank" style="display:none">
+        <span style="font-size: 18px;">📋</span>
+        <span data-pl="Warunki wynajmu partnera" data-en="Partner rental terms">
+            Warunki wynajmu partnera
+        </span>
+    </a>
+
+    <a id="partnerRulesLink" target="_blank" style="display:none">
+        <span style="font-size: 18px;">🔑</span>
+        <span data-pl="Regulamin wypożyczalni" data-en="Rental company rules">
+            Regulamin wypożyczalni
+        </span>
+    </a>
+
     <button type="button"
-            class="equipment-mini-btn equipment-mini-btn-simple"
+            class="docs-extra-item"
             onclick="openEquipmentInfoModal()">
-
-        <span class="equipment-mini-icon">🧸</span>
-
-        <span class="equipment-mini-text">
-            <strong data-pl="Dodatki?" data-en="Extras?">
-                Dodatki?
-            </strong>
+        <span class="docs-extra-left">
+            <span class="docs-extra-icon">🧸</span>
+            <span data-pl="Dodatki?" data-en="Extras?">Dodatki?</span>
         </span>
 
-        <span class="equipment-mini-arrow">i</span>
+        <span class="docs-extra-info">i</span>
     </button>
 </div>
-            <div class="docs-container">
-                <a href="/regulamin.html" target="_blank">
-                    <span style="font-size: 18px;">📄</span> Regulamin platformy Ride24
-                </a>
-                <a id="partnerTermsLink" target="_blank" style="display:none">
-                    <span style="font-size: 18px;">📋</span> Warunki wynajmu partnera
-                </a>
-                <a id="partnerRulesLink" target="_blank" style="display:none">
-                    <span style="font-size: 18px;">🔑</span> Regulamin wypożyczalni
-                </a>
-            </div>
 
             <label class="premium-checkbox-wrapper">
                 <input type="checkbox" id="acceptTerms">
@@ -4367,10 +4395,10 @@ window.closeReviewModal = function() {
                 Wyposażenie dodatkowe
             </h3>
 
-            <p data-pl="Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem."
-               data-en="If you need additional equipment, arrange the details directly with the partner.">
-                Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem.
-            </p>
+           <p data-pl="Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem po dokonaniu rezerwacji."
+   data-en="If you need additional equipment, arrange the details directly with the partner after making your reservation.">
+    Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem po dokonaniu rezerwacji.
+</p>
 
             <div class="equipment-info-list">
                 <div data-pl="👶 Fotelik dziecięcy" data-en="👶 Child seat">
