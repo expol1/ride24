@@ -3252,39 +3252,129 @@ async function promoteMarketingPost(id) {
     openPromotionModal(id);
 }
 async function confirmPromotion() {
+    const selectedDays = document.querySelector(
+        'input[name="promotion-days"]:checked'
+    );
 
-    const days =
-        Number(
-            document.querySelector(
-                'input[name="promotion-days"]:checked'
-            ).value
-        );
-
-    const { error } =
-        await db.rpc(
-            "start_post_promotion",
-            {
-                p_post_id:
-                    currentPromotionPostId,
-
-                p_days:
-                    days
-            }
-        );
-
-    if (error) {
-
-        alert(error.message);
+    if (!selectedDays) {
+        alert("Wybierz czas promocji.");
         return;
     }
 
-    closePromotionModal();
+    if (!currentPromotionPostId) {
+        alert("Nie wybrano posta do promocji.");
+        return;
+    }
 
-    alert(
-        "Promocja uruchomiona."
+    const days = Number(selectedDays.value);
+
+    if (![3, 7].includes(days)) {
+        alert("Nieprawidłowy czas promocji.");
+        return;
+    }
+
+    const modal = document.getElementById("promotion-modal");
+
+    const submitButton = modal?.querySelector(
+        'button[onclick="confirmPromotion()"]'
     );
 
-    await loadMarketingQueue();
+    const previousButtonText =
+        submitButton?.textContent || "Utwórz kampanię";
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Tworzenie kampanii...";
+    }
+
+    try {
+        const result = await db.functions.invoke(
+            "google-ads-create-campaign",
+            {
+                body: {
+                    postId: Number(currentPromotionPostId),
+                    days
+                }
+            }
+        );
+
+        if (result.error) {
+            let message =
+                result.error.message ||
+                "Nie udało się utworzyć kampanii Google Ads.";
+
+            if (result.response) {
+                try {
+                    const errorBody =
+                        await result.response.clone().json();
+
+                    message =
+                        errorBody.error ||
+                        errorBody.message ||
+                        errorBody.googleError?.error?.message ||
+                        message;
+
+                    if (errorBody.stage) {
+                        message +=
+                            "\n\nEtap: " +
+                            errorBody.stage;
+                    }
+                } catch (responseError) {
+                    console.error(
+                        "Nie udało się odczytać błędu Edge Function:",
+                        responseError
+                    );
+                }
+            }
+
+            throw new Error(message);
+        }
+
+        const data = result.data;
+
+        if (
+            !data?.success ||
+            !data?.campaignCreated ||
+            !data?.campaign?.google_campaign_id
+        ) {
+            throw new Error(
+                "Google Ads nie potwierdził utworzenia kampanii."
+            );
+        }
+
+        closePromotionModal();
+
+        alert(
+            "Kampania Google Ads została utworzona poprawnie.\n\n" +
+            "Status: PAUSED — kampania nie wydaje pieniędzy.\n" +
+            "Google Campaign ID: " +
+            data.campaign.google_campaign_id +
+            "\nBudżet dzienny według panelu: " +
+            data.campaign.daily_budget +
+            " PLN\n\n" +
+            "Uruchomienie kampanii wykonamy w następnym etapie."
+        );
+
+        await loadMarketingQueue();
+
+    } catch (error) {
+        console.error(
+            "[Ride24] Tworzenie kampanii Google Ads:",
+            error
+        );
+
+        alert(
+            "Nie udało się utworzyć kampanii Google Ads.\n\n" +
+            (error?.message || "Nieznany błąd.")
+        );
+
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent =
+                previousButtonText;
+        }
+    }
 }
                
 
@@ -4544,7 +4634,7 @@ class="btn-primary">
                 class="btn-primary"
                 onclick="confirmPromotion()">
 
-                Uruchom
+                Utwórz kampanię Google Ads
 
             </button>
 
