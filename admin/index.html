@@ -3266,7 +3266,13 @@ async function confirmPromotion() {
         return;
     }
 
+    const postId = Number(currentPromotionPostId);
     const days = Number(selectedDays.value);
+
+    if (!Number.isSafeInteger(postId) || postId <= 0) {
+        alert("Nieprawidłowy identyfikator posta.");
+        return;
+    }
 
     if (![3, 7].includes(days)) {
         alert("Nieprawidłowy czas promocji.");
@@ -3280,93 +3286,246 @@ async function confirmPromotion() {
     );
 
     const previousButtonText =
-        submitButton?.textContent || "Utwórz kampanię";
+        submitButton?.textContent || "Uruchom promocję";
+
+    async function readFunctionError(
+        result,
+        fallbackMessage
+    ) {
+        let body = null;
+
+        if (result?.response) {
+            try {
+                body = await result.response.clone().json();
+            } catch (responseError) {
+                console.error(
+                    "Nie udało się odczytać odpowiedzi Edge Function:",
+                    responseError
+                );
+            }
+        }
+
+        let message =
+            body?.error ||
+            body?.message ||
+            body?.googleError?.error?.message ||
+            result?.error?.message ||
+            fallbackMessage;
+
+        if (body?.stage) {
+            message += "\n\nEtap: " + body.stage;
+        }
+
+        if (body?.requestId) {
+            message +=
+                "\nGoogle Request ID: " +
+                body.requestId;
+        }
+
+        return {
+            body,
+            message
+        };
+    }
 
     if (submitButton) {
         submitButton.disabled = true;
-        submitButton.textContent = "Tworzenie kampanii...";
+        submitButton.textContent =
+            "Przygotowywanie kampanii...";
     }
 
+    let campaignPrepared = false;
+    let reusedPreparedCampaign = false;
+    let preparedCampaignId = null;
+
     try {
-        const result = await db.functions.invoke(
+        /*
+         * ETAP 1:
+         * Tworzymy kompletną kampanię Google Ads jako PAUSED.
+         */
+
+        const createResult = await db.functions.invoke(
             "google-ads-create-campaign",
             {
                 body: {
-                    postId: Number(currentPromotionPostId),
+                    postId,
                     days
                 }
             }
         );
 
-        if (result.error) {
-            let message =
-                result.error.message ||
-                "Nie udało się utworzyć kampanii Google Ads.";
+        if (createResult.error) {
+            const createError =
+                await readFunctionError(
+                    createResult,
+                    "Nie udało się przygotować kampanii Google Ads."
+                );
 
-            if (result.response) {
-                try {
-                    const errorBody =
-                        await result.response.clone().json();
+            const existingCampaign =
+                createError.body?.existingCampaign;
 
-                    message =
-                        errorBody.error ||
-                        errorBody.message ||
-                        errorBody.googleError?.error?.message ||
-                        message;
+            const canReusePreparedCampaign =
+                createError.body?.stage ===
+                    "duplicate_campaign_prevention" &&
+                existingCampaign?.status === "paused" &&
+                !existingCampaign?.launched_at;
 
-                    if (errorBody.stage) {
-                        message +=
-                            "\n\nEtap: " +
-                            errorBody.stage;
-                    }
-                } catch (responseError) {
-                    console.error(
-                        "Nie udało się odczytać błędu Edge Function:",
-                        responseError
-                    );
-                }
+            /*
+             * Jeżeli wcześniejsza próba utworzyła kampanię PAUSED,
+             * ale nie zdążyła jej uruchomić, wykorzystujemy ją zamiast
+             * tworzyć duplikat.
+             */
+            if (canReusePreparedCampaign) {
+                reusedPreparedCampaign = true;
+                campaignPrepared = true;
+                preparedCampaignId =
+                    existingCampaign.google_campaign_id ||
+                    null;
+            } else {
+                throw new Error(createError.message);
+            }
+        } else {
+            const createData = createResult.data;
+
+            if (
+                !createData?.success ||
+                !createData?.campaignCreated ||
+                !createData?.campaignPaused ||
+                !createData?.campaign?.google_campaign_id
+            ) {
+                throw new Error(
+                    createData?.error ||
+                    "Google Ads nie potwierdził przygotowania kampanii w statusie PAUSED."
+                );
             }
 
-            throw new Error(message);
+            campaignPrepared = true;
+            preparedCampaignId =
+                createData.campaign.google_campaign_id;
         }
 
-        const data = result.data;
+        /*
+         * ETAP 2:
+         * Uruchamiamy przygotowaną kampanię i Asset Group.
+         */
+
+        if (submitButton) {
+            submitButton.textContent =
+                "Uruchamianie kampanii...";
+        }
+
+        const startResult = await db.functions.invoke(
+            "google-ads-start-campaign",
+            {
+                body: {
+                    postId,
+                    days
+                }
+            }
+        );
+
+        if (startResult.error) {
+            const startError =
+                await readFunctionError(
+                    startResult,
+                    "Nie udało się uruchomić kampanii Google Ads."
+                );
+
+            throw new Error(startError.message);
+        }
+
+        const startData = startResult.data;
 
         if (
-            !data?.success ||
-            !data?.campaignCreated ||
-            !data?.campaign?.google_campaign_id
+            !startData?.success ||
+            !startData?.campaignEnabled ||
+            !startData?.assetGroupEnabled ||
+            !startData?.promotionStarted
         ) {
             throw new Error(
-                "Google Ads nie potwierdził utworzenia kampanii."
+                startData?.error ||
+                "Google Ads nie potwierdził uruchomienia kampanii."
             );
         }
 
         closePromotionModal();
+        currentPromotionPostId = null;
 
-        alert(
-            "Kampania Google Ads została utworzona poprawnie.\n\n" +
-            "Status: PAUSED — kampania nie wydaje pieniędzy.\n" +
+        const googleCampaignId =
+            startData.campaign?.google_campaign_id ||
+            preparedCampaignId ||
+            "-";
+
+        const dailyBudget =
+            startData.campaign?.daily_budget;
+
+        const totalBudget =
+            startData.post?.promotion_budget;
+
+        let successMessage =
+            "Promocja Google Ads została uruchomiona.\n\n" +
+            "Status kampanii: ENABLED\n" +
+            "Status Asset Group: ENABLED\n" +
             "Google Campaign ID: " +
-            data.campaign.google_campaign_id +
-            "\nBudżet dzienny według panelu: " +
-            data.campaign.daily_budget +
-            " PLN\n\n" +
-            "Uruchomienie kampanii wykonamy w następnym etapie."
-        );
+            googleCampaignId +
+            "\nCzas promocji: " +
+            days +
+            " dni";
+
+        if (
+            dailyBudget !== null &&
+            dailyBudget !== undefined
+        ) {
+            successMessage +=
+                "\nBudżet dzienny: " +
+                dailyBudget +
+                " PLN";
+        }
+
+        if (
+            totalBudget !== null &&
+            totalBudget !== undefined
+        ) {
+            successMessage +=
+                "\nBudżet całkowity: " +
+                totalBudget +
+                " PLN";
+        }
+
+        if (reusedPreparedCampaign) {
+            successMessage +=
+                "\n\nWykorzystano wcześniej przygotowaną kampanię PAUSED.";
+        }
+
+        successMessage +=
+            "\n\nEmisja rozpocznie się zgodnie z harmonogramem kampanii.";
+
+        alert(successMessage);
 
         await loadMarketingQueue();
+        await loadMarketingSettings();
 
     } catch (error) {
         console.error(
-            "[Ride24] Tworzenie kampanii Google Ads:",
+            "[Ride24] Uruchamianie promocji Google Ads:",
             error
         );
 
-        alert(
-            "Nie udało się utworzyć kampanii Google Ads.\n\n" +
-            (error?.message || "Nieznany błąd.")
-        );
+        let message =
+            "Nie udało się uruchomić promocji Google Ads.\n\n" +
+            (error?.message || "Nieznany błąd.");
+
+        if (campaignPrepared) {
+            message +=
+                "\n\nKampania została przygotowana w Google Ads. " +
+                "Nie zakładaj, że jest aktywna — przed ponowieniem " +
+                "sprawdź jej status w Google Ads lub w tabeli google_ads_campaigns.";
+        }
+
+        alert(message);
+
+        await loadMarketingQueue();
+        await loadMarketingSettings();
 
     } finally {
         if (submitButton) {
@@ -3376,6 +3535,7 @@ async function confirmPromotion() {
         }
     }
 }
+
                
 
 async function stopPromotion(id) {
@@ -4675,7 +4835,7 @@ class="btn-primary">
         width:400px;
         text-align:center;">
 
-        <h3>📢 Utwórz kampanię Google Ads</h3>
+        <h3>📢 Promuj w Google Ads</h3>
 
         <div style="
             margin-top:20px;
@@ -4715,7 +4875,7 @@ class="btn-primary">
                 class="btn-primary"
                 onclick="confirmPromotion()">
 
-                Utwórz kampanię Google Ads
+                Uruchom promocję Google Ads
 
             </button>
 
