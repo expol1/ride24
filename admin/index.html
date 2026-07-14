@@ -3380,34 +3380,114 @@ async function confirmPromotion() {
 
 async function stopPromotion(id) {
 
-    const confirmed =
-        confirm(
-            "Zakończyć promocję?"
-        );
+    const confirmed = confirm(
+        "Zakończyć promocję Google Ads?\n\n" +
+        "Kampania zostanie najpierw zatrzymana w Google Ads, " +
+        "a dopiero potem oznaczona jako zakończona w panelu."
+    );
 
     if (!confirmed) {
         return;
     }
 
-    const { error } =
-        await db.rpc(
-            "stop_post_promotion",
+    try {
+
+        const result = await db.functions.invoke(
+            "google-ads-stop-campaign",
             {
-                p_post_id: id
+                body: {
+                    postId: Number(id)
+                }
             }
         );
 
-    if (error) {
+        if (result.error) {
 
-        alert(error.message);
-        return;
+            let message =
+                result.error.message ||
+                "Nie udało się zatrzymać kampanii Google Ads.";
+
+            if (result.response) {
+                try {
+
+                    const errorBody =
+                        await result.response.clone().json();
+
+                    message =
+                        errorBody.error ||
+                        errorBody.message ||
+                        errorBody.googleError?.error?.message ||
+                        message;
+
+                    if (errorBody.stage) {
+                        message +=
+                            "\n\nEtap: " +
+                            errorBody.stage;
+                    }
+
+                    if (errorBody.requestId) {
+                        message +=
+                            "\nGoogle Request ID: " +
+                            errorBody.requestId;
+                    }
+
+                } catch (responseError) {
+
+                    console.error(
+                        "Nie udało się odczytać odpowiedzi funkcji zatrzymującej:",
+                        responseError
+                    );
+                }
+            }
+
+            throw new Error(message);
+        }
+
+        const data = result.data;
+
+        if (
+            !data?.success ||
+            !data?.campaignPaused
+        ) {
+            throw new Error(
+                data?.error ||
+                "Google Ads nie potwierdził zatrzymania kampanii."
+            );
+        }
+
+        let message =
+            "Kampania Google Ads została zatrzymana.\n\n" +
+            "Status Google: PAUSED\n" +
+            "Status promocji w panelu: zakończona";
+
+        if (data.googlePauseExecuted === false) {
+            message +=
+                "\n\nKampania była już wcześniej zatrzymana w Google Ads.";
+        }
+
+        if (data.campaign?.google_campaign_id) {
+            message +=
+                "\nGoogle Campaign ID: " +
+                data.campaign.google_campaign_id;
+        }
+
+        alert(message);
+
+        await loadMarketingQueue();
+
+    } catch (error) {
+
+        console.error(
+            "[Ride24] Zatrzymywanie kampanii Google Ads:",
+            error
+        );
+
+        alert(
+            "Nie udało się zatrzymać kampanii.\n\n" +
+            (error?.message || "Nieznany błąd.") +
+            "\n\nStatus promocji w bazie nie został celowo zmieniony."
+        );
     }
-
-    alert(
-        "Promocja zakończona."
-    );
-
-    await loadMarketingQueue();
 }
 
 function closeMarketingModal() {
