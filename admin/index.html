@@ -9,7 +9,6 @@
     <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="https://ride24.pl/admin/">
 
-    <link rel="preload" href="../fonts/manrope-v20-latin-ext-700.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="../fonts/inter-v20-latin_latin-ext-regular.woff2" as="font" type="font/woff2" crossorigin>
 
     <style>
@@ -302,6 +301,141 @@
         .smart-input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; transition: 0.2s; }
         .smart-input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px #DBEAFE; }
 
+
+/* --- GOOGLE ADS DASHBOARD --- */
+.google-ads-panel {
+    margin-top: 20px;
+    margin-bottom: 24px;
+}
+
+.google-ads-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: #F8FAFC;
+}
+
+.google-ads-panel-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.google-ads-panel-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--gray);
+}
+
+.google-ads-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.google-ads-sync-time {
+    font-size: 11px;
+    color: var(--gray);
+}
+
+.google-ads-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    padding: 18px 20px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+}
+
+.google-ads-stat {
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #F8FAFC;
+}
+
+.google-ads-stat-label {
+    margin-bottom: 6px;
+    color: var(--gray);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.google-ads-stat-value {
+    color: var(--text);
+    font-family: 'Manrope', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.google-ads-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.google-ads-status.enabled {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+.google-ads-status.paused {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.google-ads-status.removed,
+.google-ads-status.failed {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.google-ads-status.draft,
+.google-ads-status.creating,
+.google-ads-status.unknown {
+    background: #E2E8F0;
+    color: #475569;
+}
+
+.google-ads-table-wrap {
+    overflow-x: auto;
+}
+
+.google-ads-table {
+    min-width: 1180px;
+}
+
+.google-ads-table td,
+.google-ads-table th {
+    padding: 12px 14px;
+}
+
+.google-ads-campaign-name {
+    max-width: 240px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.google-ads-muted {
+    margin-top: 3px;
+    color: var(--gray);
+    font-size: 11px;
+}
+
 /* --- STYLE DLA TELEFONU --- */
 @media (max-width: 768px) {
     body { flex-direction: column; }
@@ -321,6 +455,10 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .stat-card { padding: 15px; }
     .stat-value { font-size: 20px; }
+    .google-ads-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; gap: 10px; }
+    .google-ads-panel-header { align-items: flex-start; flex-direction: column; }
+    .google-ads-actions { justify-content: flex-start; width: 100%; }
+    .google-ads-stat-value { font-size: 18px; }
 
     /* Tabele: pozwalamy im się przewijać na boki, żeby nie niszczyły układu */
     .table-container { overflow-x: auto; }
@@ -911,6 +1049,96 @@
    
 
     
+
+<div class="table-container google-ads-panel">
+    <div class="google-ads-panel-header">
+        <div>
+            <div class="google-ads-panel-title">Google Ads — wyniki kampanii</div>
+            <div class="google-ads-panel-subtitle">
+                Rzeczywiste dane z Google Ads z ostatnich 30 dni. Automatyczna synchronizacja działa w tle.
+            </div>
+        </div>
+
+        <div class="google-ads-actions">
+            <span class="google-ads-sync-time" id="google-ads-last-sync">Brak zapisanych metryk</span>
+            <button
+                class="btn-primary"
+                id="google-ads-sync-btn"
+                onclick="synchronizeGoogleAdsDashboard(this)">
+                ↻ Synchronizuj teraz
+            </button>
+        </div>
+    </div>
+
+    <div class="google-ads-stats">
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">Aktywne kampanie</div>
+            <div class="google-ads-stat-value" id="google-ads-active-campaigns">0</div>
+        </div>
+
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">Koszt 30 dni</div>
+            <div class="google-ads-stat-value" id="google-ads-cost">0,00 zł</div>
+        </div>
+
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">Wyświetlenia</div>
+            <div class="google-ads-stat-value" id="google-ads-impressions">0</div>
+        </div>
+
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">Kliknięcia</div>
+            <div class="google-ads-stat-value" id="google-ads-clicks">0</div>
+        </div>
+
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">CTR</div>
+            <div class="google-ads-stat-value" id="google-ads-ctr">0,00%</div>
+        </div>
+
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">Średni CPC</div>
+            <div class="google-ads-stat-value" id="google-ads-average-cpc">0,00 zł</div>
+        </div>
+
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">Konwersje</div>
+            <div class="google-ads-stat-value" id="google-ads-conversions">0</div>
+        </div>
+
+        <div class="google-ads-stat">
+            <div class="google-ads-stat-label">Wartość konwersji</div>
+            <div class="google-ads-stat-value" id="google-ads-conversion-value">0,00 zł</div>
+        </div>
+    </div>
+
+    <div class="google-ads-table-wrap">
+        <table class="google-ads-table">
+            <thead>
+                <tr>
+                    <th>Kampania</th>
+                    <th>Status Google</th>
+                    <th>Budżet / dzień</th>
+                    <th>Okres</th>
+                    <th>Wyświetlenia</th>
+                    <th>Kliknięcia</th>
+                    <th>CTR</th>
+                    <th>Śr. CPC</th>
+                    <th>Koszt</th>
+                    <th>Konwersje</th>
+                </tr>
+            </thead>
+            <tbody id="google-ads-campaigns-tbody">
+                <tr>
+                    <td colspan="10" style="text-align:center; color:#64748B;">
+                        Ładowanie danych Google Ads...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="table-container" style="margin-top:20px;">
 
    <div class="table-header">
@@ -971,7 +1199,7 @@
     <tr>
         <th>Data</th>
         <th>Platforma</th>
-        
+        <th>Lokalizacja</th>
         <th>Status</th>
         <th>Treść posta</th>
         <th>Akcja</th>
@@ -1679,6 +1907,7 @@ function closePromotionModal() {
             loadMarketingStats();
             loadMarketingRuns();
             loadMarketingQueue();
+            loadGoogleAdsDashboard();
         });
 
         // --- NAWIGACJA ---
@@ -1691,10 +1920,11 @@ function closePromotionModal() {
             if (tabId === "refunds") loadRefunds();
             if (tabId === "messages") loadMessages();
             if (tabId === "marketing") {
-                
+                loadMarketingSettings();
                 loadMarketingStats();
                 loadMarketingRuns();
                 loadMarketingQueue();
+                loadGoogleAdsDashboard();
             }
             if (tabId === "guides") {
 
@@ -2713,17 +2943,10 @@ async function saveMarketingSettings() {
         return;
     }
 
-    document.getElementById(
-        "marketing-budget"
-    ).innerText =
-        `${monthly} zł`;
+    await loadMarketingSettings();
+    await loadGoogleAdsDashboard();
 
-    document.getElementById(
-        "marketing-daily"
-    ).innerText =
-        `${daily} zł`;
-
-    alert("Zapisano");
+    alert("Zapisano ustawienia Marketing AI.");
 }
 
 
@@ -2854,16 +3077,18 @@ let statusName =
     statusMap[post.status] ||
     post.status;
 
-if (
-    post.promoted &&
-    !post.promotion_stopped_at
-) {
+const isActivePromotion =
+    post.promoted === true &&
+    post.promotion_status === "active" &&
+    !post.promotion_stopped_at;
+
+const isFinishedPromotion =
+    post.promotion_status === "finished" &&
+    Boolean(post.promotion_stopped_at);
+
+if (isActivePromotion) {
     statusName = "Promowany";
-}
-else if (
-    post.promoted &&
-    post.promotion_stopped_at
-) {
+} else if (isFinishedPromotion) {
     statusName = "Promocja zakończona";
 }
 
@@ -2877,17 +3102,11 @@ if (post.status === "draft") {
 if (post.status === "published") {
     statusBadge = "#16A34A";
 }
-if (
-    post.promoted &&
-    !post.promotion_stopped_at
-) {
+if (isActivePromotion) {
     statusBadge = "#7C3AED";
 }
 
-if (
-    post.promoted &&
-    post.promotion_stopped_at
-) {
+if (isFinishedPromotion) {
     statusBadge = "#6B7280";
 }
 
@@ -2986,10 +3205,7 @@ ${post.is_manual ? true : false}
 
 ${
 post.status === "published" &&
-(
-    !post.promoted ||
-    post.promotion_stopped_at
-)
+!isActivePromotion
 ? `
 <button
     class="btn-warning"
@@ -3003,8 +3219,7 @@ post.status === "published" &&
 : ""
 }
 ${
-post.promoted &&
-!post.promotion_stopped_at
+isActivePromotion
 ? `
 <button
     class="btn-danger"
@@ -3504,6 +3719,7 @@ async function confirmPromotion() {
 
         await loadMarketingQueue();
         await loadMarketingSettings();
+        await loadGoogleAdsDashboard();
 
     } catch (error) {
         console.error(
@@ -3526,6 +3742,7 @@ async function confirmPromotion() {
 
         await loadMarketingQueue();
         await loadMarketingSettings();
+        await loadGoogleAdsDashboard();
 
     } finally {
         if (submitButton) {
@@ -3635,6 +3852,7 @@ async function stopPromotion(id) {
 
         await loadMarketingQueue();
         await loadMarketingSettings();
+        await loadGoogleAdsDashboard();
 
     } catch (error) {
 
@@ -3924,6 +4142,332 @@ async function showMarketingPost(
         "marketing-modal"
     ).style.display =
         "flex";
+}
+
+
+function setGoogleAdsDashboardText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.innerText = value;
+}
+
+function formatGoogleAdsNumber(value, maximumFractionDigits = 0) {
+    const number = Number(value || 0);
+
+    if (!Number.isFinite(number)) return "0";
+
+    return number.toLocaleString("pl-PL", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits
+    });
+}
+
+function formatGoogleAdsMoney(value) {
+    const number = Number(value || 0);
+
+    if (!Number.isFinite(number)) return "0,00 zł";
+
+    return number.toLocaleString("pl-PL", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + " zł";
+}
+
+function formatGoogleAdsDate(value, includeTime = false) {
+    if (!value) return "-";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return includeTime
+        ? date.toLocaleString("pl-PL")
+        : date.toLocaleDateString("pl-PL");
+}
+
+function googleAdsStatusClass(status) {
+    const normalized = String(status || "unknown").toLowerCase();
+
+    if (["enabled", "paused", "removed", "failed", "draft", "creating"].includes(normalized)) {
+        return normalized;
+    }
+
+    return "unknown";
+}
+
+function googleAdsStatusLabel(status) {
+    const normalized = String(status || "UNKNOWN").toUpperCase();
+
+    const labels = {
+        ENABLED: "Aktywna",
+        PAUSED: "Wstrzymana",
+        REMOVED: "Usunięta",
+        FAILED: "Błąd",
+        DRAFT: "Szkic",
+        CREATING: "Tworzenie"
+    };
+
+    return labels[normalized] || normalized;
+}
+
+async function loadGoogleAdsDashboard() {
+    const tbody = document.getElementById("google-ads-campaigns-tbody");
+    if (!tbody) return;
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="10" style="text-align:center; color:#64748B;">
+                Ładowanie danych Google Ads...
+            </td>
+        </tr>
+    `;
+
+    const { data, error } = await db.rpc(
+        "get_google_ads_admin_dashboard",
+        {
+            p_days: 30,
+            p_limit: 30
+        }
+    );
+
+    if (error) {
+        console.error("Google Ads dashboard error:", error);
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align:center; color:#DC2626;">
+                    Nie udało się pobrać danych Google Ads: ${escapeHtml(error.message)}
+                </td>
+            </tr>
+        `;
+
+        setGoogleAdsDashboardText("google-ads-last-sync", "Błąd pobierania danych");
+        return;
+    }
+
+    const dashboard = data || {};
+    const summary = dashboard.summary || {};
+    const campaigns = Array.isArray(dashboard.campaigns)
+        ? dashboard.campaigns
+        : [];
+
+    setGoogleAdsDashboardText(
+        "google-ads-active-campaigns",
+        formatGoogleAdsNumber(summary.active_campaigns)
+    );
+
+    setGoogleAdsDashboardText(
+        "google-ads-cost",
+        formatGoogleAdsMoney(summary.cost)
+    );
+
+    setGoogleAdsDashboardText(
+        "google-ads-impressions",
+        formatGoogleAdsNumber(summary.impressions)
+    );
+
+    setGoogleAdsDashboardText(
+        "google-ads-clicks",
+        formatGoogleAdsNumber(summary.clicks)
+    );
+
+    setGoogleAdsDashboardText(
+        "google-ads-ctr",
+        formatGoogleAdsNumber(summary.ctr, 2) + "%"
+    );
+
+    setGoogleAdsDashboardText(
+        "google-ads-average-cpc",
+        formatGoogleAdsMoney(summary.average_cpc)
+    );
+
+    setGoogleAdsDashboardText(
+        "google-ads-conversions",
+        formatGoogleAdsNumber(summary.conversions, 2)
+    );
+
+    setGoogleAdsDashboardText(
+        "google-ads-conversion-value",
+        formatGoogleAdsMoney(summary.conversion_value)
+    );
+
+    const lastSync =
+        summary.last_metrics_update ||
+        summary.last_campaign_update ||
+        null;
+
+    setGoogleAdsDashboardText(
+        "google-ads-last-sync",
+        lastSync
+            ? "Dane: " + formatGoogleAdsDate(lastSync, true)
+            : "Brak zapisanych metryk — kampanie testowe nie miały emisji"
+    );
+
+    if (!campaigns.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align:center; color:#64748B;">
+                    Brak kampanii Google Ads.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = campaigns.map(campaign => {
+        const status =
+            campaign.google_primary_status ||
+            campaign.google_status ||
+            campaign.status ||
+            "UNKNOWN";
+
+        const statusClass = googleAdsStatusClass(
+            campaign.google_status || campaign.status
+        );
+
+        const campaignName = escapeHtml(
+            campaign.campaign_name || "Kampania Google Ads"
+        );
+
+        const googleCampaignId = escapeHtml(
+            String(campaign.google_campaign_id || "-")
+        );
+
+        const postId = campaign.marketing_queue_id ?? "-";
+
+        return `
+            <tr>
+                <td>
+                    <div class="google-ads-campaign-name">${campaignName}</div>
+                    <div class="google-ads-muted">
+                        Post: ${postId} · Google ID: ${googleCampaignId}
+                    </div>
+                </td>
+                <td>
+                    <span class="google-ads-status ${statusClass}">
+                        ${escapeHtml(googleAdsStatusLabel(status))}
+                    </span>
+                </td>
+                <td>${formatGoogleAdsMoney(campaign.daily_budget)}</td>
+                <td>
+                    ${formatGoogleAdsDate(campaign.start_date)}
+                    –
+                    ${formatGoogleAdsDate(campaign.end_date)}
+                </td>
+                <td>${formatGoogleAdsNumber(campaign.impressions)}</td>
+                <td>${formatGoogleAdsNumber(campaign.clicks)}</td>
+                <td>${formatGoogleAdsNumber(campaign.ctr, 2)}%</td>
+                <td>${formatGoogleAdsMoney(campaign.average_cpc)}</td>
+                <td>${formatGoogleAdsMoney(campaign.cost)}</td>
+                <td>${formatGoogleAdsNumber(campaign.conversions, 2)}</td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function readGoogleAdsFunctionError(result, fallbackMessage) {
+    let responseBody = null;
+
+    if (result?.response) {
+        try {
+            responseBody = await result.response.clone().json();
+        } catch (error) {
+            console.error("Nie udało się odczytać odpowiedzi Edge Function:", error);
+        }
+    }
+
+    let message =
+        responseBody?.error ||
+        responseBody?.message ||
+        responseBody?.googleError?.error?.message ||
+        result?.error?.message ||
+        fallbackMessage;
+
+    if (responseBody?.stage) {
+        message += "\n\nEtap: " + responseBody.stage;
+    }
+
+    return message;
+}
+
+async function synchronizeGoogleAdsDashboard(button) {
+    const syncButton = button || document.getElementById("google-ads-sync-btn");
+    const previousText = syncButton?.textContent || "Synchronizuj teraz";
+
+    if (syncButton) {
+        syncButton.disabled = true;
+        syncButton.textContent = "Synchronizacja...";
+    }
+
+    try {
+        const statusResult = await db.functions.invoke(
+            "google-ads-sync-statuses",
+            {
+                body: {
+                    limit: 200
+                }
+            }
+        );
+
+        if (statusResult.error || statusResult.data?.success === false) {
+            throw new Error(
+                await readGoogleAdsFunctionError(
+                    statusResult,
+                    "Nie udało się zsynchronizować statusów Google Ads."
+                )
+            );
+        }
+
+        const metricsResult = await db.functions.invoke(
+            "google-ads-sync-metrics",
+            {
+                body: {
+                    daysBack: 30
+                }
+            }
+        );
+
+        if (metricsResult.error || metricsResult.data?.success === false) {
+            throw new Error(
+                await readGoogleAdsFunctionError(
+                    metricsResult,
+                    "Nie udało się zsynchronizować metryk Google Ads."
+                )
+            );
+        }
+
+        await Promise.all([
+            loadGoogleAdsDashboard(),
+            loadMarketingQueue(),
+            loadMarketingSettings()
+        ]);
+
+        const metrics = metricsResult.data || {};
+        const statuses = statusResult.data || {};
+
+        alert(
+            "Synchronizacja Google Ads zakończona.\n\n" +
+            "Kampanie sprawdzone: " +
+            (statuses.campaignsRequested ?? 0) +
+            "\nStatusy zaktualizowane: " +
+            (statuses.campaignsUpdated ?? 0) +
+            "\nWiersze metryk: " +
+            (metrics.metricRowsUpserted ?? 0) +
+            "\nRzeczywisty koszt: " +
+            formatGoogleAdsMoney(metrics.totalCost ?? 0)
+        );
+
+    } catch (error) {
+        console.error("[Ride24] Synchronizacja Google Ads:", error);
+
+        alert(
+            "Synchronizacja Google Ads nie powiodła się.\n\n" +
+            (error?.message || "Nieznany błąd.")
+        );
+    } finally {
+        if (syncButton) {
+            syncButton.disabled = false;
+            syncButton.textContent = previousText;
+        }
+    }
 }
 
 async function loadMarketingStats() {
