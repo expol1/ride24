@@ -9,8 +9,6 @@
     <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="https://ride24.pl/admin/">
 
-    <link rel="preload" href="../fonts/inter-v20-latin_latin-ext-regular.woff2" as="font" type="font/woff2" crossorigin>
-
     <style>
         /* --- FONTY --- */
         @font-face{font-family:'Inter';src:url('../fonts/inter-v20-latin_latin-ext-regular.woff2') format('woff2');font-weight:400;font-display:swap;}
@@ -3252,93 +3250,251 @@ ${post.is_manual ? true : false}
 });
 }
 
+function ensureAdminActionDialog() {
+    let overlay = document.getElementById("admin-action-dialog");
+
+    if (overlay) return overlay;
+
+    overlay = document.createElement("div");
+    overlay.id = "admin-action-dialog";
+    overlay.style.cssText = [
+        "display:none",
+        "position:fixed",
+        "inset:0",
+        "z-index:20000",
+        "align-items:center",
+        "justify-content:center",
+        "padding:20px",
+        "background:rgba(15,23,42,.68)",
+        "backdrop-filter:blur(5px)"
+    ].join(";");
+
+    overlay.innerHTML = `
+        <div style="width:100%;max-width:480px;background:#fff;border-radius:14px;box-shadow:0 24px 70px rgba(15,23,42,.3);overflow:hidden;">
+            <div style="padding:18px 22px;border-bottom:1px solid #E2E8F0;background:#F8FAFC;">
+                <h3 id="admin-action-dialog-title" style="margin:0;font-size:18px;color:#0F172A;"></h3>
+            </div>
+            <div id="admin-action-dialog-message" style="padding:20px 22px;color:#334155;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;"></div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;padding:15px 22px;border-top:1px solid #E2E8F0;background:#F8FAFC;">
+                <button id="admin-action-dialog-cancel" class="btn-secondary" type="button">Anuluj</button>
+                <button id="admin-action-dialog-confirm" class="btn-primary" type="button">OK</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+function showAdminNotice(title, message, type = "info") {
+    return new Promise(resolve => {
+        const overlay = ensureAdminActionDialog();
+        const titleElement = document.getElementById("admin-action-dialog-title");
+        const messageElement = document.getElementById("admin-action-dialog-message");
+        const cancelButton = document.getElementById("admin-action-dialog-cancel");
+        const confirmButton = document.getElementById("admin-action-dialog-confirm");
+
+        titleElement.textContent = title;
+        messageElement.textContent = String(message || "");
+        cancelButton.style.display = "none";
+        confirmButton.textContent = "OK";
+        confirmButton.style.background = type === "error" ? "#DC2626" : "#2563EB";
+        overlay.style.display = "flex";
+
+        const close = () => {
+            overlay.style.display = "none";
+            confirmButton.onclick = null;
+            cancelButton.onclick = null;
+            resolve();
+        };
+
+        confirmButton.onclick = close;
+        cancelButton.onclick = close;
+    });
+}
+
+function confirmAdminAction(title, message, confirmLabel = "Potwierdź") {
+    return new Promise(resolve => {
+        const overlay = ensureAdminActionDialog();
+        const titleElement = document.getElementById("admin-action-dialog-title");
+        const messageElement = document.getElementById("admin-action-dialog-message");
+        const cancelButton = document.getElementById("admin-action-dialog-cancel");
+        const confirmButton = document.getElementById("admin-action-dialog-confirm");
+
+        titleElement.textContent = title;
+        messageElement.textContent = String(message || "");
+        cancelButton.style.display = "inline-block";
+        cancelButton.textContent = "Anuluj";
+        confirmButton.textContent = confirmLabel;
+        confirmButton.style.background = "#DC2626";
+        overlay.style.display = "flex";
+
+        const finish = value => {
+            overlay.style.display = "none";
+            confirmButton.onclick = null;
+            cancelButton.onclick = null;
+            resolve(value);
+        };
+
+        cancelButton.onclick = () => finish(false);
+        confirmButton.onclick = () => finish(true);
+    });
+}
+
+async function readMarketingFunctionError(result, fallbackMessage) {
+    let body = null;
+
+    if (result?.response) {
+        try {
+            body = await result.response.clone().json();
+        } catch (error) {
+            console.error("Nie udało się odczytać odpowiedzi Edge Function:", error);
+        }
+    }
+
+    let message =
+        body?.error ||
+        body?.message ||
+        body?.facebookError?.error?.message ||
+        result?.error?.message ||
+        fallbackMessage;
+
+    if (body?.stage) {
+        message += "\n\nEtap: " + body.stage;
+    }
+
+    if (body?.facebookError?.error?.code) {
+        message += "\nKod Facebook: " + body.facebookError.error.code;
+    }
+
+    return message;
+}
+
+function getMarketingStoragePath(publicUrl) {
+    if (!publicUrl) return null;
+
+    try {
+        const url = new URL(publicUrl);
+        const markers = [
+            "/storage/v1/object/public/marketing-images/",
+            "/marketing-images/"
+        ];
+
+        for (const marker of markers) {
+            const index = url.pathname.indexOf(marker);
+            if (index >= 0) {
+                return decodeURIComponent(
+                    url.pathname.slice(index + marker.length)
+                );
+            }
+        }
+    } catch (error) {
+        console.warn("Nie udało się rozpoznać adresu grafiki:", error);
+    }
+
+    return null;
+}
+
 async function deleteMarketingPost(
     id,
     isManual = false
 ) {
+    const confirmed = await confirmAdminAction(
+        "Usuń post marketingowy",
+        "Post zostanie trwale usunięty z bazy. Powiązana grafika zostanie również usunięta ze Storage. Tej operacji nie można cofnąć.",
+        "Usuń post"
+    );
 
-    if (
-        !confirm(
-            "Czy usunąć ten post?"
-        )
-    ) {
-        return;
-    }
+    if (!confirmed) return;
 
-    const table =
-        isManual
-            ? "manual_posts"
-            : "marketing_queue";
+    const table = isManual
+        ? "manual_posts"
+        : "marketing_queue";
 
-    const {
-        data: post
-    } =
-        await db
+    try {
+        const selectColumns = isManual
+            ? "id,image_url"
+            : "id,image_url,promoted,promotion_status";
+
+        const {
+            data: post,
+            error: readError
+        } = await db
             .from(table)
-            .select("image_url")
+            .select(selectColumns)
             .eq("id", id)
-            .single();
+            .maybeSingle();
 
-    if (
-        post?.image_url
-    ) {
+        if (readError) throw readError;
 
-        const filePath =
-            post.image_url
-                .split(
-                    "/marketing-images/"
-                )[1];
-
-        if (filePath) {
-
-            const {
-                error: storageError
-            } =
-                await db.storage
-                    .from(
-                        "marketing-images"
-                    )
-                    .remove([
-                        filePath
-                    ]);
-
-            console.log(
-                "DELETE FILE:",
-                filePath
-            );
-
-            if (
-                storageError
-            ) {
-
-                console.error(
-                    "Storage delete error:",
-                    storageError
-                );
-            }
+        if (!post) {
+            throw new Error("Nie znaleziono posta albo został już usunięty.");
         }
-    }
 
-    const { error } =
-        await db
+        if (
+            !isManual &&
+            post.promoted === true &&
+            post.promotion_status === "active"
+        ) {
+            throw new Error(
+                "Najpierw zakończ aktywną promocję Google Ads, a dopiero potem usuń post."
+            );
+        }
+
+        const {
+            data: deletedRows,
+            error: deleteError
+        } = await db
             .from(table)
             .delete()
-            .eq(
-                "id",
-                id
+            .eq("id", id)
+            .select("id");
+
+        if (deleteError) throw deleteError;
+
+        if (!deletedRows || deletedRows.length === 0) {
+            throw new Error(
+                "Baza nie potwierdziła usunięcia rekordu. Sprawdź politykę DELETE/RLS dla tabeli " + table + "."
             );
+        }
 
-    if (error) {
+        let storageWarning = "";
+        const filePath = getMarketingStoragePath(post.image_url);
 
-        alert(
-            error.message
+        if (filePath) {
+            const { error: storageError } = await db.storage
+                .from("marketing-images")
+                .remove([filePath]);
+
+            if (storageError) {
+                console.error("Storage delete error:", storageError);
+                storageWarning =
+                    "\n\nPost usunięto z bazy, ale grafiki nie udało się usunąć ze Storage: " +
+                    storageError.message;
+            }
+        }
+
+        await Promise.all([
+            loadMarketingQueue(),
+            loadMarketingStats(),
+            loadGoogleAdsDashboard()
+        ]);
+
+        await showAdminNotice(
+            "Post usunięty",
+            "Post został trwale usunięty." + storageWarning,
+            storageWarning ? "error" : "info"
         );
 
-        return;
-    }
+    } catch (error) {
+        console.error("[Ride24] Usuwanie posta:", error);
 
-    await loadMarketingQueue();
-    await loadMarketingStats();
+        await showAdminNotice(
+            "Nie udało się usunąć posta",
+            error?.message || "Nieznany błąd usuwania.",
+            "error"
+        );
+    }
 }
 
 async function publishMarketingPost(
@@ -3346,119 +3502,103 @@ async function publishMarketingPost(
     btn,
     isManual = false
 ) {
+    const previousText = btn?.innerText || "Publikuj";
 
-    btn.disabled = true;
-    btn.innerText =
-        "Publikowanie...";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Publikowanie...";
+    }
 
     try {
-
         if (isManual) {
-
             const {
                 data: manualPost,
                 error: manualError
-            } =
-                await db
-                    .from(
-                        "manual_posts"
-                    )
-                    .select("*")
-                    .eq("id", id)
-                    .single();
+            } = await db
+                .from("manual_posts")
+                .select("*")
+                .eq("id", id)
+                .single();
 
-            if (
-                manualError ||
-                !manualPost
-            ) {
+            if (manualError || !manualPost) {
                 throw new Error(
-                    "Nie znaleziono posta ręcznego"
+                    manualError?.message || "Nie znaleziono posta ręcznego."
                 );
             }
 
-            const {
-                error: insertError
-            } =
-                await db
-                    .from(
-                        "marketing_queue"
-                    )
-                    .insert({
+            const { error: insertError } = await db
+                .from("marketing_queue")
+                .insert({
+                    platform: "all",
+                    status: "draft",
+                    content: manualPost.content,
+                    image_url: manualPost.image_url,
+                    created_at: new Date().toISOString()
+                });
 
-                        platform:
-                            "all",
+            if (insertError) throw insertError;
 
-                        status:
-                            "draft",
+            const { error: deleteError } = await db
+                .from("manual_posts")
+                .delete()
+                .eq("id", id);
 
-                        content:
-                            manualPost.content,
-
-                        image_url:
-                            manualPost.image_url,
-
-                        created_at:
-                            new Date()
-                                .toISOString()
-
-                    });
-
-            if (insertError) {
-                throw insertError;
+            if (deleteError) {
+                console.error("Manual post cleanup error:", deleteError);
             }
 
-            const { error: deleteError } =
-    await db
-        .from(
-            "manual_posts"
-        )
-        .delete()
-        .eq(
-            "id",
-            id
-        );
-
-if (deleteError) {
-    console.error(deleteError);
-}
-
-            alert(
-                "Post ręczny został dodany do kolejki marketingowej."
-            );
-
             await loadMarketingQueue();
+
+            await showAdminNotice(
+                "Post dodany do kolejki",
+                "Post ręczny został przeniesiony do kolejki marketingowej."
+            );
 
             return;
         }
 
-        const fb =
-            await db.functions.invoke(
-                "publish-facebook",
-                {
-                    body: {
-                        postId: id
-                    }
+        const result = await db.functions.invoke(
+            "publish-facebook",
+            {
+                body: {
+                    postId: id
                 }
-            );
+            }
+        );
 
-        if (fb.error) {
-            throw fb.error;
+        if (result.error || result.data?.success === false) {
+            throw new Error(
+                await readMarketingFunctionError(
+                    result,
+                    "Publikacja na Facebooku nie powiodła się."
+                )
+            );
         }
 
-        await loadMarketingQueue();
+        await Promise.all([
+            loadMarketingQueue(),
+            loadMarketingStats()
+        ]);
 
-    } catch (err) {
+        await showAdminNotice(
+            "Post opublikowany",
+            "Facebook potwierdził publikację posta."
+        );
 
-        alert(
-            "Błąd:\n\n" +
-            err.message
+    } catch (error) {
+        console.error("[Ride24] Publikacja posta:", error);
+
+        await showAdminNotice(
+            "Publikacja nie powiodła się",
+            error?.message || "Nieznany błąd publikacji.",
+            "error"
         );
 
     } finally {
-
-        btn.disabled = false;
-        btn.innerText =
-            "Publikuj";
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = previousText;
+        }
     }
 }
 
