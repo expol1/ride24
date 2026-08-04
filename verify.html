@@ -10,6 +10,7 @@
     <link rel="canonical" href="https://ride24.pl/verify.html">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/helper/supabaseConfig.js"></script>
 
     <style>
         :root {
@@ -109,110 +110,70 @@
 </div>
 
 <script type="module">
-const SUPABASE_URL = "https://zwyerdeuvyzgkgwglowr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_KMeRBCZCQH-S0Ubnr80v6w_Gub3vcQf";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabaseClient;
 
-async function verify() {
-    const app = document.getElementById('app');
-    const params = new URLSearchParams(window.location.search);
-    let code = params.get('code');
-
-    if (!code) {
-        app.innerHTML = `
-            <div class="header" style="background:#666">BŁĄD / ERROR</div>
-            <div class="content">Brak kodu rezerwacji w URL / Missing booking code</div>
-        `;
-        return;
-    }
-
-    const { data: booking, error } = await supabase
-        .from('bookings')
-        .select(`
-            reservation_code,
-            status,
-            start_date,
-            end_date,
-            pickup_time,
-            return_time,
-            pickup_location,
-            pickup_location_join:partner_locations!pickup_location_id(location_name),
-            car_classes(class_code)
-        `)
-        .eq('reservation_code', code.toUpperCase())
-        .single();
-
-    if (error || !booking) {
-        app.innerHTML = `
-            <div class="header status-error">NIEWAŻNY VOUCHER / INVALID VOUCHER</div>
-            <div class="content">
-                Kod / Code <b>${code}</b> nie istnieje / does not exist<br><br>
-                <span class="bad">❌ Voucher nieautentyczny / Not authentic</span>
-            </div>
-        `;
-        return;
-    }
-
-    // 🔥 SECURITY: Akceptujemy tylko opłacone vouchery
-    const isValid = booking.status === 'paid';
-
-    const pickup =
-        booking.pickup_location_join?.location_name ||
-        booking.pickup_location ||
-        "-";
-
-    const pTime = booking.pickup_time ? String(booking.pickup_time).substring(0,5) : "";
-    const rTime = booking.return_time ? String(booking.return_time).substring(0,5) : "";
-
-    // 🔥 DWUJĘZYCZNOŚĆ I LEPSZY UX STATUSÓW
-    app.innerHTML = `
-        <div class="header">
-            <div style="font-size:12px;opacity:.8">WERYFIKACJA VOUCHERA / VOUCHER VERIFICATION</div>
-            <div style="font-size:24px;font-weight:bold">${booking.reservation_code}</div>
-
-            <div class="status-badge ${isValid ? 'status-paid' : 'status-error'}">
-                ${isValid ? '✓ WAŻNY / VALID' : '✗ NIEWAŻNY / INVALID'}
-            </div>
-        </div>
-
-        <div class="content">
-
-            <div class="info-row">
-                <span class="label">Status:</span>
-                <span class="value ${isValid ? 'ok' : 'bad'}">
-                    ${isValid ? 'Aktywna / Active' : 'Nieopłacona / Unpaid'}
-                </span>
-            </div>
-
-            <div class="info-row">
-                <span class="label">Klasa pojazdu / Vehicle class:</span>
-                <span class="value">${booking.car_classes?.class_code || '-'}</span>
-            </div>
-
-            <div class="info-row">
-                <span class="label">Miejsce odbioru / Pickup location:</span>
-                <span class="value">${pickup}</span>
-            </div>
-
-            <div class="info-row">
-                <span class="label">Odbiór / Pickup:</span>
-                <span class="value">${booking.start_date} ${pTime}</span>
-            </div>
-
-            <div class="info-row">
-                <span class="label">Zwrot / Return:</span>
-                <span class="value">${booking.end_date} ${rTime}</span>
-            </div>
-
-            <div style="margin-top:20px;font-size:11px;color:#aaa;text-align:center">
-                Ride24 Secure Verification<br>
-                ${new Date().toLocaleString()}
-            </div>
-        </div>
-    `;
+function element(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
 }
 
-verify();
+function renderError(title, message) {
+    const app = document.getElementById("app");
+    app.replaceChildren();
+    const header = element("div", "header status-error", title);
+    const content = element("div", "content");
+    content.appendChild(element("div", "bad", message));
+    app.append(header, content);
+}
+
+function addRow(content, label, value, valueClass = "value") {
+    const row = element("div", "info-row");
+    row.append(element("span", "label", label), element("span", valueClass, value || "-"));
+    content.appendChild(row);
+}
+
+async function verify() {
+    const app = document.getElementById("app");
+    const code = String(new URLSearchParams(window.location.search).get("code") || "").trim().toUpperCase();
+    if (!code || code.length > 30) {
+        renderError("BŁĄD / ERROR", "Brak lub nieprawidłowy kod rezerwacji / Missing or invalid booking code");
+        return;
+    }
+
+    const { data, error } = await supabase.rpc("verify_voucher_public", { p_code: code });
+    const booking = Array.isArray(data) ? data[0] : data;
+    if (error || !booking) {
+        renderError("NIEWAŻNY VOUCHER / INVALID VOUCHER", `Kod / Code ${code} nie istnieje / does not exist`);
+        return;
+    }
+
+    const valid = booking.authentic === true;
+    app.replaceChildren();
+
+    const header = element("div", "header");
+    header.appendChild(element("div", "", "WERYFIKACJA VOUCHERA / VOUCHER VERIFICATION"));
+    header.firstChild.style.cssText = "font-size:12px;opacity:.8";
+    const codeNode = element("div", "", booking.reservation_code || code);
+    codeNode.style.cssText = "font-size:24px;font-weight:bold";
+    header.appendChild(codeNode);
+    header.appendChild(element("div", `status-badge ${valid ? "status-paid" : "status-error"}`, valid ? "✓ WAŻNY / VALID" : "✗ NIEWAŻNY / INVALID"));
+
+    const content = element("div", "content");
+    addRow(content, "Status:", valid ? "Aktywna / Active" : "Nieważna / Invalid", `value ${valid ? "ok" : "bad"}`);
+    addRow(content, "Klasa pojazdu / Vehicle class:", booking.class_code);
+    addRow(content, "Miejsce odbioru / Pickup location:", booking.pickup_location);
+    addRow(content, "Odbiór / Pickup:", `${booking.start_date || "-"} ${String(booking.pickup_time || "").slice(0,5)}`.trim());
+    addRow(content, "Zwrot / Return:", `${booking.end_date || "-"} ${String(booking.return_time || "").slice(0,5)}`.trim());
+
+    const footer = element("div", "", `Ride24 Secure Verification\n${new Date().toLocaleString()}`);
+    footer.style.cssText = "margin-top:20px;font-size:11px;color:#aaa;text-align:center;white-space:pre-line";
+    content.appendChild(footer);
+    app.append(header, content);
+}
+
+verify().catch(() => renderError("BŁĄD / ERROR", "Nie udało się sprawdzić vouchera / Verification failed"));
 </script>
 
 </body>
