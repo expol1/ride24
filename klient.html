@@ -2038,12 +2038,12 @@ if (!token) {
   return;
 }
 
-const res = await fetch("https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/create_checkout_session", {
+const res = await fetch(supabaseUrl + "/functions/v1/create_checkout_session", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${token}`,
-    "apikey": window.SUPABASE_ANON_KEY,
+    "apikey": supabaseKey,
   },
   body: JSON.stringify({ 
     amount,
@@ -2079,7 +2079,7 @@ window.goToPayment = goToPayment;
         // Próba pobrania istniejącego klienta lub stworzenia go na nowo
         const db = window.supabaseClient || (window.supabase && window.supabase.createClient(
             window.SUPABASE_URL,
-            window.SUPABASE_ANON_KEY
+            supabaseKey
         ));
 
         if (!db) {
@@ -2433,393 +2433,91 @@ document.addEventListener("click", async function(e) {
 
         // 3. Finalne potwierdzenie, RPC i zapis Snapshotu (Etap 8 i 9)
        window.confirmBooking = async function() {
-            console.log("🔥 START CONFIRM - Funkcja odpalona!");
-            let bookingId = null;
-
-            // 🔥 DRUGA LINIA OBRONY (Twarda blokada przed zapisem do bazy)
-            const { data: profileCheck } = await db.from("profiles").select("name, phone, age").eq("id", currentUser.id).maybeSingle();
-            if (!profileCheck || !profileCheck.name || !profileCheck.phone || !profileCheck.age) {
-                window.showToast(localStorage.getItem("client_lang") === "en" ? "Complete your profile before booking!" : "Uzupełnij profil przed rezerwacją!", "error");
-                window.switchTab("profile");
-                window.closeTermsModal(); // Zamknięcie modala, jeśli był otwarty
-                return;
-            }
-
-            // SPRAWDZENIE ZGODY (ETAP 8)
-            if (!document.getElementById("acceptTerms").checked) {
-                console.log("❌ Zatrzymano: Brak akceptacji regulaminu");
-                return window.showToast(localStorage.getItem("client_lang") === "en" ? "Please accept the terms!" : "Zaakceptuj regulaminy!", "error");
-            }
-
-            // --- UNIKANIE DUPLIKATÓW ---
+            const isEn = localStorage.getItem("client_lang") === "en";
             const btn = document.getElementById("confirmBookingBtn");
+
+            if (!document.getElementById("acceptTerms")?.checked) {
+                return window.showToast(isEn ? "Please accept the terms!" : "Zaakceptuj regulaminy!", "error");
+            }
+
             if (btn) {
                 btn.disabled = true;
-                btn.innerText = "Sekunda...";
+                btn.innerText = isEn ? "Please wait..." : "Sekunda...";
             }
-
-            const carClassId = localStorage.getItem("selectedCarId");
-            const startDate = localStorage.getItem("bookingStartDate");
-            const endDate = localStorage.getItem("bookingEndDate");
-
-            console.log("🔥 DANE DO WYSYŁKI:", { carClassId, startDate, endDate });
 
             try {
-    console.log("🔥 WYSYŁAM RPC...");
+                const { data: { session } } = await db.auth.getSession();
+                if (!session?.access_token) throw new Error(isEn ? "Please sign in again." : "Zaloguj się ponownie.");
 
-    // 1. Wywołujemy RPC i zapisujemy całą odpowiedź do stałej
-    const rpcResponse = await db.rpc("create_booking", {
-        p_car_class_id: carClassId,
-        p_start_date: startDate,
-        p_end_date: endDate
-    });
-
-   bookingId = rpcResponse.data; 
-const error = rpcResponse.error;
-
-console.log("🔥 RPC RESULT:", bookingId, error);
-
-if (error) throw error;
-
-// 🔥 EMAIL LOG (SAFE)
-const { error: emailError } = await db
-  .from("email_logs")
-  .insert({
-    booking_id: bookingId,
-    type: "partner_new_request",
-    status: "queued"
-  });
-
-if (emailError) {
-  console.error("❌ EMAIL LOG ERROR:", emailError);
-} else {
-  console.log("📧 partner_new_request queued:", bookingId);
-}
-
-console.log("📧 partner_new_request queued:", bookingId);
-
-// --- 🔥 FIX DANYCH KLIENTA (FINAL HYBRYDOWY) ---
-try {
-    const { data: { user } } = await db.auth.getUser();
-
-    const { data: profile } = await db
-        .from("profiles")
-        .select("name, phone, age")
-        .eq("id", user.id)
-        .single();
-
-    // ===============================
-    // 🔥 GŁÓWNY KIEROWCA (FINAL FIX 100%)
-let finalName = "Client";
-let finalAge = null;
-
-const mainSelect = document.getElementById("driverSelect").value;
-
-if (mainSelect && mainSelect.length === 36) {
-    // 👉 kierowca z tabeli drivers
-    const { data: mainDriver } = await db
-        .from("drivers")
-        .select("name, age")
-        .eq("id", mainSelect)
-        .single();
-
-    finalName = mainDriver?.name || profile?.name || "Client";
-    finalAge = mainDriver?.age !== null && mainDriver?.age !== undefined
-        ? parseInt(mainDriver.age)
-        : (profile?.age ? parseInt(profile.age) : null);
-
-    console.log("👤 DRIVER SELECTED:", finalName, finalAge);
-
-} else {
-    // 👉 PROFIL (fallback)
-    finalName = profile?.name || "Client";
-    finalAge = Number(profile?.age);
-
-if (isNaN(finalAge)) finalAge = null;
-
-    console.log("🧠 PROFILE USED:", finalName, finalAge);
-}
-    // ===============================
-    // 🔥 DODATKOWY KIEROWCA
-    // ===============================
-    const extraSelect = document.getElementById("additionalDriverSelect").value;
-
-    let extraName = null;
-    let extraAge = null;
-
-    if (extraSelect && extraSelect !== "none" && extraSelect.length === 36) {
-        const { data: extraDriver } = await db
-            .from("drivers")
-            .select("name, age")
-            .eq("id", extraSelect)
-            .single();
-
-        extraName = extraDriver?.name || null;
-        extraAge = extraDriver?.age ? parseInt(extraDriver.age) : null;
-    }
-
-    // 🔥 1. POBIERANIE SNAPSHOTU Z CAR_CLASSES
-    // Używamy zmiennej carClassId, którą zdefiniowałeś na samej górze funkcji
-    const { data: carData } = await db.from("car_classes")
-        .select("deposit_amount, mileage_limit, driver_included, features")
-        .eq("id", carClassId) 
-        .single();
-        
-    let depositSnap = carData?.deposit_amount || 0;
-    let mileageSnap = carData?.mileage_limit || null;
-    let driverIncludedSnap = carData?.driver_included === true;
-    let driverHoursSnap = null;
-
-    try {
-        let feats = carData?.features;
-        if (typeof feats === 'string') feats = JSON.parse(feats);
-        feats = feats || {}; 
-        if (feats.driverHours) driverHoursSnap = feats.driverHours.toString().trim();
-    } catch (e) {
-        console.warn("Błąd parsowania features:", e);
-        driverHoursSnap = null;
-    }
-
-    // ===============================
-    // 🔥 UPDATE BOOKING
-    // ===============================
-    console.log("🔥 FINAL DATA:", { finalName, finalAge, depositSnap, mileageSnap });
-    
-    await db.from("bookings").update({
-        main_driver_name: finalName,
-        main_driver_age: finalAge,
-        pickup_time: localStorage.getItem("bookingPickupTime") + ":00",
-        return_time: localStorage.getItem("bookingDropTime") + ":00",
-        client_phone: profile?.phone || null,
-        client_email: user.email || null,
-        add_driver_name: extraName,
-        add_driver_age: extraAge,
-        // 🔥 ZAPIS SNAPSHOTU DO BAZY
-        deposit_snapshot: depositSnap,
-        mileage_limit_snapshot: mileageSnap,
-        driver_included_snapshot: driverIncludedSnap,
-        driver_hours_snapshot: driverHoursSnap
-    })
-    .eq("id", bookingId);
-
-    console.log("✅ UZUPEŁNIONO DANE BOOKING ORAZ SNAPSHOT:", bookingId);
-    
-
-} catch (err) {
-    console.error("❌ BŁĄD UZUPEŁNIANIA:", err);
-}
-// --- KONIEC FIXA ---
-
-                // ZAPIS SNAPSHOTÓW DOKUMENTÓW I LOKALIZACJI (ETAP 9)
-                const tLink = document.getElementById("partnerTermsLink");
-                const rLink = document.getElementById("partnerRulesLink");
-                
-                const searchParamsStr = localStorage.getItem("searchParams");
-                let pickupName = "Do ustalenia";
-                let dropName = "Do ustalenia";
-                
-                if (searchParamsStr) {
-                    const sp = JSON.parse(searchParamsStr);
-                    pickupName = sp.pickup_location?.name || "Do ustalenia";
-                    dropName = sp.drop_location?.name || pickupName; 
+                const carClassId = localStorage.getItem("selectedCarId");
+                const startDate = localStorage.getItem("bookingStartDate");
+                const endDate = localStorage.getItem("bookingEndDate");
+                if (!carClassId || !startDate || !endDate) {
+                    throw new Error(isEn ? "Booking data expired. Return to search results." : "Dane rezerwacji wygasły. Wróć do wyników wyszukiwania.");
                 }
 
-                // 🔥 FIX: Pobranie ID obu kierowców
-                let selectedDriverId = null;
-const val = document.getElementById("driverSelect").value;
+                const searchParams = JSON.parse(localStorage.getItem("searchParams") || "{}");
+                const pickupName = searchParams?.pickup_location?.name || "Do ustalenia";
+                const returnName = searchParams?.drop_location?.name || pickupName;
 
-if (val && val.length === 36) {
-    selectedDriverId = val;
-}
-                let addDriverVal = document.getElementById("additionalDriverSelect").value;
-                let additionalDriverId = null;
+                const mainValue = document.getElementById("driverSelect")?.value || null;
+                const additionalValue = document.getElementById("additionalDriverSelect")?.value || null;
+                const driverId = mainValue && mainValue.length === 36 ? mainValue : null;
+                const additionalDriverId = additionalValue && additionalValue !== "none" && additionalValue.length === 36
+                    ? additionalValue
+                    : null;
 
-if (addDriverVal && addDriverVal !== "none") {
-    // 🔥 dodatkowa walidacja UUID
-    if (addDriverVal.length === 36) {
-        additionalDriverId = addDriverVal;
-    }
-}
-
-                // 🧠 PRO TIP: Twarde zabezpieczenie backendowe przed duplikatem!
-                if (selectedDriverId === additionalDriverId && additionalDriverId !== null) {
-                    additionalDriverId = null;
+                if (driverId && additionalDriverId && driverId === additionalDriverId) {
+                    throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
                 }
 
-                // 🚨 BONUS: Sprawdzenie czy ID w ogóle istnieje przed wysyłką
-                if (!bookingId) {
-                    console.error("❌ KRYTYCZNY BŁĄD: bookingId jest NULL. Przerywam zapis.");
-                    window.showToast("Błąd systemowy: brak ID rezerwacji", "error");
-                    return;
-                }
-                // 🔥 POBIERAMY PRAWDZIWE CENY Z BACKENDU (RPC)
-const { data: priceData, error: priceError } = await db.rpc('calculate_booking_price', {
-    car_id: carClassId,
-    start_date: startDate,
-    end_date: endDate
-});
+                const response = await fetch(supabaseUrl + "/functions/v1/create-booking-request", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${session.access_token}`,
+                        "apikey": supabaseKey
+                    },
+                    body: JSON.stringify({
+                        car_class_id: carClassId,
+                        start_date: startDate,
+                        end_date: endDate,
+                        pickup_time: localStorage.getItem("bookingPickupTime") || "10:00",
+                        return_time: localStorage.getItem("bookingDropTime") || "10:00",
+                        pickup_location: pickupName,
+                        return_location: returnName,
+                        driver_id: driverId,
+                        additional_driver_id: additionalDriverId,
+                        terms_accepted: true,
+                        api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
+                    })
+                });
 
-if (priceError || !priceData) {
-    console.error("❌ BŁĄD LICZENIA CEN:", priceError);
-    throw new Error("Nie udało się pobrać ceny z backendu");
-}
-
-console.log("✅ SECURE PRICE:", priceData);
-
-// 🔥 ROZBIJAMY
-const baseTotal = priceData.base_total;
-const commission = priceData.commission;
-const finalTotal = priceData.final_total;
-
-// 🔥 PLN (Twoja marża)
-const currency = localStorage.getItem("bookingCurrency") || "USD";
-const rate = await getExchangeRate(currency);
-
-// 🔥 1. LICZYMY PROWIZJĘ (BAZA)
-let commissionPLN = Number((commission * rate).toFixed(2));
-
-
-// 🔥 2. POBIERAMY ŚWIEŻE BOOKINGI (KLUCZ)
-const { data: freshBookings, error: loyaltyError } = await db
-  .from("bookings")
-  .select("status")
-  .eq("client_id", currentUser.id);
-
-if (loyaltyError) {
-  console.error("❌ Loyalty error:", loyaltyError);
-}
-
-// 🔥 3. LICZYMY PAID
-const paidCount = (freshBookings || []).filter(b => b.status === "paid").length;
-
-// 🔥 4. PROGI
-let discountPercent = 0;
-
-if (paidCount >= 15) discountPercent = 20;
-else if (paidCount >= 10) discountPercent = 15;
-else if (paidCount >= 6) discountPercent = 10;
-else if (paidCount >= 3) discountPercent = 5;
-
-// 🔥 5. NAKŁADAMY RABAT
-if (discountPercent > 0) {
-  console.log(`🎉 Rabat: ${discountPercent}%`);
-
-  const discountAmount = commissionPLN * (discountPercent / 100);
-  commissionPLN = Number((commissionPLN - discountAmount).toFixed(2));
-}
-
-// 🔥 FINALNE SNAPSHOTY
-const finalPriceSnapshot = finalTotal;
-const onlinePaymentPln = commissionPLN;
-const pickupPaymentPartner = baseTotal;
-
-console.log("💰 FINAL SNAPSHOT:", {
-  finalPriceSnapshot,
-  onlinePaymentPln,
-  pickupPaymentPartner,
-  discountPercent,
-  paidCount
-});
-                // AKTUALIZACJA Z WERYFIKACJĄ (.select())
-                
-                const { data: updatedData, error: updateError } = await db
-                    .from("bookings")
-                    .update({
-    partner_terms_snapshot: tLink.style.display !== "none" ? tLink.href : null,
-    partner_rules_snapshot: rLink.style.display !== "none" ? rLink.href : null,
-    platform_terms_version: "v1.0",
-    terms_accepted: true,
-    terms_accepted_at: new Date().toISOString(),
-    pickup_location: pickupName,
-    return_location: dropName,
-    driver_id: selectedDriverId,
-    additional_driver_id: additionalDriverId,
-
-    // 🔥 DODAJ TE 3 LINIE
-    final_price_snapshot: finalPriceSnapshot,
-    online_payment_pln: onlinePaymentPln,
-    pickup_payment_partner_currency: pickupPaymentPartner,
-partner_currency: localStorage.getItem("bookingCurrency"),
-loyalty_discount_percent: discountPercent
-    
-})
-                    .eq("id", bookingId)
-                    .eq("client_id", (await db.auth.getUser()).data.user.id) // Dodatkowe zabezpieczenie
-                    .select(); // 🔥 Klucz: prosimy bazę o zwrócenie zapisanego wiersza
-
-                // 1. Sprawdzenie błędów (TYLKO RAZ!)
-                console.log("📊 UPDATE DATA (Z BAZY):", updatedData);
-                
-                if (updateError) {
-                    console.error("❌ Błąd zapisu szczegółów:", updateError);
-                    throw updateError; 
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || !result?.success) {
+                    throw new Error(result?.error || (isEn ? "Could not create booking." : "Nie udało się utworzyć rezerwacji."));
                 }
 
-                if (!updatedData || updatedData.length === 0) {
-                    console.warn("⚠️ UWAGA: Baza nic nie zaktualizowała (pusta tablica).");
-                }
-
-                // 2. SUKCES FLOW - Zamykanie modala i reset przycisku
                 document.getElementById("termsModal").style.display = "none";
-                
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerText = localStorage.getItem("client_lang") === "en" ? "Confirm & Book" : "Potwierdzam i rezerwuję";
-                }
+                window.showToast(isEn ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!", "success");
 
-                // 3. Powiadomienie o sukcesie
-                window.showToast(localStorage.getItem("client_lang") === "en" ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!", "success");
-                
-                // 4. Czyszczenie starych parametrów
-                localStorage.removeItem("selectedCarId");
-                localStorage.removeItem("bookingStartDate");
-                localStorage.removeItem("bookingEndDate");
-                localStorage.removeItem("searchParams"); 
-                
-                // 5. Odświeżenie danych w tle (żeby klient od razu widział nową rezerwację)
-                if (typeof loadClientBookings === "function") {
-                    await loadClientBookings(); 
-                }
+                [
+                    "selectedCarId", "selectedApiQuoteId", "bookingStartDate", "bookingEndDate",
+                    "bookingPickupTime", "bookingDropTime", "bookingFinalPrice", "bookingOnlinePln",
+                    "bookingPickupPrice", "bookingCurrency", "bookingContext", "autoOpenBooking"
+                ].forEach(key => localStorage.removeItem(key));
 
-                // 6. 🔥 HARD STOP - kończymy funkcję!
-                return;
-
+                if (typeof loadClientBookings === "function") await loadClientBookings();
             } catch (err) {
-                console.error("❌ KRYTYCZNY BŁĄD W PROCESIE REZERWACJI:", err);
-
-                // 🔥 ROLLBACK: Jeśli rezerwacja powstała w RPC, ale UPDATE się wywalił
-                // usuwamy ją, żeby nie blokowała terminu ("no_overlapping_bookings")
-                if (bookingId) {
-                    console.warn("⚠️ SPRZĄTANIE: Usuwam niekompletną rezerwację ID:", bookingId);
-                    try {
-                        const { data: { user } } = await db.auth.getUser();
-                        if (user) {
-                            await db.from("bookings")
-                                .delete()
-                                .eq("id", bookingId)
-                                .eq("client_id", user.id);
-                        }
-                    } catch (cleanupErr) {
-                        console.error("Błąd podczas rollbacka:", cleanupErr);
-                    }
-                }
-
-                // Obsługa czytelnych komunikatów dla użytkownika
-                let errorMsg = err.message || "Wystąpił nieoczekiwany błąd.";
-                
-                if (errorMsg.includes("no_overlapping_bookings")) {
-                    errorMsg = "Ten termin został właśnie zajęty. Proszę wybrać inne daty lub auto.";
-                }
-
-                window.showToast("Błąd: " + errorMsg, "error");
-
-                // Przywrócenie przycisku do działania
+                console.error("BOOKING ERROR:", err);
+                window.showToast(err?.message || (isEn ? "Booking error." : "Błąd rezerwacji."), "error");
+            } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerText = "Potwierdzam i rezerwuję";
+                    btn.innerText = isEn ? "Confirm & Book" : "Potwierdzam i rezerwuję";
                 }
             }
-        }
+        };
 
        window.closeTermsModal = function() {
             document.getElementById("termsModal").style.display = "none";
