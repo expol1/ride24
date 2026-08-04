@@ -1309,148 +1309,11 @@ async>
 
                    <!-- ================= API INTEGRATION ================= -->
 
-<div id="apiSettingsSection"
-     style="
-        grid-column: span 2;
-        display:none;
-        margin-top:24px;
-        padding:24px;
-        background:#F8FAFC;
-        border:1px solid var(--border);
-        border-radius:12px;">
-
-    <h3 style="margin:0 0 20px 0;
-               font-size:18px;
-               font-weight:800;
-               color:var(--blue-dark);"
-        data-pl="Integracja API"
-        data-en="API Integration">
-        API Integration
-    </h3>
-
-    <div class="form-row">
-
-        <div class="form-group">
-            <label
-                data-pl="Dostawca API"
-                data-en="API Provider">
-                API Provider
-            </label>
-
-            <select id="apiProvider">
-
-    <option value=""
-        data-pl="-- Wybierz dostawcę --"
-        data-en="-- Select Provider --">
-    -- Select Provider --
-</option>
-
-    <option value="custom">Custom</option>
-
-    <option value="carwiz">Carwiz</option>
-
-    <option value="autorent">AutoRent</option>
-
-    <option value="rentalcars">RentalCars</option>
-
-</select>
-        </div>
-        
-        <div class="form-group">
-
-    <label
-        data-pl="Typ autoryzacji"
-        data-en="Authentication">
-
-        Authentication
-
-    </label>
-
-    <select id="apiAuthType">
-
-        <option value="basic">Basic (Username / Password)</option>
-
-        <option value="apikey">API Key</option>
-
-        <option value="bearer">Bearer Token</option>
-
-    </select>
-
+<div id="apiSettingsSection" style="grid-column:span 2;display:none;margin-top:24px;padding:24px;background:#F8FAFC;border:1px solid var(--border);border-radius:12px;">
+  <h3 style="margin:0 0 10px;font-size:18px;font-weight:800;color:var(--blue-dark);" data-pl="Integracja API" data-en="API Integration">API Integration</h3>
+  <p style="margin:0;color:#64748B;line-height:1.6;" data-pl="Konfiguracja dostępu API jest zarządzana bezpiecznie przez administratora Ride24. Dane logowania i klucze API nie są wyświetlane ani przechowywane w panelu partnera." data-en="API access is securely managed by the Ride24 administrator. Login details and API keys are not displayed or stored in the partner panel.">API access is securely managed by the Ride24 administrator.</p>
+  <div id="partnerApiStatus" style="margin-top:14px;padding:10px 12px;border-radius:8px;background:#E2E8F0;font-weight:700;">API: administrator managed</div>
 </div>
-
-        <div class="form-group">
-            <label
-                data-pl="Adres API"
-                data-en="API URL">
-                API URL
-            </label>
-
-            <input
-                id="apiUrl"
-                type="text"
-                placeholder="https://">
-        </div>
-
-    </div>
-
-    <div class="form-row">
-
-        <div class="form-group">
-            <label
-                data-pl="Użytkownik API"
-                data-en="API Username">
-                API Username
-            </label>
-
-            <input
-                id="apiUsername"
-                type="text">
-        </div>
-
-        <div class="form-group">
-            <label
-                data-pl="Hasło API"
-                data-en="API Password">
-                API Password
-            </label>
-
-            <input
-                id="apiPassword"
-                type="password">
-        </div>
-
-    </div>
-
-    <div class="form-row">
-
-        <div class="form-group">
-            <label
-                data-pl="Klucz API"
-                data-en="API Key">
-                API Key
-            </label>
-
-            <input
-                id="apiKey"
-                type="text">
-        </div>
-
-        <div class="form-group">
-            <label
-                data-pl="Sekret API"
-                data-en="API Secret">
-                API Secret
-            </label>
-
-            <input
-                id="apiSecret"
-                type="text">
-        </div>
-
-    </div>
-
-</div>
-
 <!-- ================= END API ================= -->
  
                    <div style="grid-column: span 2; margin-top: 10px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
@@ -2333,7 +2196,10 @@ Dodaj opinię o Partnerze
                 titleEn = "Rental Policy (PDF)";
             }
 
-            const displayTitle = isEn ? titleEn : titlePl;
+            const displayTitle = escapeHtmlValue(isEn ? titleEn : titlePl);
+            const safeTitlePl = escapeHtmlValue(titlePl);
+            const safeTitleEn = escapeHtmlValue(titleEn);
+            const safeUrl = escapeHtmlValue(safePublicUrl(url, "#"));
             const viewTxt = isEn ? "View" : "Podgląd";
             const delTxt = isEn ? "Delete" : "Usuń";
 
@@ -2342,9 +2208,9 @@ Dodaj opinię o Partnerze
                     <div class="file-icon">
                         <div class="icon-mask" style="-webkit-mask-image: url('icons/icon-doc.svg'); mask-image: url('icons/icon-doc.svg'); background-color: var(--blue);"></div>
                     </div>
-                    <div class="file-title" style="word-break: break-all;" data-pl="${titlePl}" data-en="${titleEn}">${displayTitle}</div>
+                    <div class="file-title" style="word-break: break-all;" data-pl="${safeTitlePl}" data-en="${safeTitleEn}">${displayTitle}</div>
                     <div class="file-actions">
-                        <a href="${url}" target="_blank" class="file-edit" style="text-decoration:none; font-weight:700;" data-pl="Podgląd" data-en="View">${viewTxt}</a>
+                        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="file-edit" style="text-decoration:none; font-weight:700;" data-pl="Podgląd" data-en="View">${viewTxt}</a>
                         <span class="file-delete" style="color:var(--red); font-weight:700; cursor:pointer;" onclick="deleteDocument('${type}')" data-pl="Usuń" data-en="Delete">${delTxt}</span>
                     </div>
                 </div>
@@ -2400,6 +2266,39 @@ async function executeDelete() {
     }
 }
         const db = window.supabaseClient;
+
+        function escapeHtmlValue(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function safePublicUrl(value, fallback = "") {
+            try {
+                const url = new URL(String(value || ""), window.location.origin);
+                if (!["https:", "http:"].includes(url.protocol)) return fallback;
+                return url.href;
+            } catch (_) {
+                return fallback;
+            }
+        }
+
+        function sanitizeAgreementHtml(value) {
+            const template = document.createElement("template");
+            template.innerHTML = String(value || "");
+            template.content.querySelectorAll("script,iframe,object,embed,link,meta,style,form,input,button").forEach(node => node.remove());
+            template.content.querySelectorAll("*").forEach(node => {
+                [...node.attributes].forEach(attr => {
+                    const name = attr.name.toLowerCase();
+                    if (name.startsWith("on") || name === "srcdoc") node.removeAttribute(attr.name);
+                    if (["href", "src"].includes(name) && !safePublicUrl(attr.value)) node.removeAttribute(attr.name);
+                });
+            });
+            return template.innerHTML;
+        }
         let currentPartnerCurrency = "EUR"; // Globalna zmienna przechowująca walutę partnera
 
         // --- AUTH GUARD & LOAD ---
@@ -2446,7 +2345,7 @@ async function executeDelete() {
         provider_type,
         api_provider,
         api_enabled,
-        api_settings
+        api_status
     `)
                 .eq("user_id", session.user.id)
                 .single();
@@ -2457,7 +2356,7 @@ async function executeDelete() {
             console.log("Partner type:", partnerData.provider_type);
 console.log("API provider:", partnerData.api_provider);
 console.log("API enabled:", partnerData.api_enabled);
-console.log("API settings:", partnerData.api_settings);
+console.log("API status:", partnerData.api_status);
 
             if(partner?.avatar_url){
                 document.getElementById("partnerAvatar").src = `${partner.avatar_url}?t=${Date.now()}`;
@@ -2583,7 +2482,7 @@ console.log("API settings:", partnerData.api_settings);
     provider_type,
     api_provider,
     api_enabled,
-    api_settings
+    api_status
 `)
 
         .eq("user_id", userId)
@@ -2632,27 +2531,10 @@ console.log("API settings:", partnerData.api_settings);
                 const commission = data.discount_percent !== null && data.discount_percent !== undefined ? data.discount_percent : 15;
                 setPartnerCommission(commission);
                if (data.provider_type === "api") {
-
-    const api = data.api_settings || {};
-
-    document.getElementById("apiProvider").value =
-        data.api_provider || "";
-
-    document.getElementById("apiUrl").value =
-        api.api_url || "";
-
-    document.getElementById("apiUsername").value =
-        api.username || "";
-
-    document.getElementById("apiPassword").value =
-        api.password || "";
-
-    document.getElementById("apiKey").value =
-        api.api_key || "";
-
-    document.getElementById("apiSecret").value =
-        api.api_secret || "";
-
+    const section = document.getElementById("apiSettingsSection");
+    if (section) section.style.display = "block";
+    const status = document.getElementById("partnerApiStatus");
+    if (status) status.textContent = `API: ${data.api_status || (data.api_enabled ? "active" : "configured")}`;
 }
             }
         }
@@ -2684,31 +2566,6 @@ console.log("API settings:", partnerData.api_settings);
                     return;
                 }
 
-                if (partnerData.provider_type === "api") {
-
-    if (
-        !document.getElementById("apiProvider").value.trim() ||
-        !document.getElementById("apiUrl").value.trim() ||
-        !document.getElementById("apiUsername").value.trim()
-    ) {
-
-        window.showToast(
-            isEn
-                ? "Please complete API configuration."
-                : "Uzupełnij konfigurację API.",
-            "error"
-        );
-
-        if (btn) {
-            btn.disabled = false;
-            btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany";
-        }
-
-        return;
-    }
-
-}
-
                 // KROK 7: WALIDACJA DOKUMENTÓW PDF
                 const { data: docCheck } = await db
                     .from("partners")
@@ -2738,32 +2595,6 @@ const updateData = {
     profile_completed: true
 };
 
-if (partnerData.provider_type === "api") {
-
-    updateData.api_provider =
-        document.getElementById("apiProvider").value.trim();
-
-    updateData.api_settings = {
-
-        api_url:
-            document.getElementById("apiUrl").value.trim(),
-
-        username:
-            document.getElementById("apiUsername").value.trim(),
-
-        password:
-            document.getElementById("apiPassword").value.trim(),
-
-        api_key:
-            document.getElementById("apiKey").value.trim(),
-
-        api_secret:
-            document.getElementById("apiSecret").value.trim()
-
-    };
-
-}
-
                 const { data, error } = await db
                     .from("partners")
                     .update(updateData)
@@ -2772,8 +2603,6 @@ if (partnerData.provider_type === "api") {
 
                 if(error) throw error;
                 if(!data || data.length === 0) throw new Error("Błąd zapisu do bazy.");
-                partnerData.api_provider = updateData.api_provider;
-                partnerData.api_settings = updateData.api_settings;
 
                 window.showToast(isEn ? "Settings saved! Panel unlocked." : "Ustawienia zapisane! Panel odblokowany.", "success");
                 
@@ -2936,42 +2765,8 @@ if (partnerData.provider_type === "api") {
                 .eq("user_id", session.user.id)
                 .single();
 
-          const { data, error } = await db
-    .from("bookings")
-   .select(`
-    id,
-    created_at,
-    start_date,
-    end_date,
-    pickup_time,
-    return_time,
-    pickup_location,
-    return_location,
-    status,
-    payment_deadline,
-    partner_response_deadline,
-    final_price_snapshot,
-    online_payment_pln,
-    pickup_payment_partner_currency,
-    partner_currency,
-    partner_net_price_snapshot,
-    main_driver_name,
-    main_driver_age,
-    add_driver_name,
-    add_driver_age,
-    client_phone,
-    client_email,
-    deposit_snapshot,
-    mileage_limit_snapshot,
-    driver_included_snapshot,
-    driver_hours_snapshot,
-    car_classes(class_code,description,partners(currency)),
-    refund_status,
-    refund_completed_at
-`)
-    .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid", "cancelled"])
-    .order("created_at", { ascending: false });
+          const { data: allData, error } = await db.rpc("partner_get_bookings");
+          const data = (allData || []).filter(b => ["pending", "awaiting_payment", "paid", "cancelled"].includes(b.status));
 
             if (error) return console.error("Błąd ładowania statystyk:", error);
 
@@ -3006,13 +2801,9 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                     .map(b => b.id);
 
                 if (expiredIds.length > 0) {
-                    await db
-                        .from('bookings')
-                        .update({ status: 'payment_expired' })
-                        .in('id', expiredIds)
-                        .eq('status', 'awaiting_payment');
-                        
-                    return true; 
+                    const { error } = await db.rpc('partner_expire_payment_bookings');
+                    if (error) console.error('Expire bookings RPC:', error);
+                    return !error;
                 }
                 return false;
             };
@@ -3033,48 +2824,8 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                 .single();
 
             // Czytamy z bezpiecznego widoku SQL
-            const { data, error } = await db
-    .from("bookings")
-    .select(`
-        id,
-        created_at,
-        start_date,
-        end_date,
-        pickup_time,
-        return_time,
-        pickup_location,
-        return_location,
-        status,
-        payment_deadline,
-        partner_response_deadline,
-        final_price_snapshot,
-        online_payment_pln,
-        pickup_payment_partner_currency,
-        partner_currency,
-
-        main_driver_name,
-        main_driver_age,
-        add_driver_name,
-        add_driver_age,
-        client_phone,
-        client_email,
-
-        deposit_snapshot,
-        mileage_limit_snapshot,
-        driver_included_snapshot,
-        driver_hours_snapshot,
-
-        car_classes (
-    class_code, 
-    description,
-    partners (currency)
-),
-refund_status,
-refund_completed_at
-    `)
-    .eq("partner_id", partner.id)
-    .in("status", ["pending", "awaiting_payment", "paid", "cancelled"])
-    .order("created_at", { ascending: false });
+            const { data: allBookings, error } = await db.rpc("partner_get_bookings");
+            const data = (allBookings || []).filter(b => ["pending", "awaiting_payment", "paid", "cancelled"].includes(b.status));
 
             if(error) {
                 console.error(error);
@@ -3194,12 +2945,13 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 // Bezpieczne dane GŁÓWNEGO kierowcy z widoku SQL
                 // 🔥 PEWNE WYCIĄGANIE IMIENIA (fallback)
                 
-const clientName =
+const clientName = escapeHtmlValue(
     booking.main_driver_name ||
     booking.client_name ||
     booking.full_name ||
     booking.name ||
-    "Client";
+    "Client"
+);
 
 // 🔥 WIEK (jeśli istnieje)
 const ageValue = Number(booking.main_driver_age);
@@ -3212,13 +2964,13 @@ const clientAge = !isNaN(ageValue) && ageValue > 0
                 if (booking.add_driver_name) {
                     extraDriverHtml = `
                         <div style="font-size: 11px; color: var(--gray); margin-top: 4px; font-weight: 600;">
-                            <span style="color: var(--blue);">+</span> ${booking.add_driver_name} (${booking.add_driver_age || '?'} yo)
+                            <span style="color: var(--blue);">+</span> ${escapeHtmlValue(booking.add_driver_name)} (${Number(booking.add_driver_age) || '?'} yo)
                         </div>
                     `;
                 }
 
-                const carCode = booking.car_classes?.class_code || "?";
-                const carDesc = booking.car_classes?.description || "";
+                const carCode = escapeHtmlValue(booking.class_code || "?");
+                const carDesc = escapeHtmlValue(booking.car_description || "");
                 
                 // Kłódki chroniące dane przed płatnością
                 // 🔒 LOGIKA WIDOCZNOŚCI DANYCH KLIENTA
@@ -3229,8 +2981,8 @@ if (booking.status === "paid") {
     // ✅ PO OPŁACENIU – pokazujemy dane
     contactDisplay = `
         <div style="font-size:12px; line-height:1.4; margin-top:4px;">
-            <span style="color:var(--gray);">📞</span> ${booking.client_phone || "-"}<br>
-            <span style="color:var(--gray);">✉️</span> ${booking.client_email || "-"}
+            <span style="color:var(--gray);">📞</span> ${escapeHtmlValue(booking.client_phone || "-")}<br>
+            <span style="color:var(--gray);">✉️</span> ${escapeHtmlValue(booking.client_email || "-")}
         </div>
     `;
 
@@ -3246,8 +2998,8 @@ if (booking.status === "paid") {
 }
                 
                 // NOWOŚĆ: Wyciągnięcie lokalizacji z połączonej tabeli (lub wyświetlenie braku danych)
-const pLoc = booking.pickup_location || "---";
-const dLoc = booking.return_location || pLoc;
+const pLoc = escapeHtmlValue(booking.pickup_location || "---");
+const dLoc = escapeHtmlValue(booking.return_location || booking.pickup_location || "---");
 
 const locationDisplay = `
     <div style="font-size:12px; line-height:1.4;">
@@ -3279,7 +3031,7 @@ const rowHtml = `
 
         <td>${statusHtml}</td>
 
-        <td>${startFull} &rarr; ${endFull}</td>
+        <td>${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
 
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
@@ -3330,7 +3082,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
 
         <td>${locationDisplay}</td>
 
-        <td>${startFull} &rarr; ${endFull}</td>
+        <td>${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
 
         <td>${statusHtml}</td>
 
@@ -3408,20 +3160,9 @@ window.acceptBooking = async function(id, btnElement) {
     const isEn = localStorage.getItem("partner_lang") === "en";
 
     try {
-        // 1. deadline 24h
-        const paymentDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-        // 2. update booking (🔥 poprawione)
-        const { error } = await db
-            .from('bookings')
-            .update({ 
-                status: 'awaiting_payment',
-                payment_deadline: paymentDeadline
-            })
-            .eq('id', id)
-            .eq('status', 'pending');
-
+        const { data, error } = await db.rpc('partner_accept_booking', { p_booking_id: id });
         if (error) throw error;
+        if (!data || data.length === 0) throw new Error(isEn ? "Booking is no longer available." : "Rezerwacja nie jest już dostępna.");
 
         // 3. sukces
         window.showToast(
@@ -3447,11 +3188,7 @@ window.acceptBooking = async function(id, btnElement) {
             btnElement.disabled = true;
             btnElement.innerText = "...";
 
-            const { error } = await db
-                .from("bookings")
-                .update({ status: "rejected" })
-                .eq("id", id)
-                .eq("status", "pending");
+            const { error } = await db.rpc("partner_reject_booking", { p_booking_id: id });
 
             if (error) {
                 alert("Błąd: " + error.message);
@@ -3519,15 +3256,21 @@ const { data, error } = await db
 
                 // Model Marketplace: Wyświetlamy zysk netto partnera
                 const displayPrice = car.partner_net_price || car.public_price || 0;
+                const safeCarId = /^[0-9a-f-]{36}$/i.test(String(car.id || "")) ? String(car.id) : "";
+                const safeCarName = escapeHtmlValue(car.model || car.description || "Auto");
+                const safeCarCode = escapeHtmlValue(car.class_code || "?");
+                const safeImageUrl = safePublicUrl(car.image, "");
+                const encodedCarName = encodeURIComponent(String(car.model || car.description || "Auto"));
+                const encodedImageUrl = encodeURIComponent(safeImageUrl);
 
                 tr.innerHTML = `
                     <td>
                         <div class="fleet-thumb">
-                            ${car.image ? `<img src="${car.image}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
+                            ${safeImageUrl ? `<img src="${escapeHtmlValue(safeImageUrl)}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
                         </div>
                     </td>
-                    <td style="font-weight: 700;">${car.model || car.description || "Auto"}</td>
-                    <td class="class-name"><span class="class-code">${car.class_code || "?"}</span><span class="class-label">Class</span></td>
+                    <td style="font-weight: 700;">${safeCarName}</td>
+                    <td class="class-name"><span class="class-code">${safeCarCode}</span><span class="class-label">Class</span></td>
                     <td>${car.seats || 5}</td>
                     <td>${car.transmission === 'A' ? 'Auto' : 'Manual'}</td>
                     <td>${car.bags || 2}</td>
@@ -3540,21 +3283,21 @@ const { data, error } = await db
     <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; width: fit-content;">
         <span class="action-link" 
               style="display: block; width: 85px; color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
-              onclick='openSeasonalModal("${car.id}", ${JSON.stringify(car.model || car.description || "Auto")}, ${Number(car.public_price || 0)})' 
+              onclick="openSeasonalModal('${safeCarId}', decodeURIComponent('${encodedCarName}'), ${Number(car.public_price || 0)})"
               data-pl="Sezony" data-en="Seasons">
               ${isEn ? "Seasons" : "Sezony"}
         </span>
 
         <span class="action-link" 
               style="display: block; width: 85px; color: #2563EB; border: 1px solid #2563EB; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
-              onclick="editVehicle('${car.id}')" 
+              onclick="editVehicle('${safeCarId}')"
               data-pl="Edytuj" data-en="Edit">
               ${isEn ? "Edit" : "Edytuj"}
         </span>
 
         <span class="action-link" 
               style="display: block; width: 85px; color: #EF4444; border: 1px solid #EF4444; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
-              onclick="deleteVehicle('${car.id}', '${car.image || ''}')" 
+              onclick="deleteVehicle('${safeCarId}', decodeURIComponent('${encodedImageUrl}'))"
               data-pl="Usuń" data-en="Delete">
               ${isEn ? "Delete" : "Usuń"}
         </span>
@@ -3606,11 +3349,11 @@ const { data, error } = await db
                 const statusText = loc.active ? "Aktywny" : "Nieaktywny";
 
                 tr.innerHTML = `
-                    <td>${loc.location_name}</td>
-                    <td>${loc.country}</td>
-                    <td>${loc.region}</td>
-                    <td>${loc.type}</td>
-                    <td>${feeText}</td>
+                    <td>${escapeHtmlValue(loc.location_name)}</td>
+                    <td>${escapeHtmlValue(loc.country)}</td>
+                    <td>${escapeHtmlValue(loc.region)}</td>
+                    <td>${escapeHtmlValue(loc.type)}</td>
+                    <td>${escapeHtmlValue(feeText)}</td>
                     <td><span class="status ${statusClass}">${statusText}</span></td>
                     <td>
                         <span class="action-link reject" onclick="deleteLocation('${loc.id}')">Usuń</span>
@@ -4022,7 +3765,7 @@ function toggleDriverHours() {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type === 'error' ? 'error' : ''}`;
-            toast.innerHTML = message;
+            toast.textContent = String(message || "");
             container.appendChild(toast);
             
             setTimeout(() => {
@@ -4153,10 +3896,7 @@ function toggleDriverHours() {
                 const { data: { session } } = await db.auth.getSession();
                 
                 // Właściwa dezaktywacja w bazie
-                const { error } = await db
-                    .from("partners")
-                    .update({ account_status: "disabled", active: false }) 
-                    .eq("user_id", session.user.id);
+                const { error } = await db.rpc("partner_deactivate_account");
 
                 if (error) throw error;
 
@@ -4868,7 +4608,7 @@ function renderAgreement(lang) {
     document.getElementById("sign-btn").innerText = txt.btnDefault;
     
     // Zaktualizowane przekazywanie zmiennych do szablonu HTML
-    document.getElementById("ag-content").innerHTML = txt.content(comp, ctry, region, address, phone, email, rep, disc);
+    document.getElementById("ag-content").innerHTML = sanitizeAgreementHtml(txt.content(comp, ctry, region, address, phone, email, rep, disc));
     
     toggleSignButton();
 }
@@ -4954,28 +4694,14 @@ async function signAgreement() {
         });
 
         // 🧠 8. UPDATE + SECURITY
-        const { data, error } = await db
-            .from('partners')
-            .update({ 
-                agreement_accepted: true,
-                agreement_accepted_at: now,
-                agreement_version: "v1.1",
-                agreement_snapshot: finalSnapshot,
-                agreement_ip: userIp,
-                profile_completed: true,
-                active: true,                // 🔥 ODBLOKOWANIE
-                account_status: "active"     // 🔥 STATUS
-            })
-            .eq('id', partnerData.id)
-            .eq('user_id', session.user.id)
-            .eq('agreement_accepted', false)
-            .select();
+        const { data, error } = await db.rpc("partner_accept_agreement", {
+            p_version: "v1.1",
+            p_snapshot: finalSnapshot,
+            p_ip: userIp || ""
+        });
 
-        if (error) throw error;
-
-        // 🔒 9. Sprawdzenie czy update przeszedł
-        if (!data || data.length === 0) {
-            throw new Error("Umowa została już podpisana lub brak dostępu.");
+        if (error || data !== true) {
+            throw error || new Error("Umowa została już podpisana lub brak dostępu.");
         }
 
         // 🧠 10. Aktualizacja lokalna
@@ -5016,7 +4742,7 @@ function showSignedAgreement() {
             const isEnglish = snapshot.lang === "en";
             
             // Wstrzykujemy czysty HTML zawarty w polu content w zrzuconym JSONie
-            document.getElementById("signed-agreement-content").innerHTML = snapshot.content;
+            document.getElementById("signed-agreement-content").innerHTML = sanitizeAgreementHtml(snapshot.content);
             
             // Tłumaczenie przycisków okienka na podstawie wykrytego języka umowy
             document.getElementById("view-ag-title").innerText = isEnglish ? "Your Signed Agreement" : "Twoja Podpisana Umowa";
