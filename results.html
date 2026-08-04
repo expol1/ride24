@@ -411,6 +411,25 @@ async function getExchangeRate(currency) {
         async function renderCars() {
             const container = document.getElementById('results-container');
             const db = window.supabaseClient; 
+
+            function escapeHtmlValue(value) {
+                return String(value ?? "")
+                    .replaceAll("&", "&amp;")
+                    .replaceAll("<", "&lt;")
+                    .replaceAll(">", "&gt;")
+                    .replaceAll('"', "&quot;")
+                    .replaceAll("'", "&#039;");
+            }
+
+            function safeImageUrl(value, fallback = "auto.png") {
+                try {
+                    const url = new URL(String(value || ""), window.location.origin);
+                    if (!["https:", "http:"].includes(url.protocol)) return fallback;
+                    return url.href;
+                } catch (_) {
+                    return fallback;
+                }
+            }
             
             container.innerHTML = '<p style="color:white; text-align:center; padding:50px; font-size:18px; font-weight:600;">Wyszukujemy najlepsze oferty w bazie Ride24...</p>';
 
@@ -433,7 +452,7 @@ async function getExchangeRate(currency) {
                 // ---------------------------------------------------------
 
                 // Nagłówek wyników (Szlif UX: "Dostępne auta w: ...")
-                document.querySelector("h1").innerText = `Dostępne auta w: ${loc.name}`;
+                document.querySelector("h1").innerText = `${(localStorage.getItem("lang") || "pl") === "pl" ? "Dost\u0119pne auta w:" : "Available cars in:"} ${loc.name}`;
 
                 const start = new Date(filters.pickup_date);
                 const end = new Date(filters.drop_date);
@@ -459,6 +478,8 @@ let query = db
             account_status,
             currency,
             min_driver_age,
+            provider_type,
+            api_enabled,
             partner_locations!inner(
                 country,
                 region,
@@ -546,7 +567,45 @@ let query = db
                         if (!unique.has(key)) unique.set(key, car);
                     });
                 }
-                let cars = Array.from(unique.values());
+                let cars = Array.from(unique.values())
+                    .filter(car => (car.partners?.provider_type || "local") !== "api");
+
+                // Partnerzy API zwracają te same grupy pojazdów i przechodzą przez
+                // ten sam mechanizm rabatu partnera oraz marży Ride24 25%.
+                try {
+                    const apiResponse = await fetch(supabaseUrl + "/functions/v1/search-api", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "apikey": supabaseKey
+                        },
+                        body: JSON.stringify({
+                            pickupType: loc.type || "",
+                            pickupCountry: loc.country || "",
+                            pickupRegion: loc.region || "",
+                            pickupCity: loc.city || "",
+                            pickupLocationName: loc.location_name || "",
+                            pickupLocation: loc.name || loc.location_name || "",
+                            dropoffType: filters.drop_location?.type || loc.type || "",
+                            dropoffCountry: filters.drop_location?.country || loc.country || "",
+                            dropoffRegion: filters.drop_location?.region || loc.region || "",
+                            dropoffCity: filters.drop_location?.city || loc.city || "",
+                            dropoffLocationName: filters.drop_location?.location_name || "",
+                            dropoffLocation: filters.drop_location?.name || loc.name || loc.location_name || "",
+                            pickupDate: filters.pickup_date,
+                            returnDate: filters.drop_date,
+                            pickupTime: filters.pickup_time || "10:00",
+                            returnTime: filters.drop_time || "10:00"
+                        })
+                    });
+                    const apiData = await apiResponse.json().catch(() => ({}));
+                    if (apiResponse.ok && Array.isArray(apiData.cars)) {
+                        cars.push(...apiData.cars);
+                    }
+                } catch (apiError) {
+                    // Awaria pojedynczej integracji API nie może wyłączyć ofert lokalnych.
+                    console.error("API SEARCH ERROR:", apiError);
+                }
 
                 // --- 🚀 KROK 4: ANALITYKA ---
                 console.log("SEARCH_LOG:", {
@@ -600,14 +659,14 @@ let query = db
                     const lang = localStorage.getItem("lang") || "pl";
                     let suggestion = "";
                     if (loc.type === 'city') {
-                        suggestion = lang === 'pl' ? `Spróbuj wyszukać cały region: <b>${loc.region}</b> lub kraj.` : `Try searching the entire region: <b>${loc.region}</b> or country.`;
+                        suggestion = lang === 'pl' ? `Spróbuj wyszukać cały region: <b>${escapeHtmlValue(loc.region)}</b> lub kraj.` : `Try searching the entire region: <b>${escapeHtmlValue(loc.region)}</b> or country.`;
                     } else if (loc.type === 'region') {
-                        suggestion = lang === 'pl' ? `Spróbuj wyszukać w całym kraju: <b>${loc.country}</b>.` : `Try searching in the entire country: <b>${loc.country}</b>.`;
+                        suggestion = lang === 'pl' ? `Spróbuj wyszukać w całym kraju: <b>${escapeHtmlValue(loc.country)}</b>.` : `Try searching in the entire country: <b>${escapeHtmlValue(loc.country)}</b>.`;
                     }
 
                     container.innerHTML = `
                         <div style="text-align:center; color:white; padding:50px; background: rgba(0,0,0,0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h3 style="font-size: 24px; margin-bottom: 10px;">Brak dostępnych aut w: ${loc.name}</h3>
+                            <h3 style="font-size: 24px; margin-bottom: 10px;">Brak dostępnych aut w: ${escapeHtmlValue(loc.name)}</h3>
                             <p style="color: #94A3B8; font-size: 16px; margin-bottom: 20px;">${suggestion}</p>
                             <a href="index.html" style="color: var(--blue); font-weight: 700; text-decoration: underline;">Wróć i zmień lokalizację</a>
                         </div>`;
@@ -807,16 +866,22 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 
                     const row = document.createElement('div');
                     row.className = 'car-row';
-                    row.style.position = "relative"; 
+                    row.style.position = "relative";
+                    const safeCarId = /^[0-9a-f-]{36}$/i.test(String(car.id || "")) ? String(car.id) : "";
+                    const safeQuoteId = /^[0-9a-f-]{36}$/i.test(String(car.api_quote_id || "")) ? String(car.api_quote_id) : "";
+                    const safeCarImage = escapeHtmlValue(safeImageUrl(car.image));
+                    const safeCarCode = escapeHtmlValue(car.class_code || classLetter);
+                    const safeCarTitle = escapeHtmlValue(car.description || car.example_model || car.model || car.class_code || "Car");
+                    const safeCurrency = escapeHtmlValue(carCurrency);
 
                     row.innerHTML = `
 <div class="car-img-box">
-    <img src="${car.image || 'auto.png'}" alt="${car.class_code}" onerror="this.src='auto.png'">
+    <img src="${safeCarImage}" alt="${safeCarCode}" onerror="this.src='auto.png'">
 </div>
 
 <div class="car-details-box">
     <h2 class="car-title">
-    ${(car.description || car.example_model || car.model || car.class_code || 'Car')} 
+    ${safeCarTitle}
     <span>${lang === 'pl' ? 'lub podobny' : 'or similar'}</span>
     ${driverBadge}
 </h2>
@@ -871,8 +936,8 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 
 <div class="car-price-box">
     <div class="price-info">${lang === 'pl' ? 'Łącznie' : 'Total'} ${labels.daysInfo}</div>
-    <div class="price-total">${finalTotal} <span>${carCurrency}</span></div>
-    <button class="btn-book" onclick="handleBooking('${car.id}', ${baseTotal}, '${carCurrency}', this)">
+    <div class="price-total">${finalTotal} <span>${safeCurrency}</span></div>
+    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}')">
         ${labels.bookBtn}
     </button>
 </div>
@@ -905,29 +970,20 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 
             } catch (error) {
                 console.error("Błąd ładowania aut:", error);
-                container.innerHTML = '<p style="color:#FCA5A5; text-align:center; padding: 40px; background: rgba(0,0,0,0.5); border-radius: 12px;">Błąd bazy danych: ' + error.message + '</p>';
+                container.innerHTML = '<p style="color:#FCA5A5; text-align:center; padding: 40px; background: rgba(0,0,0,0.5); border-radius: 12px;">Błąd podczas pobierania ofert.</p>';
             }
         }
 
        // --- INTELIGENTNA REZERWACJA (UPROSZCZONA I BEZPIECZNA) ---
         let authMode = "login";
 
-        async function handleBooking(carId, priceTotal, currency, btnElement) {
-            const { data, error } = await window.supabaseClient.rpc('calculate_booking_price', {
-    car_id: carId,
-    start_date: localStorage.getItem("bookingStartDate"),
-    end_date: localStorage.getItem("bookingEndDate")
-});
-
-if (error) {
-    console.error("RPC ERROR:", error);
-} else {
-    console.log("SECURE PRICE:", data);
-}
+        async function handleBooking(carId, priceTotal, currency, btnElement, apiQuoteId = "") {
             const db = window.supabaseClient;
             
             // 🔥 1. ZAPISUJEMY KONTEKST OD RAZU PRZED CZYMKOLWIEK (Kluczowa poprawka)
             localStorage.setItem("selectedCarId", carId);
+            if (apiQuoteId) localStorage.setItem("selectedApiQuoteId", apiQuoteId);
+            else localStorage.removeItem("selectedApiQuoteId");
             
             localStorage.setItem("autoOpenBooking", "true");
             // 🔥 ZAPIS CEN (KLUCZOWE)
