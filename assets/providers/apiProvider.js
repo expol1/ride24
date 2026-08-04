@@ -1,207 +1,72 @@
 let config = {};
 
+function supabaseClient() {
+    const client = window.supabaseClient;
+    if (!client?.functions?.invoke) {
+        throw new Error("Supabase client is not initialized");
+    }
+    return client;
+}
+
+function partnerId() {
+    const id = config.partner_id || config.id || null;
+    if (!id) throw new Error("Brak partner_id");
+    return id;
+}
+
+async function invoke(functionName, body) {
+    const { data, error } = await supabaseClient().functions.invoke(functionName, { body });
+    if (error) throw new Error(error.message || `Błąd funkcji ${functionName}`);
+    if (data?.error) throw new Error(data.error);
+    return data;
+}
+
 export const apiProvider = {
-
+    // Do przeglądarki trafia wyłącznie identyfikator partnera. Dane dostępowe API
+    // pozostają w prywatnej tabeli i są używane tylko przez Edge Functions.
     setConfig(settings) {
-
-        config = settings || {};
-
+        config = {
+            partner_id: settings?.partner_id || settings?.id || null
+        };
     },
 
     getConfig() {
-
-        return config;
-
+        return { ...config };
     },
 
     async testConnection() {
-
-        if (!config.api_url) {
-
-            return {
-
-                success: false,
-
-                message: "Brak API URL"
-
-            };
-
-        }
-
-        try {
-
-            const response = await fetch(config.api_url, {
-
-                method: "GET",
-
-                headers: {
-
-                    "Content-Type": "application/json",
-
-                    "X-API-KEY": config.api_key || "",
-
-                    "X-API-SECRET": config.api_secret || ""
-
-                }
-
-            });
-
-            return {
-
-                success: response.ok,
-
-                status: response.status
-
-            };
-
-        }
-
-        catch (e) {
-
-            return {
-
-                success: false,
-
-                message: e.message
-
-            };
-
-        }
-
+        return await invoke("api-partner-admin", {
+            action: "test",
+            partner_id: partnerId()
+        });
     },
 
     async syncLocations() {
-
-    if (!config.api_url) {
-
-        return {
-
-            success: false,
-
-            message: "Brak API URL"
-
-        };
-
-    }
-
-    try {
-
-        // tutaj później partner będzie zwracał listę lokalizacji
-
-        return {
-
-            success: true,
-
-            locations: []
-
-        };
-
-    }
-
-    catch (e) {
-
-        return {
-
-            success: false,
-
-            message: e.message
-
-        };
-
-    }
-
-},
+        return await invoke("api-partner-admin", {
+            action: "sync",
+            partner_id: partnerId()
+        });
+    },
 
     async syncVehicleGroups() {
-
-    if (!config.api_url) {
-
-        return {
-
-            success: false,
-
-            message: "Brak API URL"
-
-        };
-
-    }
-
-    try {
-
-        return {
-
-            success: true,
-
-            groups: []
-
-        };
-
-    }
-
-    catch (e) {
-
-        return {
-
-            success: false,
-
-            message: e.message
-
-        };
-
-    }
-
-},
+        // Backend synchronizuje lokalizacje i grupy atomowo z tego samego snapshotu.
+        return await invoke("api-partner-admin", {
+            action: "sync",
+            partner_id: partnerId()
+        });
+    },
 
     async search(filters) {
-
-        console.log("API SEARCH");
-
-        console.log("Filters:", filters);
-
-        console.log("Config:", config);
-
-        // Tutaj później wywołamy API partnera
-
-        return {
-
-            success: true,
-
-            cars: []
-
-        };
-
+        return await invoke("search-api", filters || {});
     },
 
     async createBooking(data) {
-
-        console.log("CREATE BOOKING");
-
-        console.log(data);
-
-        console.log(config);
-
-        return {
-
-            success: true
-
-        };
-
+        return await invoke("create-booking-request", data || {});
     },
 
     async cancelBooking(id) {
-
-        console.log("CANCEL BOOKING");
-
-        console.log(id);
-
-        console.log(config);
-
-        return {
-
-            success: true
-
-        };
-
+        return await invoke("client-cancel-booking", {
+            booking_id: id
+        });
     }
-
 };
