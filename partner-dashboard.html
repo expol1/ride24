@@ -3154,6 +3154,19 @@ if (!window.partnerTimerRunning) {
         }
 
         // --- ACCEPT / REJECT ---
+async function triggerBookingEmailWorker(bookingId) {
+    try {
+        const { error } = await db.functions.invoke("email-worker", {
+            body: { booking_id: bookingId }
+        });
+        if (error) {
+            console.warn("Email worker could not be triggered:", error.message || error);
+        }
+    } catch (error) {
+        console.warn("Email worker could not be triggered:", error);
+    }
+}
+
 window.acceptBooking = async function(id, btnElement) {
     btnElement.disabled = true;
     btnElement.innerText = "...";
@@ -3171,7 +3184,8 @@ window.acceptBooking = async function(id, btnElement) {
             : "Rezerwacja zaakceptowana! Klient ma 24h na potwierdzenie rezerwacji.", 
             "success"
         );
-        
+
+        await triggerBookingEmailWorker(id);
         await loadPartnerBookings();
         await loadDashboard();
 
@@ -3198,6 +3212,7 @@ window.acceptBooking = async function(id, btnElement) {
             }
 
             window.showToast("Rezerwacja odrzucona.", "error");
+            await triggerBookingEmailWorker(id);
             await loadPartnerBookings();
             await loadDashboard();
         }
