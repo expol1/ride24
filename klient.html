@@ -1910,7 +1910,26 @@ window.openLoyaltyModal = function() {
     tooltip.id = "loyaltyTooltip";
     tooltip.className = "loyalty-tooltip";
 
-    tooltip.innerHTML = `
+    tooltip.innerHTML = `${localStorage.getItem("client_lang") === "en" ? `
+        <div class="lt-title">🎯 Loyalty programme</div>
+        <div class="lt-desc">
+            Collect paid bookings and receive discounts on the online booking fee.
+        </div>
+
+        <div class="lt-table">
+            <div>START <span>0%</span></div>
+            <div>SILVER <span>5%</span></div>
+            <div>GOLD <span>10%</span></div>
+            <div>PLATINUM <span>15%</span></div>
+            <div>VIP <span>20%</span></div>
+        </div>
+
+        <div class="lt-note">
+            ✔ The discount applies only to the online fee<br>
+            ✔ It does not reduce the amount paid to the partner<br>
+            ✔ It is applied automatically after payment
+        </div>
+    ` : `
         <div class="lt-title">🎯 Program lojalnościowy</div>
         <div class="lt-desc">
             Zbieraj opłacone rezerwacje i otrzymuj rabaty na opłatę rezerwacyjną.
@@ -1926,10 +1945,10 @@ window.openLoyaltyModal = function() {
 
         <div class="lt-note">
             ✔ Rabat dotyczy tylko opłaty on-line<br>
-            ✔ Nie obejmuje płatności dla Partnera<br>
+            ✔ Nie obejmuje płatności dla partnera<br>
             ✔ Naliczany automatycznie po płatności
         </div>
-    `;
+    `}`;
 
     const icon = document.querySelector("#loyalty-card svg");
     icon.parentElement.style.position = "relative";
@@ -1959,6 +1978,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Proces usuwania (współpraca z Supabase)
 window.processAccountDeletion = async function() {
+    const isEn = localStorage.getItem("client_lang") === "en";
 
     try {
         const { data: { user } } = await db.auth.getUser();
@@ -1973,7 +1993,7 @@ window.processAccountDeletion = async function() {
 
         if (error) throw error;
 
-        alert("Zgłoszenie wysłane. Zostaniesz wylogowany.");
+        alert(isEn ? "Request submitted. You will be logged out." : "Zgłoszenie wysłane. Zostaniesz wylogowany.");
 
         await db.auth.signOut();
 
@@ -1981,7 +2001,7 @@ window.processAccountDeletion = async function() {
 
     } catch (err) {
         console.error(err);
-        alert("Error: " + err.message);
+        alert((isEn ? "Error: " : "Błąd: ") + err.message);
     }
 };
         window._rateCache = window._rateCache || {}; // Inicjalizacja pamięci podręcznej dla NBP
@@ -2019,13 +2039,14 @@ async function getExchangeRate(currency) {
         import { API } from './assets/api/apiService.js';
 
         async function goToPayment(amount, bookingId) {
+  const isEn = localStorage.getItem("client_lang") === "en";
   console.log("💰 PAYMENT:", amount, bookingId);
 
   const { data: { user } } = await window.supabaseClient.auth.getUser();
 
 if (!user) {
   console.error("❌ BRAK USERA!");
-  alert("Musisz być zalogowany");
+  alert(isEn ? "You must be logged in." : "Musisz być zalogowany.");
   return;
 }
 
@@ -2034,7 +2055,7 @@ const { data: { session } } = await window.supabaseClient.auth.getSession();
 const token = session?.access_token;
 
 if (!token) {
-  alert("Odśwież stronę i spróbuj ponownie");
+  alert(isEn ? "Refresh the page and try again." : "Odśwież stronę i spróbuj ponownie.");
   return;
 }
 
@@ -2059,7 +2080,7 @@ const res = await fetch(supabaseUrl + "/functions/v1/create_checkout_session", {
 
   if (!data.url) {
     console.error("❌ BRAK URL:", data);
-    alert("Błąd płatności");
+    alert(isEn ? "Payment error." : "Błąd płatności.");
     return;
   }
 
@@ -2177,11 +2198,8 @@ function renderLoyaltyCard(paidCount) {
         marketingText.innerText = "🎉 Masz najwyższy możliwy rabat!";
         marketingText.style.color = "#73D700";
     }
-
-    // Jeśli masz globalną funkcję do tłumaczeń na stronie (np. updateTranslations lub podobną),
-    // opcjonalnie wywołaj ją tutaj, aby nałożyła od razu wybrany język:
-    if (typeof updateLanguage === "function") {
-        updateLanguage();
+    if (typeof window.applyClientLanguage === "function") {
+        window.applyClientLanguage(document);
     }
 }
         // --- PREMIUM TOAST ENGINE ---
@@ -2349,10 +2367,11 @@ document.addEventListener("click", async function(e) {
 
         // --- NASZA NOWA FUNKCJA POBIERANIA REZERWACJI (MOCK API) ---
        window.submitBooking = function() {
+    const isEn = localStorage.getItem("client_lang") === "en";
 
     const carClassId = localStorage.getItem("selectedCarId");
     if (!carClassId) {
-        window.showToast("Brak wybranej grupy aut.", "error");
+        window.showToast(isEn ? "No vehicle group selected." : "Brak wybranej grupy aut.", "error");
         return;
     }
 
@@ -2362,8 +2381,8 @@ document.addEventListener("click", async function(e) {
     const select = document.getElementById("driverSelect");
     const addSelect = document.getElementById("additionalDriverSelect");
 
-    select.innerHTML = `<option>⏳ Ładowanie...</option>`;
-    addSelect.innerHTML = `<option>⏳ Ładowanie...</option>`;
+    select.innerHTML = `<option data-pl="⏳ Ładowanie..." data-en="⏳ Loading...">${isEn ? "⏳ Loading..." : "⏳ Ładowanie..."}</option>`;
+    addSelect.innerHTML = `<option data-pl="⏳ Ładowanie..." data-en="⏳ Loading...">${isEn ? "⏳ Loading..." : "⏳ Ładowanie..."}</option>`;
 
     // 🔥 ASYNC W TLE
     setTimeout(async () => {
@@ -2375,7 +2394,7 @@ document.addEventListener("click", async function(e) {
             .maybeSingle();
 
         if (!profileCheck || !profileCheck.name || !profileCheck.phone || !profileCheck.age) {
-            window.showToast("Uzupełnij profil!", "error");
+            window.showToast(isEn ? "Complete your profile!" : "Uzupełnij profil!", "error");
             window.switchTab("profile");
             window.closeTermsModal();
             return;
@@ -2389,7 +2408,7 @@ document.addEventListener("click", async function(e) {
         const isEn = localStorage.getItem("client_lang") === "en";
         const ownerText = isEn ? `Me (${profileCheck.name})` : `Ja (${profileCheck.name})`;
 
-        let optionsHtml = `<option value="">👤 ${ownerText}</option>`;
+        let optionsHtml = `<option value="" data-pl="👤 Ja (${profileCheck.name})" data-en="👤 Me (${profileCheck.name})">👤 ${ownerText}</option>`;
 
         if (myDrivers) {
             myDrivers.forEach(d => {
@@ -2400,7 +2419,7 @@ document.addEventListener("click", async function(e) {
         }
 
         select.innerHTML = optionsHtml;
-        addSelect.innerHTML = `<option value="none">Brak</option>` + optionsHtml;
+        addSelect.innerHTML = `<option value="none" data-pl="Brak" data-en="None">${isEn ? "None" : "Brak"}</option>` + optionsHtml;
 
         select.onchange = () => {
             if (select.value === addSelect.value) addSelect.value = "none";
@@ -2550,8 +2569,8 @@ document.addEventListener("click", async function(e) {
             const isEn = localStorage.getItem("client_lang") === "en";
             const bookTbody = document.getElementById('bookings-tbody');
 
-            dashTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Ładowanie danych...</td></tr>';
-            bookTbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Ładowanie danych...</td></tr>';
+            dashTbody.innerHTML = `<tr><td colspan="8" style="text-align:center;" data-pl="Ładowanie danych..." data-en="Loading data...">${isEn ? "Loading data..." : "Ładowanie danych..."}</td></tr>`;
+            bookTbody.innerHTML = `<tr><td colspan="8" style="text-align:center;" data-pl="Ładowanie danych..." data-en="Loading data...">${isEn ? "Loading data..." : "Ładowanie danych..."}</td></tr>`;
 
             try {
                // 🔥 FIX 1: Poprawiony SELECT (Wyciągamy cenę i walutę przez relacje)
@@ -2592,8 +2611,8 @@ refund_completed_at,
                 if(error){
                   // 🔥 Wyrzuca dokładny błąd do konsoli F12, jeśli to wina RLS lub innych kolumn
                   console.error("BOOKINGS ERROR:", error);
-                  dashTbody.innerHTML = '<tr><td colspan="8" style="color:red; text-align:center;">Sprawdź konsolę (F12) - Błąd DB</td></tr>';
-                  bookTbody.innerHTML = '<tr><td colspan="8" style="color:red; text-align:center;">Sprawdź konsolę (F12) - Błąd DB</td></tr>';
+                  dashTbody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;" data-pl="Sprawdź konsolę (F12) — błąd bazy danych" data-en="Check the console (F12) — database error">${isEn ? "Check the console (F12) — database error" : "Sprawdź konsolę (F12) — błąd bazy danych"}</td></tr>`;
+                  bookTbody.innerHTML = `<tr><td colspan="8" style="color:red; text-align:center;" data-pl="Sprawdź konsolę (F12) — błąd bazy danych" data-en="Check the console (F12) — database error">${isEn ? "Check the console (F12) — database error" : "Sprawdź konsolę (F12) — błąd bazy danych"}</td></tr>`;
                   return;
                 }
 
@@ -2643,7 +2662,7 @@ if (badge) {
 }
 
                 if (clientBookings.length === 0) {
-                    const emptyMsg = '<tr><td colspan="8" style="text-align:center; color:var(--gray);">Brak rezerwacji.</td></tr>';
+                    const emptyMsg = `<tr><td colspan="8" style="text-align:center; color:var(--gray);" data-pl="Brak rezerwacji." data-en="No bookings.">${isEn ? "No bookings." : "Brak rezerwacji."}</td></tr>`;
                     dashTbody.innerHTML = emptyMsg;
                     bookTbody.innerHTML = emptyMsg;
                     return;
@@ -2663,26 +2682,26 @@ if (badge) {
 
 // --- DYNAMICZNE STATUSY (PREMIUM TILES) ---
 if (booking.status === 'pending') {
-    statusHtml = `<div class="status-tile pending">⏳ ${isEn ? 'Pending' : 'Oczekująca'}</div>`;
+    statusHtml = `<div class="status-tile pending" data-pl="⏳ Oczekująca" data-en="⏳ Pending">⏳ ${isEn ? 'Pending' : 'Oczekująca'}</div>`;
 }
 else if (booking.status === 'accepted') {
-    statusHtml = `<div class="status-tile accepted">✅ ${isEn ? 'Accepted' : 'Potwierdzona'}</div>`;
+    statusHtml = `<div class="status-tile accepted" data-pl="✅ Potwierdzona" data-en="✅ Accepted">✅ ${isEn ? 'Accepted' : 'Potwierdzona'}</div>`;
 }
 else if (booking.status === 'awaiting_payment') {
-    statusHtml = `<div class="status-tile awaiting_payment">💳 ${isEn ? 'Awaiting payment' : 'Oczekuje płatności'}</div>`;
+    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Oczekuje płatności" data-en="💳 Awaiting payment">💳 ${isEn ? 'Awaiting payment' : 'Oczekuje płatności'}</div>`;
 
 }
 else if (booking.status === 'paid') {
-    statusHtml = `<div class="status-tile paid">🎉 ${isEn ? 'Paid' : 'Opłacona'}</div>`;
+    statusHtml = `<div class="status-tile paid" data-pl="🎉 Opłacona" data-en="🎉 Paid">🎉 ${isEn ? 'Paid' : 'Opłacona'}</div>`;
 }
 else if (booking.status === 'cancelled') {
-    statusHtml = `<div class="status-tile cancelled">🚫 ${isEn ? 'Cancelled' : 'Anulowana'}</div>`;
+    statusHtml = `<div class="status-tile cancelled" data-pl="🚫 Anulowana" data-en="🚫 Cancelled">🚫 ${isEn ? 'Cancelled' : 'Anulowana'}</div>`;
 }
 else if (booking.status === 'rejected') {
-    statusHtml = `<div class="status-tile cancelled">❌ ${isEn ? 'Rejected' : 'Odrzucona'}</div>`;
+    statusHtml = `<div class="status-tile cancelled" data-pl="❌ Odrzucona" data-en="❌ Rejected">❌ ${isEn ? 'Rejected' : 'Odrzucona'}</div>`;
 }
 else if (booking.status === 'expired' || booking.status === 'payment_expired') {
-    statusHtml = `<div class="status-tile payment_expired">⏰ ${isEn ? 'Expired' : 'Wygasła'}</div>`;
+    statusHtml = `<div class="status-tile payment_expired" data-pl="⏰ Wygasła" data-en="⏰ Expired">⏰ ${isEn ? 'Expired' : 'Wygasła'}</div>`;
 }
 
 // --- DYNAMICZNE AKCJE (PREMIUM BUTTONS) ---
@@ -2691,18 +2710,18 @@ let actionsHtml = `<div style="display:flex;flex-direction:column;gap:8px; align
 const s = booking.status;
 
 if (s === 'pending') {
-    actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;">
+    actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;" data-pl="Decyzja partnera:" data-en="Partner decision:">
         ${isEn ? 'Partner decision:' : 'Decyzja partnera:'}
     </span>`;
     actionsHtml += `<span class="timer-badge countdown-timer" data-created="${booking.created_at}" style="font-size:13px; margin-top:0; color:var(--orange);">
         ⌛ --:--:--
     </span>`;
-    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;">
+    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
         ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
     </button>`;
 }
 else if (s === 'accepted') {
-    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')">
+    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" data-pl="Anuluj rezerwację" data-en="Cancel booking">
         ${isEn ? 'Cancel booking' : 'Anuluj rezerwację'}
     </button>`;
 }
@@ -2722,7 +2741,8 @@ if (booking.payment_deadline) {
 
 actionsHtml += `
     <button class="action-btn-premium btn-pay-now"
-        onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')">
+        onclick="goToPayment(${booking.online_payment_pln || 0}, '${booking.id}')"
+        data-pl="💳 Opłać teraz" data-en="💳 Pay now">
         💳 ${isEn ? 'Pay now' : 'Opłać teraz'}
     </button>
 
@@ -2730,7 +2750,7 @@ actionsHtml += `
 `;
 }
 else if (s === 'paid') {
-    actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')">
+    actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')" data-pl="📄 Voucher PDF" data-en="📄 Voucher PDF">
         📄 Voucher PDF
     </button>`;
 
@@ -2745,22 +2765,22 @@ else if (s === 'paid') {
 </button>`;
 
     if (booking.receipt_generated) {
-        actionsHtml += `<button class="action-btn-premium btn-download-receipt" onclick="window.downloadReceipt('${booking.id}')">
+        actionsHtml += `<button class="action-btn-premium btn-download-receipt" onclick="window.downloadReceipt('${booking.id}')" data-pl="📥 Pobierz rachunek" data-en="📥 Download receipt">
         📥 ${isEn ? 'Download receipt' : 'Pobierz rachunek'}
     </button>`;
     } else {
-        actionsHtml += `<button class="action-btn-premium btn-request-receipt" onclick="window.requestReceipt('${booking.id}')">
-        📄 ${isEn ? 'I need an invoice' : 'Potrzebuję rachunku'}
+        actionsHtml += `<button class="action-btn-premium btn-request-receipt" onclick="window.requestReceipt('${booking.id}')" data-pl="📄 Potrzebuję rachunku" data-en="📄 I need a receipt">
+        📄 ${isEn ? 'I need a receipt' : 'Potrzebuję rachunku'}
     </button>`;
     }
 }
 else if (s === 'cancelled' || s === 'rejected' || s === 'expired' || s === 'payment_expired') {
-    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600; padding: 6px 0;">
+    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600; padding: 6px 0;" data-pl="Zamknięta" data-en="Closed">
         ${isEn ? 'Closed' : 'Zamknięta'}
     </span>`;
 }
 else {
-    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600;">
+    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600;" data-pl="Zakończona" data-en="Completed">
         ${isEn ? 'Completed' : 'Zakończona'}
     </span>`;
 }
@@ -2795,8 +2815,8 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     '${booking.partner_terms_snapshot ?? ""}',
     '${booking.partner_rules_snapshot ?? ""}'
 )"
-              style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
-            ${localStorage.getItem("client_lang") === "en" ? 'View details' : 'Zobacz szczegóły'}
+              style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;" data-pl="Zobacz szczegóły" data-en="View details">
+            ${isEn ? 'View details' : 'Zobacz szczegóły'}
         </span>
     </div>
 </td>
@@ -2805,8 +2825,8 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                             <td>${startFull} &rarr; ${endFull}</td>
                             <td>
                                 <div style="font-size:12px; line-height:1.2;">
-                                    <span title="Odbiór">📍 ${pickup}</span><br>
-                                    <span title="Zwrot" style="color:var(--gray);">🏁 ${drop}</span>
+                                    <span title="${isEn ? 'Pickup' : 'Odbiór'}" data-title-pl="Odbiór" data-title-en="Pickup">📍 ${pickup}</span><br>
+                                    <span title="${isEn ? 'Return' : 'Zwrot'}" data-title-pl="Zwrot" data-title-en="Return" style="color:var(--gray);">🏁 ${drop}</span>
                                 </div>
                             </td>
                             <td>${statusHtml}</td>
@@ -2843,7 +2863,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                             const diff = deadline - now;
 
                             if (diff <= 0) {
-                                el.innerHTML = "⌛ Czas minął";
+                                el.innerHTML = localStorage.getItem("client_lang") === "en" ? "⌛ Time expired" : "⌛ Czas minął";
                                 el.style.color = "var(--gray)";
                                 el.classList.remove("timer-urgent");
                             } else {
@@ -2870,7 +2890,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
 
                             const diff = new Date(deadline) - new Date();
                             if (diff <= 0) {
-                                el.innerHTML = "⌛ Czas minął";
+                                el.innerHTML = localStorage.getItem("client_lang") === "en" ? "⌛ Time expired" : "⌛ Czas minął";
                                 el.style.color = "var(--gray)";
                                 el.classList.remove("timer-urgent");
                             } else {
@@ -2906,7 +2926,7 @@ window.requestRefund = async function(bookingId, refundPercent, amountPln) {
     if (window._refundProcessing) return;
 
     if (!bookingId || amountPln === undefined || amountPln === null) {
-        window.showToast("Błąd danych rezerwacji (brak kwoty).", "error");
+        window.showToast(localStorage.getItem("client_lang") === "en" ? "Invalid booking data (amount missing)." : "Błąd danych rezerwacji (brak kwoty).", "error");
         return;
     }
 
@@ -3281,7 +3301,7 @@ function calculateRefundPercent(pickupDate) {
 
             if (!shouldRemember) {
                 window.showToast(
-                    "Dane nie zostały zapisane, ponieważ opcja zapamiętywania jest wyłączona.",
+                    isEn ? "The data was not saved because the remember option is disabled." : "Dane nie zostały zapisane, ponieważ opcja zapamiętywania jest wyłączona.",
                     "info"
                 );
                 return;
@@ -3336,7 +3356,7 @@ function calculateRefundPercent(pickupDate) {
                 return;
             }
 
-            const confirmed = window.confirm("Czy na pewno usunąć zapisane dane do rachunku?");
+            const confirmed = window.confirm(isEn ? "Delete the saved receipt details?" : "Czy na pewno usunąć zapisane dane do rachunku?");
             if (!confirmed) return;
 
             const { error } = await db
@@ -3356,7 +3376,7 @@ function calculateRefundPercent(pickupDate) {
             window.clearInvoiceForm();
             const rememberCheckbox = document.getElementById("invoice-remember");
             if (rememberCheckbox) rememberCheckbox.checked = true;
-            window.showToast("Dane zostały usunięte.", "success");
+            window.showToast(isEn ? "The data has been deleted." : "Dane zostały usunięte.", "success");
         }
 
 
@@ -3377,7 +3397,8 @@ function calculateRefundPercent(pickupDate) {
 
             const { error } = await db.from("profiles").upsert(profileData);
             if(error) {
-                alert("Błąd przy zapisie profilu: " + error.message);
+                const isEn = localStorage.getItem("client_lang") === "en";
+                alert((isEn ? "Profile save error: " : "Błąd przy zapisie profilu: ") + error.message);
             } else {
                 const isEn = localStorage.getItem("client_lang") === "en";
                 window.showToast(isEn ? "Profile saved" : "Profil zapisany", "success");
@@ -3408,7 +3429,7 @@ function calculateRefundPercent(pickupDate) {
                     <label data-pl="Telefon" data-en="Phone">Telefon</label>
                     <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
                 </div>
-                <button type="button" class="btn-icon-remove" onclick="removeDriver(this, '${driverId}')">🗑 Usuń kierowcę</button>
+                <button type="button" class="btn-icon-remove" onclick="removeDriver(this, '${driverId}')" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
             `;
             list.appendChild(row);
             window.detectLang();
@@ -3681,7 +3702,7 @@ window.cancelBooking = async function(id, currentStatus) {
                 if (error) throw error;
 
                 window.closeReceiptSummaryModal();
-                window.showToast("Rachunek został wygenerowany", "success");
+                window.showToast(isEn ? "Receipt generated." : "Rachunek został wygenerowany.", "success");
                 await loadClientBookings();
             } catch (err) {
                 console.error("Błąd generowania rachunku:", err);
@@ -3798,24 +3819,48 @@ window.cancelBooking = async function(id, currentStatus) {
     window.open(`/travel-guides/${guide.folder_name}.html`, "_blank");
 
 };
+        window.getClientLang = function() {
+            return localStorage.getItem("client_lang") === "en" ? "en" : "pl";
+        };
 
-        window.setLang = function(lang) {
-            localStorage.setItem("client_lang", lang);
-            document.querySelectorAll("[data-pl]").forEach(el => {
-                if(el.dataset[lang]) {
-                    if(el.tagName === 'INPUT' && el.hasAttribute("placeholder")) el.placeholder = el.dataset[lang];
-                    else el.innerHTML = el.dataset[lang];
+        window.applyClientLanguage = function(root = document) {
+            const lang = window.getClientLang();
+            document.documentElement.lang = lang;
+
+            root.querySelectorAll("[data-pl][data-en]").forEach(el => {
+                const translated = el.dataset[lang];
+                if (translated === undefined) return;
+
+                if ((el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.hasAttribute("placeholder")) {
+                    el.placeholder = translated;
+                } else if (el.tagName === "OPTION") {
+                    el.textContent = translated;
+                } else {
+                    el.innerHTML = translated;
                 }
             });
+
+            root.querySelectorAll("[data-title-pl][data-title-en]").forEach(el => {
+                el.title = lang === "en" ? el.dataset.titleEn : el.dataset.titlePl;
+            });
+
             document.querySelectorAll('.nav-item').forEach(item => {
                 const textSpan = item.querySelector('.nav-text');
-                if (textSpan && textSpan.dataset[lang]) item.setAttribute('data-tooltip', textSpan.dataset[lang]);
+                if (textSpan && textSpan.dataset[lang]) {
+                    item.setAttribute('data-tooltip', textSpan.dataset[lang]);
+                }
             });
+        };
+
+        window.setLang = function(lang) {
+            lang = lang === "en" ? "en" : "pl";
+            localStorage.setItem("client_lang", lang);
+            window.applyClientLanguage(document);
+
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
             const activeBtn = document.getElementById('lang-' + lang);
-            if(activeBtn) activeBtn.classList.add('active-lang');
-
-        }
+            if (activeBtn) activeBtn.classList.add('active-lang');
+        };
 
         window.detectLang = function() {
             let lang = localStorage.getItem("client_lang") || "pl";
@@ -3868,7 +3913,7 @@ function translateStatus(status, lang = null) {
         pending: { pl: "Oczekująca", en: "Pending" },
         accepted: { pl: "Potwierdzona", en: "Accepted" },
         awaiting_payment: { pl: "Oczekuje płatności", en: "Awaiting payment" },
-        paid: { pl: "Opłacone", en: "Paid" },
+        paid: { pl: "Opłacona", en: "Paid" },
         cancelled: { pl: "Anulowana", en: "Cancelled" },
         rejected: { pl: "Odrzucona", en: "Rejected" },
         expired: { pl: "Wygasła", en: "Expired" },
@@ -3884,7 +3929,7 @@ window.loadPayments = async function() {
     const tbody = document.getElementById("payments-tbody");
     if (!tbody) return;
 
-    tbody.innerHTML = `<tr><td colspan="4">Ładowanie...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" data-pl="Ładowanie..." data-en="Loading...">${isEn ? "Loading..." : "Ładowanie..."}</td></tr>`;
 
     try {
         const { data, error } = await db
@@ -3899,7 +3944,7 @@ window.loadPayments = async function() {
         console.log("💰 PAYMENTS:", data);
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4">Brak płatności</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" data-pl="Brak płatności" data-en="No payments">${isEn ? "No payments" : "Brak płatności"}</td></tr>`;
             return;
         }
 
@@ -3912,15 +3957,17 @@ window.loadPayments = async function() {
 // 🟢 1. ZWROT ZAKOŃCZONY (NAJWYŻSZY PRIORYTET)
 // 🟢 1. ZWROT ZAKOŃCZONY
             if (b.refund_status === "completed") {
-                const refundDate = b.refund_completed_at ? new Date(b.refund_completed_at).toLocaleDateString('pl-PL') : '';
-                actions = `<div class="status-tile paid">
-                    💸 ${isEn ? 'Refunded' : 'Rozliczone'} ${refundDate ? `(${refundDate})` : ''}
+                const refundDateValue = b.refund_completed_at ? new Date(b.refund_completed_at) : null;
+                const refundDatePl = refundDateValue ? refundDateValue.toLocaleDateString('pl-PL') : '';
+                const refundDateEn = refundDateValue ? refundDateValue.toLocaleDateString('en-GB') : '';
+                actions = `<div class="status-tile paid" data-pl="💸 Rozliczone ${refundDatePl ? `(${refundDatePl})` : ''}" data-en="💸 Refunded ${refundDateEn ? `(${refundDateEn})` : ''}">
+                    💸 ${isEn ? 'Refunded' : 'Rozliczone'} ${isEn ? (refundDateEn ? `(${refundDateEn})` : '') : (refundDatePl ? `(${refundDatePl})` : '')}
                 </div>`;
             }
 
             // 🟠 2. ZWROT W TOKU
             else if (b.refund_status === "pending") {
-                actions = `<div class="status-tile awaiting_payment">
+                actions = `<div class="status-tile awaiting_payment" data-pl="⏳ Zwrot w toku" data-en="⏳ Refund pending">
                     ⏳ ${isEn ? 'Refund pending' : 'Zwrot w toku'}
                 </div>`;
             }
@@ -3932,12 +3979,12 @@ window.loadPayments = async function() {
                 if (refundPercent > 0) {
                     actions = `
                         <button class="action-btn-premium btn-cancel-soft" style="width: auto; padding: 6px 12px; min-width: auto;"
-                            onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})">
+                            onclick="handleRefundClick('${b.id}', '${b.start_date}', ${b.online_payment_pln})" data-pl="💸 Zwrot (${refundPercent}%)" data-en="💸 Refund (${refundPercent}%)">
                             💸 ${isEn ? 'Refund' : 'Zwrot'} (${refundPercent}%)
                         </button>
                     `;
                 } else {
-                    actions = `<div class="status-tile pending" style="opacity:0.7;">
+                    actions = `<div class="status-tile pending" style="opacity:0.7;" data-pl="Brak zwrotu" data-en="No refund">
                         ${isEn ? 'No refund' : 'Brak zwrotu'}
                     </div>`;
                 }
@@ -3965,7 +4012,7 @@ window.loadPayments = async function() {
 
     } catch (err) {
         console.error("❌ loadPayments error:", err);
-        tbody.innerHTML = `<tr><td colspan="4">Błąd ładowania</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" data-pl="Błąd ładowania" data-en="Loading error">${isEn ? "Loading error" : "Błąd ładowania"}</td></tr>`;
     }
 };
 window.goToHome = function() {

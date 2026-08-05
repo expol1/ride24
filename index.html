@@ -2831,23 +2831,26 @@ window.showToast = function(msg, type = 'info') {
 };
     
 function setLang(lang) {
+    lang = lang === "en" ? "en" : "pl";
     localStorage.setItem("lang", lang);
+    document.documentElement.lang = lang;
 
-    document.querySelectorAll("[data-pl]").forEach(el => {
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            el.placeholder = el.dataset[lang];
+    document.querySelectorAll("[data-pl][data-en]").forEach(el => {
+        const translated = el.dataset[lang];
+        if (translated === undefined) return;
+
+        if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.hasAttribute('placeholder')) {
+            el.placeholder = translated;
         } else if (el.tagName === 'OPTION') {
-            el.innerText = el.dataset[lang];
+            el.textContent = translated;
         } else {
-         
-            el.innerHTML = el.dataset[lang]; // ZMIANA: innerHTML pozwala na tagi <strong>, <a> itp. w tłumaczeniach
+            el.innerHTML = translated;
         }
     });
 
-    document.querySelectorAll(".lang-btn").forEach(btn => {
-        btn.classList.remove("active-lang");
-    });
-    document.getElementById("lang-" + lang).classList.add("active-lang");
+    document.querySelectorAll(".lang-btn").forEach(btn => btn.classList.remove("active-lang"));
+    const activeBtn = document.getElementById("lang-" + lang);
+    if (activeBtn) activeBtn.classList.add("active-lang");
 
     if (typeof updateWorldExplorerLanguage === "function") {
         updateWorldExplorerLanguage();
@@ -3487,7 +3490,7 @@ async function loginGoogle() {
             redirectTo: window.location.origin + "/auth/callback.html"
         }
     });
-    if (error) window.showToast("Google error: " + error.message, "error");
+    if (error) window.showToast((localStorage.getItem("lang") === "en" ? "Google error: " : "Błąd Google: ") + error.message, "error");
 }
 
 // --- FUNKCJE LOGOWANIA PARTNERA ---
@@ -3509,17 +3512,17 @@ async function partnerLogin() {
     
     const turnstileToken = document.querySelector('#partnerModal [name="cf-turnstile-response"]')?.value;
     if (!turnstileToken) {
-        alert("Potwierdź, że nie jesteś robotem.");
+        alert(localStorage.getItem("lang") === "en" ? "Confirm that you are not a robot." : "Potwierdź, że nie jesteś robotem.");
         return;
     }
 
     if (!email || !pass) {
-        alert("Please enter email and password.");
+        alert(localStorage.getItem("lang") === "en" ? "Please enter email and password." : "Wpisz adres e-mail i hasło.");
         return;
     }
 
     btn.disabled = true;
-    btn.innerText = "Loading...";
+    btn.innerText = localStorage.getItem("lang") === "en" ? "Loading..." : "Ładowanie...";
     try {
         const { error } = await db.auth.signInWithPassword({
             email,
@@ -3531,7 +3534,7 @@ async function partnerLogin() {
     } catch (err) {
         alert(err.message);
         btn.disabled = false;
-        btn.innerText = "Log in to partner panel";
+        btn.innerText = localStorage.getItem("lang") === "en" ? "Log in to partner panel" : "Zaloguj do panelu partnera";
     } finally {
         if (window.turnstile) window.turnstile.reset();
     }
@@ -3574,7 +3577,7 @@ window.handleContactSubmit = async function(e) {
 
     } catch (err) {
         console.error("Błąd kontaktu:", err);
-        window.showToast("Błąd: " + err.message, "error");
+        window.showToast((lang === "en" ? "Error: " : "Błąd: ") + err.message, "error");
     } finally {
         btn.disabled = false;
         btn.innerText = lang === 'pl' ? 'Wyślij' : 'Send';

@@ -307,18 +307,23 @@
 
     <script>
         function setLang(lang) {
-    localStorage.setItem("lang", lang);
-    const isEn = lang === "en";
-    
-    document.querySelectorAll("[data-pl]").forEach(el => {
-        const text = isEn ? el.dataset.en : el.dataset.pl;
-        if (el.tagName === 'INPUT') {
-            el.placeholder = text;
-        } else {
-            el.innerHTML = text;
+            lang = lang === "en" ? "en" : "pl";
+            localStorage.setItem("lang", lang);
+            document.documentElement.lang = lang;
+
+            document.querySelectorAll("[data-pl][data-en]").forEach(el => {
+                const translated = el.dataset[lang];
+                if (translated === undefined) return;
+
+                if ((el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.hasAttribute("placeholder")) {
+                    el.placeholder = translated;
+                } else if (el.tagName === "OPTION") {
+                    el.textContent = translated;
+                } else {
+                    el.innerHTML = translated;
+                }
+            });
         }
-    });
-}
         function openRegSuccess() {
     closeAuth(); // Zamykamy okno logowania
     const modal = document.getElementById("regSuccessModal");
@@ -431,7 +436,8 @@ async function getExchangeRate(currency) {
                 }
             }
             
-            container.innerHTML = '<p style="color:white; text-align:center; padding:50px; font-size:18px; font-weight:600;">Wyszukujemy najlepsze oferty w bazie Ride24...</p>';
+            const initialLang = localStorage.getItem("lang") === "en" ? "en" : "pl";
+            container.innerHTML = `<p style="color:white; text-align:center; padding:50px; font-size:18px; font-weight:600;" data-pl="Wyszukujemy najlepsze oferty w bazie Ride24..." data-en="Searching for the best Ride24 offers...">${initialLang === "en" ? "Searching for the best Ride24 offers..." : "Wyszukujemy najlepsze oferty w bazie Ride24..."}</p>`;
 
             try {
                 const searchParamsStr = localStorage.getItem("searchParams");
@@ -960,7 +966,7 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 
             } catch (error) {
                 console.error("Błąd ładowania aut:", error);
-                container.innerHTML = '<p style="color:#FCA5A5; text-align:center; padding: 40px; background: rgba(0,0,0,0.5); border-radius: 12px;">Błąd podczas pobierania ofert.</p>';
+                container.innerHTML = `<p style="color:#FCA5A5; text-align:center; padding: 40px; background: rgba(0,0,0,0.5); border-radius: 12px;" data-pl="Błąd podczas pobierania ofert." data-en="Error while loading offers.">${localStorage.getItem("lang") === "en" ? "Error while loading offers." : "Błąd podczas pobierania ofert."}</p>`;
             }
         }
 
@@ -1205,7 +1211,7 @@ if (data.user && !data.session) {
         }
     });
 
-    if (error) window.showToast("Google error: " + error.message, "error");
+    if (error) window.showToast((localStorage.getItem("lang") === "en" ? "Google error: " : "Błąd Google: ") + error.message, "error");
 }
 // --- URUCHOMIENIE STRONY ---
 document.addEventListener("DOMContentLoaded", async () => {

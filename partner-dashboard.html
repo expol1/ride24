@@ -2259,7 +2259,7 @@ async function executeDelete() {
         await loadPartnerSettings(userId);
     } catch (err) {
         console.error(err);
-        window.showToast("Error", "error");
+        window.showToast(isEn ? "Error" : "Błąd", "error");
     } finally {
         btn.disabled = false;
         btn.innerText = isEn ? "Delete" : "Usuń";
@@ -2382,7 +2382,7 @@ console.log("API status:", partnerData.api_status);
                     item.style.pointerEvents = "none";
                 });
                 openPasswordModal(true);
-                window.showToast("Password change required!", "error");
+                window.showToast(getPartnerLang() === "en" ? "Password change required!" : "Wymagana zmiana hasła!", "error");
             }
 
             // 2. profil (🔥 NAJPIERW!)
@@ -2394,7 +2394,7 @@ console.log("API status:", partnerData.api_status);
                     }
                 });
                 switchTab('settings');
-                window.showToast("Uzupełnij profil aby wygenerować umowę", "error");
+                window.showToast(getPartnerLang() === "en" ? "Complete your profile to generate the agreement." : "Uzupełnij profil, aby wygenerować umowę.", "error");
             }
 
             // 3. umowa (🔥 DOPIERO TERAZ)
@@ -2448,15 +2448,46 @@ console.log("API status:", partnerData.api_status);
                 }
             }, 10);
         };
-
         // --- UI LOGIC ---
-        function setLang(lang) {
-            localStorage.setItem("partner_lang", lang);
-            document.querySelectorAll("[data-pl]").forEach(el => {
-                if(el.dataset[lang]) el.innerHTML = el.dataset[lang];
+        function getPartnerLang() {
+            return localStorage.getItem("partner_lang") === "pl" ? "pl" : "en";
+        }
+
+        function applyPartnerLanguage(root = document) {
+            const lang = getPartnerLang();
+            document.documentElement.lang = lang;
+
+            root.querySelectorAll("[data-pl][data-en]").forEach(el => {
+                const translated = el.dataset[lang];
+                if (translated === undefined) return;
+
+                if ((el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.hasAttribute("placeholder")) {
+                    el.placeholder = translated;
+                } else if (el.tagName === "OPTION") {
+                    el.textContent = translated;
+                } else {
+                    el.innerHTML = translated;
+                }
             });
+
+            root.querySelectorAll("[data-title-pl][data-title-en]").forEach(el => {
+                el.title = lang === "en" ? el.dataset.titleEn : el.dataset.titlePl;
+            });
+        }
+
+        function setLang(lang) {
+            lang = lang === "pl" ? "pl" : "en";
+            localStorage.setItem("partner_lang", lang);
+            applyPartnerLanguage(document);
+
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
-            document.getElementById('lang-' + lang).classList.add('active-lang');
+            const activeBtn = document.getElementById('lang-' + lang);
+            if (activeBtn) activeBtn.classList.add('active-lang');
+
+            if (typeof window.updateVisibilityUI === "function") window.updateVisibilityUI();
+            if (document.getElementById("agreement-modal")?.style.display === "flex" && typeof renderAgreement === "function") {
+                renderAgreement(lang);
+            }
         }
 
         // --- WCZYTYWANIE USTAWIEŃ (LOAD) ---
@@ -2543,7 +2574,7 @@ console.log("API status:", partnerData.api_status);
         async function savePartnerSettings(){
             // Wyłapujemy przycisk, aby zablokować go na czas zapisu
             const btn = document.querySelector(".settings-card button.btn-primary");
-            if(btn) { btn.disabled = true; btn.innerText = "Zapisywanie..."; }
+            if(btn) { btn.disabled = true; btn.innerText = localStorage.getItem("partner_lang") === "en" ? "Saving..." : "Zapisywanie..."; }
 
            try {
                 const { data: { session } } = await db.auth.getSession();
@@ -2611,7 +2642,7 @@ const updateData = {
 
             } catch(err) {
                 console.error(err);
-                alert("Błąd zapisu: " + err.message);
+                alert((isEn ? "Save error: " : "Błąd zapisu: ") + err.message);
                 if(btn) { 
                     btn.disabled = false; 
                     const isEn = localStorage.getItem("partner_lang") === "en";
@@ -2668,7 +2699,7 @@ const updateData = {
             try {
                 const { data: { session } } = await db.auth.getSession();
                 const { data: partner } = await db.from("partners").select("id").eq("user_id", session.user.id).single();
-                if (!partner) throw new Error("Nie znaleziono profilu partnera.");
+                if (!partner) throw new Error(isEn ? "Partner profile not found." : "Nie znaleziono profilu partnera.");
 
                 const model = document.getElementById("carModel").value;
                 const class_code = document.getElementById("carClass").value;
@@ -2745,7 +2776,7 @@ const updateData = {
                 
             } catch (err) {
                 console.error("Błąd zapisu:", err);
-                window.showToast("Błąd: " + err.message, "error");
+                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
             } finally {
                 btn.disabled = false;
                 btn.innerText = window.currentEditingVehicleId 
@@ -2812,8 +2843,9 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
             const bookTbody = document.getElementById('bookings-list-tbody');
 
             // Zmiana colspan na 7, bo doszła kolumna lokalizacji
-            if(dashTbody) dashTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Ładowanie zapytań...</td></tr>';
-            if(bookTbody) bookTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Ładowanie rezerwacji...</td></tr>';
+            const isEnLoading = localStorage.getItem("partner_lang") === "en";
+            if(dashTbody) dashTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie zapytań..." data-en="Loading requests...">${isEnLoading ? "Loading requests..." : "Ładowanie zapytań..."}</td></tr>`;
+            if(bookTbody) bookTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie rezerwacji..." data-en="Loading bookings...">${isEnLoading ? "Loading bookings..." : "Ładowanie rezerwacji..."}</td></tr>`;
 
             const { data: { session } } = await db.auth.getSession();
 
@@ -2829,8 +2861,9 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
 
             if(error) {
                 console.error(error);
-                if(dashTbody) dashTbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
-                if(bookTbody) bookTbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
+                const errorRow = `<tr><td colspan="7" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${localStorage.getItem("partner_lang") === "en" ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
+                if(dashTbody) dashTbody.innerHTML = errorRow;
+                if(bookTbody) bookTbody.innerHTML = errorRow;
                 return;
             }
 
@@ -2848,8 +2881,9 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
             const topBadge = document.getElementById('notification-badge');
 
             if (!data || data.length === 0) {
-                if(dashTbody) dashTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gray);">Brak nowych zapytań.</td></tr>';
-                if(bookTbody) bookTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gray);">Brak rezerwacji w systemie.</td></tr>';
+                const isEnEmpty = localStorage.getItem("partner_lang") === "en";
+                if(dashTbody) dashTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak nowych zapytań." data-en="No new requests.">${isEnEmpty ? "No new requests." : "Brak nowych zapytań."}</td></tr>`;
+                if(bookTbody) bookTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak rezerwacji w systemie." data-en="No bookings in the system.">${isEnEmpty ? "No bookings in the system." : "Brak rezerwacji w systemie."}</td></tr>`;
                 if(navBadge) navBadge.style.display = 'none';
                 if(topBadge) topBadge.style.display = 'none';
                 return;
@@ -2878,20 +2912,20 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 const isEnLang = localStorage.getItem("partner_lang") === "en";
 
                 if (booking.status === "cancelled" || booking.refund_status === "completed" || booking.status === "rejected") {
-                    statusHtml = `<div class="status-tile cancelled">🚫 ${isEnLang ? 'Cancelled' : 'Anulowana'}</div>`;
+                    statusHtml = `<div class="status-tile cancelled" data-pl="🚫 Anulowana" data-en="🚫 Cancelled">🚫 ${isEnLang ? 'Cancelled' : 'Anulowana'}</div>`;
                 }
                 else if (booking.status === "paid") {
-                    statusHtml = `<div class="status-tile confirmed">✅ ${isEnLang ? 'Confirmed' : 'Potwierdzona'}</div>`;
+                    statusHtml = `<div class="status-tile confirmed" data-pl="✅ Potwierdzona" data-en="✅ Confirmed">✅ ${isEnLang ? 'Confirmed' : 'Potwierdzona'}</div>`;
                 }
                 else if (["pending", "awaiting_payment"].includes(booking.status)) {
-                    statusHtml = `<div class="status-tile pending">⚡ ${isEnLang ? 'New request' : 'Nowe zapytanie'}</div>`;
+                    statusHtml = `<div class="status-tile pending" data-pl="⚡ Nowe zapytanie" data-en="⚡ New request">⚡ ${isEnLang ? 'New request' : 'Nowe zapytanie'}</div>`;
                 }
                
               else if (booking.status === "awaiting_payment") {
-                    statusHtml = `<div class="status-tile awaiting_payment">⏳ ${isEnLang ? 'Awaiting' : 'Oczekujący'}</div>`;
+                    statusHtml = `<div class="status-tile awaiting_payment" data-pl="⏳ Oczekuje płatności" data-en="⏳ Awaiting payment">⏳ ${isEnLang ? 'Awaiting payment' : 'Oczekuje płatności'}</div>`;
                 }
                 else if (booking.status === "payment_expired" || booking.status === "expired") {
-                    statusHtml = `<div class="status-tile payment_expired">⏰ ${isEnLang ? 'Expired' : 'Wygasła'}</div>`;
+                    statusHtml = `<div class="status-tile payment_expired" data-pl="⏰ Wygasła" data-en="⏰ Expired">⏰ ${isEnLang ? 'Expired' : 'Wygasła'}</div>`;
                 }
                 else {
                     statusHtml = `<div class="status-tile inactive">${booking.status}</div>`;
@@ -2904,10 +2938,10 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 if (booking.status === "pending") {
                     actions = `
                         <div style="display:flex;flex-direction:column;gap:8px;width:100%;min-width:120px;">
-                            <button class="action-btn-premium btn-confirm-premium" onclick="acceptBooking('${booking.id}', this)">
+                            <button class="action-btn-premium btn-confirm-premium" onclick="acceptBooking('${booking.id}', this)" data-pl="✅ AKCEPTUJ" data-en="✅ ACCEPT">
                                 ✅ ${isEnLang ? 'ACCEPT' : 'AKCEPTUJ'}
                             </button>
-                            <button class="action-btn-premium btn-reject-premium" onclick="rejectBooking('${booking.id}', this)">
+                            <button class="action-btn-premium btn-reject-premium" onclick="rejectBooking('${booking.id}', this)" data-pl="❌ ODRZUĆ" data-en="❌ REJECT">
                                 ❌ ${isEnLang ? 'REJECT' : 'ODRZUĆ'}
                             </button>
                         </div>
@@ -2915,28 +2949,28 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 }
                 else if (booking.status === "cancelled" || booking.refund_status === "completed" || booking.status === "rejected") {
                     actions = `
-                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;">
+                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;" data-pl="Zamknięta" data-en="Closed">
                             ${isEnLang ? 'Closed' : 'Zamknięta'}
                         </span>
                     `;
                 }
                 else if (booking.status === "awaiting_payment") {
                     actions = `
-                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;">
+                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;" data-pl="Czekamy na klienta" data-en="Waiting for client">
                             ${isEnLang ? 'Waiting for client' : 'Czekamy na klienta'}
                         </span>
                     `;
                 }
                 else if (booking.status === "paid") {
                     actions = `
-                        <span style="font-size:12px;color:var(--green);font-weight:700;padding:6px 0;">
+                        <span style="font-size:12px;color:var(--green);font-weight:700;padding:6px 0;" data-pl="🎉 Gotowe do odbioru" data-en="🎉 Ready for pickup">
                             🎉 ${isEnLang ? 'Ready for pickup' : 'Gotowe do odbioru'}
                         </span>
                     `;
                 }
                 else {
                     actions = `
-                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;">
+                        <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;" data-pl="Zamknięta" data-en="Closed">
                             ${isEnLang ? 'Closed' : 'Zamknięta'}
                         </span>
                     `;
@@ -2957,14 +2991,14 @@ const clientName = escapeHtmlValue(
 const ageValue = Number(booking.main_driver_age);
 
 const clientAge = !isNaN(ageValue) && ageValue > 0
-    ? `<span class="client-age">${ageValue} yo</span>`
+    ? `<span class="client-age" data-pl="${ageValue} lat" data-en="${ageValue} yo">${isEnLang ? `${ageValue} yo` : `${ageValue} lat`}</span>`
     : "";
                 // 🔥 Wyświetlanie DODATKOWEGO kierowcy
                 let extraDriverHtml = "";
                 if (booking.add_driver_name) {
                     extraDriverHtml = `
                         <div style="font-size: 11px; color: var(--gray); margin-top: 4px; font-weight: 600;">
-                            <span style="color: var(--blue);">+</span> ${escapeHtmlValue(booking.add_driver_name)} (${Number(booking.add_driver_age) || '?'} yo)
+                            <span style="color: var(--blue);">+</span> ${escapeHtmlValue(booking.add_driver_name)} (<span data-pl="${Number(booking.add_driver_age) || '?'} lat" data-en="${Number(booking.add_driver_age) || '?'} yo">${Number(booking.add_driver_age) || '?'} ${isEnLang ? 'yo' : 'lat'}</span>)
                         </div>
                     `;
                 }
@@ -2991,7 +3025,7 @@ if (booking.status === "paid") {
     // 🔒 PRZED OPŁACENIEM – ukryte
     contactDisplay = `
         <div style="font-size:11px; color:var(--gray); margin-top:4px; font-weight:600;">
-            🔒 Contact visible after confirmation
+            <span data-pl="🔒 Dane kontaktowe widoczne po opłaceniu" data-en="🔒 Contact details visible after payment">${isEnLang ? "🔒 Contact details visible after payment" : "🔒 Dane kontaktowe widoczne po opłaceniu"}</span>
         </div>
     `;
 
@@ -3003,8 +3037,8 @@ const dLoc = escapeHtmlValue(booking.return_location || booking.pickup_location 
 
 const locationDisplay = `
     <div style="font-size:12px; line-height:1.4;">
-        <span style="color:#73D700; font-weight:800;">O:</span> ${pLoc}<br>
-        <span style="color:#F97316; font-weight:800;">Z:</span> ${dLoc}
+        <span style="color:#73D700; font-weight:800;" data-pl="Odbiór:" data-en="Pickup:">${isEnLang ? "Pickup:" : "Odbiór:"}</span> ${pLoc}<br>
+        <span style="color:#F97316; font-weight:800;" data-pl="Zwrot:" data-en="Return:">${isEnLang ? "Return:" : "Zwrot:"}</span> ${dLoc}
     </div>
 `;
 
@@ -3069,7 +3103,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
     <tr class="clickable-row">
         <td>
             <div style="font-weight: 700;">
-            ${clientName} ${clientAge} <span class="badge-new">NEW</span>
+            ${clientName} ${clientAge} <span class="badge-new" data-pl="NOWE" data-en="NEW">${isEnLang ? "NEW" : "NOWE"}</span>
             </div>
             ${extraDriverHtml}
             ${contactDisplay}
@@ -3110,14 +3144,14 @@ if (!window.partnerTimerRunning) {
         const deadlineStr = el.getAttribute('data-deadline');
 
         if (!deadlineStr || deadlineStr === "null" || deadlineStr === "undefined") {
-            el.innerHTML = "⌛ Brak danych";
+            el.innerHTML = localStorage.getItem("partner_lang") === "en" ? "⌛ No data" : "⌛ Brak danych";
             return;
         }
 
         const deadline = new Date(deadlineStr).getTime();
 
         if (isNaN(deadline)) {
-            el.innerHTML = "⌛ Błąd";
+            el.innerHTML = localStorage.getItem("partner_lang") === "en" ? "⌛ Error" : "⌛ Błąd";
             return;
         }
 
@@ -3125,7 +3159,7 @@ if (!window.partnerTimerRunning) {
         const diff = deadline - now;
 
         if (diff <= 0) {
-            el.innerHTML = "⌛ Expired";
+            el.innerHTML = localStorage.getItem("partner_lang") === "en" ? "⌛ Expired" : "⌛ Wygasło";
             el.style.color = "var(--gray)";
             el.classList.remove("timer-urgent");
             return;
@@ -3199,19 +3233,20 @@ window.acceptBooking = async function(id, btnElement) {
 }
 
         window.rejectBooking = async function(id, btnElement) {
+            const isEn = localStorage.getItem("partner_lang") === "en";
             btnElement.disabled = true;
             btnElement.innerText = "...";
 
             const { error } = await db.rpc("partner_reject_booking", { p_booking_id: id });
 
             if (error) {
-                alert("Błąd: " + error.message);
+                alert((isEn ? "Error: " : "Błąd: ") + error.message);
                 btnElement.disabled = false;
-                btnElement.innerText = "Reject";
+                btnElement.innerText = isEn ? "Reject" : "Odrzuć";
                 return;
             }
 
-            window.showToast("Rezerwacja odrzucona.", "error");
+            window.showToast(isEn ? "Booking rejected." : "Rezerwacja odrzucona.", "error");
             await triggerBookingEmailWorker(id);
             await loadPartnerBookings();
             await loadDashboard();
@@ -3222,7 +3257,8 @@ window.acceptBooking = async function(id, btnElement) {
             const tbody = document.getElementById("fleet-list-tbody");
             if(!tbody) return;
 
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Ładowanie floty...</td></tr>';
+            const isEnFleet = localStorage.getItem("partner_lang") === "en";
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;" data-pl="Ładowanie floty..." data-en="Loading fleet...">${isEnFleet ? "Loading fleet..." : "Ładowanie floty..."}</td></tr>`;
 
             const { data: { session } } = await db.auth.getSession();
 
@@ -3240,14 +3276,14 @@ const { data, error } = await db
 
             if (error) {
                 console.error("Błąd ładowania floty:", error);
-                tbody.innerHTML = '<tr><td colspan="10" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="10" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${localStorage.getItem("partner_lang") === "en" ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = "";
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: var(--gray);">Brak pojazdów we flocie. Dodaj pierwsze auto!</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color: var(--gray);" data-pl="Brak pojazdów we flocie. Dodaj pierwsze auto!" data-en="No vehicles in the fleet. Add your first vehicle!">${localStorage.getItem("partner_lang") === "en" ? "No vehicles in the fleet. Add your first vehicle!" : "Brak pojazdów we flocie. Dodaj pierwsze auto!"}</td></tr>`;
                 return;
             }
 
@@ -3285,9 +3321,9 @@ const { data, error } = await db
                         </div>
                     </td>
                     <td style="font-weight: 700;">${safeCarName}</td>
-                    <td class="class-name"><span class="class-code">${safeCarCode}</span><span class="class-label">Class</span></td>
+                    <td class="class-name"><span class="class-code">${safeCarCode}</span><span class="class-label" data-pl="Klasa" data-en="Class">${isEn ? "Class" : "Klasa"}</span></td>
                     <td>${car.seats || 5}</td>
-                    <td>${car.transmission === 'A' ? 'Auto' : 'Manual'}</td>
+                    <td data-pl="${car.transmission === 'A' ? 'Automat' : 'Manualna'}" data-en="${car.transmission === 'A' ? 'Automatic' : 'Manual'}">${car.transmission === 'A' ? (isEn ? 'Automatic' : 'Automat') : (isEn ? 'Manual' : 'Manualna')}</td>
                     <td>${car.bags || 2}</td>
                     <td data-pl="${isUnlimited ? 'Bez limitu' : car.mileage_limit + ' km/dzień'}" data-en="${isUnlimited ? 'Unlimited' : car.mileage_limit + ' km/day'}">${mileageText}</td>
                     <td data-pl="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'Brak kaucji'}" data-en="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'No deposit'}">${depositText}</td>
@@ -3328,7 +3364,8 @@ const { data, error } = await db
             const tbody = document.getElementById("locations-table");
             if(!tbody) return;
 
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Ładowanie lokalizacji...</td></tr>';
+            const isEnLocations = localStorage.getItem("partner_lang") === "en";
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie lokalizacji..." data-en="Loading locations...">${isEnLocations ? "Loading locations..." : "Ładowanie lokalizacji..."}</td></tr>`;
 
             const { data: { session } } = await db.auth.getSession();
 
@@ -3346,32 +3383,35 @@ const { data, error } = await db
 
             if (error) {
                 console.error("Błąd ładowania lokalizacji:", error);
-                tbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Błąd pobierania danych.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${localStorage.getItem("partner_lang") === "en" ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = "";
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--gray);">Brak zdefiniowanych lokalizacji. Dodaj pierwszą!</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak zdefiniowanych lokalizacji. Dodaj pierwszą!" data-en="No locations defined. Add your first location!">${localStorage.getItem("partner_lang") === "en" ? "No locations defined. Add your first location!" : "Brak zdefiniowanych lokalizacji. Dodaj pierwszą!"}</td></tr>`;
                 return;
             }
 
             data.forEach(loc => {
                 const tr = document.createElement("tr");
-                const feeText = loc.extra_fee ? (loc.extra_fee_amount ? `${loc.extra_fee_amount} EUR` : "Indywidualna") : "Brak";
+                const isEn = localStorage.getItem("partner_lang") === "en";
+                const feeTextPl = loc.extra_fee ? (loc.extra_fee_amount ? `${loc.extra_fee_amount} EUR` : "Indywidualna") : "Brak";
+                const feeTextEn = loc.extra_fee ? (loc.extra_fee_amount ? `${loc.extra_fee_amount} EUR` : "Individual") : "None";
                 const statusClass = loc.active ? "active" : "inactive";
-                const statusText = loc.active ? "Aktywny" : "Nieaktywny";
+                const statusTextPl = loc.active ? "Aktywna" : "Nieaktywna";
+                const statusTextEn = loc.active ? "Active" : "Inactive";
 
                 tr.innerHTML = `
                     <td>${escapeHtmlValue(loc.location_name)}</td>
                     <td>${escapeHtmlValue(loc.country)}</td>
                     <td>${escapeHtmlValue(loc.region)}</td>
                     <td>${escapeHtmlValue(loc.type)}</td>
-                    <td>${escapeHtmlValue(feeText)}</td>
-                    <td><span class="status ${statusClass}">${statusText}</span></td>
+                    <td data-pl="${escapeHtmlValue(feeTextPl)}" data-en="${escapeHtmlValue(feeTextEn)}">${escapeHtmlValue(isEn ? feeTextEn : feeTextPl)}</td>
+                    <td><span class="status ${statusClass}" data-pl="${statusTextPl}" data-en="${statusTextEn}">${isEn ? statusTextEn : statusTextPl}</span></td>
                     <td>
-                        <span class="action-link reject" onclick="deleteLocation('${loc.id}')">Usuń</span>
+                        <span class="action-link reject" onclick="deleteLocation('${loc.id}')" data-pl="Usuń" data-en="Delete">${isEn ? "Delete" : "Usuń"}</span>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -3401,7 +3441,7 @@ const { data, error } = await db
                     .eq("user_id", session.user.id)
                     .single();
 
-                if (!partner) throw new Error("Nie znaleziono profilu partnera.");
+                if (!partner) throw new Error(isEn ? "Partner profile not found." : "Nie znaleziono profilu partnera.");
 
                 // 1. Zbieranie i normalizacja danych
                 const locationData = {
@@ -3465,7 +3505,7 @@ const { data, error } = await db
 
             } catch (err) {
                 console.error("Błąd zapisu lokalizacji:", err);
-                window.showToast("Błąd: " + err.message, "error");
+                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
             } finally {
                 btn.disabled = false;
                 btn.innerText = isEn ? "Save location" : "Zapisz lokalizację";
@@ -3473,7 +3513,8 @@ const { data, error } = await db
         }
 
         async function deleteLocation(id) {
-            if (!confirm("Czy na pewno chcesz usunąć tę lokalizację?")) return;
+            const isEn = localStorage.getItem("partner_lang") === "en";
+            if (!confirm(isEn ? "Delete this location?" : "Czy na pewno chcesz usunąć tę lokalizację?")) return;
 
             const { error } = await db
                 .from("partner_locations")
@@ -3481,9 +3522,9 @@ const { data, error } = await db
                 .eq("id", id);
 
             if (error) {
-                alert("Błąd usuwania: " + error.message);
+                alert((isEn ? "Deletion error: " : "Błąd usuwania: ") + error.message);
             } else {
-                window.showToast("Lokalizacja usunięta.", "success");
+                window.showToast(isEn ? "Location deleted." : "Lokalizacja usunięta.", "success");
                 await loadLocations();
             }
         }
@@ -3527,10 +3568,12 @@ const { data, error } = await db
     document.getElementById("dashboardApiProvider").innerText =
         partnerData.api_provider || "-";
 
-    document.getElementById("dashboardApiStatus").innerHTML =
-        partnerData.api_enabled
-            ? "🟢 Connected"
-            : "🔴 Not connected";
+    const apiStatus = document.getElementById("dashboardApiStatus");
+    const apiStatusPl = partnerData.api_enabled ? "🟢 Połączono" : "🔴 Brak połączenia";
+    const apiStatusEn = partnerData.api_enabled ? "🟢 Connected" : "🔴 Not connected";
+    apiStatus.setAttribute("data-pl", apiStatusPl);
+    apiStatus.setAttribute("data-en", apiStatusEn);
+    apiStatus.innerHTML = getPartnerLang() === "en" ? apiStatusEn : apiStatusPl;
 
 }
 
@@ -3644,13 +3687,13 @@ function toggleDriverHours() {
 
     // --- BRAMKARZ 1: Tylko PDF ---
     if (file.type !== "application/pdf") {
-        window.showToast("Błąd: Dozwolone są tylko pliki PDF!", "error");
+        window.showToast(localStorage.getItem("partner_lang") === "en" ? "Error: Only PDF files are allowed!" : "Błąd: Dozwolone są tylko pliki PDF!", "error");
         return;
     }
 
     // --- BRAMKARZ 2: Limit 5MB ---
     if (file.size > 5 * 1024 * 1024) {
-        window.showToast("Błąd: Plik jest za duży (max 5MB).", "error");
+        window.showToast(localStorage.getItem("partner_lang") === "en" ? "Error: The file is too large (max 5 MB)." : "Błąd: Plik jest za duży (maks. 5 MB).", "error");
         return;
     }
 
@@ -3690,7 +3733,7 @@ function toggleDriverHours() {
 
     const filePath = `${partnerId}/${type}.pdf`;
 
-    window.showToast("Wgrywanie pliku...", "success");
+    window.showToast(localStorage.getItem("partner_lang") === "en" ? "Uploading file..." : "Wgrywanie pliku...", "success");
 
     // upload
     const { error: uploadError } = await db.storage
@@ -3699,7 +3742,7 @@ function toggleDriverHours() {
 
     if (uploadError) {
         console.error(uploadError);
-        window.showToast("Błąd serwera podczas wgrywania.", "error");
+        window.showToast(localStorage.getItem("partner_lang") === "en" ? "Server error during upload." : "Błąd serwera podczas wgrywania.", "error");
         return;
     }
 
@@ -3721,7 +3764,7 @@ function toggleDriverHours() {
             .eq("user_id", partnerId);
     }
 
-    window.showToast("Dokument wgrany i zapisany pomyślnie!", "success");
+    window.showToast(localStorage.getItem("partner_lang") === "en" ? "Document uploaded and saved successfully!" : "Dokument wgrany i zapisany pomyślnie!", "success");
 
     await loadPartnerSettings(partnerId);
 }
@@ -3863,7 +3906,7 @@ function toggleDriverHours() {
                 setTimeout(() => location.reload(), 1500);
 
             } catch (err) {
-                window.showToast("Error: " + err.message, "error");
+                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
                 btn.disabled = false;
                 btn.innerText = isEn ? "Save Password" : "Zapisz hasło";
          }
@@ -3927,7 +3970,7 @@ function toggleDriverHours() {
                 
             } catch (err) {
                 console.error("Błąd dezaktywacji:", err);
-                window.showToast("Błąd: " + err.message, "error");
+                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
                 btn.disabled = false;
                 btn.innerText = isEn ? "Confirm deactivation" : "Potwierdź dezaktywację";
             }
@@ -4147,7 +4190,7 @@ async function uploadPartnerAvatar(file){
 
     if(error){
         console.error(error)
-        showToast("Upload error","error")
+        showToast(localStorage.getItem("partner_lang") === "en" ? "Upload error" : "Błąd przesyłania", "error")
         return
     }
 
@@ -4168,7 +4211,7 @@ async function uploadPartnerAvatar(file){
     document.getElementById("partnerAvatar").src =
         `${publicUrl}?t=${Date.now()}`
 
-    showToast("Avatar uploaded","success")
+    showToast(localStorage.getItem("partner_lang") === "en" ? "Avatar uploaded" : "Awatar przesłany", "success")
 }
 // --- FUNKCJA KOMPRESUJĄCA ZDJĘCIA (CANVAS) ---
 function compressImage(file, maxWidth = 1024, quality = 0.8) {
@@ -4285,11 +4328,8 @@ async function setupAutocomplete(inputId, dropdownId, category) {
             document.getElementById('guideModal').classList.add('active');
             
             // Wymuś odświeżenie tekstów w modalu (jeśli język się zmienił w międzyczasie)
-            const lang = localStorage.getItem("partner_lang") || "en";
             const guideModal = document.getElementById('guideModal');
-            guideModal.querySelectorAll("[data-pl]").forEach(el => {
-                if(el.dataset[lang]) el.innerHTML = el.dataset[lang];
-            });
+            applyPartnerLanguage(guideModal);
         };
 
         window.closeGuide = function() {
@@ -4321,10 +4361,18 @@ async function openSeasonalModal(carId, carName, basePrice) {
     currentSeasonalCarId = carId;
     const isEn = localStorage.getItem("partner_lang") === "en";
     
-    document.getElementById("seasonalModalTitle").innerText = isEn ? `Seasons: ${carName}` : `Sezony: ${carName}`;
-    document.getElementById("seasonalModalSub").innerText = isEn 
-        ? `Standard public price outside seasons: ${basePrice} ${currentPartnerCurrency}` 
-        : `Standardowa cena publiczna poza sezonem: ${basePrice} ${currentPartnerCurrency}`;
+    const seasonalTitle = document.getElementById("seasonalModalTitle");
+    const seasonalSub = document.getElementById("seasonalModalSub");
+    const titlePl = `Sezony: ${carName}`;
+    const titleEn = `Seasons: ${carName}`;
+    const subPl = `Standardowa cena publiczna poza sezonem: ${basePrice} ${currentPartnerCurrency}`;
+    const subEn = `Standard public price outside seasons: ${basePrice} ${currentPartnerCurrency}`;
+    seasonalTitle.setAttribute("data-pl", titlePl);
+    seasonalTitle.setAttribute("data-en", titleEn);
+    seasonalSub.setAttribute("data-pl", subPl);
+    seasonalSub.setAttribute("data-en", subEn);
+    seasonalTitle.innerText = isEn ? titleEn : titlePl;
+    seasonalSub.innerText = isEn ? subEn : subPl;
     
     document.getElementById("seasonPriceInput").value = ""; 
     document.getElementById("seasonalModal").classList.add("active");
@@ -4335,7 +4383,7 @@ async function openSeasonalModal(carId, carName, basePrice) {
 async function loadSeasonalPrices() {
     const tbody = document.getElementById("seasonal-table-body");
     const isEn = localStorage.getItem("partner_lang") === "en";
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">${isEn ? 'Loading...' : 'Ładowanie...'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" data-pl="Ładowanie..." data-en="Loading...">${isEn ? 'Loading...' : 'Ładowanie...'}</td></tr>`;
 
     try {
         const { data, error } = await db
@@ -4348,7 +4396,7 @@ async function loadSeasonalPrices() {
 
         tbody.innerHTML = "";
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--gray);">${isEn ? 'No seasonal prices set.' : 'Brak ustawionych cen sezonowych.'}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--gray);" data-pl="Brak ustawionych cen sezonowych." data-en="No seasonal prices set.">${isEn ? 'No seasonal prices set.' : 'Brak ustawionych cen sezonowych.'}</td></tr>`;
             return;
         }
 
@@ -4360,7 +4408,7 @@ async function loadSeasonalPrices() {
                 <td>${season.end_month}</td>
                 <td style="font-weight: 800; color: var(--green);">${season.public_price} ${currentPartnerCurrency}</td>
                 <td>
-                    <span class="action-link reject" onclick="deleteSeasonalPrice('${season.id}')">${isEn ? 'Delete' : 'Usuń'}</span>
+                    <span class="action-link reject" onclick="deleteSeasonalPrice('${season.id}')" data-pl="Usuń" data-en="Delete">${isEn ? 'Delete' : 'Usuń'}</span>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -4368,7 +4416,7 @@ async function loadSeasonalPrices() {
 
     } catch (err) {
         console.error("Error:", err);
-        tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">${isEn ? 'Data loading error.' : 'Błąd pobierania danych.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${isEn ? 'Data loading error.' : 'Błąd pobierania danych.'}</td></tr>`;
     }
 }
 
@@ -4650,7 +4698,7 @@ async function signAgreement() {
 
     // 🔒 2. Walidacja danych
     if (!partnerData || !partnerData.id) {
-        alert("Brak danych partnera. Odśwież stronę.");
+        alert(getPartnerLang() === "en" ? "Partner data is missing. Refresh the page." : "Brak danych partnera. Odśwież stronę.");
         return;
     }
 
@@ -4686,7 +4734,7 @@ async function signAgreement() {
         const rawContent = document.getElementById("ag-content").innerHTML;
 
         if (!rawContent || rawContent.length < 50) {
-            alert("Błąd: treść umowy nie została poprawnie załadowana.");
+            alert(getPartnerLang() === "en" ? "Error: the agreement content was not loaded correctly." : "Błąd: treść umowy nie została poprawnie załadowana.");
             btn.innerText = txt.btnDefault;
             btn.disabled = false;
             return;
@@ -4741,7 +4789,7 @@ async function signAgreement() {
     } catch (err) {
         console.error("SIGN ERROR:", err);
 
-        alert("Błąd / Error: " + err.message);
+        alert((getPartnerLang() === "en" ? "Error: " : "Błąd: ") + err.message);
 
         btn.innerText = txt.btnDefault;
         btn.disabled = false;
@@ -4767,7 +4815,7 @@ function showSignedAgreement() {
             document.getElementById("view-agreement-modal").style.display = "flex";
         } catch (e) {
             console.error("Błąd parsowania snapshotu", e);
-            alert("Nie można odczytać formatu umowy. Skontaktuj się z administratorem.");
+            alert(getPartnerLang() === "en" ? "The agreement format cannot be read. Contact the administrator." : "Nie można odczytać formatu umowy. Skontaktuj się z administratorem.");
         }
     } else {
         const isEn = localStorage.getItem("partner_lang") === "en";
