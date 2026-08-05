@@ -56,10 +56,38 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing?.status === "paid") {
-      console.log("⚠️ DUPLIKAT — już opłacone:", bookingId);
+      const { data: voucher } = await supabase
+        .from("vouchers")
+        .select("pdf_path")
+        .eq("booking_id", bookingId)
+        .maybeSingle();
+
+      if (!voucher?.pdf_path) {
+        const retryResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-voucher`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              "x-internal-secret": Deno.env.get("RIDE24_INTERNAL_SECRET") ?? ""
+            },
+            body: JSON.stringify({ booking_id: bookingId })
+          }
+        );
+
+        if (!retryResponse.ok) {
+          const retryError = await retryResponse.text();
+          console.error(`VOUCHER RETRY ERROR (${retryResponse.status}):`, retryError);
+          return new Response("Voucher retry failed", { status: 500 });
+        }
+
+        console.log("VOUCHER RETRY OK:", bookingId);
+      }
+
+      console.log("DUPLICATE - already paid:", bookingId);
       return new Response("OK - Already paid", { status: 200 });
     }
-
     // ==========================================
     // 🔥 1. UPDATE BOOKING
     // ==========================================
@@ -118,7 +146,8 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            "x-internal-secret": Deno.env.get("RIDE24_INTERNAL_SECRET") ?? ""
           },
           body: JSON.stringify({ booking_id: bookingId })
         }
