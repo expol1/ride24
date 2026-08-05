@@ -2473,15 +2473,15 @@ window.openApiConfiguration = async function(partnerId) {
         document.getElementById("api-endpoint-booking-status").value = endpoints.booking_status || "/bookings/{id}";
         document.getElementById("api-endpoint-booking-cancel").value = endpoints.booking_cancel || "/bookings/{id}/cancel";
         document.getElementById("api-timeout").value = Number(config.timeout_ms) || 10000;
-        document.getElementById("api-key").placeholder = config.api_key_configured ? "Skonfigurowany â€” puste = bez zmian" : "";
-        document.getElementById("api-secret").placeholder = config.api_secret_configured ? "Skonfigurowany â€” puste = bez zmian" : "";
-        document.getElementById("api-user").placeholder = config.username_configured ? "Skonfigurowany â€” puste = bez zmian" : "";
-        document.getElementById("api-password").placeholder = config.password_configured ? "Skonfigurowany â€” puste = bez zmian" : "";
-        document.getElementById("api-bearer").placeholder = config.bearer_token_configured ? "Skonfigurowany â€” puste = bez zmian" : "";
-        setApiStatus(`Status: ${config.api_status || "draft"}${config.api_last_error ? ` â€” ${config.api_last_error}` : ""}`, config.api_status === "active" ? true : null);
+        document.getElementById("api-key").placeholder = config.api_key_configured ? "Skonfigurowany \u2014 puste = bez zmian" : "";
+        document.getElementById("api-secret").placeholder = config.api_secret_configured ? "Skonfigurowany \u2014 puste = bez zmian" : "";
+        document.getElementById("api-user").placeholder = config.username_configured ? "Skonfigurowany \u2014 puste = bez zmian" : "";
+        document.getElementById("api-password").placeholder = config.password_configured ? "Skonfigurowany \u2014 puste = bez zmian" : "";
+        document.getElementById("api-bearer").placeholder = config.bearer_token_configured ? "Skonfigurowany \u2014 puste = bez zmian" : "";
+        setApiStatus(`Status: ${config.api_status || "draft"}${config.api_last_error ? ` \u2014 ${config.api_last_error}` : ""}`, config.api_status === "active" ? true : null);
         document.getElementById("apiPartnerModal").style.display = "flex";
     } catch (error) {
-        alert("BĹ‚Ä…d: " + error.message);
+        alert("B\u0142\u0105d: " + error.message);
     }
 };
 
@@ -2510,16 +2510,16 @@ window.saveApiConfiguration = async function(showAlert = true) {
         discount_percent: Number(document.getElementById("api-discount").value)
     });
     setApiStatus(result.message || "Konfiguracja zapisana", true);
-    if (showAlert) alert(result.message || "Konfiguracja API zostaĹ‚a zapisana.");
+    if (showAlert) alert(result.message || "Konfiguracja API zosta\u0142a zapisana.");
     return true;
 };
 
 window.testApiConnection = async function() {
     try {
-        setApiStatus("Zapisywanie i testowanie poĹ‚Ä…czenia...");
+        setApiStatus("Zapisywanie i testowanie po\u0142\u0105czenia...");
         await window.saveApiConfiguration(false);
         const result = await callApiPartnerAdmin({ action: "test", partner_id: window.currentApiPartnerId });
-        setApiStatus(result.message || "PoĹ‚Ä…czenie poprawne", true);
+        setApiStatus(result.message || "Po\u0142\u0105czenie poprawne", true);
     } catch (error) {
         setApiStatus(error.message, false);
     }
@@ -2527,7 +2527,7 @@ window.testApiConnection = async function() {
 
 window.syncApiPartner = async function() {
     try {
-        setApiStatus("Synchronizacja lokalizacji i grup pojazdĂłw...");
+        setApiStatus("Synchronizacja lokalizacji i grup pojazd\u00F3w...");
         const result = await callApiPartnerAdmin({ action: "sync", partner_id: window.currentApiPartnerId });
         const counts = result.result || {};
         setApiStatus(`Synchronizacja OK: ${counts.locations || 0} lokalizacji, ${counts.groups || 0} grup`, true);
@@ -2549,7 +2549,7 @@ window.activateApiPartner = async function() {
 window.deactivateApiPartner = async function() {
     try {
         const result = await callApiPartnerAdmin({ action: "deactivate", partner_id: window.currentApiPartnerId });
-        setApiStatus(result.message || "Partner API wyĹ‚Ä…czony", null);
+        setApiStatus(result.message || "Partner API wy\u0142\u0105czony", null);
         await loadPartnersData();
     } catch (error) {
         setApiStatus(error.message, false);
@@ -5342,7 +5342,7 @@ async function connectX() {
     <div style="background:white; width:100%; max-width:900px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height:95vh;">
         <div style="padding:20px 30px; background:#F8FAFC; border-bottom:1px solid #E2E8F0; display:flex; justify-content:space-between; align-items:center;">
             <h2 style="font-size:20px;font-weight:800;">Konfiguracja Partnera API</h2>
-            <span onclick="closeApiPartnerModal()" style="cursor:pointer;font-size:28px;">Ä‚â€”</span>
+            <span onclick="closeApiPartnerModal()" style="cursor:pointer;font-size:28px;">&times;</span>
         </div>
 
         <div id="apiPartnerContent" style="padding:30px; min-height:400px; overflow:auto;">
@@ -5374,7 +5374,7 @@ async function connectX() {
                     <label>Autoryzacja</label>
                     <select id="api-auth-type">
                         <option value="custom_headers">API Key / Secret</option>
-                        <option value="basic">Basic (login / hasÄąâ€šo)</option>
+                        <option value="basic">Basic (login / has&#322;o)</option>
                         <option value="bearer">Bearer token</option>
                     </select>
                 </div>
@@ -5411,11 +5411,11 @@ async function connectX() {
 
                 <div style="grid-column:span 2; border:1px solid #E2E8F0; border-radius:10px; padding:16px; background:#F8FAFC;">
                     <h3 style="margin:0 0 12px;">Endpointy API</h3>
-                    <p style="font-size:12px;color:#64748B;margin:0 0 14px;">Dla Ride24 Standard pozostaw wartoÄąâ€şci domyÄąâ€şlne. W Äąâ€şcieÄąÄ˝kach statusu i anulowania uÄąÄ˝yj znacznika <code>{id}</code>.</p>
+                    <p style="font-size:12px;color:#64748B;margin:0 0 14px;">Dla Ride24 Standard pozostaw warto&#347;ci domy&#347;lne. W &#347;cie&#380;kach statusu i anulowania u&#380;yj znacznika <code>{id}</code>.</p>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div class="form-group"><label>Test / health</label><input id="api-endpoint-health" value="/health"></div>
                         <div class="form-group"><label>Lokalizacje</label><input id="api-endpoint-locations" value="/locations"></div>
-                        <div class="form-group"><label>Grupy pojazdÄ‚Ĺ‚w</label><input id="api-endpoint-groups" value="/vehicle-groups"></div>
+                        <div class="form-group"><label>Grupy pojazd&#243;w</label><input id="api-endpoint-groups" value="/vehicle-groups"></div>
                         <div class="form-group"><label>Wyszukiwanie</label><input id="api-endpoint-search" value="/search"></div>
                         <div class="form-group"><label>Utworzenie rezerwacji</label><input id="api-endpoint-booking-create" value="/bookings"></div>
                         <div class="form-group"><label>Status rezerwacji</label><input id="api-endpoint-booking-status" value="/bookings/{id}"></div>
@@ -5425,19 +5425,19 @@ async function connectX() {
 
                 <div style="grid-column:span 2;">
                     <hr style="margin:25px 0;">
-                    <h3 style="margin-bottom:10px;">Status poÄąâ€šĂ„â€¦czenia</h3>
-                    <div id="api-test-status" style="padding:12px; border-radius:8px; background:#F3F4F6; font-weight:700;">Ă˘ĹˇĹž Nie sprawdzono</div>
+                    <h3 style="margin-bottom:10px;">Status po&#322;&#261;czenia</h3>
+                    <div id="api-test-status" style="padding:12px; border-radius:8px; background:#F3F4F6; font-weight:700;">&#9679; Nie sprawdzono</div>
                 </div>
             </div>
         </div>
 
         <div style="padding:20px 30px; background:#F8FAFC; border-top:1px solid #E2E8F0; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px;">
             <button onclick="closeApiPartnerModal()" class="btn-danger">Zamknij</button>
-            <button onclick="testApiConnection()" class="btn-warn">Ä‘Ĺşâ€ťĹš Test poÄąâ€šĂ„â€¦czenia</button>
-            <button onclick="syncApiPartner()" class="btn-warn">Ä‘Ĺşâ€ťâ€ž Synchronizuj lokalizacje i grupy</button>
-            <button onclick="activateApiPartner()" class="btn-primary">Ă˘Ĺ›â€¦ Aktywuj API</button>
-            <button onclick="deactivateApiPartner()" class="btn-danger">Ă˘ĹąÂ¸ WyÄąâ€šĂ„â€¦cz API</button>
-            <button onclick="saveApiConfiguration()" class="btn-primary">Ä‘Ĺşâ€™Äľ Zapisz konfiguracjĂ„â„˘</button>
+            <button onclick="testApiConnection()" class="btn-warn">Test po&#322;&#261;czenia</button>
+            <button onclick="syncApiPartner()" class="btn-warn">Synchronizuj lokalizacje i grupy</button>
+            <button onclick="activateApiPartner()" class="btn-primary">Aktywuj API</button>
+            <button onclick="deactivateApiPartner()" class="btn-danger">Wy&#322;&#261;cz API</button>
+            <button onclick="saveApiConfiguration()" class="btn-primary">Zapisz konfiguracj&#281;</button>
         </div>
     </div>
 </div>
