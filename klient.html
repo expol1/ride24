@@ -3110,6 +3110,50 @@ window.submitRefundAction = async function() {
 
 };
 // 🔥 AUTO REFUND HANDLER (NOWY)
+window.cancelWithoutRefund = async function(bookingId) {
+    if (window._refundProcessing) return;
+
+    const isEn = localStorage.getItem("client_lang") === "en";
+    const confirmed = window.confirm(
+        isEn
+            ? "Cancel this booking? No refund will be issued."
+            : "Anulowa\u0107 t\u0119 rezerwacj\u0119? Zwrot pieni\u0119dzy nie przys\u0142uguje."
+    );
+
+    if (!confirmed) return;
+
+    window._refundProcessing = true;
+
+    try {
+        const cancelResult = await callClientCancelBooking(
+            bookingId,
+            null,
+            isEn ? "Client cancellation without refund" : "Anulowanie przez klienta bez zwrotu"
+        );
+        const apiWarning = cancelResult?.api_sync_pending === true;
+
+        window.showToast(
+            isEn
+                ? `Booking cancelled. No refund is due.${apiWarning ? " Partner API synchronization is pending." : ""}`
+                : `Rezerwacja anulowana. Zwrot pieni\u0119dzy nie przys\u0142uguje.${apiWarning ? " Synchronizacja z API partnera oczekuje." : ""}`,
+            apiWarning ? "info" : "success"
+        );
+
+        if (typeof loadPayments === "function") await loadPayments();
+        if (typeof loadClientBookings === "function") await loadClientBookings();
+    } catch (err) {
+        console.error("Blad anulowania bez zwrotu:", err);
+        window.showToast(
+            isEn
+                ? (err?.message || "Could not cancel the booking.")
+                : (err?.message || "Nie uda\u0142o si\u0119 anulowa\u0107 rezerwacji."),
+            "error"
+        );
+    } finally {
+        window._refundProcessing = false;
+    }
+};
+
 window.handleRefundClick = function(bookingId, pickupDate, amountPln) {
     const percent = calculateRefundPercent(pickupDate);
 
@@ -3984,9 +4028,12 @@ window.loadPayments = async function() {
                         </button>
                     `;
                 } else {
-                    actions = `<div class="status-tile pending" style="opacity:0.7;" data-pl="Brak zwrotu" data-en="No refund">
-                        ${isEn ? 'No refund' : 'Brak zwrotu'}
-                    </div>`;
+                    actions = `
+                        <button class="action-btn-premium btn-cancel-soft" style="width: auto; padding: 6px 12px; min-width: auto;"
+                            onclick="cancelWithoutRefund('${b.id}')" data-pl="Anuluj" data-en="Cancel">
+                            ${isEn ? 'Cancel' : 'Anuluj'}
+                        </button>
+                    `;
                 }
             }
             if (!actions) actions = "-";
