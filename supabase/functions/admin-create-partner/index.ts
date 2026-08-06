@@ -32,7 +32,7 @@ type ParsedPartnerInput = {
   country: string | null;
   region: string | null;
   phone: string | null;
-  currency: "EUR" | "USD" | "PLN";
+  currency: string;
   discountPercent: number;
   providerType: "local" | "api";
   apiProvider: "ride24_standard_v1" | "custom" | null;
@@ -55,7 +55,7 @@ const MAX_API_URL_LENGTH = 2_000;
 const MAX_SECRET_LENGTH = 4_000;
 const MAX_HEADER_VALUE_LENGTH = 2_000;
 
-const CURRENCIES = new Set(["EUR", "USD", "PLN"]);
+const LOCAL_CURRENCIES = new Set(["EUR", "USD", "PLN"]);
 const PROVIDER_TYPES = new Set(["local", "api"]);
 const API_PROVIDERS = new Set(["ride24_standard_v1", "custom"]);
 const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer"]);
@@ -298,6 +298,18 @@ function cleanExtraHeaders(value: unknown): Record<string, string> {
   return output;
 }
 
+function cleanCurrency(value: unknown, providerType: "local" | "api"): string {
+  const raw = String(value || "EUR").trim().toUpperCase();
+  const currency = raw === "TRL" ? "TRY" : raw;
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new Error("Waluta musi mieć trzyznakowy kod ISO, np. EUR, TRY lub EGP");
+  }
+  if (providerType === "local" && !LOCAL_CURRENCIES.has(currency)) {
+    throw new Error("Partner lokalny może używać wyłącznie EUR, USD lub PLN");
+  }
+  return currency;
+}
+
 function parseInput(body: Record<string, unknown>): ParsedPartnerInput {
   const email = cleanEmail(body.email);
   const password = cleanTemporaryPassword(body.password);
@@ -314,10 +326,7 @@ function parseInput(body: Record<string, unknown>): ParsedPartnerInput {
   }
   const providerType = rawProviderType as "local" | "api";
 
-  const rawCurrency = String(body.currency || "EUR").toUpperCase();
-  const currency = CURRENCIES.has(rawCurrency)
-    ? rawCurrency as "EUR" | "USD" | "PLN"
-    : "EUR";
+  const currency = cleanCurrency(body.currency, providerType);
 
   let apiProvider: "ride24_standard_v1" | "custom" | null = null;
   let apiSettings: ParsedPartnerInput["apiSettings"] = null;

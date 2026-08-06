@@ -31,6 +31,7 @@ export type ApiVehicleGroup = {
   external_id: string;
   class_code: string;
   public_price: number;
+  currency?: string | null;
   example_model?: string | null;
   model?: string | null;
   transmission?: string | null;
@@ -858,6 +859,13 @@ export function normalizeGroups(payload: unknown): ApiVehicleGroup[] {
     const publicPrice = Number(
       item.public_price ?? item.price_per_day ?? item.price ?? 0,
     );
+    const rawCurrency = (boundedText(item.currency, 10) || "")
+      .trim()
+      .toUpperCase();
+    const normalizedCurrency = rawCurrency === "TRL" ? "TRY" : rawCurrency;
+    const currency = /^[A-Z]{3}$/.test(normalizedCurrency)
+      ? normalizedCurrency
+      : null;
 
     if (
       !externalId
@@ -878,6 +886,7 @@ export function normalizeGroups(payload: unknown): ApiVehicleGroup[] {
       external_id: externalId,
       class_code: classCode,
       public_price: publicPrice,
+      currency,
       example_model: boundedText(item.example_model ?? item.model, 250),
       model: boundedText(item.model ?? item.example_model, 250),
       transmission: boundedText(item.transmission, 50),

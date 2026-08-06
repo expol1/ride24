@@ -91,7 +91,6 @@ const RATE_LIMIT_REQUESTS = 12;
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const DEFAULT_TIME = "10:00";
 const PLATFORM_TERMS_VERSION = "v1.0";
-const ALLOWED_CURRENCIES = new Set(["EUR", "USD", "PLN"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -126,11 +125,14 @@ function finiteNumber(value: unknown): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
-function safeCurrency(value: unknown): "EUR" | "USD" | "PLN" {
-  const currency = String(value || "").trim().toUpperCase();
-  return ALLOWED_CURRENCIES.has(currency)
-    ? currency as "EUR" | "USD" | "PLN"
-    : "EUR";
+function normalizedCurrency(value: unknown): string | null {
+  const raw = String(value || "").trim().toUpperCase();
+  const currency = raw === "TRL" ? "TRY" : raw;
+  return /^[A-Z]{3}$/.test(currency) ? currency : null;
+}
+
+function safeCurrency(value: unknown): string {
+  return normalizedCurrency(value) || "EUR";
 }
 
 function parseIsoDate(
@@ -364,47 +366,54 @@ function normalizeQuote(value: unknown): QuoteRow | null {
   };
 }
 
-async function exchangeRate(currency: "EUR" | "USD" | "PLN"): Promise<number> {
+async function exchangeRate(currency: string): Promise<number> {
   if (currency === "PLN") return 1;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 6_000);
+  const tables = ["A", "B"] as const;
+  for (const table of tables) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6_000);
 
-  try {
-    const response = await fetch(
-      `https://api.nbp.pl/api/exchangerates/rates/A/${currency}/?format=json`,
-      {
-        headers: { Accept: "application/json" },
-        signal: controller.signal,
-        redirect: "error",
-      },
-    );
+    try {
+      const response = await fetch(
+        `https://api.nbp.pl/api/exchangerates/rates/${table}/${currency}/?format=json`,
+        {
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+          redirect: "error",
+        },
+      );
 
-    if (!response.ok) throw new Error("NBP_HTTP_ERROR");
+      if (response.status === 404) continue;
+      if (!response.ok) throw new Error("NBP_HTTP_ERROR");
 
-    const contentLength = Number(response.headers.get("content-length") || "0");
-    if (Number.isFinite(contentLength) && contentLength > 64_000) {
-      throw new Error("NBP_RESPONSE_TOO_LARGE");
+      const contentLength = Number(response.headers.get("content-length") || "0");
+      if (Number.isFinite(contentLength) && contentLength > 64_000) {
+        throw new Error("NBP_RESPONSE_TOO_LARGE");
+      }
+
+      const payload = await response.json();
+      const payloadRecord = firstRecord(payload);
+      const rates = Array.isArray(payloadRecord?.rates) ? payloadRecord.rates : [];
+      const rate = Number(firstRecord(rates)?.mid);
+
+      if (!Number.isFinite(rate) || rate <= 0) {
+        throw new Error("NBP_INVALID_RATE");
+      }
+      return rate;
+    } catch (error) {
+      if (table === "B") {
+        console.warn("create-booking-request NBP unavailable", currency);
+      }
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const payload = await response.json();
-    const rate = Number(
-      firstRecord(payload)?.rates
-        && Array.isArray(firstRecord(payload)?.rates)
-        ? firstRecord(firstRecord(payload)?.rates)?.mid
-        : null,
-    );
-
-    if (!Number.isFinite(rate) || rate <= 0) {
-      throw new Error("NBP_INVALID_RATE");
-    }
-    return rate;
-  } catch {
-    console.warn("create-booking-request NBP fallback", currency);
-    return currency === "USD" ? 4.0 : 4.5;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  // Zachowujemy dotychczasowy awaryjny fallback wyłącznie dla EUR/USD.
+  if (currency === "USD") return 4.0;
+  if (currency === "EUR") return 4.5;
+  throw new Error("Nie udało się pobrać kursu waluty partnera");
 }
 
 async function releaseQuoteClaim(
@@ -475,7 +484,7 @@ async function claimApiQuote(
     || margin === null
     || margin < 0
     || margin > 100
-    || !ALLOWED_CURRENCIES.has(quote.currency.toUpperCase())
+    || !normalizedCurrency(quote.currency)
   ) {
     return null;
   }

@@ -686,6 +686,20 @@
             + Dodaj Nowego Partnera
         </button>
     </div>
+    <div class="saas-card" style="margin-bottom:20px;">
+        <div class="saas-card-header">Globalna marża Ride24</div>
+        <div style="padding:20px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px;">
+            <div style="min-width:220px;">
+                <label for="global-margin-input" style="display:block; font-size:12px; font-weight:700; margin-bottom:6px;">Marża dla wszystkich partnerów (%)</label>
+                <input id="global-margin-input" type="number" min="0.01" max="100" step="0.01" value="25"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();saveGlobalMargin();}"
+                    style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+            </div>
+            <button id="global-margin-save" class="btn-primary" onclick="saveGlobalMargin()">Zapisz marżę</button>
+            <div id="global-margin-status" style="font-size:12px; color:#64748B; padding-bottom:10px;">Ładowanie ustawienia...</div>
+        </div>
+        <div style="padding:0 20px 18px; font-size:12px; color:#64748B;">Zmiana obowiązuje nowe wyszukiwania i rezerwacje lokalne oraz API. Istniejące rezerwacje i vouchery pozostają bez zmian.</div>
+    </div>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -1897,6 +1911,7 @@ function closePromotionModal() {
             
             loadRadarData();
            
+            loadGlobalMargin();
             loadPartnersData();
             loadDeletionRequests();
             loadMessages();
@@ -2106,6 +2121,53 @@ ${statusMap[b.status] || b.status}
 
        // --- ZARZĄDZANIE PARTNERAMI (POPRAWIONE) ---
 
+async function loadGlobalMargin() {
+    const input = document.getElementById("global-margin-input");
+    const status = document.getElementById("global-margin-status");
+    if (!input || !status) return;
+
+    const { data, error } = await db.rpc("get_global_platform_margin");
+    const margin = Number(data);
+    if (error || !Number.isFinite(margin)) {
+        status.textContent = "Nie udało się odczytać marży.";
+        status.style.color = "#B91C1C";
+        return;
+    }
+    input.value = String(margin);
+    status.textContent = `Aktywna marża: ${margin}%`;
+    status.style.color = "#047857";
+}
+
+window.saveGlobalMargin = async function() {
+    const input = document.getElementById("global-margin-input");
+    const status = document.getElementById("global-margin-status");
+    const button = document.getElementById("global-margin-save");
+    const margin = Number(input?.value);
+
+    if (!Number.isFinite(margin) || margin <= 0 || margin > 100) {
+        alert("Marża musi być większa od 0 i nie większa niż 100%.");
+        return;
+    }
+
+    button.disabled = true;
+    status.textContent = "Zapisywanie...";
+    try {
+        const { data, error } = await db.rpc("admin_set_global_platform_margin", { p_margin: margin });
+        if (error) throw error;
+        const saved = Number(data?.global_margin_percent ?? margin);
+        input.value = String(saved);
+        status.textContent = `Aktywna marża: ${saved}%`;
+        status.style.color = "#047857";
+        alert(`Globalna marża Ride24 została ustawiona na ${saved}%.`);
+    } catch (error) {
+        status.textContent = "Błąd zapisu marży.";
+        status.style.color = "#B91C1C";
+        alert("Błąd: " + (error.message || "Nie udało się zapisać marży"));
+    } finally {
+        button.disabled = false;
+    }
+};
+
 async function loadPartnersData() {
     const { data, error } = await db
     .from("partners")
@@ -2290,6 +2352,7 @@ async function forceCancel(bookingId) {
 window.openAddPartnerModal = () => {
     document.getElementById("addPartnerModal").style.display = "flex";
     generatePass(); // Generuj hasło na start
+    togglePartnerType();
 };
 
 window.closeAddPartnerModal = () => {
@@ -2306,6 +2369,16 @@ window.processAddPartner = async function() {
     const btn = document.getElementById("savePartnerBtn");
 
     const providerType = document.getElementById("new-p-provider-type").value;
+    const rawCurrency = document.getElementById("new-p-currency").value.trim().toUpperCase();
+    const currency = rawCurrency === "TRL" ? "TRY" : rawCurrency;
+    if (!/^[A-Z]{3}$/.test(currency)) {
+        alert("Podaj trzyznakowy kod waluty, np. EUR, TRY lub EGP.");
+        return;
+    }
+    if (providerType === "local" && !["EUR", "USD", "PLN"].includes(currency)) {
+        alert("Partner lokalny może używać wyłącznie EUR, USD lub PLN.");
+        return;
+    }
 
 const data = {
     email: document.getElementById("new-p-email").value.trim(),
@@ -2316,7 +2389,7 @@ const data = {
     country: document.getElementById("new-p-country").value.trim(),
     region: document.getElementById("new-p-region").value.trim(),
     phone: document.getElementById("new-p-phone").value.trim(),
-    currency: document.getElementById("new-p-currency").value,
+    currency,
     discount_percent: parseFloat(document.getElementById("new-p-discount").value) || 15,
 
     // ===== NOWE POLA =====
@@ -2424,17 +2497,19 @@ document.getElementById("new-p-rep-surname").value = "";
 };
 
 window.togglePartnerType = function () {
-
     const type = document.getElementById("new-p-provider-type").value;
-
     const apiBox = document.getElementById("api-config-box");
+    const currencyInput = document.getElementById("new-p-currency");
+    const currencyHelp = document.getElementById("new-p-currency-help");
 
+    apiBox.style.display = type === "api" ? "block" : "none";
     if (type === "api") {
-        apiBox.style.display = "block";
+        currencyHelp.textContent = "Waluta operacyjna cen zwracanych przez API, np. TRY, EGP, IDR.";
     } else {
-        apiBox.style.display = "none";
+        currencyHelp.textContent = "Partner lokalny: EUR, USD lub PLN.";
+        const current = String(currencyInput.value || "EUR").toUpperCase();
+        if (!["EUR", "USD", "PLN"].includes(current)) currencyInput.value = "EUR";
     }
-
 };
 
 async function callApiPartnerAdmin(payload) {
@@ -2459,6 +2534,7 @@ window.openApiConfiguration = async function(partnerId) {
         document.getElementById("api-auth-type").value = config.auth_type || "custom_headers";
         document.getElementById("api-url").value = config.api_url || "";
         document.getElementById("api-discount").value = Number.isFinite(Number(config.discount_percent)) ? Number(config.discount_percent) : 15;
+        document.getElementById("api-currency").value = String(config.currency || "EUR").toUpperCase();
         document.getElementById("api-key").value = "";
         document.getElementById("api-secret").value = "";
         document.getElementById("api-user").value = "";
@@ -2486,6 +2562,11 @@ window.openApiConfiguration = async function(partnerId) {
 };
 
 window.saveApiConfiguration = async function(showAlert = true) {
+    const rawCurrency = document.getElementById("api-currency").value.trim().toUpperCase();
+    const currency = rawCurrency === "TRL" ? "TRY" : rawCurrency;
+    if (!/^[A-Z]{3}$/.test(currency)) {
+        throw new Error("Podaj trzyznakowy kod waluty operacyjnej, np. TRY lub EGP.");
+    }
     const result = await callApiPartnerAdmin({
         action: "save",
         partner_id: window.currentApiPartnerId,
@@ -2507,7 +2588,8 @@ window.saveApiConfiguration = async function(showAlert = true) {
             booking_status: document.getElementById("api-endpoint-booking-status").value.trim(),
             booking_cancel: document.getElementById("api-endpoint-booking-cancel").value.trim()
         },
-        discount_percent: Number(document.getElementById("api-discount").value)
+        discount_percent: Number(document.getElementById("api-discount").value),
+        currency
     });
     setApiStatus(result.message || "Konfiguracja zapisana", true);
     if (showAlert) alert(result.message || "Konfiguracja API zosta\u0142a zapisana.");
@@ -5250,12 +5332,15 @@ async function connectX() {
 </div>
 
 <div class="form-group">
-    <label style="display:block; font-size:12px; font-weight:700; margin-bottom:5px;">Waluta Rozliczeń</label>
-    <select id="new-p-currency" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-        <option value="EUR">EUR (€)</option>
-        <option value="USD">USD ($)</option>
-        <option value="PLN">PLN (zł)</option>
-    </select>
+    <label style="display:block; font-size:12px; font-weight:700; margin-bottom:5px;">Waluta rozliczeń / operacyjna</label>
+    <input id="new-p-currency" list="ride24-currency-codes" value="EUR" maxlength="3" autocomplete="off"
+        style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; text-transform:uppercase;">
+    <datalist id="ride24-currency-codes">
+        <option value="EUR"><option value="USD"><option value="PLN"><option value="TRY">
+        <option value="EGP"><option value="IDR"><option value="THB"><option value="AED">
+        <option value="MAD"><option value="MXN"><option value="BRL"><option value="GBP">
+    </datalist>
+    <div id="new-p-currency-help" style="font-size:11px; color:#64748B; margin-top:5px;">Partner lokalny: EUR, USD lub PLN.</div>
 </div>
 
 <div class="form-group">
@@ -5355,6 +5440,12 @@ async function connectX() {
                 <div class="form-group">
                     <label>Rabat partnera dla Ride24 (%)</label>
                     <input id="api-discount" type="number" min="0" max="50" step="0.01" value="15">
+                </div>
+
+                <div class="form-group">
+                    <label>Waluta operacyjna API (ISO)</label>
+                    <input id="api-currency" list="ride24-currency-codes" maxlength="3" value="EUR" style="text-transform:uppercase;" placeholder="np. TRY lub EGP">
+                    <div style="font-size:11px;color:#64748B;margin-top:5px;">Musi odpowiadać walucie cen zwracanych przez system partnera.</div>
                 </div>
 
                 <div class="form-group">

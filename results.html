@@ -346,28 +346,33 @@ function closeRegSuccess() {
         document.body.style.overflow = "auto";
     }
 }
-        // 🔥 POBIERANIE KURSU WALUTY (NBP)
+        // Kursy służą do przeliczenia prowizji na PLN i wyłącznie wewnętrznego sortowania ofert.
+const exchangeRateCache = new Map([["PLN", 1]]);
 async function getExchangeRate(currency) {
-    try {
-        if (currency === "EUR") {
-            const res = await fetch("https://api.nbp.pl/api/exchangerates/rates/A/EUR/?format=json");
+    const normalized = String(currency || "EUR").trim().toUpperCase() === "TRL"
+        ? "TRY"
+        : String(currency || "EUR").trim().toUpperCase();
+    if (exchangeRateCache.has(normalized)) return exchangeRateCache.get(normalized);
+
+    for (const table of ["A", "B"]) {
+        try {
+            const res = await fetch(`https://api.nbp.pl/api/exchangerates/rates/${table}/${normalized}/?format=json`);
+            if (res.status === 404) continue;
+            if (!res.ok) throw new Error(`NBP ${res.status}`);
             const data = await res.json();
-            return data.rates[0].mid;
+            const rate = Number(data?.rates?.[0]?.mid);
+            if (Number.isFinite(rate) && rate > 0) {
+                exchangeRateCache.set(normalized, rate);
+                return rate;
+            }
+        } catch (err) {
+            console.error("Błąd pobierania kursu:", normalized, table, err);
         }
-
-        if (currency === "USD") {
-            const res = await fetch("https://api.nbp.pl/api/exchangerates/rates/A/USD/?format=json");
-            const data = await res.json();
-            return data.rates[0].mid;
-        }
-
-        // fallback
-        return 4.3;
-
-    } catch (err) {
-        console.error("❌ Błąd pobierania kursu:", err);
-        return 4.3;
     }
+
+    if (normalized === "USD") { exchangeRateCache.set(normalized, 4.0); return 4.0; }
+    if (normalized === "EUR") { exchangeRateCache.set(normalized, 4.5); return 4.5; }
+    return null;
 }
 
         const classNames = { 
@@ -463,8 +468,13 @@ async function getExchangeRate(currency) {
                 const start = new Date(filters.pickup_date);
                 const end = new Date(filters.drop_date);
                 const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+                const { data: marginData, error: marginError } = await db.rpc("get_global_platform_margin");
+                const parsedGlobalMargin = Number(marginData);
+                const globalMarginPercent = !marginError && Number.isFinite(parsedGlobalMargin)
+                    && parsedGlobalMargin > 0 && parsedGlobalMargin <= 100
+                    ? parsedGlobalMargin
+                    : 25;
 
-                
                 // 1. BUDOWANIE ZAPYTANIA Z UWZGLĘDNIENIEM MIAST, REGIONÓW I SEZONÓW
 let query = db
     .from('car_classes')
@@ -577,7 +587,7 @@ let query = db
                     .filter(car => (car.partners?.provider_type || "local") !== "api");
 
                 // Partnerzy API zwracają te same grupy pojazdów i przechodzą przez
-                // ten sam mechanizm rabatu partnera oraz marży Ride24 25%.
+                // ten sam mechanizm rabatu partnera oraz globalnej marży Ride24.
                 try {
                     const apiResponse = await fetch(supabaseUrl + "/functions/v1/search-api", {
                         method: "POST",
@@ -621,6 +631,11 @@ let query = db
                     timestamp: new Date().toISOString()
                 });
 
+                // Do rankingu przeliczamy ceny wyłącznie wewnętrznie na PLN.
+                // Klient nadal widzi oryginalną walutę partnera.
+                const resultCurrencies = [...new Set(cars.map(car => String(car.partners?.currency || "EUR").toUpperCase()))];
+                await Promise.all(resultCurrencies.map(code => getExchangeRate(code)));
+
                 // --- 💰 KROK 1: RANKING (Sortowanie sezonowe) ---
                 cars.sort((a, b) => {
                     // 💎 VIP z kierowcą nadal na górze
@@ -648,16 +663,21 @@ let query = db
                         }
 
                         const discountPerc = Number(car.partner_discount_percent ?? 10);
-                        const marginPerc = Number(car.platform_margin_percent ?? 25);
+                        const marginPerc = Number(car.platform_margin_percent ?? globalMarginPercent);
 
                         const partnerNet = publicPrice * (1 - (discountPerc / 100));
                         return partnerNet * (1 + (marginPerc / 100));
                     }
 
-                    const priceA = getSeasonPrice(a) * days;
-                    const priceB = getSeasonPrice(b) * days;
+                    const currencyA = String(a.partners?.currency || "EUR").toUpperCase();
+                    const currencyB = String(b.partners?.currency || "EUR").toUpperCase();
+                    const rateA = exchangeRateCache.get(currencyA);
+                    const rateB = exchangeRateCache.get(currencyB);
+                    const priceA = Number.isFinite(rateA) ? getSeasonPrice(a) * days * rateA : Number.POSITIVE_INFINITY;
+                    const priceB = Number.isFinite(rateB) ? getSeasonPrice(b) * days * rateB : Number.POSITIVE_INFINITY;
 
-                    // 🔥 OD NAJTAŃSZYCH DO NAJDROŻSZYCH
+                    // OD NAJTAŃSZYCH DO NAJDROŻSZYCH po porównywalnej wartości PLN
+                    if (!Number.isFinite(priceA) && !Number.isFinite(priceB)) return 0;
                     return priceA - priceB;
                 });
 
@@ -762,7 +782,7 @@ if (activeSeason) {
 }
 // 4. Pobieramy prowizje z Twoimi bezpiecznymi fallbackami
 const discountPerc = Number(car.partner_discount_percent ?? 10);
-const marginPerc = Number(car.platform_margin_percent ?? 25);
+const marginPerc = Number(car.platform_margin_percent ?? globalMarginPercent);
 
 // 5. OBLICZENIA KOŃCOWE
 // Netto, które płacisz partnerowi (Cena publiczna - Twój rabat)
@@ -933,7 +953,7 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 <div class="car-price-box">
     <div class="price-info">${lang === 'pl' ? 'Łącznie' : 'Total'} ${labels.daysInfo}</div>
     <div class="price-total">${finalTotal} <span>${safeCurrency}</span></div>
-    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}')">
+    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc})">
         ${labels.bookBtn}
     </button>
 </div>
@@ -973,7 +993,7 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
        // --- INTELIGENTNA REZERWACJA (UPROSZCZONA I BEZPIECZNA) ---
         let authMode = "login";
 
-        async function handleBooking(carId, priceTotal, currency, btnElement, apiQuoteId = "") {
+        async function handleBooking(carId, priceTotal, currency, btnElement, apiQuoteId = "", marginPercent = 25) {
             const db = window.supabaseClient;
             
             // 🔥 1. ZAPISUJEMY KONTEKST OD RAZU PRZED CZYMKOLWIEK (Kluczowa poprawka)
@@ -986,20 +1006,22 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 // 🔥 CENA PARTNERA (to co masz z floty)
 const basePrice = Number(priceTotal) || 0;
 
-// 👉 Twoja marża 25%
-const commission = basePrice * 0.25;
+// Globalna marża Ride24 zapisana przy wybranej ofercie
+const safeMarginPercent = Number.isFinite(Number(marginPercent)) ? Number(marginPercent) : 25;
+const commission = basePrice * (safeMarginPercent / 100);
 
 // 👉 CENA DLA KLIENTA (informacyjna)
 const finalPrice = basePrice + commission;
 
 // 🔥 LIVE KURS (NBP)
-let rate = 4.3;
-const liveRate = await getExchangeRate(currency);
-
-if (liveRate) {
-    rate = liveRate;
+const rate = await getExchangeRate(currency);
+if (!Number.isFinite(rate) || rate <= 0) {
+    alert((localStorage.getItem("lang") || "pl") === "pl"
+        ? "Nie udało się pobrać kursu waluty. Spróbuj ponownie."
+        : "The currency exchange rate could not be loaded. Please try again.");
+    return;
 }
-console.log("📡 LIVE RATE:", rate);
+console.log("LIVE RATE:", rate);
 
 // 👉 PLN (Twoja prowizja)
 const commissionPLN = Number((commission * rate).toFixed(2));
