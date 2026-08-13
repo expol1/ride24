@@ -869,6 +869,273 @@ src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"
 async>
 </script>
 <!-- End TrustBox script -->
+
+<style id="r24-android-panel-styles">
+/* =========================================================
+   RIDE24 ANDROID PROMO — UX PREMIUM / BRAND BLUE + GREEN
+   Brand: blue #2563EB / dark blue #1E3A8A / green #97D700
+   ========================================================= */
+.r24-app-promo-banner {
+    position: relative;
+    overflow: hidden;
+    display: none;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 22px;
+    padding: 17px 18px 17px 21px;
+    border: 1px solid #BFDBFE;
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at 96% 15%, rgba(151,215,0,.13), transparent 29%),
+        linear-gradient(135deg, #FFFFFF 0%, #F8FBFF 100%);
+    box-shadow: 0 10px 28px rgba(30,58,138,.08);
+}
+.r24-app-promo-banner::before {
+    content:"";
+    position:absolute;
+    left:0;
+    top:11px;
+    bottom:11px;
+    width:4px;
+    border-radius:0 99px 99px 0;
+    background:#97D700;
+}
+.r24-app-promo-banner.show { display: grid; }
+.r24-app-promo-icon {
+    position:relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #DBEAFE;
+    background: #EFF6FF;
+    color:#1E3A8A;
+    font-size: 24px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.7);
+}
+.r24-app-promo-icon::after {
+    content:"";
+    position:absolute;
+    right:-2px;
+    bottom:-2px;
+    width:12px;
+    height:12px;
+    border:3px solid #FFFFFF;
+    border-radius:50%;
+    background:#97D700;
+}
+.r24-app-promo-copy strong {
+    display: block;
+    color: #1E3A8A;
+    font-size: 15px;
+    font-weight: 900;
+    line-height: 1.25;
+    margin-bottom: 4px;
+}
+.r24-app-promo-copy span {
+    display: block;
+    max-width: 720px;
+    color: #64748B;
+    font-size: 12px;
+    line-height: 1.48;
+}
+.r24-app-promo-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.r24-app-play-btn {
+    min-height: 39px;
+    border: 1px solid rgba(15,23,42,.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: #97D700;
+    color: #0F172A;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 6px 16px rgba(92,132,0,.18);
+    transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.r24-app-play-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(.97);
+    box-shadow: 0 9px 20px rgba(92,132,0,.22);
+}
+.r24-app-dismiss {
+    width: 34px;
+    height: 34px;
+    display:grid;
+    place-items:center;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #94A3B8;
+    font-size: 20px;
+    cursor: pointer;
+}
+.r24-app-dismiss:hover { background:#EFF6FF; color:#1E3A8A; }
+.r24-app-play-btn:focus-visible,
+.r24-app-dismiss:focus-visible,
+.r24-app-big-play:focus-visible {
+    outline:3px solid rgba(37,99,235,.25);
+    outline-offset:3px;
+}
+
+.r24-app-view-card {
+    position:relative;
+    overflow:hidden;
+    max-width: 880px;
+    padding: 32px;
+    border: 1px solid #BFDBFE;
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 96% 8%, rgba(151,215,0,.15), transparent 28%),
+        radial-gradient(circle at 5% 96%, rgba(37,99,235,.07), transparent 31%),
+        #FFFFFF;
+    box-shadow: 0 14px 36px rgba(30,58,138,.09);
+}
+.r24-app-view-card::before {
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:4px;
+    background:linear-gradient(90deg,#2563EB 0%,#2563EB 68%,#97D700 68%,#97D700 100%);
+}
+.r24-app-view-head {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+}
+.r24-app-view-icon {
+    position:relative;
+    width: 60px;
+    height: 60px;
+    flex: 0 0 60px;
+    border: 1px solid #BFDBFE;
+    border-radius: 17px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(145deg,#EFF6FF,#FFFFFF);
+    color:#1E3A8A;
+    font-size: 30px;
+    box-shadow: 0 8px 18px rgba(37,99,235,.08);
+}
+.r24-app-view-icon::after {
+    content:"";
+    position:absolute;
+    right:-3px;
+    bottom:-3px;
+    width:14px;
+    height:14px;
+    border:3px solid #FFFFFF;
+    border-radius:50%;
+    background:#97D700;
+}
+.r24-app-view-card h2 {
+    margin:0 0 8px;
+    color:#1E3A8A;
+    font-size:25px;
+    line-height:1.18;
+    letter-spacing:-.02em;
+}
+.r24-app-view-card p { margin:0; color:#64748B; line-height:1.65; font-size:14px; }
+.r24-app-feature-grid {
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap:10px;
+    margin:24px 0 22px;
+}
+.r24-app-feature {
+    position:relative;
+    padding:13px 14px 13px 17px;
+    border:1px solid #DBEAFE;
+    border-radius:12px;
+    background:rgba(239,246,255,.66);
+    color:#1E3A8A;
+    font-size:12px;
+    font-weight:800;
+    line-height:1.4;
+}
+.r24-app-feature::before {
+    content:"";
+    position:absolute;
+    left:0;
+    top:12px;
+    bottom:12px;
+    width:3px;
+    border-radius:0 99px 99px 0;
+    background:#97D700;
+}
+.r24-app-big-play {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    min-height:45px;
+    border:1px solid rgba(15,23,42,.08);
+    border-radius:12px;
+    padding:12px 18px;
+    background:#97D700;
+    color:#0F172A;
+    font-size:13px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow:0 8px 20px rgba(92,132,0,.20);
+    transition:transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.r24-app-big-play:hover {
+    transform:translateY(-1px);
+    filter:brightness(.97);
+    box-shadow:0 11px 24px rgba(92,132,0,.24);
+}
+.r24-app-small-note {
+    margin-top:10px !important;
+    font-size:11px !important;
+    color:#64748B !important;
+    font-weight:700;
+}
+.r24-app-nav-short { display:none; }
+.r24-app-new-badge {
+    position:absolute;
+    top:7px;
+    right:8px;
+    margin-left:auto;
+    padding:3px 7px;
+    border:1px solid rgba(92,132,0,.16);
+    border-radius:999px;
+    background:#97D700;
+    color:#0F172A;
+    font-size:8px;
+    font-weight:900;
+    letter-spacing:.055em;
+    box-shadow:0 3px 8px rgba(92,132,0,.12);
+}
+@media (prefers-reduced-motion: reduce) {
+    .r24-app-play-btn,.r24-app-big-play { transition:none; }
+}
+@media (max-width: 760px) {
+    .r24-app-nav-full { display:none !important; }
+    .r24-app-nav-short { display:block !important; }
+    .nav-item .r24-app-new-badge { top:2px; right:calc(50% - 28px); padding:2px 4px; font-size:7px; }
+    .r24-app-promo-banner { grid-template-columns:auto minmax(0,1fr); padding:15px 14px 15px 18px; gap:12px; }
+    .r24-app-promo-actions { grid-column:1 / -1; width:100%; padding-left:0; }
+    .r24-app-play-btn { flex:1; min-height:42px; }
+    .r24-app-dismiss { width:38px; height:38px; }
+    .r24-app-feature-grid { grid-template-columns:1fr; margin:20px 0; }
+    .r24-app-view-card { padding:25px 18px 22px; border-radius:17px; }
+    .r24-app-view-head { gap:12px; }
+    .r24-app-view-card h2 { font-size:21px; }
+    .r24-app-view-icon { width:50px; height:50px; flex-basis:50px; font-size:25px; border-radius:14px; }
+    .r24-app-big-play { width:100%; min-height:47px; }
+}
+</style>
+
 </head>
 <body>
 
@@ -922,6 +1189,15 @@ async>
                     </span>
                     <span class="nav-text" data-pl="Ustawienia" data-en="Settings">Settings</span>
                 </div>
+            </div>
+
+            <div class="nav-item" onclick="switchTab('android')" id="nav-android" style="display:none;">
+                <div class="nav-item-inner">
+                    <span class="nav-icon">📱</span>
+                    <span class="nav-text r24-app-nav-full" data-pl="Ride24 na Androida" data-en="Ride24 for Android">Ride24 na Androida</span>
+                    <span class="nav-text r24-app-nav-short" data-pl="Android" data-en="Android">Android</span>
+                </div>
+                <span class="r24-app-new-badge nav-text" id="partnerAndroidNewBadge" data-pl="NOWOŚĆ" data-en="NEW">NOWOŚĆ</span>
             </div>
             <div class="nav-item" onclick="showReviewModal()">
     <div class="nav-item-inner">
@@ -985,6 +1261,19 @@ async>
             <div id="view-dashboard" class="view-section active">
                 <div class="page-header">
                     <h1 class="page-title" data-pl="Pulpit" data-en="Dashboard">Dashboard</h1>
+                </div>
+
+
+                <div class="r24-app-promo-banner" id="partnerAndroidPromoBanner">
+                    <div class="r24-app-promo-icon">📱</div>
+                    <div class="r24-app-promo-copy">
+                        <strong data-pl="Twoje konto Ride24 jest gotowe — obsługuj rezerwacje także z telefonu" data-en="Your Ride24 account is ready — manage bookings from your phone too">Twoje konto Ride24 jest gotowe — obsługuj rezerwacje także z telefonu</strong>
+                        <span data-pl="Reaguj na nowe rezerwacje i sprawdzaj ich szczegóły w aplikacji Ride24 Partner na Androida." data-en="Respond to new bookings and check their details in the Ride24 Partner app for Android.">Reaguj na nowe rezerwacje i sprawdzaj ich szczegóły w aplikacji Ride24 Partner na Androida.</span>
+                    </div>
+                    <div class="r24-app-promo-actions">
+                        <button type="button" class="r24-app-play-btn" onclick="window.openPartnerAndroidPlay('dashboard_banner')" data-pl="Pobierz z Google Play" data-en="Get it on Google Play">Pobierz z Google Play</button>
+                        <button type="button" class="r24-app-dismiss" onclick="window.dismissPartnerAndroidPromo()" aria-label="Close">×</button>
+                    </div>
                 </div>
 
                 <div id="apiDashboardCard"
@@ -1106,6 +1395,33 @@ async>
                         </thead>
                         <tbody id="dashboard-requests-tbody"></tbody>
                     </table>
+                </div>
+            </div>
+
+
+            <div id="view-android" class="view-section">
+                <div class="page-header">
+                    <h1 class="page-title" data-pl="Ride24 na Androida" data-en="Ride24 for Android">Ride24 na Androida</h1>
+                </div>
+
+                <div class="r24-app-view-card">
+                    <div class="r24-app-view-head">
+                        <div class="r24-app-view-icon">📱</div>
+                        <div>
+                            <h2 data-pl="Obsługuj rezerwacje wygodnie z telefonu" data-en="Manage bookings conveniently from your phone">Obsługuj rezerwacje wygodnie z telefonu</h2>
+                            <p data-pl="Ride24 Partner pozwala reagować na rezerwacje również wtedy, gdy nie jesteś przy komputerze. Logujesz się tym samym kontem partnera." data-en="Ride24 Partner lets you respond to bookings even when you are away from your computer. Sign in with the same partner account.">Ride24 Partner pozwala reagować na rezerwacje również wtedy, gdy nie jesteś przy komputerze. Logujesz się tym samym kontem partnera.</p>
+                        </div>
+                    </div>
+                    <div class="r24-app-feature-grid">
+                        <div class="r24-app-feature" data-pl="🔔 Nowe rezerwacje i powiadomienia" data-en="🔔 New bookings and notifications">🔔 Nowe rezerwacje i powiadomienia</div>
+                        <div class="r24-app-feature" data-pl="⚡ Szybka reakcja na zgłoszenia" data-en="⚡ Quick response to requests">⚡ Szybka reakcja na zgłoszenia</div>
+                        <div class="r24-app-feature" data-pl="📋 Szczegóły rezerwacji pod ręką" data-en="📋 Booking details at hand">📋 Szczegóły rezerwacji pod ręką</div>
+                    </div>
+                    <button type="button" class="r24-app-big-play" onclick="window.openPartnerAndroidPlay('partner_tab')">
+                        <span>▶</span>
+                        <span data-pl="Pobierz Ride24 Partner z Google Play" data-en="Get Ride24 Partner on Google Play">Pobierz Ride24 Partner z Google Play</span>
+                    </button>
+                    <p class="r24-app-small-note" data-pl="Aplikacja dla partnerów Ride24 • Android" data-en="Ride24 partner app • Android">Aplikacja dla partnerów Ride24 • Android</p>
                 </div>
             </div>
 
@@ -2418,6 +2734,7 @@ console.log("API status:", partnerData.api_status);
             await loadLocations();
             updatePartnerInterface();
             updateGuideForPartnerType();
+            await initPartnerAndroidPromo();
         });
 
         // --- STATUS WIDOCZNOŚCI ---
@@ -2773,6 +3090,7 @@ const updateData = {
 
                 closeModal();
                 await loadFleet(); // Odśwież widok tabeli
+                await initPartnerAndroidPromo();
                 
             } catch (err) {
                 console.error("Błąd zapisu:", err);
@@ -3492,6 +3810,7 @@ const { data, error } = await db
                 window.showToast(isEn ? "Location added!" : "Lokalizacja została dodana!", "success");
                 closeLocationModal();
                 await loadLocations();
+                await initPartnerAndroidPromo();
                 
                 // Reset pól
                 document.getElementById('locName').value = "";
@@ -3526,6 +3845,7 @@ const { data, error } = await db
             } else {
                 window.showToast(isEn ? "Location deleted." : "Lokalizacja usunięta.", "success");
                 await loadLocations();
+                await initPartnerAndroidPromo();
             }
         }
 
@@ -3533,12 +3853,94 @@ const { data, error } = await db
         function detectLang() { setLang(localStorage.getItem("partner_lang") || "en"); }
 
         function switchTab(tabId) {
+            if (tabId === 'android') {
+                localStorage.setItem('r24_partner_android_tab_seen', '1');
+                const androidBadge = document.getElementById('partnerAndroidNewBadge');
+                if (androidBadge) androidBadge.style.display = 'none';
+            }
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById('view-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById('nav-' + tabId).classList.add('active');
         }
         
+
+        // ================================================================
+        // RIDE24 ANDROID — DELIKATNA PROMOCJA W PANELU PARTNERA
+        // Zakładka i banner pojawiają się dopiero po gotowej konfiguracji.
+        // ================================================================
+        window.R24_PARTNER_ANDROID_URL = 'https://play.google.com/store/apps/details?id=pl.ride24.partner';
+
+        window.r24PartnerPromoRecent = function(key, days) {
+            const value = Number(localStorage.getItem(key) || 0);
+            return value > 0 && (Date.now() - value) < days * 86400000;
+        };
+
+        window.dismissPartnerAndroidPromo = function() {
+            localStorage.setItem('r24_partner_android_promo_dismissed_at', String(Date.now()));
+            document.getElementById('partnerAndroidPromoBanner')?.classList.remove('show');
+        };
+
+        window.openPartnerAndroidPlay = function(source) {
+            localStorage.setItem('r24_partner_android_play_clicked_at', String(Date.now()));
+            localStorage.setItem('r24_partner_android_last_source', String(source || 'unknown'));
+            document.getElementById('partnerAndroidPromoBanner')?.classList.remove('show');
+            const referrer = encodeURIComponent('utm_source=ride24.pl&utm_medium=partner_panel&utm_campaign=android_partner&utm_content=' + (source || 'unknown'));
+            window.open(window.R24_PARTNER_ANDROID_URL + '&referrer=' + referrer, '_blank', 'noopener');
+        };
+
+        async function initPartnerAndroidPromo() {
+            const nav = document.getElementById('nav-android');
+            const banner = document.getElementById('partnerAndroidPromoBanner');
+            if (!nav || !banner || !partnerData?.id) return;
+
+            const baseReady = partnerData.profile_completed === true &&
+                              partnerData.agreement_accepted === true &&
+                              partnerData.account_status !== 'disabled';
+
+            if (!baseReady) {
+                nav.style.display = 'none';
+                banner.classList.remove('show');
+                return;
+            }
+
+            let operationalReady = false;
+
+            // Partner API nie używa zakładek Flota/Lokalizacje w tym panelu.
+            if (partnerData.provider_type === 'api') {
+                operationalReady = true;
+            } else {
+                const [carsResult, locationsResult] = await Promise.all([
+                    db.from('car_classes').select('id').eq('partner_id', partnerData.id).limit(1),
+                    db.from('partner_locations').select('id').eq('partner_id', partnerData.id).limit(1)
+                ]);
+
+                if (carsResult.error) console.error('Android promo / cars:', carsResult.error);
+                if (locationsResult.error) console.error('Android promo / locations:', locationsResult.error);
+
+                operationalReady = !carsResult.error && !locationsResult.error &&
+                                   (carsResult.data?.length || 0) >= 1 &&
+                                   (locationsResult.data?.length || 0) >= 1;
+            }
+
+            const ready = baseReady && operationalReady;
+            nav.style.display = ready ? '' : 'none';
+
+            if (!ready) {
+                banner.classList.remove('show');
+                return;
+            }
+
+            if (localStorage.getItem('r24_partner_android_tab_seen') === '1') {
+                const badge = document.getElementById('partnerAndroidNewBadge');
+                if (badge) badge.style.display = 'none';
+            }
+
+            const dismissed = window.r24PartnerPromoRecent('r24_partner_android_promo_dismissed_at', 30);
+            const clicked = window.r24PartnerPromoRecent('r24_partner_android_play_clicked_at', 180);
+            banner.classList.toggle('show', !dismissed && !clicked);
+        }
+
         function updatePartnerInterface() {
         
     if (!partnerData) return;
@@ -4005,7 +4407,8 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
 
                 // 3. Sukces - odświeżamy interfejs
                 window.showToast(isEn ? "Vehicle deleted successfully." : "Pojazd został usunięty.", "success");
-                await loadFleet(); 
+                await loadFleet();
+                await initPartnerAndroidPromo(); 
 
             } catch (err) {
                 console.error("Błąd usuwania:", err);
