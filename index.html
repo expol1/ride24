@@ -2987,33 +2987,621 @@
 </section>
 
 
-<section class="r24-android-home" id="ride24-android">
-    <div class="r24-android-home-card">
-        <div>
-            <div class="r24-android-kicker" data-pl="📱 Ride24 na Androida" data-en="📱 Ride24 for Android">📱 Ride24 na Androida</div>
-            <h3 data-pl="Rezerwuj wygodnie również z telefonu" data-en="Book conveniently from your phone too">Rezerwuj wygodnie również z telefonu</h3>
-            <p
-                data-pl="Wyszukuj samochody, rezerwuj i miej swoje rezerwacje zawsze pod ręką. Zaloguj się tym samym kontem co na Ride24.pl."
-                data-en="Search for cars, book and keep your reservations always at hand. Sign in with the same account you use on Ride24.pl.">
-                Wyszukuj samochody, rezerwuj i miej swoje rezerwacje zawsze pod ręką. Zaloguj się tym samym kontem co na Ride24.pl.
-            </p>
-            <div class="r24-android-benefits">
-                <span data-pl="✓ Szybkie wyszukiwanie" data-en="✓ Fast search">✓ Szybkie wyszukiwanie</span>
-                <span data-pl="✓ Rezerwacje pod ręką" data-en="✓ Bookings at hand">✓ Rezerwacje pod ręką</span>
-                <span data-pl="✓ Ważne powiadomienia" data-en="✓ Important notifications">✓ Ważne powiadomienia</span>
-            </div>
-        </div>
-        <div class="r24-android-home-actions">
-            <a class="r24-google-play-btn"
-               href="https://play.google.com/store/apps/details?id=pl.ride24.client&referrer=utm_source%3Dride24.pl%26utm_medium%3Dweb%26utm_campaign%3Dandroid_client%26utm_content%3Dindex_section"
-               target="_blank" rel="noopener"
-               onclick="r24MarkIndexPlayClick()">
-                <span class="r24-play-icon">▶</span>
-                <span data-pl="Pobierz z Google Play" data-en="Get it on Google Play">Pobierz z Google Play</span>
-            </a>
-            <span class="r24-android-home-note" data-pl="Aplikacja dla klientów Ride24" data-en="Ride24 customer app">Aplikacja dla klientów Ride24</span>
-        </div>
+<section id="ride24-android" class="r24p7" aria-labelledby="r24p7-title">
+<style id="r24p7-styles">
+/* Scoped only to #ride24-android.r24p7 - stare style promo nie powinny kolidowac. */
+#ride24-android.r24p7 {
+  --r24p7-blue: #123e92;
+  --r24p7-blue2: #0a5fe8;
+  --r24p7-green: #6fe000;
+  --r24p7-green2: #93ec00;
+  --r24p7-navy: #071c42;
+  --r24p7-text: #2c466d;
+  box-sizing: border-box;
+  padding: 40px 20px 50px;
+  background:
+    radial-gradient(circle at 16% -16%, rgba(45,126,255,.20), transparent 34%),
+    radial-gradient(circle at 86% 110%, rgba(111,224,0,.12), transparent 30%),
+    linear-gradient(180deg,#17375f 0%,#102846 48%,#0a172b 100%);
+}
+#ride24-android.r24p7 *,
+#ride24-android.r24p7 *::before,
+#ride24-android.r24p7 *::after { box-sizing: border-box; }
+
+#ride24-android.r24p7 .r24p7-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  max-width: 1220px;
+  min-height: 430px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0,1.12fr) minmax(390px,.88fr);
+  align-items: center;
+  gap: 16px;
+  padding: 38px 42px 34px;
+  border: 1px solid rgba(219,234,254,.96);
+  border-radius: 30px;
+  background:
+    linear-gradient(90deg,
+      rgba(255,255,255,1) 0%,
+      rgba(255,255,255,.995) 27%,
+      rgba(255,255,255,.94) 37%,
+      rgba(248,252,255,.76) 45%,
+      rgba(238,248,255,.45) 54%,
+      rgba(225,241,252,.20) 66%,
+      rgba(218,238,251,.08) 82%,
+      rgba(210,234,250,.04) 100%),
+    linear-gradient(180deg,rgba(255,255,255,.04),rgba(6,40,82,.10)),
+    url('tlo.png') 70% 50% / cover no-repeat;
+  box-shadow:
+    0 28px 72px rgba(3,24,58,.26),
+    0 8px 24px rgba(19,78,140,.10),
+    inset 0 1px 0 rgba(255,255,255,.98);
+}
+#ride24-android.r24p7 .r24p7-card::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 70% 25%,rgba(111,224,0,.12),transparent 22%),
+    linear-gradient(125deg,transparent 52%,rgba(255,255,255,.14) 70%,transparent 84%);
+  mix-blend-mode: screen;
+}
+#ride24-android.r24p7 .r24p7-card::after {
+  content:"";
+  position:absolute;
+  left:38%; right:0; bottom:0;
+  height:46%;
+  z-index:-1;
+  pointer-events:none;
+  background: linear-gradient(180deg,transparent,rgba(4,35,73,.10));
+}
+
+#ride24-android.r24p7 .r24p7-copy {
+  position:relative;
+  z-index:10;
+  max-width:650px;
+}
+#ride24-android.r24p7 .r24p7-title {
+  margin:0 0 16px;
+  max-width:620px;
+  font-size:clamp(36px,3.8vw,54px);
+  line-height:.98;
+  letter-spacing:-.047em;
+  font-weight:950;
+  text-wrap:balance;
+}
+#ride24-android.r24p7 .r24p7-title > span { display:block; }
+#ride24-android.r24p7 .r24p7-title-blue {
+  color:var(--r24p7-blue);
+  text-shadow:0 1px 0 rgba(255,255,255,.9);
+}
+#ride24-android.r24p7 .r24p7-title-green {
+  margin-top:3px;
+  color:var(--r24p7-green);
+  text-shadow:0 1px 0 rgba(255,255,255,.88),0 8px 22px rgba(83,181,0,.17);
+}
+#ride24-android.r24p7 .r24p7-copy > p {
+  max-width:590px;
+  margin:0;
+  color:var(--r24p7-text);
+  font-size:clamp(15px,1.35vw,19px);
+  line-height:1.48;
+  font-weight:520;
+}
+
+#ride24-android.r24p7 .r24p7-benefits {
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin:22px 0 20px;
+}
+#ride24-android.r24p7 .r24p7-benefit {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:42px;
+  padding:8px 12px;
+  border:1px solid #bfdbfe;
+  border-radius:14px;
+  background:rgba(255,255,255,.90);
+  color:#103b8c;
+  font-size:12px;
+  line-height:1.2;
+  font-weight:850;
+  box-shadow:0 4px 12px rgba(30,58,138,.05);
+  backdrop-filter:blur(8px);
+}
+#ride24-android.r24p7 .r24p7-benefit svg {
+  width:20px; height:20px; flex:0 0 20px;
+  stroke:#0b5ce1;
+}
+
+#ride24-android.r24p7 .r24p7-cta {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:62px;
+  padding:10px 18px 10px 14px;
+  border:1px solid rgba(67,122,0,.22);
+  border-radius:17px;
+  background:linear-gradient(180deg,#82e600 0%,#60c900 100%);
+  color:#07142f !important;
+  text-decoration:none !important;
+  box-shadow:0 14px 28px rgba(63,142,0,.27),inset 0 1px rgba(255,255,255,.45);
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+#ride24-android.r24p7 .r24p7-cta:hover {
+  transform:translateY(-2px);
+  filter:saturate(1.04) brightness(1.015);
+  box-shadow:0 18px 34px rgba(63,142,0,.33),inset 0 1px rgba(255,255,255,.48);
+}
+#ride24-android.r24p7 .r24p7-cta-prefix {
+  font-size:17px; font-weight:900; white-space:nowrap;
+}
+#ride24-android.r24p7 .r24p7-play-brand {
+  display:inline-flex;
+  align-items:center;
+  height:38px;
+  padding:5px 9px;
+  border-radius:9px;
+  background:rgba(255,255,255,.97);
+  box-shadow:inset 0 0 0 1px rgba(15,23,42,.07);
+}
+#ride24-android.r24p7 .r24p7-play-brand img {
+  display:block;
+  width:136px;
+  max-height:28px;
+  object-fit:contain;
+}
+#ride24-android.r24p7 .r24p7-cta-arrow {
+  margin-left:1px;
+  color:#0b2a54;
+  font-size:25px;
+  font-weight:900;
+  line-height:1;
+}
+#ride24-android.r24p7 .r24p7-note {
+  display:block;
+  margin-top:8px;
+  color:#526a8d;
+  font-size:12px;
+  font-weight:700;
+}
+
+/* PRAWA STRONA */
+#ride24-android.r24p7 .r24p7-visual {
+  position:relative;
+  z-index:4;
+  min-height:365px;
+  align-self:stretch;
+}
+#ride24-android.r24p7 .r24p7-visual::before {
+  content:"";
+  position:absolute;
+  left:18px; top:40px;
+  width:300px; height:300px;
+  z-index:0;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(135,231,0,.18) 0%,rgba(45,126,255,.10) 42%,transparent 72%);
+  filter:blur(3px);
+}
+
+/* TELEFON - mniejszy, proporcjonalny */
+#ride24-android.r24p7 .r24p7-phone {
+  position:absolute;
+  z-index:6;
+  left:54px;
+  bottom:-1px;
+  width:clamp(164px,13.6vw,178px);
+  aspect-ratio:.468;
+  padding:6px;
+  border-radius:28px;
+  background:linear-gradient(145deg,#172238,#020617 62%,#2a3a4f);
+  box-shadow:0 24px 46px rgba(2,6,23,.36),0 7px 16px rgba(15,23,42,.18),inset 0 0 0 1px rgba(255,255,255,.32);
+  transform:rotate(1.1deg);
+}
+#ride24-android.r24p7 .r24p7-phone::before {
+  content:"";
+  position:absolute;
+  z-index:9;
+  top:8px; left:50%;
+  width:38%; height:10px;
+  transform:translateX(-50%);
+  border-radius:0 0 9px 9px;
+  background:#020617;
+}
+#ride24-android.r24p7 .r24p7-screen {
+  position:relative;
+  overflow:hidden;
+  width:100%; height:100%;
+  border-radius:22px;
+  background:#061f4a;
+}
+#ride24-android.r24p7 .r24p7-pl,
+#ride24-android.r24p7 .r24p7-en { position:absolute; inset:0; }
+#ride24-android.r24p7 .r24p7-pl img {
+  display:block;
+  width:100%; height:100%;
+  object-fit:cover;
+  object-position:center top;
+  background:#061f4a;
+}
+#ride24-android.r24p7 .r24p7-en { display:none; }
+html[lang="en"] #ride24-android.r24p7 .r24p7-pl { display:none; }
+html[lang="en"] #ride24-android.r24p7 .r24p7-en { display:block; }
+html[lang="pl"] #ride24-android.r24p7 .r24p7-pl { display:block; }
+html[lang="pl"] #ride24-android.r24p7 .r24p7-en { display:none; }
+
+/* EN - lekka rekonstrukcja tego samego ekranu aplikacji */
+#ride24-android.r24p7 .r24p7-enapp {
+  position:relative;
+  width:100%; height:100%;
+  padding:14% 5.5% 5%;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
+  background:
+    radial-gradient(circle at 88% 24%,rgba(66,173,72,.28),transparent 25%),
+    radial-gradient(circle at 14% 70%,rgba(20,87,184,.32),transparent 31%),
+    linear-gradient(145deg,#031b4c 0%,#07346c 48%,#064b4a 100%);
+}
+#ride24-android.r24p7 .r24p7-enbrand {
+  color:#93eb00;
+  font-weight:950;
+  font-size:10px;
+  margin-bottom:10px;
+}
+#ride24-android.r24p7 .r24p7-enbrand small {
+  display:block; color:#fff; font-size:5px; letter-spacing:.08em;
+}
+#ride24-android.r24p7 .r24p7-enapp h4 {
+  margin:0;
+  font-size:19px;
+  line-height:1;
+  font-weight:950;
+}
+#ride24-android.r24p7 .r24p7-ensub {
+  margin:4px 0 15px;
+  color:rgba(255,255,255,.86);
+  font-size:7px;
+}
+#ride24-android.r24p7 .r24p7-enlabel {
+  margin:0 0 5px;
+  color:#9bec00;
+  font-size:7px;
+  font-weight:950;
+}
+#ride24-android.r24p7 .r24p7-enfield {
+  min-height:38px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 10px;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:16px;
+  background:rgba(255,255,255,.06);
+  font-size:8px;
+}
+#ride24-android.r24p7 .r24p7-entoggle {
+  display:flex; align-items:center; gap:7px;
+  margin:10px 0 13px;
+  font-size:7px; font-weight:700;
+}
+#ride24-android.r24p7 .r24p7-entoggle i {
+  position:relative;
+  width:30px; height:16px;
+  border-radius:99px;
+  background:rgba(255,255,255,.28);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.26);
+}
+#ride24-android.r24p7 .r24p7-entoggle i::before {
+  content:"";
+  position:absolute;
+  top:3px; left:3px;
+  width:10px; height:10px;
+  border-radius:50%; background:#fff;
+}
+#ride24-android.r24p7 .r24p7-endates {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+#ride24-android.r24p7 .r24p7-endate {
+  min-height:53px;
+  padding:9px 8px;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:13px;
+  background:rgba(255,255,255,.055);
+}
+#ride24-android.r24p7 .r24p7-endate span { display:block; font-size:6px; color:rgba(255,255,255,.78); }
+#ride24-android.r24p7 .r24p7-endate strong { display:block; margin-top:4px; font-size:10px; }
+#ride24-android.r24p7 .r24p7-endays { margin:10px 0 8px; font-size:8px; }
+#ride24-android.r24p7 .r24p7-ensearch {
+  display:grid; place-items:center;
+  min-height:40px;
+  border-radius:13px;
+  background:#93eb00;
+  color:#071d41;
+  font-size:9px; font-weight:950;
+}
+#ride24-android.r24p7 .r24p7-ennav {
+  position:absolute;
+  left:4%; right:4%; bottom:2.5%;
+  display:grid; grid-template-columns:repeat(3,1fr);
+  align-items:center;
+  min-height:45px;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:18px;
+  background:rgba(2,27,66,.84);
+}
+#ride24-android.r24p7 .r24p7-ennav span {
+  display:grid; place-items:center;
+  font-size:6px; font-weight:700; color:#fff;
+}
+#ride24-android.r24p7 .r24p7-ennav span:first-child {
+  min-height:35px;
+  margin:4px;
+  border-radius:12px;
+  background:#93eb00;
+  color:#071d41;
+}
+
+/* LADNIEJSZY ROBOT ANDROID - 100% CSS, bez dodatkowego pliku PNG. */
+#ride24-android.r24p7 .r24p7-droid {
+  position:absolute;
+  z-index:3; /* za telefonem */
+  left:176px;
+  top:92px;
+  width:174px;
+  height:236px;
+  transform:rotate(-6deg);
+  filter:drop-shadow(0 18px 18px rgba(37,111,0,.25));
+  pointer-events:none;
+}
+#ride24-android.r24p7 .r24p7-droid-head,
+#ride24-android.r24p7 .r24p7-droid-body,
+#ride24-android.r24p7 .r24p7-droid-arm,
+#ride24-android.r24p7 .r24p7-droid-leg {
+  position:absolute;
+  background:linear-gradient(145deg,#baff12 0%,#7ee500 38%,#63c700 72%,#4ea800 100%);
+  box-shadow:inset 8px 8px 16px rgba(255,255,255,.18),inset -8px -10px 18px rgba(42,115,0,.18);
+}
+#ride24-android.r24p7 .r24p7-droid-head {
+  left:24px; top:18px;
+  width:128px; height:70px;
+  border-radius:78px 78px 24px 24px;
+  border:1px solid rgba(53,132,0,.32);
+}
+#ride24-android.r24p7 .r24p7-droid-head::before,
+#ride24-android.r24p7 .r24p7-droid-head::after {
+  content:"";
+  position:absolute;
+  top:-22px;
+  width:6px; height:30px;
+  border-radius:99px;
+  background:linear-gradient(180deg,#baff12,#69cf00);
+}
+#ride24-android.r24p7 .r24p7-droid-head::before { left:26px; transform:rotate(-33deg); }
+#ride24-android.r24p7 .r24p7-droid-head::after { right:26px; transform:rotate(33deg); }
+#ride24-android.r24p7 .r24p7-droid-eye {
+  position:absolute;
+  top:28px;
+  width:15px; height:15px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(5,50,0,.18);
+}
+#ride24-android.r24p7 .r24p7-droid-eye.e1 { left:34px; }
+#ride24-android.r24p7 .r24p7-droid-eye.e2 { right:34px; }
+#ride24-android.r24p7 .r24p7-droid-body {
+  left:24px; top:92px;
+  width:128px; height:104px;
+  border-radius:16px 16px 28px 28px;
+  border:1px solid rgba(53,132,0,.30);
+}
+#ride24-android.r24p7 .r24p7-droid-body::before {
+  content:"";
+  position:absolute;
+  left:10px; right:10px; top:10px;
+  height:28px;
+  border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0));
+}
+#ride24-android.r24p7 .r24p7-droid-arm {
+  top:100px;
+  width:30px; height:92px;
+  border-radius:20px;
+  border:1px solid rgba(53,132,0,.30);
+}
+#ride24-android.r24p7 .r24p7-droid-arm.left {
+  left:0;
+  transform:rotate(8deg);
+}
+#ride24-android.r24p7 .r24p7-droid-arm.right {
+  right:-5px;
+  top:83px;
+  height:98px;
+  transform-origin:50% 18%;
+  transform:rotate(-38deg);
+}
+#ride24-android.r24p7 .r24p7-droid-leg {
+  top:184px;
+  width:31px; height:52px;
+  border-radius:0 0 18px 18px;
+  border:1px solid rgba(53,132,0,.28);
+}
+#ride24-android.r24p7 .r24p7-droid-leg.l1 { left:48px; }
+#ride24-android.r24p7 .r24p7-droid-leg.l2 { right:48px; }
+
+#ride24-android.r24p7 .r24p7-slogan {
+  position:absolute;
+  z-index:8;
+  right:0;
+  max-width:152px;
+  color:#0a2f76;
+  font-family:"Segoe Print","Comic Sans MS",cursive;
+  font-size:clamp(14px,1.2vw,18px);
+  line-height:1.08;
+  font-weight:800;
+  text-shadow:0 2px 10px rgba(255,255,255,1),0 0 22px rgba(255,255,255,.96);
+  transform:rotate(-4deg);
+}
+#ride24-android.r24p7 .r24p7-slogan::after {
+  content:"";
+  display:block;
+  width:72%; height:4px;
+  margin:7px 0 0 auto;
+  border-radius:99px;
+  background:var(--r24p7-green);
+  transform:rotate(-8deg);
+}
+#ride24-android.r24p7 .r24p7-slogan.top { top:12px; }
+#ride24-android.r24p7 .r24p7-slogan.bottom { right:0; bottom:10px; transform:rotate(-7deg); }
+
+@media (max-width:1040px) {
+  #ride24-android.r24p7 .r24p7-card {
+    grid-template-columns:minmax(0,1fr) minmax(330px,.78fr);
+    padding:34px 30px 32px;
+  }
+  #ride24-android.r24p7 .r24p7-phone { left:42px; width:164px; }
+  #ride24-android.r24p7 .r24p7-droid { left:148px; top:104px; transform:scale(.88) rotate(-6deg); transform-origin:top left; }
+  #ride24-android.r24p7 .r24p7-slogan { display:none; }
+}
+@media (max-width:760px) {
+  #ride24-android.r24p7 { padding:24px 12px 32px; }
+  #ride24-android.r24p7 .r24p7-card {
+    min-height:0;
+    grid-template-columns:1fr;
+    gap:10px;
+    padding:28px 20px 0;
+    border-radius:24px;
+    background:
+      linear-gradient(180deg,rgba(255,255,255,1) 0%,rgba(255,255,255,.99) 43%,rgba(245,251,255,.86) 62%,rgba(226,244,255,.48) 82%,rgba(213,237,252,.22) 100%),
+      url('tlo.png') 63% 50% / cover no-repeat;
+  }
+  #ride24-android.r24p7 .r24p7-title { font-size:clamp(33px,9.7vw,46px); }
+  #ride24-android.r24p7 .r24p7-copy > p { font-size:15px; }
+  #ride24-android.r24p7 .r24p7-benefit { flex:1 1 145px; }
+  #ride24-android.r24p7 .r24p7-cta { width:100%; min-height:58px; padding-left:10px; padding-right:12px; }
+  #ride24-android.r24p7 .r24p7-cta-prefix { font-size:15px; }
+  #ride24-android.r24p7 .r24p7-play-brand img { width:120px; }
+  #ride24-android.r24p7 .r24p7-visual { min-height:348px; }
+  #ride24-android.r24p7 .r24p7-phone {
+    left:50%; bottom:8px;
+    width:min(166px,45vw);
+    transform:translateX(-65%) rotate(.8deg);
+  }
+  #ride24-android.r24p7 .r24p7-droid {
+    left:50%; top:105px;
+    transform:translateX(10%) scale(.78) rotate(-6deg);
+    transform-origin:top left;
+  }
+  #ride24-android.r24p7 .r24p7-slogan { display:none; }
+}
+@media (max-width:420px) {
+  #ride24-android.r24p7 .r24p7-card { padding-left:16px; padding-right:16px; }
+  #ride24-android.r24p7 .r24p7-benefit { flex:1 1 100%; }
+  #ride24-android.r24p7 .r24p7-cta { gap:7px; }
+  #ride24-android.r24p7 .r24p7-cta-prefix { font-size:14px; }
+  #ride24-android.r24p7 .r24p7-play-brand { height:34px; padding:4px 7px; }
+  #ride24-android.r24p7 .r24p7-play-brand img { width:108px; }
+}
+</style>
+
+  <div class="r24p7-card">
+    <div class="r24p7-copy">
+      <h3 class="r24p7-title" id="r24p7-title">
+        <span class="r24p7-title-blue" data-pl="Rezerwuj wygodnie" data-en="Book conveniently">Rezerwuj wygodnie</span>
+        <span class="r24p7-title-green" data-pl="z telefonu" data-en="from your phone">z telefonu</span>
+      </h3>
+
+      <p
+        data-pl="Wyszukuj samochody, rezerwuj i miej swoje rezerwacje zawsze pod ręką. Zaloguj się tym samym kontem co na Ride24.pl."
+        data-en="Search cars, make bookings and keep your reservations always at hand. Sign in with the same account you use on Ride24.pl.">
+        Wyszukuj samochody, rezerwuj i miej swoje rezerwacje zawsze pod ręką. Zaloguj się tym samym kontem co na Ride24.pl.
+      </p>
+
+      <div class="r24p7-benefits" aria-label="Ride24 app benefits">
+        <span class="r24p7-benefit">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke-width="2"/><path d="m20 20-3.4-3.4" stroke-width="2" stroke-linecap="round"/></svg>
+          <span data-pl="Szybkie wyszukiwanie" data-en="Fast search">Szybkie wyszukiwanie</span>
+        </span>
+        <span class="r24p7-benefit">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" stroke-width="2"/><path d="M8 3v4M16 3v4M3 10h18" stroke-width="2" stroke-linecap="round"/></svg>
+          <span data-pl="Rezerwacje pod ręką" data-en="Bookings at hand">Rezerwacje pod ręką</span>
+        </span>
+        <span class="r24p7-benefit">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21h4" stroke-width="2" stroke-linecap="round"/></svg>
+          <span data-pl="Ważne powiadomienia" data-en="Important alerts">Ważne powiadomienia</span>
+        </span>
+      </div>
+
+      <a class="r24p7-cta"
+         href="https://play.google.com/store/apps/details?id=pl.ride24.client&referrer=utm_source%3Dride24.pl%26utm_medium%3Dweb%26utm_campaign%3Dandroid_client%26utm_content%3Dindex_section_v7"
+         target="_blank" rel="noopener"
+         onclick="if (typeof r24MarkIndexPlayClick === 'function') r24MarkIndexPlayClick()">
+        <span class="r24p7-cta-prefix" data-pl="Pobierz z" data-en="Get it on">Pobierz z</span>
+        <span class="r24p7-play-brand"><img src="assets/app-promo/google-play-logo.png" alt="Google Play"></span>
+        <span class="r24p7-cta-arrow" aria-hidden="true">→</span>
+      </a>
+      <span class="r24p7-note" data-pl="Aplikacja dla klientów Ride24" data-en="Ride24 client app">Aplikacja dla klientów Ride24</span>
     </div>
+
+    <div class="r24p7-visual" aria-hidden="true">
+      <!-- CSS Android: z-index 3. Telefon: z-index 6. Robot faktycznie wychyla sie zza telefonu. -->
+      <div class="r24p7-droid">
+        <div class="r24p7-droid-head">
+          <span class="r24p7-droid-eye e1"></span>
+          <span class="r24p7-droid-eye e2"></span>
+        </div>
+        <div class="r24p7-droid-body"></div>
+        <div class="r24p7-droid-arm left"></div>
+        <div class="r24p7-droid-arm right"></div>
+        <div class="r24p7-droid-leg l1"></div>
+        <div class="r24p7-droid-leg l2"></div>
+      </div>
+
+      <div class="r24p7-phone">
+        <div class="r24p7-screen">
+          <div class="r24p7-pl">
+            <img src="assets/app-promo/client-app-pl.jpg" alt="">
+          </div>
+
+          <div class="r24p7-en">
+            <div class="r24p7-enapp">
+              <div class="r24p7-enbrand">RIDE 24<small>CLIENT APP</small></div>
+              <h4>Find a car</h4>
+              <div class="r24p7-ensub">Choose location and dates.</div>
+              <div class="r24p7-enlabel">LOCATION</div>
+              <div class="r24p7-enfield">● <span>Pickup location</span></div>
+              <div class="r24p7-entoggle"><i></i><span>Different return location</span></div>
+              <div class="r24p7-enlabel">DATES</div>
+              <div class="r24p7-endates">
+                <div class="r24p7-endate"><span>Pickup</span><strong>Sep 07</strong></div>
+                <div class="r24p7-endate"><span>Time</span><strong>10:00</strong></div>
+                <div class="r24p7-endate"><span>Return</span><strong>Sep 12</strong></div>
+                <div class="r24p7-endate"><span>Time</span><strong>10:00</strong></div>
+              </div>
+              <div class="r24p7-endays">◷ &nbsp; 5 days</div>
+              <div class="r24p7-ensearch">⌕ &nbsp; Search car</div>
+              <div class="r24p7-ennav"><span>⌕<br>Search</span><span>▣<br>Bookings</span><span>●<br>Account</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="r24p7-slogan top"
+           data-pl="Wynajem samochodów w Twoich rękach"
+           data-en="Car rental in your hands">Wynajem samochodów w Twoich rękach</div>
+      <div class="r24p7-slogan bottom"
+           data-pl="Twoja podróż zaczyna się tutaj!"
+           data-en="Your journey starts here!">Twoja podróż zaczyna się tutaj!</div>
+    </div>
+  </div>
 </section>
 
 <div class="r24-android-nudge" id="r24AndroidNudge" aria-live="polite">
