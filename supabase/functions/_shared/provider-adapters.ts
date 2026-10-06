@@ -32,7 +32,7 @@ export type ProviderBookingInput = {
   idempotency_key: string;
   ride24_booking_id: string;
   reservation_code?: string | null;
-  vehicle_group_id: string;
+  vehicle_group_id: string | null;
   class_code?: string | null;
   pickup_location_id?: string | null;
   dropoff_location_id?: string | null;
@@ -67,6 +67,71 @@ type RenteonToken = {
 };
 
 const renteonTokenCache = new Map<string, RenteonToken>();
+
+type ProviderEndpointName =
+  | "auth"
+  | "health"
+  | "locations"
+  | "groups"
+  | "search"
+  | "booking_create"
+  | "booking_save"
+  | "booking_status"
+  | "booking_cancel";
+
+const PROVIDER_DEFAULT_ENDPOINTS: Partial<
+  Record<ProviderKey, Partial<Record<ProviderEndpointName, string>>>
+> = {
+  renteon: {
+    auth: "/token",
+    health: "/api/offices",
+    locations: "/api/offices",
+    groups: "/api/ExCarCategory/Search",
+    search: "/api/ExBooking/Availability",
+    booking_create: "/api/ExBooking/Create",
+    booking_save: "/api/ExBooking/Save",
+    booking_status: "/api/ExBooking/{id}",
+    booking_cancel: "/api/ExBooking/Cancel/{id}",
+  },
+  easy_web_rent: {
+    health: "/api/v1/locations",
+    locations: "/api/v1/locations",
+    groups: "/api/v1/vehicle-classes",
+    search: "/api/v1/availability",
+    booking_create: "/api/v1/reservations",
+    booking_status: "/api/v1/reservations/{id}",
+    booking_cancel: "/api/v1/reservations/{id}/cancel",
+  },
+};
+
+function providerEndpoint(
+  providerValue: unknown,
+  credentials: PartnerApiCredentials,
+  name: ProviderEndpointName,
+  variables: Record<string, string> = {},
+): string {
+  const provider = safeProvider(providerValue);
+  const configured = credentials.endpoints?.[name];
+  const fallback = PROVIDER_DEFAULT_ENDPOINTS[provider]?.[name];
+
+  if (typeof configured === "string" && configured.trim()) {
+    return endpointFor(credentials, name, variables);
+  }
+  if (typeof fallback === "string" && fallback.trim()) {
+    return endpointFor(
+      {
+        ...credentials,
+        endpoints: {
+          ...(credentials.endpoints || {}),
+          [name]: fallback,
+        },
+      },
+      name,
+      variables,
+    );
+  }
+  return endpointFor(credentials, name, variables);
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -279,7 +344,7 @@ async function requestRenteonToken(
     try {
       response = await partnerApiFormRequest<Record<string, unknown>>(
         credentials,
-        endpointFor(credentials, "auth"),
+        providerEndpoint("renteon", credentials, "auth"),
         {
           grant_type: "refresh_token",
           refresh_token: refreshToken,
@@ -306,7 +371,7 @@ async function requestRenteonToken(
 
   response = await partnerApiFormRequest<Record<string, unknown>>(
     credentials,
-    endpointFor(credentials, "auth"),
+    providerEndpoint("renteon", credentials, "auth"),
     {
       grant_type: "password",
       username,
@@ -761,14 +826,14 @@ export async function testProviderConnection(
     await renteonRequest(
       credentials,
       "locations",
-      endpointFor(credentials, "locations"),
+      providerEndpoint(provider, credentials, "locations"),
     );
     return;
   }
 
   await partnerApiRequest(
     credentials,
-    endpointFor(credentials, "health"),
+    providerEndpoint(provider, credentials, "health"),
   );
 }
 
@@ -782,14 +847,14 @@ export async function fetchProviderLocations(
     const payload = await renteonRequest<unknown>(
       credentials,
       "locations",
-      endpointFor(credentials, "locations"),
+      providerEndpoint(provider, credentials, "locations"),
     );
     return normalizeRenteonLocations(credentials, payload);
   }
 
   const payload = await partnerApiRequest<unknown>(
     credentials,
-    endpointFor(credentials, "locations"),
+    providerEndpoint(provider, credentials, "locations"),
   );
 
   if (provider === "easy_web_rent") {
@@ -808,7 +873,7 @@ export async function fetchProviderGroups(
     const payload = await renteonRequest<unknown>(
       credentials,
       "groups",
-      endpointFor(credentials, "groups"),
+      providerEndpoint(provider, credentials, "groups"),
       { method: "POST", body: {} },
     );
     return normalizeRenteonGroups(credentials, payload);
@@ -816,7 +881,7 @@ export async function fetchProviderGroups(
 
   const payload = await partnerApiRequest<unknown>(
     credentials,
-    endpointFor(credentials, "groups"),
+    providerEndpoint(provider, credentials, "groups"),
   );
   if (provider === "easy_web_rent") {
     return normalizeEasyWebRentGroups(credentials, payload);
@@ -849,7 +914,7 @@ export async function searchProvider(
     const payload = await renteonRequest<unknown>(
       credentials,
       "search",
-      endpointFor(credentials, "search"),
+      providerEndpoint(provider, credentials, "search"),
       { method: "POST", body },
     );
     return normalizeRenteonAvailability(credentials, payload, input);
@@ -869,14 +934,14 @@ export async function searchProvider(
     try {
       payload = await partnerApiRequest<unknown>(
         credentials,
-        `${endpointFor(credentials, "search")}?${query.toString()}`,
+        `${providerEndpoint(provider, credentials, "search")}?${query.toString()}`,
         { method: "GET" },
       );
     } catch (error) {
       // Some Easy Web Rent installations expose availability as POST.
       payload = await partnerApiRequest<unknown>(
         credentials,
-        endpointFor(credentials, "search"),
+        providerEndpoint(provider, credentials, "search"),
         {
           method: "POST",
           body: {
@@ -893,7 +958,7 @@ export async function searchProvider(
 
   const payload = await partnerApiRequest<unknown>(
     credentials,
-    endpointFor(credentials, "search"),
+    providerEndpoint(provider, credentials, "search"),
     { method: "POST", body: input },
   );
   return normalizeGroups(payload);
@@ -945,7 +1010,7 @@ export async function createProviderBooking(
     const created = await renteonRequest<Record<string, unknown>>(
       credentials,
       "booking_create",
-      endpointFor(credentials, "booking_create"),
+      providerEndpoint(provider, credentials, "booking_create"),
       { method: "POST", body: createBody },
     );
 
@@ -967,7 +1032,7 @@ export async function createProviderBooking(
     const saved = await renteonRequest<Record<string, unknown>>(
       credentials,
       "booking_save",
-      endpointFor(credentials, "booking_save"),
+      providerEndpoint(provider, credentials, "booking_save"),
       { method: "POST", body: saveBody },
     );
 
@@ -991,7 +1056,7 @@ export async function createProviderBooking(
     const main = splitName(input.main_driver?.name);
     const payload = await partnerApiRequest<unknown>(
       credentials,
-      endpointFor(credentials, "booking_create"),
+      providerEndpoint(provider, credentials, "booking_create"),
       {
         method: "POST",
         headers: {
@@ -1023,7 +1088,7 @@ export async function createProviderBooking(
 
   const payload = await partnerApiRequest<unknown>(
     credentials,
-    endpointFor(credentials, "booking_create"),
+    providerEndpoint(provider, credentials, "booking_create"),
     {
       method: "POST",
       headers: {
@@ -1046,7 +1111,7 @@ export async function getProviderBookingStatus(
     const payload = await renteonRequest<Record<string, unknown>>(
       credentials,
       "booking_status",
-      endpointFor(credentials, "booking_status", { id: externalReference }),
+      providerEndpoint(provider, credentials, "booking_status", { id: externalReference }),
     );
     const status = payload.IsCancelled === true
       ? "cancelled"
@@ -1064,7 +1129,7 @@ export async function getProviderBookingStatus(
 
   const payload = await partnerApiRequest<unknown>(
     credentials,
-    endpointFor(credentials, "booking_status", { id: externalReference }),
+    providerEndpoint(provider, credentials, "booking_status", { id: externalReference }),
   );
   return canonicalGenericBooking(payload);
 }
@@ -1081,7 +1146,7 @@ export async function cancelProviderBooking(
     const payload = await renteonRequest<unknown>(
       credentials,
       "booking_cancel",
-      endpointFor(credentials, "booking_cancel", { id: externalReference }),
+      providerEndpoint(provider, credentials, "booking_cancel", { id: externalReference }),
       { method: "DELETE" },
     );
     return {
@@ -1094,7 +1159,7 @@ export async function cancelProviderBooking(
 
   const payload = await partnerApiRequest<unknown>(
     credentials,
-    endpointFor(credentials, "booking_cancel", { id: externalReference }),
+    providerEndpoint(provider, credentials, "booking_cancel", { id: externalReference }),
     {
       method: "POST",
       headers: body.idempotency_key
