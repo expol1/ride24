@@ -712,6 +712,8 @@ export async function partnerApiFormRequest<T>(
       "Content-Type": "application/x-www-form-urlencoded",
     });
     setSafeRequestHeaders(headers, credentials.extra_headers || undefined);
+    // Provider-defined headers must never replace the token request encoding.
+    headers.set("Content-Type", "application/x-www-form-urlencoded");
 
     const response = await fetch(requestUrl, {
       method: "POST",
