@@ -2805,6 +2805,13 @@ console.log("API status:", partnerData.api_status);
             if (document.getElementById("agreement-modal")?.style.display === "flex" && typeof renderAgreement === "function") {
                 renderAgreement(lang);
             }
+
+            // Dynamic pricing rows are generated in the active language.
+            // Refresh them immediately if the partner switches PL/EN while the pricing modal is open.
+            if (document.getElementById("seasonalModal")?.classList.contains("active") && currentSeasonalCarId) {
+                if (typeof loadSeasonalPrices === "function") loadSeasonalPrices();
+                if (typeof loadDurationDiscounts === "function") loadDurationDiscounts();
+            }
         }
 
         // --- WCZYTYWANIE USTAWIEŃ (LOAD) ---
@@ -4769,10 +4776,10 @@ async function openSeasonalModal(carId, carName, basePrice) {
     
     const seasonalTitle = document.getElementById("seasonalModalTitle");
     const seasonalSub = document.getElementById("seasonalModalSub");
-    const titlePl = `Sezony: ${carName}`;
-    const titleEn = `Seasons: ${carName}`;
-    const subPl = `Standardowa cena publiczna poza sezonem: ${basePrice} ${currentPartnerCurrency}`;
-    const subEn = `Standard public price outside seasons: ${basePrice} ${currentPartnerCurrency}`;
+    const titlePl = `Ceny: ${carName}`;
+    const titleEn = `Pricing: ${carName}`;
+    const subPl = `Cena bazowa: ${basePrice} ${currentPartnerCurrency}/dzień. Ustaw sezony i opcjonalne rabaty za długość wynajmu.`;
+    const subEn = `Base price: ${basePrice} ${currentPartnerCurrency}/day. Set seasonal prices and optional rental-duration discounts.`;
     seasonalTitle.setAttribute("data-pl", titlePl);
     seasonalTitle.setAttribute("data-en", titleEn);
     seasonalSub.setAttribute("data-pl", subPl);
@@ -5528,7 +5535,7 @@ window.closeReviewModal = function() {
                 <div class="form-row-3" style="margin-bottom: 10px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Od ilu dni" data-en="Min. days">Od ilu dni</label>
-                        <input type="number" id="durationMinDaysInput" min="1" step="1" placeholder="np. 6">
+                        <input type="number" id="durationMinDaysInput" min="1" step="1" data-pl="np. 6" data-en="e.g. 6" placeholder="np. 6">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Do ilu dni" data-en="Max. days">Do ilu dni</label>
@@ -5536,7 +5543,7 @@ window.closeReviewModal = function() {
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Rabat %" data-en="Discount %">Rabat %</label>
-                        <input type="number" id="durationDiscountInput" min="0" max="80" step="0.01" placeholder="np. 20">
+                        <input type="number" id="durationDiscountInput" min="0" max="80" step="0.01" data-pl="np. 20" data-en="e.g. 20" placeholder="np. 20">
                     </div>
                 </div>
 
