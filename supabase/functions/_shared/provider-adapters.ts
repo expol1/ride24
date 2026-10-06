@@ -683,7 +683,7 @@ export function normalizeRenteonAvailability(
   return output;
 }
 
-function normalizeEasyWebRentLocations(payload: unknown): ApiLocation[] {
+export function normalizeEasyWebRentLocations(payload: unknown): ApiLocation[] {
   const source = arrayFrom(payload, ["locations", "data", "items", "results"]);
   return source.slice(0, 10_000).flatMap((raw) => {
     if (!isRecord(raw)) return [];
@@ -711,7 +711,7 @@ function normalizeEasyWebRentLocations(payload: unknown): ApiLocation[] {
   });
 }
 
-function normalizeEasyWebRentGroups(
+export function normalizeEasyWebRentGroups(
   credentials: PartnerApiCredentials,
   payload: unknown,
 ): ApiVehicleGroup[] {
@@ -763,7 +763,7 @@ function normalizeEasyWebRentGroups(
   });
 }
 
-function normalizeEasyWebRentAvailability(
+export function normalizeEasyWebRentAvailability(
   credentials: PartnerApiCredentials,
   payload: unknown,
   input: ProviderSearchInput,
