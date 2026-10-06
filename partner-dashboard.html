@@ -2354,7 +2354,7 @@ Dodaj opinię o Partnerze
                         <ul>
                             <li data-pl="<b>Specyfikacja:</b> Wypełnij pola takie jak Vehicle Model, Vehicle Class, Transmission (skrzynia), Fuel (paliwo), Seats (miejsca), Doors (drzwi), Bags (pojemność bagażnika)." data-en="<b>Specification:</b> Fill in fields like Vehicle Model, Vehicle Class, Transmission, Fuel, Seats, Doors, Bags."></li>
                             <li data-pl="<b>Zasady:</b> Określ Mileage (limit km), Deposit (wysokość kaucji) oraz Driver Option." data-en="<b>Rules:</b> Define Mileage limit, Deposit amount, and Driver Option."></li>
-                            <li data-pl="<b>Ceny i Zdjęcia:</b> Podaj bazową cenę w polu Price, uzupełnij Seasonal Prices dla różnych okresów roku i wgraj atrakcyjne Photos (zdjęcia auta)." data-en="<b>Pricing & Photos:</b> Enter the base Price, add Seasonal Prices for different times of the year, and upload high-quality Photos."></li>
+                            <li data-pl="<b>Ceny i Zdjęcia:</b> Podaj bazową cenę w polu Price, uzupełnij Seasonal Prices dla różnych okresów roku oraz opcjonalne rabaty za długość wynajmu. Progi długości działają automatycznie również na ceny sezonowe. Wgraj też atrakcyjne Photos (zdjęcia auta)." data-en="<b>Pricing & Photos:</b> Enter the base Price, add Seasonal Prices for different times of the year and optional rental-duration discounts. Duration tiers automatically apply to seasonal prices too. Upload high-quality Photos as well."></li>
                         </ul>
                         <blockquote data-pl="ℹ️ Zwróć uwagę na Ride24 Partner Discount. Ostateczna cena dla klienta jest wyliczana automatycznie na podstawie Twojej zniżki." data-en="ℹ️ Note the Ride24 Partner Discount. The final price for the client is calculated automatically based on your discount rate."></blockquote>
                         <p data-pl="Zarządzaj pojazdami za pomocą opcji <b>Edit Vehicle</b> lub <b>Delete Vehicle</b>." data-en="Manage your vehicles using the <b>Edit Vehicle</b> or <b>Delete Vehicle</b> options."></p>
@@ -3653,8 +3653,8 @@ const { data, error } = await db
         <span class="action-link" 
               style="display: block; width: 85px; color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="openSeasonalModal('${safeCarId}', decodeURIComponent('${encodedCarName}'), ${Number(car.public_price || 0)})"
-              data-pl="Sezony" data-en="Seasons">
-              ${isEn ? "Seasons" : "Sezony"}
+              data-pl="Ceny" data-en="Pricing">
+              ${isEn ? "Pricing" : "Ceny"}
         </span>
 
         <span class="action-link" 
@@ -4754,14 +4754,17 @@ async function setupAutocomplete(inputId, dropdownId, category) {
 // ==========================================
 
 let currentSeasonalCarId = null;
+let currentSeasonalBasePrice = 0;
 
 function closeSeasonalModal() {
     document.getElementById("seasonalModal").classList.remove("active");
     currentSeasonalCarId = null;
+    currentSeasonalBasePrice = 0;
 }
 
 async function openSeasonalModal(carId, carName, basePrice) {
     currentSeasonalCarId = carId;
+    currentSeasonalBasePrice = Math.max(0, Number(basePrice) || 0);
     const isEn = localStorage.getItem("partner_lang") === "en";
     
     const seasonalTitle = document.getElementById("seasonalModalTitle");
@@ -4777,10 +4780,13 @@ async function openSeasonalModal(carId, carName, basePrice) {
     seasonalTitle.innerText = isEn ? titleEn : titlePl;
     seasonalSub.innerText = isEn ? subEn : subPl;
     
-    document.getElementById("seasonPriceInput").value = ""; 
+    document.getElementById("seasonPriceInput").value = "";
+    document.getElementById("durationMinDaysInput").value = "";
+    document.getElementById("durationMaxDaysInput").value = "";
+    document.getElementById("durationDiscountInput").value = "";
     document.getElementById("seasonalModal").classList.add("active");
     
-    await loadSeasonalPrices();
+    await Promise.all([loadSeasonalPrices(), loadDurationDiscounts()]);
 }
 
 async function loadSeasonalPrices() {
@@ -4896,6 +4902,152 @@ async function deleteSeasonalPrice(seasonId) {
         window.showToast(isEn ? "Deletion error." : "Błąd usuwania.", "error");
     }
 }
+
+// ==========================================
+// --- RABATY ZA DŁUGOŚĆ WYNAJMU (LOCAL) ---
+// ==========================================
+
+async function loadDurationDiscounts() {
+    const tbody = document.getElementById("duration-discounts-table-body");
+    if (!tbody || !currentSeasonalCarId) return;
+
+    const isEn = localStorage.getItem("partner_lang") === "en";
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">${isEn ? "Loading..." : "Ładowanie..."}</td></tr>`;
+
+    try {
+        const { data, error } = await db
+            .from("rental_duration_discounts")
+            .select("id,min_days,max_days,discount_percent,active")
+            .eq("car_class_id", currentSeasonalCarId)
+            .eq("active", true)
+            .order("min_days", { ascending: true });
+
+        if (error) throw error;
+
+        tbody.innerHTML = "";
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--gray);">${isEn ? "No rental-duration discounts set." : "Brak rabatów za długość wynajmu."}</td></tr>`;
+            return;
+        }
+
+        data.forEach(tier => {
+            const minDays = Number(tier.min_days);
+            const maxDays = tier.max_days == null ? null : Number(tier.max_days);
+            const discount = Math.max(0, Math.min(80, Number(tier.discount_percent) || 0));
+            const examplePrice = currentSeasonalBasePrice > 0
+                ? (currentSeasonalBasePrice * (1 - discount / 100)).toFixed(2)
+                : "—";
+            const rangeLabel = maxDays == null
+                ? `${minDays}+ ${isEn ? "days" : "dni"}`
+                : `${minDays}–${maxDays} ${isEn ? "days" : "dni"}`;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="font-weight:800; color:var(--blue-dark);">${rangeLabel}</td>
+                <td style="font-weight:800; color:var(--green);">-${discount.toFixed(discount % 1 ? 2 : 0)}%</td>
+                <td>${examplePrice === "—" ? "—" : `${examplePrice} ${currentPartnerCurrency}/${isEn ? "day" : "dzień"}`}</td>
+                <td><span class="action-link reject" onclick="deleteDurationDiscount('${tier.id}')">${isEn ? "Delete" : "Usuń"}</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error("Duration pricing load error:", err);
+        tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">${isEn ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
+    }
+}
+
+async function saveDurationDiscount() {
+    if (!currentSeasonalCarId) return;
+
+    const isEn = localStorage.getItem("partner_lang") === "en";
+    const minDays = Number.parseInt(document.getElementById("durationMinDaysInput").value, 10);
+    const maxRaw = document.getElementById("durationMaxDaysInput").value.trim();
+    const maxDays = maxRaw === "" ? null : Number.parseInt(maxRaw, 10);
+    const discount = Number.parseFloat(document.getElementById("durationDiscountInput").value);
+
+    if (!Number.isInteger(minDays) || minDays < 1) {
+        window.showToast(isEn ? "Enter a valid minimum number of days." : "Podaj poprawną minimalną liczbę dni.", "error");
+        return;
+    }
+    if (maxDays !== null && (!Number.isInteger(maxDays) || maxDays < minDays)) {
+        window.showToast(isEn ? "Maximum days must be greater than or equal to minimum days." : "Maksymalna liczba dni musi być większa lub równa minimalnej.", "error");
+        return;
+    }
+    if (!Number.isFinite(discount) || discount < 0 || discount > 80) {
+        window.showToast(isEn ? "Discount must be between 0% and 80%." : "Rabat musi wynosić od 0% do 80%.", "error");
+        return;
+    }
+
+    try {
+        const { data: existing, error: existingError } = await db
+            .from("rental_duration_discounts")
+            .select("id,min_days,max_days")
+            .eq("car_class_id", currentSeasonalCarId)
+            .eq("active", true);
+
+        if (existingError) throw existingError;
+
+        const overlaps = (existing || []).some(tier => {
+            const existingMin = Number(tier.min_days);
+            const existingMax = tier.max_days == null ? Number.POSITIVE_INFINITY : Number(tier.max_days);
+            const newMax = maxDays == null ? Number.POSITIVE_INFINITY : maxDays;
+            return minDays <= existingMax && existingMin <= newMax;
+        });
+
+        if (overlaps) {
+            window.showToast(
+                isEn ? "This rental period overlaps an existing tier." : "Ten okres nachodzi na istniejący próg.",
+                "error"
+            );
+            return;
+        }
+
+        const { error } = await db.from("rental_duration_discounts").insert([{
+            car_class_id: currentSeasonalCarId,
+            min_days: minDays,
+            max_days: maxDays,
+            discount_percent: Number(discount.toFixed(2)),
+            active: true
+        }]);
+
+        if (error) throw error;
+
+        document.getElementById("durationMinDaysInput").value = "";
+        document.getElementById("durationMaxDaysInput").value = "";
+        document.getElementById("durationDiscountInput").value = "";
+        window.showToast(isEn ? "Rental duration tier added." : "Dodano próg długości wynajmu.", "success");
+        await loadDurationDiscounts();
+    } catch (err) {
+        console.error("Duration pricing save error:", err);
+        const overlap = String(err?.message || "").includes("DURATION_RANGE_OVERLAP");
+        window.showToast(
+            overlap
+                ? (isEn ? "This rental period overlaps an existing tier." : "Ten okres nachodzi na istniejący próg.")
+                : (isEn ? "Error saving rental duration tier." : "Błąd zapisu progu długości wynajmu."),
+            "error"
+        );
+    }
+}
+
+async function deleteDurationDiscount(tierId) {
+    const isEn = localStorage.getItem("partner_lang") === "en";
+    if (!confirm(isEn ? "Delete this rental duration tier?" : "Usunąć ten próg długości wynajmu?")) return;
+
+    try {
+        const { error } = await db
+            .from("rental_duration_discounts")
+            .delete()
+            .eq("id", tierId);
+
+        if (error) throw error;
+        window.showToast(isEn ? "Rental duration tier removed." : "Usunięto próg długości wynajmu.", "success");
+        await loadDurationDiscounts();
+    } catch (err) {
+        console.error("Duration pricing deletion error:", err);
+        window.showToast(isEn ? "Deletion error." : "Błąd usuwania.", "error");
+    }
+}
+
         // ==========================================
 // --- SYSTEM UMÓW PARTNERSKICH B2B ---
 // ==========================================
@@ -5363,6 +5515,49 @@ window.closeReviewModal = function() {
                     <tbody id="seasonal-table-body">
                         </tbody>
                 </table>
+            </div>
+
+            <div style="margin-top: 22px; background: #EFF6FF; border: 1px solid #BFDBFE; padding: 16px; border-radius: 12px;">
+                <h3 style="font-size: 14px; margin-bottom: 6px; color: var(--blue-dark);" data-pl="📅 Rabaty za długość wynajmu (opcjonalne)" data-en="📅 Rental duration discounts (optional)">📅 Rabaty za długość wynajmu (opcjonalne)</h3>
+                <p style="font-size: 12px; color: var(--gray); line-height: 1.5; margin-bottom: 14px;"
+                   data-pl="Ustaw jeden zestaw progów dla tego auta. Rabat zostanie automatycznie naliczony od aktualnej ceny bazowej lub sezonowej. Jeśli nie dodasz progów, obecny cennik działa bez zmian."
+                   data-en="Set one set of tiers for this vehicle. The discount is automatically applied to the active base or seasonal price. If you add no tiers, your current pricing remains unchanged.">
+                    Ustaw jeden zestaw progów dla tego auta. Rabat zostanie automatycznie naliczony od aktualnej ceny bazowej lub sezonowej.
+                </p>
+
+                <div class="form-row-3" style="margin-bottom: 10px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Od ilu dni" data-en="Min. days">Od ilu dni</label>
+                        <input type="number" id="durationMinDaysInput" min="1" step="1" placeholder="np. 6">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Do ilu dni" data-en="Max. days">Do ilu dni</label>
+                        <input type="number" id="durationMaxDaysInput" min="1" step="1" data-pl="Puste = bez limitu" data-en="Blank = no limit" placeholder="Puste = bez limitu">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label data-pl="Rabat %" data-en="Discount %">Rabat %</label>
+                        <input type="number" id="durationDiscountInput" min="0" max="80" step="0.01" placeholder="np. 20">
+                    </div>
+                </div>
+
+                <button class="btn-primary" style="width: 100%; margin-bottom: 14px;" onclick="saveDurationDiscount()"
+                        data-pl="Dodaj próg długości wynajmu" data-en="Add rental duration tier">
+                    Dodaj próg długości wynajmu
+                </button>
+
+                <div class="table-container" style="max-height: 230px; background:white;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th data-pl="Okres" data-en="Rental period">Okres</th>
+                                <th data-pl="Rabat" data-en="Discount">Rabat</th>
+                                <th data-pl="Przykład z ceny bazowej" data-en="Base-price example">Przykład z ceny bazowej</th>
+                                <th data-pl="Akcje" data-en="Actions">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="duration-discounts-table-body"></tbody>
+                    </table>
+                </div>
             </div>
 
         </div>
