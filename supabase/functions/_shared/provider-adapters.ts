@@ -1043,20 +1043,44 @@ export async function createProviderBooking(
     }
 
     const main = splitName(input.main_driver?.name);
+    const additional = input.additional_driver?.name
+      ? splitName(input.additional_driver.name)
+      : null;
+    const bookingDrivers = [
+      {
+        Name: main.name,
+        Surname: main.surname,
+        DriverAge: input.main_driver?.age ?? undefined,
+        Email: cleanText(input.client_email, 254),
+        Phone: cleanText(input.client_phone, 80),
+        SortOrder: 1,
+      },
+      ...(additional
+        ? [{
+          Name: additional.name,
+          Surname: additional.surname,
+          DriverAge: input.additional_driver?.age ?? undefined,
+          SortOrder: 2,
+        }]
+        : []),
+    ];
+    const pricelistId = positiveInteger(
+      quote.pricelist_id ?? availabilityCategory.PricelistId,
+    );
     const createBody: Record<string, unknown> = {
       BookAsCommissioner: true,
       CarCategoryIds: [categoryId],
+      PricelistIds: pricelistId ? [pricelistId] : undefined,
       OfficeOutId: officeOutId,
       OfficeInId: officeInId,
       DateTimeOut: localDateTime(input.pickup_date, input.pickup_time),
       DateTimeIn: localDateTime(input.return_date, input.return_time),
       AvailableOnly: true,
-      AvailabilityCarCategory: availabilityCategory,
-      Booking_Drivers: [{
-        Name: main.name,
-        Surname: main.surname,
-        DriverAge: input.main_driver?.age ?? undefined,
-      }],
+      NumberOfAdditionalDrivers: additional ? 1 : 0,
+      AvailabilityCarCategory: {
+        ...availabilityCategory,
+        Booking_Drivers: bookingDrivers,
+      },
     };
 
     const created = await renteonRequest<Record<string, unknown>>(
@@ -1072,6 +1096,7 @@ export async function createProviderBooking(
       ClientName: cleanText(input.main_driver?.name, 250),
       ClientEmail: cleanText(input.client_email, 254),
       ClientPhone: cleanText(input.client_phone, 80),
+      Booking_Drivers: bookingDrivers,
       VoucherNumber: cleanText(input.reservation_code, 100),
       OrderReference: cleanText(input.reservation_code, 100),
       IntegrationRemark: `Ride24 ${cleanText(input.reservation_code, 100) || input.ride24_booking_id}`,
