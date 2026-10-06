@@ -404,7 +404,7 @@ async function getCredentials(
   const { data, error } = await admin
     .from("partner_api_credentials")
     .select(
-      "partner_id, api_url, auth_type, api_key, api_secret, username, password, bearer_token, extra_headers, endpoints, timeout_ms, last_test_at, last_test_ok, last_sync_at, last_error, updated_at",
+      "partner_id, api_url, auth_type, api_key, api_secret, username, password, bearer_token, runtime_access_token, runtime_refresh_token, runtime_token_expires_at, extra_headers, endpoints, timeout_ms, last_test_at, last_test_ok, last_sync_at, last_error, updated_at",
     )
     .eq("partner_id", partnerId)
     .maybeSingle();
@@ -424,6 +424,9 @@ function credentialsForRequest(row: CredentialsRow | null): PartnerApiCredential
     username: row.username || null,
     password: row.password || null,
     bearer_token: row.bearer_token || null,
+    runtime_access_token: row.runtime_access_token || null,
+    runtime_refresh_token: row.runtime_refresh_token || null,
+    runtime_token_expires_at: row.runtime_token_expires_at || null,
     extra_headers: isRecord(row.extra_headers) ? row.extra_headers as Record<string, string> : {},
     endpoints: isRecord(row.endpoints) ? row.endpoints as Record<string, string> : {},
     timeout_ms: Number(row.timeout_ms || 10_000),
@@ -449,6 +452,9 @@ async function restoreCredentials(
     username: previous.username,
     password: previous.password,
     bearer_token: previous.bearer_token,
+    runtime_access_token: previous.runtime_access_token || null,
+    runtime_refresh_token: previous.runtime_refresh_token || null,
+    runtime_token_expires_at: previous.runtime_token_expires_at || null,
     extra_headers: previous.extra_headers || {},
     endpoints: previous.endpoints || {},
     timeout_ms: previous.timeout_ms || 10_000,
@@ -505,6 +511,9 @@ async function saveConfiguration(
     username: incomingUsername ?? previousCredentials?.username ?? null,
     password: incomingPassword ?? previousCredentials?.password ?? null,
     bearer_token: incomingBearer ?? previousCredentials?.bearer_token ?? null,
+    runtime_access_token: null,
+    runtime_refresh_token: null,
+    runtime_token_expires_at: null,
     endpoints,
     extra_headers: extraHeaders,
     timeout_ms: timeoutMs,
