@@ -9,6 +9,9 @@ export type PartnerApiCredentials = {
   username?: string | null;
   password?: string | null;
   bearer_token?: string | null;
+  runtime_access_token?: string | null;
+  runtime_refresh_token?: string | null;
+  runtime_token_expires_at?: string | null;
   extra_headers?: Record<string, string> | null;
   endpoints?: Record<string, string> | null;
   timeout_ms?: number | null;
@@ -339,7 +342,7 @@ export async function loadPartnerCredentials(
   const { data, error } = await admin
     .from("partner_api_credentials")
     .select(
-      "partner_id, api_url, auth_type, api_key, api_secret, username, password, bearer_token, extra_headers, endpoints, timeout_ms",
+      "partner_id, api_url, auth_type, api_key, api_secret, username, password, bearer_token, runtime_access_token, runtime_refresh_token, runtime_token_expires_at, extra_headers, endpoints, timeout_ms",
     )
     .eq("partner_id", normalizedPartnerId)
     .maybeSingle();
