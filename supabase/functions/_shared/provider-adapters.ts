@@ -459,7 +459,7 @@ async function renteonAccessToken(credentials: PartnerApiCredentials): Promise<s
 
 async function renteonRequest<T>(
   credentials: PartnerApiCredentials,
-  endpoint: keyof NonNullable<PartnerApiCredentials["endpoints"]> | string,
+  _endpoint: keyof NonNullable<PartnerApiCredentials["endpoints"]> | string,
   path: string,
   options: { method?: string; body?: unknown } = {},
 ): Promise<T> {
