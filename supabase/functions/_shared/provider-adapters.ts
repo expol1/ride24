@@ -877,8 +877,8 @@ export async function testProviderConnection(
   if (provider === "renteon") {
     await renteonRequest(
       credentials,
-      "locations",
-      providerEndpoint(provider, credentials, "locations"),
+      "health",
+      providerEndpoint(provider, credentials, "health"),
     );
     return;
   }
