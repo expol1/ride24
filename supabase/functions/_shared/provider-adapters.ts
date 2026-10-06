@@ -9,6 +9,7 @@ import {
   type ApiVehicleGroup,
   type PartnerApiCredentials,
 } from "./partner-api.ts";
+import { serviceClient } from "./ride24-security.ts";
 
 export type ProviderKey =
   | "ride24_standard_v1"
@@ -302,6 +303,48 @@ function renteonCacheKey(credentials: PartnerApiCredentials): string {
   ].join("|");
 }
 
+function persistedRenteonToken(
+  credentials: PartnerApiCredentials,
+): RenteonToken | null {
+  const accessToken = cleanText(credentials.runtime_access_token, 12_000);
+  const expiresAt = credentials.runtime_token_expires_at
+    ? Date.parse(credentials.runtime_token_expires_at)
+    : Number.NaN;
+
+  if (!accessToken || !Number.isFinite(expiresAt) || expiresAt <= Date.now() + 30_000) {
+    return null;
+  }
+
+  return {
+    accessToken,
+    refreshToken: cleanText(credentials.runtime_refresh_token, 12_000),
+    expiresAt,
+  };
+}
+
+async function persistRenteonToken(
+  credentials: PartnerApiCredentials,
+  token: RenteonToken,
+): Promise<void> {
+  try {
+    const admin = serviceClient();
+    const { error } = await admin
+      .from("partner_api_credentials")
+      .update({
+        runtime_access_token: token.accessToken,
+        runtime_refresh_token: token.refreshToken,
+        runtime_token_expires_at: new Date(token.expiresAt).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("partner_id", credentials.partner_id);
+
+    if (error) console.error("renteon runtime token cache write failed");
+  } catch {
+    // Runtime token persistence is an optimization. In-memory cache remains valid.
+    console.error("renteon runtime token cache write failed");
+  }
+}
+
 async function sha512Base64(value: string): Promise<string> {
   const bytes = new TextEncoder().encode(value);
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-512", bytes));
@@ -395,13 +438,23 @@ async function requestRenteonToken(
 
 async function renteonAccessToken(credentials: PartnerApiCredentials): Promise<string> {
   const key = renteonCacheKey(credentials);
-  const cached = renteonTokenCache.get(key);
+  const memoryToken = renteonTokenCache.get(key);
+  const persistedToken = persistedRenteonToken(credentials);
+  const cached = memoryToken && memoryToken.expiresAt > Date.now() + 30_000
+    ? memoryToken
+    : persistedToken;
+
   if (cached && cached.expiresAt > Date.now() + 30_000) {
+    renteonTokenCache.set(key, cached);
     return cached.accessToken;
   }
 
-  const next = await requestRenteonToken(credentials, cached?.refreshToken || null);
+  const refreshToken = memoryToken?.refreshToken
+    || cleanText(credentials.runtime_refresh_token, 12_000)
+    || null;
+  const next = await requestRenteonToken(credentials, refreshToken);
   renteonTokenCache.set(key, next);
+  await persistRenteonToken(credentials, next);
   return next.accessToken;
 }
 
