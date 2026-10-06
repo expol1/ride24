@@ -859,6 +859,12 @@ async function syncPartner(
   }
 }
 
+function ensureCommerciallyActive(partner: PartnerRow): void {
+  if (partner.account_status !== "active" || partner.active !== true) {
+    throw new Error("Partner nie ma aktywnego konta B2B");
+  }
+}
+
 async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise<void> {
   const credentials = await getCredentials(admin, partner.id);
   if (!credentials?.api_url) throw new Error("Brak kompletnej konfiguracji API partnera");
@@ -925,6 +931,7 @@ serve(async (req) => {
     }
 
     if (action === "test") {
+      ensureCommerciallyActive(partner);
       await testConnection(admin, partner);
       return jsonResponse(req, {
         success: true,
@@ -933,6 +940,7 @@ serve(async (req) => {
     }
 
     if (action === "sync") {
+      ensureCommerciallyActive(partner);
       const result = await syncPartner(admin, partner);
       return jsonResponse(req, {
         success: true,
@@ -942,6 +950,7 @@ serve(async (req) => {
     }
 
     if (action === "activate") {
+      ensureCommerciallyActive(partner);
       await activatePartner(admin, partner);
       return jsonResponse(req, {
         success: true,
