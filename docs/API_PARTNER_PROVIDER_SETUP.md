@@ -45,6 +45,8 @@ Provider adapters are used by:
 
 Partner API credentials remain server-side in `partner_api_credentials`.
 
+API-managed locations, vehicle groups and technical/commercial Partner fields are Ride24-Admin-controlled. The feature migration keeps LOCAL partner CRUD rules unchanged while making API-managed metadata read-only for the API Partner account.
+
 ## Stable metadata vs live data
 
 Stored locally in Ride24:
@@ -165,7 +167,9 @@ PICKUP LOCATION != RETURN LOCATION
 ## Deployment order
 
 1. Review branch diff.
-2. Apply migration `20261006120500_api_partner_runtime_tokens.sql`.
+2. Apply migrations in order:
+   - `20261006120500_api_partner_runtime_tokens.sql`
+   - `20261006121500_api_partner_admin_guard.sql`
 3. Deploy updated shared modules and Edge Functions.
 4. Deploy Admin UI and world-search country update.
 5. Smoke-test LOCAL search and LOCAL booking first.
