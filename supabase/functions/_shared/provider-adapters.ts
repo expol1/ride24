@@ -149,11 +149,23 @@ function arrayFrom(value: unknown, keys: string[] = []): unknown[] {
   if (Array.isArray(value)) return value;
   if (!isRecord(value)) return [];
 
-  for (const key of keys) {
+  const candidates = Array.from(new Set([
+    ...keys,
+    "data",
+    "Data",
+    "items",
+    "Items",
+    "results",
+    "Results",
+    "result",
+    "Result",
+  ]));
+
+  for (const key of candidates) {
     const candidate = value[key];
     if (Array.isArray(candidate)) return candidate;
     if (isRecord(candidate)) {
-      for (const nested of ["data", "items", "results"]) {
+      for (const nested of candidates) {
         if (Array.isArray(candidate[nested])) return candidate[nested] as unknown[];
       }
     }
