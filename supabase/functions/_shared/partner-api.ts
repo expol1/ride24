@@ -50,6 +50,7 @@ export type ApiVehicleGroup = {
   quote_expires_at?: string | null;
   price_is_total?: boolean;
   public_price_total?: number | null;
+  provider_quote_data?: unknown;
   seasonal_prices?: Array<{
     season_type: "LOW" | "MID" | "HIGH";
     start_month: number;
@@ -1021,6 +1022,7 @@ export function normalizeGroups(payload: unknown): ApiVehicleGroup[] {
       quote_expires_at: boundedText(item.quote_expires_at ?? item.expires_at, 80),
       price_is_total: item.price_is_total === true,
       public_price_total: finiteNumber(item.public_price_total),
+      provider_quote_data: sanitizePartnerPayload(item.provider_quote_data ?? {}, 60_000),
       seasonal_prices: seasonal,
     } satisfies ApiVehicleGroup];
   });
