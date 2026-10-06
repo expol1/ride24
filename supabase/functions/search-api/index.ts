@@ -7,13 +7,11 @@ import {
   serviceClient,
 } from "../_shared/ride24-security.ts";
 import {
-  endpointFor,
   loadPartnerCredentials,
-  normalizeGroups,
-  partnerApiRequest,
   sanitizePartnerPayload,
   type ApiVehicleGroup,
 } from "../_shared/partner-api.ts";
+import { searchProvider } from "../_shared/provider-adapters.ts";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -575,29 +573,25 @@ async function searchPartner(
     admin,
     pickupLocation.partner_id,
   );
-  const response = await partnerApiRequest<unknown>(
+  const groups = (await searchProvider(
+    partner.api_provider,
     credentials,
-    endpointFor(credentials, "search"),
     {
-      method: "POST",
-      body: {
-        pickup_location_id: pickupLocation.external_id || pickupLocation.id,
-        dropoff_location_id: dropoffLocation.external_id || dropoffLocation.id,
-        pickup_location: pickupCriteria.displayName
-          || pickupLocation.location_name
-          || "",
-        dropoff_location: dropoffCriteria.displayName
-          || dropoffLocation.location_name
-          || "",
-        pickup_date: pickupDate,
-        return_date: returnDate,
-        pickup_time: pickupTime,
-        return_time: returnTime,
-      },
+      pickup_location_id: pickupLocation.external_id || pickupLocation.id,
+      dropoff_location_id: dropoffLocation.external_id || dropoffLocation.id,
+      pickup_location: pickupCriteria.displayName
+        || pickupLocation.location_name
+        || "",
+      dropoff_location: dropoffCriteria.displayName
+        || dropoffLocation.location_name
+        || "",
+      pickup_date: pickupDate,
+      return_date: returnDate,
+      pickup_time: pickupTime,
+      return_time: returnTime,
+      currency: partnerCurrency,
     },
-  );
-
-  const groups = normalizeGroups(response)
+  ))
     .filter((group) => group.active !== false)
     .slice(0, MAX_GROUPS_PER_PARTNER);
   if (!groups.length) return [];
@@ -686,7 +680,7 @@ async function searchPartner(
 
     if (!reserveQuoteSlot(quoteBudget)) break;
 
-    const quoteReference = externalQuoteReference(group, response);
+    const quoteReference = externalQuoteReference(group, group);
     const { data: quote, error: quoteError } = await admin
       .from("api_quotes")
       .insert({
@@ -710,7 +704,8 @@ async function searchPartner(
           quote_reference: quoteReference,
           pickup_location_external_id: pickupLocation.external_id || null,
           dropoff_location_external_id: dropoffLocation.external_id || null,
-        }, 4_000),
+          provider_quote_data: group.provider_quote_data || {},
+        }, 80_000),
         expires_at: quoteExpiry(group),
       })
       .select("id")
