@@ -8,11 +8,13 @@ import {
   serviceClient,
 } from "../_shared/ride24-security.ts";
 import {
-  endpointFor,
   loadPartnerCredentials,
-  partnerApiRequest,
   sanitizePartnerPayload,
 } from "../_shared/partner-api.ts";
+import {
+  cancelProviderBooking,
+  createProviderBooking,
+} from "../_shared/provider-adapters.ts";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -47,6 +49,8 @@ type BookingRow = {
   main_driver_age: number | string | null;
   add_driver_name: string | null;
   add_driver_age: number | string | null;
+  client_email: string | null;
+  client_phone: string | null;
   partner_currency: string | null;
   partner_net_price_snapshot: number | string | null;
   final_price_snapshot: number | string | null;
@@ -67,6 +71,7 @@ type QuoteRow = {
   pickup_location_external_id: string | null;
   dropoff_location_external_id: string | null;
   external_group_id: string | null;
+  raw_response: unknown;
 };
 
 type ParsedPartnerResponse = {
@@ -227,6 +232,8 @@ function normalizeBooking(value: unknown): BookingRow | null {
         || typeof value.add_driver_age === "string"
       ? value.add_driver_age
       : null,
+    client_email: cleanText(value.client_email, 254),
+    client_phone: cleanText(value.client_phone, 80),
     partner_currency: cleanText(value.partner_currency, 10),
     partner_net_price_snapshot:
       typeof value.partner_net_price_snapshot === "number"
@@ -424,7 +431,7 @@ async function loadQuote(
   const { data, error } = await admin
     .from("api_quotes")
     .select(
-      "id, partner_id, car_class_id, booking_id, used_at, external_quote_reference, pickup_location_external_id, dropoff_location_external_id, external_group_id",
+      "id, partner_id, car_class_id, booking_id, used_at, external_quote_reference, pickup_location_external_id, dropoff_location_external_id, external_group_id, raw_response",
     )
     .eq("id", booking.api_quote_id)
     .eq("partner_id", booking.partner_id)
@@ -458,6 +465,7 @@ async function loadQuote(
       200,
     ),
     external_group_id: cleanText(data.external_group_id, 200),
+    raw_response: data.raw_response,
   };
 
   if (!quote.booking_id || !quote.used_at) {
@@ -490,15 +498,13 @@ async function tryCancelExternalBooking(
   if (!externalReference) return { cancelled: false, response: null };
 
   try {
-    const response = await partnerApiRequest<unknown>(
+    const response = await cancelProviderBooking(
+      booking.partner.api_provider,
       credentials,
-      endpointFor(credentials, "booking_cancel", { id: externalReference }),
+      externalReference,
       {
-        method: "POST",
-        body: {
-          idempotency_key: `ride24:cancel:${booking.id}`,
-          reason: cleanText(reason, 100) || "local_state_changed",
-        },
+        idempotency_key: `ride24:cancel:${booking.id}`,
+        reason: cleanText(reason, 100) || "local_state_changed",
       },
     );
 
@@ -633,6 +639,8 @@ serve(async (req) => {
         main_driver_age,
         add_driver_name,
         add_driver_age,
+        client_email,
+        client_phone,
         partner_currency,
         partner_net_price_snapshot,
         final_price_snapshot,
@@ -753,22 +761,24 @@ serve(async (req) => {
           age: finiteNumber(booking.add_driver_age),
         }
         : null,
+      client_email: booking.client_email,
+      client_phone: booking.client_phone,
       currency: booking.partner_currency,
       partner_amount: partnerAmount,
       customer_total: customerTotal,
       quote_reference: quote.external_quote_reference,
       response_deadline: responseDeadline.toISOString(),
+      provider_quote_data: isRecord(quote.raw_response)
+        ? quote.raw_response.provider_quote_data
+        : null,
     };
 
     let responsePayload: unknown;
     try {
-      responsePayload = await partnerApiRequest<unknown>(
+      responsePayload = await createProviderBooking(
+        booking.partner.api_provider,
         credentials,
-        endpointFor(credentials, "booking_create"),
-        {
-          method: "POST",
-          body: requestPayload,
-        },
+        requestPayload,
       );
     } catch (error) {
       const code = safePartnerErrorCode(error);
