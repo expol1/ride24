@@ -85,8 +85,8 @@ const PROVIDER_DEFAULT_ENDPOINTS: Partial<
 > = {
   renteon: {
     auth: "/token",
-    health: "/api/offices",
-    locations: "/api/offices",
+    health: "/api/ExSettings",
+    locations: "/api/ExOffice/Search",
     groups: "/api/ExCarCategory/Search",
     search: "/api/ExBooking/Availability",
     booking_create: "/api/ExBooking/Create",
@@ -900,6 +900,7 @@ export async function fetchProviderLocations(
       credentials,
       "locations",
       providerEndpoint(provider, credentials, "locations"),
+      { method: "POST", body: {} },
     );
     return normalizeRenteonLocations(credentials, payload);
   }
