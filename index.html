@@ -3753,6 +3753,17 @@ function setLang(lang) {
     if (typeof updateWorldExplorerLanguage === "function") {
         updateWorldExplorerLanguage();
     }
+
+    // Keep the shared pick-up / drop-off calendar in the selected language.
+    if (window.ride24DateRangePicker && window.flatpickr) {
+        const pickerLocale = lang === "pl"
+            ? (flatpickr.l10ns?.pl || "pl")
+            : (flatpickr.l10ns?.default || "default");
+        window.ride24DateRangePicker.set("locale", pickerLocale);
+        if (typeof window.updateRide24DateRangeHint === "function") {
+            window.updateRide24DateRangeHint();
+        }
+    }
 }
 
 function detectLang() {
@@ -4515,38 +4526,154 @@ function collectSearchData() {
     }
 
     let pickupPicker, dropPicker;
+
+    function formatRide24Date(date) {
+        return flatpickr.formatDate(date, "Y-m-d");
+    }
+
+    function parseRide24Date(value) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return null;
+        const parsed = flatpickr.parseDate(value, "Y-m-d");
+        return parsed instanceof Date && !Number.isNaN(parsed.getTime()) ? parsed : null;
+    }
+
+    window.updateRide24DateRangeHint = function() {
+        const hint = document.getElementById("ride24-date-range-hint");
+        if (!hint) return;
+
+        const lang = localStorage.getItem("lang") === "en" ? "en" : "pl";
+        const selectedCount = window.ride24DateRangePicker?.selectedDates?.length || 0;
+
+        if (selectedCount === 1) {
+            hint.textContent = lang === "en"
+                ? "Now select the drop-off date"
+                : "Teraz wybierz datę zwrotu";
+        } else {
+            hint.textContent = lang === "en"
+                ? "Select pick-up date → then drop-off date"
+                : "Wybierz datę odbioru → następnie datę zwrotu";
+        }
+    };
+
     function setDefaultDates() {
+        const pickupInput = document.getElementById("pickup-date");
+        const dropInput = document.getElementById("drop-date");
+        if (!pickupInput || !dropInput || !window.flatpickr) return;
+
         const today = new Date();
-        const todayStr = today.toISOString().split("T")[0];
-        const drop = new Date();
-        drop.setDate(drop.getDate() + 3);
-        const dropStr = drop.toISOString().split("T")[0];
+        today.setHours(0, 0, 0, 0);
+
+        const defaultDrop = new Date(today);
+        defaultDrop.setDate(defaultDrop.getDate() + 3);
+
+        pickupInput.value = formatRide24Date(today);
+        dropInput.value = formatRide24Date(defaultDrop);
+
+        let anchor = document.getElementById("ride24-date-range-anchor");
+        if (!anchor) {
+            anchor = document.createElement("input");
+            anchor.type = "text";
+            anchor.id = "ride24-date-range-anchor";
+            anchor.setAttribute("aria-hidden", "true");
+            anchor.tabIndex = -1;
+            anchor.style.position = "absolute";
+            anchor.style.width = "1px";
+            anchor.style.height = "1px";
+            anchor.style.opacity = "0";
+            anchor.style.pointerEvents = "none";
+            pickupInput.parentElement?.appendChild(anchor);
+        }
+
         const currentLang = localStorage.getItem("lang") === "en" ? "en" : "pl";
-        
-        pickupPicker = flatpickr("#pickup-date", {
-            locale: currentLang,
+        const pickerLocale = currentLang === "pl"
+            ? (flatpickr.l10ns?.pl || "pl")
+            : (flatpickr.l10ns?.default || "default");
+
+        if (window.ride24DateRangePicker?.destroy) {
+            window.ride24DateRangePicker.destroy();
+        }
+
+        const rangePicker = flatpickr(anchor, {
+            locale: pickerLocale,
+            mode: "range",
             minDate: "today",
-            defaultDate: todayStr,
+            defaultDate: [today, defaultDrop],
             dateFormat: "Y-m-d",
             disableMobile: true,
+            clickOpens: false,
+            positionElement: pickupInput,
+            onReady: function(selectedDates, dateStr, instance) {
+                const hint = document.createElement("div");
+                hint.id = "ride24-date-range-hint";
+                hint.style.padding = "10px 12px";
+                hint.style.borderTop = "1px solid #E2E8F0";
+                hint.style.fontSize = "12px";
+                hint.style.fontWeight = "700";
+                hint.style.textAlign = "center";
+                hint.style.color = "#1E3A8A";
+                hint.style.background = "#F8FAFC";
+                instance.calendarContainer.appendChild(hint);
+                window.updateRide24DateRangeHint();
+            },
             onChange: function(selectedDates, dateStr, instance) {
-             
-                if (dropPicker && selectedDates.length > 0) {
-                    const pickupDate = selectedDates[0];
-                    dropPicker.set('minDate', dateStr);
-                    const autoDropDate = new Date(pickupDate);
-                    autoDropDate.setDate(autoDropDate.getDate() + 3);
- 
-                    dropPicker.setDate(autoDropDate);
+                if (selectedDates.length >= 1) {
+                    pickupInput.value = formatRide24Date(selectedDates[0]);
                 }
+
+                if (selectedDates.length === 1) {
+                    // Stay in the same calendar and wait for the return date.
+                    dropInput.value = "";
+                } else if (selectedDates.length >= 2) {
+                    dropInput.value = formatRide24Date(selectedDates[1]);
+                    syncDropTime();
+                }
+
+                window.updateRide24DateRangeHint();
+            },
+            onClose: function(selectedDates) {
+                // If the user leaves after selecting only pick-up, keep search valid
+                // by restoring a sensible +3 day return date.
+                if (selectedDates.length === 1) {
+                    const autoReturn = new Date(selectedDates[0]);
+                    autoReturn.setDate(autoReturn.getDate() + 3);
+                    dropInput.value = formatRide24Date(autoReturn);
+                    rangePicker.setDate([selectedDates[0], autoReturn], false);
+                }
+                window.updateRide24DateRangeHint();
             }
         });
-        dropPicker = flatpickr("#drop-date", {
-            locale: currentLang,
-            minDate: "today",
-            defaultDate: dropStr,
-            dateFormat: "Y-m-d",
-            disableMobile: true
+
+        window.ride24DateRangePicker = rangePicker;
+        pickupPicker = rangePicker;
+        dropPicker = rangePicker;
+
+        pickupInput.addEventListener("click", function(e) {
+            e.preventDefault();
+
+            rangePicker.set("minDate", "today");
+            rangePicker.config.positionElement = pickupInput;
+
+            const pickupDate = parseRide24Date(pickupInput.value);
+            const returnDate = parseRide24Date(dropInput.value);
+            if (pickupDate && returnDate && returnDate > pickupDate) {
+                rangePicker.setDate([pickupDate, returnDate], false);
+                rangePicker.jumpToDate(pickupDate);
+            }
+
+            rangePicker.open();
+            window.updateRide24DateRangeHint();
+        });
+
+        dropInput.addEventListener("click", function(e) {
+            e.preventDefault();
+
+            const pickupDate = parseRide24Date(pickupInput.value) || today;
+            rangePicker.set("minDate", pickupDate);
+            rangePicker.config.positionElement = dropInput;
+            rangePicker.setDate([pickupDate], false);
+            rangePicker.jumpToDate(pickupDate);
+            rangePicker.open();
+            window.updateRide24DateRangeHint();
         });
     }
 
