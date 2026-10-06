@@ -275,6 +275,59 @@ function splitName(value: unknown): { name: string; surname: string } {
   };
 }
 
+function percentageDiscount(publicTotal: number, partnerAmount: number): number {
+  if (!Number.isFinite(publicTotal) || publicTotal <= 0) return 0;
+  if (!Number.isFinite(partnerAmount) || partnerAmount < 0) return 0;
+  const raw = (1 - partnerAmount / publicTotal) * 100;
+  return Number(Math.max(0, Math.min(100, raw)).toFixed(6));
+}
+
+function providerBookingTotal(payload: unknown): number | null {
+  const row = firstRecord(payload);
+  if (!row) return null;
+
+  for (const value of [
+    row.Total,
+    row.total,
+    row.TotalLeftForPayment,
+    row.total_left_for_payment,
+    row.Amount,
+    row.amount,
+  ]) {
+    const number = positiveNumber(value);
+    if (number !== null) return number;
+  }
+
+  const rent = finiteNumber(row.TotalRent ?? row.total_rent);
+  const additions = finiteNumber(row.TotalAddition ?? row.total_addition);
+  const insurance = finiteNumber(row.TotalInsurance ?? row.total_insurance);
+  if (rent !== null) {
+    return Number((
+      rent
+      + Math.max(0, additions || 0)
+      + Math.max(0, insurance || 0)
+    ).toFixed(2));
+  }
+
+  return null;
+}
+
+function assertProviderPartnerAmount(
+  provider: ProviderKey,
+  actual: number | null,
+  expected: number | null | undefined,
+): void {
+  if (expected == null || !Number.isFinite(expected) || expected < 0) return;
+  if (actual == null || !Number.isFinite(actual)) {
+    throw new Error(`PARTNER_API_ERROR:${provider.toUpperCase()}:PRICE_UNVERIFIED`);
+  }
+
+  const tolerance = Math.max(0.05, Math.abs(expected) * 0.001);
+  if (Math.abs(actual - expected) > tolerance) {
+    throw new Error(`PARTNER_API_ERROR:${provider.toUpperCase()}:PRICE_MISMATCH`);
+  }
+}
+
 function canonicalStatus(value: unknown): "pending" | "confirmed" | "rejected" | "cancelled" {
   const status = String(value || "").trim().toLowerCase();
   if (["confirmed", "accepted", "approved", "reserved", "active", "booked", "ok"].includes(status)) {
@@ -1055,6 +1108,18 @@ export async function createProviderBooking(
       throw new Error("PARTNER_API_ERROR:RENTEON_QUOTE_MAPPING");
     }
 
+    const providerPublicTotal = positiveNumber(
+      quote.total_amount ?? availabilityCategory.Amount,
+    );
+    const ride24PartnerAmount = input.partner_amount == null
+      ? null
+      : Number(input.partner_amount);
+    const ride24PartnerDiscount = providerPublicTotal !== null
+        && ride24PartnerAmount !== null
+        && Number.isFinite(ride24PartnerAmount)
+      ? percentageDiscount(providerPublicTotal, ride24PartnerAmount)
+      : null;
+
     const main = splitName(input.main_driver?.name);
     const additional = input.additional_driver?.name
       ? splitName(input.additional_driver.name)
@@ -1092,6 +1157,8 @@ export async function createProviderBooking(
       NumberOfAdditionalDrivers: additional ? 1 : 0,
       AvailabilityCarCategory: {
         ...availabilityCategory,
+        DiscountPercentage: ride24PartnerDiscount
+          ?? availabilityCategory.DiscountPercentage,
         Booking_Drivers: bookingDrivers,
       },
     };
@@ -1101,6 +1168,12 @@ export async function createProviderBooking(
       "booking_create",
       providerEndpoint(provider, credentials, "booking_create"),
       { method: "POST", body: createBody },
+    );
+
+    assertProviderPartnerAmount(
+      provider,
+      providerBookingTotal(created),
+      ride24PartnerAmount,
     );
 
     const saveBody: Record<string, unknown> = {
@@ -1127,6 +1200,28 @@ export async function createProviderBooking(
     );
 
     const reference = cleanText(saved.Number ?? saved.number ?? saved.Id ?? saved.id, 500);
+    try {
+      assertProviderPartnerAmount(
+        provider,
+        providerBookingTotal(saved),
+        ride24PartnerAmount,
+      );
+    } catch (priceError) {
+      if (reference) {
+        try {
+          await renteonRequest<unknown>(
+            credentials,
+            "booking_cancel",
+            providerEndpoint(provider, credentials, "booking_cancel", { id: reference }),
+            { method: "DELETE" },
+          );
+        } catch {
+          console.error("renteon price mismatch cancellation failed");
+        }
+      }
+      throw priceError;
+    }
+
     const status = saved.IsCancelled === true
       ? "rejected"
       : saved.IsOnRequest === true
