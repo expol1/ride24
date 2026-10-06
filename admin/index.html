@@ -2390,7 +2390,9 @@ const data = {
     region: document.getElementById("new-p-region").value.trim(),
     phone: document.getElementById("new-p-phone").value.trim(),
     currency,
-    discount_percent: parseFloat(document.getElementById("new-p-discount").value) || 15,
+    discount_percent: Number.isFinite(Number(document.getElementById("new-p-discount").value))
+        ? Number(document.getElementById("new-p-discount").value)
+        : 15,
 
     // ===== NOWE POLA =====
 
@@ -2411,7 +2413,10 @@ const data = {
                 api_key: document.getElementById("new-p-api-key").value.trim(),
                 api_secret: document.getElementById("new-p-api-secret").value.trim(),
                 username: document.getElementById("new-p-api-user").value.trim(),
-                password: document.getElementById("new-p-api-password").value.trim()
+                password: document.getElementById("new-p-api-password").value.trim(),
+                bearer_token: document.getElementById("new-p-api-bearer").value.trim(),
+                auth_type: getApiProviderPreset(document.getElementById("new-p-api-provider").value).auth_type,
+                endpoints: getApiProviderPreset(document.getElementById("new-p-api-provider").value).endpoints
             }
             : null
 };
@@ -2480,6 +2485,13 @@ document.getElementById("new-p-rep-surname").value = "";
         document.getElementById("new-p-country").value = "";
         document.getElementById("new-p-region").value = "";
         document.getElementById("new-p-discount").value = "15";
+        document.getElementById("new-p-api-provider").value = "";
+        document.getElementById("new-p-api-url").value = "";
+        document.getElementById("new-p-api-key").value = "";
+        document.getElementById("new-p-api-secret").value = "";
+        document.getElementById("new-p-api-user").value = "";
+        document.getElementById("new-p-api-password").value = "";
+        document.getElementById("new-p-api-bearer").value = "";
 
         loadPartnersData();
         
@@ -2512,6 +2524,111 @@ window.togglePartnerType = function () {
     }
 };
 
+
+const API_PROVIDER_PRESETS = {
+    renteon: {
+        auth_type: "renteon_oauth",
+        api_url_placeholder: "https://provider-host.example/en",
+        endpoints: {
+            auth: "/token",
+            health: "/api/ExSettings",
+            locations: "/api/ExOffice/Search",
+            groups: "/api/ExCarCategory/Search",
+            search: "/api/ExBooking/Availability",
+            booking_create: "/api/ExBooking/Create",
+            booking_save: "/api/ExBooking/Save",
+            booking_status: "/api/ExBooking/{id}",
+            booking_cancel: "/api/ExBooking/Cancel/{id}"
+        }
+    },
+    easy_web_rent: {
+        auth_type: "bearer",
+        api_url_placeholder: "https://partner.easywebrent.example",
+        endpoints: {
+            auth: "/token",
+            health: "/api/v1/locations",
+            locations: "/api/v1/locations",
+            groups: "/api/v1/vehicle-classes",
+            search: "/api/v1/availability",
+            booking_create: "/api/v1/reservations",
+            booking_save: "/api/v1/reservations",
+            booking_status: "/api/v1/reservations/{id}",
+            booking_cancel: "/api/v1/reservations/{id}/cancel"
+        }
+    },
+    ride24_standard_v1: {
+        auth_type: "custom_headers",
+        api_url_placeholder: "https://api.partner.example",
+        endpoints: {
+            auth: "/token",
+            health: "/health",
+            locations: "/locations",
+            groups: "/vehicle-groups",
+            search: "/search",
+            booking_create: "/bookings",
+            booking_save: "/bookings",
+            booking_status: "/bookings/{id}",
+            booking_cancel: "/bookings/{id}/cancel"
+        }
+    },
+    custom: {
+        auth_type: "custom_headers",
+        api_url_placeholder: "https://api.partner.example",
+        endpoints: {
+            auth: "/token",
+            health: "/health",
+            locations: "/locations",
+            groups: "/vehicle-groups",
+            search: "/search",
+            booking_create: "/bookings",
+            booking_save: "/bookings",
+            booking_status: "/bookings/{id}",
+            booking_cancel: "/bookings/{id}/cancel"
+        }
+    }
+};
+
+function getApiProviderPreset(provider) {
+    return API_PROVIDER_PRESETS[provider] || API_PROVIDER_PRESETS.custom;
+}
+
+window.applyNewApiProviderPreset = function() {
+    const provider = document.getElementById("new-p-api-provider")?.value || "custom";
+    const preset = getApiProviderPreset(provider);
+    const url = document.getElementById("new-p-api-url");
+    if (url) url.placeholder = preset.api_url_placeholder;
+};
+
+window.applyApiProviderPreset = function() {
+    const provider = document.getElementById("api-provider")?.value || "custom";
+    const preset = getApiProviderPreset(provider);
+    const auth = document.getElementById("api-auth-type");
+    const url = document.getElementById("api-url");
+    if (auth) auth.value = preset.auth_type;
+    if (url) url.placeholder = preset.api_url_placeholder;
+
+    const mapping = {
+        auth: "api-endpoint-auth",
+        health: "api-endpoint-health",
+        locations: "api-endpoint-locations",
+        groups: "api-endpoint-groups",
+        search: "api-endpoint-search",
+        booking_create: "api-endpoint-booking-create",
+        booking_save: "api-endpoint-booking-save",
+        booking_status: "api-endpoint-booking-status",
+        booking_cancel: "api-endpoint-booking-cancel"
+    };
+    Object.entries(mapping).forEach(([key, id]) => {
+        const input = document.getElementById(id);
+        if (input) input.value = preset.endpoints[key] || "";
+    });
+
+    const keyLabel = document.getElementById("api-key-label");
+    const secretLabel = document.getElementById("api-secret-label");
+    if (keyLabel) keyLabel.textContent = provider === "renteon" ? "Client ID (API KEY)" : "API KEY";
+    if (secretLabel) secretLabel.textContent = provider === "renteon" ? "Client Secret (SECRET)" : "SECRET";
+};
+
 async function callApiPartnerAdmin(payload) {
     const { data, error } = await db.functions.invoke("api-partner-admin", { body: payload });
     if (error) throw new Error(error.message || "api-partner-admin failed.");
@@ -2541,13 +2658,21 @@ window.openApiConfiguration = async function(partnerId) {
         document.getElementById("api-password").value = "";
         document.getElementById("api-bearer").value = "";
         const endpoints = config.endpoints || {};
-        document.getElementById("api-endpoint-health").value = endpoints.health || "/health";
-        document.getElementById("api-endpoint-locations").value = endpoints.locations || "/locations";
-        document.getElementById("api-endpoint-groups").value = endpoints.groups || "/vehicle-groups";
-        document.getElementById("api-endpoint-search").value = endpoints.search || "/search";
-        document.getElementById("api-endpoint-booking-create").value = endpoints.booking_create || "/bookings";
-        document.getElementById("api-endpoint-booking-status").value = endpoints.booking_status || "/bookings/{id}";
-        document.getElementById("api-endpoint-booking-cancel").value = endpoints.booking_cancel || "/bookings/{id}/cancel";
+        const preset = getApiProviderPreset(config.provider || "custom");
+        document.getElementById("api-endpoint-auth").value = endpoints.auth || preset.endpoints.auth || "/token";
+        document.getElementById("api-endpoint-health").value = endpoints.health || preset.endpoints.health || "/health";
+        document.getElementById("api-endpoint-locations").value = endpoints.locations || preset.endpoints.locations || "/locations";
+        document.getElementById("api-endpoint-groups").value = endpoints.groups || preset.endpoints.groups || "/vehicle-groups";
+        document.getElementById("api-endpoint-search").value = endpoints.search || preset.endpoints.search || "/search";
+        document.getElementById("api-endpoint-booking-create").value = endpoints.booking_create || preset.endpoints.booking_create || "/bookings";
+        document.getElementById("api-endpoint-booking-save").value = endpoints.booking_save || preset.endpoints.booking_save || "/bookings";
+        document.getElementById("api-endpoint-booking-status").value = endpoints.booking_status || preset.endpoints.booking_status || "/bookings/{id}";
+        document.getElementById("api-endpoint-booking-cancel").value = endpoints.booking_cancel || preset.endpoints.booking_cancel || "/bookings/{id}/cancel";
+        document.getElementById("api-url").placeholder = preset.api_url_placeholder;
+        const keyLabel = document.getElementById("api-key-label");
+        const secretLabel = document.getElementById("api-secret-label");
+        if (keyLabel) keyLabel.textContent = (config.provider === "renteon") ? "Client ID (API KEY)" : "API KEY";
+        if (secretLabel) secretLabel.textContent = (config.provider === "renteon") ? "Client Secret (SECRET)" : "SECRET";
         document.getElementById("api-timeout").value = Number(config.timeout_ms) || 10000;
         document.getElementById("api-key").placeholder = config.api_key_configured ? "Skonfigurowany \u2014 puste = bez zmian" : "";
         document.getElementById("api-secret").placeholder = config.api_secret_configured ? "Skonfigurowany \u2014 puste = bez zmian" : "";
@@ -2580,11 +2705,13 @@ window.saveApiConfiguration = async function(showAlert = true) {
         bearer_token: document.getElementById("api-bearer").value.trim(),
         timeout_ms: Number(document.getElementById("api-timeout").value),
         endpoints: {
+            auth: document.getElementById("api-endpoint-auth").value.trim(),
             health: document.getElementById("api-endpoint-health").value.trim(),
             locations: document.getElementById("api-endpoint-locations").value.trim(),
             groups: document.getElementById("api-endpoint-groups").value.trim(),
             search: document.getElementById("api-endpoint-search").value.trim(),
             booking_create: document.getElementById("api-endpoint-booking-create").value.trim(),
+            booking_save: document.getElementById("api-endpoint-booking-save").value.trim(),
             booking_status: document.getElementById("api-endpoint-booking-status").value.trim(),
             booking_cancel: document.getElementById("api-endpoint-booking-cancel").value.trim()
         },
@@ -5338,7 +5465,7 @@ async function connectX() {
     <datalist id="ride24-currency-codes">
         <option value="EUR"><option value="USD"><option value="PLN"><option value="TRY">
         <option value="EGP"><option value="IDR"><option value="THB"><option value="AED">
-        <option value="MAD"><option value="MXN"><option value="BRL"><option value="GBP">
+        <option value="MAD"><option value="MXN"><option value="BRL"><option value="GBP"><option value="BAM">
     </datalist>
     <div id="new-p-currency-help" style="font-size:11px; color:#64748B; margin-top:5px;">Partner lokalny: EUR, USD lub PLN.</div>
 </div>
@@ -5377,12 +5504,12 @@ async function connectX() {
 
         <div class="form-group">
             <label>Provider</label>
-            <select id="new-p-api-provider">
+            <select id="new-p-api-provider" onchange="applyNewApiProviderPreset()">
                 <option value="">Wybierz...</option>
+                <option value="renteon">Renteon</option>
+                <option value="easy_web_rent">Easy Web Rent</option>
+                <option value="ride24_standard_v1">Ride24 Standard API v1</option>
                 <option value="custom">Custom API</option>
-                <option value="carwiz">Carwiz</option>
-                <option value="avis">Avis</option>
-                <option value="hertz">Hertz</option>
             </select>
         </div>
 
@@ -5409,6 +5536,11 @@ async function connectX() {
         <div class="form-group">
             <label>Password</label>
             <input id="new-p-api-password" type="password">
+        </div>
+
+        <div class="form-group">
+            <label>Bearer token</label>
+            <input id="new-p-api-bearer" type="password" autocomplete="new-password">
         </div>
 
     </div>
@@ -5450,7 +5582,9 @@ async function connectX() {
 
                 <div class="form-group">
                     <label>Provider</label>
-                    <select id="api-provider">
+                    <select id="api-provider" onchange="applyApiProviderPreset()">
+                        <option value="renteon">Renteon</option>
+                        <option value="easy_web_rent">Easy Web Rent</option>
                         <option value="ride24_standard_v1">Ride24 Standard API v1</option>
                         <option value="custom">Custom API</option>
                     </select>
@@ -5464,6 +5598,7 @@ async function connectX() {
                 <div class="form-group">
                     <label>Autoryzacja</label>
                     <select id="api-auth-type">
+                        <option value="renteon_oauth">Renteon OAuth 2.0</option>
                         <option value="custom_headers">API Key / Secret</option>
                         <option value="basic">Basic (login / has&#322;o)</option>
                         <option value="bearer">Bearer token</option>
@@ -5471,12 +5606,12 @@ async function connectX() {
                 </div>
 
                 <div class="form-group">
-                    <label>API KEY</label>
+                    <label id="api-key-label">API KEY</label>
                     <input id="api-key" autocomplete="off">
                 </div>
 
                 <div class="form-group">
-                    <label>SECRET</label>
+                    <label id="api-secret-label">SECRET</label>
                     <input id="api-secret" type="password" autocomplete="new-password">
                 </div>
 
@@ -5504,11 +5639,13 @@ async function connectX() {
                     <h3 style="margin:0 0 12px;">Endpointy API</h3>
                     <p style="font-size:12px;color:#64748B;margin:0 0 14px;">Dla Ride24 Standard pozostaw warto&#347;ci domy&#347;lne. W &#347;cie&#380;kach statusu i anulowania u&#380;yj znacznika <code>{id}</code>.</p>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div class="form-group"><label>Autoryzacja / token</label><input id="api-endpoint-auth" value="/token"></div>
                         <div class="form-group"><label>Test / health</label><input id="api-endpoint-health" value="/health"></div>
                         <div class="form-group"><label>Lokalizacje</label><input id="api-endpoint-locations" value="/locations"></div>
                         <div class="form-group"><label>Grupy pojazd&#243;w</label><input id="api-endpoint-groups" value="/vehicle-groups"></div>
                         <div class="form-group"><label>Wyszukiwanie</label><input id="api-endpoint-search" value="/search"></div>
                         <div class="form-group"><label>Utworzenie rezerwacji</label><input id="api-endpoint-booking-create" value="/bookings"></div>
+                        <div class="form-group"><label>Zapis rezerwacji</label><input id="api-endpoint-booking-save" value="/bookings/save"></div>
                         <div class="form-group"><label>Status rezerwacji</label><input id="api-endpoint-booking-status" value="/bookings/{id}"></div>
                         <div class="form-group"><label>Anulowanie rezerwacji</label><input id="api-endpoint-booking-cancel" value="/bookings/{id}/cancel"></div>
                     </div>

@@ -10,11 +10,10 @@ import {
   userScopedClient,
 } from "../_shared/ride24-security.ts";
 import {
-  endpointFor,
   loadPartnerCredentials,
-  partnerApiRequest,
   sanitizePartnerPayload,
 } from "../_shared/partner-api.ts";
+import { cancelProviderBooking } from "../_shared/provider-adapters.ts";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -351,17 +350,13 @@ async function cancelAtApi(
       admin,
       booking.partner_id,
     );
-    const response = await partnerApiRequest<unknown>(
+    const response = await cancelProviderBooking(
+      booking.partner.api_provider,
       credentials,
-      endpointFor(credentials, "booking_cancel", {
-        id: booking.api_booking_reference,
-      }),
+      booking.api_booking_reference,
       {
-        method: "POST",
-        body: {
-          idempotency_key: `ride24:cancel:${booking.id}`,
-          reason: "client_cancelled",
-        },
+        idempotency_key: `ride24:cancel:${booking.id}`,
+        reason: "client_cancelled",
       },
     );
 

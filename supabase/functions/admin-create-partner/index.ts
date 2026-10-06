@@ -35,10 +35,10 @@ type ParsedPartnerInput = {
   currency: string;
   discountPercent: number;
   providerType: "local" | "api";
-  apiProvider: "ride24_standard_v1" | "custom" | null;
+  apiProvider: "ride24_standard_v1" | "custom" | "renteon" | "easy_web_rent" | null;
   apiSettings: {
     apiUrl: string | null;
-    authType: "custom_headers" | "basic" | "bearer";
+    authType: "custom_headers" | "basic" | "bearer" | "renteon_oauth";
     apiKey: string | null;
     apiSecret: string | null;
     username: string | null;
@@ -57,14 +57,16 @@ const MAX_HEADER_VALUE_LENGTH = 2_000;
 
 const LOCAL_CURRENCIES = new Set(["EUR", "USD", "PLN"]);
 const PROVIDER_TYPES = new Set(["local", "api"]);
-const API_PROVIDERS = new Set(["ride24_standard_v1", "custom"]);
-const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer"]);
+const API_PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "easy_web_rent"]);
+const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer", "renteon_oauth"]);
 const ENDPOINT_NAMES = new Set([
+  "auth",
   "health",
   "locations",
   "groups",
   "search",
   "booking_create",
+  "booking_save",
   "booking_status",
   "booking_cancel",
 ]);
@@ -334,7 +336,7 @@ function parseInput(body: Record<string, unknown>): ParsedPartnerInput {
   if (providerType === "api") {
     const rawApiProvider = String(body.api_provider || "custom");
     apiProvider = API_PROVIDERS.has(rawApiProvider)
-      ? rawApiProvider as "ride24_standard_v1" | "custom"
+      ? rawApiProvider as "ride24_standard_v1" | "custom" | "renteon" | "easy_web_rent"
       : "custom";
 
     const settings = isRecord(body.api_settings)
@@ -348,10 +350,15 @@ function parseInput(body: Record<string, unknown>): ParsedPartnerInput {
     );
     const apiUrl = rawApiUrl ? assertSafeApiUrl(rawApiUrl) : null;
 
-    const rawAuthType = String(settings.auth_type || "custom_headers");
-    const authType = AUTH_TYPES.has(rawAuthType)
-      ? rawAuthType as "custom_headers" | "basic" | "bearer"
+    const providerDefaultAuth = apiProvider === "renteon"
+      ? "renteon_oauth"
+      : apiProvider === "easy_web_rent"
+      ? "bearer"
       : "custom_headers";
+    const rawAuthType = String(settings.auth_type || providerDefaultAuth);
+    const authType = AUTH_TYPES.has(rawAuthType)
+      ? rawAuthType as "custom_headers" | "basic" | "bearer" | "renteon_oauth"
+      : providerDefaultAuth as "custom_headers" | "basic" | "bearer" | "renteon_oauth";
 
     apiSettings = {
       apiUrl,
