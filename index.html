@@ -2999,10 +2999,18 @@
   --r24p7-text: #2c466d;
   box-sizing: border-box;
   padding: 40px 20px 50px;
+  /* Seamless continuation of the section above: start from the same navy,
+     then deepen the background gradually instead of creating a hard horizontal cut. */
   background:
-    radial-gradient(circle at 16% -16%, rgba(45,126,255,.20), transparent 34%),
-    radial-gradient(circle at 86% 110%, rgba(111,224,0,.12), transparent 30%),
-    linear-gradient(180deg,#17375f 0%,#102846 48%,#0a172b 100%);
+    radial-gradient(circle at 16% -16%, rgba(45,126,255,.18), transparent 38%),
+    radial-gradient(circle at 86% 110%, rgba(111,224,0,.11), transparent 34%),
+    linear-gradient(180deg,
+      #0F172A 0%,
+      #10213A 10%,
+      #153255 26%,
+      #17375F 38%,
+      #102846 65%,
+      #0A172B 100%);
 }
 #ride24-android.r24p7 *,
 #ride24-android.r24p7 *::before,
@@ -3023,15 +3031,19 @@
   border: 1px solid rgba(219,234,254,.96);
   border-radius: 30px;
   background:
+    /* Longer, softer fade from the white copy area into the photo. */
     linear-gradient(90deg,
       rgba(255,255,255,1) 0%,
-      rgba(255,255,255,.995) 27%,
-      rgba(255,255,255,.94) 37%,
-      rgba(248,252,255,.76) 45%,
-      rgba(238,248,255,.45) 54%,
-      rgba(225,241,252,.20) 66%,
-      rgba(218,238,251,.08) 82%,
-      rgba(210,234,250,.04) 100%),
+      rgba(255,255,255,1) 18%,
+      rgba(255,255,255,.995) 28%,
+      rgba(253,254,255,.97) 36%,
+      rgba(250,253,255,.90) 44%,
+      rgba(244,250,255,.76) 52%,
+      rgba(235,246,253,.55) 60%,
+      rgba(226,241,251,.34) 68%,
+      rgba(218,238,250,.18) 76%,
+      rgba(212,235,249,.08) 86%,
+      rgba(208,233,248,.025) 100%),
     linear-gradient(180deg,rgba(255,255,255,.04),rgba(6,40,82,.10)),
     url('tlo.png') 70% 50% / cover no-repeat;
   box-shadow:
@@ -3461,6 +3473,22 @@ html[lang="pl"] #ride24-android.r24p7 .r24p7-en { display:none; }
 }
 #ride24-android.r24p7 .r24p7-slogan.top { top:12px; }
 #ride24-android.r24p7 .r24p7-slogan.bottom { right:0; bottom:10px; transform:rotate(-7deg); }
+
+/* At tablet/mobile widths the preceding section ends in Ride24 blue,
+   so continue from that exact tone as well. */
+@media (max-width:1100px) {
+  #ride24-android.r24p7 {
+    background:
+      radial-gradient(circle at 16% -16%, rgba(45,126,255,.16), transparent 40%),
+      radial-gradient(circle at 86% 110%, rgba(111,224,0,.10), transparent 34%),
+      linear-gradient(180deg,
+        #1E3A8A 0%,
+        #17345C 24%,
+        #112B4A 48%,
+        #0D2039 72%,
+        #0A172B 100%);
+  }
+}
 
 @media (max-width:1040px) {
   #ride24-android.r24p7 .r24p7-card {
