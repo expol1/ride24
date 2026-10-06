@@ -8,12 +8,13 @@ import {
 } from "../_shared/ride24-security.ts";
 import {
   assertSafeApiUrl,
-  endpointFor,
-  normalizeGroups,
-  normalizeLocations,
-  partnerApiRequest,
   type PartnerApiCredentials,
 } from "../_shared/partner-api.ts";
+import {
+  fetchProviderGroups,
+  fetchProviderLocations,
+  testProviderConnection,
+} from "../_shared/provider-adapters.ts";
 
 type AdminClient = Awaited<ReturnType<typeof requireAdmin>>["admin"];
 type Action = "get" | "save" | "test" | "sync" | "activate" | "deactivate";
@@ -78,14 +79,16 @@ const ACTIONS = new Set<Action>([
   "activate",
   "deactivate",
 ]);
-const PROVIDERS = new Set(["ride24_standard_v1", "custom"]);
-const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer"]);
+const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "easy_web_rent"]);
+const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer", "renteon_oauth"]);
 const ENDPOINT_NAMES = new Set([
+  "auth",
   "health",
   "locations",
   "groups",
   "search",
   "booking_create",
+  "booking_save",
   "booking_status",
   "booking_cancel",
 ]);
@@ -581,15 +584,16 @@ async function updateFailureState(
 
 async function testConnection(
   admin: AdminClient,
-  partnerId: string,
+  partner: PartnerRow,
 ): Promise<void> {
+  const partnerId = partner.id;
   try {
     const snapshot = await getCredentials(admin, partnerId);
     const credentials = credentialsForRequest(snapshot);
     const snapshotVersion = snapshot?.updated_at;
     if (!snapshotVersion) throw new Error("Nieprawidłowy stan konfiguracji API");
 
-    await partnerApiRequest<unknown>(credentials, endpointFor(credentials, "health"));
+    await testProviderConnection(partner.api_provider, credentials);
 
     const now = new Date().toISOString();
     const { data: updatedCredentials, error: credentialsError } = await admin
@@ -703,17 +707,14 @@ async function syncPartner(
 
   try {
     const credentials = credentialsForRequest(credentialsRow);
-    const locationsPayload = await partnerApiRequest<unknown>(
+    const locations = await fetchProviderLocations(
+      partner.api_provider,
       credentials,
-      endpointFor(credentials, "locations"),
     );
-    const groupsPayload = await partnerApiRequest<unknown>(
+    const groups = await fetchProviderGroups(
+      partner.api_provider,
       credentials,
-      endpointFor(credentials, "groups"),
     );
-
-    const locations = normalizeLocations(locationsPayload);
-    const groups = normalizeGroups(groupsPayload);
 
     if (!locations.length) throw new Error("API nie zwróciło poprawnych lokalizacji");
     if (!groups.length) throw new Error("API nie zwróciło poprawnych grup pojazdów");
@@ -915,7 +916,7 @@ serve(async (req) => {
     }
 
     if (action === "test") {
-      await testConnection(admin, partner.id);
+      await testConnection(admin, partner);
       return jsonResponse(req, {
         success: true,
         message: "Połączenie poprawne",
