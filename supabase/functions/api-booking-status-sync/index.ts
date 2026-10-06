@@ -8,11 +8,13 @@ import {
   serviceClient,
 } from "../_shared/ride24-security.ts";
 import {
-  endpointFor,
   loadPartnerCredentials,
-  partnerApiRequest,
   sanitizePartnerPayload,
 } from "../_shared/partner-api.ts";
+import {
+  cancelProviderBooking,
+  getProviderBookingStatus,
+} from "../_shared/provider-adapters.ts";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -555,11 +557,10 @@ async function processPending(
         admin,
         booking.partner_id,
       );
-      const response = await partnerApiRequest<unknown>(
+      const response = await getProviderBookingStatus(
+        booking.partner.api_provider,
         credentials,
-        endpointFor(credentials, "booking_status", {
-          id: booking.api_booking_reference,
-        }),
+        booking.api_booking_reference,
       );
 
       const payload = providerPayload(response);
@@ -747,17 +748,13 @@ async function cancelFinalized(
         admin,
         booking.partner_id,
       );
-      const response = await partnerApiRequest<unknown>(
+      const response = await cancelProviderBooking(
+        booking.partner.api_provider,
         credentials,
-        endpointFor(credentials, "booking_cancel", {
-          id: booking.api_booking_reference,
-        }),
+        booking.api_booking_reference,
         {
-          method: "POST",
-          body: {
-            idempotency_key: `ride24:cancel:${booking.id}`,
-            reason: booking.status,
-          },
+          idempotency_key: `ride24:cancel:${booking.id}`,
+          reason: booking.status,
         },
       );
 
