@@ -466,22 +466,26 @@ export function normalizeRenteonAvailability(
   payload: unknown,
   input: ProviderSearchInput,
 ): ApiVehicleGroup[] {
-  let source = arrayFrom(payload, [
-    "AvailabilityCarCategories",
-    "availabilityCarCategories",
-    "data",
-    "items",
-    "results",
-  ]);
-
-  if (!source.length && Array.isArray(payload)) {
+  let source: unknown[] = [];
+  if (Array.isArray(payload)) {
     source = payload.flatMap((entry) => {
       if (!isRecord(entry)) return [];
       if (Array.isArray(entry.AvailabilityCarCategories)) {
         return entry.AvailabilityCarCategories;
       }
+      if (Array.isArray(entry.availabilityCarCategories)) {
+        return entry.availabilityCarCategories;
+      }
       return [entry];
     });
+  } else {
+    source = arrayFrom(payload, [
+      "AvailabilityCarCategories",
+      "availabilityCarCategories",
+      "data",
+      "items",
+      "results",
+    ]);
   }
 
   const days = ride24Days(input.pickup_date, input.return_date);
@@ -525,16 +529,6 @@ export function normalizeRenteonAvailability(
         maximum_driver_age: finiteNumber(raw.MaximumDriverAge),
         excess_amount: finiteNumber(raw.ExcessAmount),
         included_services: sanitizePartnerPayload(raw.IncludedServices ?? [], 3_000),
-        ride24_provider_quote: {
-          provider: "renteon",
-          pricelist_id: finiteNumber(raw.PricelistId),
-          price_date: priceDate,
-          service_id: finiteNumber(raw.ServiceId),
-          is_on_request: raw.IsOnRequest === true,
-          total_amount: total,
-          car_rental_amount: finiteNumber(raw.CarRentalAmount),
-          original_amount: finiteNumber(raw.OriginalAmount),
-        },
       },
       mileage_limit: null,
       deposit_amount: finiteNumber(raw.DepositAmount),
@@ -555,6 +549,17 @@ export function normalizeRenteonAvailability(
       seasonal_prices: null,
       price_is_total: true,
       public_price_total: total,
+      provider_quote_data: {
+        provider: "renteon",
+        pricelist_id: finiteNumber(raw.PricelistId),
+        price_date: priceDate,
+        service_id: finiteNumber(raw.ServiceId),
+        is_on_request: raw.IsOnRequest === true,
+        total_amount: total,
+        car_rental_amount: finiteNumber(raw.CarRentalAmount),
+        original_amount: finiteNumber(raw.OriginalAmount),
+        availability_car_category: sanitizePartnerPayload(raw, 60_000),
+      },
     });
   }
 
@@ -712,11 +717,6 @@ function normalizeEasyWebRentAvailability(
       features: {
         ...(isRecord(group.features) ? group.features : {}),
         provider: "easy_web_rent",
-        ride24_provider_quote: {
-          provider: "easy_web_rent",
-          quote_id: cleanText(raw.quote_id ?? raw.reference, 500),
-          raw_quote: sanitizePartnerPayload(raw.quote ?? {}, 2_000),
-        },
       },
       mileage_limit: finiteNumber(group.mileage_limit),
       deposit_amount: finiteNumber(raw.deposit_amount ?? group.deposit_amount),
@@ -731,6 +731,11 @@ function normalizeEasyWebRentAvailability(
       seasonal_prices: null,
       price_is_total: total !== null,
       public_price_total: total,
+      provider_quote_data: {
+        provider: "easy_web_rent",
+        quote_id: cleanText(raw.quote_id ?? raw.reference, 500),
+        raw_quote: sanitizePartnerPayload(raw.quote ?? raw, 20_000),
+      },
     } satisfies ApiVehicleGroup];
   });
 }
@@ -832,9 +837,9 @@ export async function searchProvider(
       OfficeOutId: positiveInteger(input.pickup_location_id),
       OfficeInId: positiveInteger(input.dropoff_location_id)
         ?? positiveInteger(input.pickup_location_id),
-      DateOut: localDateTime(input.pickup_date, input.pickup_time),
-      DateIn: localDateTime(input.return_date, input.return_time),
-      Currency: normalizeCurrency(input.currency) || undefined,
+      DateTimeOut: localDateTime(input.pickup_date, input.pickup_time),
+      DateTimeIn: localDateTime(input.return_date, input.return_time),
+      AvailableOnly: true,
     };
 
     if (!body.OfficeOutId || !body.OfficeInId) {
@@ -912,25 +917,24 @@ export async function createProviderBooking(
     const officeOutId = positiveInteger(input.pickup_location_id);
     const officeInId = positiveInteger(input.dropoff_location_id)
       ?? officeOutId;
-    const pricelistId = positiveInteger(
-      quote.pricelist_id ?? quote.PricelistId,
-    );
+    const availabilityCategory = isRecord(quote.availability_car_category)
+      ? quote.availability_car_category
+      : null;
 
-    if (!categoryId || !officeOutId || !officeInId || !pricelistId) {
+    if (!categoryId || !officeOutId || !officeInId || !availabilityCategory) {
       throw new Error("PARTNER_API_ERROR:RENTEON_QUOTE_MAPPING");
     }
 
     const main = splitName(input.main_driver?.name);
     const createBody: Record<string, unknown> = {
       BookAsCommissioner: true,
-      CarCategoryId: categoryId,
+      CarCategoryIds: [categoryId],
       OfficeOutId: officeOutId,
       OfficeInId: officeInId,
-      DateOut: localDateTime(input.pickup_date, input.pickup_time),
-      DateIn: localDateTime(input.return_date, input.return_time),
-      PricelistId: pricelistId,
-      Currency: normalizeCurrency(input.currency) || undefined,
-      PriceDate: cleanText(quote.price_date ?? quote.PriceDate, 80),
+      DateTimeOut: localDateTime(input.pickup_date, input.pickup_time),
+      DateTimeIn: localDateTime(input.return_date, input.return_time),
+      AvailableOnly: true,
+      AvailabilityCarCategory: availabilityCategory,
       Booking_Drivers: [{
         Name: main.name,
         Surname: main.surname,
@@ -955,7 +959,7 @@ export async function createProviderBooking(
       OrderReference: cleanText(input.reservation_code, 100),
       IntegrationRemark: `Ride24 ${cleanText(input.reservation_code, 100) || input.ride24_booking_id}`,
       PriceDate: cleanText(
-        created.PriceDate ?? quote.price_date ?? quote.PriceDate,
+        created.PriceDate ?? quote.price_date ?? availabilityCategory.PriceDate,
         80,
       ),
     };
