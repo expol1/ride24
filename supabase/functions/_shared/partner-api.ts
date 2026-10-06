@@ -48,6 +48,8 @@ export type ApiVehicleGroup = {
   location_external_ids?: string[] | null;
   quote_reference?: string | null;
   quote_expires_at?: string | null;
+  price_is_total?: boolean;
+  public_price_total?: number | null;
   seasonal_prices?: Array<{
     season_type: "LOW" | "MID" | "HIGH";
     start_month: number;
@@ -315,11 +317,13 @@ async function assertSafeResolvedApiUrl(
 }
 
 const DEFAULT_ENDPOINTS = {
+  auth: "/token",
   health: "/health",
   locations: "/locations",
   groups: "/vehicle-groups",
   search: "/search",
   booking_create: "/bookings",
+  booking_save: "/bookings/save",
   booking_status: "/bookings/{id}",
   booking_cancel: "/bookings/{id}/cancel",
 } as const;
@@ -429,6 +433,28 @@ function safeHeaderCredential(value: unknown, max = 8000): string {
     throw new Error("PARTNER_API_ERROR:INVALID_CREDENTIALS");
   }
   return text;
+}
+
+function setSafeRequestHeaders(
+  headers: Headers,
+  values: Record<string, string> | undefined,
+): void {
+  for (const [key, value] of Object.entries(values || {}).slice(0, MAX_HEADER_COUNT)) {
+    const normalizedKey = key.trim();
+    const normalizedName = normalizedKey.toLowerCase();
+
+    if (
+      typeof value !== "string"
+      || !normalizedKey
+      || !HEADER_NAME_PATTERN.test(normalizedKey)
+      || BLOCKED_EXTRA_HEADERS.has(normalizedName)
+      || /\r|\n|\0/.test(value)
+    ) {
+      continue;
+    }
+
+    headers.set(normalizedKey, value.slice(0, MAX_HEADER_VALUE_LENGTH));
+  }
 }
 
 function authHeaders(credentials: PartnerApiCredentials): Headers {
@@ -567,7 +593,11 @@ function isKnownSafePartnerError(error: unknown): error is Error {
 export async function partnerApiRequest<T>(
   credentials: PartnerApiCredentials,
   path: string,
-  options: { method?: string; body?: unknown } = {},
+  options: {
+    method?: string;
+    body?: unknown;
+    headers?: Record<string, string>;
+  } = {},
 ): Promise<T> {
   const controller = new AbortController();
   const timeoutMs = boundedInteger(
@@ -589,9 +619,12 @@ export async function partnerApiRequest<T>(
       controller.signal,
     );
 
+    const headers = authHeaders(credentials);
+    setSafeRequestHeaders(headers, options.headers);
+
     const response = await fetch(requestUrl, {
       method,
-      headers: authHeaders(credentials),
+      headers,
       body: options.body === undefined
         ? undefined
         : serializeRequestBody(options.body),
@@ -620,6 +653,89 @@ export async function partnerApiRequest<T>(
       throw new Error("PARTNER_API_ERROR:TIMEOUT");
     }
 
+    if (isKnownSafePartnerError(error)) throw error;
+    throw new Error("PARTNER_API_ERROR:NETWORK");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+
+export async function partnerApiFormRequest<T>(
+  credentials: PartnerApiCredentials,
+  path: string,
+  form: Record<string, string | number | boolean | null | undefined>,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeoutMs = boundedInteger(
+    credentials.timeout_ms,
+    1000,
+    30000,
+    10000,
+  ) || 10000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const requestUrl = await assertSafeResolvedApiUrl(
+      buildUrl(credentials.api_url, path),
+      controller.signal,
+    );
+
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(form).slice(0, 50)) {
+      if (
+        !key
+        || key.length > 100
+        || BLOCKED_OBJECT_KEYS.has(key)
+        || value == null
+      ) {
+        continue;
+      }
+      const text = String(value);
+      if (/\r|\n|\0/.test(text) || text.length > 12_000) {
+        throw new Error("PARTNER_API_ERROR:INVALID_BODY");
+      }
+      params.set(key, text);
+    }
+
+    const encoded = params.toString();
+    if (new TextEncoder().encode(encoded).byteLength > MAX_REQUEST_BODY_BYTES) {
+      throw new Error("PARTNER_API_ERROR:REQUEST_TOO_LARGE");
+    }
+
+    const headers = new Headers({
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+    });
+    setSafeRequestHeaders(headers, credentials.extra_headers || undefined);
+
+    const response = await fetch(requestUrl, {
+      method: "POST",
+      headers,
+      body: encoded,
+      signal: controller.signal,
+      redirect: "error",
+    });
+
+    const text = await readResponseTextLimited(response);
+    let payload: unknown = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = { message: text.slice(0, 500) };
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(`PARTNER_API_ERROR:HTTP:${response.status}`);
+    }
+
+    return payload as T;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("PARTNER_API_ERROR:TIMEOUT");
+    }
     if (isKnownSafePartnerError(error)) throw error;
     throw new Error("PARTNER_API_ERROR:NETWORK");
   } finally {
@@ -871,7 +987,7 @@ export function normalizeGroups(payload: unknown): ApiVehicleGroup[] {
       !externalId
       || !/^[A-Z]$/.test(classCode)
       || !Number.isFinite(publicPrice)
-      || publicPrice <= 0
+      || publicPrice < 0
       || publicPrice > 1_000_000_000
     ) {
       return [];
@@ -903,6 +1019,8 @@ export function normalizeGroups(payload: unknown): ApiVehicleGroup[] {
       location_external_ids: locations,
       quote_reference: boundedText(item.quote_reference ?? item.quote_id, 500),
       quote_expires_at: boundedText(item.quote_expires_at ?? item.expires_at, 80),
+      price_is_total: item.price_is_total === true,
+      public_price_total: finiteNumber(item.public_price_total),
       seasonal_prices: seasonal,
     } satisfies ApiVehicleGroup];
   });
