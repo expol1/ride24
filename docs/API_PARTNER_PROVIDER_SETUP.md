@@ -80,8 +80,8 @@ Credential mapping:
 
 Default endpoint preset:
 - auth: `/token`
-- health: `/api/offices`
-- locations: `/api/offices`
+- health: `/api/ExSettings`
+- locations: `/api/ExOffice/Search`
 - groups: `/api/ExCarCategory/Search`
 - search: `/api/ExBooking/Availability`
 - booking_create: `/api/ExBooking/Create`
