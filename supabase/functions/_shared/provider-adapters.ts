@@ -334,7 +334,6 @@ async function persistRenteonToken(
         runtime_access_token: token.accessToken,
         runtime_refresh_token: token.refreshToken,
         runtime_token_expires_at: new Date(token.expiresAt).toISOString(),
-        updated_at: new Date().toISOString(),
       })
       .eq("partner_id", credentials.partner_id);
 
