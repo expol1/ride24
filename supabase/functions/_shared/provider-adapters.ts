@@ -54,6 +54,7 @@ export type ProviderBookingInput = {
   client_email?: string | null;
   client_phone?: string | null;
   currency?: string | null;
+  partner_discount_percent?: number | null;
   partner_amount?: number | null;
   customer_total?: number | null;
   quote_reference?: string | null;
@@ -1114,9 +1115,12 @@ export async function createProviderBooking(
     const ride24PartnerAmount = input.partner_amount == null
       ? null
       : Number(input.partner_amount);
-    const ride24PartnerDiscount = providerPublicTotal !== null
-        && ride24PartnerAmount !== null
-        && Number.isFinite(ride24PartnerAmount)
+    const configuredDiscount = finiteNumber(input.partner_discount_percent);
+    const ride24PartnerDiscount = configuredDiscount !== null
+      ? Number(Math.max(0, Math.min(100, configuredDiscount)).toFixed(6))
+      : providerPublicTotal !== null
+          && ride24PartnerAmount !== null
+          && Number.isFinite(ride24PartnerAmount)
       ? percentageDiscount(providerPublicTotal, ride24PartnerAmount)
       : null;
 
