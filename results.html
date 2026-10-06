@@ -487,6 +487,12 @@ let query = db
             public_price,
             active
         ),
+        rental_duration_discounts (
+            min_days,
+            max_days,
+            discount_percent,
+            active
+        ),
         partners!inner(
             id,
             company_name,
@@ -662,6 +668,19 @@ let query = db
                             publicPrice = Number(activeSeason.public_price);
                         }
 
+                        // Optional long-rental discount. One set of duration tiers
+                        // applies automatically to the active seasonal/base price.
+                        const durationTier = (car.rental_duration_discounts || []).find(tier => {
+                            if (!tier.active) return false;
+                            const minDays = Number(tier.min_days);
+                            const maxDays = tier.max_days == null ? Number.POSITIVE_INFINITY : Number(tier.max_days);
+                            return days >= minDays && days <= maxDays;
+                        });
+                        const durationDiscount = durationTier
+                            ? Math.max(0, Math.min(80, Number(durationTier.discount_percent) || 0))
+                            : 0;
+                        publicPrice = publicPrice * (1 - durationDiscount / 100);
+
                         const discountPerc = Number(car.partner_discount_percent ?? 10);
                         const marginPerc = Number(car.platform_margin_percent ?? globalMarginPercent);
 
@@ -780,11 +799,25 @@ const activeSeason = (car.seasonal_prices || []).find(s => {
 if (activeSeason) {
     currentPublicPrice = Number(activeSeason.public_price);
 }
-// 4. Pobieramy prowizje z Twoimi bezpiecznymi fallbackami
+
+// 4. Opcjonalny rabat za długość wynajmu.
+// Jeśli partner nie ustawi żadnego progu, cena pozostaje dokładnie jak wcześniej.
+const activeDurationTier = (car.rental_duration_discounts || []).find(tier => {
+    if (!tier.active) return false;
+    const minDays = Number(tier.min_days);
+    const maxDays = tier.max_days == null ? Number.POSITIVE_INFINITY : Number(tier.max_days);
+    return days >= minDays && days <= maxDays;
+});
+const durationDiscountPerc = activeDurationTier
+    ? Math.max(0, Math.min(80, Number(activeDurationTier.discount_percent) || 0))
+    : 0;
+currentPublicPrice = currentPublicPrice * (1 - durationDiscountPerc / 100);
+
+// 5. Pobieramy prowizje z Twoimi bezpiecznymi fallbackami
 const discountPerc = Number(car.partner_discount_percent ?? 10);
 const marginPerc = Number(car.platform_margin_percent ?? globalMarginPercent);
 
-// 5. OBLICZENIA KOŃCOWE
+// 6. OBLICZENIA KOŃCOWE
 // Netto, które płacisz partnerowi (Cena publiczna - Twój rabat)
 const partnerNetPricePerDay = currentPublicPrice * (1 - (discountPerc / 100));
 
