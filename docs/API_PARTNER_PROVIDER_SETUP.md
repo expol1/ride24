@@ -96,6 +96,9 @@ Renteon notes:
 - Availability `Amount` is treated as the total provider rental amount for the requested period. The adapter converts it to an internal per-day equivalent only so the existing Ride24 pricing engine reproduces the exact period total.
 - `BookAsCommissioner = true` is used for the Ride24 pay-at-pickup model.
 - The availability item and `PriceDate` are stored server-side with the Ride24 quote and reused during booking Create/Save.
+- Ride24 derives the agreed Partner discount from the quote/public amount and the Ride24 partner-net snapshot, passes that discount into the Renteon availability category used by Create, and verifies the unsaved Renteon booking total before Save.
+- If Renteon does not return the same partner-payable amount as the Ride24 snapshot, Ride24 fails closed and does not Save the external reservation. The saved booking total is checked again; on a post-Save mismatch Ride24 attempts immediate cancellation and raises an integration error.
+- This gate is essential: a customer must never receive a Ride24 voucher showing (for example) EUR 90 payable at pickup while the provider system expects EUR 100.
 
 ## Easy Web Rent preset
 
