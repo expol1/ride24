@@ -71,6 +71,7 @@ type QuoteRow = {
   pickup_location_external_id: string | null;
   dropoff_location_external_id: string | null;
   external_group_id: string | null;
+  partner_discount_percent: number | string | null;
   raw_response: unknown;
 };
 
@@ -431,7 +432,7 @@ async function loadQuote(
   const { data, error } = await admin
     .from("api_quotes")
     .select(
-      "id, partner_id, car_class_id, booking_id, used_at, external_quote_reference, pickup_location_external_id, dropoff_location_external_id, external_group_id, raw_response",
+      "id, partner_id, car_class_id, booking_id, used_at, external_quote_reference, pickup_location_external_id, dropoff_location_external_id, external_group_id, partner_discount_percent, raw_response",
     )
     .eq("id", booking.api_quote_id)
     .eq("partner_id", booking.partner_id)
@@ -465,6 +466,11 @@ async function loadQuote(
       200,
     ),
     external_group_id: cleanText(data.external_group_id, 200),
+    partner_discount_percent:
+      typeof data.partner_discount_percent === "number"
+        || typeof data.partner_discount_percent === "string"
+      ? data.partner_discount_percent
+      : null,
     raw_response: data.raw_response,
   };
 
@@ -764,6 +770,7 @@ serve(async (req) => {
       client_email: booking.client_email,
       client_phone: booking.client_phone,
       currency: booking.partner_currency,
+      partner_discount_percent: finiteNumber(quote.partner_discount_percent),
       partner_amount: partnerAmount,
       customer_total: customerTotal,
       quote_reference: quote.external_quote_reference,
