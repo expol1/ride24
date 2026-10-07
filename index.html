@@ -2791,13 +2791,11 @@
         gap: 8px !important;
         background:
             linear-gradient(
-                90deg,
-                rgba(3,22,66,.82) 0%,
-                rgba(5,42,99,.62) 35%,
-                rgba(9,84,151,.36) 66%,
-                rgba(21,143,198,.16) 100%
-            ),
-            url("tlo.png") 58% 0 / auto 600px no-repeat !important;
+                100deg,
+                #062567 0%,
+                #0A4FA2 50%,
+                #1598DE 100%
+            ) !important;
         background-color: #0A4F9D !important;
         border-bottom: 1px solid rgba(255,255,255,.16);
     }
@@ -2866,72 +2864,76 @@
         background:
             linear-gradient(
                 180deg,
-                #0B4A95 0%,
-                #126FB2 22%,
-                #24A1C8 42%,
-                #56C6CB 57%,
-                #92DDB7 69%,
-                #B6EBAA 77%,
-                #69C2C4 85%,
-                #2B7FB0 91%,
-                #123F82 96%,
-                #08265F 100%
+                #0A4A94 0%,
+                #0D63A8 20%,
+                #1687B7 36%,
+                #32A9BC 50%,
+                #78D0B3 60%,
+                #C5E7C9 68%,
+                #9ED2CE 73%,
+                #5BA6C1 80%,
+                #2F79AC 87%,
+                #164C8D 94%,
+                #061A42 100%
             ) !important;
-        background-color: #08265F !important;
+        background-color: #061A42 !important;
     }
 
-    /* Scenic photo is faded out instead of ending with a hard horizontal cut. */
+    /* Exact supplied coastal artwork on mobile only; faded before its pale lower edge. */
     .hero::before {
         content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 620px;
+        height: 760px;
         pointer-events: none;
         z-index: 0;
         background:
             linear-gradient(
                 90deg,
-                rgba(3,22,65,.84) 0%,
-                rgba(4,30,76,.74) 19%,
-                rgba(5,41,91,.57) 35%,
-                rgba(7,56,107,.36) 50%,
-                rgba(8,72,124,.17) 64%,
-                rgba(8,72,124,.04) 77%,
-                rgba(8,72,124,0) 88%
+                rgba(3,22,63,.62) 0%,
+                rgba(4,31,78,.48) 22%,
+                rgba(6,48,96,.28) 40%,
+                rgba(8,69,117,.11) 57%,
+                rgba(8,69,117,0) 72%
             ),
             linear-gradient(
                 180deg,
-                rgba(5,30,77,.34) 0%,
-                rgba(6,47,103,.15) 38%,
-                rgba(10,82,135,.04) 62%,
-                rgba(10,82,135,0) 100%
+                rgba(4,28,73,.14) 0%,
+                rgba(5,39,87,.06) 42%,
+                rgba(229,255,239,0) 62%,
+                rgba(229,255,239,.08) 78%,
+                rgba(229,255,239,.12) 100%
             ),
-            url("tlo.png") 58% -54px / auto 600px no-repeat;
+            url("assets/img/ride24-mobile-hero.webp?v=20261007clean1") center top / 100% auto no-repeat;
         -webkit-mask-image: linear-gradient(
             180deg,
             #000 0%,
-            #000 61%,
-            rgba(0,0,0,.96) 68%,
-            rgba(0,0,0,.76) 76%,
-            rgba(0,0,0,.43) 85%,
-            rgba(0,0,0,.15) 93%,
+            #000 57%,
+            rgba(0,0,0,.98) 63%,
+            rgba(0,0,0,.86) 70%,
+            rgba(0,0,0,.64) 77%,
+            rgba(0,0,0,.40) 83%,
+            rgba(0,0,0,.19) 89%,
+            rgba(0,0,0,.07) 94%,
             transparent 100%
         );
         mask-image: linear-gradient(
             180deg,
             #000 0%,
-            #000 61%,
-            rgba(0,0,0,.96) 68%,
-            rgba(0,0,0,.76) 76%,
-            rgba(0,0,0,.43) 85%,
-            rgba(0,0,0,.15) 93%,
+            #000 57%,
+            rgba(0,0,0,.98) 63%,
+            rgba(0,0,0,.86) 70%,
+            rgba(0,0,0,.64) 77%,
+            rgba(0,0,0,.40) 83%,
+            rgba(0,0,0,.19) 89%,
+            rgba(0,0,0,.07) 94%,
             transparent 100%
         );
     }
 
-    /* Long, soft blend from the scenic upper half into the lower blue/navy background. */
+    /* Milk-soft transition into deep navy; no car layer and no hard horizontal seam. */
     .hero::after {
         content: "";
         position: absolute;
@@ -2941,23 +2943,24 @@
         background:
             linear-gradient(
                 90deg,
-                rgba(3,23,65,.28) 0%,
-                rgba(4,36,82,.15) 31%,
-                rgba(7,59,105,.04) 55%,
-                rgba(7,59,105,0) 72%
+                rgba(3,22,63,.24) 0%,
+                rgba(5,36,82,.12) 30%,
+                rgba(7,57,103,.035) 52%,
+                rgba(7,57,103,0) 70%
             ),
             linear-gradient(
                 180deg,
-                rgba(4,30,77,.06) 0%,
-                rgba(4,30,77,0) 34%,
-                rgba(54,171,199,.03) 49%,
-                rgba(83,195,190,.08) 62%,
-                rgba(125,216,175,.10) 72%,
-                rgba(44,139,174,.10) 83%,
-                rgba(14,73,135,.22) 91%,
-                rgba(5,31,78,.46) 100%
-            ),
-            url("auto.png") calc(100% + 18px) 118px / 69% auto no-repeat;
+                rgba(5,29,73,.02) 0%,
+                rgba(5,29,73,0) 43%,
+                rgba(232,255,242,.05) 54%,
+                rgba(224,250,239,.12) 64%,
+                rgba(185,232,226,.12) 72%,
+                rgba(112,194,210,.10) 79%,
+                rgba(61,147,191,.14) 85%,
+                rgba(29,99,160,.22) 90%,
+                rgba(14,59,121,.38) 95%,
+                rgba(6,26,66,.68) 100%
+            );
     }
 
     .hero .container {
@@ -3215,31 +3218,8 @@
         padding-top: 16px !important;
     }
 
-    .hero::after {
-        background-position:
-            center center,
-            center center,
-            calc(100% + 14px) 122px;
-        background-size:
-            auto,
-            auto,
-            72% auto;
-        background-repeat:
-            no-repeat,
-            no-repeat,
-            no-repeat;
-    }
-
     .hero::before {
-        height: 600px;
-        background-position:
-            center center,
-            center center,
-            60% -52px;
-        background-size:
-            auto,
-            auto,
-            auto 585px;
+        height: 700px;
     }
 
     .hero .container {
