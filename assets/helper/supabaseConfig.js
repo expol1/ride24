@@ -28,7 +28,7 @@ window.supabaseClient = supabase.createClient(
 
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "assets/css/world-explorer-premium.css?v=20261007h";
+  link.href = "assets/css/world-explorer-premium.css?v=20261007i";
   link.dataset.ride24WorldPremium = "1";
   document.head.appendChild(link);
 
