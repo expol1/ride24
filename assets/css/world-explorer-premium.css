@@ -76,14 +76,14 @@
   gap: 8px;
   min-height: 42px;
   padding: 10px 15px;
-  border: 1px solid rgba(30,58,138,.10);
+  border: 1px solid rgba(30,58,138,.18);
   border-radius: 12px;
-  background: linear-gradient(135deg,#2563EB,#1D4ED8) !important;
-  color: #fff;
+  background: linear-gradient(135deg,#B9F62A 0%,#97D700 56%,#7FC800 100%) !important;
+  color: #1E3A8A !important;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 900;
   white-space: nowrap;
-  box-shadow: 0 8px 19px rgba(37,99,235,.20);
+  box-shadow: 0 8px 20px rgba(104,153,0,.28);
   transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
 
@@ -96,8 +96,8 @@
 
 .world-map-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 11px 24px rgba(37,99,235,.26);
-  filter: brightness(1.02);
+  box-shadow: 0 11px 26px rgba(104,153,0,.34);
+  filter: saturate(1.06) brightness(1.01);
 }
 
 .world-map-btn:hover::after { transform: translateX(3px); }
