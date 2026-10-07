@@ -430,3 +430,90 @@
     transition: none !important;
   }
 }
+
+
+/* Keep long country/location lists fully accessible on shorter screens. */
+.world-map-content {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: calc(100dvh - 24px) !important;
+  overflow: hidden !important;
+}
+
+.world-map-header {
+  flex: 0 0 auto;
+}
+
+.world-map-body {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  height: min(520px, calc(100dvh - 170px)) !important;
+}
+
+.world-map-panel {
+  min-height: 0;
+  height: 100%;
+}
+
+#worldMapSvg {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.world-locations-panel {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-bottom: 18px !important;
+}
+
+.world-locations-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.world-locations-panel::-webkit-scrollbar-track {
+  background: #EEF4FB;
+  border-radius: 999px;
+}
+
+.world-locations-panel::-webkit-scrollbar-thumb {
+  background: #B8CBE1;
+  border: 2px solid #EEF4FB;
+  border-radius: 999px;
+}
+
+.world-locations-panel::-webkit-scrollbar-thumb:hover {
+  background: #8FAAC8;
+}
+
+@media (max-width: 768px) {
+  .world-map-content {
+    max-height: calc(100dvh - 12px) !important;
+    overflow-y: auto !important;
+  }
+
+  .world-map-body {
+    display: grid !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .world-map-panel {
+    height: auto;
+  }
+
+  #worldMapSvg {
+    height: 230px !important;
+    min-height: 230px !important;
+  }
+
+  .world-locations-panel {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 42dvh !important;
+    overflow-y: auto !important;
+  }
+}
