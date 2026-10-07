@@ -2859,7 +2859,7 @@
                 rgba(11,121,162,.70) 51%,
                 rgba(66,168,105,.66) 72%,
                 rgba(151,215,0,.74) 100%),
-            url("tlo.png") center top / cover no-repeat !important;
+            url("tlo.png") 64% bottom / cover no-repeat !important;
     }
 
     .hero::after {
@@ -2885,10 +2885,31 @@
 
     .hero-text {
         order: 1 !important;
+        position: relative;
         width: 100%;
         max-width: none !important;
-        padding: 4px 2px 8px !important;
+        padding: 4px 2px 98px !important;
         text-align: left !important;
+    }
+
+    .hero-text::after {
+        content: "";
+        position: absolute;
+        right: -18px;
+        bottom: 2px;
+        width: 224px;
+        height: 102px;
+        z-index: 1;
+        pointer-events: none;
+        background: url("auto.png") right bottom / contain no-repeat;
+        filter: drop-shadow(0 10px 14px rgba(8,36,70,.22));
+    }
+
+    .hero-text > h1,
+    .hero-text > h2,
+    .hero-text > .hero-benefits {
+        position: relative;
+        z-index: 2;
     }
 
     .hero-text h1 {
@@ -3106,6 +3127,17 @@
 
     .hero {
         padding-top: 18px !important;
+        background-position: 68% bottom !important;
+    }
+
+    .hero-text {
+        padding-bottom: 86px !important;
+    }
+
+    .hero-text::after {
+        right: -14px;
+        width: 194px;
+        height: 90px;
     }
 
     .hero .container {
@@ -3202,10 +3234,18 @@
                     </div>
 
                     <div class="world-explorer-map-art" aria-hidden="true">
-                        <span class="world-explorer-map-pin pin-1"></span>
-                        <span class="world-explorer-map-pin pin-2"></span>
-                        <span class="world-explorer-map-pin pin-3"></span>
-                        <span class="world-explorer-map-pin pin-4"></span>
+                        <svg class="world-explorer-map-svg" viewBox="0 0 180 90" focusable="false">
+                            <path class="map-land map-mainland" d="M18 55l8-9 11-2 4-8 12-3 7-7 13 2 7-6 13 1 6-5 11 4 5 7 11 1 6 7 11 2 5 7-6 7-10 2-4 6-11-1-8 7-8-3-8 5-11-6-9 3-8-5-10 3-7-6-9 1z"/>
+                            <path class="map-land map-scandinavia" d="M96 22l5-13 7-5 8 4 2 9-5 10-3 9-8 4-5-7z"/>
+                            <path class="map-land map-britain" d="M50 29l-5-8 3-8 6-3 5 5-1 8-4 7z"/>
+                            <path class="map-land map-ireland" d="M40 30l-4-5 2-6 4-2 4 5-1 6z"/>
+                            <path class="map-land map-italy" d="M92 57l7 3 4 6-3 5 4 7-4 5-5-9 1-7-6-5z"/>
+                            <path class="map-land map-balkans" d="M112 55l9 2 7 6-2 7-7 2-5-5-6-2z"/>
+                            <circle class="map-pin map-pin-green" cx="59" cy="47" r="5"/>
+                            <circle class="map-pin map-pin-blue" cx="92" cy="48" r="5"/>
+                            <circle class="map-pin map-pin-green" cx="119" cy="38" r="5"/>
+                            <circle class="map-pin map-pin-blue" cx="137" cy="62" r="5"/>
+                        </svg>
                     </div>
                 </div>
 
@@ -3282,10 +3322,18 @@
                     </div>
 
                     <div class="world-explorer-map-art" aria-hidden="true">
-                        <span class="world-explorer-map-pin pin-1"></span>
-                        <span class="world-explorer-map-pin pin-2"></span>
-                        <span class="world-explorer-map-pin pin-3"></span>
-                        <span class="world-explorer-map-pin pin-4"></span>
+                        <svg class="world-explorer-map-svg" viewBox="0 0 180 90" focusable="false">
+                            <path class="map-land map-mainland" d="M18 55l8-9 11-2 4-8 12-3 7-7 13 2 7-6 13 1 6-5 11 4 5 7 11 1 6 7 11 2 5 7-6 7-10 2-4 6-11-1-8 7-8-3-8 5-11-6-9 3-8-5-10 3-7-6-9 1z"/>
+                            <path class="map-land map-scandinavia" d="M96 22l5-13 7-5 8 4 2 9-5 10-3 9-8 4-5-7z"/>
+                            <path class="map-land map-britain" d="M50 29l-5-8 3-8 6-3 5 5-1 8-4 7z"/>
+                            <path class="map-land map-ireland" d="M40 30l-4-5 2-6 4-2 4 5-1 6z"/>
+                            <path class="map-land map-italy" d="M92 57l7 3 4 6-3 5 4 7-4 5-5-9 1-7-6-5z"/>
+                            <path class="map-land map-balkans" d="M112 55l9 2 7 6-2 7-7 2-5-5-6-2z"/>
+                            <circle class="map-pin map-pin-green" cx="59" cy="47" r="5"/>
+                            <circle class="map-pin map-pin-blue" cx="92" cy="48" r="5"/>
+                            <circle class="map-pin map-pin-green" cx="119" cy="38" r="5"/>
+                            <circle class="map-pin map-pin-blue" cx="137" cy="62" r="5"/>
+                        </svg>
                     </div>
                 </div>
 

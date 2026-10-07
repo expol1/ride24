@@ -152,9 +152,9 @@
 
   function install() {
     document.querySelectorAll(".world-map-btn").forEach(button => {
-      button.dataset.pl = "Zobacz mapę";
-      button.dataset.en = "View map";
-      button.textContent = currentLang() === "en" ? "View map" : "Zobacz mapę";
+      button.dataset.pl = "Otwórz mapę";
+      button.dataset.en = "Open map";
+      button.textContent = currentLang() === "en" ? "Open map" : "Otwórz mapę";
     });
 
     const originalLoadCountries = window.loadCountries;
