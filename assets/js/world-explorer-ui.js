@@ -102,6 +102,27 @@
         button.appendChild(sub);
 
         button.addEventListener("click", () => {
+          const panel = document.getElementById("countryLocations");
+          const title = document.getElementById("countryLocationsTitle");
+
+          if (title) {
+            title.dataset.pl = `${countryFlag(country)} ${countryLabel(country, "pl").toUpperCase()}`;
+            title.dataset.en = `${countryFlag(country)} ${countryLabel(country, "en").toUpperCase()}`;
+            title.textContent = currentLang() === "en"
+              ? `${countryFlag(country)} ${countryLabel(country, "en").toUpperCase()}`
+              : `${countryFlag(country)} ${countryLabel(country, "pl").toUpperCase()}`;
+          }
+
+          if (panel) {
+            panel.innerHTML = "";
+            const loading = document.createElement("div");
+            loading.className = "world-map-empty world-map-loading";
+            loading.dataset.pl = "Ładowanie lokalizacji…";
+            loading.dataset.en = "Loading locations…";
+            loading.textContent = currentLang() === "en" ? "Loading locations…" : "Ładowanie lokalizacji…";
+            panel.appendChild(loading);
+          }
+
           if (typeof window.loadLocations === "function") {
             window.loadLocations(country);
           }
@@ -162,6 +183,46 @@
       };
       wrappedRenderCountryLocations.__ride24Enhanced = true;
       window.renderCountryLocations = wrappedRenderCountryLocations;
+    }
+
+    const originalSelectWorldLocation = window.selectWorldLocation;
+    if (typeof originalSelectWorldLocation === "function" && !originalSelectWorldLocation.__ride24Enhanced) {
+      const wrappedSelectWorldLocation = function(location) {
+        // A map selection is already final. Prevent the smart-search input handler
+        // from treating the programmatic value as a new typed query ("Brak wyników").
+        try {
+          isSelectingLocation = true;
+          lastQueryId += 1;
+        } catch (error) {
+          // Keep the existing selection flow even if the legacy globals are unavailable.
+        }
+
+        const result = originalSelectWorldLocation.call(this, location);
+
+        const hideDropdowns = () => {
+          document.querySelectorAll("#pickup-results, #drop-results").forEach(box => {
+            box.classList.remove("show");
+            box.innerHTML = "";
+          });
+        };
+
+        hideDropdowns();
+        window.setTimeout(hideDropdowns, 350);
+
+        window.setTimeout(() => {
+          try {
+            isSelectingLocation = false;
+          } catch (error) {
+            // No-op: selection itself has already completed.
+          }
+          hideDropdowns();
+        }, 650);
+
+        return result;
+      };
+
+      wrappedSelectWorldLocation.__ride24Enhanced = true;
+      window.selectWorldLocation = wrappedSelectWorldLocation;
     }
 
     applyLanguage();
