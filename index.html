@@ -4742,7 +4742,7 @@ function collectSearchData() {
         // 2. Pobieranie z partner_locations
         const { data: partnerData, error } = await db
             .from('partner_locations')
-            .select('location_name, country, region, city')
+            .select('location_name, country, region, city, type')
             .or(orFilters)
             .eq('active', true)
             .limit(30);
@@ -4754,10 +4754,17 @@ function collectSearchData() {
 
         // 3. Mapowanie danych
         let results = (partnerData || []).map(item => {
-            let locType = "country";
-            if ((item.location_name || "").toLowerCase().includes("airport")) locType = "airport";
-            else if (item.city) locType = "city";
-            else if (item.region) locType = "region";
+            // Use the location type explicitly selected by the partner.
+            // Keep the old inference only as a fallback for legacy rows.
+            const storedType = String(item.type || "").toLowerCase();
+            const supportedTypes = new Set(["airport", "city", "hotel", "office", "custom", "region", "country"]);
+
+            let locType = supportedTypes.has(storedType) ? storedType : "country";
+            if (!supportedTypes.has(storedType)) {
+                if ((item.location_name || "").toLowerCase().includes("airport")) locType = "airport";
+                else if (item.city) locType = "city";
+                else if (item.region) locType = "region";
+            }
 
             return {
                 name: item.location_name || item.city || item.country,
