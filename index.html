@@ -2790,8 +2790,11 @@
         padding: 10px 12px !important;
         gap: 8px !important;
         background:
-            linear-gradient(90deg,rgba(5,35,91,.32) 0%,rgba(9,78,145,.10) 68%,rgba(20,151,211,.08) 100%),
-            url("assets/img/ride24-mobile-hero.webp?v=20261007j") center top / 100% auto no-repeat !important;
+            linear-gradient(90deg,
+                rgba(6,34,84,.28) 0%,
+                rgba(8,63,125,.14) 42%,
+                rgba(22,140,196,.06) 100%),
+            url("tlo.png") center 7% / cover no-repeat !important;
         background-color: #0B63B7 !important;
         border-bottom: 1px solid rgba(255,255,255,.18);
     }
@@ -2856,19 +2859,21 @@
         position: relative;
         overflow: hidden !important;
         min-height: 0 !important;
-        padding: 18px 0 40px !important;
+        padding: 18px 0 42px !important;
         background:
-            url("assets/img/ride24-mobile-hero.webp?v=20261007j") center top / 100% auto no-repeat,
+            url("auto.png") calc(100% + 42px) 205px / 54% auto no-repeat,
+            url("tlo.png") center top / auto 610px no-repeat,
             linear-gradient(
                 180deg,
-                #55C8E5 0%,
-                #46B7DA 19%,
-                #2F8FC8 42%,
-                #1B63A8 64%,
-                #123F86 80%,
-                #081F52 100%
+                #65D4ED 0%,
+                #4FC0E0 20%,
+                #3094CC 43%,
+                #1C66AA 62%,
+                #123E82 78%,
+                #0A2A63 90%,
+                #061B49 100%
             ) !important;
-        background-color: #081F52 !important;
+        background-color: #061B49 !important;
     }
 
     .hero::before {
@@ -2877,24 +2882,27 @@
         top: 0;
         left: 0;
         right: 0;
-        height: 520px;
+        height: 560px;
         pointer-events: none;
         z-index: 1;
         background:
             linear-gradient(
                 90deg,
-                rgba(4,25,69,.78) 0%,
-                rgba(5,34,83,.58) 31%,
-                rgba(5,47,96,.28) 52%,
-                rgba(5,52,103,.08) 68%,
-                rgba(5,52,103,0) 80%
+                rgba(4,24,65,.78) 0%,
+                rgba(5,31,76,.68) 18%,
+                rgba(6,39,88,.52) 34%,
+                rgba(7,50,100,.34) 48%,
+                rgba(9,67,119,.18) 61%,
+                rgba(11,84,137,.07) 72%,
+                rgba(11,84,137,0) 82%
             ),
             linear-gradient(
                 180deg,
-                rgba(4,31,79,.06) 0%,
-                rgba(4,31,79,0) 61%,
-                rgba(55,164,201,.10) 75%,
-                rgba(61,160,195,.58) 100%
+                rgba(4,26,68,.08) 0%,
+                rgba(4,26,68,0) 56%,
+                rgba(44,148,192,.07) 70%,
+                rgba(42,139,187,.20) 82%,
+                rgba(34,114,169,.38) 100%
             );
     }
 
@@ -2906,12 +2914,16 @@
         z-index: 1;
         background: linear-gradient(
             180deg,
-            rgba(8,31,82,0) 0%,
-            rgba(8,31,82,0) 34%,
-            rgba(59,166,202,.07) 43%,
-            rgba(32,112,174,.22) 58%,
-            rgba(18,70,134,.47) 75%,
-            rgba(8,31,82,.88) 100%
+            rgba(6,27,73,0) 0%,
+            rgba(6,27,73,0) 34%,
+            rgba(69,180,215,.05) 43%,
+            rgba(49,151,198,.12) 51%,
+            rgba(35,121,180,.24) 60%,
+            rgba(24,91,154,.39) 69%,
+            rgba(16,66,128,.56) 77%,
+            rgba(11,45,103,.72) 85%,
+            rgba(7,31,77,.88) 92%,
+            rgba(5,24,64,.97) 100%
         );
     }
 
@@ -2944,11 +2956,11 @@
         max-width: 390px;
         margin: 0 0 10px !important;
         padding: 0 !important;
-        font-size: clamp(32px,8.35vw,36px) !important;
+        font-size: clamp(30px,7.8vw,34px) !important;
         line-height: 1.04 !important;
-        letter-spacing: -.038em;
+        letter-spacing: -.036em;
         color: #FFFFFF !important;
-        text-shadow: 0 3px 18px rgba(4,30,75,.42) !important;
+        text-shadow: 0 3px 18px rgba(4,30,75,.46) !important;
     }
 
     .hero-text h1 > span:first-child {
@@ -2961,10 +2973,10 @@
         width: max-content;
         max-width: 100%;
         color: #A9F42C !important;
-        font-size: .78em;
+        font-size: .76em;
         line-height: 1.08;
         white-space: nowrap;
-        letter-spacing: -.045em;
+        letter-spacing: -.042em;
     }
 
     .hero-text h1 > span:last-child span {
@@ -3179,11 +3191,11 @@
     }
 
     .hero-text h1 {
-        font-size: 31px !important;
+        font-size: 29px !important;
     }
 
     .hero-text h1 > span:last-child {
-        font-size: .78em;
+        font-size: .75em;
     }
 
     .hero-text h2 {
