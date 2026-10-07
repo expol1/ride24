@@ -2864,7 +2864,6 @@
         min-height: 0 !important;
         padding: 19px 0 46px !important;
         background:
-            url("auto.png") calc(100% + 18px) 118px / 69% auto no-repeat,
             linear-gradient(
                 180deg,
                 #0B4A95 0%,
@@ -2957,7 +2956,8 @@
                 rgba(44,139,174,.10) 83%,
                 rgba(14,73,135,.22) 91%,
                 rgba(5,31,78,.46) 100%
-            );
+            ),
+            url("auto.png") calc(100% + 18px) 118px / 69% auto no-repeat;
     }
 
     .hero .container {
@@ -3213,12 +3213,21 @@
 
     .hero {
         padding-top: 16px !important;
+    }
+
+    .hero::after {
         background-position:
-            calc(100% + 14px) 122px,
-            center top !important;
+            center center,
+            center center,
+            calc(100% + 14px) 122px;
         background-size:
-            72% auto,
-            auto !important;
+            auto,
+            auto,
+            72% auto;
+        background-repeat:
+            no-repeat,
+            no-repeat,
+            no-repeat;
     }
 
     .hero::before {
