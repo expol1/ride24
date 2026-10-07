@@ -2879,14 +2879,15 @@
         background-color: #061A42 !important;
     }
 
-    /* Exact supplied coastal artwork on mobile only; faded before its pale lower edge. */
+    /* Match the supplied portrait artwork; keep its fade proportional on every mobile width. */
     .hero::before {
         content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 760px;
+        height: auto;
+        aspect-ratio: 941 / 1672;
         pointer-events: none;
         z-index: 0;
         background:
@@ -2906,7 +2907,7 @@
                 rgba(229,255,239,.08) 78%,
                 rgba(229,255,239,.12) 100%
             ),
-            url("assets/img/ride24-mobile-hero.webp?v=20261007clean1") center top / 100% auto no-repeat;
+            url("assets/img/ride24-mobile-hero.webp?v=20261007clean2") center top / 100% 100% no-repeat;
         -webkit-mask-image: linear-gradient(
             180deg,
             #000 0%,
@@ -2961,6 +2962,11 @@
                 rgba(14,59,121,.38) 95%,
                 rgba(6,26,66,.68) 100%
             );
+    }
+
+    /* Continue the hero navy through the steps and into the following section. */
+    .how-it-works-section {
+        background: linear-gradient(180deg, #061A42 0%, #0F172A 100%) !important;
     }
 
     .hero .container {
@@ -3216,10 +3222,6 @@
 
     .hero {
         padding-top: 16px !important;
-    }
-
-    .hero::before {
-        height: 700px;
     }
 
     .hero .container {
