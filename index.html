@@ -2625,19 +2625,21 @@
 /* Delikatne przypomnienie — tylko Android, bez agresywnego popupu. */
 .r24-android-nudge {
     position: fixed;
-    right: 16px;
-    bottom: 16px;
+    right: 18px;
+    bottom: 18px;
     z-index: 980;
-    width: min(370px, calc(100vw - 32px));
+    width: min(440px, calc(100vw - 36px));
     display: none;
     align-items: center;
-    gap: 12px;
-    padding: 14px 42px 14px 14px;
-    border: 1px solid #BFDBFE;
-    border-radius: 17px;
-    background: rgba(255,255,255,.985);
-    box-shadow: 0 16px 42px rgba(30,58,138,.17);
-    backdrop-filter: blur(12px);
+    gap: 14px;
+    padding: 17px 46px 17px 17px;
+    border: 1px solid rgba(37,99,235,.20);
+    border-radius: 19px;
+    background:
+        radial-gradient(circle at 88% 18%, rgba(151,215,0,.12), transparent 32%),
+        rgba(255,255,255,.992);
+    box-shadow: 0 20px 48px rgba(30,58,138,.20);
+    backdrop-filter: blur(14px);
 }
 .r24-android-nudge::after {
     content: "";
@@ -2645,30 +2647,31 @@
     left: 0;
     top: 12px;
     bottom: 12px;
-    width: 3px;
+    width: 4px;
     border-radius: 0 99px 99px 0;
     background: #97D700;
 }
 .r24-android-nudge.show { display: flex; animation: r24NudgeIn .28s ease-out; }
 .r24-android-nudge-icon {
     position: relative;
-    width: 44px;
-    height: 44px;
-    border-radius: 13px;
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
     display: grid;
     place-items: center;
-    flex: 0 0 44px;
+    flex: 0 0 50px;
     border: 1px solid #DBEAFE;
-    background: #EFF6FF;
-    font-size: 22px;
+    background: linear-gradient(145deg,#EFF6FF,#FFFFFF);
+    box-shadow: 0 7px 18px rgba(37,99,235,.10);
+    font-size: 25px;
 }
 .r24-android-nudge-icon::after {
     content: "";
     position: absolute;
     right: -2px;
     bottom: -2px;
-    width: 12px;
-    height: 12px;
+    width: 13px;
+    height: 13px;
     border: 3px solid #FFFFFF;
     border-radius: 50%;
     background: #97D700;
@@ -2676,44 +2679,53 @@
 .r24-android-nudge-copy { min-width: 0; flex: 1; }
 .r24-android-nudge-copy strong {
     display: block;
-    margin-bottom: 3px;
+    margin-bottom: 5px;
     color: #1E3A8A;
-    font-size: 13px;
+    font-size: 15px;
+    line-height: 1.2;
     font-weight: 900;
 }
 .r24-android-nudge-copy span {
     display: block;
-    color: #64748B;
-    font-size: 11px;
-    line-height: 1.38;
+    color: #475569;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-weight: 600;
 }
 .r24-android-nudge a {
     display: inline-flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    padding: 8px 10px;
-    border-radius: 10px;
-    background: #97D700;
+    gap: 5px;
+    min-width: 112px;
+    padding: 9px 12px;
+    border: 1px solid rgba(30,58,138,.10);
+    border-radius: 11px;
+    background: linear-gradient(135deg,#B9F62A 0%,#97D700 58%,#7FC800 100%);
     color: #1E3A8A;
     font-size: 11px;
     font-weight: 900;
     line-height: 1;
     text-decoration: none;
     white-space: nowrap;
-    box-shadow: 0 6px 15px rgba(104,153,0,.18);
+    box-shadow: 0 8px 18px rgba(104,153,0,.24);
+}
+.r24-android-nudge a:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(104,153,0,.30);
 }
 .r24-android-nudge-play-label {
     font-size: 9px;
     font-weight: 900;
     line-height: 1.05;
     text-transform: uppercase;
-    letter-spacing: .02em;
+    letter-spacing: .035em;
 }
 .r24-android-nudge-play-logo {
     display: block;
-    width: 72px;
-    max-width: 72px;
+    width: 84px;
+    max-width: 84px;
     height: auto;
     object-fit: contain;
 }
@@ -2746,7 +2758,24 @@
     .r24-google-play-btn { width: 100%; }
     .r24-android-benefits { gap: 7px; }
     .r24-android-benefits span { padding: 6px 9px; }
-    .r24-android-nudge { bottom: 88px; width: min(356px, calc(100vw - 24px)); right: 12px; }
+    .r24-android-nudge {
+        bottom: 88px;
+        right: 12px;
+        width: min(390px, calc(100vw - 24px));
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px 42px 16px 16px;
+    }
+    .r24-android-nudge-copy strong { font-size: 14px; }
+    .r24-android-nudge-copy span { font-size: 12px; }
+    .r24-android-nudge a {
+        width: 100%;
+        flex-direction: row;
+        min-height: 44px;
+        margin-left: 62px;
+        padding: 9px 12px;
+    }
+    .r24-android-nudge-play-logo { width: 88px; max-width: 88px; }
 }
 </style>
 
@@ -6035,9 +6064,11 @@ document.addEventListener("keydown", event => {
 
 <script id="r24-android-index-script">
 (function () {
+    const SHOWN_KEY = 'r24_android_index_nudge_shown_at';
     const DISMISS_KEY = 'r24_android_index_nudge_dismissed_at';
     const CLICK_KEY = 'r24_android_index_play_clicked_at';
     const DAY = 86400000;
+    const SHOW_EVERY_DAYS = 7;
 
     function recent(key, days) {
         const value = Number(localStorage.getItem(key) || 0);
@@ -6057,12 +6088,15 @@ document.addEventListener("keydown", event => {
     function maybeShowAndroidNudge() {
         const isAndroid = /Android/i.test(navigator.userAgent || '');
         if (!isAndroid) return;
-        if (recent(DISMISS_KEY, 30) || recent(CLICK_KEY, 180)) return;
+        if (recent(SHOWN_KEY, SHOW_EVERY_DAYS)) return;
 
         setTimeout(function () {
             const nudge = document.getElementById('r24AndroidNudge');
-            if (nudge) nudge.classList.add('show');
-        }, 6500);
+            if (!nudge) return;
+
+            nudge.classList.add('show');
+            localStorage.setItem(SHOWN_KEY, String(Date.now()));
+        }, 5000);
     }
 
     if (document.readyState === 'loading') {
