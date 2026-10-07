@@ -517,3 +517,212 @@
     overflow-y: auto !important;
   }
 }
+
+
+/* =========================================================
+   RIDE24 WORLD EXPLORER CARD V2
+   Same premium "Tu jesteśmy" tile on desktop and mobile.
+   ========================================================= */
+.world-explorer.world-explorer-desktop,
+.world-explorer.world-explorer-mobile {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.88) !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 91% 17%, rgba(96,165,250,.20), transparent 34%),
+    linear-gradient(145deg,rgba(255,255,255,.96),rgba(244,249,255,.91)) !important;
+  box-shadow: 0 16px 36px rgba(15,54,104,.16), inset 0 1px 0 rgba(255,255,255,.95) !important;
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+}
+
+.world-explorer.world-explorer-desktop {
+  display: block;
+  max-width: 470px;
+  margin-top: 34px;
+  padding: 15px 16px 16px !important;
+}
+
+.world-explorer.world-explorer-desktop::after,
+.world-explorer.world-explorer-mobile::after {
+  content: none !important;
+}
+
+.world-explorer-card-head {
+  display: grid;
+  grid-template-columns: 54px minmax(0,1fr) 135px;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+}
+
+.world-explorer-globe {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid #D7E8FF;
+  border-radius: 50%;
+  background: linear-gradient(145deg,#EAF4FF,#DCEEFF);
+  color: #2563EB;
+  font-size: 28px;
+  line-height: 1;
+  box-shadow: 0 7px 18px rgba(37,99,235,.10);
+}
+
+.world-explorer-copy {
+  min-width: 0;
+  text-align: left;
+}
+
+.world-explorer.world-explorer-desktop h3,
+.world-explorer.world-explorer-mobile h3 {
+  margin: 0 0 4px !important;
+  color: #102A6B !important;
+  font-size: 23px !important;
+  line-height: 1.08 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.03em;
+}
+
+.world-explorer.world-explorer-desktop .world-explorer-summary,
+.world-explorer.world-explorer-mobile .world-explorer-summary {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #64748B !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  font-weight: 750 !important;
+  white-space: nowrap;
+}
+
+.world-explorer-mini-map {
+  position: relative;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 75% 30%,rgba(151,215,0,.15),transparent 22%),
+    linear-gradient(145deg,#EFF8FF,#E3F2FF);
+  box-shadow: inset 0 0 0 1px rgba(191,219,254,.65);
+}
+
+.world-explorer-mini-map svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.world-explorer-mini-map path {
+  fill: #BFDBFE;
+  opacity: .95;
+}
+
+.world-explorer-mini-map .pin {
+  stroke: #fff;
+  stroke-width: 3;
+  filter: drop-shadow(0 2px 3px rgba(15,23,42,.16));
+}
+
+.world-explorer-mini-map .pin-green { fill: #16A34A; }
+.world-explorer-mini-map .pin-blue { fill: #2563EB; }
+
+.world-explorer.world-explorer-desktop .world-map-btn,
+.world-explorer.world-explorer-mobile .world-map-btn {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 45px;
+  margin: 10px 0 0 !important;
+  padding: 10px 16px !important;
+  border: 1px solid rgba(30,58,138,.12) !important;
+  border-radius: 13px !important;
+  background: linear-gradient(135deg,#B9F62A 0%,#97D700 56%,#7FC800 100%) !important;
+  color: #102A6B !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: -.01em;
+  box-shadow: 0 9px 21px rgba(104,153,0,.27) !important;
+}
+
+.world-explorer.world-explorer-desktop .world-map-btn::after,
+.world-explorer.world-explorer-mobile .world-map-btn::after {
+  content: "→";
+  margin-left: 7px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.world-explorer.world-explorer-desktop .world-map-btn:hover,
+.world-explorer.world-explorer-mobile .world-map-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 25px rgba(104,153,0,.34) !important;
+}
+
+@media (max-width: 768px) {
+  .world-explorer.world-explorer-desktop {
+    display: none !important;
+  }
+
+  .world-explorer.world-explorer-mobile {
+    display: block !important;
+    width: 100%;
+    max-width: none;
+    padding: 14px 14px 15px !important;
+    text-align: left !important;
+    border-radius: 20px !important;
+  }
+
+  .world-explorer-card-head {
+    grid-template-columns: 50px minmax(0,1fr) 118px;
+    gap: 10px;
+    min-height: 76px;
+  }
+
+  .world-explorer-globe {
+    width: 50px;
+    height: 50px;
+    font-size: 26px;
+  }
+
+  .world-explorer.world-explorer-mobile h3 {
+    font-size: 21px !important;
+  }
+
+  .world-explorer.world-explorer-mobile .world-explorer-summary {
+    font-size: 12.5px !important;
+  }
+
+  .world-explorer-mini-map {
+    height: 66px;
+    border-radius: 13px;
+  }
+
+  .world-explorer.world-explorer-mobile .world-map-btn {
+    min-height: 47px;
+    margin-top: 9px !important;
+    font-size: 15px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .world-explorer-card-head {
+    grid-template-columns: 46px minmax(0,1fr) 96px;
+    gap: 8px;
+  }
+
+  .world-explorer-globe {
+    width: 46px;
+    height: 46px;
+    font-size: 24px;
+  }
+
+  .world-explorer.world-explorer-mobile h3 {
+    font-size: 19px !important;
+  }
+
+  .world-explorer.world-explorer-mobile .world-explorer-summary {
+    font-size: 11.5px !important;
+  }
+}
