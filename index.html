@@ -2781,15 +2781,21 @@
 
 
 <style id="r24-mobile-hero-v2">
-/* Ride24 mobile hero — final approved visual layer.
-   Visual-only changes: search, map, booking and pricing logic remain untouched. */
+/* Ride24 mobile hero — visual-only layer.
+   Desktop and all search/booking/pricing/map logic stay untouched. */
 @media (max-width: 768px) {
     header {
         flex-wrap: nowrap !important;
         align-items: center !important;
         padding: 10px 12px !important;
         gap: 8px !important;
-        background: linear-gradient(135deg,#082B6F 0%,#0B5EC1 72%,#1FB6E9 100%) !important;
+        border-bottom: 0 !important;
+        background-image:
+            linear-gradient(90deg,rgba(4,31,78,.54) 0%,rgba(4,51,103,.30) 52%,rgba(4,73,129,.14) 100%),
+            url("assets/img/ride24-mobile-hero-v2.webp") !important;
+        background-size: 100% 100%, 100vw auto !important;
+        background-position: center, center top !important;
+        background-repeat: no-repeat, no-repeat !important;
     }
 
     header .logo-container {
@@ -2826,6 +2832,7 @@
     header .lang-btn {
         gap: 2px !important;
         font-size: 9px !important;
+        text-shadow: 0 1px 6px rgba(3,24,60,.38);
     }
 
     header .lang-btn img {
@@ -2852,35 +2859,55 @@
         position: relative;
         overflow: hidden !important;
         min-height: 0 !important;
-        padding: 20px 0 38px !important;
-        background:
-            linear-gradient(
-                180deg,
-                rgba(4,35,92,.62) 0%,
-                rgba(7,67,133,.43) 29%,
-                rgba(7,100,145,.20) 49%,
-                rgba(56,153,105,.20) 68%,
-                rgba(151,215,0,.52) 84%,
-                rgba(151,215,0,.72) 100%
-            ),
-            url("assets/img/ride24-mobile-hero.webp") center top / 100% auto no-repeat,
-            linear-gradient(180deg,#0B4E9D 0%,#177CAC 54%,#97D700 100%) !important;
-        background-color: #97D700 !important;
+        padding: 19px 0 40px !important;
+        background-image:
+            url("assets/img/ride24-mobile-hero-v2.webp"),
+            linear-gradient(180deg,#37B9E8 0%,#168BC7 30%,#0D65AE 57%,#0A468B 76%,#071F50 100%) !important;
+        background-size: 100vw auto, 100% 100% !important;
+        background-position: center -58px, center !important;
+        background-repeat: no-repeat, no-repeat !important;
+        background-color: #071F50 !important;
     }
 
+    /* Darker only behind the headline/benefits; the car and coastline stay visible on the right. */
+    .hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 500px;
+        pointer-events: none;
+        z-index: 0;
+        background:
+            radial-gradient(
+                ellipse at 0% 34%,
+                rgba(2,24,63,.82) 0%,
+                rgba(3,37,82,.67) 34%,
+                rgba(4,55,103,.38) 56%,
+                rgba(4,75,123,.12) 73%,
+                rgba(4,75,123,0) 86%
+            );
+    }
+
+    /* Smoothly blend the photo into light blue and then deep navy lower on the mobile page. */
     .hero::after {
         content: "";
         position: absolute;
         inset: 0;
         pointer-events: none;
         z-index: 0;
-        background: linear-gradient(
-            180deg,
-            rgba(5,35,86,.08) 0%,
-            rgba(5,35,86,0) 48%,
-            rgba(228,255,211,0) 67%,
-            rgba(228,255,211,.18) 100%
-        );
+        background:
+            linear-gradient(
+                180deg,
+                rgba(11,95,155,0) 0px,
+                rgba(11,95,155,0) 330px,
+                rgba(22,151,198,.10) 390px,
+                rgba(20,144,194,.34) 455px,
+                rgba(13,102,170,.72) 565px,
+                rgba(9,68,137,.90) 735px,
+                rgba(7,31,80,.98) 100%
+            );
     }
 
     .hero .container {
@@ -2912,64 +2939,77 @@
         max-width: 390px;
         margin: 0 0 10px !important;
         padding: 0 !important;
-        font-size: clamp(34px,9.2vw,42px) !important;
-        line-height: 1.04 !important;
+        line-height: 1.03 !important;
         letter-spacing: -.038em;
         color: #FFFFFF !important;
-        text-shadow: 0 3px 18px rgba(4,30,75,.38) !important;
+        text-shadow: 0 3px 18px rgba(3,23,58,.44) !important;
     }
 
     .hero-text h1 > span:first-child {
         display: block;
         color: #FFFFFF !important;
+        font-size: clamp(31px,8.2vw,35px) !important;
+        line-height: 1.04 !important;
     }
 
-    .hero-text h1 > span:last-child,
+    .hero-text h1 > span:last-child {
+        display: block;
+        margin-top: 3px;
+        color: #A9F42C !important;
+        font-size: clamp(24px,6.45vw,28px) !important;
+        line-height: 1.05 !important;
+        letter-spacing: -.048em;
+        white-space: nowrap;
+    }
+
     .hero-text h1 > span:last-child span {
         color: #A9F42C !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+        white-space: inherit;
     }
 
     .hero-text h2 {
-        max-width: 365px;
-        margin: 0 0 18px !important;
-        color: rgba(255,255,255,.97) !important;
-        font-size: 16px !important;
+        max-width: 350px;
+        margin: 0 0 17px !important;
+        color: rgba(255,255,255,.98) !important;
+        font-size: 15px !important;
         line-height: 1.38 !important;
         font-weight: 650 !important;
-        text-shadow: 0 2px 10px rgba(4,30,75,.30);
+        text-shadow: 0 2px 10px rgba(3,23,58,.40);
     }
 
     .hero-benefits {
         width: 100%;
-        max-width: 342px;
+        max-width: 328px;
         margin: 0 0 18px !important;
         padding: 0 !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 9px !important;
+        gap: 8px !important;
     }
 
     .hero-benefits li {
         width: 100%;
-        min-height: 38px;
+        min-height: 37px;
         margin: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        gap: 10px !important;
+        gap: 9px !important;
         color: #FFFFFF !important;
-        font-size: 15px !important;
-        line-height: 1.25 !important;
+        font-size: 14px !important;
+        line-height: 1.22 !important;
         font-weight: 800 !important;
         text-align: left !important;
-        text-shadow: 0 2px 8px rgba(6,43,88,.34);
+        text-shadow: 0 2px 9px rgba(3,23,58,.48);
     }
 
     .hero-benefits li img {
-        width: 36px !important;
-        height: 36px !important;
-        flex: 0 0 36px;
+        width: 34px !important;
+        height: 34px !important;
+        flex: 0 0 34px;
         padding: 7px;
         border-radius: 50%;
         background: #97D700;
@@ -3016,7 +3056,7 @@
         border-radius: 17px !important;
         border: 1px solid rgba(219,234,254,.92) !important;
         background: rgba(255,255,255,.97) !important;
-        box-shadow: 0 9px 22px rgba(17,64,111,.15) !important;
+        box-shadow: 0 9px 22px rgba(8,38,86,.18) !important;
     }
 
     .hero-search .r24-premium-sales-title,
@@ -3045,7 +3085,7 @@
         border-radius: 22px !important;
         border: 1px solid rgba(255,255,255,.88) !important;
         background: rgba(255,255,255,.96) !important;
-        box-shadow: 0 18px 42px rgba(14,62,103,.18) !important;
+        box-shadow: 0 18px 42px rgba(4,27,72,.22) !important;
         backdrop-filter: blur(9px);
         -webkit-backdrop-filter: blur(9px);
     }
@@ -3077,7 +3117,9 @@
 
     .mobile-how-heading {
         order: 3 !important;
-        margin: 26px 0 0 !important;
+        margin: 28px 0 0 !important;
+        color: #FFFFFF !important;
+        text-shadow: 0 2px 10px rgba(3,23,58,.42);
     }
 
     .whatsapp-float {
@@ -3092,6 +3134,7 @@
         padding-left: 9px !important;
         padding-right: 9px !important;
         gap: 5px !important;
+        background-size: 100% 100%, 100vw auto !important;
     }
 
     header .logo-container {
@@ -3126,7 +3169,7 @@
 
     .hero {
         padding-top: 17px !important;
-        background-position: center top, center top, center top !important;
+        background-position: center -56px, center !important;
     }
 
     .hero .container {
@@ -3137,20 +3180,26 @@
         padding-bottom: 16px !important;
     }
 
-    .hero-text h1 {
-        font-size: 32px !important;
+    .hero-text h1 > span:first-child {
+        font-size: 30px !important;
+    }
+
+    .hero-text h1 > span:last-child {
+        font-size: 23px !important;
+        letter-spacing: -.055em;
     }
 
     .hero-text h2 {
-        font-size: 15px !important;
+        max-width: 318px;
+        font-size: 14px !important;
     }
 
     .hero-benefits {
-        max-width: 320px;
+        max-width: 300px;
     }
 
     .hero-benefits li {
-        font-size: 14px !important;
+        font-size: 13px !important;
     }
 
     .hero-search .trust-badges.r24-premium-sales-grid .trust-badge {
