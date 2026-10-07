@@ -2781,7 +2781,8 @@
 
 
 <style id="r24-mobile-hero-v2">
-/* Final mobile homepage layout. Visual-only: no search/booking/pricing logic changes. */
+/* Ride24 mobile hero — final approved visual layer.
+   Visual-only changes: search, map, booking and pricing logic remain untouched. */
 @media (max-width: 768px) {
     header {
         flex-wrap: nowrap !important;
@@ -2851,25 +2852,35 @@
         position: relative;
         overflow: hidden !important;
         min-height: 0 !important;
-        padding: 22px 0 40px !important;
+        padding: 20px 0 38px !important;
         background:
-            linear-gradient(180deg,
-                rgba(5,42,111,.94) 0%,
-                rgba(10,88,164,.82) 29%,
-                rgba(11,121,162,.70) 51%,
-                rgba(66,168,105,.66) 72%,
-                rgba(151,215,0,.74) 100%),
-            url("tlo.png") 64% bottom / cover no-repeat !important;
+            linear-gradient(
+                180deg,
+                rgba(4,35,92,.62) 0%,
+                rgba(7,67,133,.43) 29%,
+                rgba(7,100,145,.20) 49%,
+                rgba(56,153,105,.20) 68%,
+                rgba(151,215,0,.52) 84%,
+                rgba(151,215,0,.72) 100%
+            ),
+            url("assets/img/ride24-mobile-hero.webp") center top / 100% auto no-repeat,
+            linear-gradient(180deg,#0B4E9D 0%,#177CAC 54%,#97D700 100%) !important;
+        background-color: #97D700 !important;
     }
 
     .hero::after {
         content: "";
         position: absolute;
-        inset: auto 0 0;
-        height: 34%;
+        inset: 0;
         pointer-events: none;
-        background: linear-gradient(180deg,rgba(213,255,196,0),rgba(226,255,214,.28));
         z-index: 0;
+        background: linear-gradient(
+            180deg,
+            rgba(5,35,86,.08) 0%,
+            rgba(5,35,86,0) 48%,
+            rgba(228,255,211,0) 67%,
+            rgba(228,255,211,.18) 100%
+        );
     }
 
     .hero .container {
@@ -2888,39 +2899,24 @@
         position: relative;
         width: 100%;
         max-width: none !important;
-        padding: 4px 2px 98px !important;
+        padding: 8px 2px 18px !important;
         text-align: left !important;
     }
 
     .hero-text::after {
-        content: "";
-        position: absolute;
-        right: -18px;
-        bottom: 2px;
-        width: 224px;
-        height: 102px;
-        z-index: 1;
-        pointer-events: none;
-        background: url("auto.png") right bottom / contain no-repeat;
-        filter: drop-shadow(0 10px 14px rgba(8,36,70,.22));
-    }
-
-    .hero-text > h1,
-    .hero-text > h2,
-    .hero-text > .hero-benefits {
-        position: relative;
-        z-index: 2;
+        content: none !important;
+        display: none !important;
     }
 
     .hero-text h1 {
         max-width: 390px;
-        margin: 0 0 9px !important;
+        margin: 0 0 10px !important;
         padding: 0 !important;
         font-size: clamp(34px,9.2vw,42px) !important;
         line-height: 1.04 !important;
         letter-spacing: -.038em;
         color: #FFFFFF !important;
-        text-shadow: 0 3px 18px rgba(4,30,75,.30) !important;
+        text-shadow: 0 3px 18px rgba(4,30,75,.38) !important;
     }
 
     .hero-text h1 > span:first-child {
@@ -2934,16 +2930,19 @@
     }
 
     .hero-text h2 {
+        max-width: 365px;
         margin: 0 0 18px !important;
-        color: rgba(255,255,255,.94) !important;
+        color: rgba(255,255,255,.97) !important;
         font-size: 16px !important;
         line-height: 1.38 !important;
-        font-weight: 600 !important;
+        font-weight: 650 !important;
+        text-shadow: 0 2px 10px rgba(4,30,75,.30);
     }
 
     .hero-benefits {
         width: 100%;
-        margin: 0 0 14px !important;
+        max-width: 342px;
+        margin: 0 0 18px !important;
         padding: 0 !important;
         display: flex !important;
         flex-direction: column !important;
@@ -2964,7 +2963,7 @@
         line-height: 1.25 !important;
         font-weight: 800 !important;
         text-align: left !important;
-        text-shadow: 0 2px 8px rgba(6,43,88,.22);
+        text-shadow: 0 2px 8px rgba(6,43,88,.34);
     }
 
     .hero-benefits li img {
@@ -3017,7 +3016,7 @@
         border-radius: 17px !important;
         border: 1px solid rgba(219,234,254,.92) !important;
         background: rgba(255,255,255,.97) !important;
-        box-shadow: 0 9px 22px rgba(17,64,111,.14) !important;
+        box-shadow: 0 9px 22px rgba(17,64,111,.15) !important;
     }
 
     .hero-search .r24-premium-sales-title,
@@ -3126,22 +3125,16 @@
     }
 
     .hero {
-        padding-top: 18px !important;
-        background-position: 68% bottom !important;
-    }
-
-    .hero-text {
-        padding-bottom: 86px !important;
-    }
-
-    .hero-text::after {
-        right: -14px;
-        width: 194px;
-        height: 90px;
+        padding-top: 17px !important;
+        background-position: center top, center top, center top !important;
     }
 
     .hero .container {
         padding: 0 11px !important;
+    }
+
+    .hero-text {
+        padding-bottom: 16px !important;
     }
 
     .hero-text h1 {
@@ -3150,6 +3143,10 @@
 
     .hero-text h2 {
         font-size: 15px !important;
+    }
+
+    .hero-benefits {
+        max-width: 320px;
     }
 
     .hero-benefits li {
@@ -3234,18 +3231,9 @@
                     </div>
 
                     <div class="world-explorer-map-art" aria-hidden="true">
-                        <svg class="world-explorer-map-svg" viewBox="0 0 180 90" focusable="false">
-                            <path class="map-land map-mainland" d="M18 55l8-9 11-2 4-8 12-3 7-7 13 2 7-6 13 1 6-5 11 4 5 7 11 1 6 7 11 2 5 7-6 7-10 2-4 6-11-1-8 7-8-3-8 5-11-6-9 3-8-5-10 3-7-6-9 1z"/>
-                            <path class="map-land map-scandinavia" d="M96 22l5-13 7-5 8 4 2 9-5 10-3 9-8 4-5-7z"/>
-                            <path class="map-land map-britain" d="M50 29l-5-8 3-8 6-3 5 5-1 8-4 7z"/>
-                            <path class="map-land map-ireland" d="M40 30l-4-5 2-6 4-2 4 5-1 6z"/>
-                            <path class="map-land map-italy" d="M92 57l7 3 4 6-3 5 4 7-4 5-5-9 1-7-6-5z"/>
-                            <path class="map-land map-balkans" d="M112 55l9 2 7 6-2 7-7 2-5-5-6-2z"/>
-                            <circle class="map-pin map-pin-green" cx="59" cy="47" r="5"/>
-                            <circle class="map-pin map-pin-blue" cx="92" cy="48" r="5"/>
-                            <circle class="map-pin map-pin-green" cx="119" cy="38" r="5"/>
-                            <circle class="map-pin map-pin-blue" cx="137" cy="62" r="5"/>
-                        </svg>
+                        <img class="world-explorer-map-image"
+                             src="assets/img/ride24-map-card.webp"
+                             alt="">
                     </div>
                 </div>
 
@@ -3322,18 +3310,9 @@
                     </div>
 
                     <div class="world-explorer-map-art" aria-hidden="true">
-                        <svg class="world-explorer-map-svg" viewBox="0 0 180 90" focusable="false">
-                            <path class="map-land map-mainland" d="M18 55l8-9 11-2 4-8 12-3 7-7 13 2 7-6 13 1 6-5 11 4 5 7 11 1 6 7 11 2 5 7-6 7-10 2-4 6-11-1-8 7-8-3-8 5-11-6-9 3-8-5-10 3-7-6-9 1z"/>
-                            <path class="map-land map-scandinavia" d="M96 22l5-13 7-5 8 4 2 9-5 10-3 9-8 4-5-7z"/>
-                            <path class="map-land map-britain" d="M50 29l-5-8 3-8 6-3 5 5-1 8-4 7z"/>
-                            <path class="map-land map-ireland" d="M40 30l-4-5 2-6 4-2 4 5-1 6z"/>
-                            <path class="map-land map-italy" d="M92 57l7 3 4 6-3 5 4 7-4 5-5-9 1-7-6-5z"/>
-                            <path class="map-land map-balkans" d="M112 55l9 2 7 6-2 7-7 2-5-5-6-2z"/>
-                            <circle class="map-pin map-pin-green" cx="59" cy="47" r="5"/>
-                            <circle class="map-pin map-pin-blue" cx="92" cy="48" r="5"/>
-                            <circle class="map-pin map-pin-green" cx="119" cy="38" r="5"/>
-                            <circle class="map-pin map-pin-blue" cx="137" cy="62" r="5"/>
-                        </svg>
+                        <img class="world-explorer-map-image"
+                             src="assets/img/ride24-map-card.webp"
+                             alt="">
                     </div>
                 </div>
 
