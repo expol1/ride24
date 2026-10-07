@@ -2781,8 +2781,8 @@
 
 
 <style id="r24-mobile-hero-v2">
-/* Ride24 mobile hero — final approved visual layer.
-   Visual-only changes: search, map, booking and pricing logic remain untouched. */
+/* Ride24 mobile homepage — reference-match visual layer.
+   Mobile-only. Search, booking, pricing, map, counters and app logic are untouched. */
 @media (max-width: 768px) {
     header {
         flex-wrap: nowrap !important;
@@ -2790,13 +2790,16 @@
         padding: 10px 12px !important;
         gap: 8px !important;
         background:
-            linear-gradient(90deg,
-                rgba(6,34,84,.28) 0%,
-                rgba(8,63,125,.14) 42%,
-                rgba(22,140,196,.06) 100%),
-            url("tlo.png") center 7% / cover no-repeat !important;
-        background-color: #0B63B7 !important;
-        border-bottom: 1px solid rgba(255,255,255,.18);
+            linear-gradient(
+                90deg,
+                rgba(3,22,66,.82) 0%,
+                rgba(5,42,99,.62) 35%,
+                rgba(9,84,151,.36) 66%,
+                rgba(21,143,198,.16) 100%
+            ),
+            url("tlo.png") 58% 0 / auto 600px no-repeat !important;
+        background-color: #0A4F9D !important;
+        border-bottom: 1px solid rgba(255,255,255,.16);
     }
 
     header .logo-container {
@@ -2859,72 +2862,102 @@
         position: relative;
         overflow: hidden !important;
         min-height: 0 !important;
-        padding: 18px 0 42px !important;
+        padding: 19px 0 46px !important;
         background:
-            url("auto.png") calc(100% + 42px) 205px / 54% auto no-repeat,
-            url("tlo.png") center top / auto 610px no-repeat,
             linear-gradient(
                 180deg,
-                #65D4ED 0%,
-                #4FC0E0 20%,
-                #3094CC 43%,
-                #1C66AA 62%,
-                #123E82 78%,
-                #0A2A63 90%,
-                #061B49 100%
+                #0B4A95 0%,
+                #126FB2 22%,
+                #24A1C8 42%,
+                #56C6CB 57%,
+                #92DDB7 69%,
+                #B6EBAA 77%,
+                #69C2C4 85%,
+                #2B7FB0 91%,
+                #123F82 96%,
+                #08265F 100%
             ) !important;
-        background-color: #061B49 !important;
+        background-color: #08265F !important;
     }
 
+    /* Scenic photo is faded out instead of ending with a hard horizontal cut. */
     .hero::before {
         content: "";
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
-        height: 560px;
+        height: 620px;
         pointer-events: none;
-        z-index: 1;
+        z-index: 0;
         background:
             linear-gradient(
                 90deg,
-                rgba(4,24,65,.78) 0%,
-                rgba(5,31,76,.68) 18%,
-                rgba(6,39,88,.52) 34%,
-                rgba(7,50,100,.34) 48%,
-                rgba(9,67,119,.18) 61%,
-                rgba(11,84,137,.07) 72%,
-                rgba(11,84,137,0) 82%
+                rgba(3,22,65,.84) 0%,
+                rgba(4,30,76,.74) 19%,
+                rgba(5,41,91,.57) 35%,
+                rgba(7,56,107,.36) 50%,
+                rgba(8,72,124,.17) 64%,
+                rgba(8,72,124,.04) 77%,
+                rgba(8,72,124,0) 88%
             ),
             linear-gradient(
                 180deg,
-                rgba(4,26,68,.08) 0%,
-                rgba(4,26,68,0) 56%,
-                rgba(44,148,192,.07) 70%,
-                rgba(42,139,187,.20) 82%,
-                rgba(34,114,169,.38) 100%
-            );
+                rgba(5,30,77,.34) 0%,
+                rgba(6,47,103,.15) 38%,
+                rgba(10,82,135,.04) 62%,
+                rgba(10,82,135,0) 100%
+            ),
+            url("tlo.png") 58% -54px / auto 600px no-repeat;
+        -webkit-mask-image: linear-gradient(
+            180deg,
+            #000 0%,
+            #000 61%,
+            rgba(0,0,0,.96) 68%,
+            rgba(0,0,0,.76) 76%,
+            rgba(0,0,0,.43) 85%,
+            rgba(0,0,0,.15) 93%,
+            transparent 100%
+        );
+        mask-image: linear-gradient(
+            180deg,
+            #000 0%,
+            #000 61%,
+            rgba(0,0,0,.96) 68%,
+            rgba(0,0,0,.76) 76%,
+            rgba(0,0,0,.43) 85%,
+            rgba(0,0,0,.15) 93%,
+            transparent 100%
+        );
     }
 
+    /* Long, soft blend from the scenic upper half into the lower blue/navy background. */
     .hero::after {
         content: "";
         position: absolute;
         inset: 0;
         pointer-events: none;
         z-index: 1;
-        background: linear-gradient(
-            180deg,
-            rgba(6,27,73,0) 0%,
-            rgba(6,27,73,0) 34%,
-            rgba(69,180,215,.05) 43%,
-            rgba(49,151,198,.12) 51%,
-            rgba(35,121,180,.24) 60%,
-            rgba(24,91,154,.39) 69%,
-            rgba(16,66,128,.56) 77%,
-            rgba(11,45,103,.72) 85%,
-            rgba(7,31,77,.88) 92%,
-            rgba(5,24,64,.97) 100%
-        );
+        background:
+            linear-gradient(
+                90deg,
+                rgba(3,23,65,.28) 0%,
+                rgba(4,36,82,.15) 31%,
+                rgba(7,59,105,.04) 55%,
+                rgba(7,59,105,0) 72%
+            ),
+            linear-gradient(
+                180deg,
+                rgba(4,30,77,.06) 0%,
+                rgba(4,30,77,0) 34%,
+                rgba(54,171,199,.03) 49%,
+                rgba(83,195,190,.08) 62%,
+                rgba(125,216,175,.10) 72%,
+                rgba(44,139,174,.10) 83%,
+                rgba(14,73,135,.22) 91%,
+                rgba(5,31,78,.46) 100%
+            ),
+            url("auto.png") calc(100% + 18px) 118px / 69% auto no-repeat;
     }
 
     .hero .container {
@@ -2943,7 +2976,7 @@
         position: relative;
         width: 100%;
         max-width: none !important;
-        padding: 8px 2px 18px !important;
+        padding: 8px 2px 20px !important;
         text-align: left !important;
     }
 
@@ -2956,11 +2989,11 @@
         max-width: 390px;
         margin: 0 0 10px !important;
         padding: 0 !important;
-        font-size: clamp(30px,7.8vw,34px) !important;
-        line-height: 1.04 !important;
-        letter-spacing: -.036em;
+        font-size: clamp(34px,8.8vw,39px) !important;
+        line-height: 1.03 !important;
+        letter-spacing: -.039em;
         color: #FFFFFF !important;
-        text-shadow: 0 3px 18px rgba(4,30,75,.46) !important;
+        text-shadow: 0 3px 18px rgba(3,24,67,.50) !important;
     }
 
     .hero-text h1 > span:first-child {
@@ -2973,10 +3006,10 @@
         width: max-content;
         max-width: 100%;
         color: #A9F42C !important;
-        font-size: .76em;
+        font-size: .82em;
         line-height: 1.08;
         white-space: nowrap;
-        letter-spacing: -.042em;
+        letter-spacing: -.045em;
     }
 
     .hero-text h1 > span:last-child span {
@@ -2985,49 +3018,49 @@
 
     .hero-text h2 {
         max-width: 365px;
-        margin: 0 0 18px !important;
-        color: rgba(255,255,255,.97) !important;
+        margin: 0 0 20px !important;
+        color: rgba(255,255,255,.98) !important;
         font-size: 16px !important;
         line-height: 1.38 !important;
         font-weight: 650 !important;
-        text-shadow: 0 2px 10px rgba(4,30,75,.30);
+        text-shadow: 0 2px 10px rgba(3,26,70,.34);
     }
 
     .hero-benefits {
         width: 100%;
-        max-width: 342px;
-        margin: 0 0 18px !important;
+        max-width: 348px;
+        margin: 0 0 22px !important;
         padding: 0 !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
-        gap: 9px !important;
+        gap: 11px !important;
     }
 
     .hero-benefits li {
         width: 100%;
-        min-height: 38px;
+        min-height: 42px;
         margin: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        gap: 10px !important;
+        gap: 11px !important;
         color: #FFFFFF !important;
         font-size: 15px !important;
         line-height: 1.25 !important;
         font-weight: 800 !important;
         text-align: left !important;
-        text-shadow: 0 2px 8px rgba(6,43,88,.34);
+        text-shadow: 0 2px 9px rgba(4,31,73,.42);
     }
 
     .hero-benefits li img {
-        width: 36px !important;
-        height: 36px !important;
-        flex: 0 0 36px;
-        padding: 7px;
+        width: 40px !important;
+        height: 40px !important;
+        flex: 0 0 40px;
+        padding: 8px;
         border-radius: 50%;
         background: #97D700;
-        box-shadow: 0 6px 16px rgba(42,107,17,.24);
+        box-shadow: 0 6px 18px rgba(36,104,20,.28);
     }
 
     .hero-car {
@@ -3070,7 +3103,7 @@
         border-radius: 17px !important;
         border: 1px solid rgba(219,234,254,.92) !important;
         background: rgba(255,255,255,.97) !important;
-        box-shadow: 0 9px 22px rgba(17,64,111,.15) !important;
+        box-shadow: 0 10px 24px rgba(17,64,111,.17) !important;
     }
 
     .hero-search .r24-premium-sales-title,
@@ -3182,20 +3215,47 @@
         padding-top: 16px !important;
     }
 
+    .hero::after {
+        background-position:
+            center center,
+            center center,
+            calc(100% + 14px) 122px;
+        background-size:
+            auto,
+            auto,
+            72% auto;
+        background-repeat:
+            no-repeat,
+            no-repeat,
+            no-repeat;
+    }
+
+    .hero::before {
+        height: 600px;
+        background-position:
+            center center,
+            center center,
+            60% -52px;
+        background-size:
+            auto,
+            auto,
+            auto 585px;
+    }
+
     .hero .container {
         padding: 0 11px !important;
     }
 
     .hero-text {
-        padding-bottom: 16px !important;
+        padding-bottom: 18px !important;
     }
 
     .hero-text h1 {
-        font-size: 29px !important;
+        font-size: 33px !important;
     }
 
     .hero-text h1 > span:last-child {
-        font-size: .75em;
+        font-size: .78em;
     }
 
     .hero-text h2 {
@@ -3204,10 +3264,18 @@
 
     .hero-benefits {
         max-width: 320px;
+        gap: 10px !important;
     }
 
     .hero-benefits li {
         font-size: 14px !important;
+    }
+
+    .hero-benefits li img {
+        width: 38px !important;
+        height: 38px !important;
+        flex-basis: 38px;
+        padding: 7px;
     }
 
     .hero-search .trust-badges.r24-premium-sales-grid .trust-badge {
