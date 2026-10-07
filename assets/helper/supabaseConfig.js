@@ -21,7 +21,7 @@ console.log("🚀 Ride24: Supabase client aktywny (session enabled)");
 // Kept separate from business logic so it can be removed or rolled back safely.
 (() => {
   const path = String(window.location.pathname || "").toLowerCase();
-  const isHome = path === "/" || path.endsWith("/index.html") || path.endsWith("/");
+  const isHome = path === "/" || path.endsWith("/index.html");
 
   if (!isHome || document.querySelector('link[data-ride24-world-premium="1"]')) {
     return;
