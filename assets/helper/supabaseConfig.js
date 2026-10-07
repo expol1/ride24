@@ -29,7 +29,7 @@ console.log("🚀 Ride24: Supabase client aktywny (session enabled)");
 
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "assets/css/world-explorer-premium.css?v=20261007e";
+  link.href = "assets/css/world-explorer-premium.css?v=20261007f";
   link.dataset.ride24WorldPremium = "1";
   document.head.appendChild(link);
 
