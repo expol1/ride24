@@ -2789,7 +2789,11 @@
         align-items: center !important;
         padding: 10px 12px !important;
         gap: 8px !important;
-        background: linear-gradient(135deg,#082B6F 0%,#0B5EC1 72%,#1FB6E9 100%) !important;
+        background:
+            linear-gradient(90deg,rgba(5,35,91,.32) 0%,rgba(9,78,145,.10) 68%,rgba(20,151,211,.08) 100%),
+            url("assets/img/ride24-mobile-hero.webp?v=20261007j") center top / 100% auto no-repeat !important;
+        background-color: #0B63B7 !important;
+        border-bottom: 1px solid rgba(255,255,255,.18);
     }
 
     header .logo-container {
@@ -2852,20 +2856,46 @@
         position: relative;
         overflow: hidden !important;
         min-height: 0 !important;
-        padding: 20px 0 38px !important;
+        padding: 18px 0 40px !important;
         background:
+            url("assets/img/ride24-mobile-hero.webp?v=20261007j") center top / 100% auto no-repeat,
             linear-gradient(
                 180deg,
-                rgba(4,35,92,.62) 0%,
-                rgba(7,67,133,.43) 29%,
-                rgba(7,100,145,.20) 49%,
-                rgba(56,153,105,.20) 68%,
-                rgba(151,215,0,.52) 84%,
-                rgba(151,215,0,.72) 100%
+                #55C8E5 0%,
+                #46B7DA 19%,
+                #2F8FC8 42%,
+                #1B63A8 64%,
+                #123F86 80%,
+                #081F52 100%
+            ) !important;
+        background-color: #081F52 !important;
+    }
+
+    .hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 520px;
+        pointer-events: none;
+        z-index: 1;
+        background:
+            linear-gradient(
+                90deg,
+                rgba(4,25,69,.78) 0%,
+                rgba(5,34,83,.58) 31%,
+                rgba(5,47,96,.28) 52%,
+                rgba(5,52,103,.08) 68%,
+                rgba(5,52,103,0) 80%
             ),
-            url("assets/img/ride24-mobile-hero.webp") center top / 100% auto no-repeat,
-            linear-gradient(180deg,#0B4E9D 0%,#177CAC 54%,#97D700 100%) !important;
-        background-color: #97D700 !important;
+            linear-gradient(
+                180deg,
+                rgba(4,31,79,.06) 0%,
+                rgba(4,31,79,0) 61%,
+                rgba(55,164,201,.10) 75%,
+                rgba(61,160,195,.58) 100%
+            );
     }
 
     .hero::after {
@@ -2873,13 +2903,15 @@
         position: absolute;
         inset: 0;
         pointer-events: none;
-        z-index: 0;
+        z-index: 1;
         background: linear-gradient(
             180deg,
-            rgba(5,35,86,.08) 0%,
-            rgba(5,35,86,0) 48%,
-            rgba(228,255,211,0) 67%,
-            rgba(228,255,211,.18) 100%
+            rgba(8,31,82,0) 0%,
+            rgba(8,31,82,0) 34%,
+            rgba(59,166,202,.07) 43%,
+            rgba(32,112,174,.22) 58%,
+            rgba(18,70,134,.47) 75%,
+            rgba(8,31,82,.88) 100%
         );
     }
 
@@ -2912,11 +2944,11 @@
         max-width: 390px;
         margin: 0 0 10px !important;
         padding: 0 !important;
-        font-size: clamp(34px,9.2vw,42px) !important;
+        font-size: clamp(32px,8.35vw,36px) !important;
         line-height: 1.04 !important;
         letter-spacing: -.038em;
         color: #FFFFFF !important;
-        text-shadow: 0 3px 18px rgba(4,30,75,.38) !important;
+        text-shadow: 0 3px 18px rgba(4,30,75,.42) !important;
     }
 
     .hero-text h1 > span:first-child {
@@ -2924,7 +2956,17 @@
         color: #FFFFFF !important;
     }
 
-    .hero-text h1 > span:last-child,
+    .hero-text h1 > span:last-child {
+        display: block;
+        width: max-content;
+        max-width: 100%;
+        color: #A9F42C !important;
+        font-size: .78em;
+        line-height: 1.08;
+        white-space: nowrap;
+        letter-spacing: -.045em;
+    }
+
     .hero-text h1 > span:last-child span {
         color: #A9F42C !important;
     }
@@ -3125,8 +3167,7 @@
     }
 
     .hero {
-        padding-top: 17px !important;
-        background-position: center top, center top, center top !important;
+        padding-top: 16px !important;
     }
 
     .hero .container {
@@ -3138,7 +3179,11 @@
     }
 
     .hero-text h1 {
-        font-size: 32px !important;
+        font-size: 31px !important;
+    }
+
+    .hero-text h1 > span:last-child {
+        font-size: .78em;
     }
 
     .hero-text h2 {
