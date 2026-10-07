@@ -29,13 +29,13 @@ console.log("🚀 Ride24: Supabase client aktywny (session enabled)");
 
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = "assets/css/world-explorer-premium.css?v=20261007b";
+  link.href = "assets/css/world-explorer-premium.css?v=20261007c";
   link.dataset.ride24WorldPremium = "1";
   document.head.appendChild(link);
 
   if (!document.querySelector('script[data-ride24-world-ui="1"]')) {
     const script = document.createElement("script");
-    script.src = "assets/js/world-explorer-ui.js?v=20261007b";
+    script.src = "assets/js/world-explorer-ui.js?v=20261007c";
     script.dataset.ride24WorldUi = "1";
     document.head.appendChild(script);
   }
