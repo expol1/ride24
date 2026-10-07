@@ -1805,8 +1805,17 @@
                 border: 1px solid rgba(255, 255, 255, 0.8);
             }
             .split-inputs { 
-                flex-direction: column;
-                gap: 12px; 
+                flex-direction: row;
+                gap: 8px;
+                align-items: stretch;
+            }
+            .split-inputs .input-wrapper:first-child {
+                flex: 3 1 0;
+                min-width: 0;
+            }
+            .split-inputs .input-wrapper:last-child {
+                flex: 2 1 0;
+                min-width: 0;
             }
             .input-wrapper input, .input-wrapper select { 
                 height: 52px;
