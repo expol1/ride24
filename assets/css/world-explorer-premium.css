@@ -624,6 +624,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
   padding: 6px 7px 5px;
   overflow: visible;
 }
