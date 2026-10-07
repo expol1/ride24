@@ -2691,14 +2691,31 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 7px;
     padding: 8px 10px;
-    border-radius: 9px;
+    border-radius: 10px;
     background: #97D700;
-    color: #0F172A;
+    color: #1E3A8A;
     font-size: 11px;
     font-weight: 900;
+    line-height: 1;
     text-decoration: none;
     white-space: nowrap;
+    box-shadow: 0 6px 15px rgba(104,153,0,.18);
+}
+.r24-android-nudge-play-label {
+    font-size: 9px;
+    font-weight: 900;
+    line-height: 1.05;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+.r24-android-nudge-play-logo {
+    display: block;
+    width: 72px;
+    max-width: 72px;
+    height: auto;
+    object-fit: contain;
 }
 .r24-android-nudge-close {
     position: absolute;
@@ -3650,7 +3667,10 @@ html[lang="pl"] #ride24-android.r24p7 .r24p7-en { display:none; }
     </div>
     <a href="https://play.google.com/store/apps/details?id=pl.ride24.client&referrer=utm_source%3Dride24.pl%26utm_medium%3Dweb%26utm_campaign%3Dandroid_client%26utm_content%3Dindex_nudge"
        target="_blank" rel="noopener" onclick="r24MarkIndexPlayClick()"
-       data-pl="Pobierz" data-en="Get app">Pobierz</a>
+       aria-label="Google Play">
+        <span class="r24-android-nudge-play-label" data-pl="Pobierz z" data-en="Get it on">Pobierz z</span>
+        <img class="r24-android-nudge-play-logo" src="assets/app-promo/google-play-logo.png" alt="Google Play">
+    </a>
 </div>
 
 <footer>
