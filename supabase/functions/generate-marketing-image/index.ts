@@ -1,8 +1,12 @@
+import { ride24RequireAdmin } from "./ride24-admin-auth.ts";
 import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
+  const authorizationFailure = await ride24RequireAdmin(req);
+  if (authorizationFailure) return authorizationFailure;
+
 
   try {
 

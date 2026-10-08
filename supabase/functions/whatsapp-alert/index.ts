@@ -1,6 +1,10 @@
+import { ride24RequireInternal } from "./ride24-admin-auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 serve(async (req) => {
+  const authorizationFailure = ride24RequireInternal(req);
+  if (authorizationFailure) return authorizationFailure;
+
 
 try {
 
@@ -71,3 +75,4 @@ return new Response(
 }
 
 });
+

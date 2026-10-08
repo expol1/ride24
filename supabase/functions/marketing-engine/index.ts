@@ -1,3 +1,4 @@
+import { ride24RequireAdmin } from "./ride24-admin-auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -18,6 +19,9 @@ serve(async (req) => {
     });
   }
 
+
+  const authorizationFailure = await ride24RequireAdmin(req, corsHeaders);
+  if (authorizationFailure) return authorizationFailure;
   try {
 
     const supabase = createClient(
@@ -572,3 +576,4 @@ ${contentData.hashtags}`,
   }
 
 });
+
