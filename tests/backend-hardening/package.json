@@ -1,6 +1,6 @@
 {
   "private": true,
   "type": "module",
-  "scripts": { "test": "node test-stage1.mjs && node test-stage2.mjs && node --experimental-strip-types test-admin-guard.mjs && node test-cleanup.mjs && node test-indexes.mjs" },
+  "scripts": { "test": "node test-stage1.mjs && node test-stage2.mjs && node --experimental-strip-types test-admin-guard.mjs && node test-cleanup.mjs && node test-indexes.mjs && node test-booking-rpcs.mjs" },
   "devDependencies": { "@electric-sql/pglite": "0.3.14", "typescript": "5.9.3" }
 }

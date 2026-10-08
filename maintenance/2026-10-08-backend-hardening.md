@@ -25,6 +25,8 @@ A private encrypted recovery archive in bucket ride24-recovery, prefix 20261008-
 
 This recovery point supports reversing these changes in the same project. It is not a full pg_dump/PITR backup: Auth sessions and Edge environment-variable values are not exported. Keep the separately downloadable ZIP outside the project for independent recovery.
 
+The ChatGPT ZIP download was not successfully retained and cannot currently be delivered through that link. For independent download from the private Supabase bucket and offline decryption, follow [the Polish download instructions](backup-download-pl.md). The offline restore utility verifies all part checksums, AES-GCM authentication and the original ZIP hash before saving any result.
+
 Use maintenance/rollback scripts to undo the corresponding database configuration only; do not overwrite current business rows with old exports. Restore an Edge Function from the private snapshot using all its files and original verify_jwt setting. SQL role/RLS rollback intentionally restores the original weaker permissions and should be an explicit recovery action.
 
 The cleanup function keeps an isolated copy of its deployed dependency under _live_shared so future selective deployment cannot accidentally substitute the older repository-wide helper. Other functions using the global helper are unaffected. The remaining deployed function sources are retained in the private archive; do not bulk-deploy the older repository without reconciliation.
@@ -36,6 +38,8 @@ Changes to payment processing, public voucher access, legacy checkout removal an
 
 ## Reproduce the isolated checks
 Use Node 22 or newer; run npm ci and npm test in tests/backend-hardening. These tests use synthetic fixtures and mocks, never production credentials.
+
+Follow-up checks are recorded in [the Polish test report](2026-10-08-testy-pl.md). The suite now includes the actual deployed booking acceptance, rejection and partner-list RPC bodies in isolated synthetic fixtures.
 
 Supabase references:
 - https://supabase.com/docs/guides/database/database-linter?lint=0013_rls_disabled_in_public
