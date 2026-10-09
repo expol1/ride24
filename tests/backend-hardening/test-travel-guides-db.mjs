@@ -28,7 +28,7 @@ GRANT USAGE ON SCHEMA public,auth TO authenticated,anon,service_role;
 GRANT SELECT,INSERT ON public.travel_guides TO authenticated,service_role;
 `);
 const before = (await db.query('SELECT (SELECT jsonb_agg(to_jsonb(b)) FROM public.bookings b) AS bookings,(SELECT jsonb_agg(to_jsonb(l)) FROM public.partner_locations l) AS locations')).rows[0];
-await db.exec(readFileSync(new URL('../../supabase/migrations/20261009190900_admin_travel_guide_upload.sql', import.meta.url), 'utf8'));
+await db.exec(readFileSync(new URL('../../supabase/migrations/20261009192716_admin_travel_guide_upload.sql', import.meta.url), 'utf8'));
 const checks = [];
 async function test(name, fn) { await fn(); checks.push(name); }
 async function context(role, id = '') { await db.exec(`RESET ROLE; SET ROLE ${role}; SELECT set_config('request.jwt.claim.sub','${id}',false);`); }
