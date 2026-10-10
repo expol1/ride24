@@ -231,6 +231,13 @@
         /* --- TABELE --- */
         .table-container { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .table-header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: #F8FAFC; font-weight: 700; font-size: 14px; color: var(--text);}
+        .guide-table-section > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; list-style: none; }
+        .guide-table-section > summary::-webkit-details-marker { display: none; }
+        .guide-table-section > summary::after { content: "⌄"; flex-shrink: 0; font-size: 20px; line-height: 1; transition: transform .15s ease; }
+        .guide-table-section[open] > summary::after { transform: rotate(180deg); }
+        .guide-table-section:not([open]) > summary { border-bottom: 0; }
+        .guide-table-section > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; }
+
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { padding: 14px 20px; font-size: 11px; text-transform: uppercase; color: var(--gray); font-weight: 700; border-bottom: 1px solid var(--border); background: white;}
         td { padding: 16px 20px; font-size: 13px; font-weight: 500; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
@@ -1292,13 +1299,13 @@
 </div>
 
 
-<div class="table-container">
+<details id="guide-assignments-section" class="table-container guide-table-section">
 
-    <div class="table-header">
+    <summary class="table-header">
 
         Przypisanie przewodników do lokalizacji
 
-    </div>
+    </summary>
 
     <table>
 
@@ -1332,14 +1339,14 @@
 
     </table>
 
-</div>
-<div class="table-container" style="margin-top:25px;">
+</details>
+<details id="guide-list-section" class="table-container guide-table-section" style="margin-top:25px;">
 
-    <div class="table-header">
+    <summary class="table-header">
 
         Lista Autoprzewodników
 
-    </div>
+    </summary>
 
     <div style="
         padding:12px 20px;
@@ -1393,7 +1400,7 @@
 
         </table>
 
-    </div>
+    </details>
 </div>
 
         </main>
