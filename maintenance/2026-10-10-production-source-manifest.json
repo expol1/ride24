@@ -1,0 +1,11 @@
+{
+  "project_ref": "zwyerdeuvyzgkgwglowr",
+  "captured_date_utc": "2026-10-10",
+  "github_baseline": "cac50497fd9d3016e167f625771fafd37ac832ab",
+  "deployment_performed": false,
+  "functions": [
+    {"slug": "create_checkout_session", "version": 79, "path": "supabase/functions/create_checkout_session/index.ts", "source_sha256": "780d972837075e5db04169cb3483d3994226b406f8546f3a229a4f6d1fcc7933"},
+    {"slug": "generate-receipt", "version": 36, "path": "supabase/functions/generate-receipt/index.ts", "source_sha256": "c9eedea4f38b6ec46084ab5073905fdca150a4b3b8111da585e2476fab96f6e9"},
+    {"slug": "stripe-webhook", "version": 81, "path": "supabase/functions/stripe-webhook/index.ts", "source_sha256": "cf9534ff057aafc43155ff7783e5d8936c81d49093ef5dd049916cff56b06ed9"}
+  ]
+}

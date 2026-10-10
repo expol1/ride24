@@ -26,10 +26,11 @@ serve(async (req) => {
 
   let booking_id: string | null = null
   let supabase: any = null
+  let requestBody: any = {}
 
   try {
-    const body = await req.json()
-    booking_id = body.booking_id || body.record?.id || body.id
+    requestBody = await req.json()
+    booking_id = requestBody.booking_id || requestBody.record?.id || requestBody.id
 
     if (!booking_id) {
       return new Response(
@@ -45,6 +46,27 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
+
+    // ===== AUTH / OWNERSHIP =====
+    // Verify JWT pozostaje ON. Dodatkowo sprawdzamy, czy zalogowany klient
+    // generuje rachunek wyłącznie do własnej rezerwacji.
+    const authHeader = req.headers.get("Authorization") || ""
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : ""
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: jsonHeaders
+      })
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !authData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: jsonHeaders
+      })
+    }
+    const currentUser = authData.user
 
     // ===== FETCH BOOKING =====
     const { data: booking, error: fetchError } = await supabase
@@ -66,12 +88,26 @@ if (fetchError) {
 }
 
 // 🔥 zostaje jak było
-if (!booking || booking.status !== "paid") {
+if (!booking) {
+  return new Response(JSON.stringify({ error: "Booking not found" }), {
+    status: 404,
+    headers: jsonHeaders
+  })
+}
+
+if (booking.client_id !== currentUser.id) {
+  return new Response(JSON.stringify({ error: "Forbidden" }), {
+    status: 403,
+    headers: jsonHeaders
+  })
+}
+
+if (booking.status !== "paid") {
   return new Response(
-    "Ignored",
+    JSON.stringify({ error: "Booking is not paid" }),
     {
-      status: 200,
-      headers: corsHeaders
+      status: 409,
+      headers: jsonHeaders
     }
   );
 }
@@ -95,22 +131,63 @@ if (paymentError || !payment) {
 }
 // ===== INVOICE PROFILE =====
 
-const {
-  data: invoiceProfile
-} = await supabase
-  .from("user_invoice_profiles")
-  .select(`
-    company_name,
-    nip,
-    street,
-    postal_code,
-    city
-  `)
-  .eq(
-    "user_id",
-    booking.client_id
+const cleanText = (value: unknown, max = 120) =>
+  String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max)
+
+const rawOverride =
+  requestBody?.invoice_profile &&
+  typeof requestBody.invoice_profile === "object"
+    ? requestBody.invoice_profile
+    : null
+
+let invoiceProfile: any = null
+
+if (rawOverride) {
+  invoiceProfile = {
+    company_name: cleanText(rawOverride.company_name, 140),
+    nip: cleanText(rawOverride.nip, 24).replace(/[^0-9A-Za-z-]/g, ""),
+    street: cleanText(rawOverride.street, 160),
+    postal_code: cleanText(rawOverride.postal_code, 24),
+    city: cleanText(rawOverride.city, 100)
+  }
+} else {
+  const { data: savedProfile, error: invoiceProfileError } = await supabase
+    .from("user_invoice_profiles")
+    .select(`
+      company_name,
+      nip,
+      street,
+      postal_code,
+      city
+    `)
+    .eq("user_id", booking.client_id)
+    .maybeSingle()
+
+  if (invoiceProfileError) {
+    throw new Error(invoiceProfileError.message)
+  }
+
+  invoiceProfile = savedProfile
+}
+
+const hasCompleteInvoiceProfile = Boolean(
+  invoiceProfile?.company_name &&
+  invoiceProfile?.street &&
+  invoiceProfile?.postal_code &&
+  invoiceProfile?.city
+)
+
+if (!hasCompleteInvoiceProfile) {
+  return new Response(
+    JSON.stringify({
+      error: "Uzupełnij dane nabywcy przed wygenerowaniem rachunku."
+    }),
+    {
+      status: 400,
+      headers: jsonHeaders
+    }
   )
-  .single()
+}
 
 if (booking.receipt_generated) {
   return new Response(
