@@ -238,6 +238,14 @@
         .guide-table-section:not([open]) > summary { border-bottom: 0; }
         .guide-table-section > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; }
 
+        .guide-location-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .guide-location-search { flex: 1 1 260px; }
+        .guide-location-search label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+        .guide-location-search input { width: 100%; min-width: 0; }
+        .guide-location-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 10px 0; cursor: pointer; }
+        .guide-location-count { flex-basis: 100%; font-size: 13px; color: var(--gray); }
+        #guide-locations-tbody tr[hidden] { display: none; }
+
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th { padding: 14px 20px; font-size: 11px; text-transform: uppercase; color: var(--gray); font-weight: 700; border-bottom: 1px solid var(--border); background: white;}
         td { padding: 16px 20px; font-size: 13px; font-weight: 500; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
@@ -1306,6 +1314,18 @@
         Przypisanie przewodników do lokalizacji
 
     </summary>
+    <div class="guide-location-filters">
+        <div class="guide-location-search">
+            <label for="guide-location-search">Szukaj lokalizacji</label>
+            <input id="guide-location-search" class="form-control" type="search" placeholder="Kraj, miasto lub nazwa lokalizacji" oninput="filterGuideLocations()" aria-controls="guide-locations-tbody">
+        </div>
+        <label class="guide-location-checkbox" for="guide-location-unassigned">
+            <input id="guide-location-unassigned" type="checkbox" onchange="filterGuideLocations()" aria-controls="guide-locations-tbody">
+            Tylko bez przewodnika
+        </label>
+        <div id="guide-location-count" class="guide-location-count" role="status" aria-live="polite"></div>
+    </div>
+
 
     <table>
 
@@ -4960,11 +4980,37 @@ async function loadGuides() {
     });
 }
 
+function normalizeGuideLocationSearch(value) {
+    return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ł/g, "l");
+}
+
+function filterGuideLocations() {
+    const tbody = document.getElementById("guide-locations-tbody");
+    if (!tbody) return;
+    const query = normalizeGuideLocationSearch(document.getElementById("guide-location-search")?.value.trim());
+    const onlyUnassigned = document.getElementById("guide-location-unassigned")?.checked;
+    const rows = Array.from(tbody.querySelectorAll("tr[data-guide-location]"));
+    let visible = 0;
+    rows.forEach(row => {
+        const matches = row.dataset.guideSearch.includes(query) && (!onlyUnassigned || row.dataset.guideAssigned === "false");
+        row.hidden = !matches;
+        if (matches) visible++;
+    });
+    const empty = document.getElementById("guide-location-empty");
+    if (empty) {
+        empty.hidden = visible > 0;
+        empty.querySelector("td").textContent = rows.length ? "Brak lokalizacji pasujących do filtrów." : "Brak aktywnych lokalizacji.";
+    }
+    const count = document.getElementById("guide-location-count");
+    if (count) count.textContent = `${visible} z ${rows.length} lokalizacji`;
+}
+
 async function loadGuideLocations() {
 
     const tbody = document.getElementById("guide-locations-tbody");
 
     if (!tbody) return;
+    document.getElementById("guide-location-count").textContent = "";
 
     tbody.innerHTML = `
         <tr>
@@ -5012,7 +5058,7 @@ async function loadGuideLocations() {
     }
 
     tbody.innerHTML = "";
-locations.sort((a, b) => {
+(locations || []).sort((a, b) => {
 
     if (!a.guide_id && b.guide_id) return -1;
 
@@ -5021,7 +5067,7 @@ locations.sort((a, b) => {
     return 0;
 
 });
-    locations.forEach(loc => {
+    (locations || []).forEach(loc => {
 
         let options = `<option value="">— brak —</option>`;
 
@@ -5038,7 +5084,7 @@ locations.sort((a, b) => {
 
         tbody.innerHTML += `
 
-            <tr>
+            <tr data-guide-location="${loc.id}" data-guide-assigned="${loc.guide_id ? "true" : "false"}">
 
                 <td>${escapeHtml(loc.country || "")}</td>
 
@@ -5074,6 +5120,14 @@ locations.sort((a, b) => {
         `;
 
     });
+    tbody.querySelectorAll("tr[data-guide-location]").forEach(row => {
+        row.dataset.guideSearch = normalizeGuideLocationSearch(Array.from(row.cells).slice(0, 3).map(cell => cell.textContent).join(" "));
+    });
+    const emptyRow = document.createElement("tr");
+    emptyRow.id = "guide-location-empty";
+    emptyRow.innerHTML = '<td colspan="5"></td>';
+    tbody.appendChild(emptyRow);
+    filterGuideLocations();
 
 }
 
@@ -5102,6 +5156,9 @@ console.log("Guide:", guideId);
 
     }
 
+    const row = document.getElementById(`guide-${locationId}`)?.closest("tr");
+    if (row) row.dataset.guideAssigned = guideId ? "true" : "false";
+    filterGuideLocations();
     await loadGuides();
     alert("Przypisano przewodnik.");
 
