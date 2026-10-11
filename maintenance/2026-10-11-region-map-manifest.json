@@ -1,0 +1,12 @@
+{
+  "baseline_commit": "633e411d96bc0eba5f43962c8cca787ebc118871",
+  "backup_branch": "backup/map-before-regions-2026-10-11",
+  "files": {
+    "index.html": "f60ce818834e87d78d36dcc2e11930bb7db549fd572e3d07c0da407a9a63ef7e",
+    "assets/js/world-map-regions.js": "ff25e00437faa3a08febd8d64da008db500f04562e48491afd06cc96ad8bb643",
+    "assets/css/world-map-regions.css": "ee0cc9dbf82821fef48acda7c1b5e5e8f748059a01433b355d52ae49cf0933f2",
+    "assets/maps/regions-v1.json": "1167cfbae19f1bda52282f8ad136ec9e5c9be2c988308cee2786ce8a803cdaa9",
+    "assets/vendor/d3-array-3.2.4.min.js": "80aa70d0cd17dabddf6d056494ea17926a45a69da8b7850220aace331bad671d",
+    "assets/vendor/d3-geo-3.1.1.min.js": "23e574f1e8d4716d622bce45356a379b66a277162b145f5f147e4c8daefb73d2"
+  }
+}

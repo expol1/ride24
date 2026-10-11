@@ -1,0 +1,74 @@
+/* Applies only while the new map is open. Legacy styling remains available. */
+#worldMapModal.r24-regions{padding:16px;align-items:center!important;background:rgba(7,24,55,.68);backdrop-filter:blur(8px)}
+#worldMapModal.r24-regions .world-map-content{display:flex!important;flex-direction:column!important;width:100%;max-width:1100px;min-height:0!important;max-height:calc(100dvh - 32px)!important;padding:20px!important;border:1px solid #dce6ed;border-radius:22px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 26px 70px #07183755}
+#worldMapModal.r24-regions .world-map-header{flex:0 0 auto;margin:0 0 14px!important;padding:0;gap:12px}
+#worldMapModal.r24-regions .world-map-header h2{margin:0;font-size:24px!important;line-height:1.25;color:#193b68!important;letter-spacing:-.025em}
+#worldMapModal .r24-map-close{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;padding:0;border:1px solid #dde6ed;border-radius:50%;background:#fff;color:#193b68;font:inherit;font-size:26px;cursor:pointer}
+#worldMapModal.r24-regions .world-map-body{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(230px,300px)!important;gap:16px!important;min-height:0!important;height:min(510px,calc(100dvh - 132px))!important;flex:1 1 auto;overflow:hidden}
+#worldMapModal.r24-regions .world-map-panel{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%}
+#worldMapModal.r24-regions #worldMapSvg{position:relative;flex:1 1 auto;width:100%;height:100%!important;min-height:0!important;border:1px solid #cddde4!important;border-radius:15px!important;overflow:hidden;background:#eaf3f6!important;box-shadow:none;touch-action:none}
+#worldMapModal.r24-regions .r24-region-svg{display:block;width:100%;height:100%}
+#worldMapModal.r24-regions .r24-map-land{fill:#f8faf8;stroke:#c8d7d9;stroke-width:.8;vector-effect:non-scaling-stroke}
+#worldMapModal.r24-regions .r24-map-coverage{fill:#73d700;stroke:#55ac00;stroke-width:.65;vector-effect:non-scaling-stroke;cursor:pointer}
+#worldMapModal.r24-regions .r24-map-coverage.is-selected{stroke:#163e80;stroke-width:2}
+#worldMapModal.r24-regions .r24-map-targets{position:absolute;inset:0;pointer-events:none}
+#worldMapModal.r24-regions .r24-map-target{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;pointer-events:auto;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer}
+#worldMapModal.r24-regions .r24-map-target:focus-visible{outline:2px solid #163e80;outline-offset:2px;background:#163e8014}
+#worldMapModal.r24-regions .r24-map-toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:0 0 auto;min-height:42px;padding-bottom:9px;font-size:12px;color:#596d80}
+#worldMapModal.r24-regions .r24-map-legend{display:flex;align-items:center;gap:7px}
+#worldMapModal.r24-regions .r24-map-swatch{width:13px;height:13px;border-radius:3px;background:#73d700}
+#worldMapModal.r24-regions .r24-map-reset{min-height:34px;padding:6px 10px;border:1px solid #dde6ed;border-radius:8px;background:#fff;color:#193b68;font:inherit;font-size:12px;cursor:pointer}
+#worldMapModal.r24-regions .r24-map-zoom{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;border:1px solid #dde6ed;border-radius:9px;overflow:hidden}
+#worldMapModal.r24-regions .r24-map-zoom button{width:40px;height:40px;padding:0;border:0;background:#fff;color:#193b68;font:inherit;font-size:22px;cursor:pointer}
+#worldMapModal.r24-regions .r24-map-zoom button+button{border-top:1px solid #dde6ed}
+#worldMapModal.r24-regions .r24-map-credit{position:absolute;bottom:5px;right:5px;font-size:11px;color:#596d80;background:#ffffffde;padding:2px 5px;border-radius:3px;pointer-events:none}
+#worldMapModal.r24-regions .world-locations-panel{height:100%!important;min-height:0!important;max-height:none!important;padding:16px!important;border:1px solid #dde6ed!important;border-radius:15px!important;background:#fff!important;overflow-y:auto!important;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;box-shadow:none!important}
+#worldMapModal.r24-regions .country-locations-title{margin:0 0 10px!important;padding:0;border:0;color:#193b68!important;font-size:19px!important;line-height:1.25;overflow-wrap:anywhere}
+#worldMapModal.r24-regions #countryLocations{display:block!important}
+#worldMapModal.r24-regions .r24-map-hint{font-size:13px;line-height:1.5;color:#596d80;margin:0 0 12px}
+#worldMapModal.r24-regions .r24-area-chooser{display:grid;grid-template-columns:1fr;gap:7px}
+#worldMapModal.r24-regions .r24-area-choice{width:100%;min-height:44px;text-align:left;padding:10px 12px;border:1px solid #dde6ed;border-radius:10px;background:#f5f8fb;color:#193b68;font:inherit;font-size:13px;line-height:1.3;cursor:pointer;overflow-wrap:anywhere}
+#worldMapModal.r24-regions .r24-area-choice:hover,#worldMapModal.r24-regions .r24-map-location:hover{background:#edfadf!important;border-color:#73d700!important}
+#worldMapModal.r24-regions .r24-map-back{border:0;padding:0 0 8px;background:transparent;color:#193b68;text-align:left;font:inherit;font-size:12px;cursor:pointer;min-height:32px}
+#worldMapModal.r24-regions .r24-area-count{display:flex;align-items:baseline;gap:7px;margin:0 0 13px;color:#596d80;font-size:13px}
+#worldMapModal.r24-regions .r24-area-count strong{font-size:28px;line-height:1;color:#193b68;font-weight:800}
+#worldMapModal.r24-regions .r24-map-location-list{display:grid;grid-template-columns:1fr;gap:7px}
+#worldMapModal.r24-regions .r24-map-location{width:100%;min-height:48px;text-align:left;font:inherit!important;padding:9px 12px!important;border:1px solid #dde6ed!important;border-radius:10px!important;background:#f5f8fb!important;box-shadow:none!important;transform:none!important;cursor:pointer;transition:none!important}
+#worldMapModal.r24-regions .r24-map-location::after{content:none!important}
+#worldMapModal.r24-regions .country-location-name{display:block;color:#193b68!important;font-size:13px!important;line-height:1.35;font-weight:700;overflow-wrap:anywhere}
+#worldMapModal.r24-regions .country-location-type{display:block;margin-top:3px;color:#596d80!important;font-size:11px!important;line-height:1.3;font-weight:500;text-transform:none!important}
+#worldMapModal.r24-regions .r24-map-more{width:100%;min-height:42px;margin-top:8px;border:1px solid #c4d7ea;border-radius:10px;background:#eff6ff;color:#193b68;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+#worldMapModal.r24-regions button:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+@media(max-width:768px){
+ #worldMapModal.r24-regions{padding:8px}
+ #worldMapModal.r24-regions .world-map-content{padding:14px!important;max-height:calc(100dvh - 16px)!important;border-radius:18px!important;overflow-y:auto!important}
+ #worldMapModal.r24-regions .world-map-header{margin-bottom:8px!important}
+ #worldMapModal.r24-regions .world-map-header h2{font-size:20px!important}
+ #worldMapModal.r24-regions .world-map-body{height:auto!important;flex:0 0 auto;grid-template-columns:1fr!important;gap:10px!important;overflow:visible}
+ #worldMapModal.r24-regions .world-map-panel{height:auto;min-height:0}
+ #worldMapModal.r24-regions #worldMapSvg{height:clamp(230px,40dvh,320px)!important;min-height:0!important;flex:none}
+ #worldMapModal.r24-regions.r24-area-selected #worldMapSvg{height:clamp(150px,25dvh,205px)!important}
+ #worldMapModal.r24-regions .r24-map-toolbar{min-height:38px;padding-bottom:6px}
+ #worldMapModal.r24-regions .world-locations-panel{height:auto!important;max-height:none!important;overflow:visible!important;scrollbar-gutter:auto;padding:12px!important}
+ #worldMapModal.r24-regions .country-locations-title{font-size:18px!important;margin-bottom:6px!important}
+ #worldMapModal.r24-regions .r24-area-chooser{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ #worldMapModal.r24-regions .r24-map-hint{margin-bottom:8px;font-size:12px}
+ #worldMapModal.r24-regions .r24-area-count{margin:0 0 10px}
+ #worldMapModal.r24-regions .r24-area-count strong{font-size:24px}
+ #worldMapModal.r24-regions .r24-map-location-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ #worldMapModal.r24-regions .r24-map-location{padding:8px 9px!important;min-height:52px}
+ #worldMapModal.r24-regions .r24-map-back{min-height:30px;padding-bottom:5px}
+}
+@media(max-width:360px){
+ #worldMapModal.r24-regions .world-map-content{padding:11px!important}
+ #worldMapModal.r24-regions .world-map-header h2{font-size:18px!important}
+ #worldMapModal.r24-regions .country-location-name{font-size:12px!important}
+}
+@media(max-height:500px) and (min-width:601px){
+ #worldMapModal.r24-regions .world-map-body{height:calc(100dvh - 115px)!important;grid-template-columns:minmax(0,1fr) minmax(200px,32%)!important}
+ #worldMapModal.r24-regions .world-map-content{padding:12px!important;overflow:hidden!important}
+ #worldMapModal.r24-regions .world-map-panel{height:100%}
+ #worldMapModal.r24-regions #worldMapSvg{height:100%!important;flex:1}
+ #worldMapModal.r24-regions .world-locations-panel{height:100%!important;overflow-y:auto!important}
+ #worldMapModal.r24-regions .r24-map-location-list,#worldMapModal.r24-regions .r24-area-chooser{grid-template-columns:1fr}
+}

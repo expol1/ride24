@@ -1,0 +1,222 @@
+[
+  {
+    "id": "fixture-0",
+    "country": "Bulgaria",
+    "region": "",
+    "city": "Burgas",
+    "location_name": "Burgas Airport (BOJ)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-1",
+    "country": "Bulgaria",
+    "region": "Varna",
+    "city": "Varna",
+    "location_name": "Varna Airport (VAR)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-2",
+    "country": "Cyprus",
+    "region": "",
+    "city": "Larnaca",
+    "location_name": "Larnaca Airport (LCA)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-3",
+    "country": "Cyprus",
+    "region": "",
+    "city": "Paphos",
+    "location_name": "Paphos Airport (PFO)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-4",
+    "country": "Cyprus",
+    "region": "",
+    "city": "Paphos",
+    "location_name": "Paphos City",
+    "type": "city",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-5",
+    "country": "Portugal",
+    "region": "",
+    "city": "Faro",
+    "location_name": "Faro Airport (FAO)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-6",
+    "country": "Portugal",
+    "region": "",
+    "city": "Faro",
+    "location_name": "Faro Office",
+    "type": "office",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-7",
+    "country": "Portugal",
+    "region": "",
+    "city": "Faro",
+    "location_name": "Hotel (Faro)",
+    "type": "hotel",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-8",
+    "country": "Portugal",
+    "region": "",
+    "city": "Lisbon",
+    "location_name": "HOTEL (Lisbon)",
+    "type": "hotel",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-9",
+    "country": "Portugal",
+    "region": "",
+    "city": "Lisbon",
+    "location_name": "Lisbon Airport (LIS)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-10",
+    "country": "Portugal",
+    "region": "",
+    "city": "Lisbon",
+    "location_name": "Lisbon Office",
+    "type": "office",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-11",
+    "country": "Portugal",
+    "region": "",
+    "city": "Porto",
+    "location_name": "Hotel (Porto City Center)",
+    "type": "hotel",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-12",
+    "country": "Portugal",
+    "region": "",
+    "city": "Porto",
+    "location_name": "Porto Airport (OPO)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-13",
+    "country": "Portugal",
+    "region": "",
+    "city": "Porto",
+    "location_name": "Porto City",
+    "type": "city",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-14",
+    "country": "Portugal",
+    "region": "",
+    "city": "Porto",
+    "location_name": "Porto Office",
+    "type": "office",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-15",
+    "country": "Portugal",
+    "region": "Azores",
+    "city": "Ponta Delgada",
+    "location_name": "Ponta Delgada Airport (PDL)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-16",
+    "country": "Portugal",
+    "region": "Azores",
+    "city": "Ponta Delgada",
+    "location_name": "Ponta Delgada City",
+    "type": "city",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-17",
+    "country": "Portugal",
+    "region": "Azores",
+    "city": "Ponta Delgada",
+    "location_name": "Ponta Delgada Office",
+    "type": "office",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-18",
+    "country": "Portugal",
+    "region": "Madeira",
+    "city": "",
+    "location_name": "Hotel (Madeira)",
+    "type": "hotel",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-19",
+    "country": "Portugal",
+    "region": "Madeira",
+    "city": "Câmara de Lobos",
+    "location_name": "Câmara de Lobos",
+    "type": "office",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-20",
+    "country": "Portugal",
+    "region": "Madeira",
+    "city": "Funchal",
+    "location_name": "Funchal Office",
+    "type": "office",
+    "active": true,
+    "partner_id": "fixture-partner"
+  },
+  {
+    "id": "fixture-21",
+    "country": "Portugal",
+    "region": "Madeira",
+    "city": "Funchal",
+    "location_name": "Madeira Airport (FNC)",
+    "type": "airport",
+    "active": true,
+    "partner_id": "fixture-partner"
+  }
+]
