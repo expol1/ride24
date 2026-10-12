@@ -23,6 +23,12 @@ parentheses, a comma-containing search, quotation marks, Cyprus translations,
 cities/regions, unknown queries, inactive exclusion and pickup/return selection.
 The fixture parser rejects malformed OR-filter grammar; remote writes are blocked.
 
+Post-deployment verification on the public homepage passed: Albania displayed all
+four locations, every one of the nine Golem aliases displayed the Golem hotel
+point, and selecting it populated both pickup and return. No new search errors
+appeared after deployment. The visual proof is
+`2026-10-12-albania-search-proof.jpg`. No booking was created.
+
 Backup branch: `backup/search-before-keywords-2026-10-12`, based on
 `6af6cb34c4f9f59a3be9536c4d817e411dde2227`. To undo this repair, revert its commit
 or restore only the changed smart-search lines. Do not reset main to the backup
