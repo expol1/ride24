@@ -4,7 +4,7 @@
 
   // Emergency switch: false restores the previous map without changing any data.
   const ENABLED = true;
-  const VERSION = '20261011-1';
+  const VERSION = '20261012-1';
   const legacyRequested = new URLSearchParams(window.location.search).get('ride24Map') === 'legacy';
   if (!ENABLED || legacyRequested) return;
 
@@ -137,6 +137,22 @@
     return count % 10 >= 2 && count % 10 <= 4 && !(count % 100 >= 12 && count % 100 <= 14) ? 'lokalizacje' : 'lokalizacji';
   }
 
+  function appendAreaName(container, area, compact = false) {
+    const code = countryCode(area.country);
+    if (/^[A-Z]{2}$/.test(code || '')) {
+      const flag = element('img', 'r24-map-flag');
+      flag.src = new URL('flags/' + code.toLowerCase() + '.svg', assetRoot).href;
+      flag.alt = '';
+      flag.width = 22;
+      flag.height = 16;
+      flag.setAttribute('aria-hidden', 'true');
+      flag.addEventListener('error', () => flag.remove(), { once: true });
+      container.append(flag);
+    }
+    const name = compact && area.id === 'PT' ? text('Portugalia', 'Portugal') : label(area);
+    container.append(element('span', 'r24-area-label', name));
+  }
+
   function showInitialList() {
     selectedArea = null;
     visibleLimit = 4;
@@ -195,14 +211,16 @@
         : text('Brak aktywnych miejsc odbioru.', 'No active pick-up locations.')));
       const chooser = element('div', 'r24-area-chooser');
       [...areas].sort((a, b) => label(a).localeCompare(label(b), lang())).forEach(area => {
-        const item = button('r24-area-choice', label(area), () => chooseArea(area.id));
+        const item = button('r24-area-choice', undefined, () => chooseArea(area.id));
+        appendAreaName(item, area, true);
         item.dataset.area = area.id;
         chooser.append(item);
       });
       panel.append(chooser);
       return;
     }
-    title.textContent = label(selectedArea);
+    title.replaceChildren();
+    appendAreaName(title, selectedArea);
     panel.append(button('r24-map-back', text('← Wszystkie kierunki', '← All destinations'), showInitialList));
     const count = element('div', 'r24-area-count');
     count.append(element('strong', '', selectedArea.locations.length), element('span', '', countText(selectedArea.locations.length)));

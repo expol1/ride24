@@ -1,0 +1,86 @@
+{
+  "passed": true,
+  "report": [
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "layout": {
+        "horizontalOverflow": 0,
+        "scroll": 0,
+        "sideBySide": true,
+        "bottom": 703.7478332519531
+      },
+      "locations": 22,
+      "selection": "passed",
+      "search": "passed"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "layout": {
+        "horizontalOverflow": 0,
+        "scroll": 0,
+        "sideBySide": false,
+        "bottom": 767.719970703125
+      },
+      "locations": 22,
+      "selection": "passed",
+      "search": "passed"
+    },
+    {
+      "viewport": {
+        "width": 360,
+        "height": 640
+      },
+      "layout": {
+        "horizontalOverflow": 0,
+        "scroll": 0,
+        "sideBySide": false,
+        "bottom": 630.7728271484375
+      },
+      "locations": 22,
+      "selection": "passed",
+      "search": "passed"
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "layout": {
+        "horizontalOverflow": 0,
+        "scroll": 52,
+        "sideBySide": false,
+        "bottom": 558.5201110839844
+      },
+      "locations": 22,
+      "selection": "passed",
+      "search": "passed"
+    },
+    {
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "layout": {
+        "horizontalOverflow": 0,
+        "scroll": 0,
+        "sideBySide": true,
+        "bottom": 372.5408630371094
+      },
+      "locations": 22,
+      "selection": "passed",
+      "search": "passed"
+    }
+  ],
+  "language": "PL/EN",
+  "fallback": "passed",
+  "islands": "passed",
+  "empty": "passed",
+  "closeRace": "passed",
+  "remoteWrites": 0
+}

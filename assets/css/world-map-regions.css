@@ -23,11 +23,13 @@
 #worldMapModal.r24-regions .r24-map-zoom button+button{border-top:1px solid #dde6ed}
 #worldMapModal.r24-regions .r24-map-credit{position:absolute;bottom:5px;right:5px;font-size:11px;color:#596d80;background:#ffffffde;padding:2px 5px;border-radius:3px;pointer-events:none}
 #worldMapModal.r24-regions .world-locations-panel{height:100%!important;min-height:0!important;max-height:none!important;padding:16px!important;border:1px solid #dde6ed!important;border-radius:15px!important;background:#fff!important;overflow-y:auto!important;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;box-shadow:none!important}
-#worldMapModal.r24-regions .country-locations-title{margin:0 0 10px!important;padding:0;border:0;color:#193b68!important;font-size:19px!important;line-height:1.25;overflow-wrap:anywhere}
+#worldMapModal.r24-regions .country-locations-title{display:flex;align-items:center;gap:8px;margin:0 0 10px!important;padding:0;border:0;color:#193b68!important;font-size:19px!important;line-height:1.25;overflow-wrap:anywhere}
 #worldMapModal.r24-regions #countryLocations{display:block!important}
 #worldMapModal.r24-regions .r24-map-hint{font-size:13px;line-height:1.5;color:#596d80;margin:0 0 12px}
 #worldMapModal.r24-regions .r24-area-chooser{display:grid;grid-template-columns:1fr;gap:7px}
-#worldMapModal.r24-regions .r24-area-choice{width:100%;min-height:44px;text-align:left;padding:10px 12px;border:1px solid #dde6ed;border-radius:10px;background:#f5f8fb;color:#193b68;font:inherit;font-size:13px;line-height:1.3;cursor:pointer;overflow-wrap:anywhere}
+#worldMapModal.r24-regions .r24-area-choice{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;text-align:left;padding:10px 12px;border:1px solid #dde6ed;border-radius:10px;background:#f5f8fb;color:#193b68;font:inherit;font-size:13px;line-height:1.3;cursor:pointer;overflow-wrap:anywhere}
+#worldMapModal.r24-regions .r24-map-flag{display:block;width:22px;height:16px;flex:0 0 22px;object-fit:cover;border-radius:3px;box-shadow:0 0 0 1px #193b681c}
+#worldMapModal.r24-regions .r24-area-label{min-width:0;overflow-wrap:anywhere}
 #worldMapModal.r24-regions .r24-area-choice:hover,#worldMapModal.r24-regions .r24-map-location:hover{background:#edfadf!important;border-color:#73d700!important}
 #worldMapModal.r24-regions .r24-map-back{border:0;padding:0 0 8px;background:transparent;color:#193b68;text-align:left;font:inherit;font-size:12px;cursor:pointer;min-height:32px}
 #worldMapModal.r24-regions .r24-area-count{display:flex;align-items:baseline;gap:7px;margin:0 0 13px;color:#596d80;font-size:13px}
@@ -52,6 +54,7 @@
  #worldMapModal.r24-regions .world-locations-panel{height:auto!important;max-height:none!important;overflow:visible!important;scrollbar-gutter:auto;padding:12px!important}
  #worldMapModal.r24-regions .country-locations-title{font-size:18px!important;margin-bottom:6px!important}
  #worldMapModal.r24-regions .r24-area-chooser{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ #worldMapModal.r24-regions .r24-area-choice{gap:6px;padding:9px;font-size:12px}
  #worldMapModal.r24-regions .r24-map-hint{margin-bottom:8px;font-size:12px}
  #worldMapModal.r24-regions .r24-area-count{margin:0 0 10px}
  #worldMapModal.r24-regions .r24-area-count strong{font-size:24px}

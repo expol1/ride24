@@ -89,7 +89,12 @@ try {
     assert.equal(await page.locator('.r24-map-coverage').count(), 5);
     assert.equal(await page.locator('#worldMapSvg svg text').count(), 0, 'No map labels or counters');
     assert.equal(await page.locator('.r24-area-count').count(), 0, 'No location count before selection');
-    assert.equal(await page.locator('#worldMapModal img').count(), 0, 'No logo');
+    assert.equal(await page.locator('#worldMapModal img:not(.r24-map-flag)').count(), 0, 'No logo');
+    await page.waitForFunction(() => [...document.querySelectorAll('.r24-map-flag')].every(img => img.complete && img.naturalWidth > 0));
+    assert.equal(await page.locator('.r24-area-choice .r24-map-flag').count(), 5, 'Destination flags');
+    assert(await page.locator('.r24-map-flag').evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0)), 'Flags must load');
+    assert.match(await page.locator('.r24-area-choice[data-area="PT-AZORES"] img').getAttribute('src'), /\/flags\/pt\.svg$/);
+    assert.match(await page.locator('.r24-area-choice[data-area="PT-MADEIRA"] img').getAttribute('src'), /\/flags\/pt\.svg$/);
     const layout = await page.evaluate(() => {
       const m = document.querySelector('.world-map-content');
       const p = document.getElementById('worldMapSvg').getBoundingClientRect();
@@ -104,6 +109,7 @@ try {
     assert.equal(await page.locator('.r24-area-count strong').textContent(), '3');
     assert.equal(await page.locator('.r24-map-location').count(), 3);
     assert.equal(await page.locator('.r24-map-coverage.is-selected').count(), 1);
+    assert.match(await page.locator('#countryLocationsTitle .r24-map-flag').getAttribute('src'), /\/flags\/cy\.svg$/);
     assert.equal(await page.locator('#worldMapSvg svg text').count(), 0);
     await page.screenshot({ path: resolve(output, 'map-' + viewport.width + '-cyprus.png') });
     await page.locator('.r24-map-location').filter({ hasText: 'Larnaca Airport (LCA)' }).click();
