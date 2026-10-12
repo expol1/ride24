@@ -5280,11 +5280,15 @@ function collectSearchData() {
         
         // TŁUMACZENIA + SYNONIMY
         let translatedTerms = [query];
+        // Quote filter values so commas/parentheses cannot become query syntax.
+        const searchPattern = value => JSON.stringify('%' + value + '%');
 
         const { data: dictMatches } = await db
             .from('locations_dictionary')
             .select('name_en,name_pl,keywords')
-            .or(`name_pl.ilike.%${query}%,name_en.ilike.%${query}%,keywords.ilike.%${query}%`);
+            .or(['name_pl', 'name_en', 'keywords'].map(field =>
+                field + '.ilike.' + searchPattern(query)
+            ).join(','));
 
         if (dictMatches?.length) {
             dictMatches.forEach(row => {
@@ -5295,17 +5299,20 @@ function collectSearchData() {
                     translatedTerms.push(row.name_pl);
                 }
                 if (row.keywords) {
-                    translatedTerms.push(row.keywords);
+                    translatedTerms.push(...row.keywords.split(','));
                 }
             });
         }
 
-        const uniqueTerms = [...new Set(translatedTerms)]
+        const uniqueTerms = [...new Set(translatedTerms
             .filter(Boolean)
-            .map(t => t.toLowerCase().trim());
+            .map(t => t.toLowerCase().trim())
+            .filter(Boolean))];
 
-        const orFilters = uniqueTerms.map(t =>
-            `location_name.ilike.%${t}%,city.ilike.%${t}%,region.ilike.%${t}%,country.ilike.%${t}%`
+        const orFilters = uniqueTerms.flatMap(term =>
+            ['location_name', 'city', 'region', 'country'].map(field =>
+                field + '.ilike.' + searchPattern(term)
+            )
         ).join(',');
 
         // 2. Pobieranie z partner_locations

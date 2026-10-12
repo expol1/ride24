@@ -32,9 +32,14 @@ for (const [file, url] of resources) external.set(url, {
     ? await readFile(resolve(process.env.RIDE24_TEST_EXTERNAL_DIR, file))
     : Buffer.from(await (await fetch(url)).arrayBuffer()), contentType: contentType(file) });
 
+const golemName = 'Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)';
+const golemAliases = ['Golem', 'Golem Beach', 'Golem Hotels', 'Hotele Golem',
+  'Golem Albania', 'Golem Coast', 'Golem Beach Hotels', 'All Hotels Golem', 'Golem Coastal Hotels'];
 const locations = [
-  { country: 'Albania', region: 'Tirana', city: 'Tirana', location_name: 'Tirana Airport', type: 'airport', active: true },
-  { country: 'Albania', region: '', city: 'Durrës', location_name: 'Durres City', type: 'hotel', active: true },
+  { country: 'Albania', region: 'Tirana', city: 'Tirana', location_name: 'Tirana International Airport (TIA)', type: 'airport', active: true },
+  { country: 'Albania', region: 'Tirana', city: 'Tirana', location_name: 'Tirana City', type: 'city', active: true },
+  { country: 'Albania', region: '', city: 'Durrës', location_name: 'Durrës City', type: 'city', active: true },
+  { country: 'Albania', region: 'Durrës', city: 'Golem', location_name: golemName, type: 'hotel', active: true },
   { country: 'Cyprus', region: '', city: 'Larnaca', location_name: 'Larnaca Airport (LCA)', type: 'airport', active: true },
   { country: 'Cyprus', region: '', city: 'Paphos', location_name: 'Paphos Airport (PFO)', type: 'airport', active: true },
   { country: 'Cyprus', region: '', city: 'Paphos', location_name: 'Paphos City', type: 'city', active: true },
@@ -47,11 +52,30 @@ const dictionary = [
   { name_en: 'Cyprus', name_pl: 'Cypr', keywords: 'wyspa' },
   { name_en: 'Varna', name_pl: 'Warna', keywords: '' },
   { name_en: 'Madeira', name_pl: 'Madera', keywords: '' },
-  { name_en: 'Durrës', name_pl: 'Durres', keywords: 'Dures' }
+  { name_en: 'Durrës', name_pl: 'Durres', keywords: 'Dures' },
+  { name_en: 'Golem', name_pl: 'Golem', keywords: golemAliases.join(', ') }
 ];
+// Reject malformed OR grammar instead of silently ignoring stray keyword text.
+function parseFilters(raw) {
+  if (!raw) return [];
+  const body = raw.startsWith('(') && raw.endsWith(')') ? raw.slice(1, -1) : raw;
+  const token = /(\w+)\.ilike\.("(?:\\.|[^"\\])*"|[^,()]+)(?:,|$)/gy;
+  const filters = [];
+  let offset = 0;
+  while (offset < body.length) {
+    token.lastIndex = offset;
+    const match = token.exec(body);
+    if (!match) throw new Error('Invalid OR filter');
+    const pattern = match[2].startsWith('"') ? JSON.parse(match[2]) : match[2];
+    assert(pattern.startsWith('%') && pattern.endsWith('%'));
+    filters.push([match[1], pattern.slice(1, -1)]);
+    offset = token.lastIndex;
+  }
+  return filters;
+}
 function filtered(rows, url) {
-  const filters = [...(url.searchParams.get('or') || '').matchAll(/(\w+)\.ilike\.%([^%]*)%/g)];
-  return rows.filter(row => (!filters.length || filters.some(([, field, term]) =>
+  const filters = parseFilters(url.searchParams.get('or'));
+  return rows.filter(row => (!filters.length || filters.some(([field, term]) =>
     String(row[field] || '').toLowerCase().includes(term.toLowerCase()))) &&
     (url.searchParams.get('active') !== 'eq.true' || row.active === true));
 }
@@ -85,8 +109,15 @@ try {
             if (live) return route.fulfill({ response: await route.fetch({ timeout: 20000 }) });
           }
           const rows = table === 'partner_locations' ? locations : table === 'locations_dictionary' ? dictionary : [];
-          return route.fulfill({ contentType: 'application/json', body: JSON.stringify(filtered(rows, url)),
-            headers: { 'access-control-allow-origin': '*' } });
+          try {
+            return route.fulfill({ contentType: 'application/json', body: JSON.stringify(filtered(rows, url)),
+              headers: { 'access-control-allow-origin': '*' } });
+          } catch (error) {
+            errors.push(error.message);
+            return route.fulfill({ status: 400, contentType: 'application/json',
+              body: JSON.stringify({ code: 'PGRST100', message: error.message }),
+              headers: { 'access-control-allow-origin': '*' } });
+          }
         }
         if (external.has(request.url())) return route.fulfill(external.get(request.url()));
         if (url.hostname === 'challenges.cloudflare.com') return route.fulfill({ contentType: 'text/javascript',
@@ -97,12 +128,16 @@ try {
       page.on('pageerror', error => errors.push(error.message));
       await page.goto('https://ride24.test/', { waitUntil: 'networkidle' });
       for (const [query, expected] of [
-        ['albania', ['Durres City', 'Tirana Airport']],
+        ['albania', ['Durrës City', golemName, 'Tirana City', 'Tirana International Airport (TIA)']],
+        ...golemAliases.map(query => [query, [golemName]]),
+        ['Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)', [golemName]],
+        ['Golem, Golem Beach', [golemName]],
+        ['Golem "quote"', []],
         ['cypr', ['Larnaca Airport (LCA)', 'Paphos Airport (PFO)', 'Paphos City']],
         ['cyprus', ['Larnaca Airport (LCA)', 'Paphos Airport (PFO)', 'Paphos City']],
         ['varna', ['Varna Airport (VAR)']], ['warna', ['Varna Airport (VAR)']],
         ['madera', live ? ['Madeira Airport (FNC)', 'Funchal Office', 'Câmara de Lobos', 'Hotel (Madeira)'] : ['Madeira Airport (FNC)']],
-        ['duRES', ['Durres City']],
+        ['duRES', ['Durrës City', golemName]],
         ['larnaca', ['Larnaca Airport (LCA)']], ['zzzzride24unknown', []]
       ]) {
         await page.locator('#smart-search-pickup').fill(query);
@@ -130,13 +165,17 @@ try {
       await page.locator('#smart-search-drop').fill('cypr');
       await page.waitForResponse(response => {
         const url = new URL(response.url());
-        return url.pathname.endsWith('/partner_locations') && (url.searchParams.get('or') || '').includes('country.ilike.%cyprus%');
+        return url.pathname.endsWith('/partner_locations') &&
+          parseFilters(url.searchParams.get('or')).some(([field, term]) => field === 'country' && term === 'cyprus');
       });
       await page.waitForTimeout(80);
       await page.locator('#drop-results .search-dropdown-item').filter({ hasText: 'Paphos City' }).click();
       assert.equal(await page.evaluate(() => SELECTED_DROP.location_name), 'Paphos City');
       assert.equal(await page.evaluate(() => SELECTED_PICKUP.location_name), 'Larnaca Airport (LCA)');
       assert(requests.filter(r => r.table === 'partner_locations' && r.filter).every(r => r.active === 'eq.true'));
+      assert(requests.filter(r => r.table === 'partner_locations' && r.filter).some(r =>
+        parseFilters(r.filter).some(([field, term]) => field === 'city' && term === 'golem coast')),
+        'Comma-separated keywords must become separate search terms');
       assert.equal(writes.length, 0, 'No remote mutations');
       assert.deepEqual(errors, [], 'No homepage runtime errors');
       await context.close();
