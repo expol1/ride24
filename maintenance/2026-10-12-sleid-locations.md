@@ -9,7 +9,7 @@ Android app, account, fleet, fee, agreement or partner document changes were mad
 | Tirana International Airport (TIA) | Renamed existing Tirana Airport; preserved ID | airport |
 | Durrës City | Renamed existing Durres City; corrected its hotel type | city |
 | Tirana City | Added once | city |
-| Golem (All Coastal Hotels) | Added one point covering coastal hotels | hotel |
+| Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels) | Added one point covering coastal hotels | hotel |
 
 New locations are active, have no extra fee configured, and use the Albania guide
 already assigned to the existing two points. Golem uses city=Golem,
@@ -47,3 +47,7 @@ review those changes before attempting a different restore.
 
 The rollback script was tested inside an uncommitted transaction with assertions,
 then rolled back. All four current points remained active with their guide.
+
+Polish label follow-up: the Golem point now includes both Polish and English
+wording. Only location_name changed; ID and every other field were verified
+unchanged in the update transaction.

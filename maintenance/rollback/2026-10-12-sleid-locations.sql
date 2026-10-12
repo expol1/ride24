@@ -21,7 +21,7 @@ BEGIN
        AND guide_id='aa3d9095-f114-4726-9e14-d3b612efe351' AND is_api_managed=false)
      OR NOT EXISTS (SELECT 1 FROM public.partner_locations WHERE partner_id=p_id
        AND id='affc8051-680b-4e40-bba9-d80fbd8d6581'
-       AND location_name='Golem (All Coastal Hotels)' AND type='hotel' AND city='Golem'
+       AND location_name='Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)' AND type='hotel' AND city='Golem'
        AND country='Albania' AND region='Durrës' AND active=true
        AND extra_fee=false AND extra_fee_amount IS NULL AND contact_required=false
        AND guide_id='aa3d9095-f114-4726-9e14-d3b612efe351' AND is_api_managed=false)

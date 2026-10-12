@@ -25,7 +25,7 @@
       "country": "Albania",
       "region": "Durrës",
       "city": "Golem",
-      "location_name": "Golem (All Coastal Hotels)",
+      "location_name": "Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)",
       "type": "hotel",
       "extra_fee": false,
       "extra_fee_amount": null,
@@ -76,7 +76,7 @@
       "query": "albania",
       "places": [
         "Durrës City",
-        "Golem (All Coastal Hotels)",
+        "Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)",
         "Tirana City",
         "Tirana International Airport (TIA)"
       ]
@@ -85,20 +85,20 @@
       "query": "dures",
       "places": [
         "Durrës City",
-        "Golem (All Coastal Hotels)"
+        "Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)"
       ]
     },
     {
       "query": "durres",
       "places": [
         "Durrës City",
-        "Golem (All Coastal Hotels)"
+        "Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)"
       ]
     },
     {
       "query": "golem",
       "places": [
-        "Golem (All Coastal Hotels)"
+        "Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)"
       ]
     },
     {
@@ -112,7 +112,7 @@
       "query": "tirana",
       "places": [
         "Durrës City",
-        "Golem (All Coastal Hotels)",
+        "Golem (Wszystkie hotele na wybrzeżu / All Coastal Hotels)",
         "Tirana City",
         "Tirana International Airport (TIA)"
       ]
