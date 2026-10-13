@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-10-13T11:15:27.187Z",
+  "partner_id": "6e232e24-4b5d-48a7-bec2-13ebcf733377",
+  "changed_field": "location_name",
+  "changes": [
+    {
+      "id": "8702e3b3-2147-4e30-b703-745177006a67",
+      "before": "Trapani (TPS)",
+      "after": "Trapani Airport (TPS)"
+    },
+    {
+      "id": "afe79bf0-5a0a-499b-86ee-1af936e0f5c9",
+      "before": "Palermo (PMO)",
+      "after": "Palermo Airport (PMO)"
+    },
+    {
+      "id": "a1925e78-ac2d-43b7-b54c-62f6b2fc77fd",
+      "before": "Scopello Rent",
+      "after": "Castellammare del Golfo (Biuro)"
+    }
+  ],
+  "restore": "Restore each before name by ID only if location_name still equals its after name. Preserve every other field and all location IDs."
+}
