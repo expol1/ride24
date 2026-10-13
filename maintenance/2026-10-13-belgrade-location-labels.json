@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-13T15:47:16.908Z",
+  "partner_id": "13937705-4b77-44bb-8e02-6d0ea4cb2694",
+  "changed_field": "location_name",
+  "changes": [
+    {
+      "id": "3375fa7b-b221-4f5c-9f6b-3e6d27c6d505",
+      "before": "Airport Belgrade Nikola Tesla",
+      "after": "Belgrade Nikola Tesla Airport (BEG)"
+    },
+    {
+      "id": "94da8de1-5876-4322-8794-6ccc66a8ded6",
+      "before": "Belgrade",
+      "after": "Belgrade City"
+    }
+  ],
+  "restore": "Restore the before name by ID only if location_name still equals its after value. Preserve all other fields and IDs."
+}
