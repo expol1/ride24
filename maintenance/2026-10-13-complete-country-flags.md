@@ -30,6 +30,10 @@ desktop/mobile. Existing five viewport checks, PL/EN, search selection, island
 grouping, empty data, close races and legacy fallback passed. No remote writes.
 Every SVG was also checked for scripts, inline event handlers and remote hrefs.
 
+After deployment, the public homepage was checked in the cloud browser. All
+eight visible destination images loaded, including Serbia rs.svg. The live
+visual proof is saved as 2026-10-13-country-flags-proof.jpg.
+
 No database, partner documents, accounts, Android app, tokens or booking code
 was changed. Backup branch: backup/map-before-all-country-flags-2026-10-13 at
 62d9c8c65b75f25e46f1a0236c8e848c3284c596. Revert only this deployment commit
