@@ -5771,6 +5771,7 @@ data-en="🌍 Ride24 World Map">
 
 </div>
 
+<script src="assets/js/country-data.js?v=20261013-1"></script>
 <script>
     let ride24WorldMap = null;
     let ride24ActiveCountries = [];
@@ -5784,6 +5785,7 @@ data-en="🌍 Ride24 World Map">
     let ride24SelectedLocations = [];
 
     const ride24Countries = {
+        ...(window.RIDE24_COUNTRIES || {}),
         Portugal: { code: "PT", pl: "Portugalia", en: "Portugal", flag: "🇵🇹" },
         Spain: { code: "ES", pl: "Hiszpania", en: "Spain", flag: "🇪🇸" },
         Italy: { code: "IT", pl: "Włochy", en: "Italy", flag: "🇮🇹" },
@@ -5829,6 +5831,7 @@ data-en="🌍 Ride24 World Map">
     };
 
     const ride24CountryAliases = {
+        ...(window.RIDE24_COUNTRY_ALIASES || {}),
         portugalia: "Portugal",
         portugal: "Portugal",
         hiszpania: "Spain",
@@ -5958,7 +5961,7 @@ data-en="🌍 Ride24 World Map">
     }
 
     function getRide24CountryCode(country){
-        return ride24Countries[country]?.code || null;
+        return ride24Countries[normalizeRide24Country(country)]?.code || null;
     }
 
     function getRide24CountryFlag(country){
@@ -6625,6 +6628,6 @@ document.addEventListener("keydown", event => {
 })();
 </script>
 
-<script src="assets/js/world-map-regions.js?v=20261012-1"></script>
+<script src="assets/js/world-map-regions.js?v=20261013-1"></script>
 </body>
 </html>

@@ -10,7 +10,8 @@ const repo = resolve(directory, '../..');
 const { chromium } = await import(process.env.RIDE24_PLAYWRIGHT_PATH
   ? pathToFileURL(process.env.RIDE24_PLAYWRIGHT_PATH).href : 'playwright');
 const args = process.env.RIDE24_CHROMIUM_ARGS ? JSON.parse(process.env.RIDE24_CHROMIUM_ARGS) : [];
-const browser = await chromium.launch({ headless: true, executablePath: process.env.RIDE24_CHROMIUM_PATH || undefined, args });
+const launchOptions = { headless: true, executablePath: process.env.RIDE24_CHROMIUM_PATH || undefined, args };
+const browsers = [];
 const fixture = JSON.parse(await readFile(resolve(directory, 'locations-fixture.json'), 'utf8'));
 const output = resolve(directory, 'test-results');
 await mkdir(output, { recursive: true });
@@ -34,6 +35,8 @@ const type = path => ({ '.js': 'text/javascript', '.css': 'text/css', '.html': '
 const report = [];
 
 async function pageFor(viewport, { language = 'pl', legacy = false, assetFailure = false, rows = fixture } = {}) {
+  const browser = await chromium.launch(launchOptions);
+  browsers.push(browser);
   const context = await browser.newContext({ viewport });
   const requests = [];
   const writes = [];
@@ -76,7 +79,7 @@ async function pageFor(viewport, { language = 'pl', legacy = false, assetFailure
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'warning') warnings.push(message.text()); });
   await page.goto('https://ride24.test/' + (legacy ? '?ride24Map=legacy' : ''), { waitUntil: 'networkidle' });
-  return { page, context, requests, writes, errors, warnings };
+  return { page, context: { close: async () => { await context.close(); await browser.close(); } }, requests, writes, errors, warnings };
 }
 
 try {
@@ -172,6 +175,54 @@ try {
   assert.deepEqual(english.errors, []);
   await english.context.close();
 
+  // All new standard countries/territories get a locally hosted flag without
+  // another code deployment. Existing island assignments retain parent flags.
+  const registryCheck = await pageFor({ width: 1280, height: 800 });
+  const registry = await registryCheck.page.evaluate(() => Object.values(window.RIDE24_COUNTRIES));
+  assert.equal(registry.length, 250);
+  const missingAliases = await registryCheck.page.evaluate(() =>
+    Object.values(window.RIDE24_COUNTRIES).filter(country =>
+      [country.en, country.pl, country.code, country.code.toLowerCase()].some(value =>
+        getRide24CountryCode(value) !== country.code)).map(country => country.code));
+  assert.deepEqual(missingAliases, [], 'All PL/EN names and ISO codes resolve');
+  await registryCheck.context.close();
+  const allRows = registry.map(country => ({
+    country: country.en, region: '', city: 'Fixture City',
+    location_name: country.en + ' Fixture Office', type: 'office', active: true
+  }));
+  const everyCountry = await pageFor({ width: 1280, height: 800 }, { rows: allRows });
+  await everyCountry.page.evaluate(() => openWorldMap());
+  assert.equal(await everyCountry.page.locator('.r24-area-choice').count(), 250);
+  await everyCountry.page.waitForFunction(() => {
+    const flags = [...document.querySelectorAll('.r24-area-choice .r24-map-flag')];
+    return flags.length === 250 && flags.every(img => img.complete && img.naturalWidth > 0);
+  });
+  assert.equal(everyCountry.writes.length, 0);
+  assert.deepEqual(everyCountry.errors, []);
+  await everyCountry.context.close();
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    const serbia = await pageFor(viewport, { rows: [
+      { country: 'Serbia', region: '', city: 'Belgrade', location_name: 'Belgrade Nikola Tesla Airport (BEG)', type: 'airport', active: true },
+      { country: 'Serbia', region: '', city: 'Belgrade', location_name: 'Belgrade City', type: 'office', active: true },
+      { country: 'Macedonia Północna', region: '', city: 'Skopje', location_name: 'Skopje City', type: 'city', active: true }
+    ] });
+    await serbia.page.evaluate(() => openWorldMap());
+    assert.match(await serbia.page.locator('.r24-area-choice[data-area="RS"] img').getAttribute('src'), /\/flags\/rs\.svg$/);
+    assert.match(await serbia.page.locator('.r24-area-choice[data-area="MK"] img').getAttribute('src'), /\/flags\/mk\.svg$/);
+    await serbia.page.locator('.r24-area-choice[data-area="RS"]').click();
+    await serbia.page.waitForFunction(() => {
+      const flag = document.querySelector('#countryLocationsTitle img');
+      return flag?.complete && flag.naturalWidth > 0;
+    });
+    assert.equal(await serbia.page.locator('.r24-area-count strong').textContent(), '2');
+    await serbia.page.locator('.r24-map-location').filter({ hasText: 'Belgrade City' }).click();
+    assert.equal(await serbia.page.inputValue('#smart-search-pickup'), 'Belgrade City');
+    assert.equal(await serbia.page.inputValue('#smart-search-drop'), 'Belgrade City');
+    assert.equal(serbia.writes.length, 0);
+    assert.deepEqual(serbia.errors, []);
+    await serbia.context.close();
+  }
+
   // Island-only offers must not paint mainland Italy, and northern Cyprus must
   // not be grouped into the existing southern area.
   const island = await pageFor({ width: 1280, height: 800 }, { rows: [
@@ -215,7 +266,7 @@ try {
     await state.context.close();
   }
   await writeFile(resolve(output, 'report.json'), JSON.stringify({ passed: true, report, language: 'PL/EN', fallback: 'passed', islands: 'passed', empty: 'passed', closeRace: 'passed', remoteWrites: 0 }, null, 2));
-  console.log(JSON.stringify({ passed: true, viewports: report.length, language: 'PL/EN', fallback: 'passed', islands: 'passed', empty: 'passed', closeRace: 'passed', remoteWrites: 0 }));
+  console.log(JSON.stringify({ passed: true, viewports: report.length, language: 'PL/EN', fallback: 'passed', islands: 'passed', empty: 'passed', closeRace: 'passed', completeFlags: 250, serbia: 'desktop/mobile passed', remoteWrites: 0 }));
 } finally {
-  await browser.close();
+  await Promise.all(browsers.map(browser => browser.close()));
 }

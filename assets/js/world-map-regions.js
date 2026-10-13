@@ -4,7 +4,7 @@
 
   // Emergency switch: false restores the previous map without changing any data.
   const ENABLED = true;
-  const VERSION = '20261012-1';
+  const VERSION = '20261013-1';
   const legacyRequested = new URLSearchParams(window.location.search).get('ride24Map') === 'legacy';
   if (!ENABLED || legacyRequested) return;
 
