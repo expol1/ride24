@@ -29,6 +29,7 @@ type ParsedPartnerInput = {
   companyName: string;
   representativeName: string | null;
   representativeSurname: string | null;
+  address: string | null;
   country: string | null;
   region: string | null;
   phone: string | null;
@@ -388,6 +389,7 @@ function parseInput(body: Record<string, unknown>): ParsedPartnerInput {
       120,
       "Nieprawidłowe dane przedstawiciela",
     ),
+    address: cleanText(body.address, 500, "Nieprawidłowy adres siedziby"),
     country: cleanText(body.country, 100, "Nieprawidłowy kraj"),
     region: cleanText(body.region, 150, "Nieprawidłowy region"),
     phone: cleanText(body.phone, 50, "Nieprawidłowy numer telefonu"),
@@ -552,6 +554,7 @@ serve(async (req) => {
       email: input.email,
       country: input.country,
       region: input.region,
+      address: input.address,
       phone: input.phone,
       currency: input.currency,
       discount_percent: input.discountPercent,

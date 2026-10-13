@@ -2342,6 +2342,7 @@ const data = {
     company_name: document.getElementById("new-p-company").value.trim(),
     representative_name: document.getElementById("new-p-rep-name").value.trim(),
     representative_surname: document.getElementById("new-p-rep-surname").value.trim(),
+    address: document.getElementById("new-p-address").value.trim(),
     country: document.getElementById("new-p-country").value.trim(),
     region: document.getElementById("new-p-region").value.trim(),
     phone: document.getElementById("new-p-phone").value.trim(),
@@ -2437,6 +2438,7 @@ document.getElementById("new-p-rep-surname").value = "";
         document.getElementById("new-p-email").value = "";
         document.getElementById("new-p-pass").value = "";
         document.getElementById("new-p-company").value = "";
+        document.getElementById("new-p-address").value = "";
         document.getElementById("new-p-phone").value = "";
         document.getElementById("new-p-country").value = "";
         document.getElementById("new-p-region").value = "";
@@ -5329,6 +5331,11 @@ async function connectX() {
 <div class="form-group" style="grid-column: span 2;">
     <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Nazwa Wypożyczalni (Publiczna)</label>
     <input type="text" id="new-p-company" placeholder="np. Ride24 Rent" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+</div>
+
+<div class="form-group" style="grid-column: span 2;">
+    <label for="new-p-address" style="display:block; font-size:12px; font-weight:700; margin-bottom:5px;">Adres siedziby (opcjonalnie)</label>
+    <input type="text" id="new-p-address" maxlength="500" autocomplete="street-address" placeholder="np. Via Roma 12, 90133 Palermo" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
 </div>
 
 <div class="form-group">
