@@ -10,7 +10,7 @@ A dedicated secret-authenticated maintenance request can prepare a single explic
 
 Scoped regression tests passed, including accurate overload messaging, unchanged content on failed requests, rejection of published-document maintenance writes, and one-draft maintenance under the same quota with automation disabled. The full module has 51 isolated checks (15 core/security, 16 flow, 8 PostgreSQL, 12 UI). Real Gemini generation is now verified for the owner's configured Free project; Google Search Console and Business Profile still require the owner's connection.
 
-Editorial review then saved revision 3 through the existing revision-guarded save function. Revision 2 remains in history. The review removed unsupported terminal pickup and provider-count claims and converted literal newline escapes into paragraphs. Future generation normalizes those escapes and explicitly prohibits the unsupported claims in its prompt. The document remains an unpublished draft. Admin SEO Edge Function version 5 contains this repair.
+Editorial review saved revisions 3 and 4 through the existing revision-guarded save function. Revision 4 is the final reviewed draft; earlier versions remain in history. The review removed unsupported terminal pickup and provider-count claims and converted literal newline escapes into paragraphs. Future generation normalizes those escapes and explicitly prohibits the unsupported claims in its prompt. The document remains an unpublished draft. Admin SEO Edge Function version 5 contains this repair.
 
 References:
 - https://ai.google.dev/gemini-api/docs/pricing
