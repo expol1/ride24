@@ -2896,6 +2896,7 @@ console.log("API status:", partnerData.api_status);
 
         // --- ZAPISYWANIE USTAWIEŃ DO BAZY (SAVE) ---
         async function savePartnerSettings(){
+            const isEn = localStorage.getItem("partner_lang") === "en";
             // Wyłapujemy przycisk, aby zablokować go na czas zapisu
             const btn = document.querySelector(".settings-card button.btn-primary");
             if(btn) { btn.disabled = true; btn.innerText = localStorage.getItem("partner_lang") === "en" ? "Saving..." : "Zapisywanie..."; }
@@ -2911,8 +2912,6 @@ console.log("API status:", partnerData.api_status);
                 const phone = document.getElementById("partnerPhone").value.trim();
                 const emergency = document.getElementById("partnerEmergency").value.trim();
             
-                const isEn = localStorage.getItem("partner_lang") === "en";
-
                 // KROK 6: WALIDACJA PÓL
                 if (!company || !country || !phone || !address) {
                     
