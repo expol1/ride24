@@ -524,6 +524,7 @@
 /* Ukrywamy dolne menu na komputerze */
 .mobile-nav { display: none; }
 </style>
+<link rel="stylesheet" href="../assets/css/admin-seo.css?v=20261014a">
 </head>
 <body>
 
@@ -568,6 +569,7 @@
 <div class="nav-item" onclick="switchTab('marketing')" id="nav-marketing">
     <span class="nav-text">Marketing AI</span>
 </div>
+    <div class="nav-item" onclick="switchTab('seo')" id="nav-seo"><span class="nav-text">SEO</span></div>
     <div class="nav-item" onclick="switchTab('guides')" id="nav-guides">
     <span class="nav-text">Autoprzewodniki</span>
 </div>
@@ -594,6 +596,7 @@
             <span>🚀</span>
             <span>Marketing</span>
         </div>
+        <div class="mobile-nav-item" onclick="switchTab('seo')" id="m-nav-seo"><span>🔎</span><span>SEO</span></div>
         <div class="mobile-nav-item" onclick="switchTab('guides')" id="m-nav-guides">
     <span>🗺️</span>
     <span>Guides</span>
@@ -869,6 +872,69 @@
         </div>
     </div>
 </div>
+<div id="view-seo" class="view-section">
+ <div class="page-header"><h1 class="page-title">SEO</h1></div>
+ <div class="seo-card">
+  <p class="seo-muted">Przygotuj treść PL i EN, sprawdź ją i opublikuj. Poprawki zachowują adresy stron oraz historię wersji.</p>
+  <div id="seo-connections" class="seo-connection-list"></div>
+  <div class="seo-actions"><button class="btn-secondary" type="button" onclick="seoSync()">Odśwież lokalizacje</button><button class="btn-secondary" type="button" onclick="loadSeo()">Odśwież status</button></div>
+  <div id="seo-message" class="seo-status" role="status" aria-live="polite">Wczytywanie SEO…</div>
+ </div>
+ <div class="seo-layout">
+  <div>
+   <div class="seo-card">
+    <h2>Strony SEO</h2>
+    <div class="seo-field"><label for="seo-filter">Pokaż</label><select id="seo-filter" onchange="seoRenderList()"><option value="all">Wszystkie</option><option value="queued">Do przygotowania</option><option value="draft">Szkice i poprawki</option><option value="published">Opublikowane</option></select></div>
+    <div class="seo-field"><label for="seo-find">Szukaj kierunku</label><input id="seo-find" type="search" oninput="seoRenderList()" placeholder="np. Tirana"></div>
+    <div id="seo-list" class="seo-list"></div>
+   </div>
+   <details class="seo-card seo-settings" id="seo-settings"><summary>Połączenia i ustawienia</summary>
+    <form id="seo-settings-form" onsubmit="seoSaveSettings(event)">
+     <label class="seo-toggle"><input id="seo-enabled" type="checkbox" checked><span>Moduł SEO włączony</span></label>
+     <div class="seo-field"><label for="seo-gemini-key">Klucz Gemini API — projekt na poziomie Free</label><input id="seo-gemini-key" type="password" autocomplete="off" placeholder="Puste pole zachowuje obecny klucz"></div>
+     <p class="seo-muted">Klucz utworzysz w <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer">Google AI Studio</a>. Użyj osobnego projektu Free bez płatności. Klucz zapisujemy wyłącznie po stronie serwera.</p>
+     <label class="seo-toggle"><input id="seo-free" type="checkbox"><span>Potwierdzam, że projekt Gemini działa na poziomie Free i nie ma włączonych płatności.</span></label>
+     <label class="seo-toggle"><input id="seo-auto" type="checkbox"><span>Automatycznie przygotowuj szkice nowych kierunków. Publikuję je samodzielnie.</span></label>
+     <div class="seo-field"><label for="seo-limit">Maksymalna liczba prób AI dziennie</label><input id="seo-limit" type="number" min="1" max="10" value="3"></div>
+     <div id="seo-ai-usage" class="seo-muted"></div>
+     <details><summary>Konfiguracja Google — jednorazowo</summary>
+      <p class="seo-muted">Połączenia Search Console i wizytówki są oddzielne od reklam Google Ads. Jeśli istniejące dane Google są dostępne na serwerze, można ich użyć po dodaniu poniższego adresu powrotu w kliencie OAuth typu „Aplikacja internetowa”.</p>
+      <div class="seo-field"><label for="seo-oauth-id">Google OAuth Client ID (opcjonalnie, jeśli już skonfigurowany)</label><input id="seo-oauth-id" autocomplete="off" placeholder="…apps.googleusercontent.com"></div>
+      <div class="seo-field"><label for="seo-oauth-secret">Google OAuth Client Secret</label><input id="seo-oauth-secret" type="password" autocomplete="off" placeholder="Puste pole zachowuje konfigurację"></div>
+      <div class="seo-field"><label for="seo-callback">Adres powrotu OAuth — skopiuj do Google Cloud</label><textarea id="seo-callback" readonly rows="3"></textarea></div>
+      <p class="seo-muted">Włącz Search Console API. Do wpisów w wizytówce potrzebny jest dostęp do Google Business Profile APIs; Google może wymagać zatwierdzenia projektu. Przejście ekranu zgody OAuth z trybu testowego do produkcji może wymagać dodatkowej konfiguracji Google.</p>
+     </details>
+     <button class="btn-primary" type="submit">Zapisz ustawienia</button>
+    </form>
+    <div class="seo-actions"><button class="btn-secondary" type="button" onclick="seoConnect('search')">Połącz Search Console</button><button class="btn-secondary" type="button" onclick="seoConnect('business')">Połącz wizytówkę Google</button></div>
+    <div class="seo-actions"><button class="btn-secondary" type="button" onclick="seoLoadTargets()">Wybierz wizytówkę Ride24</button></div>
+    <div class="seo-field"><label for="seo-business-target">Wizytówka do publikacji wpisów</label><select id="seo-business-target" onchange="seoSelectTarget()"><option value="">Najpierw połącz i pobierz wizytówki</option></select></div>
+   </details>
+  </div>
+  <div class="seo-card" id="seo-editor"><div id="seo-empty" class="seo-muted">Wybierz stronę z listy. Nowe kierunki pobierzesz przyciskiem „Odśwież lokalizacje”.</div><div id="seo-work" hidden>
+   <h2 id="seo-editor-title" class="seo-editor-title"></h2><div id="seo-source" class="seo-muted"></div>
+   <div class="seo-actions"><button class="btn-primary" type="button" id="seo-generate" onclick="seoGenerate()">Przygotuj PL i EN</button><button class="btn-secondary" type="button" onclick="seoSave()">Zapisz szkic</button></div>
+   <div class="seo-actions seo-tabs"><button type="button" class="active" id="seo-tab-pl" onclick="seoLanguage('pl')">Polski</button><button type="button" id="seo-tab-en" onclick="seoLanguage('en')">English</button></div>
+   <div id="seo-fields"></div>
+   <div class="seo-field"><label for="seo-note">Uwagi do poprawy — np. komunikat z Google lub brakujące informacje</label><textarea id="seo-note" maxlength="2000" placeholder="Zapisz uwagi i kliknij Przygotuj PL i EN, aby otrzymać poprawiony szkic. Możesz też edytować tekst ręcznie."></textarea></div>
+   <details><summary>Podgląd strony</summary><iframe id="seo-preview" class="seo-preview" title="Podgląd strony SEO" sandbox=""></iframe></details>
+   <details><summary>Historia i przywracanie treści</summary><p class="seo-muted">Przywrócona treść staje się szkicem. Dopiero publikacja zmieni stronę publiczną.</p><button class="btn-secondary" type="button" onclick="seoHistory()">Pokaż poprzednie wersje</button><div id="seo-history" class="seo-history"></div></details>
+   <details><summary>Wklej treść z własnego generatora</summary><p class="seo-muted">Opcja dodatkowa: skopiuj instrukcję, przygotuj tekst poza panelem i wklej JSON PL/EN zgodny z załączonym generatorem.</p><button class="btn-secondary" type="button" onclick="seoCopyPrompt()">Kopiuj instrukcję</button><div class="seo-field"><label for="seo-json">JSON z wersjami pl i en</label><textarea id="seo-json" maxlength="130000"></textarea></div><button class="btn-secondary" type="button" onclick="seoImportJson()">Wczytaj jako szkic</button></details>
+   <label class="seo-toggle"><input id="seo-approved" type="checkbox" onchange="seoButtons()"><span>Sprawdziłem obie wersje, informacje o wynajmie i zatwierdzam publikację.</span></label>
+   <div class="seo-actions"><button class="btn-primary" type="button" id="seo-publish" onclick="seoPublish()" disabled>Opublikuj PL i EN</button></div>
+   <div id="seo-publish-status" class="seo-status"></div><div id="seo-links" class="seo-link-list"></div>
+   <details><summary>Google — sprawdzenie i ponowne zgłoszenie</summary>
+    <p class="seo-muted">Zapis w GitHub, dostępność strony i indeksowanie w Google to osobne etapy. Google decyduje o indeksowaniu oraz pozycji. Jeśli tekst wymaga poprawy, zapisz uwagi powyżej, popraw szkic i opublikuj ponownie pod tym samym adresem.</p>
+    <div class="seo-actions"><button class="btn-secondary" type="button" onclick="seoGoogle('verify')">Sprawdź dostępność stron</button><button class="btn-secondary" type="button" onclick="seoGoogle('submit')">Ponów zgłoszenie do Google</button><button class="btn-secondary" type="button" onclick="seoGoogle('inspect')">Sprawdź indeksowanie</button></div>
+    <div id="seo-google-status" class="seo-status"></div>
+    <div class="seo-actions"><button class="btn-secondary" type="button" onclick="seoGoogle('business_check')">Sprawdź status wpisów w wizytówce</button><a href="https://maps.app.goo.gl/CQCsuEhQPrSM4MX66" target="_blank" rel="noopener noreferrer">Otwórz wizytówkę Ride24</a></div>
+    <div class="seo-actions"><button class="btn-secondary" id="seo-business-publish" type="button" onclick="seoBusinessPublish()" disabled>Opublikuj wpis PL i EN w wizytówce</button></div>
+    <p class="seo-muted">Wpis opisuje nowy kierunek i prowadzi do strony SEO. Nie tworzy oddziału ani pinezki Ride24 w lokalizacji partnera.</p>
+   </details>
+  </div></div>
+ </div>
+</div>
+
 <div id="view-marketing" class="view-section">
 
     <div class="page-header">
@@ -1880,6 +1946,7 @@ function closePromotionModal() {
 
         // --- NAWIGACJA ---
        window.switchTab = function(tabId) {
+            if (tabId === "seo") loadSeo();
             if (tabId === "search") {
                 loadSearchLogs();
                 loadUnmappedLocations();
@@ -5295,6 +5362,7 @@ async function connectX() {
 
     </script>
 <script src="../assets/js/admin-travel-guides.js?v=20261009a"></script>
+<script type="module" src="../assets/js/admin-seo.js?v=20261014a"></script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">
         

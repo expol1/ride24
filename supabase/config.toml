@@ -501,3 +501,15 @@ entrypoint = "./functions/sync-api-locations/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/admin-travel-guides/index.ts"
+
+# Separate admin-authenticated SEO endpoint. Cron authenticates with a dedicated Vault secret.
+[functions.admin-seo]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/admin-seo/index.ts"
+
+# Google callback validates and consumes an expiring OAuth state with PKCE.
+[functions.seo-google-callback]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/seo-google-callback/index.ts"
