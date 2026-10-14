@@ -100,6 +100,7 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
   }
   if(action==='generate')return reply(await generate(deps,admin,doc,note));
   if(!['publish','verify','submit','inspect','business_publish','business_check'].includes(action))throw new SeoError('Nieznana akcja SEO.');
+  if(action==='business_publish'&&(doc.state!=='published'||doc.published?.revision!==doc.revision))throw new SeoError('Najpierw opublikuj poprawione strony PL i EN. Wpis Google musi dotyczyć zatwierdzonej publicznej wersji.',409);
   if(['publish','business_publish'].includes(action)&&body.approved!==true)throw new SeoError('Sprawdź treść i zaznacz potwierdzenie przed publikacją.');
   const lock=await rpc(admin,'admin_seo_claim',{p_id:doc.id,p_revision:doc.revision});let google={...doc.google};
   const patch=async(values:any)=>check(await admin.from('seo_documents').update({...values,updated_at:new Date().toISOString()}).eq('id',doc.id).eq('lock_token',lock.lock_token));
