@@ -33,9 +33,16 @@ async function generate(deps:Deps,admin:any,doc:any,note:string){
  const claimed=await rpc(admin,'admin_seo_claim',{p_id:doc.id,p_revision:doc.revision});
  try{
   if(!await rpc(admin,'admin_seo_ai_slot'))throw new SeoError('Darmowy limit dzienny został wykorzystany lub nie potwierdzono poziomu Free. Tekst możesz edytować ręcznie.',429);
-  const r=await deps.fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent',{method:'POST',redirect:'error',signal:AbortSignal.timeout(45000),headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:makePrompt(live.source,doc.content,note)}]}],generationConfig:{responseMimeType:'application/json',temperature:0.5,maxOutputTokens:10000,thinkingConfig:{thinkingLevel:'low'}}})});
-  if(!r.ok)throw new SeoError(r.status===429?'Gemini osiągnął limit bezpłatnej usługi. Spróbuj później; nie uruchomiono płatnego zastępstwa.':'Gemini nie wygenerował tekstu. Sprawdź klucz, poziom Free i dostępność modelu.',r.status===429?429:502);
+  const r=await deps.fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',{method:'POST',redirect:'error',signal:AbortSignal.timeout(45000),headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:makePrompt(live.source,doc.content,note)+'\nNie wskazuj konkretnego miejsca odbioru w terminalu, strefie obsługi podróżnych ani parkingu: źródło podaje nazwę lokalizacji, nie dokładny punkt spotkania. Nie twierdź, że w wybranej lokalizacji działa wielu partnerów. Pisz neutralnie o dostępnych ofertach i konieczności sprawdzenia instrukcji odbioru. Nie opisuj wielkości lotniska ani liczby podróżnych bez danych źródłowych.'}]}],generationConfig:{responseMimeType:'application/json',temperature:0.5,maxOutputTokens:10000,thinkingConfig:{thinkingLevel:'minimal'}}})});
+  if(!r.ok){
+   if(r.status===503||r.status===500)throw new SeoError('Google chwilowo nie może wygenerować tekstu (przeciążenie modelu). Klucz i poprzedni szkic pozostają zapisane. Spróbuj później.',503);
+   if(r.status===429)throw new SeoError('Gemini osiągnął limit bezpłatnej usługi. Spróbuj później; nie uruchomiono płatnego zastępstwa.',429);
+   if(r.status===401||r.status===403)throw new SeoError('Google odmówił dostępu do generowania. Sprawdź uprawnienia klucza oraz poziom Free projektu.',502);
+   if(r.status===404)throw new SeoError('Google nie udostępnia wybranego modelu. Szkic zachowano; moduł wymaga aktualizacji modelu.',502);
+   throw new SeoError('Google nie przyjął żądania generowania. Szkic zachowano; wymagane sprawdzenie konfiguracji modułu.',502);
+  }
   const json=await r.json();let value:any;try{const text=json.candidates?.[0]?.content?.parts?.filter((p:any)=>typeof p.text==='string'&&!p.thought).map((p:any)=>p.text).join('');if(!text||text.length>130000)throw new Error();value=JSON.parse(text);}catch{throw new SeoError('AI nie zwróciło kompletnego tekstu PL/EN. Poprzednia wersja pozostaje dostępna.',502);}
+  for(const lang of LANGS)for(const field of ['intro_text','main_content'])if(typeof value?.[lang]?.[field]==='string')value[lang][field]=value[lang][field].replace(/\\r\\n/g,'\n').replace(/\\n/g,'\n');
   const pair=validatePair(value,doc.published?.content||null);
   // AI never chooses paths: existing paths remain stable, new paths come from deterministic source data.
   for(const lang of LANGS)pair[lang].slug=doc.content?.[lang]?.slug||live.source.slugs[lang];
@@ -56,7 +63,11 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
   const body=await safeBody(req);const s=await settings(admin);const action=body.action||'list';
   if(cron){
    if(action!=='cron')throw new SeoError('Scheduler może przygotowywać wyłącznie szkice.',403);
-   if(!s.enabled)return reply({skipped:true});const result=await sync(admin);
+   if(!s.enabled)return reply({skipped:true});
+   // Scoped maintenance may generate one explicitly selected queued draft, under the same Free quota.
+   // It cannot edit existing drafts or publish anything, and does not enable automatic generation.
+   if(body.draft_id){const target=await document(admin,body.draft_id);if(target.state!=='queued'||target.content!==null||target.published!==null)throw new SeoError('Przygotowanie wewnętrzne dotyczy tylko nowych, pustych szkiców.',409);const generated=await generate(deps,admin,target,'');return reply({generated_id:generated.document.id,revision:generated.document.revision,state:generated.document.state});}
+   const result=await sync(admin);
    if(s.auto_generate&&s.free_tier_confirmed&&await secret(admin,'gemini')){
     const queued=check(await admin.from('seo_documents').select('*').eq('state','queued').order('created_at').limit(1));
     if(queued?.length){try{await generate(deps,admin,queued[0],'');}catch(e){const message=e instanceof SeoError?e.message:'Nie udało się przygotować szkicu.';await admin.from('seo_documents').update({last_error:message}).eq('id',queued[0].id);return reply({...result,generation_error:message});}}
