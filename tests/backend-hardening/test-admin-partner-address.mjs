@@ -14,16 +14,16 @@ const submitCode = html.slice(html.indexOf('window.processAddPartner = async fun
   html.indexOf('window.togglePartnerType = function'));
 assert(submitCode.includes('new-p-address'));
 assert(html.includes('id="new-p-address" maxlength="500"'));
-let handler, authorized = true, authCreates = 0, partnerInsert, credentialsInsert;
-const reset = () => { authCreates = 0; partnerInsert = null; credentialsInsert = null; };
+let handler, authorized = true, authCreates = 0, partnerInsert, credentialsInsert, authFailure = null, deletes = 0, profileWrites = 0;
+const reset = () => { authCreates = 0; partnerInsert = null; credentialsInsert = null; deletes = 0; profileWrites = 0; };
 const admin = {
   auth: { admin: {
-    createUser: async () => { authCreates++; return { data: { user: { id: 'fixture-user' } }, error: null }; },
-    deleteUser: async () => ({ error: null })
+    createUser: async () => { authCreates++; return authFailure ? {data:{user:null},error:authFailure} : { data: { user: { id: 'fixture-user' } }, error: null }; },
+    deleteUser: async () => { deletes++; return { error: null }; }
   } },
   from(table) {
     return {
-      upsert: async () => ({ error: null }),
+      upsert: async () => { profileWrites++; return { error: null }; },
       insert(row) {
         if (table === 'partners') partnerInsert = row;
         else if (table === 'partner_api_credentials') credentialsInsert = row;
@@ -33,7 +33,7 @@ const admin = {
           then: resolve => resolve({ error: null })
         };
       },
-      delete: () => ({ eq: async () => ({ error: null }) })
+      delete: () => ({ eq: async () => { deletes++; return { error: null }; } })
     };
   }
 };
@@ -62,6 +62,22 @@ const invoke = body => handler(new Request('https://fixture.test/create', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
 }));
 let passed = 0;
+for (const failure of [
+  {code:'email_exists',message:'Email exists'},
+  {code:'user_already_exists',message:'User exists'},
+  {message:'A user with this email address has already been registered'},
+]) {
+  reset(); authFailure = failure;
+  const response = await invoke(base);
+  assert.equal(response.status,409);
+  const result = await response.json();
+  assert.equal(result.code,'EMAIL_ALREADY_REGISTERED');
+  assert.ok(result.error.includes('już istnieje'));
+  assert.equal(profileWrites,0); assert.equal(deletes,0);
+  assert.equal(partnerInsert,null); assert.equal(credentialsInsert,null);
+  passed++;
+}
+authFailure = null;
 for (const [value, expected] of [
   ['  Via Roma 12, 90133 Palermo  ', 'Via Roma 12, 90133 Palermo'],
   ['ul. Żółta 12/3, 70-001 Szczecin', 'ul. Żółta 12/3, 70-001 Szczecin'],

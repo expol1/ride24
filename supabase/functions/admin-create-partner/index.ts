@@ -534,6 +534,17 @@ serve(async (req) => {
     });
 
     if (authError || !authData.user) {
+      // Auth rejects duplicates before creating a user. Do not modify or delete
+      // the existing account, including when its current role is client.
+      if (authError && (
+        ["email_exists", "user_already_exists"].includes(authError.code || "")
+        || /^A user with this email address has already been registered\.?$/i.test(authError.message || "")
+      )) {
+        return jsonResponse(req, {
+          error: "Konto z tym adresem e-mail już istnieje. Sprawdź listę partnerów i klientów. Użyj innego adresu dla nowego konta albo otwórz istniejące konto.",
+          code: "EMAIL_ALREADY_REGISTERED",
+        }, 409);
+      }
       throw new Error(authError?.message || "Nie udało się utworzyć użytkownika");
     }
     createdUserId = authData.user.id;
