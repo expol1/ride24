@@ -524,11 +524,18 @@ let query = db
                 const returnLocationName = String(selectedReturnLocation.location_name || selectedReturnLocation.name || "").trim();
                 let returnPartnerIds = [];
                 if (returnLocationName) {
-                    const { data: returnLocations, error: locationsError } = await db
+                    let returnQuery = db
                         .from('partner_locations')
                         .select('partner_id')
                         .eq('active', true)
                         .eq('location_name', returnLocationName);
+                    if (selectedReturnLocation.country) {
+                        returnQuery = returnQuery.eq('country', selectedReturnLocation.country);
+                    }
+                    if (selectedReturnLocation.city) {
+                        returnQuery = returnQuery.eq('city', selectedReturnLocation.city);
+                    }
+                    const { data: returnLocations, error: locationsError } = await returnQuery;
                     if (locationsError) throw locationsError;
                     returnPartnerIds = [...new Set((returnLocations || []).map(item => item.partner_id).filter(Boolean))];
                 }
@@ -539,6 +546,8 @@ let query = db
 
              // 🔥 1. Dokładna lokalizacja partnera
              if (loc.location_name) {
+              if (loc.country) query = query.eq('partners.partner_locations.country', loc.country);
+              if (loc.city) query = query.eq('partners.partner_locations.city', loc.city);
 
               query = query.eq(
              'partners.partner_locations.location_name',
