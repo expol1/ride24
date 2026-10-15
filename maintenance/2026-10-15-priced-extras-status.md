@@ -39,8 +39,8 @@ prices/quantities and supplies distinct customer/partner projections.
 Earlier uncommitted SQL prototype (16 isolated PGlite access tests) and server
 integration draft were lost with the workspace reset. They were not deployed and
 are NOT part of this checkpoint; reconstruct/review them before relying on them.
-Neither Android source archive is present in the restored workspace. Request the
-same files again or their Google Drive links rather than guess native code.
+Both Android sources have been reuploaded, CRC-checked and extracted.
+Client source: 1.0.14; partner source: 1.0.5. Baseline compilation is still required.
 
 ## Required remaining gates
 
@@ -62,3 +62,10 @@ same files again or their Google Drive links rather than guess native code.
    all checks. Emergency disable must retain snapshots for bookings already created.
 
 This checkpoint is a foundation, not a production-ready feature or an Android update.
+
+## Reconstructed backend draft (not deployed)
+
+Disabled schema proposal, catalog/location helpers, authenticated quote endpoint and
+booking revalidation are now staged. The booking function is based on live v15 and
+preserves its partner-push and email-worker dispatches. SQL isolation tests and
+function type-check/integration tests are still required before deployment.

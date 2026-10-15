@@ -1337,6 +1337,15 @@
 .trust-card:hover{
     border-color:#00B67A;
 }
+    
+        .booking-price-breakdown {background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;text-align:left;}
+        .booking-price-breakdown h4 {margin:0 0 12px;}
+        .booking-price-row {display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:9px 0;font-size:13px;}
+        .booking-price-row>:last-child {white-space:nowrap;}
+        .booking-price-breakdown small,#bookingExtrasPicker small {display:block;color:#64748b;font-size:12px;line-height:1.5;}
+        .booking-extra-row {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #e2e8f0;text-align:left;}
+        .booking-extra-row select {min-width:64px;padding:10px;border:1px solid #cbd5e1;border-radius:8px;}
+        #termsModal .modal-box,.equipment-info-box {max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;}
     </style>
     <!-- TrustBox script -->
 <script type="text/javascript"
@@ -2084,6 +2093,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script type="module">
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
     document.getElementById('deleteModal').style.display = 'flex';
@@ -2682,6 +2692,20 @@ document.addEventListener("click", async function(e) {
 });
 
         // --- NASZA NOWA FUNKCJA POBIERANIA REZERWACJI (MOCK API) ---
+       function bookingQuoteContext() {
+           const search = JSON.parse(localStorage.getItem("searchParams") || "{}");
+           const additional = document.getElementById("additionalDriverSelect")?.value;
+           return {
+               car_class_id: localStorage.getItem("selectedCarId"),
+               start_date: localStorage.getItem("bookingStartDate"), end_date: localStorage.getItem("bookingEndDate"),
+               pickup_time: localStorage.getItem("bookingPickupTime") || "10:00", return_time: localStorage.getItem("bookingDropTime") || "10:00",
+               pickup_location: search.pickup_location?.name || "Do ustalenia",
+               return_location: search.drop_location?.name || search.pickup_location?.name || "Do ustalenia",
+               additional_driver_id: additional?.length === 36 ? additional : null
+           };
+       }
+       const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
+           context:bookingQuoteContext, isEn:()=>localStorage.getItem("client_lang")==="en"});
        window.submitBooking = function() {
     const isEn = localStorage.getItem("client_lang") === "en";
 
@@ -2739,13 +2763,16 @@ document.addEventListener("click", async function(e) {
 
         select.onchange = () => {
             if (select.value === addSelect.value) addSelect.value = "none";
+            bookingExtras.refresh();
         };
 
         addSelect.onchange = () => {
             if (select.value === addSelect.value) select.value = "";
+            bookingExtras.refresh();
         };
 
         window.loadPartnerDocuments(carClassId);
+        await bookingExtras.start();
 
     }, 0);
 };
@@ -2806,6 +2833,7 @@ document.addEventListener("click", async function(e) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
                 }
 
+                const pricingPayload = bookingExtras.payload();
                 const response = await fetch(supabaseUrl + "/functions/v1/create-booking-request", {
                     method: "POST",
                     headers: {
@@ -2824,13 +2852,15 @@ document.addEventListener("click", async function(e) {
                         driver_id: driverId,
                         additional_driver_id: additionalDriverId,
                         terms_accepted: true,
+                        ...pricingPayload,
                         api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
                     })
                 });
 
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || !result?.success) {
-                    throw new Error(result?.error || (isEn ? "Could not create booking." : "Nie udało się utworzyć rezerwacji."));
+                    if (["QUOTE_CHANGED", "INVALID_BOOKING_OPTIONS", "DRIVER_EXTRA_MISMATCH"].includes(result?.code)) await bookingExtras.refresh();
+                    throw new Error((isEn ? result?.error_en : result?.error) || result?.error || (isEn ? "Could not create booking." : "Nie udało się utworzyć rezerwacji."));
                 }
 
                 document.getElementById("termsModal").style.display = "none";
@@ -2849,12 +2879,14 @@ document.addEventListener("click", async function(e) {
             } finally {
                 if (btn) {
                     btn.disabled = false;
+                    btn.disabled = !bookingExtras.canSubmit();
                     btn.innerText = isEn ? "Confirm & Book" : "Potwierdzam i rezerwuję";
                 }
             }
         };
 
        window.closeTermsModal = function() {
+            bookingExtras.close();
             document.getElementById("termsModal").style.display = "none";
         }
                 window.openEquipmentInfoModal = function() {
@@ -4536,6 +4568,7 @@ window.closeReviewModal = function() {
     </button>
 </div>
 
+            <section id="bookingPriceBreakdown" class="booking-price-breakdown" aria-live="polite" hidden></section>
             <label class="premium-checkbox-wrapper">
                 <input type="checkbox" id="acceptTerms">
                 <span class="premium-checkbox-text" data-pl="Akceptuję regulamin Ride24 oraz warunki wynajmu wybranej grupy aut." data-en="I accept Ride24 terms and the rental conditions for the selected car group.">
@@ -4557,6 +4590,8 @@ window.closeReviewModal = function() {
                 Wyposażenie dodatkowe
             </h3>
 
+           <div id="bookingExtrasPicker" hidden></div>
+           <div id="equipmentLegacyInfo">
            <p data-pl="Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem po dokonaniu rezerwacji."
    data-en="If you need additional equipment, arrange the details directly with the partner after making your reservation.">
     Jeśli potrzebujesz wyposażenia dodatkowego, ustal szczegóły bezpośrednio z partnerem po dokonaniu rezerwacji.
@@ -4587,6 +4622,7 @@ window.closeReviewModal = function() {
                 Partner potwierdzi dostępność oraz ewentualną cenę. Dodatki nie są wliczone w cenę wynajmu ani w opłatę rezerwacyjną Ride24.
             </div>
 
+            </div>
             <div class="equipment-info-actions">
                 <button type="button"
                         class="btn-primary"

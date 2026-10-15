@@ -1,3 +1,4 @@
+import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   authenticatedUser,
@@ -23,6 +24,9 @@ type BookingBody = {
   return_location?: unknown;
   terms_accepted?: unknown;
   api_quote_id?: unknown;
+  pricing_version?: unknown;
+  pricing_fingerprint?: unknown;
+  extras?: unknown;
 };
 
 type PartnerRelation = {
@@ -642,6 +646,67 @@ async function triggerEmailWorker(bookingId: string): Promise<void> {
   }
 }
 
+function partnerPushUrl(): string {
+  const rawUrl = Deno.env.get("SUPABASE_URL");
+  if (!rawUrl) throw new Error("PARTNER_PUSH_CONFIGURATION_MISSING");
+
+  const url = new URL(rawUrl);
+  if (!["https:", "http:"].includes(url.protocol)) {
+    throw new Error("PARTNER_PUSH_CONFIGURATION_MISSING");
+  }
+
+  url.pathname = "/functions/v1/partner-push";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+async function triggerPartnerPush(bookingId: string): Promise<void> {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceRoleKey) {
+    console.error("create-booking-request partner push configuration missing");
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+
+  try {
+    const response = await fetch(partnerPushUrl(), {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${serviceRoleKey}`,
+        "apikey": serviceRoleKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        booking_id: bookingId,
+        type: "new_booking",
+      }),
+      signal: controller.signal,
+      redirect: "error",
+    });
+
+    await response.body?.cancel().catch(() => undefined);
+
+    if (!response.ok) {
+      console.error(
+        "create-booking-request partner push failed",
+        bookingId,
+        response.status,
+      );
+    }
+  } catch {
+    console.error(
+      "create-booking-request partner push failed",
+      bookingId,
+      "NETWORK_ERROR",
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function resolveApiLocation(
   admin: AdminClient,
   partnerId: string,
@@ -1062,7 +1127,7 @@ serve(async (req) => {
       apiQuoteCurrency || car.partner.currency || "EUR",
     );
     const rate = await exchangeRate(currency);
-    const onlinePaymentPln = Number(
+    let onlinePaymentPln = Number(
       (commission * rate * (1 - discountPercent / 100)).toFixed(2),
     );
 
@@ -1153,6 +1218,40 @@ serve(async (req) => {
       );
     }
 
+    let pricingItemsSnapshot = null;
+    const selections = body.extras ?? [];
+    if (!Array.isArray(selections) || selections.length > 20) throw quoteChanged();
+    if (car.partner.provider_type === "api") {
+      // API provider quotes remain authoritative, including their own services.
+      if (selections.length || body.pricing_version === 2) throw quoteChanged();
+    } else if (await pricedExtrasEnabled(admin)) {
+      const options = await loadBookingOptions(admin, car.partner_id, pickupName, returnName);
+      if (body.pricing_version !== 2) {
+        assertAcceptedQuote(body, {}, options);
+        if (additionalDriverId && options.catalog.some(x => x.code === "additional_driver")) {
+          throw new BookingOptionsError("PRICING_UPDATE_REQUIRED", "Zaktualizuj aplikację lub dokończ rezerwację na ride24.pl.", "Update the app or book at ride24.pl.");
+        }
+      } else {
+      const context = pricingContext({userId:user.id, carId:car.id, startDate:startDate.text,
+        endDate:endDate.text, pickupTime, returnTime, additionalDriverId}, options);
+      const { snapshot, publicQuote } = await makeBookingQuote({options, selections,
+        hasAdditionalDriver:Boolean(additionalDriverId), context,
+        rental:{base_total:baseTotal, final_total:finalTotal}, days:bookingDays,
+        marginPercent:platformMarginSnapshot, loyaltyPercent:discountPercent,
+        currency, exchangeRate:rate});
+      if (assertAcceptedQuote(body, publicQuote, options)) {
+        pricingItemsSnapshot = snapshot;
+        baseTotal = snapshot.partner_cents / 100;
+        commission = snapshot.commission_cents / 100;
+        finalTotal = snapshot.gross_cents / 100;
+        onlinePaymentPln = snapshot.online_pln_cents / 100;
+      }
+      }
+    } else if (body.pricing_version === 2 || selections.length) {
+      // Emergency switch must never silently discard already-selected extras.
+      throw quoteChanged();
+    }
+
     const now = new Date();
     const nowIso = now.toISOString();
     const partnerResponseDeadline = new Date(
@@ -1165,6 +1264,7 @@ serve(async (req) => {
     );
 
     const insertPayload = {
+      ...(pricingItemsSnapshot ? {pricing_items_snapshot:pricingItemsSnapshot} : {}),
       car_class_id: car.id,
       partner_id: car.partner_id,
       client_id: user.id,
@@ -1293,6 +1393,10 @@ serve(async (req) => {
       } else {
         await triggerEmailWorker(bookingId);
       }
+
+      // Android Partner App: push o nowej rezerwacji.
+      // Awaria push NIE blokuje utworzenia rezerwacji.
+      await triggerPartnerPush(bookingId);
     } else {
       await dispatchApiBooking(bookingId);
     }
@@ -1317,6 +1421,10 @@ serve(async (req) => {
       await releaseQuoteClaim(admin, quoteClaim).catch(() => undefined);
     }
 
+    if (error instanceof BookingOptionsError) {
+      return jsonResponse(req, {error:error.message, error_en:error.en, code:error.code}, error.status);
+    }
+
     console.error(
       "create-booking-request",
       error instanceof Error
@@ -1336,3 +1444,4 @@ serve(async (req) => {
     );
   }
 });
+
