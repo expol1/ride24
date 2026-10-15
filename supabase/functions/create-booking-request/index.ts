@@ -642,6 +642,67 @@ async function triggerEmailWorker(bookingId: string): Promise<void> {
   }
 }
 
+function partnerPushUrl(): string {
+  const rawUrl = Deno.env.get("SUPABASE_URL");
+  if (!rawUrl) throw new Error("PARTNER_PUSH_CONFIGURATION_MISSING");
+
+  const url = new URL(rawUrl);
+  if (!["https:", "http:"].includes(url.protocol)) {
+    throw new Error("PARTNER_PUSH_CONFIGURATION_MISSING");
+  }
+
+  url.pathname = "/functions/v1/partner-push";
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
+async function triggerPartnerPush(bookingId: string): Promise<void> {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceRoleKey) {
+    console.error("create-booking-request partner push configuration missing");
+    return;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+
+  try {
+    const response = await fetch(partnerPushUrl(), {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${serviceRoleKey}`,
+        "apikey": serviceRoleKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        booking_id: bookingId,
+        type: "new_booking",
+      }),
+      signal: controller.signal,
+      redirect: "error",
+    });
+
+    await response.body?.cancel().catch(() => undefined);
+
+    if (!response.ok) {
+      console.error(
+        "create-booking-request partner push failed",
+        bookingId,
+        response.status,
+      );
+    }
+  } catch {
+    console.error(
+      "create-booking-request partner push failed",
+      bookingId,
+      "NETWORK_ERROR",
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function resolveApiLocation(
   admin: AdminClient,
   partnerId: string,
@@ -1151,6 +1212,17 @@ serve(async (req) => {
         car.partner_id,
         returnName,
       );
+      // Sprawdzamy oba punkty po ID właściciela samochodu, nie globalnej nazwie.
+      // Zapobiega mieszaniu punktów dwóch wypożyczalni przez starsze klienty.
+      if (!pickupLocation || !dropoffLocation) {
+        return jsonResponse(
+          req,
+          { error: "Wybrany partner nie obsługuje wskazanej lokalizacji odbioru lub zwrotu. Wróć do wyszukiwarki i wybierz punkt z jego oferty." },
+          409,
+        );
+      }
+      pickupName = pickupLocation.location_name || pickupName;
+      returnName = dropoffLocation.location_name || returnName;
     }
 
     const now = new Date();
@@ -1293,6 +1365,10 @@ serve(async (req) => {
       } else {
         await triggerEmailWorker(bookingId);
       }
+
+      // Android Partner App: push o nowej rezerwacji.
+      // Awaria push NIE blokuje utworzenia rezerwacji.
+      await triggerPartnerPush(bookingId);
     } else {
       await dispatchApiBooking(bookingId);
     }
