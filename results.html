@@ -827,6 +827,12 @@ const customerPricePerDay = partnerNetPricePerDay * (1 + (marginPerc / 100));
 // Sumy całkowite do wyświetlenia na karcie auta
 const baseTotal = Number((partnerNetPricePerDay * days).toFixed(2));
 const finalTotal = Number((customerPricePerDay * days).toFixed(2));
+// Wyniki: pełne jednostki waluty bez miejsc dziesiętnych.
+// Kwoty rozliczeniowe (finalTotal i baseTotal) pozostają dokładne.
+const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+}).format(Math.round(finalTotal));
 
 // --- KONIEC LOGIKI ---
 
@@ -992,7 +998,7 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 
 <div class="car-price-box">
     <div class="price-info">${lang === 'pl' ? 'Łącznie' : 'Total'} ${labels.daysInfo}</div>
-    <div class="price-total">${finalTotal} <span>${safeCurrency}</span></div>
+    <div class="price-total">${displayTotal} <span>${safeCurrency}</span></div>
     <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc})">
         ${labels.bookBtn}
     </button>
