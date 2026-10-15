@@ -1,4 +1,4 @@
-import {SeoError,validatePair,warnings,buildTopics,makePrompt,hash,LANGS,SITE,type Pair} from './core.ts';
+import {SeoError,validatePair,warnings,buildTopics,makePrompt,ensureSeoBenefits,hash,LANGS,SITE,type Pair} from './core.ts';
 import {publishPair,verifyPublic} from './github.ts';
 import {CALLBACK,credentials,googleAccess,googleApi,submitSitemap,inspectPair,businessTargets,existingPosts,createPost,postSummary,oauthStart,type Provider} from './google.ts';
 type Deps={fetch:typeof fetch;authorize:(req:Request)=>Promise<{admin:any;user:any}>;service:()=>any;env:(name:string)=>string|undefined};
@@ -13,7 +13,7 @@ async function safeBody(req:Request){if(!req.headers.get('content-type')?.starts
 async function getTopics(admin:any){
  const results=await Promise.all([
   admin.from('partner_locations').select('id,partner_id,country,region,city,location_name,type,active,extra_fee,extra_fee_amount,contact_required,partners!inner(active,account_status,api_enabled)').eq('active',true).limit(2000),
-  admin.from('car_classes').select('partner_id,active').eq('active',true).limit(5000),
+  admin.from('car_classes').select('partner_id,active,deposit_amount,features').eq('active',true).limit(5000),
   admin.from('locations_dictionary').select('name_en,name_pl').limit(3000)
  ]);
  if(results.some(r=>r.error))throw new SeoError('Nie udało się pobrać lokalizacji dla SEO.',502);
@@ -46,6 +46,7 @@ async function generate(deps:Deps,admin:any,doc:any,note:string){
   const pair=validatePair(value,doc.published?.content||null);
   // AI never chooses paths: existing paths remain stable, new paths come from deterministic source data.
   for(const lang of LANGS)pair[lang].slug=doc.content?.[lang]?.slug||live.source.slugs[lang];
+   ensureSeoBenefits(pair,live.source); // Never turn unverified partner terms into a guarantee.
   const saved=await rpc(admin,'admin_seo_save',{p_id:doc.id,p_revision:doc.revision,p_content:pair,p_note:note,p_lock:claimed.lock_token});
   return {document:saved,warnings:warnings(pair)};
  }finally{await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',claimed.lock_token);}
