@@ -5277,6 +5277,13 @@ function collectSearchData() {
         }
 
         const lang = localStorage.getItem("lang") || "pl";
+        const pickupAtSearch = SELECTED_PICKUP?.location_name || null;
+        // Zwrot może pochodzić wyłącznie z lokalizacji partnerów obsługujących odbiór.
+        if (type === 'drop' && !pickupAtSearch) {
+            resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Najpierw wybierz miejsce odbioru' : 'Choose a pick-up location first'}</span></div>`;
+            resultsBox.classList.add('show');
+            return;
+        }
         
         // TŁUMACZENIA + SYNONIMY
         let translatedTerms = [query];
@@ -5315,13 +5322,36 @@ function collectSearchData() {
             )
         ).join(',');
 
-        // 2. Pobieranie z partner_locations
-        const { data: partnerData, error } = await db
+        // 2. Pobieranie z partner_locations — dla zwrotu TYLKO ci sami partnerzy
+        let eligiblePickupPartnerIds = null;
+        if (type === 'drop') {
+            const { data: pickupRows, error: pickupError } = await db
+                .from('partner_locations')
+                .select('partner_id')
+                .eq('location_name', pickupAtSearch)
+                .eq('active', true);
+            if (pickupError) {
+                console.error("Błąd filtrowania zwrotu:", pickupError);
+                resultsBox.classList.remove('show');
+                return;
+            }
+            if (SELECTED_PICKUP?.location_name !== pickupAtSearch) return;
+            eligiblePickupPartnerIds = [...new Set((pickupRows || []).map(row => row.partner_id).filter(Boolean))];
+            if (!eligiblePickupPartnerIds.length) {
+                resultsBox.innerHTML = `<div class="search-dropdown-item"><span class="sub-text">${lang === 'pl' ? 'Brak obsługiwanych punktów zwrotu' : 'No available return locations'}</span></div>`;
+                resultsBox.classList.add('show');
+                return;
+            }
+        }
+        let locationsQuery = db
             .from('partner_locations')
-            .select('location_name, country, region, city, type')
+            .select('id, partner_id, location_name, country, region, city, type')
             .or(orFilters)
-            .eq('active', true)
-            .limit(30);
+            .eq('active', true);
+        if (type === 'drop') {
+            locationsQuery = locationsQuery.in('partner_id', eligiblePickupPartnerIds);
+        }
+        const { data: partnerData, error } = await locationsQuery.limit(100);
             
         if (error) {
             console.error("Błąd wyszukiwania:", error);
@@ -5344,6 +5374,8 @@ function collectSearchData() {
 
             return {
                 name: item.location_name || item.city || item.country,
+                id: item.id,
+                partner_id: item.partner_id,
                 location_name: item.location_name,
                 country: item.country,
                 region: item.region,
@@ -5351,6 +5383,17 @@ function collectSearchData() {
                 type: locType
             };
         });
+
+        // Identyczne punkty obsługiwane przez kilku partnerów pokazujemy jeden raz.
+        // Po wyborze auta zgodność partnera jest sprawdzana dodatkowo w wynikach.
+        const uniqueSuggestions = new Map();
+        results.forEach(item => {
+            const key = [item.location_name, item.city, item.region, item.country, item.type]
+                .map(value => String(value || '').trim().toLowerCase()).join('|');
+            if (!uniqueSuggestions.has(key)) uniqueSuggestions.set(key, item);
+        });
+        results = [...uniqueSuggestions.values()];
+        if (type === 'drop' && SELECTED_PICKUP?.location_name !== pickupAtSearch) return;
 
         const q = query.toLowerCase();
 
@@ -5471,11 +5514,17 @@ function collectSearchData() {
             // 🔥 BLOKADA MOBILE: Jeśli właśnie wybieramy z listy, ignorujemy event
             if (isSelectingLocation) return; 
 
-            if (type === 'drop') isDropManuallyChanged = true; 
+            if (type === 'drop') {
+                isDropManuallyChanged = true;
+                SELECTED_DROP = null; // ręczna zmiana unieważnia poprzedni wybór
+            } else {
+                SELECTED_PICKUP = null;
+            }
             const query = e.target.value.trim().toLowerCase();
             clearTimeout(timeout);
 
             if (query.length < 2) {
+                ++lastQueryId;
                 resultsBox.classList.remove("show");
                 if (type === 'pickup') SELECTED_PICKUP = null;
                 if (type === 'drop') SELECTED_DROP = null;
@@ -5516,6 +5565,12 @@ function collectSearchData() {
                 const dropInput = document.getElementById("smart-search-drop");
                 if(dropInput) dropInput.value = formattedName;
                 SELECTED_DROP = item;
+            } else {
+                // Zmiana odbioru wymaga ponownego wskazania innego miejsca zwrotu.
+                const dropInput = document.getElementById("smart-search-drop");
+                if (dropInput) dropInput.value = '';
+                SELECTED_DROP = null;
+                isDropManuallyChanged = false;
             }
         } else {
             SELECTED_DROP = item;
@@ -5539,9 +5594,16 @@ function collectSearchData() {
 
         // 3. Inteligenta poprawka: jeśli user wpisał odbiór, a olał zwrot - kopiujemy dane
         if (!SELECTED_DROP && SELECTED_PICKUP) {
-            SELECTED_DROP = SELECTED_PICKUP;
             const dropInput = document.getElementById("smart-search-drop");
-            if(dropInput) dropInput.value = document.getElementById("smart-search-pickup").value;
+            if (isDropManuallyChanged && dropInput?.value.trim()) {
+                window.showToast((localStorage.getItem("lang") || "pl") === "pl"
+                    ? "Wybierz punkt zwrotu z listy obsługiwanej przez partnera."
+                    : "Select a return location from the supported list.", "error");
+                dropInput.focus();
+                return;
+            }
+            SELECTED_DROP = SELECTED_PICKUP;
+            if (dropInput) dropInput.value = document.getElementById("smart-search-pickup").value;
         }
 
         const lang = localStorage.getItem("lang") || "pl";
