@@ -5325,11 +5325,18 @@ function collectSearchData() {
         // 2. Pobieranie z partner_locations — dla zwrotu TYLKO ci sami partnerzy
         let eligiblePickupPartnerIds = null;
         if (type === 'drop') {
-            const { data: pickupRows, error: pickupError } = await db
+            let pickupOwnersQuery = db
                 .from('partner_locations')
                 .select('partner_id')
                 .eq('location_name', pickupAtSearch)
                 .eq('active', true);
+            if (SELECTED_PICKUP?.country) {
+                pickupOwnersQuery = pickupOwnersQuery.eq('country', SELECTED_PICKUP.country);
+            }
+            if (SELECTED_PICKUP?.city) {
+                pickupOwnersQuery = pickupOwnersQuery.eq('city', SELECTED_PICKUP.city);
+            }
+            const { data: pickupRows, error: pickupError } = await pickupOwnersQuery;
             if (pickupError) {
                 console.error("Błąd filtrowania zwrotu:", pickupError);
                 resultsBox.classList.remove('show');
