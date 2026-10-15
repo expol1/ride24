@@ -518,6 +518,20 @@ let query = db
     .eq('partners.active', true)
     .eq('partners.account_status', 'active') 
     .eq('partners.partner_locations.active', true);
+
+                // Filtrujemy zwrot PRZED paginacją, inaczej można ukryć poprawne auta.
+                const selectedReturnLocation = filters.drop_location || loc;
+                const returnLocationName = String(selectedReturnLocation.location_name || selectedReturnLocation.name || "").trim();
+                let returnPartnerIds = [];
+                if (returnLocationName) {
+                    const { data: returnLocations, error: locationsError } = await db
+                        .from('partner_locations')
+                        .select('partner_id')
+                        .eq('active', true)
+                        .eq('location_name', returnLocationName);
+                    if (locationsError) throw locationsError;
+                    returnPartnerIds = [...new Set((returnLocations || []).map(item => item.partner_id).filter(Boolean))];
+                }
     
                 
                 // 2. MAGICZNY FILTR INTENCJI
@@ -574,8 +588,13 @@ let query = db
                 }            
                 // 📄 4️⃣ PAGINACJA (Limit wyników)
                 const PAGE_SIZE = 20;
-                const { data: rawCars, error } = await query.limit(PAGE_SIZE);
-                if (error) throw error;
+                let rawCars = [];
+                if (returnPartnerIds.length > 0) {
+                    query = query.in('partner_id', returnPartnerIds);
+                    const { data, error } = await query.limit(PAGE_SIZE);
+                    if (error) throw error;
+                    rawCars = data || [];
+                }
 
                 container.innerHTML = '';
 
@@ -591,27 +610,6 @@ let query = db
                 }
                 let cars = Array.from(unique.values())
                     .filter(car => (car.partners?.provider_type || "local") !== "api");
-
-                // Każda lokalna oferta musi obsługiwać OBA wybrane punkty.
-                // Partner widoczny przy odbiorze nie może odziedziczyć zwrotu innego partnera.
-                const requestedReturn = filters.drop_location || loc;
-                const requestedReturnName = String(requestedReturn.location_name || requestedReturn.name || "").trim();
-                if (cars.length > 0) {
-                    const localPartnerIds = [...new Set(cars.map(car => car.partners?.id).filter(Boolean))];
-                    if (!requestedReturnName || localPartnerIds.length === 0) {
-                        cars = [];
-                    } else {
-                        const { data: validReturns, error: returnError } = await db
-                            .from('partner_locations')
-                            .select('partner_id')
-                            .in('partner_id', localPartnerIds)
-                            .eq('active', true)
-                            .eq('location_name', requestedReturnName);
-                        if (returnError) throw returnError; // awaria sprawdzenia = brak błędnej oferty
-                        const eligiblePartnerIds = new Set((validReturns || []).map(item => item.partner_id));
-                        cars = cars.filter(car => eligiblePartnerIds.has(car.partners?.id));
-                    }
-                }
 
                 // Partnerzy API zwracają te same grupy pojazdów i przechodzą przez
                 // ten sam mechanizm rabatu partnera oraz globalnej marży Ride24.
