@@ -900,13 +900,14 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
                     let depositHtml = '';
                     // A refundable cash deposit is different from a credit-card security hold.
                     // The numeric amount takes precedence over an inconsistent noDeposit flag.
-                    const cashDepositAmount = Number(car.deposit_amount || 0);
-                    if (cashDepositAmount > 0) {
+                    const depositAmountKnown = car.deposit_amount !== null && car.deposit_amount !== undefined && car.deposit_amount !== '';
+                    const cashDepositAmount = depositAmountKnown ? Number(car.deposit_amount) : NaN;
+                    if (Number.isFinite(cashDepositAmount) && cashDepositAmount > 0) {
                         const depositLabel = parsedFeatures.cashDepositRefundable === true && parsedFeatures.cashDepositMethod === 'cash'
                             ? (lang === 'pl' ? `Zwrotna kaucja gotówkowa: ${cashDepositAmount} ${carCurrency}. Zwrot przy oddaniu auta zgodnie z warunkami najmu; bez blokady karty.` : `Refundable cash deposit: ${cashDepositAmount} ${carCurrency}. Returned on vehicle drop-off under rental terms; no card hold.`)
                             : (lang === 'pl' ? `Kaucja: ${cashDepositAmount} ${carCurrency} – sprawdź sposób wpłaty i warunki zwrotu.` : `Deposit: ${cashDepositAmount} ${carCurrency} – check payment and refund terms.`);
                         depositHtml = `<div class="feature-item"><svg><use href="#icon-deposit"></use></svg> ${depositLabel}</div>`;
-                    } else if (cashDepositAmount === 0) {
+                    } else if ((Number.isFinite(cashDepositAmount) && cashDepositAmount === 0) || (!depositAmountKnown && parsedFeatures.noDeposit === true)) {
                         depositHtml = `<div class="feature-item"><svg><use href="#icon-deposit"></use></svg> <span style="color:#73D700;font-weight:800;">${lang === 'pl' ? 'BRAK KAUCJI GOTÓWKOWEJ' : 'NO CASH DEPOSIT'}</span></div>`;
                     }
 
