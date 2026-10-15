@@ -103,7 +103,11 @@ export function ensureSeoBenefits(pair:Pair,source:any):Pair{
  };
  for(const lang of LANGS){
   const p=pair[lang];
-  if(!contains(lang,p.intro_text))p.intro_text=copy[lang]+' '+p.intro_text;
+  // Where there is no confirmed matching car class, replace AI marketing claims with a factual warning.
+  if(!confirmed){
+   const destination=lang==='pl'?String(source?.label_pl||source?.name||'wybranej lokalizacji'):String(source?.label_en||source?.name||'this destination');
+   p.intro_text=copy[lang]+' '+(lang==='pl'?'Porównaj szczegóły wynajmu dla kierunku '+destination+'.':'Compare rental details for '+destination+'.');
+  }else if(!contains(lang,p.intro_text))p.intro_text=copy[lang]+' '+p.intro_text;
   if(!contains(lang,p.main_content))p.main_content=copy[lang]+'\n\n'+p.main_content;
   // A missing offer in this destination must never be advertised as confirmed.
   if(!confirmed){
