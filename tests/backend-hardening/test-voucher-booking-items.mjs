@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile, writeFile } from 'node:fs/promises';
+import { appendVoucherPricing, validateVoucherPricing, wrapVoucherText } from '../../supabase/functions/_shared/voucher-booking-items.mjs';
+import { calculateBookingItems } from '../../supabase/functions/_shared/booking-items.mjs';
+const {PDFDocument,rgb}=await import(process.env.PDF_LIB_MODULE || 'pdf-lib');
+const fontkit=(await import(process.env.FONTKIT_MODULE || '@pdf-lib/fontkit')).default;
+const base={rental:{base_total:200,final_total:250},pickup:{id:'p',name:'Tirana International Airport (TIA)',amount:50},dropoff:{id:'d',name:'Durrës City',amount:50},days:7,marginPercent:25,loyaltyPercent:10,currency:'EUR',exchangeRate:4.3};
+test('invalid stored totals cannot produce an incorrect voucher',()=>{const q=calculateBookingItems(base);assert.equal(validateVoucherPricing(q),q);assert.throws(()=>validateVoucherPricing({...q,total_cents:1}));assert.equal(validateVoucherPricing(null),null);});
+for(const count of [1,20])test(`voucher ${count} extras renders within pages`,async()=>{
+ const catalog=Array.from({length:count},(_,i)=>({id:'x'+i,code:'custom',name_en:'Additional equipment '+i+' '+('Long label '.repeat(count===20?8:1)).trim(),name_pl:'Wyposażenie dodatkowe '+i+' '+('Długa nazwa '.repeat(count===20?8:1)).trim(),amount:3.1,billing:'day',active:true,max_quantity:2}));
+ const snapshot=calculateBookingItems({...base,catalog,selections:catalog.map(x=>({id:x.id,quantity:2}))});
+ const pdfDoc=await PDFDocument.create();pdfDoc.registerFontkit(fontkit);
+ const font=await pdfDoc.embedFont(await readFile('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'),{subset:true});
+ const bold=await pdfDoc.embedFont(await readFile('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'),{subset:true});
+ pdfDoc.addPage([600,800]);
+ const realAdd=pdfDoc.addPage.bind(pdfDoc);const positions=[];
+ pdfDoc.addPage=(size)=>{const p=realAdd(size);const draw=p.drawText.bind(p);p.drawText=(text,opts)=>{positions.push({text,...opts});assert.ok(opts.y>=30&&opts.y<=760,`${text} outside vertical bounds`);assert.ok(opts.x+opts.font.widthOfTextAtSize(text,opts.size)<=560.1,`${text} outside width`);draw(text,opts);};return p;};
+ appendVoucherPricing({pdfDoc,font,bold,rgb,booking:{reservation_code:'R24-TEST-0001',pricing_items_snapshot:snapshot}});
+ assert.ok(pdfDoc.getPageCount()>=2);assert.ok(positions.some(p=>p.text.includes('Do zapłaty')));
+ if(process.env.PDF_TEST_OUTPUT)await writeFile(`${process.env.PDF_TEST_OUTPUT}/voucher-${count}.pdf`,await pdfDoc.save());
+});
+test('unbroken long names wrap without losing characters',()=>{const font={widthOfTextAtSize:s=>s.length*5};const name='A'.repeat(250);const lines=wrapVoucherText(name,font,10,350);assert.equal(lines.join(''),name);assert.ok(lines.every(x=>x.length<=70));});

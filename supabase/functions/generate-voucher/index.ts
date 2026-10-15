@@ -1,3 +1,4 @@
+import { appendVoucherPricing, validateVoucherPricing } from "../_shared/voucher-booking-items.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   corsHeaders,
@@ -57,6 +58,7 @@ type BookingRow = {
   mileage_limit_snapshot: number | null;
   driver_included_snapshot: boolean;
   driver_hours_snapshot: string | null;
+  pricing_items_snapshot: ReturnType<typeof validateVoucherPricing>;
   pickup_payment_partner_currency: number;
   partner_currency: string;
   client: ClientRelation;
@@ -257,6 +259,7 @@ function normalizeBooking(value: unknown): BookingRow | null {
     driver_included_snapshot: value.driver_included_snapshot === true,
     driver_hours_snapshot:
       cleanText(value.driver_hours_snapshot, 100) || null,
+    pricing_items_snapshot: validateVoucherPricing(value.pricing_items_snapshot),
     pickup_payment_partner_currency: pickupPayment,
     partner_currency: partnerCurrency,
     client: normalizeClient(value.profiles),
@@ -625,6 +628,9 @@ async function createVoucherPdf(
         color: rgb(0.1, 0.6, 0.1),
       },
     );
+    if (booking.pricing_items_snapshot) {
+      page.drawText("Price breakdown on following pages / Rozpiska ceny na kolejnych stronach", {x:60,y:y-17,size:8,font,color:textGray});
+    }
     y -= 45;
   }
 
@@ -714,6 +720,8 @@ async function createVoucherPdf(
     },
   );
 
+  appendVoucherPricing({pdfDoc,font,bold,rgb,booking,logoImage});
+
   const pdfBytes = await pdfDoc.save({
     useObjectStreams: true,
     addDefaultPage: false,
@@ -747,6 +755,7 @@ async function loadBooking(
       mileage_limit_snapshot,
       driver_included_snapshot,
       driver_hours_snapshot,
+      pricing_items_snapshot,
       pickup_payment_partner_currency,
       partner_currency,
       profiles!fk_client(name, email, phone),

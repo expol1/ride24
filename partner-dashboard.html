@@ -1513,6 +1513,7 @@ async>
                         </tbody>
                     </table>
                 </div>
+                <section id="partnerExtrasCatalog" class="settings-card" style="display:block;margin-top:24px" hidden></section>
             </div>
 
             <div id="view-settings" class="view-section">
@@ -2177,28 +2178,16 @@ Dodaj opinię o Partnerze
 
                     
 
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-
-                        <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
-
-                            <input type="checkbox" id="locExtraFee" onchange="toggleExtraFeeInput()">
-
-                            <span data-pl="Wymagana dodatkowa opłata" data-en="Extra fee required">Extra fee required</span>
-
+                    <input type="checkbox" id="locExtraFee" hidden>
+                    <div id="extraFeeAmountContainer" style="display:flex;flex-wrap:wrap;gap:16px">
+                        <label style="flex:1;min-width:140px"><span data-pl="Opłata za odbiór" data-en="Pickup fee">Pickup fee</span>
+                            <input type="number" id="locExtraFeeAmount" min="0" max="1000000" step="0.01" placeholder="0.00">
                         </label>
-
-                        
-
-                        <div id="extraFeeAmountContainer" style="display: none; align-items: center; gap: 8px;">
-
-                            <input type="number" id="locExtraFeeAmount" placeholder="Kwota (np. 25)" style="width: 130px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;">
-
-                            <span style="font-size: 12px; color: var(--gray);" data-pl="Puste = ustalane indyw." data-en="Empty = individual">Puste = ustalane indyw.</span>
-
-                        </div>
-
+                        <label style="flex:1;min-width:140px"><span data-pl="Opłata za zwrot" data-en="Return fee">Return fee</span>
+                            <input type="number" id="locReturnFeeAmount" min="0" max="1000000" step="0.01" placeholder="0.00">
+                        </label>
                     </div>
-
+                    <small data-pl="Kwoty w walucie partnera, należne partnerowi. Puste pole oznacza bezpłatną dostawę lub zwrot." data-en="Amounts in the partner currency, payable to the partner. Leave blank for free pickup or return.">Amounts in the partner currency, payable to the partner. Leave blank for free pickup or return.</small>
 
                     <div style="height: 1px; background: var(--border); width: 100%;"></div>
 
@@ -2490,6 +2479,8 @@ Dodaj opinię o Partnerze
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
+    <script src="assets/helper/bookingItemBreakdown.js"></script>
+    <script src="assets/helper/partnerExtras.js"></script>
 
     <script>
         
@@ -3214,6 +3205,28 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                 return;
             }
 
+            try {
+                for (let offset=0; offset<data.length; offset+=100) {
+                    const batch=data.slice(offset,offset+100);
+                    const response=await fetch(supabaseUrl+'/functions/v1/partner-booking-items', {
+                        method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`,apikey:supabaseKey},
+                        body:JSON.stringify({booking_ids:batch.map(b=>b.id)})
+                    });
+                    if(!response.ok) throw new Error('BOOKING_ITEMS_UNAVAILABLE');
+                    const result=await response.json();
+                    const items=new Map(result.bookings.map(b=>[b.id,b.items]));
+                    for(const booking of batch) {
+                        const rows=items.get(booking.id) || [];
+                        if(rows.length) booking.pricing_items_snapshot={version:2,currency:booking.partner_currency || 'EUR',partner_cents:Math.round(Number(booking.pickup_payment_partner_currency)*100),items:rows.map(r=>({...r,partner_cents:r.amount_cents}))};
+                    }
+                }
+            } catch(error) {
+                const message=isEnLoading?'Could not load booking extras. Refresh the page before confirming.':'Nie udało się wczytać dodatków. Odśwież stronę przed potwierdzeniem.';
+                if(dashTbody) dashTbody.innerHTML=`<tr><td colspan="8">${escapeHtmlValue(message)}</td></tr>`;
+                if(bookTbody) bookTbody.innerHTML=`<tr><td colspan="8">${escapeHtmlValue(message)}</td></tr>`;
+                return;
+            }
+
             // 🔥 WYWOŁANIE AUTO CLEAN PO POBRANIU DANYCH
             const wasCleaned = await cleanExpiredBookings(data);
             if (wasCleaned) {
@@ -3417,6 +3430,7 @@ const rowHtml = `
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
+            ${window.ride24BookingBreakdown(booking.pricing_items_snapshot, true, isEnLang)}
         </td>
 
         <!-- AKCJE -->
@@ -3720,7 +3734,7 @@ const { data, error } = await db
 
 const { data: partner } = await db
     .from("partners")
-    .select("id")
+    .select("id,currency,provider_type")
     .eq("user_id", session.user.id)
     .single();
 
@@ -3737,6 +3751,7 @@ const { data, error } = await db
             }
 
             tbody.innerHTML = "";
+            await window.ride24PartnerExtras.mount(db, partner, loadLocations);
 
             if (!data || data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak zdefiniowanych lokalizacji. Dodaj pierwszą!" data-en="No locations defined. Add your first location!">${localStorage.getItem("partner_lang") === "en" ? "No locations defined. Add your first location!" : "Brak zdefiniowanych lokalizacji. Dodaj pierwszą!"}</td></tr>`;
@@ -3746,8 +3761,8 @@ const { data, error } = await db
             data.forEach(loc => {
                 const tr = document.createElement("tr");
                 const isEn = localStorage.getItem("partner_lang") === "en";
-                const feeTextPl = loc.extra_fee ? (loc.extra_fee_amount ? `${loc.extra_fee_amount} EUR` : "Indywidualna") : "Brak";
-                const feeTextEn = loc.extra_fee ? (loc.extra_fee_amount ? `${loc.extra_fee_amount} EUR` : "Individual") : "None";
+                const feeTextPl = `Odbiór: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Zwrot: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}`;
+                const feeTextEn = `Pickup: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Return: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}`;
                 const statusClass = loc.active ? "active" : "inactive";
                 const statusTextPl = loc.active ? "Aktywna" : "Nieaktywna";
                 const statusTextEn = loc.active ? "Active" : "Inactive";
@@ -3763,6 +3778,12 @@ const { data, error } = await db
                         <span class="action-link reject" onclick="deleteLocation('${loc.id}')" data-pl="Usuń" data-en="Delete">${isEn ? "Delete" : "Usuń"}</span>
                     </td>
                 `;
+                if (partner.provider_type !== 'api' && !loc.is_api_managed) {
+                    const edit = document.createElement('button'); edit.type='button'; edit.className='action-link';
+                    edit.dataset.pl='Edytuj opłaty'; edit.dataset.en='Edit fees'; edit.textContent=isEn?'Edit fees':'Edytuj opłaty';
+                    edit.onclick=()=>window.ride24PartnerExtras.editFees(db,partner,loc,loadLocations);
+                    tr.lastElementChild.prepend(edit);
+                }
                 tbody.appendChild(tr);
             });
         }
@@ -3800,8 +3821,9 @@ const { data, error } = await db
                     region: normalizeLocationInput(document.getElementById('locRegion').value),
                     city: normalizeLocationInput(document.getElementById('locCity').value),
                     type: document.getElementById('locType').value,
-                    extra_fee: document.getElementById('locExtraFee').checked,
-                    extra_fee_amount: document.getElementById('locExtraFeeAmount').value ? parseFloat(document.getElementById('locExtraFeeAmount').value) : null,
+                    extra_fee: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value) > 0,
+                    extra_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value),
+                    return_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locReturnFeeAmount').value),
                     contact_required: document.getElementById('locContact').checked,
                     active: document.getElementById('locActive').checked
                 };
@@ -3850,6 +3872,7 @@ const { data, error } = await db
                 document.getElementById('locCity').value = "";
                 document.getElementById('locExtraFee').checked = false;
                 document.getElementById('locExtraFeeAmount').value = "";
+                document.getElementById('locReturnFeeAmount').value = "";
                 document.getElementById('locContact').checked = false;
                 if (typeof toggleExtraFeeInput === "function") toggleExtraFeeInput();
 
@@ -4054,7 +4077,7 @@ function openLocationModal(event) {
 
 function toggleExtraFeeInput() {
     const isChecked = document.getElementById('locExtraFee').checked;
-    document.getElementById('extraFeeAmountContainer').style.display = isChecked ? 'flex' : 'none';
+    document.getElementById('extraFeeAmountContainer').style.display = 'flex';
 }
 
 function toggleMileageInput() {

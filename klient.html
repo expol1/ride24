@@ -2092,6 +2092,7 @@ Dodaj opinię w Trustpilot
 
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
+    <script src="assets/helper/bookingItemBreakdown.js"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js";
         // Otwieranie modala
@@ -2941,6 +2942,7 @@ refund_completed_at,
     final_price_snapshot,
     online_payment_pln,
     pickup_payment_partner_currency,
+    pricing_items_snapshot,
     deposit_snapshot,
     mileage_limit_snapshot,
     driver_included_snapshot,
@@ -3185,6 +3187,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     <strong>
         ${(booking.pickup_payment_partner_currency || 0).toFixed(2)} ${partnerCurrency}
     </strong>
+    ${window.ride24BookingBreakdown(booking.pricing_items_snapshot, false, isEn)}
 </td>
                             <td class="price-due">
     ${(booking.online_payment_pln || 0).toFixed(2)} PLN<br>

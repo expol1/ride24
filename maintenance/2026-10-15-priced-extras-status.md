@@ -69,3 +69,27 @@ Disabled schema proposal, catalog/location helpers, authenticated quote endpoint
 booking revalidation are now staged. The booking function is based on live v15 and
 preserves its partner-push and email-worker dispatches. SQL isolation tests and
 function type-check/integration tests are still required before deployment.
+
+## Integration draft continued (15 October, evening)
+
+- Customer web: existing extras modal now uses a server quote, resets consent on
+  selection/driver changes, blocks stale responses and network-error fallback.
+- Partner web: catalog CRUD (deactivate instead of delete), separate pickup/return
+  fee fields and fee editing, partner-owned item breakdown via authenticated endpoint.
+- Native drafts: client quote/catalog/selection/consent and booking breakdown; partner
+  net item breakdown via a separate endpoint. Original RPCs and notifications unchanged.
+  Changes relative to uploaded archives are saved in proposed/android-priced-extras.patch.
+- Voucher: existing first page retained; bilingual itemized payment appendix with
+  wrapping/pagination, separate paid-online PLN and due-partner currency.
+- Live booking triggers inspected read-only: supplied net/commission/final snapshots
+  pass through unchanged; existing status/push/email triggers remain untouched.
+- Checks so far: 26 pricing/quote tests; 23 isolated PGlite schema/ownership checks;
+  7 web DOM/syntax tests; 4 voucher validation/pagination tests. These are not a full
+  production flow test. PDF pagination visually reviewed with test fonts; final
+  production font/front-page review still required.
+- Java 21 and Gradle 9.5 downloaded and run. Client's existing daemon criteria require
+  Java 25; preparing that baseline plus Android SDK. No native build passed yet.
+
+Release is still BLOCKED on native builds, endpoint integration/type checking,
+controlled booking/payment/cancellation testing, and a fresh pre-deploy backup.
+No production schema, fees, bookings, functions or web deployment changed by this work.
