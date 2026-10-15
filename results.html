@@ -592,6 +592,27 @@ let query = db
                 let cars = Array.from(unique.values())
                     .filter(car => (car.partners?.provider_type || "local") !== "api");
 
+                // Każda lokalna oferta musi obsługiwać OBA wybrane punkty.
+                // Partner widoczny przy odbiorze nie może odziedziczyć zwrotu innego partnera.
+                const requestedReturn = filters.drop_location || loc;
+                const requestedReturnName = String(requestedReturn.location_name || requestedReturn.name || "").trim();
+                if (cars.length > 0) {
+                    const localPartnerIds = [...new Set(cars.map(car => car.partners?.id).filter(Boolean))];
+                    if (!requestedReturnName || localPartnerIds.length === 0) {
+                        cars = [];
+                    } else {
+                        const { data: validReturns, error: returnError } = await db
+                            .from('partner_locations')
+                            .select('partner_id')
+                            .in('partner_id', localPartnerIds)
+                            .eq('active', true)
+                            .eq('location_name', requestedReturnName);
+                        if (returnError) throw returnError; // awaria sprawdzenia = brak błędnej oferty
+                        const eligiblePartnerIds = new Set((validReturns || []).map(item => item.partner_id));
+                        cars = cars.filter(car => eligiblePartnerIds.has(car.partners?.id));
+                    }
+                }
+
                 // Partnerzy API zwracają te same grupy pojazdów i przechodzą przez
                 // ten sam mechanizm rabatu partnera oraz globalnej marży Ride24.
                 try {
