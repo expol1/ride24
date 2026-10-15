@@ -50,6 +50,50 @@ async function generate(deps:Deps,admin:any,doc:any,note:string){
   return {document:saved,warnings:warnings(pair)};
  }finally{await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',claimed.lock_token);}
 }
+// Retry only published, administrator-approved pages. No Gemini or GitHub writes.
+async function retryPendingSearch(deps:Deps,admin:any){
+ const rows=check(await admin.from('seo_documents').select('id,revision,google,published').eq('state','published').contains('google',{search:{state:'pending'}}).order('updated_at',{ascending:true}).limit(50))||[];
+ const now=Date.now();
+ const candidate=rows.find((d:any)=>d.published?.revision===d.revision&&(!d.google?.search?.next_retry_at||Date.parse(d.google.search.next_retry_at)<=now));
+ if(!candidate)return {checked:0,reason:'no_due_pages'};
+ let doc:any;
+ try{doc=await rpc(admin,'admin_seo_claim',{p_id:candidate.id,p_revision:candidate.revision});}
+ catch(e){if(e instanceof SeoError&&e.status===409)return {checked:0,reason:'busy'};throw e;}
+ try{
+  if(doc.state!=='published'||doc.published?.revision!==doc.revision||doc.google?.search?.state!=='pending')return {checked:0,reason:'already_updated'};
+  const google:any={...(doc.google||{})};
+  const patch=async(values:any)=>{
+   const r=await admin.from('seo_documents').update({...values,updated_at:new Date().toISOString()}).eq('id',doc.id).eq('revision',doc.revision).eq('lock_token',doc.lock_token).select('id');
+   if(r.error||!r.data?.length)throw new SeoError('Nie udało się zapisać statusu SEO.',502);
+  };
+  const attempts=Math.max(0,Number(google.search?.attempts)||0)+1;
+  const retryAt=new Date(now+Math.min(8,2**Math.min(attempts-1,3))*3600000).toISOString();
+  if(!google.verification?.ready){
+   google.verification=await verifyPublic(deps.fetch,doc.published);
+   if(google.verification.ready){
+    google.search={state:'pending',note:'Wersje PL i EN dostępne. Automatyczne zgłoszenie do Google nastąpi w następnym cyklu.',attempts:0};
+    await patch({google,last_error:''});return {checked:1,result:'ready_for_google'};
+   }
+   const stop=attempts>=6;
+   google.search={state:stop?'needs_attention':'pending',note:stop?'Strony nie są dostępne po kilku próbach. Sprawdź wdrożenie.':'Oczekiwanie na wdrożenie PL i EN. Sprawdzę ponownie.',attempts,...(stop?{}:{next_retry_at:retryAt})};
+   await patch({google});return {checked:1,result:stop?'needs_attention':'waiting_for_site'};
+  }
+  try{
+   const cfg=await settings(admin);
+   const access=await googleAccess(deps.fetch,await secret(admin,'search_refresh'),credentials(cfg,await secret(admin,'google_client_secret'),deps.env));
+   google.search=await submitSitemap(googleApi(deps.fetch,access));
+   await patch({google,last_error:''});return {checked:1,result:'submitted'};
+  }catch(e){
+   const error=e instanceof SeoError?e.message:'Google nie przyjął zgłoszenia mapy.';
+   const stop=attempts>=5;
+   google.search={state:stop?'needs_attention':'pending',note:(stop?'Wymaga ręcznej kontroli Search Console: ':'Ponowienie zgłoszenia zaplanowane: ')+error,attempts,...(stop?{}:{next_retry_at:retryAt})};
+   await patch({google,last_error:error});return {checked:1,result:stop?'needs_attention':'retry_scheduled'};
+  }
+ }finally{
+  await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',doc.lock_token);
+ }
+}
+
 export function createSeoHandler(deps:Deps){return async(req:Request)=>{
  const headers={'Access-Control-Allow-Origin':origins.has(req.headers.get('origin')||'')?req.headers.get('origin')!:'https://ride24.pl','Access-Control-Allow-Headers':'authorization,apikey,x-client-info,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin'};
  const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers});
@@ -62,7 +106,8 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
   else ({admin,user}=await deps.authorize(req));
   const body=await safeBody(req);const s=await settings(admin);const action=body.action||'list';
   if(cron){
-   if(action!=='cron')throw new SeoError('Scheduler może przygotowywać wyłącznie szkice.',403);
+   if(action==='recheck'){if(!s.enabled)return reply({skipped:true});return reply(await retryPendingSearch(deps,admin));}
+    if(action!=='cron')throw new SeoError('Scheduler może przygotowywać wyłącznie szkice.',403);
    if(!s.enabled)return reply({skipped:true});
    // Scoped maintenance may generate one explicitly selected queued draft, under the same Free quota.
    // It cannot edit existing drafts or publish anything, and does not enable automatic generation.
@@ -128,13 +173,13 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
     await patch({google});return reply({published,google,warnings:warnings(pair)});
    }
    if(!doc.published)throw new SeoError('Najpierw opublikuj strony PL i EN.');
-   const verification=await verifyPublic(deps.fetch,doc.published);google.verification=verification;await patch({google});
+   const verification=await verifyPublic(deps.fetch,doc.published);google.verification=verification;await patch({google,last_error:''});
    if(action==='verify')return reply({google});
    if(!verification.ready)throw new SeoError('Nowa wersja nie jest jeszcze dostępna na stronie. Poczekaj na wdrożenie i ponów sprawdzenie.',409);
    if(action==='submit'||action==='inspect'){
     const access=await googleAccess(deps.fetch,await secret(admin,'search_refresh'),credentials(s,await secret(admin,'google_client_secret'),deps.env));const api=googleApi(deps.fetch,access);
     if(action==='submit')google.search=await submitSitemap(api);else google.inspection=await inspectPair(api,doc.published.content);
-    await patch({google});return reply({google});
+    await patch({google,last_error:''});return reply({google});
    }
    if(action==='business_publish'||action==='business_check'){
     const access=await googleAccess(deps.fetch,await secret(admin,'business_refresh'),credentials(s,await secret(admin,'google_client_secret'),deps.env));const api=googleApi(deps.fetch,access);
@@ -151,7 +196,7 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
      if(!post?.name)throw new SeoError('Google nie potwierdził wpisu. Sprawdź wizytówkę przed kolejną próbą.',502);
      result.posts[lang]={name:post.name,state:post.state||'PROCESSING'};delete result.uncertain;google.business=result;await patch({google});
     }
-    const states=Object.values(result.posts).map((p:any)=>p.state);result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':'processing';google.business=result;await patch({google});return reply({google});
+    const states=Object.values(result.posts).map((p:any)=>p.state);result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':'processing';google.business=result;await patch({google,last_error:''});return reply({google});
    }
   }catch(e){await patch({last_error:e instanceof SeoError?e.message:'Operacja przerwana. Ponów tę samą wersję po sprawdzeniu statusu.'});throw e;}
   finally{await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',lock.lock_token);}
