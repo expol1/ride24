@@ -1834,7 +1834,7 @@ Dodaj opinię o Partnerze
                         <label data-pl="Opcje wynajmu" data-en="Rental options">Rental options</label>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: center; background: white; padding: 16px; border: 1px solid var(--border); border-radius: 12px; height: calc(100% - 28px); margin-top: 6px;">
                             <label class="checkbox-group" style="margin-bottom: 0;">
-                                <input type="checkbox" id="featureNoDeposit">
+                                <input type="checkbox" id="featureNoDeposit" onchange="syncCashDepositOption()">
                                 <span data-pl="Bez kaucji gotówkowej" data-en="No cash security deposit">No cash security deposit</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
@@ -3022,6 +3022,7 @@ const updateData = {
                 noDeposit: amount <= 0 && document.getElementById("featureNoDeposit").checked,
                 fullInsurance: full,
                 noCreditCard: document.getElementById("featureNoCreditCard").checked,
+                lowDeposit: document.getElementById("lowDeposit").checked,
                 driverHours: document.getElementById("driverHours").value || "",
                 cashDepositRefundable: amount > 0,
                 cashDepositMethod: amount > 0 ? "cash" : null,
@@ -4546,7 +4547,9 @@ if (typeof toggleMileageInput === "function") {
 const noDeposit = document.getElementById("featureNoDeposit");
 const fullInsurance = document.getElementById("featureFullInsurance");
 const noCard = document.getElementById("featureNoCreditCard");
+const lowCashDeposit = document.getElementById("lowDeposit");
 
+if (lowCashDeposit) lowCashDeposit.checked = features.lowDeposit === true;
 if (noDeposit) noDeposit.checked = Number(car.deposit_amount) > 0 ? false : features.noDeposit === true;
 if (fullInsurance) fullInsurance.checked = features.fullInsurance === true;
 if (noCard) noCard.checked = features.noCreditCard === true;
