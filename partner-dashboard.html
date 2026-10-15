@@ -1834,16 +1834,20 @@ Dodaj opinię o Partnerze
                         <label data-pl="Opcje wynajmu" data-en="Rental options">Rental options</label>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: center; background: white; padding: 16px; border: 1px solid var(--border); border-radius: 12px; height: calc(100% - 28px); margin-top: 6px;">
                             <label class="checkbox-group" style="margin-bottom: 0;">
-                                <input type="checkbox" id="featureNoDeposit">
-                                <span data-pl="Brak kaucji" data-en="No deposit">No deposit</span>
+                                <input type="checkbox" id="featureNoDeposit" onchange="syncCashDepositOption()">
+                                <span data-pl="Bez kaucji gotówkowej" data-en="No cash security deposit">No cash security deposit</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
-                                <input type="checkbox" id="featureFullInsurance">
+                                <input type="checkbox" id="featureFullInsurance" checked>
                                 <span data-pl="Pełne ubezpieczenie" data-en="Full insurance">Full insurance</span>
+                            </label>
+                            <label class="checkbox-group" style="grid-column:1/-1;margin:2px 0 0 0;font-size:12px;">
+                                <input type="checkbox" id="featureFullInsuranceConfirmed">
+                                <span data-pl="Potwierdzam, że pełne ubezpieczenie faktycznie obejmuje to auto (zgodnie z warunkami najmu)." data-en="I confirm full insurance actually applies to this car (subject to rental terms).">I confirm full insurance actually applies to this car (subject to rental terms).</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
                                 <input type="checkbox" id="lowDeposit">
-                                <span data-pl="Niska kaucja" data-en="Low deposit">Low deposit</span>
+                                <span data-pl="Niska kaucja gotówkowa" data-en="Low cash deposit">Low cash deposit</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
                                 <input type="checkbox" id="featureNoCreditCard">
@@ -1906,8 +1910,9 @@ Dodaj opinię o Partnerze
 
                 <div class="form-row-3" style="margin-bottom: 0;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label data-pl="Kaucja (€) - opcjonalnie" data-en="Deposit amount (€)">Deposit amount (€)</label>
-                        <input type="number" id="carDeposit" placeholder="e.g. 200" min="0">
+                        <label data-pl="Zwrotna kaucja gotówkowa (€) – opcjonalnie" data-en="Refundable cash deposit (€) – optional">Refundable cash deposit (€) – optional</label>
+                        <input type="number" id="carDeposit" placeholder="e.g. 100" min="0" oninput="syncCashDepositOption()">
+                        <small data-pl="Wpłata gotówką przy odbiorze, zwrot przy oddaniu auta zgodnie z warunkami umowy; to nie blokada karty." data-en="Cash on pickup, refunded upon return under rental terms; this is not a card hold.">Cash on pickup, refunded upon return under rental terms; this is not a card hold.</small>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Rodzaj paliwa (opcjonalnie)" data-en="Fuel type (optional)">Fuel type (optional)</label>
@@ -3004,13 +3009,26 @@ const updateData = {
 
 
         // --- FEATURES JSON ---
-        function collectFeatures(){
+        function syncCashDepositOption() {
+            const amount = Number(document.getElementById("carDeposit")?.value || 0);
+            const checkbox = document.getElementById("featureNoDeposit");
+            if (amount > 0 && checkbox) checkbox.checked = false;
+        }
+        function collectFeatures() {
+            const amount = Number(document.getElementById("carDeposit")?.value || 0);
+            const full = document.getElementById("featureFullInsurance").checked;
+            const acknowledged = document.getElementById("featureFullInsuranceConfirmed").checked;
             return {
-                noDeposit: document.getElementById("featureNoDeposit").checked,
-                fullInsurance: document.getElementById("featureFullInsurance").checked,
+                noDeposit: amount <= 0 && document.getElementById("featureNoDeposit").checked,
+                fullInsurance: full,
                 noCreditCard: document.getElementById("featureNoCreditCard").checked,
-                driverHours: document.getElementById("driverHours").value || "" 
-            }
+                lowDeposit: document.getElementById("lowDeposit").checked,
+                driverHours: document.getElementById("driverHours").value || "",
+                cashDepositRefundable: amount > 0,
+                cashDepositMethod: amount > 0 ? "cash" : null,
+                cashDepositRefundOnReturn: amount > 0,
+                insuranceConfirmedAt: full ? (acknowledged ? new Date().toISOString() : window.editingInsuranceConfirmedAt || null) : null
+            };
         }
 
         async function saveVehicle() {
@@ -3035,6 +3053,11 @@ const updateData = {
                 const mileage_limit = unlimited ? null : parseInt(document.getElementById("mileageInput").value);
                 
                 const deposit_amount = parseFloat(document.getElementById("carDeposit").value) || 0;
+                const insuranceSelected = document.getElementById("featureFullInsurance").checked;
+                const insuranceConfirmed = document.getElementById("featureFullInsuranceConfirmed").checked;
+                if (insuranceSelected && !window.editingInsuranceWasTrue && !insuranceConfirmed) {
+                    throw new Error(isEn ? "Confirm that full insurance applies to this vehicle or untick it." : "Potwierdź pełne ubezpieczenie tego auta albo odznacz tę opcję.");
+                }
                 const fuel_type = document.getElementById("carFuel").value;
                 const base_price = parseFloat(document.getElementById("carPrice").value);
                 const commissionPercent = parseInt(document.getElementById("partnerDiscount").innerText) || 15;
@@ -3625,9 +3648,11 @@ const { data, error } = await db
                     ? (isEn ? "Unlimited" : "Bez limitu") 
                     : `${car.mileage_limit} km/${isEn ? 'day' : 'dzień'}`;
                     
-                const depositText = car.deposit_amount > 0 
-                    ? `${car.deposit_amount} €` 
-                    : (isEn ? "No deposit" : "Brak kaucji");
+                const depositText = Number(car.deposit_amount) > 0
+                    ? (car.features?.cashDepositRefundable === true
+                        ? (isEn ? `${car.deposit_amount} € refundable cash` : `${car.deposit_amount} € zwrotna gotówką`)
+                        : `${car.deposit_amount} €`)
+                    : (isEn ? "No cash deposit" : "Brak kaucji gotówkowej");
 
                 // Model Marketplace: Wyświetlamy zysk netto partnera
                 const displayPrice = car.partner_net_price || car.public_price || 0;
@@ -3650,7 +3675,7 @@ const { data, error } = await db
                     <td data-pl="${car.transmission === 'A' ? 'Automat' : 'Manualna'}" data-en="${car.transmission === 'A' ? 'Automatic' : 'Manual'}">${car.transmission === 'A' ? (isEn ? 'Automatic' : 'Automat') : (isEn ? 'Manual' : 'Manualna')}</td>
                     <td>${car.bags || 2}</td>
                     <td data-pl="${isUnlimited ? 'Bez limitu' : car.mileage_limit + ' km/dzień'}" data-en="${isUnlimited ? 'Unlimited' : car.mileage_limit + ' km/day'}">${mileageText}</td>
-                    <td data-pl="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'Brak kaucji'}" data-en="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'No deposit'}">${depositText}</td>
+                    <td data-pl="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'Brak kaucji gotówkowej'}" data-en="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'No cash deposit'}">${depositText}</td>
                     <td style="color: var(--green); font-weight: 800; text-align: center; vertical-align: middle;">
     ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
 </td>
@@ -4432,7 +4457,11 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
    
 
     window.currentEditingVehicleId = null;
+    window.editingInsuranceWasTrue = false;
+    window.editingInsuranceConfirmedAt = null;
     document.getElementById("vehicleForm").reset();
+    document.getElementById("featureFullInsurance").checked = true;
+    document.getElementById("featureFullInsuranceConfirmed").checked = false;
 
     const isEn = localStorage.getItem("partner_lang") === "en";
 
@@ -4518,10 +4547,16 @@ if (typeof toggleMileageInput === "function") {
 const noDeposit = document.getElementById("featureNoDeposit");
 const fullInsurance = document.getElementById("featureFullInsurance");
 const noCard = document.getElementById("featureNoCreditCard");
+const lowCashDeposit = document.getElementById("lowDeposit");
 
-if (noDeposit) noDeposit.checked = features.noDeposit || false;
-if (fullInsurance) fullInsurance.checked = features.fullInsurance || false;
-if (noCard) noCard.checked = features.noCreditCard || false;
+if (lowCashDeposit) lowCashDeposit.checked = features.lowDeposit === true;
+if (noDeposit) noDeposit.checked = Number(car.deposit_amount) > 0 ? false : features.noDeposit === true;
+if (fullInsurance) fullInsurance.checked = features.fullInsurance === true;
+if (noCard) noCard.checked = features.noCreditCard === true;
+window.editingInsuranceWasTrue = features.fullInsurance === true;
+window.editingInsuranceConfirmedAt = typeof features.insuranceConfirmedAt === "string" ? features.insuranceConfirmedAt : null;
+document.getElementById("featureFullInsuranceConfirmed").checked = false;
+syncCashDepositOption();
 
 // 4. Przywracanie miniaturki zdjęcia
 const uploadInput = document.getElementById("vehicleImageUpload");
