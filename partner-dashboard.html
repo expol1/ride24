@@ -3198,6 +3198,7 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                 return;
             }
 
+            let bookingExtrasLoadFailed = false;
             try {
                 for (let offset=0; offset<data.length; offset+=100) {
                     const batch=data.slice(offset,offset+100);
@@ -3207,6 +3208,7 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                     });
                     if(!response.ok) throw new Error('BOOKING_ITEMS_UNAVAILABLE');
                     const result=await response.json();
+                    if (!Array.isArray(result?.bookings)) throw new Error('INVALID_BOOKING_ITEMS_RESPONSE');
                     const items=new Map(result.bookings.map(b=>[b.id,b.items]));
                     for(const booking of batch) {
                         const rows=items.get(booking.id) || [];
@@ -3214,10 +3216,10 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                     }
                 }
             } catch(error) {
-                const message=isEnLoading?'Could not load booking extras. Refresh the page before confirming.':'Nie udało się wczytać dodatków. Odśwież stronę przed potwierdzeniem.';
-                if(dashTbody) dashTbody.innerHTML=`<tr><td colspan="8">${escapeHtmlValue(message)}</td></tr>`;
-                if(bookTbody) bookTbody.innerHTML=`<tr><td colspan="8">${escapeHtmlValue(message)}</td></tr>`;
-                return;
+                bookingExtrasLoadFailed = true;
+                console.error('Partner booking item lookup failed; showing bookings read-only:', error);
+                // Do not hide reservations when the additional pricing service is unavailable.
+                // Acceptance remains disabled until the partner can inspect all chargeable items.
             }
 
             // 🔥 WYWOŁANIE AUTO CLEAN PO POBRANIU DANYCH
@@ -3229,6 +3231,14 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
 
             if(dashTbody) dashTbody.innerHTML = "";
             if(bookTbody) bookTbody.innerHTML = "";
+            if (bookingExtrasLoadFailed) {
+                const warning = isEnLoading
+                    ? 'Bookings are visible, but the extras breakdown is temporarily unavailable. Acceptance is disabled until pricing details load. Refresh to retry.'
+                    : 'Rezerwacje są widoczne, ale szczegóły dodatków są chwilowo niedostępne. Potwierdzanie jest zablokowane do czasu pobrania pełnej wyceny. Odśwież stronę, aby ponowić próbę.';
+                const warningRow = `<tr><td colspan="8" style="padding:14px 18px;background:#fff7ed;color:#9a3412;font-weight:700;white-space:normal" role="alert">${escapeHtmlValue(warning)}</td></tr>`;
+                if(dashTbody) dashTbody.innerHTML = warningRow;
+                if(bookTbody) bookTbody.innerHTML = warningRow;
+            }
 
             const navBadge = document.querySelector('#nav-bookings .badge');
             const topBadge = document.getElementById('notification-badge');
@@ -3288,7 +3298,10 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 // ================= ACTIONS (PREMIUM BUTTONS) =================
                 let actions = "";
 
-                if (booking.status === "pending") {
+                if (booking.status === "pending" && bookingExtrasLoadFailed) {
+                    actions = `<span style="display:block;padding:10px;border:1px solid #fdba74;border-radius:9px;color:#9a3412;background:#fff7ed;font-size:12px;font-weight:700;white-space:normal">${isEnLang ? 'Acceptance paused: extras not loaded. Refresh before confirming.' : 'Potwierdzenie wstrzymane: dodatki nie zostały wczytane. Odśwież przed akceptacją.'}</span>`;
+                }
+                else if (booking.status === "pending") {
                     actions = `
                         <div style="display:flex;flex-direction:column;gap:8px;width:100%;min-width:120px;">
                             <button class="action-btn-premium btn-confirm-premium" onclick="acceptBooking('${booking.id}', this)" data-pl="✅ AKCEPTUJ" data-en="✅ ACCEPT">
@@ -3423,7 +3436,7 @@ const rowHtml = `
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${window.ride24BookingBreakdown(booking.pricing_items_snapshot, true, isEnLang)}
+            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : window.ride24BookingBreakdown(booking.pricing_items_snapshot, true, isEnLang)}
         </td>
 
         <!-- AKCJE -->
@@ -3479,6 +3492,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
         <!-- 🔥 NOWA KOLUMNA -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
+            ${!bookingExtrasLoadFailed ? window.ride24BookingBreakdown(booking.pricing_items_snapshot, true, isEnLang) : ''}
         </td>
 
         <td>${actions}</td>
