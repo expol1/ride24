@@ -1635,6 +1635,19 @@ async>
 }
 </style>
 
+<style id="r24-client-price-modal-style">
+.r24-client-price-open{display:block;margin-top:7px;padding:2px 0;background:none;border:0;color:#2563eb;font-size:12px;font-weight:700;text-decoration:underline;cursor:pointer}
+.r24-client-price-modal{position:fixed!important;inset:auto!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%);margin:0!important;width:min(580px,calc(100vw - 28px));max-width:none;max-height:calc(100dvh - 30px);padding:0;border:0;border-radius:18px;background:#fff;color:#0f172a;overflow:hidden;box-shadow:0 25px 80px #0f172a55}
+.r24-client-price-modal::backdrop{background:#0f172aa8;backdrop-filter:blur(5px)}
+.r24-client-price-head{display:flex;justify-content:space-between;align-items:center;gap:15px;background:#1d4ed8;border-bottom:4px solid #84cc16;color:#fff;padding:20px 24px}
+.r24-client-price-head h3{color:#fff;margin:0;font-size:19px;font-weight:800}
+.r24-client-price-head button{width:38px;height:38px;background:#ffffff22;color:#fff;border:0;border-radius:9px;font-size:25px;cursor:pointer}
+.r24-client-price-body{padding:22px 24px;max-height:calc(100dvh - 125px);overflow-y:auto}
+.r24-client-price-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:12px 0;border-bottom:1px solid #e2e8f0;font-size:14px}
+.r24-client-price-row strong{white-space:nowrap}
+.r24-client-price-total{background:#eff6ff;color:#1e40af;padding:15px;margin-top:14px;border:0;border-radius:10px}
+.r24-client-price-deposit{background:#fffbeb;color:#92400e;padding:15px;margin-top:12px;border:1px solid #fde68a;border-radius:10px}
+</style>
 </head>
 <body> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -2141,7 +2154,8 @@ window.closeDeleteModal = function() {
 
             const depValue = parseFloat(deposit);
             const depText = (!isNaN(depValue) && depValue > 0) ? `${depValue} ${currency}` : (isEn ? "No deposit" : "Brak kaucji");
-            const milText = mileage !== '' ? `${mileage} km/${isEn ? 'day' : 'dzień'}` : (isEn ? "Unlimited" : "Bez limitu");
+            const milNumber=Number(mileage);
+            const milText=mileage !== '' && Number.isFinite(milNumber) && milNumber > 0 ? `${milNumber} km/${isEn ? 'day' : 'dzień'}` : (isEn ? 'Unlimited' : 'Bez limitu');
 
             let html = `
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px;">
@@ -2237,6 +2251,36 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
             document.getElementById("bookingDetailsModal").style.display = "flex";
         };
 
+        window.openClientPriceBreakdown = function(id) {
+            const b=window.ride24BookingsById?.[id], p=b?.pricing_items_snapshot;
+            if(p?.version!==2 || !Array.isArray(p.items))return;
+            const en=localStorage.getItem('client_lang')==='en';
+            const money=(c,cur=p.currency)=>(Number(c||0)/100).toFixed(2)+' '+cur;
+            const node=(tag,text)=>{const e=document.createElement(tag);if(text!=null)e.textContent=text;return e;};
+            const dialog=node('dialog');dialog.className='r24-client-price-modal';
+            dialog.setAttribute('aria-label',en?'Price breakdown':'Rozliczenie rezerwacji');
+            const head=node('div');head.className='r24-client-price-head';
+            const title=node('h3',en?'Price breakdown':'Rozliczenie rezerwacji');
+            const close=node('button','×');close.type='button';close.setAttribute('aria-label',en?'Close':'Zamknij');close.onclick=()=>dialog.close();
+            head.append(title,close);dialog.append(head);
+            const body=node('div');body.className='r24-client-price-body';
+            function row(name,value,kind='') {
+                const r=node('div');r.className='r24-client-price-row '+kind;
+                r.append(node('span',name),node('strong',value));body.append(r);
+            }
+            for(const item of p.items){
+                const name=(en?item.name_en:item.name_pl)+(item.location_name?' — '+item.location_name:'')+
+                  (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(en?'days':'dni'):''):'');
+                row(name,money(item.customer_cents));
+            }
+            if(p.loyalty_discount_cents)row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(p.loyalty_discount_cents));
+            row(en?'Total price':'Cena łączna',money(p.total_cents),'r24-client-price-total');
+            row('Online Ride24',money(p.online_pln_cents,'PLN'));
+            row(en?'Payable to partner':'Do zapłaty partnerowi',money(p.partner_cents));
+            const deposit=Number(b.deposit_snapshot||0);
+            row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',deposit>0?deposit.toFixed(2)+' '+p.currency:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
+            dialog.append(body);document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
+        };
         window.closeDetailsModal = function() {
             document.getElementById("bookingDetailsModal").style.display = "none";
         };
@@ -3206,7 +3250,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     <strong>
         ${(booking.pickup_payment_partner_currency || 0).toFixed(2)} ${partnerCurrency}
     </strong>
-    ${window.ride24BookingBreakdown(booking.pricing_items_snapshot, false, isEn)}
+    ${booking.pricing_items_snapshot?.version === 2 ? `<button type="button" class="r24-client-price-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openClientPriceBreakdown('${booking.id}')">${isEn ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : ''}
 </td>
                             <td class="price-due">
     ${(booking.online_payment_pln || 0).toFixed(2)} PLN<br>
