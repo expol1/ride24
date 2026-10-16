@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse, publicErrorMessage, serviceClient } from "../_shared/ride24-security.ts";
 import { readJsonObject } from "../_shared/booking-request.ts";
-import { partnerItems } from "../_shared/booking-items.mjs";
+import { partnerBookingProjection } from "../_shared/partner-booking-projection.mjs";
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', {headers:corsHeaders(req)});
   if (req.method !== 'POST') return jsonResponse(req,{error:'METHOD_NOT_ALLOWED'},405);
@@ -17,10 +17,10 @@ serve(async (req: Request) => {
       .select('id').eq('user_id',user.id).maybeSingle();
     if(partnerError || !partner) throw new Error('BOOKING_ITEMS_UNAVAILABLE');
     const {data,error}=await admin.from('bookings')
-      .select('id,pricing_items_snapshot')
+      .select('id,pricing_items_snapshot,deposit_snapshot')
       .eq('partner_id',partner.id).in('id',body.booking_ids);
     if(error) throw new Error('BOOKING_ITEMS_UNAVAILABLE');
-    const bookings=(data || []).map(b=>({id:b.id,items:b.pricing_items_snapshot?.version===2 ? partnerItems(b.pricing_items_snapshot) : []}));
+    const bookings=(data || []).map(partnerBookingProjection);
     return jsonResponse(req,{bookings});
   } catch(error) {
     const safe=publicErrorMessage(error);
