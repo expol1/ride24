@@ -11,9 +11,14 @@ serve(async (req: Request) => {
     const body=await readJsonObject(req);
     if (!Array.isArray(body.booking_ids) || body.booking_ids.length>100 || !body.booking_ids.every(isUuid)) throw new Error('Nieprawidłowe rezerwacje');
     if (!body.booking_ids.length) return jsonResponse(req,{bookings:[]});
+    // Resolve the authenticated partner first. Explicit partner_id filtering is
+    // independent of PostgREST's ambiguous embedded-relation inference.
+    const {data:partner,error:partnerError}=await admin.from('partners')
+      .select('id').eq('user_id',user.id).maybeSingle();
+    if(partnerError || !partner) throw new Error('BOOKING_ITEMS_UNAVAILABLE');
     const {data,error}=await admin.from('bookings')
-      .select('id,pricing_items_snapshot,partners!inner(user_id)')
-      .eq('partners.user_id',user.id).in('id',body.booking_ids);
+      .select('id,pricing_items_snapshot')
+      .eq('partner_id',partner.id).in('id',body.booking_ids);
     if(error) throw new Error('BOOKING_ITEMS_UNAVAILABLE');
     const bookings=(data || []).map(b=>({id:b.id,items:b.pricing_items_snapshot?.version===2 ? partnerItems(b.pricing_items_snapshot) : []}));
     return jsonResponse(req,{bookings});

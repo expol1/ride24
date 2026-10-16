@@ -3148,6 +3148,55 @@ document.getElementById("statPaid").innerText = confirmed;
 document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + displayCurrency;
         }
 
+        // Partner-only itemised details: render labels as text, never HTML.
+        window.openPartnerBookingItems = function(bookingId) {
+            const snapshot = window.ride24PartnerBookingItems?.get(bookingId);
+            if (!snapshot || !Array.isArray(snapshot.items)) return;
+            const isEn = localStorage.getItem('partner_lang') === 'en';
+            const money = value => (Number(value || 0) / 100).toFixed(2) + ' ' + snapshot.currency;
+            const modal = document.createElement('dialog');
+            modal.className = 'r24-partner-items-dialog';
+            modal.setAttribute('aria-label',isEn ? 'Booking extras and prices' : 'Dodatki i ceny rezerwacji');
+            const title=document.createElement('h3');
+            title.textContent=isEn?'Booking extras and prices':'Dodatki i ceny rezerwacji';
+            const head=document.createElement('div');head.className='r24-partner-items-head';
+            const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label',isEn?'Close':'Zamknij');close.onclick=()=>modal.close();
+            head.append(title,close);modal.append(head);
+            const body=document.createElement('div');body.className='r24-partner-items-body';
+            const heading=document.createElement('p');heading.textContent=isEn?'Amounts payable to the rental partner':'Kwoty należne partnerowi';
+            body.append(heading);
+            for(const item of snapshot.items){
+                const line=document.createElement('div');line.className='r24-partner-items-line';
+                const name=document.createElement('span');
+                name.textContent=(isEn?item.name_en:item.name_pl) +
+                    (item.location_name?' — '+item.location_name:'') +
+                    (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(isEn?'days':'dni'):''):'');
+                const cost=document.createElement('strong');cost.textContent=money(item.partner_cents);
+                line.append(name,cost);body.append(line);
+            }
+            const total=document.createElement('div');total.className='r24-partner-items-total';
+            const caption=document.createElement('strong');caption.textContent=isEn?'Total payable to partner':'Łącznie dla partnera';
+            const cost=document.createElement('strong');cost.textContent=money(snapshot.partner_cents);
+            total.append(caption,cost);body.append(total);
+            modal.append(body);
+            document.body.append(modal);modal.addEventListener('close',()=>modal.remove(),{once:true});modal.showModal();
+        };
+        const partnerItemsStyles = document.createElement('style');
+        partnerItemsStyles.textContent = `
+        .r24-partner-items-dialog{position:fixed!important;inset:auto!important;top:50%!important;left:50%!important;transform:translate(-50%,-50%);margin:0!important;width:min(560px,calc(100vw - 28px));max-width:none;max-height:calc(100dvh - 32px);padding:0;border:0;border-radius:18px;box-shadow:0 25px 80px #0f172a55;overflow:hidden;color:#0f172a;background:#fff}
+        .r24-partner-items-dialog::backdrop{background:#0f172aa8;backdrop-filter:blur(5px)}
+        .r24-partner-items-head{display:flex;align-items:center;justify-content:space-between;gap:15px;background:#1d4ed8;color:#fff;padding:20px 24px;border-bottom:4px solid #84cc16}
+        .r24-partner-items-head h3{margin:0;color:#fff;font-size:19px}
+        .r24-partner-items-head button{background:#ffffff22;color:#fff;border:0;border-radius:9px;font-size:25px;cursor:pointer;width:38px;height:38px}
+        .r24-partner-items-body{padding:22px 24px;overflow-y:auto;max-height:calc(100dvh - 130px)}
+        .r24-partner-items-body p{color:#475569;font-size:13px;margin:0 0 12px}
+        .r24-partner-items-line,.r24-partner-items-total{display:flex;align-items:start;justify-content:space-between;gap:18px;padding:12px 0;border-bottom:1px solid #e2e8f0;font-size:14px}
+        .r24-partner-items-line strong,.r24-partner-items-total strong:last-child{white-space:nowrap}
+        .r24-partner-items-total{background:#eff6ff;padding:16px;margin-top:16px;border:0;border-radius:11px;color:#1e40af}
+        .r24-items-open{display:block;margin-top:7px;background:none;border:0;color:#2563eb;text-align:left;padding:2px 0;font-size:12px;font-weight:700;cursor:pointer;white-space:normal;text-decoration:underline}
+        `;
+        document.head.append(partnerItemsStyles);
+
         // --- LISTA REZERWACJI ---
         async function loadPartnerBookings() {
             // 🔥 TWOJA NOWA FUNKCJA AUTO CLEAN
@@ -3199,6 +3248,7 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
             }
 
             let bookingExtrasLoadFailed = false;
+            window.ride24PartnerBookingItems = new Map();
             try {
                 for (let offset=0; offset<data.length; offset+=100) {
                     const batch=data.slice(offset,offset+100);
@@ -3212,7 +3262,10 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                     const items=new Map(result.bookings.map(b=>[b.id,b.items]));
                     for(const booking of batch) {
                         const rows=items.get(booking.id) || [];
-                        if(rows.length) booking.pricing_items_snapshot={version:2,currency:booking.partner_currency || 'EUR',partner_cents:Math.round(Number(booking.pickup_payment_partner_currency)*100),items:rows.map(r=>({...r,partner_cents:r.amount_cents}))};
+                        if(rows.length) {
+                            booking.pricing_items_snapshot={version:2,currency:booking.partner_currency || 'EUR',partner_cents:Math.round(Number(booking.pickup_payment_partner_currency)*100),items:rows.map(r=>({...r,partner_cents:r.amount_cents}))};
+                            window.ride24PartnerBookingItems.set(booking.id,booking.pricing_items_snapshot);
+                        }
                     }
                 }
             } catch(error) {
@@ -3436,7 +3489,7 @@ const rowHtml = `
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : window.ride24BookingBreakdown(booking.pricing_items_snapshot, true, isEnLang)}
+            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : (booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View extras and prices' : 'Zobacz dodatki i ceny'}</button>` : '')}
         </td>
 
         <!-- AKCJE -->
@@ -3492,7 +3545,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
         <!-- 🔥 NOWA KOLUMNA -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${!bookingExtrasLoadFailed ? window.ride24BookingBreakdown(booking.pricing_items_snapshot, true, isEnLang) : ''}
+            ${!bookingExtrasLoadFailed && booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View extras and prices' : 'Zobacz dodatki i ceny'}</button>` : ''}
         </td>
 
         <td>${actions}</td>
