@@ -518,6 +518,27 @@ let query = db
     .eq('partners.active', true)
     .eq('partners.account_status', 'active') 
     .eq('partners.partner_locations.active', true);
+
+                // Filtrujemy zwrot PRZED paginacją, inaczej można ukryć poprawne auta.
+                const selectedReturnLocation = filters.drop_location || loc;
+                const returnLocationName = String(selectedReturnLocation.location_name || selectedReturnLocation.name || "").trim();
+                let returnPartnerIds = [];
+                if (returnLocationName) {
+                    let returnQuery = db
+                        .from('partner_locations')
+                        .select('partner_id')
+                        .eq('active', true)
+                        .eq('location_name', returnLocationName);
+                    if (selectedReturnLocation.country) {
+                        returnQuery = returnQuery.eq('country', selectedReturnLocation.country);
+                    }
+                    if (selectedReturnLocation.city) {
+                        returnQuery = returnQuery.eq('city', selectedReturnLocation.city);
+                    }
+                    const { data: returnLocations, error: locationsError } = await returnQuery;
+                    if (locationsError) throw locationsError;
+                    returnPartnerIds = [...new Set((returnLocations || []).map(item => item.partner_id).filter(Boolean))];
+                }
     
                 
                 // 2. MAGICZNY FILTR INTENCJI
@@ -525,6 +546,8 @@ let query = db
 
              // 🔥 1. Dokładna lokalizacja partnera
              if (loc.location_name) {
+              if (loc.country) query = query.eq('partners.partner_locations.country', loc.country);
+              if (loc.city) query = query.eq('partners.partner_locations.city', loc.city);
 
               query = query.eq(
              'partners.partner_locations.location_name',
@@ -574,8 +597,13 @@ let query = db
                 }            
                 // 📄 4️⃣ PAGINACJA (Limit wyników)
                 const PAGE_SIZE = 20;
-                const { data: rawCars, error } = await query.limit(PAGE_SIZE);
-                if (error) throw error;
+                let rawCars = [];
+                if (returnPartnerIds.length > 0) {
+                    query = query.in('partner_id', returnPartnerIds);
+                    const { data, error } = await query.limit(PAGE_SIZE);
+                    if (error) throw error;
+                    rawCars = data || [];
+                }
 
                 container.innerHTML = '';
 
@@ -827,6 +855,12 @@ const customerPricePerDay = partnerNetPricePerDay * (1 + (marginPerc / 100));
 // Sumy całkowite do wyświetlenia na karcie auta
 const baseTotal = Number((partnerNetPricePerDay * days).toFixed(2));
 const finalTotal = Number((customerPricePerDay * days).toFixed(2));
+// Wyniki: pełne jednostki waluty bez miejsc dziesiętnych.
+// Kwoty rozliczeniowe (finalTotal i baseTotal) pozostają dokładne.
+const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+}).format(Math.round(finalTotal));
 
 // --- KONIEC LOGIKI ---
 
@@ -992,7 +1026,7 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 
 <div class="car-price-box">
     <div class="price-info">${lang === 'pl' ? 'Łącznie' : 'Total'} ${labels.daysInfo}</div>
-    <div class="price-total">${finalTotal} <span>${safeCurrency}</span></div>
+    <div class="price-total">${displayTotal} <span>${safeCurrency}</span></div>
     <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc})">
         ${labels.bookBtn}
     </button>

@@ -1216,6 +1216,17 @@ serve(async (req) => {
         car.partner_id,
         returnName,
       );
+      // Sprawdzamy oba punkty po ID właściciela samochodu, nie globalnej nazwie.
+      // Zapobiega mieszaniu punktów dwóch wypożyczalni przez starsze klienty.
+      if (!pickupLocation || !dropoffLocation) {
+        return jsonResponse(
+          req,
+          { error: "Wybrany partner nie obsługuje wskazanej lokalizacji odbioru lub zwrotu. Wróć do wyszukiwarki i wybierz punkt z jego oferty." },
+          409,
+        );
+      }
+      pickupName = pickupLocation.location_name || pickupName;
+      returnName = dropoffLocation.location_name || returnName;
     }
 
     let pricingItemsSnapshot = null;

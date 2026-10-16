@@ -1,0 +1,232 @@
+--- a/client/app/src/main/java/pl/ride24/client/data/Repositories.kt
++++ b/client/app/src/main/java/pl/ride24/client/data/Repositories.kt
+@@ -186,14 +186,19 @@
+ class SearchRepository(private val api: Ride24Api) {
+     private val fxCache = ConcurrentHashMap<String, Double>()
+ 
+-    suspend fun suggestLocations(text: String): List<LocationItem> {
++    suspend fun suggestLocations(text: String, pickup: LocationItem? = null, forReturn: Boolean = false): List<LocationItem> {
++        if (forReturn && pickup == null) return emptyList()
++        val owners = if (forReturn) locationPartners(requireNotNull(pickup)) else null
++        if (owners != null && owners.isEmpty()) return emptyList()
+         val q = text.trim()
+         if (q.length < 2) return emptyList()
+ 
+         val safeQuery = q
+             .replace("*", "")
+-            .replace(",", " ")
++            .replace(Regex("[^\\p{L}\\p{N} -]"), " ")
+             .take(80)
++            .trim()
++        if (safeQuery.length < 2) return emptyList()
+ 
+         // Zgodność z wyszukiwarką WEB Ride24:
+         // 1. najpierw szukamy tłumaczeń i synonimów w locations_dictionary,
+@@ -217,17 +222,18 @@
+                 val row = dictMatches.optJSONObject(i) ?: continue
+                 row.optString("name_en").takeIf { it.isNotBlank() }?.let { translatedTerms += it }
+                 row.optString("name_pl").takeIf { it.isNotBlank() }?.let { translatedTerms += it }
+-                row.optString("keywords").takeIf { it.isNotBlank() }?.let { translatedTerms += it }
++                row.optString("keywords").split(",").filter { it.isNotBlank() }.forEach { translatedTerms += it }
+             }
+         }
+ 
+         val uniqueTerms = translatedTerms
+             .filter { it.isNotBlank() }
+-            .map { it.lowercase(Locale.ROOT).trim() }
++            .map { it.replace(Regex("[^\\p{L}\\p{N} -]"), " ").lowercase(Locale.ROOT).trim() }
++            .filter { it.isNotBlank() }
+             .distinct()
+ 
+         val orFilters = uniqueTerms.joinToString(",") { term ->
+-            "location_name.ilike.*$term*,city.ilike.*$term*,region.ilike.*$term*"
++            "location_name.ilike.*$term*,city.ilike.*$term*,region.ilike.*$term*,country.ilike.*$term*"
+         }
+ 
+         val params = linkedMapOf(
+@@ -237,11 +243,12 @@
+             "limit" to "30"
+         )
+ 
++        if (owners != null) params["partner_id"] = "in.(${owners.joinToString(",")})"
+         val raw = api.rest("partner_locations", params, auth = false).asArray()
+         val unique = LinkedHashMap<String, LocationItem>()
+         for (i in 0 until raw.length()) {
+             val item = LocationItem.fromJson(raw.getJSONObject(i))
+-            unique.putIfAbsent(item.displayName.lowercase(Locale.ROOT), item)
++            unique.putIfAbsent(listOf(item.country, item.city, item.displayName).joinToString("\u001f") { it.trim().lowercase(Locale.ROOT) }, item)
+         }
+ 
+         // Ranking zgodny z WEB: oceniamy względem tekstu wpisanego przez klienta.
+@@ -316,11 +323,37 @@
+         return value.takeIf { it.isFinite() && it in 0.01..100.0 } ?: 25.0
+     }
+ 
++    // Resolve all owners before applying the car result limit. Shared locations
++    // are identified by name + country + city, never by one partner's row ID.
++    private suspend fun locationPartners(location: LocationItem): Set<String> {
++        val params = linkedMapOf("select" to "id,partner_id", "active" to "eq.true", "order" to "id.asc", "limit" to "500")
++        if (location.locationName.isNotBlank()) params["location_name"] = "eq.${location.locationName}"
++        if (location.country.isNotBlank()) params["country"] = "eq.${location.country}"
++        if (location.city.isNotBlank()) params["city"] = "eq.${location.city}"
++        if (location.locationName.isBlank() && location.city.isBlank() && location.region.isNotBlank()) params["region"] = "eq.${location.region}"
++        val owners = linkedSetOf<String>()
++        var offset = 0
++        while (true) {
++            params["offset"] = offset.toString()
++            val rows = api.rest("partner_locations", params, auth = false).asArray()
++            for (i in 0 until rows.length()) {
++                val id = rows.getJSONObject(i).optString("partner_id")
++                if (id.matches(Regex("[0-9a-fA-F-]{36}"))) owners += id
++            }
++            if (rows.length() < 500) break
++            offset += rows.length()
++        }
++        return owners
++    }
++
+     private suspend fun localCars(criteria: SearchCriteria): JSONArray {
++        val eligible = locationPartners(criteria.pickup).intersect(locationPartners(criteria.dropoff))
++        if (eligible.isEmpty()) return JSONArray()
+         val loc = criteria.pickup
+         val params = linkedMapOf(
+             "select" to "*,seasonal_prices(season_type,start_month,end_month,public_price,active),partners!inner(id,company_name,active,account_status,currency,min_driver_age,provider_type,api_enabled,partner_locations!inner(country,region,city,location_name,type,active,contact_required,extra_fee,extra_fee_amount))",
+             "active" to "eq.true",
++            "partner_id" to "in.(${eligible.joinToString(",")})",
+             "partners.active" to "eq.true",
+             "partners.account_status" to "eq.active",
+             "partners.partner_locations.active" to "eq.true",
+@@ -332,6 +365,8 @@
+             loc.type == "region" && loc.region.isNotBlank() -> params["partners.partner_locations.region"] = "eq.${loc.region}"
+             loc.country.isNotBlank() -> params["partners.partner_locations.country"] = "eq.${loc.country}"
+         }
++        if (loc.country.isNotBlank()) params["partners.partner_locations.country"] = "eq.${loc.country}"
++        if (loc.city.isNotBlank()) params["partners.partner_locations.city"] = "eq.${loc.city}"
+         return api.rest("car_classes", params, auth = false).asArray()
+     }
+ 
+--- a/client/app/src/main/java/pl/ride24/client/ui/Ride24ViewModel.kt
++++ b/client/app/src/main/java/pl/ride24/client/ui/Ride24ViewModel.kt
+@@ -375,21 +375,26 @@
+         syncPushRegistration()
+     }
+ 
+-    fun updateLocationQuery(text: String) {
+-        suggestionJob?.cancel()
+-        if (text.trim().length < 2) {
+-            _ui.value = _ui.value.copy(suggestions = emptyList())
+-            return
+-        }
++    private var suggestionRevision = 0
++
++    fun updateLocationQuery(text: String, pickup: LocationItem? = null, forReturn: Boolean = false) {
++        clearSuggestions()
++        val revision = suggestionRevision
++        if (text.trim().length < 2 || (forReturn && pickup == null)) return
+         suggestionJob = viewModelScope.launch {
+             delay(220)
+-            runCatching { searchRepo.suggestLocations(text) }
+-                .onSuccess { _ui.value = _ui.value.copy(suggestions = it) }
+-                .onFailure { _ui.value = _ui.value.copy(suggestions = emptyList()) }
+-        }
+-    }
+-
+-    fun clearSuggestions() { _ui.value = _ui.value.copy(suggestions = emptyList()) }
++            val result = runCatching { searchRepo.suggestLocations(text, pickup, forReturn) }
++            if (revision == suggestionRevision) {
++                _ui.value = _ui.value.copy(suggestions = result.getOrDefault(emptyList()))
++            }
++        }
++    }
++
++    fun clearSuggestions() {
++        suggestionRevision++
++        suggestionJob?.cancel()
++        _ui.value = _ui.value.copy(suggestions = emptyList())
++    }
+ 
+     fun searchCars(
+         pickup: LocationItem?,
+--- a/client/app/src/main/java/pl/ride24/client/ui/Screens.kt
++++ b/client/app/src/main/java/pl/ride24/client/ui/Screens.kt
+@@ -1140,10 +1140,8 @@
+                             pickup = null
+                             activeField = 1
+                             vm.updateLocationQuery(it)
+-                            if (!differentDropoff) {
+-                                dropoffText = it
+-                                dropoff = null
+-                            }
++                            dropoffText = if (differentDropoff) "" else it
++                            dropoff = null
+                         },
+                         label = t("Miejsce odbioru", "Pickup location"),
+                         leadingIcon = Icons.Default.LocationOn,
+@@ -1152,10 +1150,8 @@
+                                 IconButton(onClick = {
+                                     pickupText = ""
+                                     pickup = null
+-                                    if (!differentDropoff) {
+-                                        dropoffText = ""
+-                                        dropoff = null
+-                                    }
++                                    dropoffText = ""
++                                    dropoff = null
+                                     vm.clearSuggestions()
+                                 }) { Icon(Icons.Default.Close, null) }
+                             }
+@@ -1165,10 +1161,8 @@
+                         SuggestionPanel(state.suggestions) { item ->
+                             pickup = item
+                             pickupText = item.displayName
+-                            if (!differentDropoff) {
+-                                dropoff = item
+-                                dropoffText = item.displayName
+-                            }
++                            dropoff = if (differentDropoff) null else item
++                            dropoffText = if (differentDropoff) "" else item.displayName
+                             vm.clearSuggestions()
+                             focusManager.clearFocus(force = true)
+                         }
+@@ -1182,11 +1176,9 @@
+                             checked = differentDropoff,
+                             onCheckedChange = {
+                                 differentDropoff = it
+-                                if (!it) {
+-                                    dropoff = pickup
+-                                    dropoffText = pickupText
+-                                    vm.clearSuggestions()
+-                                }
++                                dropoff = if (it) null else pickup
++                                dropoffText = if (it) "" else pickupText
++                                vm.clearSuggestions()
+                             },
+                             colors = SwitchDefaults.colors(
+                                 checkedThumbColor = RideNavy,
+@@ -1208,7 +1200,7 @@
+                                     dropoffText = it
+                                     dropoff = null
+                                     activeField = 2
+-                                    vm.updateLocationQuery(it)
++                                    vm.updateLocationQuery(it, pickup = pickup, forReturn = true)
+                                 },
+                                 label = t("Miejsce zwrotu", "Return location"),
+                                 leadingIcon = Icons.Default.Flag
+@@ -1937,7 +1929,7 @@
+                     )
+                     Spacer(Modifier.height(2.dp))
+                     Text(
+-                        "${formatMoney(offer.finalTotal)} ${offer.currency}",
++                        "${formatResultPrice(offer.finalTotal)} ${offer.currency}",
+                         color = Color.White,
+                         fontSize = 22.sp,
+                         fontWeight = FontWeight.Black
+@@ -4010,3 +4002,8 @@
+ }
+ 
+ private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f", value)
++
++// Presentation only; booking calculations retain two decimal places.
++private fun formatResultPrice(value: Double): String = java.text.NumberFormat.getIntegerInstance().apply {
++    roundingMode = java.math.RoundingMode.HALF_UP
++}.format(value)
