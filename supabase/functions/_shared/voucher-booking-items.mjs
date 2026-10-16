@@ -40,8 +40,11 @@ export function appendVoucherPricing({pdfDoc,font,bold,rgb,booking,logoImage}) {
   const money=(n,c=pricing.currency)=>(n/100).toFixed(2)+' '+c;
   next();
   for(const item of pricing.items){
-    const count=item.kind==='extra'?` x ${item.quantity}`+(item.billing==='day'?` x ${item.days}`:''):'';
-    line(item.name_pl+count,item.name_en+count,money(item.customer_cents),{location:item.location_name||''});
+    const count=item.kind==='extra'?` x ${item.quantity}`:'';
+    const daily=item.kind==='extra' && item.billing==='day';
+    const pl=count+(daily?` x ${item.days} ${item.days===1?'dzień':'dni'}`:'');
+    const en=count+(daily?` x ${item.days} ${item.days===1?'day':'days'}`:'');
+    line(item.name_pl+pl,item.name_en+en,money(item.customer_cents),{location:item.location_name||''});
   }
   ensure(210);
   if(pricing.loyalty_discount_cents)line('Rabat lojalnościowy','Loyalty discount','-'+money(pricing.loyalty_discount_cents));

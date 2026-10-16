@@ -7,7 +7,8 @@
         let html = '<details style="font-weight:400;color:#334155;white-space:normal;min-width:220px;max-width:360px;font-size:12px;margin-top:8px"><summary style="cursor:pointer;color:#2563eb" data-pl="Rozpiska ceny i dodatków" data-en="Price and extras breakdown">' + (isEn ? 'Price and extras breakdown' : 'Rozpiska ceny i dodatków') + '</summary>';
         for (const item of snapshot.items.slice(0, 23)) {
             const suffix = (item.location_name ? ' — ' + item.location_name : '') + (item.kind === 'extra' ? ` × ${item.quantity}` + (item.billing === 'day' ? ` × ${item.days}` : '') : '');
-            html += row(item.name_pl + suffix, item.name_en + suffix, money(partnerView ? item.partner_cents : item.customer_cents));
+            const daily = item.kind === 'extra' && item.billing === 'day';
+            html += row(item.name_pl + suffix + (daily ? (item.days === 1 ? ' dzień' : ' dni') : ''), item.name_en + suffix + (daily ? (item.days === 1 ? ' day' : ' days') : ''), money(partnerView ? item.partner_cents : item.customer_cents));
         }
         if (partnerView) html += row('Łącznie dla partnera', 'Total payable to partner', money(snapshot.partner_cents), true);
         else {

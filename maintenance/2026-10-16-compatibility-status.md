@@ -15,3 +15,13 @@ Checks: 26 pricing/quote tests, 23 isolated schema/ownership checks, 7 DOM/scrip
 Publication verification: GET of both ride24.pl/ and results.html returned HTTP 403 from this environment; publication remains unverified.
 
 Before deployment: build both Android projects, validate full booking/payment/voucher flow in isolation, take fresh backup of latest main and live server functions plus affected data; deploy schema/endpoints with flag disabled first. Never restore older full database over current partner data. Never change existing booking snapshots. Activation must wait for verified client compatibility.
+
+## Resume after workspace cleanup (16 October, 11:40 Warsaw)
+
+Re-read actual production state: extras table absent, feature flags absent, booking pricing_items_snapshot absent; create-booking-request remains ACTIVE v16. Fleet 55/55 fullInsurance, Cube prices unchanged (60;65,65,70,70;70,75). No production writes performed.
+
+Recovered draft from GitHub c4caf2a; integrated current main including new SEO publications and Podgorica/Tivat travel guides without conflicts. Re-ran 26 pricing/quote tests after integration: passed. Restored the previously tested, but uncommitted, day-unit labels in PL/EN voucher/reservation details.
+
+Previous session reached successful client compileDebugKotlin; partner compilation outcome was not captured. Client Firebase configuration had been recovered from its production AAB (unique client app ID and key, project matched partner), but all local Android source folders, uploads, configuration and build outputs were removed by automated workspace cleanup. No Android ZIP files were found in accessible Library inventory. Durable cumulative and incremental Android patches remain in maintenance/proposed. Do not recreate apps from patches alone or substitute partner Firebase app ID. Need original current source ZIPs and client production AAB again to resume native builds safely.
+
+Completed: draft backend pricing, quote acceptance, ownership rules, web extras UI, voucher appendix and Android source patches; merge of Oct 15 safeguards. Partial: native build validation and end-to-end tests. Pending: recover original native projects; finish both builds, device tests, fresh pre-deploy backup, controlled schema/function/web deployment with feature disabled, then coordinated activation. Existing downloaded backups are not a fresh deployment backup.
