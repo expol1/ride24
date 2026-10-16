@@ -9,13 +9,50 @@
         if(!/^\d+(\.\d{1,2})?$/.test(raw) || Number(raw)>1000000) throw new Error(text('Wpisz poprawną kwotę, maksymalnie dwa miejsca po przecinku.','Enter a valid amount with up to two decimal places.'));
         return Number(raw);
     };
-    function input(type='text',value=''){const n=node('input');n.type=type;n.value=value;n.style.cssText='width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px';return n;}
-    function field(form,pl,eng,control){const l=node('label');l.style.cssText='display:grid;gap:5px';l.append(node('span',pl,eng),control);form.append(l);return control;}
-    function dialog(titlePl,titleEn){const d=node('dialog');d.style.cssText='border:0;border-radius:16px;padding:24px;width:min(480px,90vw);max-height:90dvh;overflow:auto';d.append(node('h3',titlePl,titleEn));const f=node('form');f.style.cssText='display:grid;gap:14px';d.append(f);const status=node('p');status.setAttribute('role','status');f.append(status);document.body.append(d);d.addEventListener('close',()=>d.remove());d.showModal();return {d,f,status};}
-    function actions(f,d){const row=node('div');row.style.cssText='display:flex;gap:12px;justify-content:flex-end';const cancel=node('button','Anuluj','Cancel');cancel.type='button';cancel.className='btn-secondary';cancel.onclick=()=>d.close();const save=node('button','Zapisz','Save');save.type='submit';save.className='btn-primary';row.append(cancel,save);f.append(row);return save;}
+    // The native dialog stays in the browser's top layer, including on mobile.
+    // Unlike a fixed sidebar, it is centred and its validation is visible inside.
+    function ensureStyles(){
+        if(document.getElementById('r24-extras-modal-css'))return;
+        const s=document.createElement('style');s.id='r24-extras-modal-css';
+        s.textContent=`
+        .r24-extras-dialog{position:fixed!important;inset:auto!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%);margin:0!important;border:0!important;padding:0!important;width:min(620px,calc(100vw - 28px))!important;max-width:none!important;max-height:calc(100dvh - 28px)!important;overflow:hidden!important;border-radius:20px!important;background:white;color:#14213d;box-shadow:0 25px 80px rgba(15,23,42,.34);font:inherit;}
+        .r24-extras-dialog::backdrop{background:rgba(9,20,42,.63);backdrop-filter:blur(6px);}
+        .r24-extras-dialog__head{display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(105deg,#193d93,#2563eb);color:white;padding:20px 24px;border-bottom:4px solid #87cc05;}
+        .r24-extras-dialog__head h3{color:white!important;font-size:19px!important;font-weight:800;margin:0!important;line-height:1.3;}
+        .r24-extras-dialog__close{border:0;background:rgba(255,255,255,.15);color:white;border-radius:10px;font-size:24px;width:36px;height:36px;cursor:pointer;}
+        .r24-extras-dialog__form{display:grid;gap:17px;padding:23px 24px 25px;overflow-y:auto;max-height:calc(100dvh - 112px);background:#fbfdff;}
+        .r24-extras-dialog__form label{display:grid;gap:7px;text-align:left;font-size:13px;font-weight:700;color:#334155;}
+        .r24-extras-dialog__form label>span{line-height:1.35;}
+        .r24-extras-dialog__form input:not([type=checkbox]),.r24-extras-dialog__form select{box-sizing:border-box;width:100%;min-width:0;padding:12px 13px;border:1px solid #cbd5e1;border-radius:11px;background:white;color:#0f172a;font-size:15px;line-height:1.35;}
+        .r24-extras-dialog__form input:focus-visible,.r24-extras-dialog__form select:focus-visible{outline:3px solid #bfdbfe;border-color:#2563eb;}
+        .r24-extras-dialog__form label:has(input[type=checkbox]){display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #dbeafe;background:#eff6ff;border-radius:11px;}
+        .r24-extras-dialog__form input[type=checkbox]{width:19px!important;height:19px;accent-color:#65a30d;flex-shrink:0;}
+        .r24-extras-dialog__status{display:none;margin:0;padding:12px 14px;background:#fff1f2;color:#991b1b;border:1px solid #fda4af;border-radius:10px;line-height:1.5;font-size:13px;font-weight:700;}
+        .r24-extras-dialog__status:not(:empty){display:block;}
+        .r24-extras-dialog__actions{display:flex;justify-content:flex-end;gap:12px;position:sticky;bottom:-25px;background:#fbfdff;padding:14px 0 0;border-top:1px solid #e2e8f0;}
+        .r24-extras-dialog__actions button{min-height:43px;padding:10px 20px;border-radius:10px;font-weight:700;}
+        .r24-extras-dialog__form p{margin:0;color:#64748b;font-size:13px;line-height:1.5;}
+        #partnerExtrasCatalog .r24-extras-row{display:grid;grid-template-columns:minmax(125px,1fr) minmax(120px,1fr) auto;gap:16px;align-items:center;padding:15px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-top:10px;}
+        #partnerExtrasCatalog .r24-extras-row .btn-secondary{white-space:nowrap;}
+        @media(max-width:560px){.r24-extras-dialog__head{padding:16px}.r24-extras-dialog__form{padding:16px;gap:14px}.r24-extras-dialog__actions{bottom:-16px}.r24-extras-dialog__actions button{flex:1}#partnerExtrasCatalog .r24-extras-row{grid-template-columns:1fr auto;gap:8px}#partnerExtrasCatalog .r24-extras-row span{grid-row:2;grid-column:1/-1}}
+        `;
+        document.head.append(s);
+    }
+    function input(type='text',value=''){const n=node('input');n.type=type;n.value=value;return n;}
+    function field(form,pl,eng,control){const l=node('label');l.append(node('span',pl,eng),control);form.append(l);return control;}
+    function dialog(titlePl,titleEn){
+        ensureStyles();
+        const d=node('dialog');d.className='r24-extras-dialog';d.setAttribute('aria-modal','true');
+        const head=node('div');head.className='r24-extras-dialog__head';const title=node('h3',titlePl,titleEn);
+        const close=node('button','×');close.type='button';close.className='r24-extras-dialog__close';close.setAttribute('aria-label',text('Zamknij','Close'));close.onclick=()=>d.close();head.append(title,close);d.append(head);d.setAttribute('aria-label',text(titlePl,titleEn));
+        const f=node('form');f.className='r24-extras-dialog__form';d.append(f);
+        const status=node('p');status.className='r24-extras-dialog__status';status.setAttribute('role','alert');status.setAttribute('aria-live','assertive');f.append(status);
+        document.body.append(d);d.addEventListener('close',()=>d.remove());d.showModal();return {d,f,status};
+    }
+    function actions(f,d){const row=node('div');row.className='r24-extras-dialog__actions';const cancel=node('button','Anuluj','Cancel');cancel.type='button';cancel.className='btn-secondary';cancel.onclick=()=>d.close();const save=node('button','Zapisz','Save');save.type='submit';save.className='btn-primary';row.append(cancel,save);f.append(row);return save;}
     window.ride24PartnerExtras = {amount,
         async mount(db,partner,refreshLocations){
-            const host=document.getElementById('partnerExtrasCatalog');if(!host)return;
+            ensureStyles();const host=document.getElementById('partnerExtrasCatalog');if(!host)return;
             host.replaceChildren();host.hidden=partner.provider_type==='api';if(host.hidden)return;
             host.append(node('h3','Dodatki do wynajmu','Rental extras'));
             host.append(node('p',`Podaj kwoty dla Twojej firmy w ${partner.currency || 'EUR'}. Ride24 doliczy swoją opłatę do ceny klienta. Puste pole oznacza 0.`,`Enter amounts payable to your company in ${partner.currency || 'EUR'}. Ride24 adds its fee to the customer price. A blank amount means 0.`));
@@ -45,7 +82,7 @@
                 }catch(error){status.textContent=error.message;}finally{save.disabled=false;}};
             };
             add.onclick=()=>edit();
-            for(const extra of data||[]){const row=node('div');row.style.cssText='display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #e2e8f0';const n=names[extra.code]&&extra.code!=='custom'?names[extra.code]:[extra.name_pl||extra.name_en,extra.name_en];const name=node('strong',...n);row.append(name,node('span',`${Number(extra.amount).toFixed(2)} ${partner.currency||'EUR'} / ${extra.billing==='day'?'dzień':'wynajem'}${extra.active?'':' • wyłączony'}`,`${Number(extra.amount).toFixed(2)} ${partner.currency||'EUR'} / ${extra.billing==='day'?'day':'rental'}${extra.active?'':' • disabled'}`));const b=node('button','Edytuj','Edit');b.className='btn-secondary';b.type='button';b.onclick=()=>edit(extra);row.append(b);host.append(row);}
+            for(const extra of data||[]){const row=node('div');row.className='r24-extras-row';const n=names[extra.code]&&extra.code!=='custom'?names[extra.code]:[extra.name_pl||extra.name_en,extra.name_en];const name=node('strong',...n);row.append(name,node('span',`${Number(extra.amount).toFixed(2)} ${partner.currency||'EUR'} / ${extra.billing==='day'?'dzień':'wynajem'}${extra.active?'':' • wyłączony'}`,`${Number(extra.amount).toFixed(2)} ${partner.currency||'EUR'} / ${extra.billing==='day'?'day':'rental'}${extra.active?'':' • disabled'}`));const b=node('button','Edytuj','Edit');b.className='btn-secondary';b.type='button';b.onclick=()=>edit(extra);row.append(b);host.append(row);}
         },
         editFees(db,partner,location,refresh){
             const {d,f,status}=dialog('Opłaty za odbiór i zwrot','Pickup and return fees');f.append(node('p',location.location_name));
