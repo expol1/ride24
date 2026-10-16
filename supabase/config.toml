@@ -513,3 +513,9 @@ entrypoint = "./functions/admin-seo/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/seo-google-callback/index.ts"
+
+[functions.booking-options]
+verify_jwt = true
+
+[functions.partner-booking-items]
+verify_jwt = true

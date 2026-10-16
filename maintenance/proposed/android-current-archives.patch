@@ -613,3 +613,17 @@
          booking.partnerAmount?.let { amount ->
              item {
                  CompactDetailRow(
+--- a/client/app/build.gradle.kts
++++ b/client/app/build.gradle.kts
+@@ -27,2 +27,2 @@
+-        versionCode = 15
+-        versionName = "1.0.14"
++        versionCode = 16
++        versionName = "1.0.15"
+--- a/partner/app/build.gradle.kts
++++ b/partner/app/build.gradle.kts
+@@ -24,2 +24,2 @@
+-        versionCode = 6
+-        versionName = "1.0.5"
++        versionCode = 7
++        versionName = "1.0.6"

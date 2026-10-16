@@ -16,7 +16,7 @@ insert into public.partners values
 ('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','local'),
 ('10000000-0000-4000-8000-000000000002','20000000-0000-4000-8000-000000000002','local'),
 ('10000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000003','api');`);
-await db.exec(await readFile(new URL('../../maintenance/proposed/priced-extras-v2.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../../supabase/migrations/20261016104125_priced_extras_v2.sql',import.meta.url),'utf8'));
 let checks=0;
 async function ok(sql){await db.exec(sql);checks++;}
 async function rejected(sql){await assert.rejects(db.exec(sql));checks++;}
