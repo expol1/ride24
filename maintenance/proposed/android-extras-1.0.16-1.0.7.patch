@@ -1,0 +1,571 @@
+--- a/client/app/build.gradle.kts
++++ b/client/app/build.gradle.kts
+@@ -27,2 +27,2 @@
+-        versionCode = 16
+-        versionName = "1.0.15"
++        versionCode = 17
++        versionName = "1.0.16"
+@@ -72,0 +73,3 @@
++    testImplementation("org.json:json:20240303")
++    testImplementation("junit:junit:4.13.2")
++    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+--- a/client/app/src/main/java/pl/ride24/client/data/BookingQuote.kt
++++ b/client/app/src/main/java/pl/ride24/client/data/BookingQuote.kt
+@@ -26 +26 @@
+-            return BookingQuote(true, json.getString("fingerprint"), requireNotNull(BookingPricing.fromJson(json.getJSONObject("pricing"))), (0 until rows.length()).map { i ->
++            return BookingQuote(true, json.getString("fingerprint").also { require(it.matches(Regex("[a-f0-9]{64}"))) }, requireNotNull(BookingPricing.fromJson(json.getJSONObject("pricing"))), (0 until rows.length()).map { i ->
+--- /dev/null
++++ b/client/app/src/main/java/pl/ride24/client/data/BookingRequestContext.kt
+@@ -0,0 +1,31 @@
++package pl.ride24.client.data
++
++import org.json.JSONObject
++
++/** Both endpoints must receive the stored point name, never the decorated search label. */
++fun bookingRequestContext(offer: CarOffer, criteria: SearchCriteria, additionalDriverId: String?): JSONObject {
++    require(criteria.pickup.locationName.isNotBlank() && criteria.dropoff.locationName.isNotBlank()) {
++        "BOOKING_LOCATION_REQUIRED"
++    }
++    return JSONObject().put("car_class_id", offer.id)
++        .put("start_date", criteria.pickupDate.toString()).put("end_date", criteria.returnDate.toString())
++        .put("pickup_time", criteria.pickupTime).put("return_time", criteria.returnTime)
++        .put("pickup_location", criteria.pickup.locationName).put("return_location", criteria.dropoff.locationName)
++        .also { body -> additionalDriverId?.let { body.put("additional_driver_id", it) } }
++}
++
++/** A disabled feature must never silently discard a previously selected paid item. */
++fun BookingQuote.acceptedPricingPayload(extras: List<ExtraSelection>): JSONObject {
++    check(enabled || extras.isEmpty()) { "PRICING_UPDATE_REQUIRED" }
++    return JSONObject().also { body ->
++        if (enabled) {
++            check(pricing != null && fingerprint.matches(Regex("[a-f0-9]{64}"))) { "INVALID_QUOTE" }
++            body.put("pricing_version", 2).put("pricing_fingerprint", fingerprint).put("extras", extras.toJsonArray())
++        }
++    }
++}
++
++fun List<ExtraSelection>.withAdditionalDriver(catalog: List<BookingExtra>, driverId: String?): List<ExtraSelection> {
++    val driver = catalog.firstOrNull { it.code == "additional_driver" } ?: return this
++    return filterNot { it.id == driver.id } + if (driverId == null) emptyList() else listOf(ExtraSelection(driver.id, 1))
++}
+--- a/client/app/src/main/java/pl/ride24/client/data/Repositories.kt
++++ b/client/app/src/main/java/pl/ride24/client/data/Repositories.kt
+@@ -606,6 +606 @@
+-        val body = JSONObject().put("car_class_id", offer.id)
+-            .put("start_date", criteria.pickupDate.toString()).put("end_date", criteria.returnDate.toString())
+-            .put("pickup_time", criteria.pickupTime).put("return_time", criteria.returnTime)
+-            .put("pickup_location", criteria.pickup.displayName).put("return_location", criteria.dropoff.displayName)
+-            .put("extras", extras.toJsonArray())
+-        additionalDriverId?.let { body.put("additional_driver_id", it) }
++        val body = bookingRequestContext(offer, criteria, additionalDriverId).put("extras", extras.toJsonArray())
+@@ -624,10 +619,3 @@
+-        val body = JSONObject()
+-            .put("car_class_id", offer.id)
+-            .put("start_date", criteria.pickupDate.toString())
+-            .put("end_date", criteria.returnDate.toString())
+-            .put("pickup_time", criteria.pickupTime)
+-            .put("return_time", criteria.returnTime)
+-            .put("pickup_location", criteria.pickup.displayName)
+-            .put("return_location", criteria.dropoff.displayName)
+-            .put("terms_accepted", true)
+-        if (quote.enabled) body.put("pricing_version", 2).put("pricing_fingerprint", quote.fingerprint).put("extras", extras.toJsonArray())
++        val body = bookingRequestContext(offer, criteria, additionalDriverId).put("terms_accepted", true)
++        val accepted = quote.acceptedPricingPayload(extras)
++        accepted.keys().forEach { key -> body.put(key, accepted.get(key)) }
+--- a/client/app/src/main/java/pl/ride24/client/ui/Ride24ViewModel.kt
++++ b/client/app/src/main/java/pl/ride24/client/ui/Ride24ViewModel.kt
+@@ -7,0 +8 @@
++import kotlinx.coroutines.CancellationException
+@@ -442,2 +443,15 @@
+-    private fun quoteKey(additionalDriverId: String?) = "${_ui.value.selectedOffer?.id}|${_ui.value.criteria}|${additionalDriverId.orEmpty()}"
+-    fun isQuoteCurrent(additionalDriverId: String?) = !_ui.value.quoteBusy && _ui.value.bookingQuote != null && _ui.value.quoteError == null && _ui.value.quoteContext == quoteKey(additionalDriverId)
++    private var quoteJob: Job? = null
++    private fun quoteKey(additionalDriverId: String?, selections: List<ExtraSelection> = _ui.value.selectedExtras) =
++        "${auth.session?.userId}|${_ui.value.selectedOffer?.id}|${_ui.value.criteria}|${additionalDriverId.orEmpty()}|" +
++            selections.sortedBy { it.id }.joinToString { "${it.id}:${it.quantity}" }
++    fun isQuoteCurrent(additionalDriverId: String?): Boolean {
++        val state = _ui.value
++        val quote = state.bookingQuote ?: return false
++        return !state.quoteBusy && state.quoteError == null && state.quoteContext == quoteKey(additionalDriverId) &&
++            (quote.enabled || state.selectedExtras.isEmpty())
++    }
++
++    fun resetBookingExtras(additionalDriverId: String?) {
++        _ui.value = _ui.value.copy(bookingQuote = null)
++        refreshBookingQuote(additionalDriverId, emptyList())
++    }
+@@ -449,2 +463,3 @@
+-        val key = quoteKey(additionalDriverId)
+-        val offerKey = "${offer.id}|$criteria"
++        val requestContext = quoteKey(additionalDriverId, emptyList())
++        quoteJob?.cancel()
++        val offerKey = "${auth.session?.userId}|${offer.id}"
+@@ -455 +470 @@
+-        viewModelScope.launch {
++        quoteJob = viewModelScope.launch {
+@@ -461,4 +476 @@
+-                catalog?.firstOrNull { it.code == "additional_driver" }?.let { driver ->
+-                    selected = selected.filterNot { it.id == driver.id }
+-                    if (additionalDriverId != null) selected = selected + ExtraSelection(driver.id, 1)
+-                }
++                selected = selected.withAdditionalDriver(catalog.orEmpty(), additionalDriverId)
+@@ -466 +478,4 @@
+-                if (request == quoteRevision) _ui.value = _ui.value.copy(bookingQuote = quote, quoteBusy = false, quoteContext = key, selectedExtras = selected)
++                check(quote.enabled || selected.isEmpty()) { "PRICING_UPDATE_REQUIRED" }
++                if (request == quoteRevision && requestContext == quoteKey(additionalDriverId, emptyList())) _ui.value = _ui.value.copy(bookingQuote = quote, quoteBusy = false, quoteContext = quoteKey(additionalDriverId, selected), selectedExtras = selected)
++            } catch (e: CancellationException) {
++                throw e
+@@ -468 +483 @@
+-                if (request == quoteRevision) _ui.value = _ui.value.copy(quoteBusy = false, quoteError = tx("Nie udało się pobrać aktualnej wyceny. Spróbuj ponownie.", "Could not load the current price. Please try again."))
++                if (request == quoteRevision && requestContext == quoteKey(additionalDriverId, emptyList())) _ui.value = _ui.value.copy(quoteBusy = false, quoteError = tx("Nie udało się pobrać aktualnej wyceny. Spróbuj ponownie.", "Could not load the current price. Please try again."))
+--- a/client/app/src/main/java/pl/ride24/client/ui/Screens.kt
++++ b/client/app/src/main/java/pl/ride24/client/ui/Screens.kt
+@@ -2035 +2035,3 @@
+-    var accepted by remember { mutableStateOf(false) }
++    var acceptedContext by remember { mutableStateOf<String?>(null) }
++    val consentContext = "${state.quoteContext}|${state.bookingQuote?.fingerprint.orEmpty()}"
++    val accepted = acceptedContext == consentContext && !state.quoteBusy
+@@ -2038,0 +2041 @@
++    var breakdownOpen by remember { mutableStateOf(false) }
+@@ -2040 +2043 @@
+-    LaunchedEffect(state.quoteBusy, state.bookingQuote?.fingerprint, additionalId) { accepted = false }
++    LaunchedEffect(state.quoteBusy, state.bookingQuote?.fingerprint, additionalId) { acceptedContext = null }
+@@ -2060 +2063 @@
+-                        Text("${formatMoney(state.bookingQuote?.pricing?.totalCents?.div(100.0) ?: offer.finalTotal)} ${offer.currency}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
++                        Text(if (state.quoteBusy || state.quoteError != null) "—" else "${formatMoney(state.bookingQuote?.pricing?.totalCents?.div(100.0) ?: offer.finalTotal)} ${offer.currency}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+@@ -2101,0 +2105,15 @@
++                if (state.bookingQuote?.enabled == true) {
++                    GlassCard(Modifier.fillMaxWidth()) {
++                        Text(t("DODATKI DO REZERWACJI", "BOOKING EXTRAS"), color = RideGreen, fontSize = 11.sp, fontWeight = FontWeight.Black)
++                        Spacer(Modifier.height(8.dp))
++                        val selectedItems = state.bookingQuote.pricing?.items.orEmpty().filter { it.kind == "extra" }
++                        Text(if (selectedItems.isEmpty()) t("Wybierz wyposażenie udostępnione przez partnera.", "Choose equipment offered by the partner.") else
++                            selectedItems.joinToString("\n") { item -> state.language.pick(item.namePl, item.nameEn) + " × ${item.quantity}" }, color = Color.White, fontSize = 12.sp)
++                        TextButton(onClick = { extrasPicker = true }, enabled = !state.busy && !state.quoteBusy) {
++                            Icon(Icons.Default.AddCircleOutline, null, tint = RideGreen)
++                            Spacer(Modifier.width(8.dp))
++                            Text(t("Wybierz / zmień dodatki", "Choose / edit extras"), color = RideGreen, fontWeight = FontWeight.Bold)
++                        }
++                    }
++                    Spacer(Modifier.height(12.dp))
++                }
+@@ -2110,2 +2128,6 @@
+-                        }
+-                        state.bookingQuote?.pricing != null -> BookingPricingLines(requireNotNull(state.bookingQuote.pricing), state.language)
++                            TextButton(onClick = { vm.resetBookingExtras(additionalId) }) { Text(t("Wyczyść wybór i pobierz dodatki ponownie", "Clear selection and reload extras"), color = RideGreen) }
++                        }
++                        state.bookingQuote?.pricing != null -> {
++                            BookingPricingTotals(requireNotNull(state.bookingQuote.pricing), state.language)
++                            TextButton(onClick = { breakdownOpen = true }) { Text(t("Zobacz rozliczenie", "View breakdown"), color = RideGreen, fontWeight = FontWeight.Bold) }
++                        }
+@@ -2118,3 +2140 @@
+-                    if (state.bookingQuote?.enabled == true) {
+-                        TextButton(onClick = { extrasPicker = true }, enabled = !state.busy) { Text(t("Potrzebujesz dodatków?", "Need extras?"), color = RideGreen) }
+-                    }
++                    RefundableCashDeposit(offer.depositAmount ?: if (offer.features.noDeposit) 0.0 else null, offer.currency)
+@@ -2145 +2165 @@
+-                        Checkbox(accepted, { accepted = it }, enabled = vm.isQuoteCurrent(additionalId) && !state.busy, colors = CheckboxDefaults.colors(checkedColor = RideGreen, checkmarkColor = RideNavy))
++                        Checkbox(accepted, { acceptedContext = if (it) consentContext else null }, enabled = vm.isQuoteCurrent(additionalId) && !state.busy, colors = CheckboxDefaults.colors(checkedColor = RideGreen, checkmarkColor = RideNavy))
+@@ -2173 +2193,3 @@
+-                                Text(t("Wybierz kierowcę", "Select a driver"), color = TextMuted, fontSize = 11.sp)
++                                TextButton(onClick = { extrasPicker = false; driverPicker = true }, enabled = !state.busy && !state.quoteBusy) {
++                                    Text(if (quantity > 0) t("Wybrano", "Selected") else t("Wybierz kierowcę", "Select driver"), color = RideGreen, fontSize = 11.sp)
++                                }
+@@ -2183,2 +2205,21 @@
+-            }
+-        }
++                item {
++                    when {
++                        state.quoteBusy -> Text(t("Aktualizujemy wycenę…", "Updating your quote…"), color = RideGreen)
++                        state.quoteError != null -> {
++                            Text(state.quoteError, color = Color.White)
++                            TextButton(onClick = { vm.refreshBookingQuote(additionalId) }) { Text(t("Spróbuj ponownie", "Try again"), color = RideGreen) }
++                        }
++                        state.bookingQuote?.pricing != null -> BookingPricingTotals(requireNotNull(state.bookingQuote.pricing), state.language)
++                    }
++                    Spacer(Modifier.height(12.dp))
++                    PremiumButton(t("Gotowe — wróć do podsumowania", "Done — return to summary"), { extrasPicker = false }, Modifier.fillMaxWidth(), Icons.Default.Check,
++                        enabled = vm.isQuoteCurrent(additionalId) && !state.busy)
++                    Spacer(Modifier.height(22.dp))
++                }
++            }
++        }
++    }
++
++    if (breakdownOpen && state.bookingQuote?.pricing != null) {
++        BookingBreakdownSheet(requireNotNull(state.bookingQuote.pricing), state.language,
++            offer.depositAmount ?: if (offer.features.noDeposit) 0.0 else null, onDismiss = { breakdownOpen = false })
+@@ -2232,0 +2274,5 @@
++    BookingPricingTotals(pricing, language)
++}
++
++@Composable
++private fun BookingPricingTotals(pricing: BookingPricing, language: AppLanguage) {
+@@ -2235,0 +2282,26 @@
++}
++
++@Composable
++private fun RefundableCashDeposit(amount: Double?, currency: String) {
++    Spacer(Modifier.height(12.dp))
++    HorizontalDivider(color = Color.White.copy(.12f))
++    Spacer(Modifier.height(10.dp))
++    PriceLine(t("Zwrotna kaucja gotówkowa", "Refundable cash security deposit"),
++        amount?.let { "${formatMoney(it)} $currency" } ?: t("Sprawdź warunki partnera", "Check partner terms"))
++    Text(t("Osobno od ceny wynajmu. Ewentualna kaucja jest zwracana zgodnie z warunkami partnera.",
++        "Separate from the rental price. Any cash security deposit is refunded under the partner's terms."), color = TextMuted, fontSize = 10.sp)
++}
++
++@OptIn(ExperimentalMaterial3Api::class)
++@Composable
++private fun BookingBreakdownSheet(pricing: BookingPricing, language: AppLanguage, deposit: Double?, onDismiss: () -> Unit) {
++    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color(0xFF062B55), contentColor = Color.White) {
++        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
++            Text(t("Rozliczenie rezerwacji", "Booking breakdown"), color = Color.White, fontSize = 21.sp, fontWeight = FontWeight.Black)
++            Spacer(Modifier.height(16.dp))
++            BookingPricingLines(pricing, language)
++            RefundableCashDeposit(deposit, pricing.currency)
++            Spacer(Modifier.height(16.dp))
++            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End)) { Text(t("Zamknij", "Close"), color = RideGreen) }
++        }
++    }
+@@ -2542,2 +2614,2 @@
+-                    InfoLine(Icons.Default.AccountBalanceWallet, t("Depozyt", "Deposit"), t("0 zł • brak depozytu", "0 • no deposit"))
+-                    b.mileageLimitSnapshot?.let { InfoLine(Icons.Default.Speed, t("Limit kilometrów", "Mileage limit"), if (it <= 0) t("Bez limitu", "Unlimited") else state.language.pick("$it km/doba", "$it km/day")) }
++                    InfoLine(Icons.Default.AccountBalanceWallet, t("Zwrotna kaucja gotówkowa", "Refundable cash security deposit"), b.depositSnapshot?.let { "${formatMoney(it)} ${b.currency}" } ?: t("Sprawdź warunki partnera", "Check partner terms"))
++                    InfoLine(Icons.Default.Speed, t("Limit kilometrów", "Mileage limit"), if ((b.mileageLimitSnapshot ?: 0) <= 0) t("Bez limitu", "Unlimited") else state.language.pick("${b.mileageLimitSnapshot} km/doba", "${b.mileageLimitSnapshot} km/day"))
+@@ -2550 +2622,6 @@
+-                    if (b.pricing != null) { BookingPricingLines(b.pricing, state.language) } else {
++                    if (b.pricing != null) {
++                        var detailBreakdown by remember(b.id) { mutableStateOf(false) }
++                        BookingPricingTotals(b.pricing, state.language)
++                        TextButton(onClick = { detailBreakdown = true }) { Text(t("Zobacz rozliczenie", "View breakdown"), color = RideGreen) }
++                        if (detailBreakdown) BookingBreakdownSheet(b.pricing, state.language, b.depositSnapshot, onDismiss = { detailBreakdown = false })
++                    } else {
+--- /dev/null
++++ b/client/app/src/test/java/pl/ride24/client/data/BookingContractTest.kt
+@@ -0,0 +1,98 @@
++package pl.ride24.client.data
++
++import java.time.LocalDate
++import java.util.concurrent.TimeUnit
++import kotlinx.coroutines.runBlocking
++import okhttp3.mockwebserver.MockResponse
++import okhttp3.mockwebserver.MockWebServer
++import org.json.JSONObject
++import org.junit.Assert.*
++import org.junit.Test
++
++class BookingContractTest {
++    private val offer = CarOffer("car", "partner")
++    private fun criteria(days: Long = 5) = SearchCriteria(
++        LocationItem(country = "Albania", city = "Tirana", locationName = "Airport (TIA)"),
++        LocationItem(country = "Albania", city = "Durrës", locationName = "City Office"),
++        LocalDate.of(2027, 1, 10), LocalDate.of(2027, 1, 10).plusDays(days))
++    private fun fixture(name: String = "ride24-quote.json") = JSONObject(javaClass.classLoader!!.getResource(name)!!.readText())
++    private fun selections() = listOf(ExtraSelection("60000000-0000-4000-8000-000000000001", 2), ExtraSelection("60000000-0000-4000-8000-000000000002", 1))
++
++    @Test fun sendsStoredPointNamesAndKeepsDecoratedNamesForDisplay() {
++        val c = criteria(); val body = bookingRequestContext(offer, c, null)
++        assertEquals("Airport (TIA)", body.getString("pickup_location"))
++        assertEquals("City Office", body.getString("return_location"))
++        assertTrue(c.pickup.displayName.contains("Albania"))
++        assertFalse(body.getString("pickup_location").contains("•"))
++    }
++    @Test fun cityOrCountrySuggestionCannotBeSubmittedAsABookablePoint() {
++        assertThrows(IllegalArgumentException::class.java) { bookingRequestContext(offer, criteria().copy(pickup = LocationItem(country = "Albania")), null) }
++    }
++    @Test fun readsServerCatalogueNamesBillingQuantityAndFullPriceWithoutRecalculating() {
++        val q = BookingQuote.fromJson(fixture()); val p = q.pricing!!
++        assertEquals(2, q.catalog.size); assertEquals(3, q.catalog.first { it.code == "child_seat" }.maxQuantity)
++        assertEquals("day", q.catalog.first { it.code == "child_seat" }.billing)
++        assertTrue(q.catalog.first().namePl.isNotBlank()); assertTrue(q.catalog.first().nameEn.isNotBlank())
++        assertEquals(41650L, p.totalCents); assertEquals(34000L, p.partnerCents); assertEquals(32895L, p.onlinePlnCents)
++        assertEquals(5, p.items.size); assertEquals(3750L, p.items.first { it.kind == "extra" && it.billing == "day" }.amountCents)
++    }
++    @Test fun sendsSameFingerprintAndSelectionsToBookingWithoutClientMoney() {
++        val q = BookingQuote.fromJson(fixture()); val body = q.acceptedPricingPayload(selections())
++        assertEquals(2, body.getInt("pricing_version")); assertEquals(q.fingerprint, body.getString("pricing_fingerprint"))
++        assertEquals(2, body.getJSONArray("extras").getJSONObject(0).getInt("quantity"))
++        assertFalse(body.has("total_cents")); assertFalse(body.has("partner_cents"))
++    }
++    @Test fun emergencyDisabledFeatureCannotDropSelectedExtras() {
++        assertThrows(IllegalStateException::class.java) { BookingQuote(false).acceptedPricingPayload(selections()) }
++        assertEquals(0, BookingQuote(false).acceptedPricingPayload(emptyList()).length())
++    }
++    @Test fun enabledQuoteMustHaveCompletePricingAndFingerprint() {
++        assertThrows(Exception::class.java) { BookingQuote.fromJson(JSONObject().put("enabled", true)) }
++        val q=BookingQuote.fromJson(fixture())
++        assertThrows(IllegalStateException::class.java) { q.copy(fingerprint="bad").acceptedPricingPayload(emptyList()) }
++    }
++    @Test fun changedDatesUseNewServerAmountsAndFingerprint() {
++        val original=BookingQuote.fromJson(fixture());val changed=BookingQuote.fromJson(fixture("ride24-quote-shorter.json"))
++        assertNotEquals(original.fingerprint, changed.fingerprint)
++        assertEquals(1500L, changed.pricing!!.items.first { it.kind=="extra" && it.billing=="day" }.amountCents)
++        assertEquals("2027-01-12", bookingRequestContext(offer,criteria(2),null).getString("end_date"))
++    }
++    @Test fun additionalDriverIsIncludedInBothRequestContexts() {
++        assertEquals("driver", bookingRequestContext(offer,criteria(),"driver").getString("additional_driver_id"))
++        assertFalse(bookingRequestContext(offer,criteria(),null).has("additional_driver_id"))
++    }
++    @Test fun driverProductTracksDriverSelectionAndDoesNotDuplicateOrRemoveOtherExtras() {
++        val driver=BookingExtra("driver-extra","additional_driver","Kierowca","Driver","rental",1,1250)
++        val selected=selections().withAdditionalDriver(listOf(driver),"driver-id")
++        assertEquals(1,selected.count { it.id==driver.id });assertEquals(3,selected.size)
++        assertEquals(selected,selected.withAdditionalDriver(listOf(driver),"driver-id"))
++        assertEquals(selections(),selected.withAdditionalDriver(listOf(driver),null))
++        assertEquals(selections(),selections().withAdditionalDriver(emptyList(),"free-driver"))
++    }
++    @Test fun legacyBookingsWithoutSnapshotStillReadTheirSavedAmounts() {
++        val booking=Booking.fromJson(JSONObject().put("id","old").put("status","paid").put("final_price_snapshot",123.45)
++            .put("online_payment_pln",50).put("pickup_payment_partner_currency",110).put("deposit_snapshot",100))
++        assertNull(booking.pricing);assertEquals(123.45,booking.finalPriceSnapshot,0.0);assertEquals(100.0,booking.depositSnapshot!!,0.0)
++    }
++    @Test fun actualHttpClientSendsCanonicalContextAndBearerThenParsesTheServerQuote() = runBlocking {
++        MockWebServer().use { server ->
++            server.enqueue(MockResponse().setHeader("Content-Type","application/json").setBody(fixture().toString()))
++            server.start()
++            val api=Ride24Api(server.url("/").toString().trimEnd('/'),"test-public-key")
++            api.sessionProvider={Session("test-jwt","test-refresh","user","test@example.invalid",Long.MAX_VALUE)}
++            val q=BookingQuote.fromJson(api.function("booking-options",bookingRequestContext(offer,criteria(),null).put("extras",selections().toJsonArray()),true))
++            val request=server.takeRequest(5,TimeUnit.SECONDS)!!
++            assertEquals("/functions/v1/booking-options",request.path);assertEquals("Bearer test-jwt",request.getHeader("Authorization"))
++            assertEquals("Airport (TIA)",JSONObject(request.body.readUtf8()).getString("pickup_location"));assertEquals(41650L,q.pricing!!.totalCents)
++        }
++    }
++    @Test fun actualHttpConflictIsNotTreatedAsSuccessfulOrCheaperQuote() = runBlocking {
++        MockWebServer().use { server ->
++            server.enqueue(MockResponse().setResponseCode(409).setBody("{\"code\":\"QUOTE_CHANGED\",\"error\":\"Price changed\"}"));server.start()
++            val api=Ride24Api(server.url("/").toString().trimEnd('/'),"test-public-key")
++            api.sessionProvider={Session("test-jwt","test-refresh","user","test@example.invalid",Long.MAX_VALUE)}
++            try { api.function("create-booking-request",JSONObject(),true);fail("409 must throw") }
++            catch(e:ApiException){assertEquals(409,e.status);assertEquals("QUOTE_CHANGED",e.code)}
++        }
++    }
++}
+--- /dev/null
++++ b/client/app/src/test/resources/ride24-partner-items.json
+@@ -0,0 +1 @@
++{"id":"booking","items":[{"kind":"rental","id":null,"name_pl":"Wynajem samochodu","name_en":"Car rental","quantity":1,"days":5,"billing":"rental","amount_cents":20000},{"kind":"pickup","id":"pickup","name_pl":"Odbiór","name_en":"Pickup","quantity":1,"days":1,"billing":"rental","amount_cents":5000,"location_name":"Airport (TIA)"},{"kind":"return","id":"return","name_pl":"Zwrot","name_en":"Return","quantity":1,"days":1,"billing":"rental","amount_cents":5000,"location_name":"City Office"},{"kind":"extra","id":"60000000-0000-4000-8000-000000000001","name_pl":"Fotelik dziecięcy","name_en":"Child seat","quantity":2,"days":5,"billing":"day","amount_cents":3000},{"kind":"extra","id":"60000000-0000-4000-8000-000000000002","name_pl":"Nawigacja GPS","name_en":"GPS navigation","quantity":1,"days":1,"billing":"rental","amount_cents":1000}],"deposit_cents":10000}
+--- /dev/null
++++ b/client/app/src/test/resources/ride24-quote-shorter.json
+@@ -0,0 +1 @@
++{"enabled":true,"pricing":{"version":2,"currency":"EUR","items":[{"kind":"rental","id":null,"name_pl":"Wynajem samochodu","name_en":"Car rental","quantity":1,"days":2,"billing":"rental","customer_cents":10000},{"kind":"pickup","id":"pickup","name_pl":"Odbiór","name_en":"Pickup","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"Airport (TIA)"},{"kind":"return","id":"return","name_pl":"Zwrot","name_en":"Return","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"City Office"},{"kind":"extra","id":"60000000-0000-4000-8000-000000000001","name_pl":"Fotelik dziecięcy","name_en":"Child seat","quantity":2,"days":2,"billing":"day","customer_cents":1500},{"kind":"extra","id":"60000000-0000-4000-8000-000000000002","name_pl":"Nawigacja GPS","name_en":"GPS navigation","quantity":1,"days":1,"billing":"rental","customer_cents":1250}],"gross_cents":25250,"loyalty_discount_cents":505,"total_cents":24745,"online_pln_cents":19544,"exchange_rate":4.3,"pickup_payment_cents":20200},"fingerprint":"e77741cba596334bc3dae40c6834da54703671b6165924f8d8518b43578399a9","catalog":[{"id":"60000000-0000-4000-8000-000000000001","code":"child_seat","name_pl":"Fotelik dziecięcy","name_en":"Child seat","billing":"day","max_quantity":3,"unit_customer_cents":375},{"id":"60000000-0000-4000-8000-000000000002","code":"gps","name_pl":"Nawigacja GPS","name_en":"GPS navigation","billing":"rental","max_quantity":1,"unit_customer_cents":1250}]}
+--- /dev/null
++++ b/client/app/src/test/resources/ride24-quote.json
+@@ -0,0 +1 @@
++{"enabled":true,"pricing":{"version":2,"currency":"EUR","items":[{"kind":"rental","id":null,"name_pl":"Wynajem samochodu","name_en":"Car rental","quantity":1,"days":5,"billing":"rental","customer_cents":25000},{"kind":"pickup","id":"pickup","name_pl":"Odbiór","name_en":"Pickup","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"Airport (TIA)"},{"kind":"return","id":"return","name_pl":"Zwrot","name_en":"Return","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"City Office"},{"kind":"extra","id":"60000000-0000-4000-8000-000000000001","name_pl":"Fotelik dziecięcy","name_en":"Child seat","quantity":2,"days":5,"billing":"day","customer_cents":3750},{"kind":"extra","id":"60000000-0000-4000-8000-000000000002","name_pl":"Nawigacja GPS","name_en":"GPS navigation","quantity":1,"days":1,"billing":"rental","customer_cents":1250}],"gross_cents":42500,"loyalty_discount_cents":850,"total_cents":41650,"online_pln_cents":32895,"exchange_rate":4.3,"pickup_payment_cents":34000},"fingerprint":"926f975fa2a88611b2ca6bc15ddda60dd7f07d76d65a04c0c0b58c1218fb51f8","catalog":[{"id":"60000000-0000-4000-8000-000000000001","code":"child_seat","name_pl":"Fotelik dziecięcy","name_en":"Child seat","billing":"day","max_quantity":3,"unit_customer_cents":375},{"id":"60000000-0000-4000-8000-000000000002","code":"gps","name_pl":"Nawigacja GPS","name_en":"GPS navigation","billing":"rental","max_quantity":1,"unit_customer_cents":1250}]}
+--- a/partner/app/build.gradle.kts
++++ b/partner/app/build.gradle.kts
+@@ -24,2 +24,2 @@
+-        versionCode = 7
+-        versionName = "1.0.6"
++        versionCode = 8
++        versionName = "1.0.7"
+@@ -122,0 +123 @@
++    testImplementation("org.json:json:20240303")
+--- a/partner/app/src/main/java/pl/ride24/partner/MainViewModel.kt
++++ b/partner/app/src/main/java/pl/ride24/partner/MainViewModel.kt
+@@ -177,0 +178,4 @@
++        if (_state.value.bookings.firstOrNull { it.id == id }?.breakdownLoaded != true) {
++            _state.update { it.copy(message = getApplication<Application>().getString(pl.ride24.partner.R.string.breakdown_unavailable)) }
++            return
++        }
+--- /dev/null
++++ b/partner/app/src/main/java/pl/ride24/partner/data/BookingBreakdown.kt
+@@ -0,0 +1,19 @@
++package pl.ride24.partner.data
++
++import org.json.JSONObject
++
++/** The endpoint exposes partner amounts only; no platform margin enters this model. */
++data class BookingBreakdown(val items: List<BookingPriceItem>, val depositCents: Long?) {
++    companion object {
++        fun fromJson(row: JSONObject): BookingBreakdown {
++            val items = row.getJSONArray("items")
++            val deposit = if (row.has("deposit_cents") && !row.isNull("deposit_cents")) row.getLong("deposit_cents").also { require(it >= 0) } else null
++            return BookingBreakdown((0 until items.length()).map { index ->
++                val item = items.getJSONObject(index)
++                BookingPriceItem(item.getString("name_pl"), item.getString("name_en"), item.getInt("quantity").also { require(it in 1..10) },
++                    item.getInt("days").also { require(it in 1..366) }, item.getString("billing").also { require(it in listOf("day", "rental")) },
++                    item.optString("location_name", ""), item.getLong("amount_cents").also { require(it >= 0) })
++            }, deposit)
++        }
++    }
++}
+--- a/partner/app/src/main/java/pl/ride24/partner/data/Models.kt
++++ b/partner/app/src/main/java/pl/ride24/partner/data/Models.kt
+@@ -58 +58,3 @@
+-    val priceItems: List<BookingPriceItem> = emptyList()
++    val priceItems: List<BookingPriceItem> = emptyList(),
++    val depositCents: Long? = null,
++    val breakdownLoaded: Boolean = false
+--- a/partner/app/src/main/java/pl/ride24/partner/data/Ride24Api.kt
++++ b/partner/app/src/main/java/pl/ride24/partner/data/Ride24Api.kt
+@@ -139 +139 @@
+-        val itemsById = mutableMapOf<String, List<BookingPriceItem>>()
++        val itemsById = mutableMapOf<String, BookingBreakdown>()
+@@ -141,11 +141,9 @@
+-            val payload = JSONObject().put("booking_ids", JSONArray(batch.map { it.id }))
+-            val response = executeAuthorized(validSession(), Request.Builder()
+-                .url("${baseUrl()}/functions/v1/partner-booking-items")
+-                .post(payload.toString().toRequestBody(jsonMedia)))
+-            val rows = JSONObject(response).getJSONArray("bookings")
+-            for (i in 0 until rows.length()) {
+-                val row = rows.getJSONObject(i)
+-                val items = row.getJSONArray("items")
+-                itemsById[row.getString("id")] = (0 until items.length()).map { j ->
+-                    val item = items.getJSONObject(j)
+-                    BookingPriceItem(item.getString("name_pl"), item.getString("name_en"), item.getInt("quantity"), item.getInt("days"), item.getString("billing"), item.optString("location_name", ""), item.getLong("amount_cents"))
++            try {
++                val payload = JSONObject().put("booking_ids", JSONArray(batch.map { it.id }))
++                val response = executeAuthorized(validSession(), Request.Builder()
++                    .url("${baseUrl()}/functions/v1/partner-booking-items")
++                    .post(payload.toString().toRequestBody(jsonMedia)))
++                val rows = JSONObject(response).getJSONArray("bookings")
++                val parsed = (0 until rows.length()).associate { i ->
++                    val row = rows.getJSONObject(i)
++                    row.getString("id") to BookingBreakdown.fromJson(row)
+@@ -153,3 +151,10 @@
+-            }
+-        }
+-        bookings.map { it.copy(priceItems = itemsById[it.id].orEmpty()) }
++                itemsById.putAll(parsed)
++            } catch (error: Exception) {
++                if (error is kotlinx.coroutines.CancellationException) throw error
++                // Keep the reservation list usable, but block acceptance until details reload.
++            }
++        }
++        bookings.map { booking ->
++            val breakdown = itemsById[booking.id]
++            booking.copy(priceItems = breakdown?.items.orEmpty(), depositCents = breakdown?.depositCents, breakdownLoaded = breakdown != null)
++        }
+--- a/partner/app/src/main/java/pl/ride24/partner/ui/Ride24PartnerRoot.kt
++++ b/partner/app/src/main/java/pl/ride24/partner/ui/Ride24PartnerRoot.kt
+@@ -48,0 +49 @@
++import androidx.compose.foundation.verticalScroll
+@@ -1567,0 +1569 @@
++    var breakdownOpen by remember(booking.id) { mutableStateOf(false) }
+@@ -1675,9 +1677,12 @@
+-        booking.priceItems.forEachIndexed { index, priceItem ->
+-            item(key = "price-item-$index") {
+-                val isPl = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "pl"
+-                val title = (if (isPl) priceItem.namePl else priceItem.nameEn) +
+-                    (if (priceItem.quantity > 1) " × ${priceItem.quantity}" else "") +
+-                    (if (priceItem.billing == "day") " × ${priceItem.days} " + (if (isPl) "dni" else "days") else "")
+-                CompactDetailRow(icon = Icons.Default.Receipt, title = title,
+-                    primary = "${"%.2f".format(Locale.US, priceItem.amountCents / 100.0)} ${booking.partnerCurrency ?: "EUR"}",
+-                    secondary = priceItem.location.takeIf { it.isNotBlank() }, onClick = null)
++        item {
++            if (booking.breakdownLoaded) {
++                OutlinedButton(onClick = { breakdownOpen = true }, modifier = Modifier.fillMaxWidth(), border = BorderStroke(1.dp, BrandGreen)) {
++                    Icon(Icons.Default.Receipt, null, tint = BrandGreen)
++                    Spacer(Modifier.width(8.dp))
++                    Text(stringResource(R.string.view_breakdown), color = BrandGreen, fontWeight = FontWeight.Bold)
++                }
++            } else {
++                Column(Modifier.fillMaxWidth().padding(12.dp)) {
++                    Text(stringResource(R.string.breakdown_unavailable), color = Color.White)
++                    TextButton(onClick = viewModel::refresh, enabled = !state.loading) { Text(stringResource(R.string.refresh), color = BrandGreen) }
++                }
+@@ -1702,0 +1708 @@
++                        enabled = booking.breakdownLoaded && !state.loading,
+@@ -1787,0 +1794,34 @@
++    }
++
++    if (breakdownOpen) {
++        AlertDialog(
++            onDismissRequest = { breakdownOpen = false }, containerColor = DeepBlue,
++            titleContentColor = Color.White, textContentColor = Color.White,
++            title = { Text(stringResource(R.string.view_breakdown), fontWeight = FontWeight.Black) },
++            text = {
++                Column(Modifier.fillMaxWidth().heightIn(max = 510.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
++                    val isPl = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "pl"
++                    val currency = booking.partnerCurrency ?: "EUR"
++                    booking.priceItems.forEach { priceItem ->
++                        Column {
++                            val title = (if (isPl) priceItem.namePl else priceItem.nameEn) +
++                                (if (priceItem.quantity > 1) " × ${priceItem.quantity}" else "") +
++                                (if (priceItem.billing == "day") " × ${priceItem.days} " + (if (isPl) "dni" else "days") else "")
++                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
++                                Text(title, modifier = Modifier.weight(1f), fontSize = 13.sp)
++                                Text("${"%.2f".format(Locale.US, priceItem.amountCents / 100.0)} $currency", fontWeight = FontWeight.Bold, fontSize = 13.sp)
++                            }
++                            if (priceItem.location.isNotBlank()) Text(priceItem.location, color = Color.White.copy(.7f), fontSize = 11.sp)
++                        }
++                    }
++                    HorizontalDivider(color = Color.White.copy(.2f))
++                    Text(stringResource(R.string.partner_amount), color = BrandGreen, fontWeight = FontWeight.Bold)
++                    Text(booking.partnerAmount?.let { "${"%.2f".format(Locale.US, it)} $currency" } ?: "—", fontSize = 20.sp, fontWeight = FontWeight.Black)
++                    HorizontalDivider(color = Color.White.copy(.2f))
++                    Text(stringResource(R.string.cash_security_deposit), fontWeight = FontWeight.Bold)
++                    Text(booking.depositCents?.let { "${"%.2f".format(Locale.US, it / 100.0)} $currency" } ?: stringResource(R.string.deposit_check_terms))
++                    Text(stringResource(R.string.cash_security_deposit_note), color = Color.White.copy(.7f), fontSize = 11.sp)
++                }
++            },
++            confirmButton = { TextButton(onClick = { breakdownOpen = false }) { Text(stringResource(R.string.close), color = BrandGreen) } }
++        )
+--- a/partner/app/src/main/res/values/strings.xml
++++ b/partner/app/src/main/res/values/strings.xml
+@@ -149,0 +150,5 @@
++    <string name="view_breakdown">View breakdown</string>
++    <string name="breakdown_unavailable">Could not load the price breakdown. Refresh before confirming this booking.</string>
++    <string name="cash_security_deposit">Refundable cash security deposit</string>
++    <string name="deposit_check_terms">Check partner terms</string>
++    <string name="cash_security_deposit_note">Separate from the rental price. Refund under the partner rental terms.</string>
+--- a/partner/app/src/main/res/values-pl/strings.xml
++++ b/partner/app/src/main/res/values-pl/strings.xml
+@@ -149,0 +150,5 @@
++    <string name="view_breakdown">Zobacz rozliczenie</string>
++    <string name="breakdown_unavailable">Nie udało się pobrać rozliczenia. Odśwież dane przed potwierdzeniem rezerwacji.</string>
++    <string name="cash_security_deposit">Zwrotna kaucja gotówkowa</string>
++    <string name="deposit_check_terms">Sprawdź warunki partnera</string>
++    <string name="cash_security_deposit_note">Osobno od ceny wynajmu. Zwrot zgodnie z warunkami najmu partnera.</string>
+--- /dev/null
++++ b/partner/app/src/test/java/pl/ride24/partner/data/BookingBreakdownTest.kt
+@@ -0,0 +1,34 @@
++package pl.ride24.partner.data
++
++import org.json.JSONObject
++import org.junit.Assert.*
++import org.junit.Test
++
++class BookingBreakdownTest {
++    private fun fixture()=JSONObject(javaClass.classLoader!!.getResource("ride24-partner-items.json")!!.readText())
++    @Test fun readsAllServerNetItemsAndCashDepositSeparately() {
++        val b=BookingBreakdown.fromJson(fixture())
++        assertEquals(5,b.items.size);assertEquals(34000L,b.items.sumOf { it.amountCents });assertEquals(10000L,b.depositCents)
++        assertEquals(2,b.items.first { it.billing=="day" }.quantity);assertEquals(5,b.items.first { it.billing=="day" }.days)
++        assertEquals(2,b.items.count { it.location.isNotBlank() })
++    }
++    @Test fun historicalEmptyItemsAndUnknownDepositAreAccepted() {
++        val b=BookingBreakdown.fromJson(JSONObject("{\"items\":[],\"deposit_cents\":null}"))
++        assertTrue(b.items.isEmpty());assertNull(b.depositCents)
++    }
++    @Test fun zeroDepositIsNotUnknown() {
++        assertEquals(0L,BookingBreakdown.fromJson(JSONObject("{\"items\":[],\"deposit_cents\":0}")).depositCents)
++    }
++    @Test fun oldSidecarContractWithoutDepositRemainsCompatible() {
++        val row=fixture();row.remove("deposit_cents");assertNull(BookingBreakdown.fromJson(row).depositCents)
++    }
++    @Test fun missingItemsMustNotMasqueradeAsAFreeBooking() {
++        assertThrows(Exception::class.java){BookingBreakdown.fromJson(JSONObject())}
++    }
++    @Test fun negativePriceOrQuantityRejectsTheBreakdown() {
++        val row=fixture();row.getJSONArray("items").getJSONObject(0).put("amount_cents",-1)
++        assertThrows(IllegalArgumentException::class.java){BookingBreakdown.fromJson(row)}
++        val second=fixture();second.getJSONArray("items").getJSONObject(0).put("quantity",0)
++        assertThrows(IllegalArgumentException::class.java){BookingBreakdown.fromJson(second)}
++    }
++}
+--- /dev/null
++++ b/partner/app/src/test/resources/ride24-partner-items.json
+@@ -0,0 +1 @@
++{"id":"booking","items":[{"kind":"rental","id":null,"name_pl":"Wynajem samochodu","name_en":"Car rental","quantity":1,"days":5,"billing":"rental","amount_cents":20000},{"kind":"pickup","id":"pickup","name_pl":"Odbiór","name_en":"Pickup","quantity":1,"days":1,"billing":"rental","amount_cents":5000,"location_name":"Airport (TIA)"},{"kind":"return","id":"return","name_pl":"Zwrot","name_en":"Return","quantity":1,"days":1,"billing":"rental","amount_cents":5000,"location_name":"City Office"},{"kind":"extra","id":"60000000-0000-4000-8000-000000000001","name_pl":"Fotelik dziecięcy","name_en":"Child seat","quantity":2,"days":5,"billing":"day","amount_cents":3000},{"kind":"extra","id":"60000000-0000-4000-8000-000000000002","name_pl":"Nawigacja GPS","name_en":"GPS navigation","quantity":1,"days":1,"billing":"rental","amount_cents":1000}],"deposit_cents":10000}
+--- /dev/null
++++ b/partner/app/src/test/resources/ride24-quote-shorter.json
+@@ -0,0 +1 @@
++{"enabled":true,"pricing":{"version":2,"currency":"EUR","items":[{"kind":"rental","id":null,"name_pl":"Wynajem samochodu","name_en":"Car rental","quantity":1,"days":2,"billing":"rental","customer_cents":10000},{"kind":"pickup","id":"pickup","name_pl":"Odbiór","name_en":"Pickup","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"Airport (TIA)"},{"kind":"return","id":"return","name_pl":"Zwrot","name_en":"Return","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"City Office"},{"kind":"extra","id":"60000000-0000-4000-8000-000000000001","name_pl":"Fotelik dziecięcy","name_en":"Child seat","quantity":2,"days":2,"billing":"day","customer_cents":1500},{"kind":"extra","id":"60000000-0000-4000-8000-000000000002","name_pl":"Nawigacja GPS","name_en":"GPS navigation","quantity":1,"days":1,"billing":"rental","customer_cents":1250}],"gross_cents":25250,"loyalty_discount_cents":505,"total_cents":24745,"online_pln_cents":19544,"exchange_rate":4.3,"pickup_payment_cents":20200},"fingerprint":"e77741cba596334bc3dae40c6834da54703671b6165924f8d8518b43578399a9","catalog":[{"id":"60000000-0000-4000-8000-000000000001","code":"child_seat","name_pl":"Fotelik dziecięcy","name_en":"Child seat","billing":"day","max_quantity":3,"unit_customer_cents":375},{"id":"60000000-0000-4000-8000-000000000002","code":"gps","name_pl":"Nawigacja GPS","name_en":"GPS navigation","billing":"rental","max_quantity":1,"unit_customer_cents":1250}]}
+--- /dev/null
++++ b/partner/app/src/test/resources/ride24-quote.json
+@@ -0,0 +1 @@
++{"enabled":true,"pricing":{"version":2,"currency":"EUR","items":[{"kind":"rental","id":null,"name_pl":"Wynajem samochodu","name_en":"Car rental","quantity":1,"days":5,"billing":"rental","customer_cents":25000},{"kind":"pickup","id":"pickup","name_pl":"Odbiór","name_en":"Pickup","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"Airport (TIA)"},{"kind":"return","id":"return","name_pl":"Zwrot","name_en":"Return","quantity":1,"days":1,"billing":"rental","customer_cents":6250,"location_name":"City Office"},{"kind":"extra","id":"60000000-0000-4000-8000-000000000001","name_pl":"Fotelik dziecięcy","name_en":"Child seat","quantity":2,"days":5,"billing":"day","customer_cents":3750},{"kind":"extra","id":"60000000-0000-4000-8000-000000000002","name_pl":"Nawigacja GPS","name_en":"GPS navigation","quantity":1,"days":1,"billing":"rental","customer_cents":1250}],"gross_cents":42500,"loyalty_discount_cents":850,"total_cents":41650,"online_pln_cents":32895,"exchange_rate":4.3,"pickup_payment_cents":34000},"fingerprint":"926f975fa2a88611b2ca6bc15ddda60dd7f07d76d65a04c0c0b58c1218fb51f8","catalog":[{"id":"60000000-0000-4000-8000-000000000001","code":"child_seat","name_pl":"Fotelik dziecięcy","name_en":"Child seat","billing":"day","max_quantity":3,"unit_customer_cents":375},{"id":"60000000-0000-4000-8000-000000000002","code":"gps","name_pl":"Nawigacja GPS","name_en":"GPS navigation","billing":"rental","max_quantity":1,"unit_customer_cents":1250}]}
