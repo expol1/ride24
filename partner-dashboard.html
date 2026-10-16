@@ -3156,18 +3156,17 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
             const money = value => (Number(value || 0) / 100).toFixed(2) + ' ' + snapshot.currency;
             const modal = document.createElement('dialog');
             modal.className = 'r24-partner-items-dialog';
-            modal.setAttribute('aria-label',isEn ? 'Ordered extras' : 'Zamówione dodatki');
+            modal.setAttribute('aria-label',isEn ? 'Partner price breakdown' : 'Rozliczenie partnera');
             const title=document.createElement('h3');
-            title.textContent=isEn?'Ordered extras':'Zamówione dodatki';
+            title.textContent=isEn?'Partner price breakdown':'Rozliczenie partnera';
             const head=document.createElement('div');head.className='r24-partner-items-head';
             const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label',isEn?'Close':'Zamknij');close.onclick=()=>modal.close();
             head.append(title,close);modal.append(head);
             const body=document.createElement('div');body.className='r24-partner-items-body';
-            const heading=document.createElement('p');heading.textContent=isEn?'Additional equipment selected by the customer':'Wyposażenie dodatkowe zamówione przez klienta';
+            const heading=document.createElement('p');heading.textContent=isEn?'Only charges payable to you, based on the confirmed booking quote.':'Wyłącznie kwoty należne Twojej firmie zgodnie z zapisaną wyceną.';
             body.append(heading);
-            const extras=snapshot.items.filter(item=>item.kind==='extra');
-            if(!extras.length){const empty=document.createElement('p');empty.textContent=isEn?'No additional equipment ordered.':'Nie zamówiono dodatkowego wyposażenia.';body.append(empty);}
-            for(const item of extras){
+            // Rental, pickup, return and paid extras already carry partner-only amounts.
+            for(const item of snapshot.items){
                 const line=document.createElement('div');line.className='r24-partner-items-line';
                 const name=document.createElement('span');
                 name.textContent=(isEn?item.name_en:item.name_pl) +
@@ -3177,9 +3176,14 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
                 line.append(name,cost);body.append(line);
             }
             const total=document.createElement('div');total.className='r24-partner-items-total';
-            const caption=document.createElement('strong');caption.textContent=isEn?'Extras total':'Suma dodatków';
-            const cost=document.createElement('strong');cost.textContent=money(extras.reduce((sum,item)=>sum+Number(item.partner_cents||0),0));
+            const caption=document.createElement('strong');caption.textContent=isEn?'Total payable to partner':'Łącznie do zapłaty partnerowi';
+            const cost=document.createElement('strong');cost.textContent=money(snapshot.partner_cents);
             total.append(caption,cost);body.append(total);
+            const cashDeposit=Number(window.ride24PartnerBookingDeposits?.get(bookingId) || 0);
+            const deposit=document.createElement('div');deposit.className='r24-partner-items-deposit';
+            const depositLabel=document.createElement('span');depositLabel.textContent=isEn?'Refundable cash security deposit (not part of rental price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)';
+            const depositValue=document.createElement('strong');depositValue.textContent=cashDeposit>0 ? cashDeposit.toFixed(2)+' '+snapshot.currency : (isEn?'No cash deposit':'Brak kaucji');
+            deposit.append(depositLabel,depositValue);body.append(deposit);
             modal.append(body);
             document.body.append(modal);modal.addEventListener('close',()=>modal.remove(),{once:true});modal.showModal();
         };
@@ -3195,6 +3199,8 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
         .r24-partner-items-line,.r24-partner-items-total{display:flex;align-items:start;justify-content:space-between;gap:18px;padding:12px 0;border-bottom:1px solid #e2e8f0;font-size:14px}
         .r24-partner-items-line strong,.r24-partner-items-total strong:last-child{white-space:nowrap}
         .r24-partner-items-total{background:#eff6ff;padding:16px;margin-top:16px;border:0;border-radius:11px;color:#1e40af}
+        .r24-partner-items-deposit{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;margin-top:12px;border-radius:11px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;font-size:13px}
+        .r24-partner-items-deposit strong{white-space:nowrap}
         .r24-items-open{display:block;margin-top:7px;background:none;border:0;color:#2563eb;text-align:left;padding:2px 0;font-size:12px;font-weight:700;cursor:pointer;white-space:normal;text-decoration:underline}
         `;
         document.head.append(partnerItemsStyles);
@@ -3251,6 +3257,7 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
 
             let bookingExtrasLoadFailed = false;
             window.ride24PartnerBookingItems = new Map();
+            window.ride24PartnerBookingDeposits = new Map(data.map(b=>[b.id,b.deposit_snapshot]));
             try {
                 for (let offset=0; offset<data.length; offset+=100) {
                     const batch=data.slice(offset,offset+100);
@@ -3491,7 +3498,7 @@ const rowHtml = `
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : (booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View extras' : 'Zobacz dodatki'}</button>` : '')}
+            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : (booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : '')}
         </td>
 
         <!-- AKCJE -->
@@ -3547,7 +3554,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
         <!-- 🔥 NOWA KOLUMNA -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${!bookingExtrasLoadFailed && booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View extras' : 'Zobacz dodatki'}</button>` : ''}
+            ${!bookingExtrasLoadFailed && booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : ''}
         </td>
 
         <td>${actions}</td>
