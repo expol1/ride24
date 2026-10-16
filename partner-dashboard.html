@@ -3498,7 +3498,7 @@ const rowHtml = `
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : (booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : '')}
+            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : (booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : '')}
         </td>
 
         <!-- AKCJE -->
@@ -3554,7 +3554,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
         <!-- 🔥 NOWA KOLUMNA -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${!bookingExtrasLoadFailed && booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : ''}
+            ${!bookingExtrasLoadFailed && booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : ''}
         </td>
 
         <td>${actions}</td>
