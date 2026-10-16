@@ -17,11 +17,22 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
     function render() {
         const box = el('bookingPriceBreakdown'); box.replaceChildren();
         const picker = el('bookingExtrasPicker'); picker.replaceChildren();
+        const total = el('bookingExtrasTotal'); total?.replaceChildren();
         const enabled = quote?.enabled === true;
         box.hidden = !enabled;
         picker.hidden = !enabled;
+        if (total) total.hidden = !enabled;
         el('equipmentLegacyInfo').hidden = enabled;
-        if (!enabled) return;
+        if (!enabled) {
+            // Do not silently convert a previously selected v2 extra into a free v1 booking.
+            if (selections.length) {
+                ready = false;
+                el('confirmBookingBtn').disabled = true;
+                box.hidden = false;
+                box.append(node('p', label('Płatne dodatki zostały tymczasowo wyłączone. Wróć do wyników i rozpocznij rezerwację ponownie.', 'Paid extras were disabled. Return to results and start a new booking.')));
+            }
+            return;
+        }
         const p = quote.pricing;
         box.append(node('h4', label('Podsumowanie ceny', 'Price summary')));
         for (const item of p.items) {
@@ -56,12 +67,25 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
             }
             picker.append(r);
         }
-        picker.append(node('small', label('Pełne kwoty za wybraną liczbę sztuk i dni znajdziesz w podsumowaniu.', 'The summary shows exact totals for the selected quantity and days.')));
+        picker.append(node('small', label('Kwoty obejmują wybraną liczbę sztuk i dni. Aktualizacja ceny pochodzi bezpośrednio z serwera Ride24.', 'Prices reflect quantity and days. The updated quote comes directly from Ride24.')));
+        if (total) {
+            const selected = p.items.filter(item => item.kind === 'extra');
+            total.append(node('strong', label('Twoje dodatki', 'Your extras') + ': ' + (selected.length ? selected.length : label('brak', 'none'))));
+            for (const item of selected) {
+                const name = (isEn() ? item.name_en : item.name_pl) + ' × ' + item.quantity + (item.billing === 'day' ? ' × ' + item.days + ' ' + label('dni', 'days') : '');
+                row(total, name, money(item.customer_cents, p.currency));
+            }
+            row(total, label('Łączna cena rezerwacji', 'Total booking price'), money(p.total_cents, p.currency), true);
+            row(total, label('Online Ride24', 'Online Ride24'), money(p.online_pln_cents, 'PLN'));
+            row(total, label('Do zapłaty partnerowi', 'Payable to partner'), money(p.pickup_payment_cents, p.currency));
+        }
     }
     async function refresh() {
         const current = ++revision; lock(); busy = true;
         const box = el('bookingPriceBreakdown'); box.hidden = false;
         box.replaceChildren(node('p', label('Obliczamy pełną cenę…', 'Calculating the full price…')));
+        const total = el('bookingExtrasTotal');
+        if (total) { total.hidden = false; total.replaceChildren(node('p', label('Aktualizujemy wycenę…', 'Updating your quote…'))); }
         try {
             const c = context();
             const driverExtra = quote?.catalog?.find(x => x.code === 'additional_driver');
@@ -81,7 +105,11 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
             if (current !== revision) return;
             busy = false;
             box.replaceChildren(node('p', error.message));
+            const total = el('bookingExtrasTotal');
+            if (total) { total.hidden = false; total.replaceChildren(node('p', error.message)); }
             const retry = node('button', label('Spróbuj ponownie', 'Try again')); retry.type = 'button'; retry.className = 'btn-secondary'; retry.onclick = refresh; box.append(retry);
+            // Never permit booking with an unvalidated, stale quote.
+            ready = false; el('confirmBookingBtn').disabled = true;
         }
     }
     return {
@@ -89,6 +117,7 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         refresh,
         close() { ++revision; ready = false; busy = false; },
         payload() {
+            if (selections.length && !quote?.enabled) throw new Error(label('Płatne dodatki nie są obecnie dostępne. Nie można ich pominąć po cichu.', 'Paid extras are currently unavailable and cannot be silently removed.'));
             if (!ready || busy || quoteContext !== JSON.stringify(context())) throw new Error(label('Sprawdź aktualne podsumowanie ceny.', 'Review the current price summary.'));
             return quote?.enabled ? { pricing_version: 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })) } : {};
         },
