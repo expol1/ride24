@@ -1355,7 +1355,13 @@
         .equipment-info-actions{position:sticky;bottom:-26px;padding-top:12px;background:white;z-index:2;}
         @media(max-width:560px){.booking-extra-row{padding:11px;gap:9px}.equipment-info-box{padding:18px!important}.equipment-info-actions{bottom:-18px}}
         #termsModal .modal-box,.equipment-info-box {max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;}
-    </style>
+    
+/* Booking details: preserve original information and keep the entire modal reachable at 100% zoom. */
+#bookingDetailsModal { padding: 16px; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
+#bookingDetailsModal .modal-content { box-sizing: border-box; width: min(100%, 520px); max-width: 520px !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; margin: auto; flex-shrink: 0; }
+#bookingDetailsModal #bookingDetailsBody { overflow-wrap: anywhere; }
+@media (max-width: 600px) { #bookingDetailsModal { padding: 10px; } #bookingDetailsModal .modal-content { padding: 20px; max-height: calc(100dvh - 20px); } }
+</style>
     <!-- TrustBox script -->
 <script type="text/javascript"
 src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"
@@ -2227,13 +2233,6 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
 
     html += `</div>`;
 }
-            // Read the saved, server-authoritative booking snapshot; no price recalculation here.
-            const priceSnapshot = window.ride24BookingsById?.[bookingId]?.pricing_items_snapshot;
-            if (priceSnapshot?.version === 2) {
-                const breakdown = window.ride24BookingBreakdown(priceSnapshot, false, isEn).replace('<details', '<details open');
-                html += '<section style="background:#fff;padding:14px;margin-top:16px;border-radius:12px;color:#0f172a"><strong style="color:#1e3a8a">' +
-                    (isEn ? 'Ordered extras and final price' : 'Zamówione dodatki i cena końcowa') + '</strong>' + breakdown + '</section>';
-            }
             body.innerHTML = html;
             document.getElementById("bookingDetailsModal").style.display = "flex";
         };
