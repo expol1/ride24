@@ -2860,7 +2860,7 @@ document.addEventListener("click", async function(e) {
 
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || !result?.success) {
-                    if (["QUOTE_CHANGED", "INVALID_BOOKING_OPTIONS", "DRIVER_EXTRA_MISMATCH"].includes(result?.code)) await bookingExtras.refresh();
+                    if (["QUOTE_CHANGED", "INVALID_BOOKING_OPTIONS", "DRIVER_EXTRA_MISMATCH", "PRICING_UPDATE_REQUIRED"].includes(result?.code)) await bookingExtras.refresh();
                     throw new Error((isEn ? result?.error_en : result?.error) || result?.error || (isEn ? "Could not create booking." : "Nie udało się utworzyć rezerwacji."));
                 }
 

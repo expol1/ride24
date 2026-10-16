@@ -28,3 +28,7 @@ Client complete build passed: assembleDebug, bundleRelease and lintVitalRelease,
 Initialized return fees only for the five paid local points, while charging disabled: Madeira Airport 20 EUR, Lisbon Airport 20 EUR, Porto Airport 20 EUR, Ponta Delgada City 7.50 EUR, Ponta Delgada Airport 7.50 EUR. No free locations changed. Post-read: charging false; 55 insured cars; Cube sum of base prices 475 EUR.
 Live HTTP requests without a user session to all four deployed functions returned 401 from their own guards; no server errors or booking records created.
 Browser test on ride24.pl: country Albania lists four locations; Tirana airport to Durres city returns all four Sleid cars. Prices displayed as integers (119/149/208/208 EUR for three days); no booking submission or partner notification.
+
+## Final native build checks
+
+Both full builds passed assembleDebug, bundleRelease and lintVitalRelease. A final client rebuild after pickup-fee wording and flag-transition refresh changes also passed. Client test package pl.ride24.client.test/code16; partner test package pl.ride24.partner.test/code7. Both test APK signatures verify. Both AABs have no JAR signature and must be signed with the owner's existing upload keys. ZIP alignment checks and all 64-bit native ELF LOAD alignments pass the 16 KB check. No new library versions introduced in Android.

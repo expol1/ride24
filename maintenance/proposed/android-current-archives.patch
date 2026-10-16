@@ -1,3 +1,10 @@
+--- a/client/app/build.gradle.kts
++++ b/client/app/build.gradle.kts
+@@ -27,2 +27,2 @@
+-        versionCode = 15
+-        versionName = "1.0.14"
++        versionCode = 16
++        versionName = "1.0.15"
 --- a/client/app/src/main/java/pl/ride24/client/data/BookingQuote.kt
 +++ b/client/app/src/main/java/pl/ride24/client/data/BookingQuote.kt
 @@ -0,0 +1,33 @@
@@ -36,86 +43,40 @@
 +fun List<ExtraSelection>.toJsonArray(): JSONArray = JSONArray().also { array -> forEach { array.put(JSONObject().put("id", it.id).put("quantity", it.quantity)) } }
 --- a/client/app/src/main/java/pl/ride24/client/data/Models.kt
 +++ b/client/app/src/main/java/pl/ride24/client/data/Models.kt
-@@ -258,6 +258,7 @@
-     val status: BookingStatus,
-     val paymentDeadline: Instant? = null,
-     val partnerResponseDeadline: Instant? = null,
+@@ -260,0 +261 @@
 +    val pricing: BookingPricing? = null,
-     val finalPriceSnapshot: Double = 0.0,
-     val onlinePaymentPln: Double = 0.0,
-     val pickupPayment: Double = 0.0,
-@@ -309,6 +310,7 @@
-                 status = BookingStatus.from(json.optString("status")),
-                 paymentDeadline = instant("payment_deadline"),
-                 partnerResponseDeadline = instant("partner_response_deadline"),
+@@ -311,0 +313 @@
 +                pricing = BookingPricing.fromJson(json.optJSONObject("pricing_items_snapshot")),
-                 finalPriceSnapshot = json.optDouble("final_price_snapshot", 0.0),
-                 onlinePaymentPln = json.optDouble("online_payment_pln", 0.0),
-                 pickupPayment = json.optDouble("pickup_payment_partner_currency", 0.0),
 --- a/client/app/src/main/java/pl/ride24/client/data/Repositories.kt
 +++ b/client/app/src/main/java/pl/ride24/client/data/Repositories.kt
-@@ -186,14 +186,19 @@
- class SearchRepository(private val api: Ride24Api) {
-     private val fxCache = ConcurrentHashMap<String, Double>()
- 
+@@ -189 +189,4 @@
 -    suspend fun suggestLocations(text: String): List<LocationItem> {
 +    suspend fun suggestLocations(text: String, pickup: LocationItem? = null, forReturn: Boolean = false): List<LocationItem> {
 +        if (forReturn && pickup == null) return emptyList()
 +        val owners = if (forReturn) locationPartners(requireNotNull(pickup)) else null
 +        if (owners != null && owners.isEmpty()) return emptyList()
-         val q = text.trim()
-         if (q.length < 2) return emptyList()
- 
-         val safeQuery = q
-             .replace("*", "")
+@@ -195 +198 @@
 -            .replace(",", " ")
 +            .replace(Regex("[^\\p{L}\\p{N} -]"), " ")
-             .take(80)
+@@ -196,0 +200,2 @@
 +            .trim()
 +        if (safeQuery.length < 2) return emptyList()
- 
-         // Zgodność z wyszukiwarką WEB Ride24:
-         // 1. najpierw szukamy tłumaczeń i synonimów w locations_dictionary,
-@@ -217,17 +222,18 @@
-                 val row = dictMatches.optJSONObject(i) ?: continue
-                 row.optString("name_en").takeIf { it.isNotBlank() }?.let { translatedTerms += it }
-                 row.optString("name_pl").takeIf { it.isNotBlank() }?.let { translatedTerms += it }
+@@ -220 +225 @@
 -                row.optString("keywords").takeIf { it.isNotBlank() }?.let { translatedTerms += it }
 +                row.optString("keywords").split(",").filter { it.isNotBlank() }.forEach { translatedTerms += it }
-             }
-         }
- 
-         val uniqueTerms = translatedTerms
-             .filter { it.isNotBlank() }
+@@ -226 +231,2 @@
 -            .map { it.lowercase(Locale.ROOT).trim() }
 +            .map { it.replace(Regex("[^\\p{L}\\p{N} -]"), " ").lowercase(Locale.ROOT).trim() }
 +            .filter { it.isNotBlank() }
-             .distinct()
- 
-         val orFilters = uniqueTerms.joinToString(",") { term ->
+@@ -230 +236 @@
 -            "location_name.ilike.*$term*,city.ilike.*$term*,region.ilike.*$term*"
 +            "location_name.ilike.*$term*,city.ilike.*$term*,region.ilike.*$term*,country.ilike.*$term*"
-         }
- 
-         val params = linkedMapOf(
-@@ -237,11 +243,12 @@
-             "limit" to "30"
-         )
- 
+@@ -239,0 +246 @@
 +        if (owners != null) params["partner_id"] = "in.(${owners.joinToString(",")})"
-         val raw = api.rest("partner_locations", params, auth = false).asArray()
-         val unique = LinkedHashMap<String, LocationItem>()
-         for (i in 0 until raw.length()) {
-             val item = LocationItem.fromJson(raw.getJSONObject(i))
+@@ -244 +251 @@
 -            unique.putIfAbsent(item.displayName.lowercase(Locale.ROOT), item)
 +            unique.putIfAbsent(listOf(item.country, item.city, item.displayName).joinToString("\u001f") { it.trim().lowercase(Locale.ROOT) }, item)
-         }
- 
-         // Ranking zgodny z WEB: oceniamy względem tekstu wpisanego przez klienta.
-@@ -316,13 +323,40 @@
-         return value.takeIf { it.isFinite() && it in 0.01..100.0 } ?: 25.0
-     }
- 
+@@ -318,0 +326,23 @@
 +    // Resolve all owners before applying the car result limit. Shared locations
 +    // are identified by name + country + city, never by one partner's row ID.
 +    private suspend fun locationPartners(location: LocationItem): Set<String> {
@@ -139,42 +100,20 @@
 +        return owners
 +    }
 +
-     private suspend fun localCars(criteria: SearchCriteria): JSONArray {
+@@ -319,0 +350,2 @@
 +        val eligible = locationPartners(criteria.pickup).intersect(locationPartners(criteria.dropoff))
 +        if (eligible.isEmpty()) return JSONArray()
-         val loc = criteria.pickup
-         val params = linkedMapOf(
-             "select" to "*,seasonal_prices(season_type,start_month,end_month,public_price,active),partners!inner(id,company_name,active,account_status,currency,min_driver_age,provider_type,api_enabled,partner_locations!inner(country,region,city,location_name,type,active,contact_required,extra_fee,extra_fee_amount))",
-             "active" to "eq.true",
+@@ -323,0 +356 @@
 +            "partner_id" to "in.(${eligible.joinToString(",")})",
-             "partners.active" to "eq.true",
-             "partners.account_status" to "eq.active",
+@@ -325,0 +359 @@
 +            "partners.or" to "(provider_type.eq.local,provider_type.is.null)",
-             "partners.partner_locations.active" to "eq.true",
-             "limit" to "20"
-         )
-@@ -332,6 +366,8 @@
-             loc.type == "region" && loc.region.isNotBlank() -> params["partners.partner_locations.region"] = "eq.${loc.region}"
-             loc.country.isNotBlank() -> params["partners.partner_locations.country"] = "eq.${loc.country}"
-         }
+@@ -334,0 +369,2 @@
 +        if (loc.country.isNotBlank()) params["partners.partner_locations.country"] = "eq.${loc.country}"
 +        if (loc.city.isNotBlank()) params["partners.partner_locations.city"] = "eq.${loc.city}"
-         return api.rest("car_classes", params, auth = false).asArray()
-     }
- 
-@@ -554,7 +590,7 @@
-     suspend fun bookings(): List<Booking> {
-         val userId = auth.ensureSession().userId
-         val params = linkedMapOf(
+@@ -557 +593 @@
 -            "select" to "id,reservation_code,partner_id,pickup_location_id,created_at,start_date,end_date,pickup_time,return_time,pickup_location,return_location,status,payment_deadline,partner_response_deadline,refund_status,refund_percentage,refund_amount,refund_amount_pln,refund_completed_at,receipt_generated,final_price_snapshot,online_payment_pln,pickup_payment_partner_currency,partner_currency,deposit_snapshot,mileage_limit_snapshot,driver_included_snapshot,driver_hours_snapshot,guide_id,car_classes(class_code,description,partners(currency))",
 +            "select" to "id,reservation_code,partner_id,pickup_location_id,created_at,start_date,end_date,pickup_time,return_time,pickup_location,return_location,status,payment_deadline,partner_response_deadline,refund_status,refund_percentage,refund_amount,refund_amount_pln,refund_completed_at,receipt_generated,pricing_items_snapshot,final_price_snapshot,online_payment_pln,pickup_payment_partner_currency,partner_currency,deposit_snapshot,mileage_limit_snapshot,driver_included_snapshot,driver_hours_snapshot,guide_id,car_classes(class_code,description,partners(currency))",
-             "client_id" to "eq.$userId",
-             "order" to "created_at.desc",
-             "limit" to "100"
-@@ -565,11 +601,24 @@
-         }
-     }
- 
+@@ -567,0 +604,11 @@
 +    suspend fun bookingQuote(offer: CarOffer, criteria: SearchCriteria, additionalDriverId: String?, extras: List<ExtraSelection>): BookingQuote {
 +        auth.ensureSession()
 +        val body = JSONObject().put("car_class_id", offer.id)
@@ -186,43 +125,22 @@
 +        return BookingQuote.fromJson(api.function("booking-options", body, auth = true))
 +    }
 +
-     suspend fun createBooking(
-         offer: CarOffer,
-         criteria: SearchCriteria,
-         driverId: String?,
+@@ -572 +619,3 @@
 -        additionalDriverId: String?
 +        additionalDriverId: String?,
 +        quote: BookingQuote,
 +        extras: List<ExtraSelection>
-     ): String {
-         auth.ensureSession()
-         val body = JSONObject()
-@@ -581,6 +630,7 @@
-             .put("pickup_location", criteria.pickup.displayName)
-             .put("return_location", criteria.dropoff.displayName)
-             .put("terms_accepted", true)
+@@ -583,0 +633 @@
 +        if (quote.enabled) body.put("pricing_version", 2).put("pricing_fingerprint", quote.fingerprint).put("extras", extras.toJsonArray())
-         driverId?.let { body.put("driver_id", it) }
-         additionalDriverId?.let { body.put("additional_driver_id", it) }
-         offer.apiQuoteId?.let { body.put("api_quote_id", it) }
 --- a/client/app/src/main/java/pl/ride24/client/ui/Ride24ViewModel.kt
 +++ b/client/app/src/main/java/pl/ride24/client/ui/Ride24ViewModel.kt
-@@ -51,6 +51,11 @@
-     val searchResults: List<CarOffer> = emptyList(),
-     val criteria: SearchCriteria? = null,
-     val selectedOffer: CarOffer? = null,
+@@ -53,0 +54,5 @@
 +    val bookingQuote: BookingQuote? = null,
 +    val quoteBusy: Boolean = false,
 +    val quoteError: String? = null,
 +    val quoteContext: String = "",
 +    val selectedExtras: List<ExtraSelection> = emptyList(),
-     val selectedBooking: Booking? = null,
-     val drivers: List<Driver> = emptyList(),
-     val invoiceProfile: InvoiceProfile = InvoiceProfile(),
-@@ -370,21 +375,26 @@
-         syncPushRegistration()
-     }
- 
+@@ -373,6 +378,6 @@
 -    fun updateLocationQuery(text: String) {
 -        suggestionJob?.cancel()
 -        if (text.trim().length < 2) {
@@ -235,8 +153,7 @@
 +        clearSuggestions()
 +        val revision = suggestionRevision
 +        if (text.trim().length < 2 || (forReturn && pickup == null)) return
-         suggestionJob = viewModelScope.launch {
-             delay(220)
+@@ -381,7 +386,12 @@
 -            runCatching { searchRepo.suggestLocations(text) }
 -                .onSuccess { _ui.value = _ui.value.copy(suggestions = it) }
 -                .onFailure { _ui.value = _ui.value.copy(suggestions = emptyList()) }
@@ -256,13 +173,7 @@
 +        suggestionJob?.cancel()
 +        _ui.value = _ui.value.copy(suggestions = emptyList())
 +    }
- 
-     fun searchCars(
-         pickup: LocationItem?,
-@@ -427,10 +437,61 @@
-         }
-     }
- 
+@@ -429,0 +440,41 @@
 +    private var quoteRevision = 0
 +    private var quoteOfferKey = ""
 +    private fun quoteKey(additionalDriverId: String?) = "${_ui.value.selectedOffer?.id}|${_ui.value.criteria}|${additionalDriverId.orEmpty()}"
@@ -304,69 +215,43 @@
 +        refreshBookingQuote(additionalDriverId, selected)
 +    }
 +
-     fun createBooking(additionalDriverId: String?) = launchBusy {
-         val offer = _ui.value.selectedOffer ?: error(tx("Nie wybrano oferty", "No offer selected"))
-         val criteria = _ui.value.criteria ?: error(tx("Brak danych wyszukiwania", "Search details are missing"))
+@@ -433 +484,11 @@
 -        val id = bookingRepo.createBooking(offer, criteria, driverId = null, additionalDriverId = additionalDriverId)
 +        check(isQuoteCurrent(additionalDriverId)) { tx("Sprawdź aktualną wycenę.", "Review the current price.") }
 +        val quote = requireNotNull(_ui.value.bookingQuote)
 +        val id = try {
 +            bookingRepo.createBooking(offer, criteria, driverId = null, additionalDriverId = additionalDriverId, quote = quote, extras = _ui.value.selectedExtras)
 +        } catch (e: ApiException) {
-+            if (e.code in listOf("QUOTE_CHANGED", "INVALID_BOOKING_OPTIONS", "DRIVER_EXTRA_MISMATCH")) {
++            if (e.code in listOf("QUOTE_CHANGED", "INVALID_BOOKING_OPTIONS", "DRIVER_EXTRA_MISMATCH", "PRICING_UPDATE_REQUIRED")) {
 +                refreshBookingQuote(additionalDriverId)
 +                error(tx("Cena lub dodatki uległy zmianie. Sprawdź nowe podsumowanie i zaakceptuj je ponownie.", "The price or extras changed. Review and accept the new summary."))
 +            }
 +            throw e
 +        }
-         loadCustomerDataInternal()
-         val booking = _ui.value.bookings.firstOrNull { it.id == id }
-         _ui.value = _ui.value.copy(selectedBooking = booking)
 --- a/client/app/src/main/java/pl/ride24/client/ui/Screens.kt
 +++ b/client/app/src/main/java/pl/ride24/client/ui/Screens.kt
-@@ -1140,10 +1140,8 @@
-                             pickup = null
-                             activeField = 1
-                             vm.updateLocationQuery(it)
+@@ -1143,4 +1143,2 @@
 -                            if (!differentDropoff) {
 -                                dropoffText = it
 -                                dropoff = null
 -                            }
 +                            dropoffText = if (differentDropoff) "" else it
 +                            dropoff = null
-                         },
-                         label = t("Miejsce odbioru", "Pickup location"),
-                         leadingIcon = Icons.Default.LocationOn,
-@@ -1152,10 +1150,8 @@
-                                 IconButton(onClick = {
-                                     pickupText = ""
-                                     pickup = null
+@@ -1155,4 +1153,2 @@
 -                                    if (!differentDropoff) {
 -                                        dropoffText = ""
 -                                        dropoff = null
 -                                    }
 +                                    dropoffText = ""
 +                                    dropoff = null
-                                     vm.clearSuggestions()
-                                 }) { Icon(Icons.Default.Close, null) }
-                             }
-@@ -1165,10 +1161,8 @@
-                         SuggestionPanel(state.suggestions) { item ->
-                             pickup = item
-                             pickupText = item.displayName
+@@ -1168,4 +1164,2 @@
 -                            if (!differentDropoff) {
 -                                dropoff = item
 -                                dropoffText = item.displayName
 -                            }
 +                            dropoff = if (differentDropoff) null else item
 +                            dropoffText = if (differentDropoff) "" else item.displayName
-                             vm.clearSuggestions()
-                             focusManager.clearFocus(force = true)
-                         }
-@@ -1182,11 +1176,9 @@
-                             checked = differentDropoff,
-                             onCheckedChange = {
-                                 differentDropoff = it
+@@ -1185,5 +1179,3 @@
 -                                if (!it) {
 -                                    dropoff = pickup
 -                                    dropoffText = pickupText
@@ -375,50 +260,30 @@
 +                                dropoff = if (it) null else pickup
 +                                dropoffText = if (it) "" else pickupText
 +                                vm.clearSuggestions()
-                             },
-                             colors = SwitchDefaults.colors(
-                                 checkedThumbColor = RideNavy,
-@@ -1208,7 +1200,7 @@
-                                     dropoffText = it
-                                     dropoff = null
-                                     activeField = 2
+@@ -1211 +1203 @@
 -                                    vm.updateLocationQuery(it)
 +                                    vm.updateLocationQuery(it, pickup = pickup, forReturn = true)
-                                 },
-                                 label = t("Miejsce zwrotu", "Return location"),
-                                 leadingIcon = Icons.Default.Flag
-@@ -1937,7 +1929,7 @@
-                     )
-                     Spacer(Modifier.height(2.dp))
-                     Text(
+@@ -1734,2 +1726,2 @@
+-            "Dopłata ${formatMoney(offer.extraFeeAmount)} ${offer.currency} • wymagany kontakt",
+-            "Extra fee ${formatMoney(offer.extraFeeAmount)} ${offer.currency} • contact required"
++            "Opłata za odbiór od ${formatMoney(offer.extraFeeAmount)} ${offer.currency} • wymagany kontakt",
++            "Pickup fee from ${formatMoney(offer.extraFeeAmount)} ${offer.currency} • contact required"
+@@ -1738,2 +1730,2 @@
+-            "Dopłata ${formatMoney(offer.extraFeeAmount)} ${offer.currency}",
+-            "Extra fee ${formatMoney(offer.extraFeeAmount)} ${offer.currency}"
++            "Opłata za odbiór od ${formatMoney(offer.extraFeeAmount)} ${offer.currency}",
++            "Pickup fee from ${formatMoney(offer.extraFeeAmount)} ${offer.currency}"
+@@ -1940 +1932 @@
 -                        "${formatMoney(offer.finalTotal)} ${offer.currency}",
 +                        "${formatResultPrice(offer.finalTotal, language)} ${offer.currency}",
-                         color = Color.White,
-                         fontSize = 22.sp,
-                         fontWeight = FontWeight.Black
-@@ -2043,6 +2035,9 @@
-     var accepted by remember { mutableStateOf(false) }
-     var additionalId by remember { mutableStateOf<String?>(null) }
-     var driverPicker by remember { mutableStateOf(false) }
+@@ -2045,0 +2038,3 @@
 +    var extrasPicker by remember { mutableStateOf(false) }
 +    LaunchedEffect(offer?.id, criteria, additionalId) { vm.refreshBookingQuote(additionalId) }
 +    LaunchedEffect(state.quoteBusy, state.bookingQuote?.fingerprint, additionalId) { accepted = false }
-     if (offer == null || criteria == null) {
-         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(t("Brak danych rezerwacji", "Booking details are missing"), color = Color.White) }
-         return@MainShell
-@@ -2062,7 +2057,7 @@
-                             Text(offer.title, color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                             Text(state.language.pick("Grupa ${offer.classCode} • ${offer.currency}", "Group ${offer.classCode} • ${offer.currency}"), color = TextMuted, fontSize = 11.sp)
-                         }
+@@ -2065 +2060 @@
 -                        Text("${formatMoney(offer.finalTotal)} ${offer.currency}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
 +                        Text("${formatMoney(state.bookingQuote?.pricing?.totalCents?.div(100.0) ?: offer.finalTotal)} ${offer.currency}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                     }
-                     Spacer(Modifier.height(14.dp))
-                     InfoLine(Icons.Default.LocationOn, t("Odbiór", "Pickup"), "${criteria.pickup.displayName}\n${formatDateLong(criteria.pickupDate, state.language)} • ${criteria.pickupTime}")
-@@ -2107,10 +2102,22 @@
-                 GlassCard(Modifier.fillMaxWidth()) {
-                     Text(t("ROZLICZENIE", "PAYMENT"), color = RideGreen, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                     Spacer(Modifier.height(10.dp))
+@@ -2110,4 +2105,16 @@
 -                    PriceLine(t("Cena całkowita", "Total price"), "${formatMoney(offer.finalTotal)} ${offer.currency}")
 -                    PriceLine(t("Opłata rezerwacyjna online", "Online booking fee"), state.language.pick("ok. ${formatMoney(offer.onlinePayment)} PLN", "approx. ${formatMoney(offer.onlinePayment)} PLN"), RideGreen)
 -                    PriceLine(t("Płatne na miejscu", "Pay on pickup"), "${formatMoney(offer.partnerTotal)} ${offer.currency}")
@@ -439,25 +304,13 @@
 +                    if (state.bookingQuote?.enabled == true) {
 +                        TextButton(onClick = { extrasPicker = true }, enabled = !state.busy) { Text(t("Potrzebujesz dodatków?", "Need extras?"), color = RideGreen) }
 +                    }
-                 }
-                 Spacer(Modifier.height(12.dp))
-                 GlassCard(Modifier.fillMaxWidth()) {
-@@ -2135,7 +2142,7 @@
-                 Spacer(Modifier.height(12.dp))
-                 GlassCard(Modifier.fillMaxWidth()) {
-                     Row(verticalAlignment = Alignment.Top) {
+@@ -2138 +2145 @@
 -                        Checkbox(accepted, { accepted = it }, colors = CheckboxDefaults.colors(checkedColor = RideGreen, checkmarkColor = RideNavy))
 +                        Checkbox(accepted, { accepted = it }, enabled = vm.isQuoteCurrent(additionalId) && !state.busy, colors = CheckboxDefaults.colors(checkedColor = RideGreen, checkmarkColor = RideNavy))
-                         Column(Modifier.weight(1f).padding(top = 9.dp)) {
-                             Text(t("Akceptuję warunki rezerwacji", "I accept the booking terms"), color = Color.White, fontWeight = FontWeight.Bold)
-                             Text(t("Potwierdzam dane kierowcy i akceptuję regulamin Ride24, warunki partnera oraz regulamin najmu partnera.", "I confirm the driver details and accept the Ride24 terms, partner terms and partner rental rules."), color = TextMuted, fontSize = 11.sp)
-@@ -2143,8 +2150,36 @@
-                     }
-                 }
-                 Spacer(Modifier.height(15.dp))
+@@ -2146 +2153 @@
 -                PremiumButton(t("Wyślij rezerwację do partnera", "Send booking request"), { vm.createBooking(additionalId) }, Modifier.fillMaxWidth(), Icons.Default.Send, enabled = accepted)
 +                PremiumButton(t("Wyślij rezerwację do partnera", "Send booking request"), { vm.createBooking(additionalId) }, Modifier.fillMaxWidth(), Icons.Default.Send, enabled = accepted && vm.isQuoteCurrent(additionalId) && !state.busy)
-                 Text(t("Po wysłaniu partner ma do 24 godzin na decyzję. W aplikacji zobaczysz licznik czasu i dalszy krok płatności.", "After sending, the partner has up to 24 hours to decide. The app will show the countdown and the next payment step."), color = TextMuted, fontSize = 10.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+@@ -2147,0 +2155,28 @@
 +            }
 +        }
 +    }
@@ -486,13 +339,7 @@
 +                    }
 +                }
 +                item { Text(t("Pełne kwoty za wybraną liczbę sztuk i dni znajdziesz w podsumowaniu. Partner potwierdza dodatki wraz z rezerwacją.", "The summary shows exact totals for the selected quantity and days. The partner confirms extras with the booking."), color = TextMuted, fontSize = 11.sp) }
-             }
-         }
-     }
-@@ -2184,6 +2219,20 @@
-             }
-         }
-     }
+@@ -2186,0 +2222,14 @@
 +}
 +
 +@Composable
@@ -507,64 +354,38 @@
 +    PriceLine(t("Łącznie", "Total"), "${formatMoney(pricing.totalCents / 100.0)} ${pricing.currency}")
 +    PriceLine(t("Online Ride24", "Online Ride24"), "${formatMoney(pricing.onlinePlnCents / 100.0)} PLN", RideGreen)
 +    PriceLine(t("Do zapłaty partnerowi", "Payable to the partner"), "${formatMoney(pricing.partnerCents / 100.0)} ${pricing.currency}")
- }
- 
- @Composable
-@@ -2498,9 +2547,11 @@
-                 GlassCard(Modifier.fillMaxWidth()) {
-                     Text(t("PŁATNOŚĆ", "PAYMENT"), color = RideGreen, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                     Spacer(Modifier.height(9.dp))
+@@ -2500,0 +2550 @@
 +                    if (b.pricing != null) { BookingPricingLines(b.pricing, state.language) } else {
-                     PriceLine(t("Cena rezerwacji", "Booking price"), if (b.finalPriceSnapshot > 0) "${formatMoney(b.finalPriceSnapshot)} ${b.currency}" else "—")
-                     PriceLine("Online Ride24", if (b.onlinePaymentPln > 0) "${formatMoney(b.onlinePaymentPln)} PLN" else "—", RideGreen)
-                     PriceLine(t("Płatne na miejscu", "Pay on pickup"), if (b.pickupPayment > 0) "${formatMoney(b.pickupPayment)} ${b.currency}" else "—")
+@@ -2503,0 +2554 @@
 +                    }
-                     if (b.status in listOf(BookingStatus.ACCEPTED, BookingStatus.AWAITING_PAYMENT) && b.onlinePaymentPln > 0) {
-                         Spacer(Modifier.height(12.dp)); PremiumButton(t("Opłać rezerwację", "Pay for booking"), { vm.payBooking(b) }, Modifier.fillMaxWidth(), Icons.Default.CreditCard)
-                     }
-@@ -3951,3 +4002,8 @@
- }
- 
- private fun formatMoney(value: Double): String = String.format(Locale.US, "%.2f", value)
+@@ -3953,0 +4005,5 @@
 +
 +// Presentation only; booking calculations retain two decimal places.
 +private fun formatResultPrice(value: Double, language: AppLanguage): String = java.text.NumberFormat.getIntegerInstance(Locale.forLanguageTag(language.code)).apply {
 +    roundingMode = java.math.RoundingMode.HALF_UP
 +}.format(value)
+--- a/partner/app/build.gradle.kts
++++ b/partner/app/build.gradle.kts
+@@ -24,2 +24,2 @@
+-        versionCode = 6
+-        versionName = "1.0.5"
++        versionCode = 7
++        versionName = "1.0.6"
 --- a/partner/app/src/main/java/pl/ride24/partner/data/Models.kt
 +++ b/partner/app/src/main/java/pl/ride24/partner/data/Models.kt
-@@ -31,6 +31,8 @@
-         get() = active && accountStatus.equals("active", true) && profileCompleted && agreementAccepted && providerType.equals("local", true)
- }
- 
+@@ -33,0 +34,2 @@
 +data class BookingPriceItem(val namePl: String, val nameEn: String, val quantity: Int, val days: Int, val billing: String, val location: String, val amountCents: Long)
 +
- data class Booking(
-     val id: String,
-     val reservationCode: String,
-@@ -52,7 +54,8 @@
-     val additionalDriverName: String?,
-     val additionalDriverAge: Int?,
-     val clientPhone: String?,
+@@ -55 +57,2 @@
 -    val clientEmail: String?
 +    val clientEmail: String?,
 +    val priceItems: List<BookingPriceItem> = emptyList()
- ) {
-     val isNew: Boolean get() = status == "pending"
-     val isWaitingPayment: Boolean get() = status == "awaiting_payment"
 --- a/partner/app/src/main/java/pl/ride24/partner/data/Ride24Api.kt
 +++ b/partner/app/src/main/java/pl/ride24/partner/data/Ride24Api.kt
-@@ -130,12 +130,29 @@
-         val hiddenIds = runCatching { getHiddenBookingIds() }.getOrDefault(emptySet())
-         val json = rpc("partner_app_get_bookings", JSONObject())
-         val arr = JSONArray(json)
+@@ -133 +133 @@
 -        buildList {
 +        val bookings = buildList {
-             for (i in 0 until arr.length()) {
-                 val booking = parseBooking(arr.getJSONObject(i))
-                 if (booking.id !in hiddenIds) add(booking)
-             }
-         }
+@@ -138,0 +139,17 @@
 +        val itemsById = mutableMapOf<String, List<BookingPriceItem>>()
 +        for (batch in bookings.chunked(100)) {
 +            val payload = JSONObject().put("booking_ids", JSONArray(batch.map { it.id }))
@@ -582,23 +403,11 @@
 +            }
 +        }
 +        bookings.map { it.copy(priceItems = itemsById[it.id].orEmpty()) }
-     }
- 
-     suspend fun hideBooking(bookingId: String) = withContext(Dispatchers.IO) {
 --- a/partner/app/src/main/java/pl/ride24/partner/ui/Ride24PartnerRoot.kt
 +++ b/partner/app/src/main/java/pl/ride24/partner/ui/Ride24PartnerRoot.kt
-@@ -50,6 +50,7 @@
- import androidx.compose.foundation.shape.CircleShape
- import androidx.compose.foundation.shape.RoundedCornerShape
- import androidx.compose.foundation.text.KeyboardOptions
+@@ -52,0 +53 @@
 +import androidx.compose.material.icons.filled.Receipt
- import androidx.compose.material.icons.Icons
- import androidx.compose.material.icons.filled.ArrowBack
- import androidx.compose.material.icons.filled.CalendarMonth
-@@ -1671,6 +1672,17 @@
-                 onClick = null
-             )
-         }
+@@ -1673,0 +1675,11 @@
 +        booking.priceItems.forEachIndexed { index, priceItem ->
 +            item(key = "price-item-$index") {
 +                val isPl = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "pl"
@@ -610,20 +419,3 @@
 +                    secondary = priceItem.location.takeIf { it.isNotBlank() }, onClick = null)
 +            }
 +        }
-         booking.partnerAmount?.let { amount ->
-             item {
-                 CompactDetailRow(
---- a/client/app/build.gradle.kts
-+++ b/client/app/build.gradle.kts
-@@ -27,2 +27,2 @@
--        versionCode = 15
--        versionName = "1.0.14"
-+        versionCode = 16
-+        versionName = "1.0.15"
---- a/partner/app/build.gradle.kts
-+++ b/partner/app/build.gradle.kts
-@@ -24,2 +24,2 @@
--        versionCode = 6
--        versionName = "1.0.5"
-+        versionCode = 7
-+        versionName = "1.0.6"

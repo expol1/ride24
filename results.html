@@ -768,11 +768,11 @@ const feeCurrency = car.partners?.currency || 'EUR';
     let badgeTextEn = '';
 
     if (hasFee && feeAmount > 0 && needsContact) {
-        badgeTextPl = `Dopłata ${feeAmount} ${feeCurrency} (wymagany kontakt)`;
-badgeTextEn = `Extra fee ${feeAmount} ${feeCurrency} (contact required)`;
+        badgeTextPl = `Opłata za odbiór od ${feeAmount} ${feeCurrency} (wymagany kontakt)`;
+badgeTextEn = `Pickup fee from ${feeAmount} ${feeCurrency} (contact required)`;
     } else if (hasFee && feeAmount > 0) {
-        badgeTextPl = `Dopłata ${feeAmount} ${feeCurrency}`;
-badgeTextEn = `Extra fee ${feeAmount} ${feeCurrency}`;
+        badgeTextPl = `Opłata za odbiór od ${feeAmount} ${feeCurrency}`;
+badgeTextEn = `Pickup fee from ${feeAmount} ${feeCurrency}`;
     } else if (needsContact) {
         badgeTextPl = `Wymagany kontakt`;
         badgeTextEn = `Contact required`;
