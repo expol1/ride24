@@ -1,0 +1,2098 @@
+{
+  "version": "2026-10-17",
+  "source": {
+    "name": "Ride24_Partner_Manual_FINAL_8_languages.pdf",
+    "sha256": "d62073942c6439b1f09e2d4f0a978733a15c28bd33c5f8a94d6ac512c2f31f51",
+    "pages": 193
+  },
+  "images": {
+    "dashboard": {
+      "src": "01-dashboard.webp",
+      "width": 1366,
+      "height": 615
+    },
+    "bookings": {
+      "src": "02-bookings.webp",
+      "width": 1366,
+      "height": 613
+    },
+    "breakdown": {
+      "src": "03-breakdown.webp",
+      "width": 1366,
+      "height": 617
+    },
+    "locations": {
+      "src": "04-locations.webp",
+      "width": 1366,
+      "height": 614
+    },
+    "location-edit": {
+      "src": "05-location-edit.webp",
+      "width": 1366,
+      "height": 621
+    },
+    "extras": {
+      "src": "06-extras.webp",
+      "width": 1366,
+      "height": 613
+    },
+    "extra-edit": {
+      "src": "07-extra-edit.webp",
+      "width": 1366,
+      "height": 605
+    },
+    "fleet": {
+      "src": "08-fleet.webp",
+      "width": 1366,
+      "height": 616
+    },
+    "pricing": {
+      "src": "09-pricing.webp",
+      "width": 675,
+      "height": 594
+    },
+    "vehicle-edit": {
+      "src": "10-vehicle-edit.webp",
+      "width": 1116,
+      "height": 621
+    },
+    "vehicle-add": {
+      "src": "11-vehicle-add.webp",
+      "width": 1111,
+      "height": 621
+    },
+    "android-access": {
+      "src": "12-android-access.webp",
+      "width": 1366,
+      "height": 614
+    },
+    "settings": {
+      "src": "13-settings.webp",
+      "width": 1366,
+      "height": 619
+    },
+    "documents": {
+      "src": "14-documents.webp",
+      "width": 1358,
+      "height": 611
+    },
+    "agreement": {
+      "src": "15-agreement.webp",
+      "width": 1366,
+      "height": 616
+    },
+    "android-home": {
+      "src": "16-android-home.webp",
+      "width": 1220,
+      "height": 2712
+    },
+    "android-bookings": {
+      "src": "17-android-bookings.webp",
+      "width": 1220,
+      "height": 2712
+    },
+    "android-details": {
+      "src": "18-android-details.webp",
+      "width": 1220,
+      "height": 2712
+    },
+    "android-breakdown": {
+      "src": "19-android-breakdown.webp",
+      "width": 1220,
+      "height": 2712
+    },
+    "android-scanner": {
+      "src": "20-android-scanner.webp",
+      "width": 1220,
+      "height": 2712
+    },
+    "android-account": {
+      "src": "21-android-account.webp",
+      "width": 1220,
+      "height": 2712
+    },
+    "voucher": {
+      "src": "22-voucher.webp",
+      "width": 1020,
+      "height": 1360
+    }
+  },
+  "languages": {
+    "pl": {
+      "label": "Polski",
+      "ui": {
+        "title": "Instrukcja partnera",
+        "language": "Język instrukcji",
+        "chapter": "Rozdział",
+        "previous": "Poprzedni",
+        "next": "Następny",
+        "zoom": "Powiększ zrzut",
+        "fit": "Dopasuj zrzut",
+        "screenshot": "Zrzut ekranu",
+        "example": "Przykład z PDF · dane testowe",
+        "close": "Zamknij instrukcję",
+        "help": "Pomoc",
+        "support": "Jeśli potrzebujesz pomocy z panelem, dokumentami lub rezerwacją, napisz do zespołu Ride24. Nie przesyłaj haseł ani kluczy dostępu.",
+        "apiTitle": "Integracja API",
+        "syncTitle": "Synchronizacja API",
+        "apiNote": "Korzystasz z integracji API: flotą, lokalizacjami i cenami zarządzaj w swoim systemie źródłowym. Ręczne rozdziały konfiguracji oferty są ukryte.",
+        "retry": "Spróbuj ponownie",
+        "imageError": "Nie udało się wczytać zrzutu."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "INSTRUKCJA OBSŁUGI PANELU PARTNERA",
+          "paragraphs": [
+            "Administrator Ride24 zakłada partnerowi konto, a na wskazany adres e-mail przychodzi jednorazowe hasło. Otwórz link do panelu otrzymany od Ride24, wpisz e-mail oraz hasło jednorazowe. Przy pierwszym logowaniu system poprosi o ustawienie własnego hasła. Nie udostępniaj go innym osobom.",
+            "Przed uruchomieniem oferty wejdź w Settings / Ustawienia. Uzupełnij wymagane informacje o firmie, w tym nazwę, adres siedziby, kraj, region, telefon i e-mail. Prześlij dwa osobne pliki PDF: Warunki wynajmu oraz Regulamin. Zapisz i potwierdź zmiany. Następnie otwórz My Agreement / Moja umowa. System wygeneruje standardową umowę B2B oraz podsumowanie uzgodnień. Przeczytaj dokument, zaznacz pole akceptacji pod treścią i naciśnij Podpisz / Sign. Dopiero po ukończeniu tego procesu panel zostanie odblokowany do wprowadzania lokalizacji, floty, dodatków i cen.",
+            "Kolejność zalecana przy konfiguracji: 1. lokalizacje; 2. dodatki i zasady ich dostępności; 3. flota; 4. ceny i sezonowość; 5. sprawdzenie kompletności profilu i oferty. Wprowadzone informacje powinny odpowiadać rzeczywistym warunkom wypożyczalni.",
+            "Uwaga: obrazy pochodzą z konta testowego. Kwoty, dane osobowe, nazwy firm i statusy widoczne na zrzutach są przykładowe, a elementy interfejsu mogą ewoluować."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Ekran główny i podsumowanie",
+          "paragraphs": [
+            "Dashboard zbiera wskaźniki konta oraz ostatnie rezerwacje. Z lewej strony znajduje się nawigacja do Bookings, Locations, Fleet, Settings, Ride24 for Android i My Agreement. Widoczny u góry pasek zawiera powiadomienia i szybkie akcje. Sprawdzaj ten ekran po każdym logowaniu, aby wychwycić nowe zgłoszenia."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Rezerwacje i ich statusy",
+          "paragraphs": [
+            "W Bookings oglądasz rezerwacje z datami, pojazdem, klientem, statusem i akcjami. Otwórz wybraną pozycję, aby zobaczyć szczegóły. Statusy należy zmieniać zgodnie z faktycznym przebiegiem wynajmu; przed potwierdzeniem sprawdź dostępność samochodu i wszystkie uzgodnienia."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Szczegóły rezerwacji i rozliczenie",
+          "paragraphs": [
+            "Okno szczegółów pokazuje rozbicie wartości rezerwacji i płatności. Zwróć uwagę na cenę wynajmu, dodatki i kwotę do pobrania przy odbiorze pojazdu, zgodnie z potwierdzoną rezerwacją. Klient reguluje koszt wynajmu na zasadach podanych w ofercie bezpośrednio u partnera.",
+            "Sprawdź zawsze uzgodnioną cenę wynajmu, walutę, zakres ubezpieczenia, dodatki i ewentualną zwrotną kaucję gotówkową. Dane na ekranach są przykładowe."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Lokalizacje odbioru i zwrotu",
+          "paragraphs": [
+            "W Locations tworzysz miejsca odbioru i zwrotu pojazdów, np. lotnisko i dostawę do hotelu. Wybierz Add Location, uzupełnij nazwę i lokalizację oraz sprawdź status. Każda lokalizacja musi być prawidłowo przypisana do obsługiwanego obszaru."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Edycja lokalizacji",
+          "paragraphs": [
+            "Podaj nazwę lokalizacji, kraj, region i miasto po angielsku oraz właściwy typ punktu. Ustaw osobno opłatę za odbiór i za zwrot w walucie partnera; puste pole lub 0 oznacza brak opłaty za daną czynność. W razie potrzeby zaznacz wymagany kontakt z wypożyczalnią i sprawdź aktywność lokalizacji. Zapisuj tylko miejsca, które rzeczywiście obsługujesz."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Dodatki wynajmu",
+          "paragraphs": [
+            "W sekcji dodatków w zakładce Locations / Lokalizacje zarządzasz katalogiem dodatków swojej firmy, a nie osobnym katalogiem dla każdej lokalizacji. Możesz oferować fotelik dziecięcy, podstawkę, GPS, dodatkowego kierowcę lub własny dodatek. Opłaty za odbiór i zwrot ustawiaj osobno przy danej lokalizacji."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Konfiguracja dodatku",
+          "paragraphs": [
+            "Wybierz rodzaj dodatku. Dla własnego dodatku podaj nazwę po angielsku i opcjonalnie po polsku. Ustaw kwotę należną Twojej firmie w walucie partnera, naliczanie za dzień lub za wynajem, maksymalną liczbę sztuk (1–10) oraz aktywność. Dodatkowy kierowca może mieć maksymalnie 1 sztukę. Zapisz i sprawdź pozycję na liście."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Flota pojazdów",
+          "paragraphs": [
+            "Fleet pokazuje klasy pojazdów, liczbę sztuk, wyposażenie, status i akcje edycji. Przy każdej pozycji kontroluj prawdziwą dostępność oraz klasę samochodu. Pamiętaj, że publikowane auto lub klasa powinny odpowiadać temu, co otrzyma klient."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Ceny i okresy obowiązywania",
+          "paragraphs": [
+            "W Pricing / Pricing Testing ustawiasz stawki dla wskazanych okresów oraz ewentualne zasady zależne od długości wynajmu. Wybierz daty, wprowadź ceny i zapisz. Upewnij się, że okresy się nie nakładają w sposób powodujący niezamierzoną wycenę."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Edycja pojazdu",
+          "paragraphs": [
+            "Edit vehicle umożliwia zmianę nazwy/modelu lub klasy, skrzyni biegów, paliwa, liczby miejsc, drzwi i bagażu oraz innych dostępnych parametrów. Oznaczaj wyposażenie i warunki wynajmu zgodnie z prawdą. Po każdej aktualizacji kliknij Save changes.",
+            "Sprawdź zawsze uzgodnioną cenę wynajmu, walutę, zakres ubezpieczenia, dodatki i ewentualną zwrotną kaucję gotówkową. Dane na ekranach są przykładowe."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Dodawanie nowego pojazdu",
+          "paragraphs": [
+            "W Add new vehicle wprowadź kompletny opis nowego pojazdu lub klasy. Zaznacz odpowiednią skrzynię biegów, paliwo, pojemność, ewentualne limity i warunki depozytu. Kaucja gotówkowa zwrotna, jeżeli występuje, nie jest blokadą środków na karcie. Zapisz i przejdź do konfiguracji ceny.",
+            "Sprawdź zawsze uzgodnioną cenę wynajmu, walutę, zakres ubezpieczenia, dodatki i ewentualną zwrotną kaucję gotówkową. Dane na ekranach są przykładowe."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Aplikacja Android: dostęp",
+          "paragraphs": [
+            "Zakładka Ride24 for Android prowadzi do informacji o aplikacji partnera. Aplikacja jest dodatkowym, mobilnym sposobem odbierania i obsługi rezerwacji oraz powiadomień. Loguj się właściwym kontem partnera; udziel wymaganych przez urządzenie uprawnień do powiadomień."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Ustawienia firmy: dane",
+          "paragraphs": [
+            "Settings zawiera dane umowne i kontaktowe. Wymagane pola są oznaczone gwiazdką. Ustaw poprawną nazwę firmy, adres, kraj, region, telefon oraz e-mail. Widoczność profilu może być aktywna lub nieaktywna, zależnie od stanu konta i uzgodnionej publikacji."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "Ustawienia: dokumenty i zapis",
+          "paragraphs": [
+            "W dolnej części Settings znajdziesz obszar załączników. Prześlij osobno PDF z Warunkami wynajmu oraz PDF z Regulaminem, a następnie użyj Save changes / zapisz zmiany. Weryfikuj, czy nazwy i treści dokumentów są aktualne i zgodne z ofertą."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "Umowa B2B",
+          "paragraphs": [
+            "My Agreement wyświetla podpisaną lub gotową do podpisu umowę B2B. Po uzupełnieniu profilu i dokumentów przeczytaj wygenerowaną umowę wraz z podsumowaniem uzgodnień, zaznacz checkbox akceptacji na dole i kliknij Sign / Podpisz. Zachowaj kopię dokumentu do celów firmowych."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android: pulpit",
+          "paragraphs": [
+            "Android Home pokazuje główne skróty, powiadomienia, nadchodzące rezerwacje i podsumowanie dnia. Korzystaj z dolnej nawigacji, aby przejść do listy rezerwacji, skanera i konta. Stan synchronizuje się z informacjami w usłudze Ride24."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android: lista rezerwacji",
+          "paragraphs": [
+            "Na ekranie Bookings przełączaj dostępne filtry i otwieraj konkretną rezerwację. Lista rozróżnia statusy zgłoszeń, co pomaga ustalić priorytety. Przed zmianą statusu przeczytaj wszystkie informacje dotyczące terminu, miejsca i pojazdu."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android: karta rezerwacji",
+          "paragraphs": [
+            "Karta rezerwacji pokazuje kod, samochód, klienta, terminy i lokalizacje. Sprawdź kompletność informacji i zgodność z zamówieniem. Podczas wydania lub zwrotu pojazdu wykonuj tylko działania odpowiadające rzeczywistemu etapowi obsługi."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android: rozliczenie",
+          "paragraphs": [
+            "Widok View breakdown pokazuje finansowe składniki rezerwacji, w tym wartości wyświetlane w EUR na przykładzie ze zrzutu. Przed pobraniem płatności wyjaśnij klientowi cenę wynajmu, dodatki i ewentualną zwrotną kaucję gotówkową zgodnie z warunkami wypożyczalni.",
+            "Sprawdź zawsze uzgodnioną cenę wynajmu, walutę, zakres ubezpieczenia, dodatki i ewentualną zwrotną kaucję gotówkową. Dane na ekranach są przykładowe."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android: skaner vouchera",
+          "paragraphs": [
+            "Scan voucher umożliwia odczytanie kodu klienta aparatem. Umieść kod w ramce i poczekaj na wynik; pod ekranem znajduje się również możliwość wpisania kodu ręcznie. Przed dalszą obsługą porównaj wynik z właściwą rezerwacją."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android: konto i powiadomienia",
+          "paragraphs": [
+            "Account zawiera ustawienia języka, powiadomień, pomoc i informacje o prywatności. Włącz powiadomienia systemowe, aby nie przeoczyć nowych rezerwacji; okresowo sprawdzaj listę rezerwacji także ręcznie. Nie udostępniaj danych logowania innym osobom."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Voucher klienta — weryfikacja i wydanie pojazdu",
+          "paragraphs": [
+            "Voucher PDF jest potwierdzeniem danych rezerwacji. Przed wydaniem samochodu odczytaj kod QR lub wpisz kod w skanerze aplikacji; zweryfikuj aktualny status, numer rezerwacji, imię i nazwisko klienta, klasę samochodu, daty, godziny oraz punkty odbioru i zwrotu. Sprawdź kwotę do zapłaty przy odbiorze i walutę, a także ewentualną zwrotną kaucję gotówkową. Przygotuj uzgodnioną klasę pojazdu; inny model tej samej klasy może być odpowiedni, jeśli oferta tak stanowi. Sprawdź dokumenty kierowcy zgodnie z lokalnymi przepisami i warunkami wynajmu. Voucher nie zastępuje lokalnej umowy wynajmu.",
+            "Gdy kod lub dane się nie zgadzają, rezerwacja jest anulowana albo voucher wygląda na zmieniony, nie wydawaj samochodu do czasu wyjaśnienia. Nie żądaj od klienta hasła ani danych karty. Na przykładowym voucherze podano fikcyjne dane testowe; wartości nie mogą służyć do rozliczenia rzeczywistego wynajmu."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "Integracja API",
+          "paragraphs": [
+            "Dane połączenia otrzymasz od dostawcy swojego oprogramowania, nie od Ride24. W sekcji integracji API sprawdź dostawcę, adres API oraz wymagane dane dostępowe. Status „Połączono” potwierdza poprawne połączenie. W razie problemu zweryfikuj dane u dostawcy. Nie zmieniaj działających kluczy bez potrzeby."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "Synchronizacja API",
+          "paragraphs": [
+            "Pojazdy, lokalizacje, dostępność i ceny aktualizuj w swoim oprogramowaniu źródłowym. Zakres synchronizacji zależy od integracji. Sprawdzaj jej status w panelu i reaguj na nowe rezerwacje w Ride24. Jeśli synchronizacja przestaje działać, skontaktuj się z dostawcą i zespołem Ride24."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Pomoc",
+          "paragraphs": [
+            "Jeśli potrzebujesz pomocy z panelem, dokumentami lub rezerwacją, napisz do zespołu Ride24. Nie przesyłaj haseł ani kluczy dostępu."
+          ],
+          "support": true
+        }
+      ]
+    },
+    "en": {
+      "label": "English",
+      "ui": {
+        "title": "Partner guide",
+        "language": "Guide language",
+        "chapter": "Chapter",
+        "previous": "Previous",
+        "next": "Next",
+        "zoom": "Enlarge screenshot",
+        "fit": "Fit screenshot",
+        "screenshot": "Screenshot",
+        "example": "PDF example · test data",
+        "close": "Close guide",
+        "help": "Help",
+        "support": "For help with the panel, documents or a booking, contact the Ride24 team. Never send passwords or access keys.",
+        "apiTitle": "API integration",
+        "syncTitle": "API synchronization",
+        "apiNote": "You use an API integration: manage your fleet, locations and prices in your source system. Manual offer configuration chapters are hidden.",
+        "retry": "Try again",
+        "imageError": "The screenshot could not be loaded."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "RIDE24 PARTNER OPERATING MANUAL",
+          "paragraphs": [
+            "The Ride24 administrator creates your partner account and sends a one-time password to your email. Open the partner panel link, sign in with your email and temporary password, and set your own password when prompted on the first login. Never share your password.",
+            "Open Settings and complete all required company and contact details. Upload two separate PDF documents: Rental Terms and Regulations. Save and confirm your changes. Open My Agreement, read the automatically generated standard B2B agreement and summary of agreed terms, tick the acceptance checkbox at the bottom and click Sign. The panel then unlocks for locations, vehicles, extras and prices.",
+            "Recommended setup order: locations, extras, fleet, rates, final review. The information you publish must reflect the rental company’s actual offer.",
+            "Note: screenshots show test data and example amounts; the interface may change."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Dashboard overview",
+          "paragraphs": [
+            "The Dashboard shows booking and performance indicators plus recent reservations. Use the left sidebar to open Bookings, Locations, Fleet, Settings, the Android information page and My Agreement. Review notifications whenever you sign in. Read summary cards and recent bookings."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Bookings list",
+          "paragraphs": [
+            "Bookings lists reservations, dates, vehicle information and current statuses. Open a booking to check its details. Confirm availability before accepting and update the status only when the underlying action has actually happened. Open an item and review its status."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Booking breakdown",
+          "paragraphs": [
+            "The booking detail pop-up presents the financial breakdown. Review the rental price and the amount payable at pickup as shown in the booking. Check extras, the customer details and the payment terms before handling the reservation. Verify individual prices and the partner amount.",
+            "Always verify the agreed rental price, currency, insurance cover, extras and any refundable cash deposit. Screenshot values are examples."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Pickup and return locations",
+          "paragraphs": [
+            "Create and manage pickup/return places under Locations. Use Add Location, enter a precise name and location, and verify the active status. Locations should reflect places your company can actually serve. Use Add Location and verify the service area."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Edit location",
+          "paragraphs": [
+            "Enter the location name, country, region and city in English and choose the correct location type. Set pickup and return fees separately in the partner currency; a blank field or 0 means that action is free. If needed, require contact with the rental company and check the active status. Save only locations you actually serve."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Rental extras",
+          "paragraphs": [
+            "The extras section under Locations manages your company’s extras catalogue, not a separate catalogue for each location. You can offer a child seat, booster seat, GPS, additional driver or a custom extra. Set pickup and return fees separately for each location."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Add or edit an extra",
+          "paragraphs": [
+            "Choose the extra type. For a custom extra, enter an English name and optionally a Polish name. Set the amount payable to your company in the partner currency, charging per day or per rental, maximum quantity (1–10) and active status. An additional driver is limited to 1. Save and check the item in the list."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Fleet overview",
+          "paragraphs": [
+            "Fleet lists the vehicle classes and their main properties, quantities, statuses and editing actions. Keep quantities and classifications accurate so that published inventory matches what customers can receive. Review classes, quantity and availability."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Seasonal and duration pricing",
+          "paragraphs": [
+            "Use the Pricing dialog to define seasonal or date-specific prices and available duration-based pricing rules. Review date ranges and amounts before saving; check for unintended overlaps or missing periods. Set dates and prices, then save."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Edit a vehicle",
+          "paragraphs": [
+            "Edit vehicle lets you update the class/model, transmission, fuel, seats, luggage and other parameters shown in the form. Mark insurance and rental conditions accurately and save the changes. Check technical parameters and save changes.",
+            "Always verify the agreed rental price, currency, insurance cover, extras and any refundable cash deposit. Screenshot values are examples."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Add a vehicle",
+          "paragraphs": [
+            "Add new vehicle creates a new vehicle class or offer. Enter its technical details and applicable rental terms, then save and set prices. A refundable cash security deposit, when offered, is not a credit-card hold. Complete vehicle attributes and rental terms.",
+            "Always verify the agreed rental price, currency, insurance cover, extras and any refundable cash deposit. Screenshot values are examples."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Android app access",
+          "paragraphs": [
+            "This page introduces the Ride24 partner Android app, a mobile tool for viewing reservations and receiving alerts. Sign in using the correct partner account and enable device notifications if desired. Follow the partner app information and sign in."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Company settings",
+          "paragraphs": [
+            "Settings includes your company name, registered address, country, region, contact details and profile visibility. Complete mandatory fields marked with an asterisk; review contact information regularly. Complete starred fields and contact details."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "Settings: PDF attachments",
+          "paragraphs": [
+            "The lower Settings section contains the two PDF uploads. Attach the Rental Terms and Regulations as separate documents, then save changes. Keep both documents complete and up to date. Attach two distinct PDFs and save."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "B2B agreement",
+          "paragraphs": [
+            "My Agreement shows the B2B agreement. After completing company details and uploads, review the generated text and agreed commercial terms, tick the acceptance checkbox at the bottom and click Sign. Keep a company copy. Review the generated contract, tick the box and sign."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android: home",
+          "paragraphs": [
+            "The Android home screen gives an overview of upcoming bookings, daily activity and quick navigation. Use its bottom navigation to switch between the home, booking list, voucher scan and account. Read summary and use bottom navigation."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android: bookings",
+          "paragraphs": [
+            "The Android Bookings screen displays a status-based booking list. Use filters to find items requiring attention, open the right reservation and check the dates, car and pickup location before taking action. Filter and open a booking."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android: booking details",
+          "paragraphs": [
+            "The reservation card displays the booking reference, customer, vehicle, dates and locations. Verify all details before handover or return; change reservation status only according to actual progress. Check reference, vehicle, client and dates."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android: financial breakdown",
+          "paragraphs": [
+            "View breakdown lists the financial components shown for the reservation. Explain rental charges, optional extras and any refundable cash deposit in accordance with your own terms. The screenshot amounts are examples only. Compare each displayed financial item.",
+            "Always verify the agreed rental price, currency, insurance cover, extras and any refundable cash deposit. Screenshot values are examples."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android: voucher scanner",
+          "paragraphs": [
+            "Scan voucher uses the phone camera to read the customer voucher. Position the code inside the frame; alternatively use the manual-code entry below. Always confirm the result matches the correct reservation. Scan the code or enter it manually."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android: account",
+          "paragraphs": [
+            "Account contains language, notification settings, help and privacy links. Permit notifications so new bookings are less likely to be missed and also review bookings manually. Keep account credentials private. Review language and notification settings."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Customer voucher — verification and vehicle handover",
+          "paragraphs": [
+            "The PDF voucher records the booking details. Before vehicle handover, scan its QR code or enter the reservation code in the Android scanner. Verify the live booking status, reference, customer identity, vehicle class, pickup and return locations and times, the amount due at pickup and currency, and any refundable cash deposit. Prepare the booked vehicle class. Check the driver documents under local rules and your approved rental terms. The voucher does not replace a local rental agreement.",
+            "If the code or details do not match, the booking is cancelled, or the voucher may have been altered, do not release the vehicle until the issue is resolved. Never request the customer’s password or payment-card details. The displayed voucher contains test data only."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "API integration",
+          "paragraphs": [
+            "Your software provider supplies the connection credentials, not Ride24. In API integration, check the provider, API URL and required credentials. A “Connected” status confirms the connection. If it fails, verify the credentials with your provider. Do not change working keys unnecessarily."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "API synchronization",
+          "paragraphs": [
+            "Update vehicles, locations, availability and prices in your source software. The synchronization scope depends on the integration. Check its status in the panel and respond to new Ride24 bookings. If synchronization stops, contact your provider and the Ride24 team."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Help",
+          "paragraphs": [
+            "For help with the panel, documents or a booking, contact the Ride24 team. Never send passwords or access keys."
+          ],
+          "support": true
+        }
+      ]
+    },
+    "it": {
+      "label": "Italiano",
+      "ui": {
+        "title": "Guida partner",
+        "language": "Lingua della guida",
+        "chapter": "Capitolo",
+        "previous": "Precedente",
+        "next": "Successivo",
+        "zoom": "Ingrandisci schermata",
+        "fit": "Adatta schermata",
+        "screenshot": "Schermata",
+        "example": "Esempio PDF · dati di prova",
+        "close": "Chiudi la guida",
+        "help": "Assistenza",
+        "support": "Per assistenza con il pannello, i documenti o una prenotazione, contatta il team Ride24. Non inviare password o chiavi di accesso.",
+        "apiTitle": "Integrazione API",
+        "syncTitle": "Sincronizzazione API",
+        "apiNote": "Utilizzi un’integrazione API: gestisci flotta, sedi e prezzi nel tuo sistema di origine. I capitoli sulla configurazione manuale dell’offerta sono nascosti.",
+        "retry": "Riprova",
+        "imageError": "Impossibile caricare la schermata."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "MANUALE OPERATIVO PARTNER RIDE24",
+          "paragraphs": [
+            "L’amministratore Ride24 crea il tuo account partner e invia una password monouso via e-mail. Apri il link del pannello, accedi con e-mail e password temporanea e impostane una personale al primo accesso. Non condividere la password.",
+            "Apri Settings e completa i dati obbligatori dell’azienda. Carica due PDF separati: Condizioni di noleggio e Regolamento. Salva e conferma. In My Agreement leggi il contratto B2B standard generato automaticamente e il riepilogo degli accordi, seleziona la casella di accettazione in fondo e fai clic su Sign. Il pannello sarà quindi sbloccato.",
+            "Ordine consigliato: sedi, servizi extra, flotta, prezzi, controllo finale. I dati pubblicati devono corrispondere all’offerta reale.",
+            "Nota: le schermate contengono dati di prova e importi esemplificativi; l’interfaccia può cambiare."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Panoramica Dashboard",
+          "paragraphs": [
+            "Leggi indicatori e ultime prenotazioni. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Elenco prenotazioni",
+          "paragraphs": [
+            "Apri la prenotazione e controlla lo stato. Per prenotazioni e pagamenti, confronta sempre cliente, date, luogo, condizioni e importo prima di confermare."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Dettaglio economico",
+          "paragraphs": [
+            "Verifica importi e quota spettante al partner. Per prenotazioni e pagamenti, confronta sempre cliente, date, luogo, condizioni e importo prima di confermare.",
+            "Verifica sempre il prezzo di noleggio concordato, la valuta, la copertura assicurativa, gli extra e l’eventuale cauzione rimborsabile in contanti. Gli importi illustrati sono esempi."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Sedi di ritiro e riconsegna",
+          "paragraphs": [
+            "Usa Add Location e verifica l’area servita. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Modifica sede",
+          "paragraphs": [
+            "Inserisci nome della sede, paese, regione e città in inglese e scegli il tipo corretto. Imposta separatamente le tariffe di ritiro e restituzione nella valuta del partner; campo vuoto o 0 significa che il servizio è gratuito. Se necessario, richiedi il contatto con la società e verifica lo stato attivo. Salva solo sedi effettivamente servite."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Servizi extra di noleggio",
+          "paragraphs": [
+            "La sezione extra in Locations gestisce il catalogo della tua azienda, non un catalogo separato per ogni sede. Puoi offrire seggiolino, rialzo, GPS, conducente aggiuntivo o un extra personalizzato. Imposta separatamente le tariffe di ritiro e restituzione per ogni sede."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Aggiungi o modifica extra",
+          "paragraphs": [
+            "Scegli il tipo di extra. Per un extra personalizzato inserisci il nome in inglese e, facoltativamente, in polacco. Imposta l’importo dovuto alla tua azienda nella valuta del partner, il calcolo al giorno o per noleggio, la quantità massima (1–10) e lo stato attivo. Il conducente aggiuntivo è limitato a 1. Salva e controlla la voce nell’elenco."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Panoramica flotta",
+          "paragraphs": [
+            "Controlla classi, quantità e disponibilità. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Prezzi stagionali",
+          "paragraphs": [
+            "Imposta date e tariffe e salva. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Modifica veicolo",
+          "paragraphs": [
+            "Controlla i parametri e salva le modifiche. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate.",
+            "Verifica sempre il prezzo di noleggio concordato, la valuta, la copertura assicurativa, gli extra e l’eventuale cauzione rimborsabile in contanti. Gli importi illustrati sono esempi."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Aggiungi veicolo",
+          "paragraphs": [
+            "Inserisci dati del veicolo e condizioni di noleggio. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate.",
+            "Verifica sempre il prezzo di noleggio concordato, la valuta, la copertura assicurativa, gli extra e l’eventuale cauzione rimborsabile in contanti. Gli importi illustrati sono esempi."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Accesso app Android",
+          "paragraphs": [
+            "Segui le indicazioni per l’app e accedi. Nell’app Android, apri la schermata mostrata, controlla i dettagli e usa l’azione pertinente. Le cifre delle immagini sono esempi."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Impostazioni azienda",
+          "paragraphs": [
+            "Compila campi obbligatori e contatti. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "Allegati PDF",
+          "paragraphs": [
+            "Allega due PDF separati e salva. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "Accordo B2B",
+          "paragraphs": [
+            "Leggi il contratto, spunta la casella e firma. Apri la sezione indicata nello screenshot. Controlla i dati, utilizza i pulsanti mostrati e salva soltanto informazioni verificate."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android: home",
+          "paragraphs": [
+            "Leggi il riepilogo e usa il menu inferiore. Nell’app Android, apri la schermata mostrata, controlla i dettagli e usa l’azione pertinente. Le cifre delle immagini sono esempi."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android: prenotazioni",
+          "paragraphs": [
+            "Filtra le prenotazioni e aprine una. Nell’app Android, apri la schermata mostrata, controlla i dettagli e usa l’azione pertinente. Le cifre delle immagini sono esempi."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android: dettagli prenotazione",
+          "paragraphs": [
+            "Verifica codice, auto, cliente e date. Nell’app Android, apri la schermata mostrata, controlla i dettagli e usa l’azione pertinente. Le cifre delle immagini sono esempi."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android: dettaglio importi",
+          "paragraphs": [
+            "Confronta le singole voci economiche. Nell’app Android, apri la schermata mostrata, controlla i dettagli e usa l’azione pertinente. Le cifre delle immagini sono esempi.",
+            "Verifica sempre il prezzo di noleggio concordato, la valuta, la copertura assicurativa, gli extra e l’eventuale cauzione rimborsabile in contanti. Gli importi illustrati sono esempi."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android: scanner voucher",
+          "paragraphs": [
+            "Scansiona il codice o inseriscilo a mano. Nell’app Android, apri la schermata mostrata, controlla i dettagli e usa l’azione pertinente. Le cifre delle immagini sono esempi."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android: account",
+          "paragraphs": [
+            "Controlla lingua e notifiche. Nell’app Android, apri la schermata mostrata, controlla i dettagli e usa l’azione pertinente. Le cifre delle immagini sono esempi."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Voucher cliente — verifica e consegna del veicolo",
+          "paragraphs": [
+            "Il voucher PDF riporta i dati della prenotazione. Prima della consegna, scansiona il codice QR o inserisci il codice prenotazione nello scanner Android. Verifica lo stato aggiornato, il riferimento, l’identità del cliente, la categoria del veicolo, i luoghi e gli orari di ritiro e riconsegna, l’importo e la valuta da pagare al ritiro e l’eventuale cauzione rimborsabile in contanti. Prepara la categoria prenotata e controlla i documenti del conducente secondo la normativa locale. Il voucher non sostituisce il contratto di noleggio locale.",
+            "Se il codice o i dati non coincidono, la prenotazione risulta cancellata o il voucher appare alterato, non consegnare il veicolo prima della verifica. Non chiedere password o dati della carta. Il voucher mostrato contiene solo dati di prova."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "Integrazione API",
+          "paragraphs": [
+            "Le credenziali di connessione sono fornite dal tuo fornitore software, non da Ride24. Nella sezione API verifica fornitore, URL e credenziali richieste. Lo stato “Connected” conferma la connessione. In caso di problemi verifica i dati con il fornitore. Non modificare inutilmente chiavi funzionanti."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "Sincronizzazione API",
+          "paragraphs": [
+            "Aggiorna veicoli, sedi, disponibilità e prezzi nel tuo software di origine. I dati sincronizzati dipendono dall’integrazione. Controlla lo stato nel pannello e rispondi alle nuove prenotazioni Ride24. Se la sincronizzazione si interrompe, contatta il fornitore e il team Ride24."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Assistenza",
+          "paragraphs": [
+            "Per assistenza con il pannello, i documenti o una prenotazione, contatta il team Ride24. Non inviare password o chiavi di accesso."
+          ],
+          "support": true
+        }
+      ]
+    },
+    "fr": {
+      "label": "Français",
+      "ui": {
+        "title": "Guide partenaire",
+        "language": "Langue du guide",
+        "chapter": "Chapitre",
+        "previous": "Précédent",
+        "next": "Suivant",
+        "zoom": "Agrandir la capture",
+        "fit": "Ajuster la capture",
+        "screenshot": "Capture d’écran",
+        "example": "Exemple PDF · données de test",
+        "close": "Fermer le guide",
+        "help": "Assistance",
+        "support": "Pour toute question sur le panneau, les documents ou une réservation, contactez l’équipe Ride24. N’envoyez jamais de mots de passe ni de clés d’accès.",
+        "apiTitle": "Intégration API",
+        "syncTitle": "Synchronisation API",
+        "apiNote": "Vous utilisez une intégration API : gérez la flotte, les lieux et les prix dans votre système source. Les chapitres de configuration manuelle de l’offre sont masqués.",
+        "retry": "Réessayer",
+        "imageError": "Impossible de charger la capture."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "GUIDE D’UTILISATION PARTENAIRE RIDE24",
+          "paragraphs": [
+            "L’administrateur Ride24 crée votre compte partenaire et envoie un mot de passe à usage unique par e-mail. Ouvrez le lien du panneau, connectez-vous avec ce mot de passe puis choisissez votre propre mot de passe lors de la première connexion. Ne le partagez jamais.",
+            "Dans Settings, complétez les informations obligatoires de l’entreprise. Téléversez deux PDF distincts : Conditions de location et Règlement. Enregistrez et confirmez. Dans My Agreement, lisez le contrat B2B standard généré et le récapitulatif des accords, cochez la case d’acceptation en bas puis cliquez sur Sign. Le panneau est alors déverrouillé.",
+            "Ordre conseillé : lieux, options, flotte, tarifs, vérification finale. Les informations publiées doivent correspondre à votre offre réelle.",
+            "Remarque : les captures contiennent des données de test et des montants d’exemple."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Tableau de bord",
+          "paragraphs": [
+            "Consultez les indicateurs et réservations récentes. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Liste des réservations",
+          "paragraphs": [
+            "Ouvrez la réservation et vérifiez son statut. Pour toute réservation ou somme à régler, contrôlez le client, les dates, le lieu, les conditions et les montants avant de confirmer."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Détail financier",
+          "paragraphs": [
+            "Contrôlez chaque montant et la somme due au partenaire. Pour toute réservation ou somme à régler, contrôlez le client, les dates, le lieu, les conditions et les montants avant de confirmer.",
+            "Vérifiez toujours le prix de location convenu, la devise, l’assurance, les suppléments et toute caution remboursable en espèces. Les montants illustrés sont des exemples."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Lieux de prise en charge",
+          "paragraphs": [
+            "Utilisez Add Location et vérifiez la zone desservie. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Modifier un lieu",
+          "paragraphs": [
+            "Saisissez en anglais le nom du lieu, le pays, la région et la ville, puis choisissez le type de lieu. Définissez séparément les frais de prise en charge et de restitution dans la devise du partenaire ; un champ vide ou 0 signifie que ce service est gratuit. Si nécessaire, demandez au client de contacter le loueur et vérifiez le statut actif. Enregistrez uniquement les lieux réellement desservis."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Options de location",
+          "paragraphs": [
+            "La rubrique des options dans Locations gère le catalogue de votre entreprise, et non un catalogue distinct par lieu. Vous pouvez proposer siège enfant, rehausseur, GPS, conducteur supplémentaire ou option personnalisée. Réglez séparément les frais de prise en charge et de restitution pour chaque lieu."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Ajouter ou modifier une option",
+          "paragraphs": [
+            "Choisissez le type d’option. Pour une option personnalisée, saisissez un nom anglais et éventuellement polonais. Définissez le montant dû à votre entreprise dans la devise du partenaire, la facturation par jour ou par location, la quantité maximale (1–10) et le statut actif. Le conducteur supplémentaire est limité à 1. Enregistrez et vérifiez la liste."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Flotte",
+          "paragraphs": [
+            "Vérifiez catégorie, quantité et disponibilité. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Tarifs saisonniers",
+          "paragraphs": [
+            "Définissez dates et tarifs puis enregistrez. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Modifier un véhicule",
+          "paragraphs": [
+            "Vérifiez les caractéristiques et enregistrez. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes.",
+            "Vérifiez toujours le prix de location convenu, la devise, l’assurance, les suppléments et toute caution remboursable en espèces. Les montants illustrés sont des exemples."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Ajouter un véhicule",
+          "paragraphs": [
+            "Renseignez véhicule et conditions de location. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes.",
+            "Vérifiez toujours le prix de location convenu, la devise, l’assurance, les suppléments et toute caution remboursable en espèces. Les montants illustrés sont des exemples."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Application Android",
+          "paragraphs": [
+            "Suivez les instructions de l’application. Dans l’application Android, ouvrez cet écran, vérifiez les informations et utilisez l’action appropriée. Les montants illustrés sont des exemples."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Paramètres de société",
+          "paragraphs": [
+            "Remplissez les champs obligatoires et contacts. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "Pièces jointes PDF",
+          "paragraphs": [
+            "Joignez deux PDF distincts et enregistrez. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "Contrat B2B",
+          "paragraphs": [
+            "Lisez, cochez la case et signez le contrat. Ouvrez la rubrique affichée sur la capture. Vérifiez chaque champ et enregistrez uniquement des informations exactes."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android : accueil",
+          "paragraphs": [
+            "Consultez le résumé et le menu inférieur. Dans l’application Android, ouvrez cet écran, vérifiez les informations et utilisez l’action appropriée. Les montants illustrés sont des exemples."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android : réservations",
+          "paragraphs": [
+            "Filtrez puis ouvrez une réservation. Dans l’application Android, ouvrez cet écran, vérifiez les informations et utilisez l’action appropriée. Les montants illustrés sont des exemples."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android : fiche réservation",
+          "paragraphs": [
+            "Vérifiez référence, voiture, client et dates. Dans l’application Android, ouvrez cet écran, vérifiez les informations et utilisez l’action appropriée. Les montants illustrés sont des exemples."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android : détail des montants",
+          "paragraphs": [
+            "Comparez les postes financiers. Dans l’application Android, ouvrez cet écran, vérifiez les informations et utilisez l’action appropriée. Les montants illustrés sont des exemples.",
+            "Vérifiez toujours le prix de location convenu, la devise, l’assurance, les suppléments et toute caution remboursable en espèces. Les montants illustrés sont des exemples."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android : scanner le voucher",
+          "paragraphs": [
+            "Scannez ou saisissez le code manuellement. Dans l’application Android, ouvrez cet écran, vérifiez les informations et utilisez l’action appropriée. Les montants illustrés sont des exemples."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android : compte",
+          "paragraphs": [
+            "Vérifiez langue et notifications. Dans l’application Android, ouvrez cet écran, vérifiez les informations et utilisez l’action appropriée. Les montants illustrés sont des exemples."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Voucher client — contrôle et remise du véhicule",
+          "paragraphs": [
+            "Le voucher PDF reprend les informations de réservation. Avant de remettre le véhicule, scannez son QR code ou saisissez la référence dans le scanner Android. Vérifiez le statut actuel, la référence, l’identité du client, la catégorie de véhicule, les lieux et horaires de prise en charge et de retour, le montant et la devise à régler sur place ainsi que toute caution remboursable en espèces. Préparez la catégorie réservée et contrôlez les documents du conducteur selon les règles locales. Le voucher ne remplace pas le contrat de location local.",
+            "En cas de différence, d’annulation ou de document suspect, ne remettez pas le véhicule avant clarification. Ne demandez jamais le mot de passe du client ni ses données bancaires. Le voucher illustré contient uniquement des données de test."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "Intégration API",
+          "paragraphs": [
+            "Les identifiants de connexion sont fournis par votre éditeur de logiciel, pas par Ride24. Dans la rubrique API, vérifiez le fournisseur, l’URL et les identifiants requis. Le statut “Connected” confirme la connexion. En cas d’échec, vérifiez les données auprès du fournisseur. Ne modifiez pas inutilement les clés qui fonctionnent."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "Synchronisation API",
+          "paragraphs": [
+            "Mettez à jour véhicules, lieux, disponibilités et prix dans votre logiciel source. Le périmètre de synchronisation dépend de l’intégration. Vérifiez son statut et répondez aux nouvelles réservations Ride24. Si la synchronisation s’arrête, contactez votre fournisseur et l’équipe Ride24."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Assistance",
+          "paragraphs": [
+            "Pour toute question sur le panneau, les documents ou une réservation, contactez l’équipe Ride24. N’envoyez jamais de mots de passe ni de clés d’accès."
+          ],
+          "support": true
+        }
+      ]
+    },
+    "el": {
+      "label": "Ελληνικά",
+      "ui": {
+        "title": "Οδηγός συνεργάτη",
+        "language": "Γλώσσα οδηγού",
+        "chapter": "Κεφάλαιο",
+        "previous": "Προηγούμενο",
+        "next": "Επόμενο",
+        "zoom": "Μεγέθυνση εικόνας",
+        "fit": "Προσαρμογή εικόνας",
+        "screenshot": "Στιγμιότυπο οθόνης",
+        "example": "Παράδειγμα PDF · δοκιμαστικά δεδομένα",
+        "close": "Κλείσιμο οδηγού",
+        "help": "Βοήθεια",
+        "support": "Για βοήθεια με τον πίνακα, τα έγγραφα ή μια κράτηση, επικοινωνήστε με την ομάδα Ride24. Μην στέλνετε κωδικούς ή κλειδιά πρόσβασης.",
+        "apiTitle": "Σύνδεση API",
+        "syncTitle": "Συγχρονισμός API",
+        "apiNote": "Χρησιμοποιείτε σύνδεση API: διαχειριστείτε στόλο, τοποθεσίες και τιμές στο αρχικό σας σύστημα. Τα κεφάλαια χειροκίνητης διαμόρφωσης προσφορών είναι κρυμμένα.",
+        "retry": "Δοκιμάστε ξανά",
+        "imageError": "Δεν ήταν δυνατή η φόρτωση της εικόνας."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "ΟΔΗΓΟΣ ΧΡΗΣΗΣ ΣΥΝΕΡΓΑΤΗ RIDE24",
+          "paragraphs": [
+            "Ο διαχειριστής Ride24 δημιουργεί λογαριασμό συνεργάτη και στέλνει κωδικό μίας χρήσης στο email σας. Ανοίξτε τον σύνδεσμο του πίνακα, συνδεθείτε και ορίστε προσωπικό κωδικό κατά την πρώτη είσοδο. Μην τον κοινοποιείτε.",
+            "Στο Settings συμπληρώστε τα υποχρεωτικά στοιχεία της εταιρείας. Ανεβάστε δύο χωριστά PDF: Όρους ενοικίασης και Κανονισμό. Αποθηκεύστε και επιβεβαιώστε. Στο My Agreement διαβάστε την αυτόματα παραγόμενη τυποποιημένη σύμβαση B2B και τη σύνοψη συμφωνιών, επιλέξτε το πλαίσιο αποδοχής στο τέλος και πατήστε Sign. Έπειτα ξεκλειδώνει ο πίνακας.",
+            "Συνιστώμενη σειρά: τοποθεσίες, πρόσθετες υπηρεσίες, στόλος, τιμές, τελικός έλεγχος. Δημοσιεύετε μόνο ακριβή στοιχεία.",
+            "Σημείωση: τα στιγμιότυπα δείχνουν δοκιμαστικά δεδομένα και ενδεικτικά ποσά."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Πίνακας ελέγχου",
+          "paragraphs": [
+            "Δείτε δείκτες και πρόσφατες κρατήσεις. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Λίστα κρατήσεων",
+          "paragraphs": [
+            "Ανοίξτε κράτηση και ελέγξτε κατάσταση. Για κάθε κράτηση ή πληρωμή ελέγξτε πελάτη, ημερομηνίες, σημείο, όρους και ποσά πριν από επιβεβαίωση."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Ανάλυση κράτησης",
+          "paragraphs": [
+            "Ελέγξτε το τίμημα ενοικίασης και το ποσό πληρωμής κατά την παραλαβή. Για κάθε κράτηση ή πληρωμή ελέγξτε πελάτη, ημερομηνίες, σημείο, όρους και ποσά πριν από επιβεβαίωση.",
+            "Ελέγχετε πάντα τη συμφωνημένη τιμή ενοικίασης, το νόμισμα, την ασφαλιστική κάλυψη, τις πρόσθετες υπηρεσίες και τυχόν επιστρεπτέα εγγύηση μετρητών. Τα ποσά είναι ενδεικτικά."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Σημεία παραλαβής",
+          "paragraphs": [
+            "Επιλέξτε Add Location και ελέγξτε την περιοχή. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Επεξεργασία τοποθεσίας",
+          "paragraphs": [
+            "Εισαγάγετε όνομα τοποθεσίας, χώρα, περιοχή και πόλη στα αγγλικά και επιλέξτε σωστό τύπο σημείου. Ορίστε χωριστά χρεώσεις παραλαβής και επιστροφής στο νόμισμα του συνεργάτη· κενό πεδίο ή 0 σημαίνει δωρεάν υπηρεσία. Αν χρειάζεται, απαιτήστε επικοινωνία με την εταιρεία και ελέγξτε την ενεργή κατάσταση. Αποθηκεύετε μόνο σημεία που εξυπηρετείτε πραγματικά."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Πρόσθετες υπηρεσίες ενοικίασης",
+          "paragraphs": [
+            "Η ενότητα πρόσθετων υπηρεσιών στο Locations διαχειρίζεται τον κατάλογο της εταιρείας σας, όχι ξεχωριστό κατάλογο ανά τοποθεσία. Μπορείτε να προσφέρετε παιδικό κάθισμα, ανυψωτικό, GPS, επιπλέον οδηγό ή δική σας υπηρεσία. Ορίστε χωριστά τις χρεώσεις παραλαβής και επιστροφής κάθε τοποθεσίας."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Προσθήκη υπηρεσίας",
+          "paragraphs": [
+            "Επιλέξτε τύπο υπηρεσίας. Για προσαρμοσμένη υπηρεσία εισαγάγετε αγγλικό όνομα και προαιρετικά πολωνικό. Ορίστε ποσό προς την εταιρεία σας στο νόμισμα του συνεργάτη, χρέωση ανά ημέρα ή ενοικίαση, μέγιστη ποσότητα (1–10) και ενεργή κατάσταση. Ο επιπλέον οδηγός περιορίζεται σε 1. Αποθηκεύστε και ελέγξτε τη λίστα."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Στόλος",
+          "paragraphs": [
+            "Ελέγξτε κατηγορίες, πλήθος και διαθεσιμότητα. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Εποχικές τιμές",
+          "paragraphs": [
+            "Ορίστε ημερομηνίες και τιμές. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Επεξεργασία οχήματος",
+          "paragraphs": [
+            "Ελέγξτε προδιαγραφές και αποθηκεύστε. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία.",
+            "Ελέγχετε πάντα τη συμφωνημένη τιμή ενοικίασης, το νόμισμα, την ασφαλιστική κάλυψη, τις πρόσθετες υπηρεσίες και τυχόν επιστρεπτέα εγγύηση μετρητών. Τα ποσά είναι ενδεικτικά."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Νέο όχημα",
+          "paragraphs": [
+            "Προσθέστε όχημα και όρους ενοικίασης. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία.",
+            "Ελέγχετε πάντα τη συμφωνημένη τιμή ενοικίασης, το νόμισμα, την ασφαλιστική κάλυψη, τις πρόσθετες υπηρεσίες και τυχόν επιστρεπτέα εγγύηση μετρητών. Τα ποσά είναι ενδεικτικά."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Εφαρμογή Android",
+          "paragraphs": [
+            "Ακολουθήστε τις οδηγίες της εφαρμογής. Στην εφαρμογή Android ανοίξτε την οθόνη, ελέγξτε τα στοιχεία και επιλέξτε τη σωστή ενέργεια. Τα ποσά είναι παραδείγματα."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Στοιχεία εταιρείας",
+          "paragraphs": [
+            "Συμπληρώστε υποχρεωτικά πεδία και επικοινωνία. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "Έγγραφα PDF",
+          "paragraphs": [
+            "Επισυνάψτε δύο διαφορετικά PDF. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "Σύμβαση B2B",
+          "paragraphs": [
+            "Διαβάστε, επιλέξτε αποδοχή και υπογράψτε. Ανοίξτε την ενότητα που εμφανίζεται στο στιγμιότυπο. Ελέγξτε τα πεδία και αποθηκεύστε μόνο σωστά στοιχεία."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android: αρχική",
+          "paragraphs": [
+            "Δείτε την αρχική και το κάτω μενού. Στην εφαρμογή Android ανοίξτε την οθόνη, ελέγξτε τα στοιχεία και επιλέξτε τη σωστή ενέργεια. Τα ποσά είναι παραδείγματα."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android: κρατήσεις",
+          "paragraphs": [
+            "Φιλτράρετε και ανοίξτε κράτηση. Στην εφαρμογή Android ανοίξτε την οθόνη, ελέγξτε τα στοιχεία και επιλέξτε τη σωστή ενέργεια. Τα ποσά είναι παραδείγματα."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android: στοιχεία κράτησης",
+          "paragraphs": [
+            "Ελέγξτε κωδικό, όχημα, πελάτη και ημερομηνίες. Στην εφαρμογή Android ανοίξτε την οθόνη, ελέγξτε τα στοιχεία και επιλέξτε τη σωστή ενέργεια. Τα ποσά είναι παραδείγματα."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android: οικονομική ανάλυση",
+          "paragraphs": [
+            "Συγκρίνετε τα οικονομικά στοιχεία. Στην εφαρμογή Android ανοίξτε την οθόνη, ελέγξτε τα στοιχεία και επιλέξτε τη σωστή ενέργεια. Τα ποσά είναι παραδείγματα.",
+            "Ελέγχετε πάντα τη συμφωνημένη τιμή ενοικίασης, το νόμισμα, την ασφαλιστική κάλυψη, τις πρόσθετες υπηρεσίες και τυχόν επιστρεπτέα εγγύηση μετρητών. Τα ποσά είναι ενδεικτικά."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android: σάρωση κουπονιού",
+          "paragraphs": [
+            "Σαρώστε ή εισαγάγετε τον κωδικό. Στην εφαρμογή Android ανοίξτε την οθόνη, ελέγξτε τα στοιχεία και επιλέξτε τη σωστή ενέργεια. Τα ποσά είναι παραδείγματα."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android: λογαριασμός",
+          "paragraphs": [
+            "Ελέγξτε γλώσσα και ειδοποιήσεις. Στην εφαρμογή Android ανοίξτε την οθόνη, ελέγξτε τα στοιχεία και επιλέξτε τη σωστή ενέργεια. Τα ποσά είναι παραδείγματα."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Voucher πελάτη — επαλήθευση και παράδοση οχήματος",
+          "paragraphs": [
+            "Το voucher PDF περιλαμβάνει τα στοιχεία της κράτησης. Πριν παραδώσετε το αυτοκίνητο, σαρώστε τον κωδικό QR ή εισαγάγετε τον κωδικό κράτησης στον σαρωτή Android. Ελέγξτε την τρέχουσα κατάσταση, τον αριθμό κράτησης, την ταυτότητα του πελάτη, την κατηγορία οχήματος, τους τόπους και τις ώρες παραλαβής και επιστροφής, το ποσό και το νόμισμα πληρωμής κατά την παραλαβή και τυχόν επιστρεπτέα εγγύηση μετρητών. Ελέγξτε τα έγγραφα του οδηγού σύμφωνα με την τοπική νομοθεσία. Το voucher δεν υποκαθιστά τη σύμβαση ενοικίασης.",
+            "Αν διαπιστώσετε ασυμφωνία, ακύρωση ή ενδείξεις αλλοίωσης, μην παραδώσετε το όχημα μέχρι να διευκρινιστεί το ζήτημα. Μην ζητάτε κωδικούς πρόσβασης ή στοιχεία κάρτας. Το δείγμα περιλαμβάνει μόνο δοκιμαστικά στοιχεία."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "Σύνδεση API",
+          "paragraphs": [
+            "Τα στοιχεία σύνδεσης παρέχονται από τον προμηθευτή του λογισμικού σας, όχι από το Ride24. Στην ενότητα API ελέγξτε προμηθευτή, διεύθυνση API και απαιτούμενα στοιχεία πρόσβασης. Η ένδειξη “Connected” επιβεβαιώνει τη σύνδεση. Σε αποτυχία ελέγξτε τα στοιχεία με τον προμηθευτή. Μην αλλάζετε χωρίς λόγο κλειδιά που λειτουργούν."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "Συγχρονισμός API",
+          "paragraphs": [
+            "Ενημερώνετε οχήματα, τοποθεσίες, διαθεσιμότητα και τιμές στο αρχικό σας λογισμικό. Το εύρος συγχρονισμού εξαρτάται από τη σύνδεση. Ελέγχετε την κατάστασή της και απαντάτε στις νέες κρατήσεις Ride24. Αν σταματήσει, επικοινωνήστε με τον προμηθευτή και την ομάδα Ride24."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Βοήθεια",
+          "paragraphs": [
+            "Για βοήθεια με τον πίνακα, τα έγγραφα ή μια κράτηση, επικοινωνήστε με την ομάδα Ride24. Μην στέλνετε κωδικούς ή κλειδιά πρόσβασης."
+          ],
+          "support": true
+        }
+      ]
+    },
+    "ru": {
+      "label": "Русский",
+      "ui": {
+        "title": "Руководство партнёра",
+        "language": "Язык руководства",
+        "chapter": "Раздел",
+        "previous": "Назад",
+        "next": "Далее",
+        "zoom": "Увеличить снимок",
+        "fit": "По размеру окна",
+        "screenshot": "Снимок экрана",
+        "example": "Пример PDF · тестовые данные",
+        "close": "Закрыть руководство",
+        "help": "Помощь",
+        "support": "По вопросам о панели, документах или бронировании обратитесь в команду Ride24. Не отправляйте пароли или ключи доступа.",
+        "apiTitle": "Интеграция API",
+        "syncTitle": "Синхронизация API",
+        "apiNote": "Вы используете интеграцию API: управляйте автопарком, пунктами и ценами в исходной системе. Разделы ручной настройки предложений скрыты.",
+        "retry": "Повторить",
+        "imageError": "Не удалось загрузить снимок."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "РУКОВОДСТВО ПАРТНЁРА RIDE24",
+          "paragraphs": [
+            "Администратор Ride24 создаёт учётную запись партнёра и отправляет одноразовый пароль на электронную почту. Откройте ссылку на панель, войдите с временным паролем и при первом входе задайте свой пароль. Никому его не передавайте.",
+            "Откройте Settings и заполните обязательные сведения о компании. Загрузите два отдельных PDF: Условия аренды и Правила. Сохраните и подтвердите изменения. В My Agreement прочитайте сформированный стандартный договор B2B и сводку договорённостей, отметьте флажок принятия внизу и нажмите Sign. После этого панель разблокируется.",
+            "Рекомендуемый порядок: пункты выдачи, дополнительные услуги, автопарк, тарифы, итоговая проверка. Публикуйте только достоверную информацию.",
+            "Примечание: на снимках приведены тестовые данные и примерные суммы."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Главная панель",
+          "paragraphs": [
+            "Просмотрите показатели и последние бронирования. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Список бронирований",
+          "paragraphs": [
+            "Откройте бронь и проверьте статус. Перед подтверждением бронирования или оплаты проверьте клиента, даты, место, условия и суммы."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Финансовые детали",
+          "paragraphs": [
+            "Проверьте стоимость аренды и сумму к оплате при получении. Перед подтверждением бронирования или оплаты проверьте клиента, даты, место, условия и суммы.",
+            "Всегда проверяйте согласованную стоимость аренды, валюту, страховку, дополнительные услуги и возможный возвратный залог наличными. Суммы на снимках приведены для примера."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Пункты получения",
+          "paragraphs": [
+            "Выберите Add Location и укажите зону работы. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Редактирование пункта",
+          "paragraphs": [
+            "Укажите название пункта, страну, регион и город на английском и выберите правильный тип. Плату за выдачу и возврат задайте отдельно в валюте партнёра; пустое поле или 0 означает бесплатную услугу. При необходимости отметьте обязательную связь с прокатной компанией и проверьте активность пункта. Сохраняйте только реально обслуживаемые места."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Дополнительные услуги аренды",
+          "paragraphs": [
+            "Раздел услуг в Locations управляет каталогом вашей компании, а не отдельным каталогом для каждого пункта. Можно предложить детское кресло, бустер, GPS, дополнительного водителя или свою услугу. Плату за выдачу и возврат задавайте отдельно для каждого пункта."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Добавление услуги",
+          "paragraphs": [
+            "Выберите тип услуги. Для своей услуги укажите название на английском и при желании на польском. Задайте сумму к оплате вашей компании в валюте партнёра, расчёт за день или аренду, максимальное количество (1–10) и активность. Дополнительный водитель ограничен 1. Сохраните и проверьте запись в списке."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Автопарк",
+          "paragraphs": [
+            "Проверьте классы, количество и наличие. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Сезонные тарифы",
+          "paragraphs": [
+            "Установите даты и цены, сохраните. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Редактирование автомобиля",
+          "paragraphs": [
+            "Проверьте параметры и сохраните. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения.",
+            "Всегда проверяйте согласованную стоимость аренды, валюту, страховку, дополнительные услуги и возможный возвратный залог наличными. Суммы на снимках приведены для примера."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Добавление автомобиля",
+          "paragraphs": [
+            "Введите свойства машины и условия аренды. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения.",
+            "Всегда проверяйте согласованную стоимость аренды, валюту, страховку, дополнительные услуги и возможный возвратный залог наличными. Суммы на снимках приведены для примера."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Приложение Android",
+          "paragraphs": [
+            "Следуйте указаниям по Android-приложению. В приложении Android откройте нужный экран, проверьте данные и выберите соответствующее действие. Суммы на изображениях приведены для примера."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Данные компании",
+          "paragraphs": [
+            "Заполните обязательные поля и контакты. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "PDF-документы",
+          "paragraphs": [
+            "Загрузите два отдельных PDF и сохраните. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "Договор B2B",
+          "paragraphs": [
+            "Прочтите, отметьте согласие и подпишите. Откройте раздел, показанный на снимке экрана. Проверьте поля и сохраняйте только подтверждённые сведения."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android: главная",
+          "paragraphs": [
+            "Проверьте сводку и нижнее меню. В приложении Android откройте нужный экран, проверьте данные и выберите соответствующее действие. Суммы на изображениях приведены для примера."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android: бронирования",
+          "paragraphs": [
+            "Отфильтруйте и откройте бронь. В приложении Android откройте нужный экран, проверьте данные и выберите соответствующее действие. Суммы на изображениях приведены для примера."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android: детали брони",
+          "paragraphs": [
+            "Проверьте код, машину, клиента и даты. В приложении Android откройте нужный экран, проверьте данные и выберите соответствующее действие. Суммы на изображениях приведены для примера."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android: расчёт",
+          "paragraphs": [
+            "Сверьте статьи расчёта. В приложении Android откройте нужный экран, проверьте данные и выберите соответствующее действие. Суммы на изображениях приведены для примера.",
+            "Всегда проверяйте согласованную стоимость аренды, валюту, страховку, дополнительные услуги и возможный возвратный залог наличными. Суммы на снимках приведены для примера."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android: сканер ваучера",
+          "paragraphs": [
+            "Отсканируйте или введите код вручную. В приложении Android откройте нужный экран, проверьте данные и выберите соответствующее действие. Суммы на изображениях приведены для примера."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android: аккаунт",
+          "paragraphs": [
+            "Проверьте язык и уведомления. В приложении Android откройте нужный экран, проверьте данные и выберите соответствующее действие. Суммы на изображениях приведены для примера."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Ваучер клиента — проверка и выдача автомобиля",
+          "paragraphs": [
+            "В PDF-ваучере указаны сведения о бронировании. До выдачи автомобиля отсканируйте QR-код или введите номер бронирования в сканере приложения Android. Проверьте актуальный статус, номер заказа, личность клиента, класс автомобиля, пункты и время получения и возврата, сумму и валюту оплаты при получении, а также возможный возвратный залог наличными. Подготовьте автомобиль забронированного класса и проверьте документы водителя в соответствии с местными правилами. Ваучер не заменяет местный договор аренды.",
+            "Если данные не совпадают, бронь отменена или документ выглядит изменённым, не выдавайте автомобиль до выяснения обстоятельств. Не просите пароль клиента или данные карты. Образец ваучера содержит только тестовые данные."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "Интеграция API",
+          "paragraphs": [
+            "Данные подключения предоставляет поставщик вашего ПО, а не Ride24. В разделе API проверьте поставщика, адрес API и необходимые учётные данные. Статус “Connected” подтверждает подключение. При ошибке уточните данные у поставщика. Не меняйте работающие ключи без необходимости."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "Синхронизация API",
+          "paragraphs": [
+            "Обновляйте автомобили, пункты, доступность и цены в исходном ПО. Объём синхронизации зависит от интеграции. Проверяйте её статус и отвечайте на новые бронирования Ride24. Если синхронизация остановилась, свяжитесь с поставщиком и командой Ride24."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Помощь",
+          "paragraphs": [
+            "По вопросам о панели, документах или бронировании обратитесь в команду Ride24. Не отправляйте пароли или ключи доступа."
+          ],
+          "support": true
+        }
+      ]
+    },
+    "es": {
+      "label": "Español",
+      "ui": {
+        "title": "Guía del socio",
+        "language": "Idioma de la guía",
+        "chapter": "Capítulo",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "zoom": "Ampliar captura",
+        "fit": "Ajustar captura",
+        "screenshot": "Captura de pantalla",
+        "example": "Ejemplo PDF · datos de prueba",
+        "close": "Cerrar la guía",
+        "help": "Ayuda",
+        "support": "Para obtener ayuda con el panel, los documentos o una reserva, contacte con el equipo Ride24. No envíe contraseñas ni claves de acceso.",
+        "apiTitle": "Integración API",
+        "syncTitle": "Sincronización API",
+        "apiNote": "Utiliza una integración API: gestione la flota, las ubicaciones y los precios en su sistema de origen. Los capítulos de configuración manual de ofertas están ocultos.",
+        "retry": "Reintentar",
+        "imageError": "No se pudo cargar la captura."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "MANUAL DEL SOCIO RIDE24",
+          "paragraphs": [
+            "El administrador de Ride24 crea su cuenta de socio y envía una contraseña de un solo uso por correo. Abra el enlace del panel, inicie sesión y establezca su propia contraseña cuando el sistema lo solicite en el primer acceso. No la comparta.",
+            "En Settings complete los datos obligatorios de la empresa. Suba dos PDF separados: Condiciones de alquiler y Reglamento. Guarde y confirme. En My Agreement lea el contrato B2B estándar generado y el resumen de condiciones acordadas, marque la casilla de aceptación al final y pulse Sign. El panel quedará desbloqueado.",
+            "Orden recomendado: ubicaciones, extras, flota, tarifas y revisión final. Publique solo información que corresponda a la oferta real.",
+            "Nota: las capturas contienen datos de prueba e importes de ejemplo."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Panel principal",
+          "paragraphs": [
+            "Revise indicadores y reservas recientes. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Lista de reservas",
+          "paragraphs": [
+            "Abra una reserva y compruebe su estado. Antes de confirmar una reserva o un cobro, verifique cliente, fechas, lugar, condiciones e importes."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Desglose de reserva",
+          "paragraphs": [
+            "Compruebe el precio y el importe pendiente al recoger el vehículo. Antes de confirmar una reserva o un cobro, verifique cliente, fechas, lugar, condiciones e importes.",
+            "Compruebe siempre el precio de alquiler acordado, la moneda, la cobertura del seguro, los extras y cualquier fianza reembolsable en efectivo. Los importes de las imágenes son ejemplos."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Ubicaciones",
+          "paragraphs": [
+            "Use Add Location y compruebe el área de servicio. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Editar ubicación",
+          "paragraphs": [
+            "Introduzca nombre, país, región y ciudad en inglés y elija el tipo de ubicación. Configure por separado las tarifas de recogida y devolución en la moneda del socio; un campo vacío o 0 significa servicio gratuito. Si es necesario, exija contacto con la empresa y revise el estado activo. Guarde solo ubicaciones que realmente atienda."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Extras de alquiler",
+          "paragraphs": [
+            "La sección de extras en Locations gestiona el catálogo de su empresa, no un catálogo distinto por ubicación. Puede ofrecer silla infantil, elevador, GPS, conductor adicional o un extra personalizado. Configure por separado las tarifas de recogida y devolución para cada ubicación."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Añadir o editar extra",
+          "paragraphs": [
+            "Elija el tipo de extra. Para uno personalizado, indique el nombre en inglés y, opcionalmente, en polaco. Defina el importe pagadero a su empresa en la moneda del socio, el cobro por día o por alquiler, la cantidad máxima (1–10) y el estado activo. El conductor adicional está limitado a 1. Guarde y compruebe la lista."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Flota",
+          "paragraphs": [
+            "Revise clases, cantidad y disponibilidad. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Tarifas por temporada",
+          "paragraphs": [
+            "Configure fechas y tarifas y guarde. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Editar vehículo",
+          "paragraphs": [
+            "Revise características y guarde los cambios. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos.",
+            "Compruebe siempre el precio de alquiler acordado, la moneda, la cobertura del seguro, los extras y cualquier fianza reembolsable en efectivo. Los importes de las imágenes son ejemplos."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Añadir vehículo",
+          "paragraphs": [
+            "Complete datos del coche y condiciones. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos.",
+            "Compruebe siempre el precio de alquiler acordado, la moneda, la cobertura del seguro, los extras y cualquier fianza reembolsable en efectivo. Los importes de las imágenes son ejemplos."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Aplicación Android",
+          "paragraphs": [
+            "Siga las indicaciones de la app Android. En la aplicación Android abra la pantalla indicada, revise la información y elija la acción adecuada. Los importes de las capturas son ejemplos."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Datos de empresa",
+          "paragraphs": [
+            "Rellene campos obligatorios y contactos. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "Documentos PDF",
+          "paragraphs": [
+            "Adjunte dos PDF independientes y guarde. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "Contrato B2B",
+          "paragraphs": [
+            "Lea el contrato, acepte y firme. Abra la sección que aparece en la captura. Compruebe los campos y guarde únicamente datos correctos."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android: inicio",
+          "paragraphs": [
+            "Consulte el resumen y menú inferior. En la aplicación Android abra la pantalla indicada, revise la información y elija la acción adecuada. Los importes de las capturas son ejemplos."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android: reservas",
+          "paragraphs": [
+            "Filtre y abra una reserva. En la aplicación Android abra la pantalla indicada, revise la información y elija la acción adecuada. Los importes de las capturas son ejemplos."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android: detalles",
+          "paragraphs": [
+            "Compruebe código, coche, cliente y fechas. En la aplicación Android abra la pantalla indicada, revise la información y elija la acción adecuada. Los importes de las capturas son ejemplos."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android: desglose",
+          "paragraphs": [
+            "Compare los conceptos económicos. En la aplicación Android abra la pantalla indicada, revise la información y elija la acción adecuada. Los importes de las capturas son ejemplos.",
+            "Compruebe siempre el precio de alquiler acordado, la moneda, la cobertura del seguro, los extras y cualquier fianza reembolsable en efectivo. Los importes de las imágenes son ejemplos."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android: escáner de voucher",
+          "paragraphs": [
+            "Escanee o escriba el código manualmente. En la aplicación Android abra la pantalla indicada, revise la información y elija la acción adecuada. Los importes de las capturas son ejemplos."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android: cuenta",
+          "paragraphs": [
+            "Revise idioma y notificaciones. En la aplicación Android abra la pantalla indicada, revise la información y elija la acción adecuada. Los importes de las capturas son ejemplos."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Voucher del cliente — verificación y entrega",
+          "paragraphs": [
+            "El voucher PDF recoge los datos de la reserva. Antes de entregar el vehículo, escanee el código QR o introduzca la referencia en el escáner Android. Compruebe el estado actual, la referencia, la identidad del cliente, la categoría del vehículo, los lugares y horarios de recogida y devolución, el importe y la moneda pendientes al recogerlo, y cualquier fianza reembolsable en efectivo. Prepare la categoría reservada y revise la documentación del conductor conforme a las normas locales. El voucher no sustituye el contrato de alquiler local.",
+            "Si los datos no coinciden, la reserva aparece cancelada o el documento parece alterado, no entregue el coche hasta resolverlo. No solicite contraseñas ni datos bancarios. El voucher ilustrado contiene únicamente datos de prueba."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "Integración API",
+          "paragraphs": [
+            "El proveedor de su software facilita las credenciales de conexión, no Ride24. En la sección API revise proveedor, URL y credenciales necesarias. El estado “Connected” confirma la conexión. Si falla, compruebe los datos con su proveedor. No cambie claves que funcionan sin necesidad."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "Sincronización API",
+          "paragraphs": [
+            "Actualice vehículos, ubicaciones, disponibilidad y precios en su software de origen. El alcance de la sincronización depende de la integración. Revise su estado y responda a nuevas reservas Ride24. Si se detiene, contacte con su proveedor y el equipo Ride24."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Ayuda",
+          "paragraphs": [
+            "Para obtener ayuda con el panel, los documentos o una reserva, contacte con el equipo Ride24. No envíe contraseñas ni claves de acceso."
+          ],
+          "support": true
+        }
+      ]
+    },
+    "de": {
+      "label": "Deutsch",
+      "ui": {
+        "title": "Partnerhandbuch",
+        "language": "Sprache des Handbuchs",
+        "chapter": "Kapitel",
+        "previous": "Zurück",
+        "next": "Weiter",
+        "zoom": "Screenshot vergrößern",
+        "fit": "Screenshot einpassen",
+        "screenshot": "Screenshot",
+        "example": "PDF-Beispiel · Testdaten",
+        "close": "Handbuch schließen",
+        "help": "Hilfe",
+        "support": "Bei Fragen zum Portal, zu Dokumenten oder einer Buchung wenden Sie sich an das Ride24-Team. Senden Sie keine Passwörter oder Zugangsschlüssel.",
+        "apiTitle": "API-Integration",
+        "syncTitle": "API-Synchronisierung",
+        "apiNote": "Sie verwenden eine API-Integration: Verwalten Sie Flotte, Standorte und Preise im Quellsystem. Kapitel zur manuellen Angebotskonfiguration sind ausgeblendet.",
+        "retry": "Erneut versuchen",
+        "imageError": "Der Screenshot konnte nicht geladen werden."
+      },
+      "chapters": [
+        {
+          "id": "welcome",
+          "title": "RIDE24 PARTNERHANDBUCH",
+          "paragraphs": [
+            "Der Ride24-Administrator erstellt Ihr Partnerkonto und sendet ein Einmalpasswort per E-Mail. Öffnen Sie den Link zum Partnerportal, melden Sie sich mit dem temporären Passwort an und vergeben Sie beim ersten Login ein eigenes Passwort. Geben Sie es nicht weiter.",
+            "Öffnen Sie Settings und vervollständigen Sie die Pflichtangaben Ihres Unternehmens. Laden Sie zwei separate PDF-Dateien hoch: Mietbedingungen und Geschäftsordnung. Speichern und bestätigen Sie die Änderungen. Lesen Sie unter My Agreement den automatisch erstellten B2B-Standardvertrag samt Zusammenfassung, aktivieren Sie unten das Zustimmungsfeld und klicken Sie auf Sign. Danach wird das Portal freigeschaltet.",
+            "Empfohlene Reihenfolge: Standorte, Extras, Fahrzeugflotte, Preise, abschließende Prüfung. Veröffentlichen Sie ausschließlich zutreffende Angaben.",
+            "Hinweis: Die Screenshots zeigen Testdaten und Beispielbeträge."
+          ]
+        },
+        {
+          "id": "dashboard",
+          "title": "Dashboard",
+          "paragraphs": [
+            "Prüfen Sie Kennzahlen und neueste Buchungen. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben."
+          ],
+          "image": "dashboard"
+        },
+        {
+          "id": "bookings",
+          "title": "Buchungsübersicht",
+          "paragraphs": [
+            "Öffnen Sie die Buchung und prüfen Sie den Status. Prüfen Sie bei Buchungen und Zahlungen stets Kunde, Daten, Ort, Konditionen und Beträge, bevor Sie bestätigen."
+          ],
+          "image": "bookings"
+        },
+        {
+          "id": "breakdown",
+          "title": "Buchungsabrechnung",
+          "paragraphs": [
+            "Prüfen Sie den Mietpreis und den bei Abholung zu zahlenden Betrag. Prüfen Sie bei Buchungen und Zahlungen stets Kunde, Daten, Ort, Konditionen und Beträge, bevor Sie bestätigen.",
+            "Prüfen Sie immer den vereinbarten Mietpreis, die Währung, den Versicherungsschutz, Zusatzleistungen und eine gegebenenfalls erstattbare Barkaution. Die Beträge auf Bildern sind Beispiele."
+          ],
+          "image": "breakdown"
+        },
+        {
+          "id": "locations",
+          "title": "Abhol- und Rückgabeorte",
+          "paragraphs": [
+            "Wählen Sie Add Location und prüfen Sie das Gebiet. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben."
+          ],
+          "image": "locations",
+          "audience": "local"
+        },
+        {
+          "id": "location-edit",
+          "title": "Standort bearbeiten",
+          "paragraphs": [
+            "Geben Sie Standortname, Land, Region und Stadt auf Englisch ein und wählen Sie den passenden Standorttyp. Legen Sie Abhol- und Rückgabegebühren separat in der Partnerwährung fest; ein leeres Feld oder 0 bedeutet kostenlos. Falls erforderlich, verlangen Sie Kontakt mit dem Vermieter und prüfen Sie den Aktivstatus. Speichern Sie nur tatsächlich bediente Standorte."
+          ],
+          "image": "location-edit",
+          "audience": "local"
+        },
+        {
+          "id": "extras",
+          "title": "Mietextras",
+          "paragraphs": [
+            "Der Extras-Bereich unter Locations verwaltet den Katalog Ihres Unternehmens, keinen eigenen Katalog je Standort. Sie können Kindersitz, Sitzerhöhung, GPS, Zusatzfahrer oder ein eigenes Extra anbieten. Abhol- und Rückgabegebühren stellen Sie separat je Standort ein."
+          ],
+          "image": "extras",
+          "audience": "local"
+        },
+        {
+          "id": "extra-edit",
+          "title": "Extra hinzufügen/bearbeiten",
+          "paragraphs": [
+            "Wählen Sie die Art des Extras. Für eigene Extras geben Sie einen englischen und optional einen polnischen Namen ein. Legen Sie den an Ihr Unternehmen zahlbaren Betrag in der Partnerwährung, Abrechnung pro Tag oder Miete, Höchstmenge (1–10) und Aktivstatus fest. Zusatzfahrer sind auf 1 begrenzt. Speichern Sie und prüfen Sie den Listeneintrag."
+          ],
+          "image": "extra-edit",
+          "audience": "local"
+        },
+        {
+          "id": "fleet",
+          "title": "Fahrzeugflotte",
+          "paragraphs": [
+            "Prüfen Sie Klassen, Anzahl und Verfügbarkeit. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben."
+          ],
+          "image": "fleet",
+          "audience": "local"
+        },
+        {
+          "id": "pricing",
+          "title": "Saisonpreise",
+          "paragraphs": [
+            "Legen Sie Zeiträume und Preise fest. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben."
+          ],
+          "image": "pricing",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-edit",
+          "title": "Fahrzeug bearbeiten",
+          "paragraphs": [
+            "Prüfen Sie Fahrzeugdaten und speichern Sie. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben.",
+            "Prüfen Sie immer den vereinbarten Mietpreis, die Währung, den Versicherungsschutz, Zusatzleistungen und eine gegebenenfalls erstattbare Barkaution. Die Beträge auf Bildern sind Beispiele."
+          ],
+          "image": "vehicle-edit",
+          "audience": "local"
+        },
+        {
+          "id": "vehicle-add",
+          "title": "Fahrzeug hinzufügen",
+          "paragraphs": [
+            "Ergänzen Sie Fahrzeugdaten und Mietbedingungen. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben.",
+            "Prüfen Sie immer den vereinbarten Mietpreis, die Währung, den Versicherungsschutz, Zusatzleistungen und eine gegebenenfalls erstattbare Barkaution. Die Beträge auf Bildern sind Beispiele."
+          ],
+          "image": "vehicle-add",
+          "audience": "local"
+        },
+        {
+          "id": "android-access",
+          "title": "Android-App",
+          "paragraphs": [
+            "Folgen Sie den Hinweisen zur Android-App. Öffnen Sie in der Android-App den gezeigten Bildschirm, prüfen Sie die Angaben und wählen Sie die passende Aktion. Die Beträge sind Beispiele."
+          ],
+          "image": "android-access"
+        },
+        {
+          "id": "settings",
+          "title": "Firmeneinstellungen",
+          "paragraphs": [
+            "Ergänzen Sie Pflichtfelder und Kontaktdaten. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben."
+          ],
+          "image": "settings"
+        },
+        {
+          "id": "documents",
+          "title": "PDF-Anhänge",
+          "paragraphs": [
+            "Laden Sie zwei separate PDFs hoch und speichern Sie. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben."
+          ],
+          "image": "documents"
+        },
+        {
+          "id": "agreement",
+          "title": "B2B-Vertrag",
+          "paragraphs": [
+            "Lesen Sie den Vertrag, stimmen Sie zu und signieren Sie. Öffnen Sie den im Screenshot gezeigten Bereich. Prüfen Sie alle Felder und speichern Sie nur korrekte Angaben."
+          ],
+          "image": "agreement"
+        },
+        {
+          "id": "android-home",
+          "title": "Android: Start",
+          "paragraphs": [
+            "Prüfen Sie Übersicht und unteres Menü. Öffnen Sie in der Android-App den gezeigten Bildschirm, prüfen Sie die Angaben und wählen Sie die passende Aktion. Die Beträge sind Beispiele."
+          ],
+          "image": "android-home"
+        },
+        {
+          "id": "android-bookings",
+          "title": "Android: Buchungen",
+          "paragraphs": [
+            "Filtern und öffnen Sie eine Buchung. Öffnen Sie in der Android-App den gezeigten Bildschirm, prüfen Sie die Angaben und wählen Sie die passende Aktion. Die Beträge sind Beispiele."
+          ],
+          "image": "android-bookings"
+        },
+        {
+          "id": "android-details",
+          "title": "Android: Buchungsdetails",
+          "paragraphs": [
+            "Prüfen Sie Code, Auto, Kunden und Termine. Öffnen Sie in der Android-App den gezeigten Bildschirm, prüfen Sie die Angaben und wählen Sie die passende Aktion. Die Beträge sind Beispiele."
+          ],
+          "image": "android-details"
+        },
+        {
+          "id": "android-breakdown",
+          "title": "Android: Abrechnung",
+          "paragraphs": [
+            "Vergleichen Sie alle Abrechnungsposten. Öffnen Sie in der Android-App den gezeigten Bildschirm, prüfen Sie die Angaben und wählen Sie die passende Aktion. Die Beträge sind Beispiele.",
+            "Prüfen Sie immer den vereinbarten Mietpreis, die Währung, den Versicherungsschutz, Zusatzleistungen und eine gegebenenfalls erstattbare Barkaution. Die Beträge auf Bildern sind Beispiele."
+          ],
+          "image": "android-breakdown"
+        },
+        {
+          "id": "android-scanner",
+          "title": "Android: Voucher-Scanner",
+          "paragraphs": [
+            "Scannen Sie den Code oder geben Sie ihn ein. Öffnen Sie in der Android-App den gezeigten Bildschirm, prüfen Sie die Angaben und wählen Sie die passende Aktion. Die Beträge sind Beispiele."
+          ],
+          "image": "android-scanner"
+        },
+        {
+          "id": "android-account",
+          "title": "Android: Konto",
+          "paragraphs": [
+            "Prüfen Sie Sprache und Benachrichtigungen. Öffnen Sie in der Android-App den gezeigten Bildschirm, prüfen Sie die Angaben und wählen Sie die passende Aktion. Die Beträge sind Beispiele."
+          ],
+          "image": "android-account"
+        },
+        {
+          "id": "voucher",
+          "title": "Kundenvoucher — Prüfung und Fahrzeugübergabe",
+          "paragraphs": [
+            "Der PDF-Voucher enthält die Buchungsdaten. Scannen Sie vor der Fahrzeugübergabe den QR-Code oder geben Sie den Buchungscode im Android-Scanner ein. Prüfen Sie den aktuellen Status, die Referenznummer, die Identität des Kunden, die Fahrzeugklasse, Abhol- und Rückgabeort sowie Zeiten, den bei Abholung fälligen Betrag und die Währung und gegebenenfalls eine erstattbare Barkaution. Stellen Sie die gebuchte Klasse bereit und prüfen Sie die Fahrerdokumente nach lokalen Vorschriften. Der Voucher ersetzt keinen örtlichen Mietvertrag.",
+            "Wenn Angaben abweichen, die Buchung storniert ist oder das Dokument manipuliert wirkt, geben Sie das Fahrzeug erst nach Klärung heraus. Verlangen Sie weder Passwörter noch Kartendaten. Das abgebildete Voucher enthält ausschließlich Testdaten."
+          ],
+          "image": "voucher"
+        },
+        {
+          "id": "api",
+          "title": "API-Integration",
+          "paragraphs": [
+            "Die Zugangsdaten erhalten Sie von Ihrem Softwareanbieter, nicht von Ride24. Prüfen Sie unter API-Integration Anbieter, API-URL und erforderliche Zugangsdaten. Der Status “Connected” bestätigt die Verbindung. Bei Fehlern klären Sie die Daten mit Ihrem Anbieter. Ändern Sie funktionierende Schlüssel nicht unnötig."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "sync",
+          "title": "API-Synchronisierung",
+          "paragraphs": [
+            "Aktualisieren Sie Fahrzeuge, Standorte, Verfügbarkeit und Preise in Ihrer Quellsoftware. Der Umfang der Synchronisierung hängt von der Integration ab. Prüfen Sie den Status und beantworten Sie neue Ride24-Buchungen. Bei Ausfällen wenden Sie sich an Ihren Anbieter und das Ride24-Team."
+          ],
+          "audience": "api"
+        },
+        {
+          "id": "help",
+          "title": "Hilfe",
+          "paragraphs": [
+            "Bei Fragen zum Portal, zu Dokumenten oder einer Buchung wenden Sie sich an das Ride24-Team. Senden Sie keine Passwörter oder Zugangsschlüssel."
+          ],
+          "support": true
+        }
+      ]
+    }
+  }
+}
