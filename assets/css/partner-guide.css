@@ -1,0 +1,56 @@
+/* Scope every rule to the existing help modal. Outer modal geometry is unchanged. */
+#guideModal .guide-header { flex-shrink: 0; gap: 12px; }
+#guideModal .guide-header h2 { min-width: 0; display: block; line-height: 1.3; }
+#guideModal .guide-close { border: 0; background: transparent; color: inherit; padding: 4px; min-width: 36px; }
+#guideModal .r24-guide-tools { display: flex; align-items: center; gap: 16px; flex-shrink: 0; padding: 12px 24px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+#guideModal .r24-guide-tools label { font-size: 12px; font-weight: 700; color: #475569; }
+#guideModal select { min-height: 38px; padding: 7px 30px 7px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font: inherit; font-size: 13px; color: #0f172a; cursor: pointer; }
+#guideModal #guideLanguage { width: 160px; max-width: 55%; margin-left: auto; }
+#guideModal .guide-body { min-height: 0; }
+#guideModal .guide-sidebar { flex: 0 0 250px; position: relative; overscroll-behavior: contain; }
+#guideModal .guide-tab { width: 100%; flex: 0 0 auto; text-align: left; border-top: 0; border-bottom: 0; border-right: 0; background: transparent; font-family: inherit; line-height: 1.4; padding: 11px 16px; }
+#guideModal .guide-tab.active { background: #eff6ff; }
+#guideModal .guide-tab:hover { background: #f1f5f9; }
+#guideModal .r24-guide-number { flex: 0 0 24px; align-self: flex-start; margin-top: 2px; font-size: 10px; font-variant-numeric: tabular-nums; color: #64748b; }
+#guideModal .guide-tab.active .r24-guide-number { color: #1d4ed8; }
+#guideModal .guide-content-area { min-width: 0; overscroll-behavior: contain; padding: 20px 24px; }
+#guideModal .r24-guide-mobile-nav { display: none; }
+#guideModal .r24-guide-stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+#guideModal .r24-guide-progress { font-size: 11px; color: #64748b; font-weight: 600; }
+#guideModal .r24-guide-step-actions { display: flex; gap: 6px; }
+#guideModal .r24-guide-button { padding: 7px 11px; min-height: 36px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; color: #1e3a8a; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 1.4; }
+#guideModal .r24-guide-button:hover { background: #dbeafe; }
+#guideModal .r24-guide-button:disabled { opacity: .4; cursor: default; }
+#guideModal .r24-guide-copy { border-top: 3px solid #73d700; padding: 20px; }
+#guideModal .r24-guide-copy h3 { display: block; line-height: 1.4; font-size: 18px; overflow-wrap: anywhere; }
+#guideModal .r24-guide-copy p + p { margin-top: 12px; }
+#guideModal .r24-guide-note { padding: 12px; border-radius: 8px; background: #eff6ff; color: #1e3a8a; }
+#guideModal .r24-guide-figure { margin: 0 0 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; overflow: hidden; }
+#guideModal .r24-guide-caption { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; font-size: 11px; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+#guideModal .r24-guide-caption .r24-guide-button { flex-shrink: 0; max-width: 62%; }
+#guideModal .r24-guide-image-viewport { overflow: auto; padding: 8px; background: #f1f5f9; overscroll-behavior: contain; }
+#guideModal .r24-guide-image-viewport img { display: block; width: 100%; height: auto; margin: 0 auto; }
+#guideModal .r24-guide-portrait .r24-guide-image-viewport img { max-width: 260px; }
+#guideModal .r24-guide-zoomed .r24-guide-image-viewport img { width: auto; max-width: none; margin: 0; }
+#guideModal .r24-guide-zoomed .r24-guide-image-viewport { max-height: 440px; }
+#guideModal .r24-guide-support { display: inline-block; margin-top: 16px; font-weight: 700; color: #1d4ed8; overflow-wrap: anywhere; }
+#guideModal :is(button, select, a, [tabindex]):focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+#guideModal .guide-header .guide-close:focus-visible { outline-color: white; }
+#guideModal img[hidden] { display: none; }
+@media (max-width: 768px) {
+    #guideModal .guide-header { padding: 14px 16px; }
+    #guideModal .guide-header h2 { font-size: 17px; }
+    #guideModal .r24-guide-tools { padding: 10px 16px; gap: 8px; }
+    #guideModal .r24-guide-tools label { font-size: 11px; }
+    #guideModal .guide-sidebar { display: none; }
+    #guideModal .r24-guide-mobile-nav { display: block; flex-shrink: 0; padding: 10px 16px; background: #fff; border-bottom: 1px solid #e2e8f0; }
+    #guideModal .r24-guide-mobile-nav label { display: block; margin-bottom: 5px; font-size: 11px; color: #64748b; }
+    #guideModal #guideChapter { display: block; width: 100%; min-width: 0; text-overflow: ellipsis; }
+    #guideModal .guide-content-area { padding: 14px 16px; }
+    #guideModal .r24-guide-copy { padding: 16px; }
+    #guideModal .r24-guide-copy h3 { font-size: 16px; }
+    #guideModal .r24-guide-caption { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #guideModal, #guideModal .guide-box, #guideModal .guide-section { transition: none; animation: none; }
+}
