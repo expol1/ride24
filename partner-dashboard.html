@@ -2108,7 +2108,7 @@ Dodaj opinię o Partnerze
 
                         <label data-pl="Nazwa lokalizacji" data-en="Location name">Location name</label>
 
-                        <input type="text" id="locName" placeholder="e.g. Madeira Airport (EN only)">
+                        <input type="text" id="locName" placeholder="e.g. Bari Airport (BRI), Bari - Hotel, Bari - Office">
 
                     </div>
 
@@ -3625,12 +3625,24 @@ const { data, error } = await db
                 const statusClass = loc.active ? "active" : "inactive";
                 const statusTextPl = loc.active ? "Aktywna" : "Nieaktywna";
                 const statusTextEn = loc.active ? "Active" : "Inactive";
+                const typeLabels = {
+                    airport: ["Lotnisko", "Airport"],
+                    city: ["Miasto", "City"],
+                    hotel: ["Hotel", "Hotel"],
+                    office: ["Biuro", "Office"],
+                    railway_station: ["Dworzec kolejowy", "Railway station"],
+                    seaport: ["Port morski", "Seaport"],
+                    custom: ["Inna lokalizacja", "Other location"]
+                };
+                const locationTypeLabel = typeLabels[loc.type]
+                    ? typeLabels[loc.type][isEn ? 1 : 0]
+                    : loc.type;
 
                 tr.innerHTML = `
                     <td>${escapeHtmlValue(loc.location_name)}</td>
                     <td>${escapeHtmlValue(loc.country)}</td>
                     <td>${escapeHtmlValue(loc.region)}</td>
-                    <td>${escapeHtmlValue(loc.type)}</td>
+                    <td>${escapeHtmlValue(locationTypeLabel)}</td>
                     <td data-pl="${escapeHtmlValue(feeTextPl)}" data-en="${escapeHtmlValue(feeTextEn)}">${escapeHtmlValue(isEn ? feeTextEn : feeTextPl)}</td>
                     <td><span class="status ${statusClass}" data-pl="${statusTextPl}" data-en="${statusTextEn}">${isEn ? statusTextEn : statusTextPl}</span></td>
                     <td>
