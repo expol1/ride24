@@ -13,19 +13,21 @@ export async function pricedExtrasEnabled(admin) {
   return data.priced_extras_enabled === true;
 }
 export async function loadBookingOptions(admin, partnerId, pickupName, returnName) {
-  const [locations,extras,timeFees] = await Promise.all([
-    admin.from('partner_locations').select('id,location_name,extra_fee,extra_fee_amount,return_fee_amount').eq('partner_id',partnerId).eq('active',true).eq('is_api_managed',false),
+  const [locations,extras,timeFees,timeBlocks,conditional] = await Promise.all([
+    admin.from('partner_locations').select('id,location_name,city,extra_fee,extra_fee_amount,return_fee_amount').eq('partner_id',partnerId).eq('active',true).eq('is_api_managed',false),
     admin.from('partner_extras').select('id,code,name_en,name_pl,amount,billing,max_quantity,active').eq('partner_id',partnerId).eq('active',true).order('id'),
-    admin.from('partner_time_fees').select('id,location_id,applies_to,starts_at,ends_at,amount,once_per_booking,active').eq('partner_id',partnerId).eq('active',true).order('id'),
+    admin.from('partner_time_fees').select('id,location_id,applies_to,starts_at,ends_at,amount,once_per_booking,requires_approval,active').eq('partner_id',partnerId).eq('active',true).order('id'),
+    admin.from('partner_time_blocks').select('id,location_id,applies_to,starts_at,ends_at,active').eq('partner_id',partnerId).eq('active',true).order('id'),
+    admin.from('partner_conditional_fees').select('id,kind,location_id,city_scope,name_pl,name_en,amount,active').eq('partner_id',partnerId).eq('active',true).order('id'),
   ]);
-  if (locations.error || extras.error || timeFees.error) throw new Error('BOOKING_OPTIONS_UNAVAILABLE');
+  if (locations.error || extras.error || timeFees.error || timeBlocks.error || conditional.error) throw new Error('BOOKING_OPTIONS_UNAVAILABLE');
   const resolve = (name,kind) => {
     const matches=(locations.data || []).filter(x => x.location_name === name);
     if(matches.length !== 1) throw new BookingOptionsError('LOCATION_UNAVAILABLE','Wybrana lokalizacja nie jest dostępna. Wróć do wyszukiwarki.','This location is unavailable. Return to search.');
     const row=matches[0];
-    return {id:row.id,name:row.location_name,amount:kind==='pickup' ? (row.extra_fee===true ? row.extra_fee_amount ?? 0 : 0) : row.return_fee_amount};
+    return {id:row.id,name:row.location_name,city:row.city,amount:kind==='pickup' ? (row.extra_fee===true ? row.extra_fee_amount ?? 0 : 0) : row.return_fee_amount};
   };
-  return {pickup:resolve(pickupName,'pickup'),dropoff:resolve(returnName,'return'),catalog:extras.data || [],timeRules:timeFees.data || []};
+  return {pickup:resolve(pickupName,'pickup'),dropoff:resolve(returnName,'return'),catalog:extras.data || [],timeRules:timeFees.data || [],timeBlocks:timeBlocks.data || [],conditionalFees:conditional.data || []};
 }
 
 export function validateDriverExtra(catalog, selections, hasAdditionalDriver) {
@@ -60,13 +62,15 @@ export async function makeBookingQuote({options,selections,hasAdditionalDriver,c
   try { snapshot=calculateBookingItems({...pricing,...options,selections,pickupTime:context.pickupTime,returnTime:context.returnTime}); }
   catch(error) {
     if(error instanceof BookingOptionsError) throw error;
+    if(error?.message === 'PICKUP_UNAVAILABLE_TIME') throw new BookingOptionsError('PICKUP_UNAVAILABLE_TIME','Odbiór auta o wybranej godzinie nie jest dostępny w tej lokalizacji. Wybierz inną godzinę.','Pickup is unavailable at the selected time at this location. Choose a different time.');
+    if(error?.message === 'RETURN_UNAVAILABLE_TIME') throw new BookingOptionsError('RETURN_UNAVAILABLE_TIME','Zwrot auta o wybranej godzinie nie jest dostępny w tej lokalizacji. Wybierz inną godzinę.','Return is unavailable at the selected time at this location. Choose a different time.');
     throw new BookingOptionsError('INVALID_BOOKING_OPTIONS','Wybrane dodatki lub cena nie są już dostępne. Odśwież podsumowanie.','Selected extras or prices are no longer available. Refresh the summary.',400);
   }
   return {snapshot,publicQuote:{enabled:true,pricing:customerPricing(snapshot),fingerprint:await priceFingerprint(snapshot,context),catalog:publicCatalog(options.catalog,pricing.marginPercent)}};
 }
 export function assertAcceptedQuote(body, quote, options) {
   if(body.pricing_version!==2) {
-    if(cents(options.pickup.amount)>0 || cents(options.dropoff.amount)>0 || (options.timeRules?.length || 0)>0 || (body.extras?.length || 0)>0) {
+    if(cents(options.pickup.amount)>0 || cents(options.dropoff.amount)>0 || (options.timeRules?.length || 0)>0 || (options.timeBlocks?.length || 0)>0 || (options.conditionalFees?.length || 0)>0 || (body.extras?.length || 0)>0) {
       throw new BookingOptionsError('PRICING_UPDATE_REQUIRED','Zaktualizuj aplikację lub dokończ rezerwację na ride24.pl, aby zobaczyć pełną cenę.','Update the app or book at ride24.pl to review the full price.');
     }
     return false;
