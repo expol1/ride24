@@ -68,7 +68,7 @@
             if(enabled.checked&&!fee.active&&fees.filter(x=>x.active).length>=30)throw new Error(label('Maksymalnie 30 aktywnych reguł.','Maximum 30 active rules.'));
             if(!fee.id&&enabled.checked&&fees.filter(x=>x.active).length>=30)throw new Error(label('Maksymalnie 30 aktywnych reguł.','Maximum 30 active rules.'));
             const payload={partner_id:partner.id,location_id:location.value||null,applies_to:event.value,starts_at:start.value,ends_at:end.value,
-              amount:charge,once_per_booking:once.checked,active:enabled.checked};
+              amount:charge,once_per_booking:once.checked,requires_approval:approval.checked,active:enabled.checked};
             const q=fee.id?db.from('partner_time_fees').update(payload).eq('id',fee.id).eq('partner_id',partner.id):db.from('partner_time_fees').insert(payload);
             const {data,error}=await q.select('id').single();
             if(error||!data)throw new Error(label('Nie udało się zapisać reguły.','Could not save the rule.'));
