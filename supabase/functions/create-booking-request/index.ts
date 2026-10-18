@@ -1238,8 +1238,8 @@ serve(async (req) => {
     } else if (await pricedExtrasEnabled(admin)) {
       const options = await loadBookingOptions(admin, car.partner_id, pickupName, returnName);
       if (options.timeRules.length && (
-        typeof body.pickup_time !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(body.pickup_time)
-        || typeof body.return_time !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(body.return_time)
+        typeof body.pickup_time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(body.pickup_time)
+        || typeof body.return_time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(body.return_time)
       )) throw new BookingOptionsError("TIME_REQUIRED", "Wybierz poprawną godzinę odbioru i zwrotu.", "Select valid pickup and return times.", 400);
       if (body.pricing_version !== 2) {
         assertAcceptedQuote(body, {}, options);
