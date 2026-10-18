@@ -18,6 +18,10 @@ create table public.partner_time_fees (
     constraint partner_time_fees_window_nonzero check (starts_at <> ends_at)
 );
 create index partner_time_fees_partner_idx on public.partner_time_fees(partner_id,active);
+-- Identical active windows for the same partner/location must not be double-billed.
+create unique index partner_time_fees_active_window_unique on public.partner_time_fees
+    (partner_id, location_id, applies_to, starts_at, ends_at) nulls not distinct
+    where active;
 
 -- A location-specific fee must point to this same partner, not another partner.
 create function public.validate_partner_time_fee_location()
