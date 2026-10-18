@@ -30,7 +30,7 @@ function label(value) {
 
 function timeInWindow(actual, from, until) {
   const seconds = (value) => {
-    if (typeof value !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(value)) throw new Error('INVALID_TIME');
+    if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value)) throw new Error('INVALID_TIME');
     const [h,m,s=0] = value.split(':').map(Number);
     return h*3600 + m*60 + s;
   };
