@@ -75,3 +75,44 @@ test('zero length and invalid windows fail closed',()=>{
   for(const bad of [{...night,starts_at:'22:00',ends_at:'22:00'},{...night,starts_at:'xxx'}])
     assert.throws(()=>calc({...base,timeRules:[bad]}));
 });
+
+test('Azores pickup is impossible at airport between 23:45 and 07:00',()=>{
+ const airport={id:'airport',name:'Ponta Delgada Airport (PDL)',city:'Ponta Delgada',amount:7.5};
+ const block={id:'block-p',location_id:'airport',applies_to:'pickup',starts_at:'23:45:00',ends_at:'07:00:00',active:true};
+ for(const pickupTime of ['23:45','00:00','04:59','06:59'])assert.throws(()=>calc({...base,pickup:airport,pickupTime,timeBlocks:[block]}),/PICKUP_UNAVAILABLE_TIME/);
+ for(const pickupTime of ['07:00','19:45','23:44'])assert.doesNotThrow(()=>calc({...base,pickup:airport,pickupTime,timeBlocks:[block]}));
+ assert.doesNotThrow(()=>calc({...base,pickup:base.pickup,pickupTime:'02:00',timeBlocks:[block]}));
+});
+test('Azores return 00:00–05:00 is unavailable; 05:00–07:00 incurs 25 EUR',()=>{
+ const office={id:'airport',name:'Ponta Delgada Airport (PDL)',city:'Ponta Delgada',amount:7.5};
+ const block={id:'block-r',location_id:'airport',applies_to:'return',starts_at:'00:00:00',ends_at:'05:00:00',active:true};
+ const fee={id:'return-after-hours',location_id:'airport',applies_to:'return',starts_at:'05:00:00',ends_at:'07:00:00',amount:'25.00',once_per_booking:true,active:true};
+ assert.throws(()=>calc({...base,dropoff:office,returnTime:'04:59',timeBlocks:[block],timeRules:[fee]}),/RETURN_UNAVAILABLE_TIME/);
+ const q=calc({...base,dropoff:office,returnTime:'05:00',timeBlocks:[block],timeRules:[fee]});
+ assert.equal(q.items.filter(i=>i.kind==='time_fee')[0].partner_cents,2500);
+ assert.equal(calc({...base,dropoff:office,returnTime:'07:00',timeBlocks:[block],timeRules:[fee]}).items.length,1);
+});
+test('Madeira airport transfer 15 EUR is added once for either pickup or return',()=>{
+ const airport={id:'fnc',name:'Madeira Airport (FNC)',city:'Funchal',amount:0};
+ const fee={id:'airport-fee',active:true,kind:'location_either',location_id:'fnc',city_scope:null,name_pl:'Transfer lotnisko Madera',name_en:'Madeira Airport transfer',amount:'15.00'};
+ for(const [pickup,dropoff,n] of [[airport,base.dropoff,2],[base.pickup,airport,2],[airport,airport,2],[base.pickup,base.dropoff,1]]){
+ const q=calc({...base,pickup,dropoff,conditionalFees:[fee],pickupTime:'12:00'});
+ assert.equal(q.items.length,n);
+ if(n===2)assert.equal(q.items[1].partner_cents,1500);
+ }
+});
+test('Portugal 120 EUR one-way charge only for two distinct mainland cities',()=>{
+ const loc=city=>({id:city,name:city,city,amount:0});
+ const fee={id:'cross-city',active:true,kind:'cross_city',city_scope:['Lisbon','Porto','Faro'],location_id:null,name_pl:'Zwrot w innym mieście kontynentalnym',name_en:'One-way return',amount:'120.00'};
+ for(const [a,b,expected] of [['Lisbon','Porto',2],['Faro','Porto',2],['Porto','Porto',1],['Lisbon','Funchal',1],['Faro','Faro',1]]){
+ const q=calc({...base,pickup:loc(a),dropoff:loc(b),pickupTime:'12:00',returnTime:'12:00',conditionalFees:[fee]});
+ assert.equal(q.items.length,expected);
+ if(expected===2)assert.equal(q.items[1].partner_cents,12000);
+ }
+});
+test('Prior approval note is visible for Bulgarian conditional night service',()=>{
+ const rule={...night,id:'bulgaria',applies_to:'either',amount:'20.00',starts_at:'19:40:00',ends_at:'00:00:00',requires_approval:true};
+ const q=calc({...base,pickupTime:'21:00',returnTime:'12:00',timeRules:[rule]});
+ assert.match(q.items[1].name_pl,/wymaga uzgodnienia/);
+ assert.match(q.items[1].name_en,/approval required/);
+});
