@@ -81,7 +81,7 @@ test('Azores pickup is impossible at airport between 23:45 and 07:00',()=>{
  const block={id:'block-p',location_id:'airport',applies_to:'pickup',starts_at:'23:45:00',ends_at:'07:00:00',active:true};
  for(const pickupTime of ['23:45','00:00','04:59','06:59'])assert.throws(()=>calc({...base,pickup:airport,pickupTime,timeBlocks:[block]}),/PICKUP_UNAVAILABLE_TIME/);
  for(const pickupTime of ['07:00','19:45','23:44'])assert.doesNotThrow(()=>calc({...base,pickup:airport,pickupTime,timeBlocks:[block]}));
- assert.doesNotThrow(()=>calc({...base,pickup:base.pickup,pickupTime:'02:00',timeBlocks:[block]}));
+ assert.doesNotThrow(()=>calc({...base,pickup:{...base.pickup,id:'different-point'},pickupTime:'02:00',timeBlocks:[block]}));
 });
 test('Azores return 00:00–05:00 is unavailable; 05:00–07:00 incurs 25 EUR',()=>{
  const office={id:'airport',name:'Ponta Delgada Airport (PDL)',city:'Ponta Delgada',amount:7.5};
@@ -90,7 +90,7 @@ test('Azores return 00:00–05:00 is unavailable; 05:00–07:00 incurs 25 EUR',(
  assert.throws(()=>calc({...base,dropoff:office,returnTime:'04:59',timeBlocks:[block],timeRules:[fee]}),/RETURN_UNAVAILABLE_TIME/);
  const q=calc({...base,dropoff:office,returnTime:'05:00',timeBlocks:[block],timeRules:[fee]});
  assert.equal(q.items.filter(i=>i.kind==='time_fee')[0].partner_cents,2500);
- assert.equal(calc({...base,dropoff:office,returnTime:'07:00',timeBlocks:[block],timeRules:[fee]}).items.length,1);
+ assert.equal(calc({...base,dropoff:office,returnTime:'07:00',timeBlocks:[block],timeRules:[fee]}).items.filter(x=>x.kind==='time_fee').length,0);
 });
 test('Madeira airport transfer 15 EUR is added once for either pickup or return',()=>{
  const airport={id:'fnc',name:'Madeira Airport (FNC)',city:'Funchal',amount:0};
