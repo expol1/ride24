@@ -41,6 +41,7 @@
           ['pickup','Odbioru','Pickup'],['return','Zwrotu','Return'],['either','Odbioru lub zwrotu','Pickup or return']
         ],fee.applies_to||'pickup'));
         const locOptions=[['','Wszystkie lokalizacje','All locations'],...locations.map(l=>[l.id,l.location_name,l.location_name])];
+        if(fee.location_id&&!locations.some(l=>l.id===fee.location_id))locOptions.push([fee.location_id,'Wcześniejsza lokalizacja (nieaktywna)','Previous location (inactive)']);
         const location=field(f,'Lokalizacja','Location',choice(locOptions,fee.location_id||''));
         const start=field(f,'Początek przedziału (włącznie)','Window start (inclusive)',input('time',(fee.starts_at||'22:00').slice(0,5)));
         const end=field(f,'Koniec przedziału (bez tej minuty)','Window end (exclusive)',input('time',(fee.ends_at||'07:00').slice(0,5)));
