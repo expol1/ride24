@@ -87,7 +87,7 @@ test('Azores return 23:45–05:00 is unavailable; 05:00–07:00 incurs 25 EUR',(
  const office={id:'airport',name:'Ponta Delgada Airport (PDL)',city:'Ponta Delgada',amount:7.5};
  const block={id:'block-r',location_id:'airport',applies_to:'return',starts_at:'23:45:00',ends_at:'05:00:00',active:true};
  const fee={id:'return-after-hours',location_id:'airport',applies_to:'return',starts_at:'05:00:00',ends_at:'07:00:00',amount:'25.00',once_per_booking:true,active:true};
- assert.throws(()=>calc({...base,dropoff:office,returnTime:'04:59',timeBlocks:[block],timeRules:[fee]}),/RETURN_UNAVAILABLE_TIME/);
+ for(const returnTime of ['23:45','00:00','04:59']) assert.throws(()=>calc({...base,dropoff:office,returnTime,timeBlocks:[block],timeRules:[fee]}),/RETURN_UNAVAILABLE_TIME/);
  const q=calc({...base,dropoff:office,returnTime:'05:00',timeBlocks:[block],timeRules:[fee]});
  assert.equal(q.items.filter(i=>i.kind==='time_fee')[0].partner_cents,2500);
  assert.equal(calc({...base,dropoff:office,returnTime:'07:00',timeBlocks:[block],timeRules:[fee]}).items.filter(x=>x.kind==='time_fee').length,0);
