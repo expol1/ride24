@@ -5370,7 +5370,7 @@ function collectSearchData() {
             // Use the location type explicitly selected by the partner.
             // Keep the old inference only as a fallback for legacy rows.
             const storedType = String(item.type || "").toLowerCase();
-            const supportedTypes = new Set(["airport", "city", "hotel", "office", "custom", "region", "country"]);
+            const supportedTypes = new Set(["airport", "city", "hotel", "office", "railway_station", "seaport", "custom", "region", "country"]);
 
             let locType = supportedTypes.has(storedType) ? storedType : "country";
             if (!supportedTypes.has(storedType)) {
@@ -6412,7 +6412,15 @@ data-en="🌍 Ride24 World Map">
         if (value.includes("hotel")) {
             return lang === "pl" ? "Hotel" : "Hotel";
         }
-
+        if (value.includes("railway_station") || value.includes("railway station")) {
+            return lang === "pl" ? "Dworzec kolejowy" : "Railway Station";
+        }
+        if (value.includes("seaport") || value.includes(" port")) {
+            return lang === "pl" ? "Port morski" : "Seaport";
+        }
+        if (value.includes("office")) {
+            return lang === "pl" ? "Biuro" : "Office";
+        }
         return lang === "pl" ? "Centrum miasta" : "City Center";
     }
 
