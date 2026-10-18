@@ -38,7 +38,7 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         for (const item of p.items) {
             let name = isEn() ? item.name_en : item.name_pl;
             if (item.location_name) name += ' — ' + item.location_name;
-            if (item.kind === 'extra') name += ` × ${item.quantity}` + (item.billing === 'day' ? ` × ${item.days} ${label('dni', 'days')}` : '');
+            if (item.kind === 'extra' || (item.kind === 'time_fee' && item.quantity > 1)) name += ` × ${item.quantity}` + (item.billing === 'day' ? ` × ${item.days} ${label('dni', 'days')}` : '');
             row(box, name, money(item.customer_cents, p.currency));
         }
         if (p.loyalty_discount_cents) row(box, label('Rabat lojalnościowy', 'Loyalty discount'), '−' + money(p.loyalty_discount_cents, p.currency));
@@ -100,7 +100,7 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
             if (current !== revision) return;
             if (!response.ok) throw new Error((isEn() ? result.error_en : result.error) || result.error || label('Nie udało się obliczyć ceny.', 'Could not calculate the price.'));
             quote = result; quoteContext = JSON.stringify(c); ready = true; busy = false;
-            render(); el('confirmBookingBtn').disabled = false;
+            render(); el('confirmBookingBtn').disabled = !ready;
         } catch (error) {
             if (current !== revision) return;
             busy = false;

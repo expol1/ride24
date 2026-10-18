@@ -32,9 +32,9 @@
         .r24-extras-dialog__actions{display:flex;justify-content:flex-end;gap:12px;position:sticky;bottom:-25px;background:#fbfdff;padding:14px 0 0;border-top:1px solid #e2e8f0;}
         .r24-extras-dialog__actions button{min-height:43px;padding:10px 20px;border-radius:10px;font-weight:700;}
         .r24-extras-dialog__form p{margin:0;color:#64748b;font-size:13px;line-height:1.5;}
-        #partnerExtrasCatalog .r24-extras-row{display:grid;grid-template-columns:minmax(125px,1fr) minmax(120px,1fr) auto;gap:16px;align-items:center;padding:15px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-top:10px;}
-        #partnerExtrasCatalog .r24-extras-row .btn-secondary{white-space:nowrap;}
-        @media(max-width:560px){.r24-extras-dialog__head{padding:16px}.r24-extras-dialog__form{padding:16px;gap:14px}.r24-extras-dialog__actions{bottom:-16px}.r24-extras-dialog__actions button{flex:1}#partnerExtrasCatalog .r24-extras-row{grid-template-columns:1fr auto;gap:8px}#partnerExtrasCatalog .r24-extras-row span{grid-row:2;grid-column:1/-1}}
+        #partnerExtrasCatalog .r24-extras-row,#partnerTimeFeesCatalog .r24-extras-row,#partnerMandatoryRules .r24-extras-row{display:grid;grid-template-columns:minmax(125px,1fr) minmax(120px,1fr) auto;gap:16px;align-items:center;padding:15px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-top:10px;}
+        #partnerExtrasCatalog .r24-extras-row .btn-secondary,#partnerTimeFeesCatalog .r24-extras-row .btn-secondary,#partnerMandatoryRules .r24-extras-row .btn-secondary{white-space:nowrap;}
+        @media(max-width:560px){.r24-extras-dialog__head{padding:16px}.r24-extras-dialog__form{padding:16px;gap:14px}.r24-extras-dialog__actions{bottom:-16px}.r24-extras-dialog__actions button{flex:1}#partnerExtrasCatalog .r24-extras-row,#partnerTimeFeesCatalog .r24-extras-row,#partnerMandatoryRules .r24-extras-row{grid-template-columns:1fr auto;gap:8px}#partnerExtrasCatalog .r24-extras-row span,#partnerTimeFeesCatalog .r24-extras-row span,#partnerMandatoryRules .r24-extras-row span{grid-row:2;grid-column:1/-1}}
         `;
         document.head.append(s);
     }

@@ -1243,6 +1243,10 @@ serve(async (req) => {
           throw new BookingOptionsError("PRICING_UPDATE_REQUIRED", "Zaktualizuj aplikację lub dokończ rezerwację na ride24.pl.", "Update the app or book at ride24.pl.");
         }
       } else {
+      if ((options.timeRules.length || options.timeBlocks.length) && (
+        typeof body.pickup_time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(body.pickup_time)
+        || typeof body.return_time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(body.return_time)
+      )) throw new BookingOptionsError("TIME_REQUIRED", "Wybierz poprawną godzinę odbioru i zwrotu.", "Select valid pickup and return times.", 400);
       const context = pricingContext({userId:user.id, carId:car.id, startDate:startDate.text,
         endDate:endDate.text, pickupTime, returnTime, additionalDriverId}, options);
       const { snapshot, publicQuote } = await makeBookingQuote({options, selections,

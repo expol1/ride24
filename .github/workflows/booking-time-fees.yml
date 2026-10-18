@@ -1,0 +1,40 @@
+name: Ride24 Mandatory Fee QA
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/booking-items.mjs'
+      - 'supabase/functions/_shared/booking-options.mjs'
+      - 'supabase/functions/booking-options/index.ts'
+      - 'supabase/functions/create-booking-request/index.ts'
+      - 'assets/helper/bookingExtras.js'
+      - 'assets/helper/bookingItemBreakdown.js'
+      - 'assets/helper/partnerTimeFees.js'
+      - 'assets/helper/partnerMandatoryRules.js'
+      - 'assets/helper/partnerExtras.js'
+      - 'partner-dashboard.html'
+      - 'tests/backend-hardening/test-automatic-time-fees.mjs'
+      - 'tests/backend-hardening/test-booking-items.mjs'
+      - 'tests/backend-hardening/test-booking-options.mjs'
+      - 'tests/backend-hardening/test-booking-extras-ui.mjs'
+      - '.github/workflows/booking-time-fees.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test fee/quote calculations and WEB emergency stop
+        run: |
+          node --test tests/backend-hardening/test-automatic-time-fees.mjs tests/backend-hardening/test-booking-items.mjs tests/backend-hardening/test-booking-options.mjs
+          node --check assets/helper/bookingExtras.js
+          node --check assets/helper/bookingItemBreakdown.js
+          node --check assets/helper/partnerExtras.js
+          node --check assets/helper/partnerTimeFees.js
+          node --check assets/helper/partnerMandatoryRules.js
+      - name: Install test-only DOM library
+        run: npm install --no-save --no-package-lock jsdom@26.1.0
+      - name: Test live WEB booking and partner scripts
+        run: node --test tests/backend-hardening/test-booking-extras-ui.mjs
