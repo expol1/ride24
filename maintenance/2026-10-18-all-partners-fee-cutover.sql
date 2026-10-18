@@ -80,7 +80,7 @@ begin
     where l.partner_id=v_partner_id and l.location_name='Ponta Delgada Airport (PDL)' and l.active=true;
   insert into public.partner_time_blocks (partner_id,location_id,applies_to,starts_at,ends_at,active)
     values(v_partner_id,loc_id,'pickup','23:45','07:00',true),
-          (v_partner_id,loc_id,'return','00:00','05:00',true);
+          (v_partner_id,loc_id,'return','23:45','05:00',true);
 end;
 $$;
 commit;
