@@ -83,7 +83,7 @@ test('Azores pickup is impossible at airport between 23:45 and 07:00',()=>{
  for(const pickupTime of ['07:00','19:45','23:44'])assert.doesNotThrow(()=>calc({...base,pickup:airport,pickupTime,timeBlocks:[block]}));
  assert.doesNotThrow(()=>calc({...base,pickup:{...base.pickup,id:'different-point'},pickupTime:'02:00',timeBlocks:[block]}));
 });
-test('Azores return 00:00–05:00 is unavailable; 05:00–07:00 incurs 25 EUR',()=>{
+test('Azores return 23:45–05:00 is unavailable; 05:00–07:00 incurs 25 EUR',()=>{
  const office={id:'airport',name:'Ponta Delgada Airport (PDL)',city:'Ponta Delgada',amount:7.5};
  const block={id:'block-r',location_id:'airport',applies_to:'return',starts_at:'00:00:00',ends_at:'05:00:00',active:true};
  const fee={id:'return-after-hours',location_id:'airport',applies_to:'return',starts_at:'05:00:00',ends_at:'07:00:00',amount:'25.00',once_per_booking:true,active:true};
