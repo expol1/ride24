@@ -51,6 +51,8 @@
         const once=input('checkbox');once.checked=fee.once_per_booking!==false;
         field(f,'Raz na rezerwację, nawet gdy odbiór i zwrot są w tych godzinach','Once per booking if both pickup and return match',once);
         const update=()=>{once.disabled=event.value!=='either';if(once.disabled)once.checked=true;};event.onchange=update;update();
+        const approval=input('checkbox');approval.checked=fee.requires_approval===true;
+        field(f,'Wymaga wcześniejszego uzgodnienia z wypożyczalnią','Requires prior approval from the rental company',approval);
         const enabled=input('checkbox');enabled.checked=fee.active!==false;field(f,'Reguła aktywna','Rule active',enabled);
         f.append(el('p',label('Przykład: 22:00–07:00 obejmuje godziny nocne. Kwota zostanie automatycznie doliczona do ceny przed rezerwacją.','Example: 22:00–07:00 covers overnight times. The charge will be included in the total before booking.')));
         const buttons=el('div');buttons.className='r24-extras-dialog__actions';
