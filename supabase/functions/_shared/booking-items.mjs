@@ -28,7 +28,18 @@ function label(value) {
   return s;
 }
 
-export function calculateBookingItems({ rental, pickup, dropoff, catalog = [], selections = [], days, marginPercent, loyaltyPercent = 0, currency, exchangeRate }) {
+function timeInWindow(actual, from, until) {
+  const seconds = (value) => {
+    if (typeof value !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(value)) throw new Error('INVALID_TIME');
+    const [h,m,s=0] = value.split(':').map(Number);
+    return h*3600 + m*60 + s;
+  };
+  const t=seconds(actual), start=seconds(from), end=seconds(until);
+  if(start===end) throw new Error('INVALID_TIME_WINDOW');
+  return start<end ? t>=start && t<end : t>=start || t<end;
+}
+
+export function calculateBookingItems({ rental, pickup, dropoff, timeRules = [], pickupTime = null, returnTime = null, catalog = [], selections = [], days, marginPercent, loyaltyPercent = 0, currency, exchangeRate }) {
   integer(days, 366);
   if (typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency)) throw new Error('INVALID_CURRENCY');
   if (!Number.isFinite(marginPercent) || marginPercent < 0 || marginPercent > 100) throw new Error('INVALID_MARGIN');
@@ -54,6 +65,25 @@ export function calculateBookingItems({ rental, pickup, dropoff, catalog = [], s
       add(kind, location.id, names, location.amount);
       items.at(-1).location_name = String(location.name).slice(0,250);
     }
+  }
+  if (!Array.isArray(timeRules) || timeRules.length > 30) throw new Error('INVALID_TIME_RULES');
+  // Time-dependent fees are mandatory and server-calculated, never customer-selected extras.
+  for (const rule of timeRules) {
+    if (rule?.active !== true) continue;
+    if (!['pickup','return','either'].includes(rule.applies_to) || typeof rule.id !== 'string') throw new Error('INVALID_TIME_RULES');
+    const forPickup = (rule.applies_to === 'pickup' || rule.applies_to === 'either')
+      && (!rule.location_id || rule.location_id === pickup.id)
+      && timeInWindow(pickupTime, rule.starts_at, rule.ends_at);
+    const forReturn = (rule.applies_to === 'return' || rule.applies_to === 'either')
+      && (!rule.location_id || rule.location_id === dropoff.id)
+      && timeInWindow(returnTime, rule.starts_at, rule.ends_at);
+    if (!forPickup && !forReturn) continue;
+    const count = rule.applies_to === 'either' && rule.once_per_booking === false ? Number(forPickup)+Number(forReturn) : 1;
+    const window = String(rule.starts_at).slice(0,5) + '–' + String(rule.ends_at).slice(0,5);
+    const name = rule.applies_to === 'pickup' ? ['Odbiór poza godzinami','Out-of-hours pickup']
+      : rule.applies_to === 'return' ? ['Zwrot poza godzinami','Out-of-hours return']
+      : ['Obsługa poza godzinami','Out-of-hours service'];
+    add('time_fee', rule.id, {pl: name[0]+' ('+window+')', en: name[1]+' ('+window+')'}, rule.amount, count);
   }
   const seen = new Set();
   // Canonical order keeps equivalent client selections stable for quote fingerprints.
