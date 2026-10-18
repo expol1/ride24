@@ -34,8 +34,8 @@ serve(async(req: Request)=>{
       admin.rpc('calculate_loyalty_discount',{p_user_id:user.id}),
     ]);
     if(options.timeRules.length && (
-      typeof body.pickup_time !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(body.pickup_time)
-      || typeof body.return_time !== 'string' || !/^([01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(body.return_time)
+      typeof body.pickup_time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(body.pickup_time)
+      || typeof body.return_time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(body.return_time)
     )) throw new BookingOptionsError('TIME_REQUIRED','Wybierz godzinę odbioru i zwrotu, aby obliczyć dopłaty.','Select pickup and return times to calculate fees.',400);
     const rental=Array.isArray(price.data) ? price.data[0] : price.data;
     if(price.error || !rental || loyalty.error) throw new Error('PRICING_UNAVAILABLE');
