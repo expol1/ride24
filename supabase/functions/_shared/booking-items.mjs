@@ -39,7 +39,7 @@ function timeInWindow(actual, from, until) {
   return start<end ? t>=start && t<end : t>=start || t<end;
 }
 
-export function calculateBookingItems({ rental, pickup, dropoff, timeRules = [], pickupTime = null, returnTime = null, catalog = [], selections = [], days, marginPercent, loyaltyPercent = 0, currency, exchangeRate }) {
+export function calculateBookingItems({ rental, pickup, dropoff, timeRules = [], timeBlocks = [], conditionalFees = [], pickupTime = null, returnTime = null, catalog = [], selections = [], days, marginPercent, loyaltyPercent = 0, currency, exchangeRate }) {
   integer(days, 366);
   if (typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency)) throw new Error('INVALID_CURRENCY');
   if (!Number.isFinite(marginPercent) || marginPercent < 0 || marginPercent > 100) throw new Error('INVALID_MARGIN');
@@ -67,6 +67,32 @@ export function calculateBookingItems({ rental, pickup, dropoff, timeRules = [],
     }
   }
   if (!Array.isArray(timeRules) || timeRules.length > 30) throw new Error('INVALID_TIME_RULES');
+  // A closed airport/location time can never be booked by paying an extra fee.
+  if (!Array.isArray(timeBlocks) || timeBlocks.length > 30) throw new Error('INVALID_TIME_BLOCKS');
+  for (const block of timeBlocks) {
+    if (block?.active !== true) continue;
+    if (!['pickup','return','either'].includes(block.applies_to)) throw new Error('INVALID_TIME_BLOCKS');
+    const pickupBlocked = (block.applies_to === 'pickup' || block.applies_to === 'either')
+      && (!block.location_id || block.location_id === pickup.id)
+      && timeInWindow(pickupTime,block.starts_at,block.ends_at);
+    const returnBlocked = (block.applies_to === 'return' || block.applies_to === 'either')
+      && (!block.location_id || block.location_id === dropoff.id)
+      && timeInWindow(returnTime,block.starts_at,block.ends_at);
+    if (pickupBlocked || returnBlocked) throw new Error(pickupBlocked ? 'PICKUP_UNAVAILABLE_TIME' : 'RETURN_UNAVAILABLE_TIME');
+  }
+  if (!Array.isArray(conditionalFees) || conditionalFees.length > 30) throw new Error('INVALID_CONDITIONAL_FEES');
+  const city = (v) => typeof v === 'string' ? v.trim().toLocaleLowerCase('en-US') : '';
+  for (const fee of conditionalFees) {
+    if(fee?.active !== true) continue;
+    if (!['location_either','cross_city'].includes(fee.kind)) throw new Error('INVALID_CONDITIONAL_FEES');
+    const matches=fee.kind==='location_either'
+      ? fee.location_id && (fee.location_id===pickup.id || fee.location_id===dropoff.id)
+      : Array.isArray(fee.city_scope) && city(pickup.city) && city(dropoff.city)
+        && city(pickup.city)!==city(dropoff.city)
+        && fee.city_scope.some(v=>city(v)===city(pickup.city))
+        && fee.city_scope.some(v=>city(v)===city(dropoff.city));
+    if(matches) add('conditional_fee',fee.id,{pl:fee.name_pl,en:fee.name_en},fee.amount);
+  }
   // Time-dependent fees are mandatory and server-calculated, never customer-selected extras.
   for (const rule of timeRules) {
     if (rule?.active !== true) continue;
@@ -83,7 +109,8 @@ export function calculateBookingItems({ rental, pickup, dropoff, timeRules = [],
     const name = rule.applies_to === 'pickup' ? ['Odbiór poza godzinami','Out-of-hours pickup']
       : rule.applies_to === 'return' ? ['Zwrot poza godzinami','Out-of-hours return']
       : ['Obsługa poza godzinami','Out-of-hours service'];
-    add('time_fee', rule.id, {pl: name[0]+' ('+window+')', en: name[1]+' ('+window+')'}, rule.amount, count);
+    const approval = rule.requires_approval === true ? [' — wymaga uzgodnienia',' — prior approval required'] : ['',''];
+    add('time_fee', rule.id, {pl: name[0]+' ('+window+')'+approval[0], en: name[1]+' ('+window+')'+approval[1]}, rule.amount, count);
   }
   const seen = new Set();
   // Canonical order keeps equivalent client selections stable for quote fingerprints.
