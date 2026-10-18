@@ -100,7 +100,7 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
             if (current !== revision) return;
             if (!response.ok) throw new Error((isEn() ? result.error_en : result.error) || result.error || label('Nie udało się obliczyć ceny.', 'Could not calculate the price.'));
             quote = result; quoteContext = JSON.stringify(c); ready = true; busy = false;
-            render(); el('confirmBookingBtn').disabled = false;
+            render(); el('confirmBookingBtn').disabled = !ready;
         } catch (error) {
             if (current !== revision) return;
             busy = false;
