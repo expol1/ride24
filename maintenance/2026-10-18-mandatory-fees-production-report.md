@@ -29,7 +29,7 @@ Kwoty to kwoty bazowe dla partnera; cena klienta pozostaje ustalana na serwerze 
 ## Pozostałe dobrowolne `custom`
 - Mountain Calendar: Wi-Fi 5 EUR/dzień — słusznie pozostaje w dodatkach.
 - Sleid Rental: pozwolenie na przekroczenie granicy (Czarnogóra/Macedonia Północna) 100 EUR — nie można ustalić zamiaru podróży na podstawie lokalizacji odbioru/zwrotu; świadomie pozostawiono wybór klientowi.
-- Profil **tets**: testowy wpis `custom`; partner ma aktywny profil i 5 historycznych rezerwacji. Nie deaktywowano tego profilu bez osobnej decyzji właściciela.
+- Profil **tets**: testowy wpis `custom` o nieodpowiedniej nazwie został wyłączony z katalogu. Sam profil pozostawiono aktywny (5 historycznych rezerwacji); brak usuwania danych testowych bez osobnej decyzji właściciela.
 
 ## Kontrole
 - GitHub Actions `Ride24 Mandatory Fee QA`: testy kalkulatora, cen, zmian godzin, Azorów, transferu FNC, tras kontynentalnych, obowiązkowego potwierdzenia, formularzy WEB, bezpieczeństwa prezentacji oraz awaryjnego wyłączenia płatnych dodatków — **PASS**.
