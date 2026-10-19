@@ -1,0 +1,237 @@
+{
+  "date": "2026-10-19",
+  "project": "Ride24",
+  "repository": "expol1/ride24",
+  "supabase_project": "zwyerdeuvyzgkgwglowr",
+  "baseline_main": "6db745a2fb1a77075280acbbaeba3a8e50b3f80b",
+  "source_commit": "05540e750ce7c4f0ea59ed373b432598721fdaef",
+  "merge_commit": "d9ef9e53d2319d36cc57b81e15846d4870f06759",
+  "pull_request": "https://github.com/expol1/ride24/pull/38",
+  "backup_branch": "backup/before-api-compatibility-20261019",
+  "production_function_snapshots": 10,
+  "tests": {
+    "total": 98,
+    "passed": 98,
+    "failed": 0,
+    "api_contract_tests": 20,
+    "syntax_files": 15,
+    "syntax_errors": 0,
+    "isolated_schema_checks": 23,
+    "production_booking_created": false,
+    "production_payment_created": false,
+    "partner_notifications_sent": false,
+    "external_provider_requests_sent": false
+  },
+  "ci": [
+    {
+      "name": "Ride24 Mandatory Fee QA",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/expol1/ride24/actions/runs/39276314301",
+      "sha": "05540e750ce7c4f0ea59ed373b432598721fdaef"
+    },
+    {
+      "name": "Ride24 API Compatibility QA",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/expol1/ride24/actions/runs/39276314260",
+      "sha": "05540e750ce7c4f0ea59ed373b432598721fdaef"
+    }
+  ],
+  "production_readback": [
+    {
+      "name": "search-api",
+      "version": 54,
+      "verify_jwt": false,
+      "filesIdentical": true,
+      "mismatches": [],
+      "missing": []
+    },
+    {
+      "name": "api-partner-admin",
+      "version": 15,
+      "verify_jwt": true,
+      "filesIdentical": true,
+      "mismatches": [],
+      "missing": []
+    },
+    {
+      "name": "api-booking-dispatch",
+      "version": 16,
+      "verify_jwt": false,
+      "filesIdentical": true,
+      "mismatches": [],
+      "missing": []
+    },
+    {
+      "name": "api-booking-status-sync",
+      "version": 16,
+      "verify_jwt": false,
+      "filesIdentical": true,
+      "mismatches": [],
+      "missing": []
+    },
+    {
+      "name": "client-cancel-booking",
+      "version": 19,
+      "verify_jwt": true,
+      "filesIdentical": true,
+      "mismatches": [],
+      "missing": []
+    },
+    {
+      "name": "booking-options",
+      "version": 3,
+      "verify_jwt": true,
+      "filesIdentical": true,
+      "mismatches": [],
+      "missing": []
+    },
+    {
+      "name": "create-booking-request",
+      "version": 19,
+      "verify_jwt": true,
+      "filesIdentical": true,
+      "mismatches": [],
+      "missing": []
+    }
+  ],
+  "main_publication_checks": [
+    {
+      "name": "Cloudflare Pages",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/expol1/ride24/runs/118142198636"
+    }
+  ],
+  "production_http_checks": [
+    {
+      "function": "search-api",
+      "status": 200,
+      "pass": true,
+      "response": {
+        "success": true,
+        "cars": [],
+        "count": 0
+      }
+    },
+    {
+      "function": "booking-options",
+      "status": 401,
+      "pass": true,
+      "response": {
+        "error": "Wymagane logowanie"
+      }
+    },
+    {
+      "function": "create-booking-request",
+      "status": 401,
+      "pass": true,
+      "response": {
+        "error": "Wymagane logowanie"
+      }
+    },
+    {
+      "function": "api-partner-admin",
+      "status": 401,
+      "pass": true,
+      "response": {
+        "error": "Wymagane logowanie"
+      }
+    },
+    {
+      "function": "api-booking-dispatch",
+      "status": 401,
+      "pass": true,
+      "response": {
+        "error": "Brak autoryzacji wewnętrznej"
+      }
+    },
+    {
+      "function": "api-booking-status-sync",
+      "status": 401,
+      "pass": true,
+      "response": {
+        "error": "Brak autoryzacji wewnętrznej"
+      }
+    },
+    {
+      "function": "client-cancel-booking",
+      "status": 401,
+      "pass": true,
+      "response": {
+        "error": "Wymagane logowanie"
+      }
+    },
+    {
+      "function": "sync-api-locations",
+      "status": 401,
+      "pass": true,
+      "response": {
+        "error": "Wymagane logowanie"
+      }
+    }
+  ],
+  "protected_data": {
+    "unchanged": true,
+    "before": {
+      "partners": "a00c00b1160b0bbba7bdaeb0aa3447f0",
+      "locations": "26d1e5e099cf11635afcd1ac2c777269",
+      "time_fees": "f35627de5cc46d0a162f17081e822656",
+      "car_classes": "194e44518cd2941fbc65e7528f313832",
+      "time_blocks": "c64e9aaae813cf2c398de92d2a8048bf",
+      "partner_extras": "61c8186d927e5db0d8207fa4263b1c74",
+      "conditional_fees": "8585163d06f41db8de17d2b835c066da"
+    },
+    "after": {
+      "partners": "a00c00b1160b0bbba7bdaeb0aa3447f0",
+      "locations": "26d1e5e099cf11635afcd1ac2c777269",
+      "time_fees": "f35627de5cc46d0a162f17081e822656",
+      "car_classes": "194e44518cd2941fbc65e7528f313832",
+      "time_blocks": "c64e9aaae813cf2c398de92d2a8048bf",
+      "partner_extras": "61c8186d927e5db0d8207fa4263b1c74",
+      "conditional_fees": "8585163d06f41db8de17d2b835c066da"
+    },
+    "database_migrations": 0,
+    "partner_data_writes": 0,
+    "storage_changes": 0
+  },
+  "production_inventory_at_start": {
+    "enabled_api_partners": 0,
+    "api_credentials": 0,
+    "api_bookings": 0,
+    "api_quotes": 0,
+    "api_locations": 0,
+    "cars": 62,
+    "full_insurance": 62
+  },
+  "readiness": {
+    "local_web_flows": "regression tests passed; data and existing pricing unchanged",
+    "android_source_changed": false,
+    "additional_android_release_required_for_these_server_guards": false,
+    "external_provider_certified": false,
+    "prepared_provider_adapters": [
+      "ride24_standard_v1",
+      "custom",
+      "renteon",
+      "easy_web_rent"
+    ],
+    "missing_dedicated_adapters": [
+      "kolaycar",
+      "wheelsys"
+    ],
+    "api_local_optional_extras": "unsupported; blocked before booking rather than silently dropped",
+    "api_local_mandatory_fee_rules": "unsupported; blocked before activation/search/booking/dispatch rather than skipped or duplicated",
+    "requires_real_provider_acceptance": [
+      "availability and quote inclusions",
+      "partner discount and payable amount",
+      "booking reference",
+      "confirmation and status",
+      "voucher",
+      "payment",
+      "cancellation"
+    ],
+    "global_security_certification": false,
+    "existing_advisor_outside_api_scope": "public.active_promotions security_definer_view; unchanged"
+  }
+}
