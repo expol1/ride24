@@ -19,7 +19,7 @@ img.brand-logo { width: 220px; max-width: 46vw; height: auto; object-fit: contai
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 10px !important;
     padding: 8px !important;
     /* The mobile gradient is fully opaque: backdrop blur cannot be seen,
        but can add work while content scrolls underneath the sticky header. */
@@ -27,7 +27,7 @@ img.brand-logo { width: 220px; max-width: 46vw; height: auto; object-fit: contai
     -webkit-backdrop-filter: none !important;
   }
   header .logo-container {
-    width: 100%; max-width: 160px; min-width: 0;
+    width: 100%; max-width: 128px; min-width: 0;
     aspect-ratio: 2.75; overflow: hidden;
     display: block; position: relative;
   }
@@ -39,16 +39,24 @@ img.brand-logo { width: 220px; max-width: 46vw; height: auto; object-fit: contai
   }
   header .header-right {
     display: flex !important; width: auto !important; min-width: 0;
-    gap: 5px !important; justify-content: flex-end !important;
+    gap: 9px !important; justify-content: flex-end !important;
   }
-  header .lang-switch { gap: 3px !important; }
+  header .lang-switch { gap: 5px !important; }
   header .lang-btn { font-size: 9px !important; gap: 2px !important; }
   header .lang-btn img { width: 16px !important; }
-  header .auth-buttons { gap: 4px !important; }
+  header .auth-buttons { gap: 7px !important; }
   header .auth-buttons button {
-    min-height: 36px; padding: 7px 6px !important;
+    min-height: 36px; padding: 7px 8px !important;
     font-size: 9px !important; line-height: 1.1; white-space: nowrap;
   }
   .logo-group .logo-image { width: 180px; }
   .header-bar { flex-wrap: wrap; gap: 12px; }
+}
+
+@media (max-width: 359px) {
+  header:has(.logo-container) { gap: 8px !important; }
+  header .header-right { gap: 6px !important; }
+  header .lang-switch { gap: 4px !important; }
+  header .auth-buttons { gap: 5px !important; }
+  header .auth-buttons button { padding-inline: 6px !important; }
 }
