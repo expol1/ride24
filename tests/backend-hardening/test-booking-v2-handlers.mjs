@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
+import * as apiContract from '../../supabase/functions/_shared/api-quote-contract.mjs';
 import ts from 'typescript';
 const uid='10000000-0000-4000-8000-000000000001',partner='20000000-0000-4000-8000-000000000001',car='30000000-0000-4000-8000-000000000001',booking='40000000-0000-4000-8000-000000000001';
 const pickup='50000000-0000-4000-8000-000000000001',dropoff='50000000-0000-4000-8000-000000000002',extra='60000000-0000-4000-8000-000000000001';
@@ -21,7 +22,7 @@ function setup({enabled=true,fees=true}={}){
  const admin={from:t=>new Query(t),rpc:async(name)=>({data:name==='calculate_booking_price'?[{...rental}]:10,error:null})};
  const security={authenticatedUser:async()=>({id:uid,email:'client@example.invalid'}),serviceClient:()=>admin,enforceRateLimit:async()=>{},isUuid:x=>typeof x==='string'&&/^[0-9a-f-]{36}$/.test(x),corsHeaders:()=>({}),jsonResponse:(_req,value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json'}}),publicErrorMessage:()=>({message:'Server error',status:500})};
  let handler;
- const sandbox={exports:{},require:name=>name.includes('booking-options')?options:name.includes('ride24-security')?security:name.includes('server.ts')?{serve:f=>handler=f}:(()=>{throw new Error(name)})(),Request,Response,Headers,TextEncoder,TextDecoder,URL,AbortController,setTimeout,clearTimeout,console,Deno:{env:{get:key=>key==='SUPABASE_URL'?'https://example.invalid':'test-only'}},fetch:async url=>{if(String(url).startsWith('https://api.nbp.pl/'))return Response.json({rates:[{mid:4.3}]});assert.ok(String(url).startsWith('https://example.invalid/'));outgoing.push(String(url));return Response.json({});}};
+ const sandbox={exports:{},require:name=>name.includes('api-quote-contract')?apiContract:name.includes('booking-options')?options:name.includes('ride24-security')?security:name.includes('server.ts')?{serve:f=>handler=f}:(()=>{throw new Error(name)})(),Request,Response,Headers,TextEncoder,TextDecoder,URL,AbortController,setTimeout,clearTimeout,console,Deno:{env:{get:key=>key==='SUPABASE_URL'?'https://example.invalid':'test-only'}},fetch:async url=>{if(String(url).startsWith('https://api.nbp.pl/'))return Response.json({rates:[{mid:4.3}]});assert.ok(String(url).startsWith('https://example.invalid/'));outgoing.push(String(url));return Response.json({});}};
  vm.runInNewContext(code,sandbox);
  const request=body=>handler(new Request('https://example.invalid/create-booking-request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));
  async function quoted(body=makeBody()){

@@ -15,6 +15,7 @@ import {
   cancelProviderBooking,
   createProviderBooking,
 } from "../_shared/provider-adapters.ts";
+import { assertApiPricingCompatible, assertApiQuoteContext } from "../_shared/api-quote-contract.mjs";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -711,6 +712,8 @@ serve(async (req) => {
     let quote: QuoteRow;
     try {
       quote = await loadQuote(admin, booking);
+      assertApiQuoteContext(quote.raw_response, booking);
+      await assertApiPricingCompatible(admin, booking.partner_id);
     } catch (error) {
       const code = error instanceof Error
         ? cleanText(error.message, 160) || "INVALID_API_QUOTE"
@@ -772,7 +775,6 @@ serve(async (req) => {
       currency: booking.partner_currency,
       partner_discount_percent: finiteNumber(quote.partner_discount_percent),
       partner_amount: partnerAmount,
-      customer_total: customerTotal,
       quote_reference: quote.external_quote_reference,
       response_deadline: responseDeadline.toISOString(),
       provider_quote_data: isRecord(quote.raw_response)

@@ -26,6 +26,7 @@ export type ApiLocation = {
   type?: string | null;
   extra_fee?: boolean;
   extra_fee_amount?: number | null;
+  return_fee_amount?: number | null;
   contact_required?: boolean;
   active?: boolean;
 };
@@ -895,6 +896,7 @@ export function normalizeLocations(payload: unknown): ApiLocation[] {
       type: boundedText(item.type, 30),
       extra_fee: item.extra_fee === true,
       extra_fee_amount: boundedNonNegativeNumber(item.extra_fee_amount),
+      return_fee_amount: boundedNonNegativeNumber(item.return_fee_amount),
       contact_required: item.contact_required === true,
       active: item.active !== false,
     } satisfies ApiLocation];

@@ -56,7 +56,6 @@ export type ProviderBookingInput = {
   currency?: string | null;
   partner_discount_percent?: number | null;
   partner_amount?: number | null;
-  customer_total?: number | null;
   quote_reference?: string | null;
   response_deadline?: string | null;
   provider_quote_data?: unknown;
@@ -208,9 +207,8 @@ function normalizeCurrency(value: unknown): string | null {
 
 function safeProvider(provider: unknown): ProviderKey {
   const key = String(provider || "custom").trim().toLowerCase();
-  return ["ride24_standard_v1", "custom", "renteon", "easy_web_rent"].includes(key)
-    ? key as ProviderKey
-    : "custom";
+  if (["ride24_standard_v1", "custom", "renteon", "easy_web_rent"].includes(key)) return key as ProviderKey;
+  throw new Error('PARTNER_API_ERROR:UNSUPPORTED_PROVIDER');
 }
 
 export function providerKey(value: unknown): ProviderKey {
@@ -1088,6 +1086,18 @@ function renteonProviderQuote(input: ProviderBookingInput): Record<string, unkno
   return input.provider_quote_data;
 }
 
+function partnerBookingRequest(input: ProviderBookingInput): Record<string, unknown> {
+  // Explicit contract: the rental company gets its own payable amount, never
+  // Ride24's customer total, reservation fee, margin or loyalty accounting.
+  const fields = [
+    'idempotency_key', 'ride24_booking_id', 'reservation_code', 'vehicle_group_id', 'class_code',
+    'pickup_location_id', 'dropoff_location_id', 'pickup_date', 'return_date', 'pickup_time', 'return_time',
+    'pickup_location', 'return_location', 'main_driver', 'additional_driver', 'client_email', 'client_phone',
+    'currency', 'partner_discount_percent', 'partner_amount', 'quote_reference', 'response_deadline', 'provider_quote_data',
+  ] as const;
+  return Object.fromEntries(fields.filter(key => input[key] !== undefined).map(key => [key, input[key]]));
+}
+
 export async function createProviderBooking(
   providerValue: unknown,
   credentials: PartnerApiCredentials,
@@ -1283,7 +1293,7 @@ export async function createProviderBooking(
       headers: {
         "Idempotency-Key": input.idempotency_key,
       },
-      body: input,
+      body: partnerBookingRequest(input),
     },
   );
   return canonicalGenericBooking(payload);

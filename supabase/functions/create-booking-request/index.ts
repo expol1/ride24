@@ -1,4 +1,5 @@
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
+import { assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   authenticatedUser,
@@ -74,6 +75,7 @@ type QuoteRow = {
   final_total: number | string;
   currency: string;
   expires_at: string;
+  raw_response: unknown;
 };
 
 type ClaimedQuote = {
@@ -367,6 +369,7 @@ function normalizeQuote(value: unknown): QuoteRow | null {
     final_total: value.final_total as number | string,
     currency: value.currency,
     expires_at: value.expires_at,
+    raw_response: value.raw_response,
   };
 }
 
@@ -444,13 +447,14 @@ async function claimApiQuote(
   car: CarRow,
   startDate: string,
   endDate: string,
+  body: RequestBody,
 ): Promise<ClaimedQuote | null> {
   const now = new Date().toISOString();
 
   const { data: rawQuote, error: quoteError } = await admin
     .from("api_quotes")
     .select(
-      "id, partner_id, car_class_id, external_group_id, pickup_location_external_id, dropoff_location_external_id, start_date, end_date, public_price_per_day, partner_discount_percent, platform_margin_percent, partner_net_total, commission_total, final_total, currency, expires_at",
+      "id, partner_id, car_class_id, external_group_id, pickup_location_external_id, dropoff_location_external_id, start_date, end_date, public_price_per_day, partner_discount_percent, platform_margin_percent, partner_net_total, commission_total, final_total, currency, expires_at, raw_response",
     )
     .eq("id", quoteId)
     .eq("partner_id", car.partner_id)
@@ -464,6 +468,7 @@ async function claimApiQuote(
 
   const quote = normalizeQuote(rawQuote);
   if (quoteError || !quote) return null;
+  assertApiQuoteContext(quote.raw_response, body);
 
   const publicPrice = finiteNumber(quote.public_price_per_day);
   const partnerNet = finiteNumber(quote.partner_net_total);
@@ -1032,12 +1037,15 @@ serve(async (req) => {
         );
       }
 
+      assertApiRequestedOptions(body);
+      await assertApiPricingCompatible(admin, car.partner_id);
       quoteClaim = await claimApiQuote(
         admin,
         body.api_quote_id,
         car,
         startDate.text,
         endDate.text,
+        body,
       );
       if (!quoteClaim) {
         return jsonResponse(

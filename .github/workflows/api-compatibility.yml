@@ -1,0 +1,31 @@
+name: Ride24 API Compatibility QA
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/**'
+      - 'tests/backend-hardening/**'
+      - '.github/workflows/api-compatibility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/backend-hardening/package-lock.json
+      - name: Install isolated test dependencies
+        run: npm ci --prefix tests/backend-hardening --ignore-scripts
+      - name: Verify API and existing booking, payment, WEB and voucher contracts
+        working-directory: tests/backend-hardening
+        run: >-
+          node --experimental-strip-types --test
+          test-api-compatibility.mjs test-booking-items.mjs test-booking-options.mjs
+          test-booking-v2-handlers.mjs test-priced-extras-schema.mjs test-booking-extras-ui.mjs
+          test-voucher-booking-items.mjs test-automatic-time-fees.mjs
+          test-native-booking-contract.mjs test-payment-return.mjs
