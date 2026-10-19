@@ -1,0 +1,33 @@
+{
+  "project_id": "zwyerdeuvyzgkgwglowr",
+  "baseline_main": "bb14c6d06a2e727135f33ef3141f2ddfa6b0f4b7",
+  "purpose": "Exact production sources before Android payment return fix; no credentials or database data.",
+  "functions": [
+    {
+      "name": "payment-return",
+      "version": 7,
+      "verify_jwt": false,
+      "entrypoint_path": "index.ts",
+      "files": [
+        {
+          "name": "index.ts",
+          "content": "import { serve } from \"https://deno.land/std@0.224.0/http/server.ts\";\n\n// Android: nie renderujemy strony pośredniej. Zwracamy bezpośredni redirect\n// do deep linku aplikacji. Eliminuje to biały ekran / surowy HTML po Stripe.\nserve((req) => {\n  const url = new URL(req.url);\n  const status = url.searchParams.get(\"status\") === \"success\" ? \"success\" : \"cancel\";\n  const bookingId = url.searchParams.get(\"booking_id\") || \"\";\n  const host = status === \"success\" ? \"payment-success\" : \"payment-cancel\";\n  const deepLink = `ride24://${host}?booking_id=${encodeURIComponent(bookingId)}`;\n\n  return new Response(null, {\n    status: 302,\n    headers: {\n      \"Location\": deepLink,\n      \"Cache-Control\": \"no-store, no-cache, must-revalidate\",\n      \"Pragma\": \"no-cache\",\n      \"X-Content-Type-Options\": \"nosniff\",\n    },\n  });\n});\n\n"
+        }
+      ],
+      "source_sha256": "efb3f57cf6265864c8000a951c1ed20484f1cf444de689076eaf99861d38c08e"
+    },
+    {
+      "name": "create_checkout_session",
+      "version": 79,
+      "verify_jwt": true,
+      "entrypoint_path": "index.ts",
+      "files": [
+        {
+          "name": "index.ts",
+          "content": "// Ride24 — bezpieczny zamiennik istniejącej funkcji create_checkout_session.\n// Kompatybilny z web i Android: przyjmuje booking_id oraz opcjonalne amount,\n// ale wiążącą kwotę zawsze pobiera z bazy po weryfikacji właściciela rezerwacji.\nimport { serve } from \"https://deno.land/std@0.224.0/http/server.ts\";\nimport Stripe from \"https://esm.sh/stripe@14?target=deno\";\nimport { createClient } from \"https://esm.sh/@supabase/supabase-js@2\";\n\nconst SUPABASE_URL = Deno.env.get(\"SUPABASE_URL\")!;\nconst ANON_KEY = Deno.env.get(\"SUPABASE_ANON_KEY\")!;\nconst SERVICE_KEY = Deno.env.get(\"SUPABASE_SERVICE_ROLE_KEY\")!;\nconst STRIPE_SECRET_KEY = Deno.env.get(\"STRIPE_SECRET_KEY\")!;\nconst stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: \"2023-10-16\" });\n\nconst cors = (req: Request) => ({\n  \"Access-Control-Allow-Origin\": req.headers.get(\"origin\") === \"https://ride24.pl\" ? \"https://ride24.pl\" : \"https://ride24.pl\",\n  \"Access-Control-Allow-Headers\": \"authorization, x-client-info, apikey, content-type\",\n  \"Content-Type\": \"application/json\",\n});\n\nserve(async (req) => {\n  if (req.method === \"OPTIONS\") return new Response(\"ok\", { headers: cors(req) });\n  try {\n    const authHeader = req.headers.get(\"Authorization\") || \"\";\n    if (!authHeader.startsWith(\"Bearer \")) return new Response(JSON.stringify({ error: \"AUTH_REQUIRED\" }), { status: 401, headers: cors(req) });\n\n    const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });\n    const { data: { user }, error: userError } = await userClient.auth.getUser();\n    if (userError || !user) return new Response(JSON.stringify({ error: \"AUTH_REQUIRED\" }), { status: 401, headers: cors(req) });\n\n    const body = await req.json().catch(() => ({}));\n    const bookingId = typeof body.booking_id === \"string\" ? body.booking_id : \"\";\n    const client = typeof body.client === \"string\" ? body.client.toLowerCase() : \"web\";\n    if (!bookingId) return new Response(JSON.stringify({ error: \"INVALID_BOOKING\" }), { status: 400, headers: cors(req) });\n\n    const admin = createClient(SUPABASE_URL, SERVICE_KEY);\n    const { data: booking, error } = await admin.from(\"bookings\")\n      .select(\"id,client_id,status,online_payment_pln,reservation_code,payment_deadline\")\n      .eq(\"id\", bookingId).maybeSingle();\n    if (error || !booking) return new Response(JSON.stringify({ error: \"BOOKING_NOT_FOUND\" }), { status: 404, headers: cors(req) });\n    if (booking.client_id !== user.id) return new Response(JSON.stringify({ error: \"FORBIDDEN\" }), { status: 403, headers: cors(req) });\n    if (![\"accepted\", \"awaiting_payment\"].includes(booking.status)) return new Response(JSON.stringify({ error: \"PAYMENT_NOT_ALLOWED\" }), { status: 409, headers: cors(req) });\n\n    const amount = Number(booking.online_payment_pln || 0);\n    if (!Number.isFinite(amount) || amount <= 0) return new Response(JSON.stringify({ error: \"INVALID_AMOUNT\" }), { status: 409, headers: cors(req) });\n\n    const session = await stripe.checkout.sessions.create({\n      mode: \"payment\",\n      payment_method_types: [\"card\"],\n      line_items: [{\n        price_data: {\n          currency: \"pln\",\n          product_data: {\n            name: \"Ride24 – Auta z różnych zakątków świata\",\n            description: `Rezerwacja: ${booking.reservation_code || booking.id}`,\n          },\n          unit_amount: Math.round(amount * 100),\n        },\n        quantity: 1,\n      }],\n      metadata: { booking_id: booking.id, client_id: user.id },\n      client_reference_id: booking.id,\n      success_url: client === \"android\"\n        ? `${SUPABASE_URL}/functions/v1/payment-return?status=success&booking_id=${encodeURIComponent(booking.id)}&session_id={CHECKOUT_SESSION_ID}`\n        : \"https://ride24.pl/klient.html?payment=success\",\n      cancel_url: client === \"android\"\n        ? `${SUPABASE_URL}/functions/v1/payment-return?status=cancel&booking_id=${encodeURIComponent(booking.id)}`\n        : \"https://ride24.pl/klient.html?payment=cancel\",\n    });\n\n    await admin.from(\"bookings\").update({ status: \"awaiting_payment\", stripe_session_id: session.id }).eq(\"id\", booking.id);\n    return new Response(JSON.stringify({ url: session.url }), { status: 200, headers: cors(req) });\n  } catch (e) {\n    console.error(\"create_checkout_session secure\", e);\n    return new Response(JSON.stringify({ error: \"PAYMENT_SESSION_FAILED\" }), { status: 500, headers: cors(req) });\n  }\n});\n\n"
+        }
+      ],
+      "source_sha256": "7db7d1f5915eb752780f805a2489c552c02722a7131be8d88c84746d439679d2"
+    }
+  ]
+}

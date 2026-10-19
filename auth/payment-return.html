@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <title>Ride24 — powrót do rezerwacji / return to booking</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px;background:#041b3b;color:#f8fafc;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}.card{width:min(100%,460px);padding:30px;border:1px solid #36516e;border-radius:26px;background:#08294c;box-shadow:0 20px 70px #0004}.top{display:flex;align-items:center;justify-content:space-between;gap:15px}.brand{font-size:22px;font-weight:800;letter-spacing:.5px}select{font:inherit;font-size:14px;color:#f8fafc;background:#08294c;border:1px solid #57738f;border-radius:9px;padding:7px}h1{font-size:26px;line-height:1.2;margin:30px 0 14px}p{color:#c5d3e3;margin:0 0 20px}.button{display:block;text-align:center;border-radius:13px;background:#8ce619;color:#082039;text-decoration:none;font-weight:800;padding:15px 12px;min-height:54px}.secondary{display:block;text-align:center;color:#e6f1fd;margin-top:20px;text-underline-offset:4px}.note{font-size:13px;margin:25px 0 0;color:#a9bed4}.button:focus-visible,.secondary:focus-visible,select:focus-visible{outline:3px solid #fff;outline-offset:4px}@media(max-width:400px){body{padding:16px}.card{padding:24px}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+<main class="card">
+  <div class="top"><span class="brand">Ride24</span><label><span id="language-label" class="note">Język / Language</span> <select id="language" aria-label="Język / Language"><option value="pl">PL</option><option value="en">EN</option></select></label></div>
+  <h1 id="title">Wróć do swojej rezerwacji</h1>
+  <p id="description">Otwórz aplikację Ride24, aby sprawdzić aktualny status płatności i rezerwacji.</p>
+  <a id="open-app" class="button" href="https://ride24.pl/klient.html">Otwórz aplikację Ride24</a>
+  <a id="open-web" class="secondary" href="https://ride24.pl/klient.html">Sprawdź rezerwacje w przeglądarce</a>
+  <p id="note" class="note">Status płatności jest potwierdzany przez system płatniczy. Jeśli aplikacja nie otworzyła się automatycznie, użyj przycisku powyżej.</p>
+</main>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const id = params.get('booking_id') || '';
+  const valid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  const success = params.get('status') === 'success';
+  const test = params.get('app') === 'test';
+  const host = success ? 'payment-success' : 'payment-cancel';
+  const deepLink = valid ? `ride24://${host}?booking_id=${encodeURIComponent(id)}` : null;
+  const web = new URL('https://ride24.pl/klient.html');
+  if (valid) web.searchParams.set('booking_id', id);
+  document.getElementById('open-web').href = web.toString();
+  const button = document.getElementById('open-app');
+  button.href = deepLink || web.toString();
+  // On Chrome/Edge the package makes TEST and production unambiguous. Other browsers use the normal deep link.
+  if (deepLink && /Android/i.test(navigator.userAgent) && /Chrome|Chromium|EdgA/i.test(navigator.userAgent)) {
+    const packageName = test ? 'pl.ride24.client.test' : 'pl.ride24.client';
+    button.href = `intent://${host}?booking_id=${encodeURIComponent(id)}#Intent;scheme=ride24;package=${packageName};S.browser_fallback_url=${encodeURIComponent(web.toString())};end`;
+  }
+  const words = {
+    pl: {title: success ? 'Wróć do swojej rezerwacji' : 'Płatność została przerwana', description: 'Otwórz aplikację Ride24, aby sprawdzić aktualny status płatności i rezerwacji.', 'open-app': 'Otwórz aplikację Ride24' + (test ? ' TEST' : ''), 'open-web': 'Sprawdź rezerwacje w przeglądarce', note: 'Status płatności jest potwierdzany przez system płatniczy. Jeśli aplikacja nie otworzyła się automatycznie, użyj przycisku powyżej.'},
+    en: {title: success ? 'Return to your booking' : 'Payment was cancelled', description: 'Open the Ride24 app to check the current payment and booking status.', 'open-app': 'Open the Ride24 app' + (test ? ' TEST' : ''), 'open-web': 'Check bookings in your browser', note: 'Payment status is confirmed by the payment provider. If the app did not open automatically, use the button above.'}
+  };
+  const select = document.getElementById('language');
+  select.value = params.get('lang') === 'en' ? 'en' : 'pl';
+  function translate() {
+    const lang = select.value === 'en' ? 'en' : 'pl';
+    document.documentElement.lang = lang;
+    for (const [key, value] of Object.entries(words[lang])) document.getElementById(key).textContent = value;
+  }
+  select.addEventListener('change', translate);
+  translate();
+  // Preserve a usable HTTPS page and a manual button if the browser blocks app redirects.
+  if (deepLink && /Android/i.test(navigator.userAgent)) setTimeout(() => { location.href = button.href; }, 250);
+})();
+</script>
+</body>
+</html>
