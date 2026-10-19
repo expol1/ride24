@@ -1,0 +1,25 @@
+/* Shared readable WEB logo sizing; the original r.png remains the compact mark. */
+header .logo-container { flex-shrink: 0; }
+header .logo-container img { width: 220px; height: auto; max-height: none; object-fit: contain; filter: none; }
+.sidebar-logo { padding-left: 12px; padding-right: 12px; }
+.sidebar-logo > img.r24-full-logo { width: 200px; max-width: 100%; height: auto !important; flex-shrink: 0; }
+.sidebar-logo > img.r24-compact-logo { display: none; }
+.sidebar.collapsed .sidebar-logo { padding-left: 10px; padding-right: 10px; }
+.sidebar.collapsed .sidebar-logo > img.r24-full-logo { display: none; }
+.sidebar.collapsed .sidebar-logo > img.r24-compact-logo { display: block; width: 40px; height: auto; }
+.logo-group { flex-wrap: wrap; min-width: 0; }
+.logo-group .logo-image { flex-shrink: 0; width: 200px; height: auto; max-height: none; }
+img.mini-logo { width: 180px; max-width: 100%; height: auto; }
+img.brand-logo { width: 220px; max-width: 46vw; height: auto; object-fit: contain; }
+.footer img.brand-logo { width: 220px; height: auto; }
+@media (max-width: 768px) {
+  header:has(.logo-container) { flex-wrap: wrap !important; }
+  header .logo-container { flex: 0 0 160px; min-width: 160px; }
+  header .logo-container img { width: 160px !important; height: auto !important; max-height: none; }
+  header .header-right { flex: 1 0 190px !important; }
+  .logo-group .logo-image { width: 180px; }
+  .header-bar { flex-wrap: wrap; gap: 12px; }
+}
+@media (max-width: 374px) {
+  header .header-right { justify-content: space-between !important; }
+}
