@@ -2,6 +2,7 @@
 // Kompatybilny z web i Android: przyjmuje booking_id oraz opcjonalne amount,
 // ale wiążącą kwotę zawsze pobiera z bazy po weryfikacji właściciela rezerwacji.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { androidPaymentReturnUrl } from "../_shared/payment-return.mjs";
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -60,10 +61,10 @@ serve(async (req) => {
       metadata: { booking_id: booking.id, client_id: user.id },
       client_reference_id: booking.id,
       success_url: client === "android"
-        ? `${SUPABASE_URL}/functions/v1/payment-return?status=success&booking_id=${encodeURIComponent(booking.id)}&session_id={CHECKOUT_SESSION_ID}`
+        ? androidPaymentReturnUrl(SUPABASE_URL, booking.id, "success", body.return_app, body.language)
         : "https://ride24.pl/klient.html?payment=success",
       cancel_url: client === "android"
-        ? `${SUPABASE_URL}/functions/v1/payment-return?status=cancel&booking_id=${encodeURIComponent(booking.id)}`
+        ? androidPaymentReturnUrl(SUPABASE_URL, booking.id, "cancel", body.return_app, body.language)
         : "https://ride24.pl/klient.html?payment=cancel",
     });
 
