@@ -13,13 +13,38 @@ img.mini-logo { width: 180px; max-width: 100%; height: auto; }
 img.brand-logo { width: 220px; max-width: 46vw; height: auto; object-fit: contain; }
 .footer img.brand-logo { width: 220px; height: auto; }
 @media (max-width: 768px) {
-  header:has(.logo-container) { flex-wrap: wrap !important; }
-  header .logo-container { flex: 0 0 160px; min-width: 160px; }
-  header .logo-container img { width: 160px !important; height: auto !important; max-height: none; }
-  header .header-right { flex: 1 0 190px !important; }
+  /* One row at 320–768px: controls keep their width, logo uses remaining space.
+     Clip only the transparent PNG margins to make the artwork readable. */
+  header:has(.logo-container) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px !important;
+  }
+  header .logo-container {
+    width: 100%; max-width: 160px; min-width: 0;
+    aspect-ratio: 2.75; overflow: hidden;
+    display: block; position: relative;
+  }
+  header .logo-container img {
+    display: block; position: absolute;
+    width: 132% !important; max-width: none !important;
+    height: auto !important; max-height: none;
+    left: -14%; top: 50%; transform: translateY(-50%);
+  }
+  header .header-right {
+    display: flex !important; width: auto !important; min-width: 0;
+    gap: 5px !important; justify-content: flex-end !important;
+  }
+  header .lang-switch { gap: 3px !important; }
+  header .lang-btn { font-size: 9px !important; gap: 2px !important; }
+  header .lang-btn img { width: 16px !important; }
+  header .auth-buttons { gap: 4px !important; }
+  header .auth-buttons button {
+    min-height: 36px; padding: 7px 6px !important;
+    font-size: 9px !important; line-height: 1.1; white-space: nowrap;
+  }
   .logo-group .logo-image { width: 180px; }
   .header-bar { flex-wrap: wrap; gap: 12px; }
-}
-@media (max-width: 374px) {
-  header .header-right { justify-content: space-between !important; }
 }
