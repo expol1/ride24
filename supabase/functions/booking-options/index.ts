@@ -3,6 +3,7 @@ import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse,
 import { readJsonObject } from "../_shared/booking-request.ts";
 import { exchangeRate } from "../_shared/booking-exchange-rate.ts";
 import { BookingOptionsError, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext } from "../_shared/booking-options.mjs";
+import { assertApiPricingCompatible, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 
 function date(value: unknown): string {
   if(typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString().slice(0,10)!==value) throw new Error('Nieprawidłowe daty');
@@ -22,7 +23,12 @@ serve(async(req: Request)=>{
     const {data:car,error}=await admin.from('car_classes').select('id,partner_id,active,partners(id,active,account_status,currency,provider_type)').eq('id',body.car_class_id).single();
     const partner=Array.isArray(car?.partners) ? car.partners[0] : car?.partners;
     if(error || !car?.active || !partner?.active || partner.account_status!=='active') throw new Error('Wybrana grupa nie jest dostępna');
-    if(partner.provider_type==='api' || !await pricedExtrasEnabled(admin)) return jsonResponse(req,{enabled:false});
+    if(partner.provider_type==='api') {
+      assertApiRequestedOptions(body);
+      await assertApiPricingCompatible(admin, car.partner_id);
+      return jsonResponse(req,{enabled:false});
+    }
+    if(!await pricedExtrasEnabled(admin)) return jsonResponse(req,{enabled:false});
     const start=date(body.start_date), end=date(body.end_date);
     const days=(Date.parse(end)-Date.parse(start))/86400000;
     if(days<1 || days>366) throw new Error('Nieprawidłowe daty');

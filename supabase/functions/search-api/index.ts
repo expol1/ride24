@@ -12,6 +12,7 @@ import {
   type ApiVehicleGroup,
 } from "../_shared/partner-api.ts";
 import { searchProvider } from "../_shared/provider-adapters.ts";
+import { apiPriceTotals, apiQuoteContext, assertApiPricingCompatible } from "../_shared/api-quote-contract.mjs";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -568,6 +569,7 @@ async function searchPartner(
   // Przy innym miejscu zwrotu oferta jest pokazywana tylko wtedy, gdy ten sam
   // partner faktycznie obsługuje wskazaną lokalizację.
   if (!dropoffLocation) return [];
+  await assertApiPricingCompatible(admin, pickupLocation.partner_id);
 
   const credentials = await loadPartnerCredentials(
     admin,
@@ -657,15 +659,10 @@ async function searchPartner(
     const discountPercent = safeDiscount(partner.discount_percent);
     // Ta sama kolejność co dla partnerów lokalnych:
     // cena publiczna -> rabat partnera -> globalna marża Ride24 -> liczba dni.
-    const partnerNetPerDayExact = publicPricePerDay
-      * (1 - discountPercent / 100);
-    const finalPerDayExact = partnerNetPerDayExact
-      * (1 + platformMarginPercent / 100);
-    const partnerNetPerDay = Number(partnerNetPerDayExact.toFixed(2));
-    const finalPerDay = Number(finalPerDayExact.toFixed(2));
-    const partnerNetTotal = Number((partnerNetPerDayExact * days).toFixed(2));
-    const finalTotal = Number((finalPerDayExact * days).toFixed(2));
-    const commissionTotal = Number((finalTotal - partnerNetTotal).toFixed(2));
+    let totals;
+    try { totals = apiPriceTotals(group, days, discountPercent, platformMarginPercent); }
+    catch { continue; }
+    const { partnerNetPerDay, finalPerDay, partnerNetTotal, finalTotal, commissionTotal } = totals;
 
     if (
       !Number.isFinite(partnerNetTotal)
@@ -705,6 +702,8 @@ async function searchPartner(
           pickup_location_external_id: pickupLocation.external_id || null,
           dropoff_location_external_id: dropoffLocation.external_id || null,
           provider_quote_data: group.provider_quote_data || {},
+          ride24_context: apiQuoteContext({ pickupTime, returnTime,
+            pickupName: pickupLocation.location_name, returnName: dropoffLocation.location_name }),
         }, 80_000),
         expires_at: quoteExpiry(group),
       })

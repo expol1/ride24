@@ -15,6 +15,8 @@ import {
   fetchProviderLocations,
   testProviderConnection,
 } from "../_shared/provider-adapters.ts";
+import { assertApiPricingCompatible } from "../_shared/api-quote-contract.mjs";
+import { BookingOptionsError } from "../_shared/booking-options.mjs";
 
 type AdminClient = Awaited<ReturnType<typeof requireAdmin>>["admin"];
 type Action = "get" | "save" | "test" | "sync" | "activate" | "deactivate";
@@ -752,6 +754,7 @@ async function syncPartner(
         : "city",
       extra_fee: location.extra_fee === true,
       extra_fee_amount: location.extra_fee_amount ?? null,
+      return_fee_amount: location.return_fee_amount ?? 0,
       contact_required: location.contact_required === true,
       active: location.active !== false,
     }));
@@ -871,6 +874,7 @@ async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise
   if (credentials.last_test_ok !== true || !credentials.last_sync_at) {
     throw new Error("Najpierw wykonaj poprawny test i synchronizację");
   }
+  await assertApiPricingCompatible(admin, partner.id);
 
   const { error } = await admin.from("partners").update({
     api_enabled: true,
@@ -964,6 +968,9 @@ serve(async (req) => {
       message: "Partner API został wyłączony",
     });
   } catch (error) {
+    if (error instanceof BookingOptionsError) {
+      return jsonResponse(req, {error: error.message, error_en: error.en, code: error.code}, error.status);
+    }
     console.error(
       "api-partner-admin",
       error instanceof Error

@@ -1,63 +1,58 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  corsHeaders,
+  jsonResponse,
+  publicErrorMessage,
+  requireAdmin,
+} from "../_shared/ride24-security.ts";
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders(req) });
+  }
 
-    const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  if (req.method !== "POST") {
+    return jsonResponse(
+      req,
+      { error: "METHOD_NOT_ALLOWED" },
+      405,
+      { Allow: "POST, OPTIONS" },
     );
-    const { partner_id } = await req.json();
+  }
 
-const { data: partner, error } = await supabase
-    .from("partners")
-    .select("*")
-    .eq("id", partner_id)
-    .single();
+  try {
+    await requireAdmin(req);
 
-if (error) {
-
-    return new Response(
-
-        JSON.stringify({
-
-            success: false,
-
-            message: error.message
-
-        }),
-
-        {
-
-            status: 400,
-
-            headers: {
-
-                "Content-Type": "application/json"
-
-            }
-
-        }
-
+    return jsonResponse(
+      req,
+      {
+        success: false,
+        error: "ENDPOINT_MOVED",
+        message: "Użyj api-partner-admin z action=sync",
+      },
+      410,
+      {
+        Deprecation: "true",
+        "X-Ride24-Replacement": "api-partner-admin?action=sync",
+      },
     );
-
-}
-
-    return new Response(
-
-        JSON.stringify({
-
-            success: true,
-            message: "sync-api-locations ready"
-
-        }),
-
-        {
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }
-
+  } catch (error) {
+    console.error(
+      "sync-api-locations",
+      error instanceof Error
+        ? error.message === "AUTH_REQUIRED"
+          ? "AUTH_REQUIRED"
+          : error.message === "ADMIN_REQUIRED"
+          ? "ADMIN_REQUIRED"
+          : "REQUEST_FAILED"
+        : "UNKNOWN_ERROR",
     );
 
+    const publicError = publicErrorMessage(error);
+    return jsonResponse(
+      req,
+      { error: publicError.message },
+      publicError.status,
+    );
+  }
 });

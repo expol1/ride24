@@ -1,6 +1,8 @@
 # Ride24 API Partner Provider Setup
 
-Status: implementation branch only. Do not deploy to production until reviewed.
+Status (2026-10-19): adapters are deployed infrastructure, not certified live provider connections.
+No production Partner currently has API enabled or API credentials saved. See
+`maintenance/2026-10-19-api-compatibility.md` for the current acceptance boundaries.
 
 ## Pricing invariant — DO NOT CHANGE
 
@@ -95,7 +97,7 @@ Renteon notes:
 - OAuth signature is Base64(SHA512(username + salt + secret + password + salt + secret + client_id)).
 - Access/refresh tokens are cached server-side. Runtime token cache is persisted in service-role-only credentials storage.
 - TEST and PRODUCTION IDs may differ and must never be hard-coded globally.
-- Availability `Amount` is treated as the total provider rental amount for the requested period. The adapter converts it to an internal per-day equivalent only so the existing Ride24 pricing engine reproduces the exact period total.
+- Availability `Amount` is treated as the total provider rental amount for the requested period. Search uses `public_price_total` directly for accounting; the per-day equivalent is for display only. Rounding a daily amount must never change a period total.
 - `BookAsCommissioner = true` is used for the Ride24 pay-at-pickup model.
 - The availability item and `PriceDate` are stored server-side with the Ride24 quote and reused during booking Create/Save.
 - Ride24 derives the agreed Partner discount from the quote/public amount and the Ride24 partner-net snapshot, passes that discount into the Renteon availability category used by Create, and verifies the unsaved Renteon booking total before Save.
