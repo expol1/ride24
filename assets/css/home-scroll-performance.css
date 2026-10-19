@@ -1,5 +1,15 @@
 /* Homepage only. Preserve visual design; reduce mobile paint work. */
 @media (max-width: 768px) {
+  /* Mobile compositing: these panels already use 96% and 99.2% opaque
+     white backgrounds. Avoid sampling/reblurring the moving hero behind
+     them during touch scrolling. Keep background, dimensions, borders,
+     gradients, shadows and positioning exactly as defined upstream. */
+  .hero .search-form,
+  #r24AndroidNudge {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
   /* Only the decorative masked image, not the entire page or its controls. */
   .hero::before { transform: translateZ(0); }
 
