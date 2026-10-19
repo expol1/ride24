@@ -1,0 +1,40 @@
+/* Homepage only. Preserve visual design; reduce mobile paint work. */
+@media (max-width: 768px) {
+  /* Only the decorative masked image, not the entire page or its controls. */
+  .hero::before { transform: translateZ(0); }
+
+  /* Same 54px button, 15px expanding green pulse and 2s ease timing.
+     Animate a separate circle with transform/opacity instead of box-shadow. */
+  .whatsapp-float {
+    background: transparent;
+    box-shadow: none;
+    animation: none;
+  }
+  .whatsapp-float::before,
+  .whatsapp-float::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .whatsapp-float::before {
+    z-index: -2;
+    background: #25D366;
+    animation: r24-wa-composited-pulse 2s ease infinite;
+    will-change: transform, opacity;
+  }
+  .whatsapp-float::after {
+    z-index: -1;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+  }
+  .whatsapp-float:hover::before { animation: none; opacity: 0; }
+}
+@keyframes r24-wa-composited-pulse {
+  0% { transform: scale(1); opacity: .5; }
+  70% { transform: scale(1.555555556); opacity: 0; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .whatsapp-float::before { animation: none; opacity: 0; will-change: auto; }
+}
