@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-20",
+  "backupBranch": "backup/before-smart-search-repair-20261020",
+  "productionMigrationApplied": true,
+  "edgeFunction": {
+    "name": "record-search-miss",
+    "version": 1
+  },
+  "tests": {
+    "smartSearchDomAndHandler": 15,
+    "isolatedSchemaRoleChecks": 32,
+    "nativeBookingContract": 5,
+    "productionRoleChecks": "passed and rolled back"
+  },
+  "queue": {
+    "locationPoints": 52,
+    "existingCountriesRegionsCitiesMapped": true
+  },
+  "liveSmoke": {
+    "validSearch": "cypr → 200 LOCATION_EXISTS; no log",
+    "noMatch": "controlled phrase → 202; persisted then cleared",
+    "cleanup": "Synthetic phrase cleared to NULL; one empty diagnostic row remains. Connector DELETE returned invalid_request_state twice."
+  },
+  "protectedData": {
+    "before": {
+      "cars_hash": "be737076b07cb1d953b08dc8dacd77be",
+      "logs_count": 0,
+      "locations_hash": "ccbc12b16fcd91634c8ad1c2765f44be",
+      "dictionary_hash": "355f563efc7daf69f8befe90512abf15",
+      "locations_count": 52,
+      "dictionary_count": 103,
+      "partners_pricing_hash": "b44c79a6f288db5311afc2a4c58c8fdc"
+    },
+    "after": {
+      "cars_hash": "be737076b07cb1d953b08dc8dacd77be",
+      "logs_count": 0,
+      "locations_hash": "5191d8a6eb62fc079d26f6dfe9f3330e",
+      "dictionary_hash": "355f563efc7daf69f8befe90512abf15",
+      "locations_count": 52,
+      "dictionary_count": 103,
+      "partners_pricing_hash": "b44c79a6f288db5311afc2a4c58c8fdc"
+    },
+    "geographyUnchanged": true,
+    "notes": "Full location-row hash changed during concurrent guide administration; this repair performs no row writes on partner_locations. Geographic names, active flags and counts match the captured snapshot."
+  },
+  "websitePublished": false
+}
