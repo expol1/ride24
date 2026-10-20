@@ -43,5 +43,18 @@
     "geographyUnchanged": true,
     "notes": "Full location-row hash changed during concurrent guide administration; this repair performs no row writes on partner_locations. Geographic names, active flags and counts match the captured snapshot."
   },
-  "websitePublished": false
+  "websitePublished": true,
+  "mergeCommit": "abf09f957a160e3c9ac36003e0fefccd5fb29ac4",
+  "pullRequest": "https://github.com/expol1/ride24/pull/39",
+  "deploymentChecks": {
+    "github": "all PR checks successful",
+    "cloudflare": "production deployment successful",
+    "publicAssets": "both JS assets byte-for-byte match tested source",
+    "productionHtml": "Smart Search section and search function match tested source"
+  },
+  "securityAdvisors": {
+    "before": 7,
+    "after": 7,
+    "newFindings": 0
+  }
 }
