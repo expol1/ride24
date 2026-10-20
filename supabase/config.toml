@@ -519,3 +519,8 @@ verify_jwt = true
 
 [functions.partner-booking-items]
 verify_jwt = true
+
+[functions.record-search-miss]
+# Anonymous searches use the publishable API key, which is not a JWT.
+# The handler verifies that key and applies server-side validation/rate limits.
+verify_jwt = false

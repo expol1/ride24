@@ -1,0 +1,1170 @@
+{
+  "logs": null,
+  "indexes": [
+    {
+      "indexdef": "CREATE UNIQUE INDEX locations_dictionary_pkey ON public.locations_dictionary USING btree (id)",
+      "indexname": "locations_dictionary_pkey",
+      "tablename": "locations_dictionary",
+      "schemaname": "public",
+      "tablespace": null
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX locations_dictionary_slug_key ON public.locations_dictionary USING btree (slug)",
+      "indexname": "locations_dictionary_slug_key",
+      "tablename": "locations_dictionary",
+      "schemaname": "public",
+      "tablespace": null
+    },
+    {
+      "indexdef": "CREATE INDEX idx_loc_pl ON public.locations_dictionary USING btree (name_pl)",
+      "indexname": "idx_loc_pl",
+      "tablename": "locations_dictionary",
+      "schemaname": "public",
+      "tablespace": null
+    },
+    {
+      "indexdef": "CREATE INDEX idx_loc_en ON public.locations_dictionary USING btree (name_en)",
+      "indexname": "idx_loc_en",
+      "tablename": "locations_dictionary",
+      "schemaname": "public",
+      "tablespace": null
+    },
+    {
+      "indexdef": "CREATE UNIQUE INDEX search_logs_pkey ON public.search_logs USING btree (id)",
+      "indexname": "search_logs_pkey",
+      "tablename": "search_logs",
+      "schemaname": "public",
+      "tablespace": null
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "locations_dictionary",
+      "permissive": "PERMISSIVE",
+      "policyname": "Public read locations",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "anon"
+      ],
+      "tablename": "locations_dictionary",
+      "permissive": "PERMISSIVE",
+      "policyname": "Public read locations ANON",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "locations_dictionary",
+      "permissive": "PERMISSIVE",
+      "policyname": "ride24_locations_dictionary_admin_insert",
+      "schemaname": "public",
+      "with_check": "( SELECT is_admin() AS is_admin)"
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "( SELECT is_admin() AS is_admin)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "locations_dictionary",
+      "permissive": "PERMISSIVE",
+      "policyname": "ride24_locations_dictionary_admin_update",
+      "schemaname": "public",
+      "with_check": "( SELECT is_admin() AS is_admin)"
+    }
+  ],
+  "functions": [
+    {
+      "name": "consume_rate_limit",
+      "definition": "CREATE OR REPLACE FUNCTION public.consume_rate_limit(p_scope text, p_key text, p_limit integer, p_window_seconds integer)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\ndeclare v_hits integer;\r\nbegin\r\n  if auth.role() <> 'service_role' then raise exception 'SERVICE_ROLE_REQUIRED'; end if;\r\n  if p_limit < 1 or p_window_seconds < 1 then raise exception 'INVALID_RATE_LIMIT'; end if;\r\n\r\n  insert into public.api_request_limits(scope, rate_key, window_start, hits)\r\n  values(p_scope, p_key, now(), 1)\r\n  on conflict(scope, rate_key) do update\r\n    set hits = case\r\n      when public.api_request_limits.window_start < now() - make_interval(secs => p_window_seconds) then 1\r\n      else public.api_request_limits.hits + 1\r\n    end,\r\n    window_start = case\r\n      when public.api_request_limits.window_start < now() - make_interval(secs => p_window_seconds) then now()\r\n      else public.api_request_limits.window_start\r\n    end\r\n  returning hits into v_hits;\r\n\r\n  return v_hits <= p_limit;\r\nend;\r\n$function$\n"
+    },
+    {
+      "name": "get_top_searches",
+      "definition": "CREATE OR REPLACE FUNCTION public.get_top_searches()\n RETURNS TABLE(query text, count bigint)\n LANGUAGE sql\nAS $function$\r\n    select query, count(*) \r\n    from search_logs\r\n    where query is not null \r\n      and length(query) > 2\r\n    group by query\r\n    order by count desc\r\n    limit 5;\r\n$function$\n"
+    },
+    {
+      "name": "is_admin",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_admin()\n RETURNS boolean\n LANGUAGE sql\n SECURITY DEFINER\nAS $function$\r\n  SELECT EXISTS (\r\n    SELECT 1\r\n    FROM public.profiles\r\n    WHERE id = auth.uid()\r\n    AND role = 'admin'\r\n  );\r\n$function$\n"
+    }
+  ],
+  "dictionary": [
+    {
+      "id": "015207f7-0781-413f-9ffe-adad0ddea87c",
+      "slug": "brindisi",
+      "name_en": "Brindisi",
+      "name_pl": "Brindisi",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Puglia",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "0305fb46-07f2-4244-acf9-82acee50f80b",
+      "slug": "thessaloniki",
+      "name_en": "Thessaloniki",
+      "name_pl": "Saloniki",
+      "category": "city",
+      "keywords": "SKG lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "050deba5-b677-45a2-b8d3-948e55c00d32",
+      "slug": "dubrovnik",
+      "name_en": "Dubrovnik",
+      "name_pl": "Dubrownik",
+      "category": "city",
+      "keywords": "DBV",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "056f3671-cfcf-4f54-91ce-f6d8e0388b85",
+      "slug": "naples",
+      "name_en": "Naples",
+      "name_pl": "Neapol",
+      "category": "city",
+      "keywords": "NAP",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "0771902d-c963-43b6-8cfa-f96157d44abb",
+      "slug": "tivat",
+      "name_en": "Tivat",
+      "name_pl": "Tiwat",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Montenegro"
+    },
+    {
+      "id": "0929c2ca-d70c-4fa0-bc74-3d0f341e7f53",
+      "slug": "sicily",
+      "name_en": "Sicily",
+      "name_pl": "Sycylia",
+      "category": "region",
+      "keywords": "Palermo Catania",
+      "parent_region_en": null,
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "0bba2bd3-2bc8-43e9-8a9b-7296e5c179ef",
+      "slug": "oman",
+      "name_en": "Oman",
+      "name_pl": "Oman",
+      "category": "country",
+      "keywords": "Muscat",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "0bd5a6ac-e75a-4bdd-832f-b721105c4b66",
+      "slug": "mallorca",
+      "name_en": "Mallorca",
+      "name_pl": "Majorka",
+      "category": "region",
+      "keywords": "PMI Baleary Palma",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "0c91abd0-5ee3-444e-99f9-3d32cc067404",
+      "slug": "taranto",
+      "name_en": "Taranto",
+      "name_pl": "Tarato",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "0dbeaecc-d9e6-4066-91a3-4a99935c1ec9",
+      "slug": "zakynthos",
+      "name_en": "Zakynthos",
+      "name_pl": "Zakynthos",
+      "category": "city",
+      "keywords": "ZTH lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "14b5882f-aee7-4231-a988-6fd7bc8206f2",
+      "slug": "lisbon",
+      "name_en": "Lisbon",
+      "name_pl": "Lizbona",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "14bafb2e-fcee-48eb-92df-a2111b2ea050",
+      "slug": "spain",
+      "name_en": "Spain",
+      "name_pl": "Hiszpania",
+      "category": "country",
+      "keywords": "Espana",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "150d7185-7536-447d-84e5-35c30666205d",
+      "slug": "corfu",
+      "name_en": "Corfu",
+      "name_pl": "Korfu",
+      "category": "city",
+      "keywords": "CFU lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "17705b10-d29d-4ff1-8a06-ff34f658b929",
+      "slug": "essaouira",
+      "name_en": "Essaouira",
+      "name_pl": "Essaouira",
+      "category": "city",
+      "keywords": "ESU",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "1c83a3d1-70c2-4208-9be4-8331c9d24c50",
+      "slug": "greece",
+      "name_en": "Greece",
+      "name_pl": "Grecja",
+      "category": "country",
+      "keywords": "Hellas Grecja",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "2231e6f8-61da-4fac-8e57-770d86826d86",
+      "slug": "shkodër",
+      "name_en": "Shkodër",
+      "name_pl": "Szkodra",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "23436952-acab-4b39-a965-a59a526bae54",
+      "slug": "polignano-a-mare",
+      "name_en": "Polignano a Mare",
+      "name_pl": "Polignano a Mare",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Puglia",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "2347562f-096d-4e9e-9b0d-cdf5b7fb299b",
+      "slug": "porto",
+      "name_en": "Porto",
+      "name_pl": "Porto",
+      "category": "city",
+      "keywords": "Porto City Center, Porto Centro, centrum Porto",
+      "parent_region_en": null,
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "263b26ae-eb2e-42f9-a927-8b4e376755e3",
+      "slug": "durrës",
+      "name_en": "Durrës",
+      "name_pl": "Durres",
+      "category": "city",
+      "keywords": "dures",
+      "parent_region_en": null,
+      "parent_country_en": "Albania"
+    },
+    {
+      "id": "285c671d-705a-40f2-9775-a78e53238f91",
+      "slug": "são-miguel-azores",
+      "name_en": "São Miguel Azores",
+      "name_pl": "Sao Miguel Azory",
+      "category": "region",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "28711913-ccb5-4763-8d41-fc0aa25d6ab5",
+      "slug": "podgorica",
+      "name_en": "Podgorica",
+      "name_pl": "Podgorica",
+      "category": "city",
+      "keywords": "Podgorica/zeta, Zeta, Golubovci, TGD",
+      "parent_region_en": null,
+      "parent_country_en": "Montenegro"
+    },
+    {
+      "id": "288267de-b312-4cc0-b41d-16695d2e5f83",
+      "slug": "madeira",
+      "name_en": "Madeira",
+      "name_pl": "Madera",
+      "category": "region",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "28e08284-34ce-4d5d-827c-0724756e9795",
+      "slug": "jordan",
+      "name_en": "Jordan",
+      "name_pl": "Jordania",
+      "category": "country",
+      "keywords": "Amman",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "2cdac33f-0868-4f35-9fd0-9ebd47e8c3da",
+      "slug": "tirana-region",
+      "name_en": "Tirana",
+      "name_pl": "Tirana",
+      "category": "region",
+      "keywords": "Tirana County",
+      "parent_region_en": null,
+      "parent_country_en": "Albania"
+    },
+    {
+      "id": "2d505e24-76ea-4c2f-99b8-e90a2bf314c6",
+      "slug": "albania",
+      "name_en": "Albania",
+      "name_pl": "Albania",
+      "category": "country",
+      "keywords": "Tirana",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "2e2a0c51-7181-45f3-83ad-0e3518d04c08",
+      "slug": "ponta-delgada",
+      "name_en": "Ponta Delgada",
+      "name_pl": "Ponta Delgada",
+      "category": "city",
+      "keywords": "PDL",
+      "parent_region_en": "Azores",
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "2e53089a-4341-41bb-b95b-db738769f8e0",
+      "slug": "montenegro",
+      "name_en": "Montenegro",
+      "name_pl": "Czarnogóra",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "2ff5a623-3930-49af-982e-64b9721d7c5c",
+      "slug": "chania",
+      "name_en": "Chania",
+      "name_pl": "Chania",
+      "category": "city",
+      "keywords": "CHQ lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "325bcdc5-5e75-4379-8eb8-18c2a90d4aac",
+      "slug": "larnaca",
+      "name_en": "Larnaca",
+      "name_pl": "Larnaka",
+      "category": "city",
+      "keywords": "LCA lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": "Cyprus"
+    },
+    {
+      "id": "3acb6285-8176-430e-bb0e-222ec4e75503",
+      "slug": "castellammare-del-golfo",
+      "name_en": "Castellammare del Golfo",
+      "name_pl": "Castellammare del Golfo",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Sicily",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "3b75a53f-3b9d-4b23-970b-b294b0cc7daa",
+      "slug": "antalya",
+      "name_en": "Antalya",
+      "name_pl": "Antalya",
+      "category": "city",
+      "keywords": "AYT lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "3e8681ca-e8d8-497f-868e-b5c266ae7fdf",
+      "slug": "marrakech",
+      "name_en": "Marrakech",
+      "name_pl": "Marrakesz",
+      "category": "city",
+      "keywords": "RAK lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "45c50308-04ec-4c3d-a0d7-478a3db377c0",
+      "slug": "rhodes-city",
+      "name_en": "Rhodes",
+      "name_pl": "Rodos",
+      "category": "city",
+      "keywords": "RHO lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "482cec40-e926-4628-8b43-b90dfe65459e",
+      "slug": "mauritius",
+      "name_en": "Mauritius",
+      "name_pl": "Mauritius",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "495cee97-afd2-45e3-abcf-9acb86d3333f",
+      "slug": "tirana",
+      "name_en": "Tirana",
+      "name_pl": "Tirana",
+      "category": "city",
+      "keywords": "TIA",
+      "parent_region_en": "Tirana",
+      "parent_country_en": "Albania"
+    },
+    {
+      "id": "495f93d2-80f5-4ea4-ba8c-e5f1e1b8687f",
+      "slug": "portugal",
+      "name_en": "Portugal",
+      "name_pl": "Portugalia",
+      "category": "country",
+      "keywords": "Azory",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "49eba677-a08f-46f2-aeab-fe465f99a8d2",
+      "slug": "kosovo",
+      "name_en": "Kosovo",
+      "name_pl": "Kosowo",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "4b2acd26-174a-49a3-809c-77444fad4943",
+      "slug": "burgas",
+      "name_en": "Burgas",
+      "name_pl": "Burgas",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Bulgaria"
+    },
+    {
+      "id": "4e5d5ef2-96eb-4a2f-9ed5-298921cd0af4",
+      "slug": "palma",
+      "name_en": "Palma de Mallorca",
+      "name_pl": "Palma de Majorka",
+      "category": "city",
+      "keywords": "PMI lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "5204ce2e-44ed-4021-9a7a-6ff5f99a971d",
+      "slug": "durres-region",
+      "name_en": "Durrës",
+      "name_pl": "Durrës",
+      "category": "region",
+      "keywords": "Durres, Durrës County",
+      "parent_region_en": null,
+      "parent_country_en": "Albania"
+    },
+    {
+      "id": "54ce41ee-eb63-40d4-a564-2808df35534d",
+      "slug": "rhodes",
+      "name_en": "Rhodes",
+      "name_pl": "Rodos",
+      "category": "region",
+      "keywords": "RHO wyspa",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "54e3026e-a79d-4071-ac5e-9a1f998e455e",
+      "slug": "alanya",
+      "name_en": "Alanya",
+      "name_pl": "Alanya",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "550c9396-bb8f-44dd-b096-2b9afbc39062",
+      "slug": "macedonia",
+      "name_en": "North Macedonia",
+      "name_pl": "Macedonia Północna",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "58eb0a0d-42da-469d-8bfb-e7af86422d98",
+      "slug": "morocco",
+      "name_en": "Morocco",
+      "name_pl": "Maroko",
+      "category": "country",
+      "keywords": "Agadir Marrakesz",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "5da7d54e-8ea2-4f5e-bf97-8ca80a2eebd5",
+      "slug": "sarajevo",
+      "name_en": "Sarajevo",
+      "name_pl": "Sarajewo",
+      "category": "city",
+      "keywords": "SJJ",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "5ef8a9c6-b429-4432-b801-7158d77678b3",
+      "slug": "varna-region",
+      "name_en": "Varna",
+      "name_pl": "Warna",
+      "category": "region",
+      "keywords": "Varna Province",
+      "parent_region_en": null,
+      "parent_country_en": "Bulgaria"
+    },
+    {
+      "id": "6087ce9d-b541-4ca0-ba2f-3f812b4e224d",
+      "slug": "italy",
+      "name_en": "Italy",
+      "name_pl": "Włochy",
+      "category": "country",
+      "keywords": "Italia",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "60fc2a6f-633f-425a-bd35-b0d1a8466d23",
+      "slug": "nusa-penida",
+      "name_en": "Nusa Penida",
+      "name_pl": "Penida",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "625c7bed-48fb-4716-bacc-acd820f9c30b",
+      "slug": "izmir",
+      "name_en": "Izmir",
+      "name_pl": "Izmir",
+      "category": "city",
+      "keywords": "ADB",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "635ef94f-182e-429c-8a64-d694f7e365b0",
+      "slug": "agadir",
+      "name_en": "Agadir",
+      "name_pl": "Agadir",
+      "category": "city",
+      "keywords": "AGA lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "658a5719-7e4a-4661-af1e-0d5ca884646e",
+      "slug": "bursa",
+      "name_en": "Bursa",
+      "name_pl": "Bursa",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "6dcb2724-b5f5-4acb-9414-c47aded7087c",
+      "slug": "porto-district",
+      "name_en": "Porto District",
+      "name_pl": "Dystrykt Porto",
+      "category": "region",
+      "keywords": "Porto, Região do Porto",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "711fec7e-065e-4534-9e3f-ef58be364126",
+      "slug": "bulgaria",
+      "name_en": "Bulgaria",
+      "name_pl": "Bułgaria",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "713b35b1-9d83-4362-b895-04fb6497122f",
+      "slug": "basilicata",
+      "name_en": "Basilicata",
+      "name_pl": "Basilicata",
+      "category": "region",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "770c609d-b38b-4d4e-b260-d9aa24a3e078",
+      "slug": "faro",
+      "name_en": "Faro",
+      "name_pl": "Faro",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "7adb9b68-cbea-45d8-b0bb-486dace30348",
+      "slug": "muscat",
+      "name_en": "Muscat",
+      "name_pl": "Muscat",
+      "category": "city",
+      "keywords": "MCT",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "7cca136a-aa8e-45e9-987b-b2604bb112b5",
+      "slug": "crete",
+      "name_en": "Crete",
+      "name_pl": "Kreta",
+      "category": "region",
+      "keywords": "HER CHQ Heraklion Chania",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "85c40a71-8cc3-4624-86bb-c944d09d5fdf",
+      "slug": "câmara-de-lobos",
+      "name_en": "Câmara de Lobos",
+      "name_pl": "Câmara de Lobos",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Madeira",
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "87459e77-dca8-40a6-8d50-db6d80f583a7",
+      "slug": "lalëz-bay",
+      "name_en": "Lalëz Bay",
+      "name_pl": "Bay of Lalzi",
+      "category": "region",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "88f37b0a-7ff8-41d4-b632-4877dc16c60f",
+      "slug": "rome",
+      "name_en": "Rome",
+      "name_pl": "Rzym",
+      "category": "city",
+      "keywords": "FCO CIA lotnisko, Roma, Rzym, żym",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "91791ef0-fe76-4f07-b80a-8f0787864001",
+      "slug": "cyprus",
+      "name_en": "Cyprus",
+      "name_pl": "Cypr",
+      "category": "country",
+      "keywords": "wyspa",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "9a68abff-0b96-4695-9a0f-2b9c7b4827be",
+      "slug": "shkoder",
+      "name_en": "Shkodër",
+      "name_pl": "Szkodra",
+      "category": "city",
+      "keywords": "Shkodra, Skadar",
+      "parent_region_en": "Shkodër",
+      "parent_country_en": "Albania"
+    },
+    {
+      "id": "9e5955ed-4c8d-4d7e-9d4e-f9d11013f758",
+      "slug": "turkey",
+      "name_en": "Turkey",
+      "name_pl": "Turcja",
+      "category": "country",
+      "keywords": "Antalya Istanbul",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "a0fdf56a-6cf7-4136-ace5-be934d7e2188",
+      "slug": "ankara",
+      "name_en": "Ankara",
+      "name_pl": "Ankara",
+      "category": "city",
+      "keywords": "ESB",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "a79c8de8-7307-40f0-962b-c8eba957ef89",
+      "slug": "split",
+      "name_en": "Split",
+      "name_pl": "Split",
+      "category": "city",
+      "keywords": "SPU",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "b2b91a93-fd7e-41f0-8509-9b7c5414a936",
+      "slug": "romania",
+      "name_en": "Romania",
+      "name_pl": "Rumunia",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "b8f6aa3c-bf2c-4402-96a6-e700020ed65a",
+      "slug": "new-york",
+      "name_en": "New York",
+      "name_pl": "Nowy Jork",
+      "category": "city",
+      "keywords": "nowy york",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "b93c9d9d-6128-4c5e-a29b-0d3a29ba1108",
+      "slug": "milan",
+      "name_en": "Milan",
+      "name_pl": "Mediolan",
+      "category": "city",
+      "keywords": "MXP LIN, Milano, Mediolan, medilon",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "bdc0d5d9-7a17-4614-9c32-daa8ac965b60",
+      "slug": "heraklion",
+      "name_en": "Heraklion",
+      "name_pl": "Heraklion",
+      "category": "city",
+      "keywords": "Iraklio HER lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "be8ad0e5-f4e8-41da-bb93-9aa18d2ac232",
+      "slug": "catania",
+      "name_en": "Catania",
+      "name_pl": "Katania",
+      "category": "city",
+      "keywords": "CTA lotnisko",
+      "parent_region_en": "Sicily",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "c4f2b693-3c84-4b6c-95d5-c157450fa05d",
+      "slug": "istanbul",
+      "name_en": "Istanbul",
+      "name_pl": "Stambuł",
+      "category": "city",
+      "keywords": "IST SAW",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "c94aec48-e35b-4954-a4f9-8a26f8cdcd64",
+      "slug": "malaga",
+      "name_en": "Malaga",
+      "name_pl": "Malaga",
+      "category": "city",
+      "keywords": "AGP lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "cc566e88-0ed6-46a3-9c99-501b531d0036",
+      "slug": "alberobello",
+      "name_en": "Alberobello",
+      "name_pl": "Alberobello",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Puglia",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "cc64a183-d2d5-4694-9672-81a1125a2f00",
+      "slug": "florence",
+      "name_en": "Florence",
+      "name_pl": "Florencja",
+      "category": "city",
+      "keywords": "FLR",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "ccad91af-40f8-421e-9328-6d8c823e7095",
+      "slug": "zanzibar",
+      "name_en": "Zanzibar",
+      "name_pl": "Zanzibar",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "cf19be19-3396-4db4-b5a0-948fd25029d7",
+      "slug": "bari",
+      "name_en": "Bari",
+      "name_pl": "Bari",
+      "category": "city",
+      "keywords": "BRI",
+      "parent_region_en": "Puglia",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "d2d4beb8-64a7-4330-9867-804b760a9022",
+      "slug": "matera",
+      "name_en": "Matera",
+      "name_pl": "Matera",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Basilicata",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "d42897dd-85cf-4d16-abdc-1b31ae7c6da6",
+      "slug": "pisa",
+      "name_en": "Pisa",
+      "name_pl": "Piza",
+      "category": "city",
+      "keywords": "PSA",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "d436d4f2-115b-40a1-b263-5e6e11e543d3",
+      "slug": "azores",
+      "name_en": "Azores",
+      "name_pl": "Azory",
+      "category": "region",
+      "keywords": "Ponta Delgada",
+      "parent_region_en": null,
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "d4774b34-db5d-4f74-8768-d1f624b0d852",
+      "slug": "ostuni",
+      "name_en": "Ostuni",
+      "name_pl": "Ostuni",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Puglia",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "d7e1c4c1-7ae4-488b-89c7-c344ab543eb2",
+      "slug": "lalez-bay",
+      "name_en": "Lalëz Bay",
+      "name_pl": "Zatoka Lalëz",
+      "category": "city",
+      "keywords": "Lalëz, Gjiri i Lalzit, Lalzi Bay",
+      "parent_region_en": "Durrës",
+      "parent_country_en": "Albania"
+    },
+    {
+      "id": "d876d33b-2dff-42c1-aa5c-aafa37eb0550",
+      "slug": "kos",
+      "name_en": "Kos",
+      "name_pl": "Kos",
+      "category": "city",
+      "keywords": "KGS lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "d91f0796-fc4e-4166-a011-c3fb47323a48",
+      "slug": "alicante",
+      "name_en": "Alicante",
+      "name_pl": "Alicante",
+      "category": "city",
+      "keywords": "ALC lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "d9869bd7-1745-43e4-bb4e-0c86e1e18501",
+      "slug": "paphos",
+      "name_en": "Paphos",
+      "name_pl": "Pafos",
+      "category": "city",
+      "keywords": "PFO lotnisko",
+      "parent_region_en": null,
+      "parent_country_en": "Cyprus"
+    },
+    {
+      "id": "dacec227-6ec7-415c-b908-c59e1f7bc5ea",
+      "slug": "bali",
+      "name_en": "Bali",
+      "name_pl": "Bali",
+      "category": "region",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "db7334fb-e799-4174-b8f8-730f0e8d04e1",
+      "slug": "athens",
+      "name_en": "Athens",
+      "name_pl": "Ateny",
+      "category": "city",
+      "keywords": "ATH lotnisko Grecja",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "de563588-6705-461e-9a24-06b0bbc5c6d1",
+      "slug": "bologna",
+      "name_en": "Bologna",
+      "name_pl": "Bolonia",
+      "category": "city",
+      "keywords": "BLQ",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "df1e9aaf-afd9-487c-b27c-e80aa5126c78",
+      "slug": "sutomore",
+      "name_en": "Sutomore",
+      "name_pl": "Sutomore",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Montenegro"
+    },
+    {
+      "id": "e0874698-992e-4601-a872-ef9a44652a04",
+      "slug": "croatia",
+      "name_en": "Croatia",
+      "name_pl": "Chorwacja",
+      "category": "country",
+      "keywords": "Dubrovnik Split",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "e0cfb76d-6482-47cd-809d-63ba8dd46bd1",
+      "slug": "shkoder-region",
+      "name_en": "Shkodër",
+      "name_pl": "Szkodra",
+      "category": "region",
+      "keywords": "Shkodra County",
+      "parent_region_en": null,
+      "parent_country_en": "Albania"
+    },
+    {
+      "id": "e21a80ef-852e-44ce-920d-38639a665594",
+      "slug": "puglia",
+      "name_en": "Puglia",
+      "name_pl": "Apulia",
+      "category": "region",
+      "keywords": "Puglia, Apulia, Bari",
+      "parent_region_en": null,
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "e2af179e-e692-4f3a-8806-4edb472e78ef",
+      "slug": "belgrade",
+      "name_en": "Belgrade",
+      "name_pl": "Belgrad",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Serbia"
+    },
+    {
+      "id": "e36d4350-794c-402f-8d1a-c8a6468dc306",
+      "slug": "valencia",
+      "name_en": "Valencia",
+      "name_pl": "Walencja",
+      "category": "city",
+      "keywords": "VLC",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "e51810e9-884b-440b-b0f4-7f46f7865bec",
+      "slug": "palermo",
+      "name_en": "Palermo",
+      "name_pl": "Palermo",
+      "category": "city",
+      "keywords": "PMO lotnisko",
+      "parent_region_en": "Sicily",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "e765414c-dc9f-45c0-beab-f39cf5111170",
+      "slug": "serbia",
+      "name_en": "Serbia",
+      "name_pl": "Serbia",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "ec474f24-7d76-4b78-8f54-4506d5a14ea2",
+      "slug": "bosnia",
+      "name_en": "Bosnia and Herzegovina",
+      "name_pl": "Bośnia i Hercegowina",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "f256577e-4c2f-4cde-99e4-075b46865600",
+      "slug": "amman",
+      "name_en": "Amman",
+      "name_pl": "Amman",
+      "category": "city",
+      "keywords": "AMM",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "f329b5ea-04d2-4d3b-89a4-0c71ef3bc9c1",
+      "slug": "varna",
+      "name_en": "Varna",
+      "name_pl": "Warna",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Varna",
+      "parent_country_en": "Bulgaria"
+    },
+    {
+      "id": "f47bfea1-587c-47d0-ad6a-bf8c8d4f023e",
+      "slug": "funchal",
+      "name_en": "Funchal",
+      "name_pl": "Funchal",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Madeira",
+      "parent_country_en": "Portugal"
+    },
+    {
+      "id": "f7fdc2e9-cc47-425e-a8db-9ee8d0882754",
+      "slug": "trapani",
+      "name_en": "Trapani",
+      "name_pl": "Trapani",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": "Sicily",
+      "parent_country_en": "Italy"
+    },
+    {
+      "id": "faa75e34-a1f8-4dfa-a647-058237fd6f43",
+      "slug": "budva",
+      "name_en": "Budva",
+      "name_pl": "Budwa",
+      "category": "city",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": "Montenegro"
+    },
+    {
+      "id": "fb5b5031-a592-452b-a6d0-fcd54437a6e0",
+      "slug": "indonesia",
+      "name_en": "Indonesia",
+      "name_pl": "Indonezja",
+      "category": "country",
+      "keywords": "",
+      "parent_region_en": null,
+      "parent_country_en": null
+    },
+    {
+      "id": "fc324cbc-1dfd-4323-94dc-41def3174ca0",
+      "slug": "golem",
+      "name_en": "Golem",
+      "name_pl": "Golem",
+      "category": "city",
+      "keywords": "golem, golem beach, golem hotels, hotele golem, golem albania, golem coast, golem beach hotels, all hotels golem, golem coastal hotels",
+      "parent_region_en": "Durrës",
+      "parent_country_en": "Albania"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "locations_dictionary_category_check",
+      "definition": "CHECK ((category = ANY (ARRAY['country'::text, 'region'::text, 'city'::text])))"
+    },
+    {
+      "name": "locations_dictionary_pkey",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "locations_dictionary_slug_key",
+      "definition": "UNIQUE (slug)"
+    }
+  ],
+  "log_columns": [
+    {
+      "data_type": "uuid",
+      "column_name": "id",
+      "is_nullable": "NO",
+      "column_default": "gen_random_uuid()"
+    },
+    {
+      "data_type": "text",
+      "column_name": "query",
+      "is_nullable": "YES",
+      "column_default": null
+    },
+    {
+      "data_type": "timestamp with time zone",
+      "column_name": "created_at",
+      "is_nullable": "YES",
+      "column_default": "now()"
+    }
+  ]
+}

@@ -2487,6 +2487,7 @@
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
+    <script src="assets/js/search-miss.js?v=20261020a"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css">
 <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/js/jsvectormap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world.js"></script>
@@ -5280,6 +5281,8 @@ function collectSearchData() {
         }
 
         const lang = localStorage.getItem("lang") || "pl";
+        const requestId = lastQueryId;
+        window.Ride24SearchMiss?.cancel(type);
         const pickupAtSearch = SELECTED_PICKUP?.location_name || null;
         // Zwrot może pochodzić wyłącznie z lokalizacji partnerów obsługujących odbiór.
         if (type === 'drop' && !pickupAtSearch) {
@@ -5293,13 +5296,18 @@ function collectSearchData() {
         // Quote filter values so commas/parentheses cannot become query syntax.
         const searchPattern = value => JSON.stringify('%' + value + '%');
 
-        const { data: dictMatches } = await db
+        const { data: dictMatches, error: dictionaryError } = await db
             .from('locations_dictionary')
             .select('name_en,name_pl,keywords')
             .or(['name_pl', 'name_en', 'keywords'].map(field =>
                 field + '.ilike.' + searchPattern(query)
             ).join(','));
 
+        if (requestId !== lastQueryId) return;
+        if (dictionaryError) {
+            console.error("Błąd słownika wyszukiwania:", dictionaryError);
+            return; // A technical failure must not be recorded as a spelling error.
+        }
         if (dictMatches?.length) {
             dictMatches.forEach(row => {
                 if (row.name_en) {
@@ -5362,7 +5370,8 @@ function collectSearchData() {
             locationsQuery = locationsQuery.in('partner_id', eligiblePickupPartnerIds);
         }
         const { data: partnerData, error } = await locationsQuery.limit(100);
-            
+        if (requestId !== lastQueryId) return;
+
         if (error) {
             console.error("Błąd wyszukiwania:", error);
             return;
@@ -5451,6 +5460,7 @@ function collectSearchData() {
             renderSmartResults(results.slice(0, 8), lang, resultsBox, type);
         }
         resultsBox.classList.add("show");
+        if (results.length === 0) window.Ride24SearchMiss?.schedule(query, type, resultsBox);
     }
 
     // Dodaj też tę brakującą funkcję pomocniczą:
@@ -5531,6 +5541,7 @@ function collectSearchData() {
                 SELECTED_PICKUP = null;
             }
             const query = e.target.value.trim().toLowerCase();
+            window.Ride24SearchMiss?.cancel(type);
             clearTimeout(timeout);
 
             if (query.length < 2) {

@@ -1,0 +1,28 @@
+name: Smart Search
+on:
+  pull_request:
+    paths:
+      - 'admin/index.html'
+      - 'index.html'
+      - 'assets/js/*smart-search*'
+      - 'assets/js/search-miss.js'
+      - 'supabase/functions/**search-miss*'
+      - 'supabase/functions/record-search-miss/**'
+      - 'supabase/migrations/*smart_search*'
+      - 'tests/backend-hardening/*smart-search*'
+      - 'tests/backend-hardening/package*.json'
+      - '.github/workflows/smart-search.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: tests/backend-hardening/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: tests/backend-hardening
+      - run: npm run test:smart-search
+        working-directory: tests/backend-hardening
