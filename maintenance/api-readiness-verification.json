@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-21",
+  "base": "a07c8f8d5084d97e7a46ff035c1505e105762b3d",
+  "production": {
+    "enabledApiPartners": 0,
+    "credentials": 0,
+    "apiQuotes": 0,
+    "apiBookings": 0,
+    "certifiedIntegrations": 0,
+    "fullModernApiReady": false,
+    "deployments": {
+      "api-partner-admin": 17,
+      "search-api": 56
+    }
+  },
+  "changes": [
+    "Independent Easy Web Rent return fee normalization with malformed-price rejection",
+    "Separate return fee in API search metadata",
+    "Admin-only factual integration readiness report and UI",
+    "Explicit modern pricing acceptance contract"
+  ],
+  "remaining": [
+    "Supplier catalogue and option selection",
+    "Full supplier quote preparation and repricing including mandatory fees",
+    "API line-item snapshots through WEB, Android and voucher",
+    "Provider tenant sandbox acceptance"
+  ],
+  "verification": {
+    "tests": 107,
+    "isolatedSchemaOwnershipChecks": 23,
+    "productionSearch": 200,
+    "unauthenticatedAdmin": 401,
+    "protectedDataUnchanged": true,
+    "externalSupplierWrites": 0
+  },
+  "backupBranch": "backup/before-api-readiness-20261021",
+  "websitePublished": false
+}

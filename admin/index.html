@@ -1627,6 +1627,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../assets/helper/supabaseConfig.js"></script>
     <script src="../assets/js/admin-smart-search.js?v=20261020a"></script>
+    <script src="../assets/js/admin-api-readiness.js?v=20261021a"></script>
 
     <script>
         async function loadMessages() {
@@ -2630,6 +2631,7 @@ async function callApiPartnerAdmin(payload) {
     const { data, error } = await db.functions.invoke("api-partner-admin", { body: payload });
     if (error) throw new Error(error.message || "api-partner-admin failed.");
     if (data?.error) throw new Error(data.error);
+    if (data?.readiness) window.renderApiReadiness?.(data.readiness);
     return data || {};
 }
 
@@ -5457,6 +5459,7 @@ async function connectX() {
                     <hr style="margin:25px 0;">
                     <h3 style="margin-bottom:10px;">Status po&#322;&#261;czenia</h3>
                     <div id="api-test-status" style="padding:12px; border-radius:8px; background:#F3F4F6; font-weight:700;">&#9679; Nie sprawdzono</div>
+                    <div id="api-readiness" role="status" style="margin-top:14px;padding:14px;border:1px solid #FDE68A;border-radius:8px;background:#FFFBEB;font-size:13px"></div>
                 </div>
             </div>
         </div>

@@ -25,7 +25,7 @@ jobs:
         working-directory: tests/backend-hardening
         run: >-
           node --experimental-strip-types --test
-          test-api-compatibility.mjs test-booking-items.mjs test-booking-options.mjs
+          test-api-compatibility.mjs test-api-readiness.mjs test-booking-items.mjs test-booking-options.mjs
           test-booking-v2-handlers.mjs test-priced-extras-schema.mjs test-booking-extras-ui.mjs
           test-voucher-booking-items.mjs test-automatic-time-fees.mjs
           test-native-booking-contract.mjs test-payment-return.mjs

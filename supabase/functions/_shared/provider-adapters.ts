@@ -194,6 +194,19 @@ function positiveNumber(value: unknown): number | null {
   return number !== null && number > 0 ? number : null;
 }
 
+function optionalLocationFee(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value !== "number" && typeof value !== "string") {
+    throw new Error("PARTNER_API_ERROR:INVALID_LOCATION_FEE");
+  }
+  const amount = finiteNumber(value);
+  if (amount === null || amount < 0
+    || (typeof value === "string" && !value.trim())) {
+    throw new Error("PARTNER_API_ERROR:INVALID_LOCATION_FEE");
+  }
+  return amount;
+}
+
 function positiveInteger(value: unknown): number | null {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : null;
@@ -768,7 +781,8 @@ export function normalizeEasyWebRentLocations(payload: unknown): ApiLocation[] {
       type: cleanText(raw.type, 30)
         || (name.toLowerCase().includes("airport") ? "airport" : "city"),
       extra_fee: raw.extra_fee === true,
-      extra_fee_amount: finiteNumber(raw.extra_fee_amount),
+      extra_fee_amount: optionalLocationFee(raw.extra_fee_amount),
+      return_fee_amount: optionalLocationFee(raw.return_fee_amount),
       contact_required: raw.contact_required === true,
       active: raw.active !== false,
     } satisfies ApiLocation];

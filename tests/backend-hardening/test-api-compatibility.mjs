@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 import ts from 'typescript';
 import * as contract from '../../supabase/functions/_shared/api-quote-contract.mjs';
+import * as readiness from '../../supabase/functions/_shared/api-readiness.mjs';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
 import {normalizeLocations, assertSafeApiUrl} from '../../supabase/functions/_shared/partner-api.ts';
 
@@ -95,6 +96,7 @@ function setup() {
   function handler(name){
     let serve;
     const sandbox={exports:{},require:specifier=>{
+      if(specifier.includes('api-readiness'))return readiness;
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
       if(specifier.includes('ride24-security'))return security;
@@ -203,6 +205,22 @@ test('API activation fails when current local surcharges are unsupported',async(
   const r=await s.handler('api-partner-admin')({action:'activate',partner_id:partner});
   assert.equal(r.status,409,await r.text());
   assert.equal(s.operations.filter(x=>x.table==='partners').length,0);
+});
+test('admin GET reports readiness without exposing credentials or modifying the partner',async()=>{
+  const s=setup();s.tables.partner_api_credentials[0].api_key='secret-test-value';
+  const r=await s.handler('api-partner-admin')({action:'get',partner_id:partner});
+  assert.equal(r.status,200);const data=await r.json();
+  assert.equal(data.readiness.connection_tested,true);
+  assert.equal(data.readiness.full_ride24_ready,false);
+  assert(!JSON.stringify(data).includes('secret-test-value'));
+  assert.equal(s.operations.length+s.outgoing.length+s.saved.length,0);
+});
+test('admin can inspect missing fee support while activation remains blocked',async()=>{
+  const s=setup();s.tables.partner_conditional_fees.push({id:'airport',partner_id:partner,active:true});
+  const r=await s.handler('api-partner-admin')({action:'get',partner_id:partner});
+  assert.equal(r.status,200);assert.equal((await r.json()).readiness.local_pricing_status,'unmapped_supplements');
+  assert.equal((await s.handler('api-partner-admin')({action:'activate',partner_id:partner})).status,409);
+  assert.equal(s.operations.length+s.outgoing.length+s.saved.length,0);
 });
 test('normalizing imported locations preserves a separate return fee',()=>{
   const locations=normalizeLocations([{external_id:'pdl',country:'Portugal',region:'Azores',location_name:'Airport',
