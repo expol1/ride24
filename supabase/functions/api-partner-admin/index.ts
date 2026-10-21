@@ -16,6 +16,7 @@ import {
   testProviderConnection,
 } from "../_shared/provider-adapters.ts";
 import { assertApiPricingCompatible } from "../_shared/api-quote-contract.mjs";
+import { inspectApiReadiness } from "../_shared/api-readiness.mjs";
 import { BookingOptionsError } from "../_shared/booking-options.mjs";
 
 type AdminClient = Awaited<ReturnType<typeof requireAdmin>>["admin"];
@@ -923,6 +924,7 @@ serve(async (req) => {
           company_name: partner.company_name,
         },
         config: safeMetadata(credentials, partner),
+        readiness: await inspectApiReadiness(admin, partner, credentials),
       });
     }
 
@@ -939,7 +941,8 @@ serve(async (req) => {
       await testConnection(admin, partner);
       return jsonResponse(req, {
         success: true,
-        message: "Połączenie poprawne",
+        message: "Połączenie techniczne poprawne. Pełna wycena i dodatki wymagają testu integracji.",
+        readiness: await inspectApiReadiness(admin, partner, await getCredentials(admin, partner.id)),
       });
     }
 
@@ -950,6 +953,7 @@ serve(async (req) => {
         success: true,
         result,
         message: "Lokalizacje i grupy zostały zsynchronizowane",
+        readiness: await inspectApiReadiness(admin, partner, await getCredentials(admin, partner.id)),
       });
     }
 

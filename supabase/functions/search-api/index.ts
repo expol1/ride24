@@ -56,6 +56,7 @@ type PartnerLocationRow = {
   active: boolean | null;
   extra_fee: boolean | null;
   extra_fee_amount: number | string | null;
+  return_fee_amount: number | string | null;
   contact_required: boolean | null;
   partners: PartnerRow;
 };
@@ -317,6 +318,9 @@ function normalizeLocationRow(value: unknown): PartnerLocationRow | null {
     extra_fee_amount: typeof value.extra_fee_amount === "number" || typeof value.extra_fee_amount === "string"
       ? value.extra_fee_amount
       : null,
+    return_fee_amount: typeof value.return_fee_amount === "number" || typeof value.return_fee_amount === "string"
+      ? value.return_fee_amount
+      : null,
     contact_required: value.contact_required === true,
     partners: partner,
   };
@@ -334,7 +338,7 @@ async function resolveDropoffLocation(
   let query = admin
     .from("partner_locations")
     .select(
-      "id, partner_id, external_id, country, region, city, location_name, type, active, extra_fee, extra_fee_amount, contact_required",
+      "id, partner_id, external_id, country, region, city, location_name, type, active, extra_fee, extra_fee_amount, return_fee_amount, contact_required",
     )
     .eq("partner_id", partnerId)
     .eq("active", true);
@@ -357,6 +361,9 @@ async function resolveDropoffLocation(
     extra_fee: data.extra_fee === true,
     extra_fee_amount: typeof data.extra_fee_amount === "number" || typeof data.extra_fee_amount === "string"
       ? data.extra_fee_amount
+      : null,
+    return_fee_amount: typeof data.return_fee_amount === "number" || typeof data.return_fee_amount === "string"
+      ? data.return_fee_amount
       : null,
     contact_required: data.contact_required === true,
     partners: pickupLocation.partners,
@@ -766,6 +773,7 @@ async function searchPartner(
           contact_required: location.contact_required,
           extra_fee: location.extra_fee,
           extra_fee_amount: location.extra_fee_amount,
+          return_fee_amount: location.return_fee_amount,
         })),
       },
     });
@@ -822,6 +830,7 @@ serve(async (req) => {
         active,
         extra_fee,
         extra_fee_amount,
+        return_fee_amount,
         contact_required,
         partners!inner(
           id,

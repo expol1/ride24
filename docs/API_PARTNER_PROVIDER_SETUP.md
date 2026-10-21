@@ -1,8 +1,10 @@
 # Ride24 API Partner Provider Setup
 
-Status (2026-10-19): adapters are deployed infrastructure, not certified live provider connections.
+Status (2026-10-21): adapters are deployed infrastructure, not certified live provider connections.
 No production Partner currently has API enabled or API credentials saved. See
-`maintenance/2026-10-19-api-compatibility.md` for the current acceptance boundaries.
+`maintenance/2026-10-19-api-compatibility.md` and `docs/API_MODERN_PRICING_ACCEPTANCE.md` for the current acceptance boundaries.
+
+Paid optional extras, nightly/airport/one-way itemization and complete API item snapshots still require adapter implementation and tenant acceptance. A successful health test is not proof of this support. Admin configuration now displays the explicit readiness matrix.
 
 ## Pricing invariant — DO NOT CHANGE
 
@@ -112,7 +114,7 @@ Authentication:
 - default: Bearer token / managed API client
 - exact City Rent scopes and tenant URL must be supplied by City Rent / Easy Web Rent.
 
-Publicly documented endpoints currently used as defaults:
+Preliminary endpoint presets (exact tenant documentation must confirm them):
 - health/locations: `/api/v1/locations`
 - groups: `/api/v1/vehicle-classes`
 - search: `/api/v1/availability`
