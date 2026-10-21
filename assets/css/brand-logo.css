@@ -1,6 +1,7 @@
 /* Shared readable WEB logo sizing; the original r.png remains the compact mark. */
+header:has(.logo-container) { padding-block: 8px; }
 header .logo-container { flex-shrink: 0; }
-header .logo-container img { width: 220px; height: auto; max-height: none; object-fit: contain; filter: none; }
+header .logo-container img { width: 180px; height: auto; max-height: none; object-fit: contain; filter: none; }
 .sidebar-logo { padding-left: 12px; padding-right: 12px; }
 .sidebar-logo > img.r24-full-logo { width: 200px; max-width: 100%; height: auto !important; flex-shrink: 0; }
 .sidebar-logo > img.r24-compact-logo { display: none; }
@@ -14,28 +15,28 @@ img.brand-logo { width: 220px; max-width: 46vw; height: auto; object-fit: contai
 .footer img.brand-logo { width: 220px; height: auto; }
 @media (max-width: 768px) {
   /* One row at 320–768px: controls keep their width, logo uses remaining space.
-     Clip only the transparent PNG margins to make the artwork readable. */
+     Keep the full artwork visible inside the shorter header. */
   header:has(.logo-container) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center !important;
     gap: 10px !important;
-    padding: 8px !important;
+    padding: 6px 8px !important;
     /* The mobile gradient is fully opaque: backdrop blur cannot be seen,
        but can add work while content scrolls underneath the sticky header. */
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
   header .logo-container {
-    width: 100%; max-width: 128px; min-width: 0;
+    width: 100%; max-width: 112px; min-width: 0;
     aspect-ratio: 2.75; overflow: hidden;
     display: block; position: relative;
   }
   header .logo-container img {
     display: block; position: absolute;
-    width: 122% !important; max-width: none !important;
+    width: 100% !important; max-width: none !important;
     height: auto !important; max-height: none;
-    left: -11%; top: 50%; transform: translateY(-50%);
+    left: 0; top: 50%; transform: translateY(-50%);
   }
   header .header-right {
     display: flex !important; width: auto !important; min-width: 0;
