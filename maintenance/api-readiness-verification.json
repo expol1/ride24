@@ -31,8 +31,22 @@
     "productionSearch": 200,
     "unauthenticatedAdmin": 401,
     "protectedDataUnchanged": true,
-    "externalSupplierWrites": 0
+    "externalSupplierWrites": 0,
+    "githubChecks": {
+      "test": "success",
+      "verify": "success",
+      "cloudflarePreview": "success"
+    }
   },
   "backupBranch": "backup/before-api-readiness-20261021",
-  "websitePublished": false
+  "websitePublished": null,
+  "pullRequest": 40,
+  "mergeCommit": "048f04b950aa4bbb6b20e9972c385e3dffca0b72",
+  "websiteDeployment": {
+    "status": "success",
+    "deploymentId": "f4141bb7-6f5b-48bc-91a8-26454cdbf3f0",
+    "commit": "048f04b950aa4bbb6b20e9972c385e3dffca0b72",
+    "customDomainContentVerified": false,
+    "note": "Cloudflare reports successful deployment. Direct content verification is unconfirmed: the earlier request returned pre-deployment content; final HTTP requests from this environment returned 403, and web retrieval was unavailable."
+  }
 }
