@@ -9,7 +9,8 @@
     "test:extras": "node --test test-booking-items.mjs test-booking-options.mjs test-booking-v2-handlers.mjs test-priced-extras-schema.mjs test-booking-extras-ui.mjs test-voucher-booking-items.mjs",
     "test:native-contract": "node --test test-native-booking-contract.mjs",
     "test:api": "node --experimental-strip-types --test test-api-compatibility.mjs",
-    "test:smart-search": "node --test test-smart-search.mjs && node test-smart-search-schema.mjs"
+    "test:smart-search": "node --test test-smart-search.mjs && node test-smart-search-schema.mjs",
+    "test:marketing-ui": "node --test test-marketing-google-simple.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",
