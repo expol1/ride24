@@ -3,7 +3,7 @@
   const types = ["country", "region", "city", "location"];
   const labels = { country: "Państwo", region: "Region / wyspa", city: "Miasto", location: "Punkt odbioru" };
   const normalize = value => String(value || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
-  let dictionary = [], selected = null, pendingKeyword = "", saving = false;
+  let dictionary = [], dismissed = [], selected = null, pendingKeyword = "", saving = false;
   const el = id => document.getElementById(id);
   const client = () => global.supabaseClient;
   const message = (text, error) => {
@@ -52,6 +52,64 @@
     }
   }
 
+  const mappingKey = item => [item.type, normalize(item.name), normalize(item.context.country), normalize(item.context.region)].join("|");
+  const isDismissed = (kind, key) => dismissed.some(row => row.kind === kind && row.entry_key === key);
+  function deleteButtonState() {
+    const button = el("dict-delete");
+    if (button) button.disabled = saving || !selected?.existing?.id;
+  }
+  function renderDismissals() {
+    const tbody = el("smart-dismissed-tbody"), count = el("smart-dismissed-count");
+    if (count) count.textContent = String(dismissed.length);
+    if (!tbody) return;
+    tbody.replaceChildren();
+    if (!dismissed.length) return tableMessage(tbody, "Nie ma usuniętych propozycji.", 3);
+    dismissed.forEach(item => {
+      const tr = document.createElement("tr"), kind = document.createElement("td"),
+        label = document.createElement("td"), action = document.createElement("td"),
+        button = document.createElement("button");
+      kind.textContent = item.kind === "mapping" ? "Mapowanie" : "Błędne zapytanie";
+      label.textContent = item.label;
+      button.type = "button"; button.className = "btn-secondary"; button.textContent = "Przywróć";
+      button.style.cssText = "padding:6px 12px;font-size:11px";
+      button.addEventListener("click", () => restoreDismissal(item));
+      action.append(button); tr.append(label, kind, action); tbody.append(tr);
+    });
+  }
+  async function readDismissals() {
+    dismissed = await allRows("smart_search_dismissals", "id,kind,entry_key,label");
+    renderDismissals();
+    return dismissed;
+  }
+  async function dismissEntry(kind, key, label) {
+    if (saving || !["mapping","search"].includes(kind) || !key) return;
+    if (!confirm("Usunąć „" + label + "” z listy? Nie usunie to lokalizacji partnera ani historii wyszukiwań. Pozycję można przywrócić w sekcji Usunięte.")) return;
+    saving = true;
+    try {
+      const result = await client().from("smart_search_dismissals").insert({ kind, entry_key:key, label });
+      if (result.error && result.error.code !== "23505") throw result.error;
+      await Promise.all([global.loadUnmappedLocations(), global.loadSearchLogs()]);
+      message("Usunięto „" + label + "” z listy. Wpis nie wróci przy odświeżaniu.");
+    } catch (error) {
+      message("Nie udało się usunąć pozycji. Sprawdź uprawnienia administratora i spróbuj ponownie.", true);
+      console.error("Smart Search: dismiss failed", error?.code || "");
+    } finally { saving = false; }
+  }
+  async function restoreDismissal(item) {
+    if (saving || !confirm("Przywrócić „" + item.label + "” do listy Smart Search?")) return;
+    saving = true;
+    try {
+      const result = await client().from("smart_search_dismissals").delete().eq("id", item.id).select("id");
+      if (result.error) throw result.error;
+      if (!result.data?.length) throw new Error("Wpis zmieniony lub brak uprawnień.");
+      await Promise.all([global.loadUnmappedLocations(), global.loadSearchLogs()]);
+      message("Przywrócono „" + item.label + "”. Jeśli nadal wymaga mapowania, pojawi się na liście.");
+    } catch (error) {
+      message("Nie udało się przywrócić pozycji. Odśwież sekcję i spróbuj ponownie.", true);
+      console.error("Smart Search: restore failed", error?.code || "");
+    } finally { saving = false; }
+  }
+
   async function readDictionary() {
     dictionary = await allRows("locations_dictionary", "id,category,name_en,name_pl,keywords,slug,parent_country_en,parent_region_en");
     renderDictionaryOptions();
@@ -80,11 +138,13 @@
     el("dict-keywords").value = pendingKeyword;
     selected = null;
     if (el("dict-existing")) el("dict-existing").value = "";
+    deleteButtonState();
   }
 
   function prefill(item) {
     resetForm(false);
     selected = item;
+    deleteButtonState();
     const existing = item.existing;
     el("dict-" + item.type + "-en").value = item.name;
     el("dict-" + item.type + "-en").readOnly = true;
@@ -109,9 +169,9 @@
     tableMessage(tbody, "Sprawdzam nazwy partnerów i polskie tłumaczenia…", 3);
     try {
       const [locations, rows] = await Promise.all([
-        allRows("partner_locations", "id,country,region,city,location_name"), readDictionary()
+        allRows("partner_locations", "id,country,region,city,location_name"), readDictionary(), readDismissals()
       ]);
-      const queue = buildQueue(locations, rows);
+      const queue = buildQueue(locations, rows).filter(item => !isDismissed("mapping", mappingKey(item)));
       el("unmapped-count").textContent = String(queue.length);
       if (!queue.length) return tableMessage(tbody, "Wszystkie nazwy mają polskie tłumaczenia.", 3);
       tbody.replaceChildren();
@@ -127,7 +187,11 @@
         button.type = "button"; button.className = "btn-primary"; button.textContent = "Tłumacz";
         button.style.cssText = "padding:6px 12px;font-size:11px";
         button.addEventListener("click", () => prefill(item));
-        action.append(button); tr.append(name, type, action); tbody.append(tr);
+        const remove = document.createElement("button");
+        remove.type = "button"; remove.className = "btn-secondary"; remove.textContent = "Usuń";
+        remove.style.cssText = "padding:6px 12px;font-size:11px;margin-left:6px;background:#b91c1c";
+        remove.addEventListener("click", () => dismissEntry("mapping", mappingKey(item), item.name + " · " + labels[item.type]));
+        action.append(button, remove); tr.append(name, type, action); tbody.append(tr);
       });
     } catch (error) {
       tableMessage(tbody, "Nie udało się pobrać nazw. Odśwież sekcję lub zaloguj się ponownie.", 3);
@@ -140,9 +204,9 @@
     if (!tbody) return;
     tableMessage(tbody, "Ładowanie…", 3);
     try {
-      const result = await client().rpc("get_top_searches");
+      const [result] = await Promise.all([client().rpc("get_top_searches"), readDismissals()]);
       if (result.error) throw result.error;
-      const rows = result.data || [];
+      const rows = (result.data || []).filter(item => !isDismissed("search", normalize(item.query)));
       if (!rows.length) return tableMessage(tbody, "Brak nieprzypisanych zapytań bez wyników.", 3);
       tbody.replaceChildren();
       rows.forEach(item => {
@@ -159,7 +223,11 @@
           el("dict-existing").focus();
           el("dict-editor").scrollIntoView({ behavior: "smooth", block: "start" });
         });
-        action.append(button); tr.append(query, count, action); tbody.append(tr);
+        const remove = document.createElement("button");
+        remove.type = "button"; remove.className = "btn-secondary"; remove.textContent = "Usuń";
+        remove.style.cssText = "padding:6px 12px;font-size:11px;margin-left:6px;background:#b91c1c";
+        remove.addEventListener("click", () => dismissEntry("search", normalize(item.query), String(item.query)));
+        action.append(button, remove); tr.append(query, count, action); tbody.append(tr);
       });
     } catch (error) {
       tableMessage(tbody, "Nie udało się pobrać logów. Odśwież sekcję lub zaloguj się ponownie.", 3);
@@ -172,10 +240,30 @@
     const row = dictionary.find(item => item.id === el("dict-existing").value);
     if (row) prefill({ name: row.name_en, type: row.category, existing: row,
       context: { country: row.parent_country_en || "", region: row.parent_region_en || "" } });
+    else resetForm(true);
   };
   global.clearSmartDictionary = function () { resetForm(true); message("Wybierz nazwę z listy albo wypełnij nowy wpis."); };
   global.prefillDictionary = function (name, type) {
     prefill({ name, type, context: {}, existing: findEntry(dictionary, name, type, {}) });
+  };
+
+  global.deleteSmartDictionary = async function () {
+    if (saving || !selected?.existing?.id) return;
+    const row = dictionary.find(item => item.id === selected.existing.id);
+    if (!row) return message("Wybierz zapisane tłumaczenie ze słownika.", true);
+    if (!confirm("Trwale usunąć tłumaczenie „" + row.name_en + " → " + row.name_pl + "” oraz jego synonimy? Nazwy partnera nie zostaną usunięte. Jeśli partner używa tej nazwy, pojawi się ponownie w kolejce Do zmapowania.")) return;
+    saving = true; deleteButtonState();
+    try {
+      const result = await client().from("locations_dictionary").delete().eq("id", row.id).select("id");
+      if (result.error) throw result.error;
+      if (!result.data?.length) throw new Error("Wpis zmieniony lub brak uprawnień do usunięcia.");
+      resetForm(true);
+      await Promise.all([global.loadUnmappedLocations(), global.loadSearchLogs()]);
+      message("Usunięto tłumaczenie „" + row.name_en + "” i powiązane z nim synonimy.");
+    } catch (error) {
+      message("Nie udało się usunąć tłumaczenia. " + (error?.message || "Spróbuj ponownie."), true);
+      console.error("Smart Search: dictionary delete failed", error?.code || "");
+    } finally { saving = false; deleteButtonState(); }
   };
 
   global.addDictionary = async function () {
