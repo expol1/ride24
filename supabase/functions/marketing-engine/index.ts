@@ -30,7 +30,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
     // The marketing generator must NEVER delete old posts.
-    // Google Ads campaigns reference marketing_queue rows with ON DELETE CASCADE.
+    // Google Ads campaigns have ON DELETE RESTRICT.
     // Keeping history also preserves campaign IDs needed to safely stop/sync promotions.
     const { data: settings, error: settingsError } =
       await supabase
@@ -447,7 +447,7 @@ if (!imageResponse.ok) {
 }
   const posts = [
   {
-    platform: "all",
+    platform: "facebook",
 
     city: cityPL,
 
