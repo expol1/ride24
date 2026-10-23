@@ -1851,8 +1851,8 @@ Dodaj opinię o Partnerze
                                 <span data-pl="Niska kaucja gotówkowa" data-en="Low cash deposit">Low cash deposit</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
-                                <input type="checkbox" id="featureNoCreditCard">
-                                <span data-pl="Bez karty kredytowej" data-en="No credit card">No credit card</span>
+                                <input type="checkbox" id="featureNoCreditCard" checked disabled aria-disabled="true">
+                                <span data-pl="Bez karty kredytowej i blokady środków na karcie (obowiązkowe Ride24)" data-en="No credit card or card hold (mandatory Ride24 policy)">No credit card or card hold (mandatory Ride24 policy)</span>
                             </label>
                         </div>
                     </div>
@@ -2805,7 +2805,8 @@ const updateData = {
             return {
                 noDeposit: !(amount > 0),
                 fullInsurance: full,
-                noCreditCard: document.getElementById("featureNoCreditCard").checked,
+                noCreditCard: true,
+                noCardHold: true,
                 lowDeposit: amount > 0,
                 driverHours: document.getElementById("driverHours").value || "",
                 cashDepositRefundable: amount > 0,
@@ -4444,7 +4445,7 @@ const lowCashDeposit = document.getElementById("lowDeposit");
 if (lowCashDeposit) lowCashDeposit.checked = features.lowDeposit === true;
 if (noDeposit) noDeposit.checked = Number(car.deposit_amount) > 0 ? false : features.noDeposit === true;
 if (fullInsurance) fullInsurance.checked = features.fullInsurance === true;
-if (noCard) noCard.checked = features.noCreditCard === true;
+if (noCard) { noCard.checked = true; noCard.disabled = true; }
 window.editingInsuranceWasTrue = features.fullInsurance === true;
 window.editingInsuranceConfirmedAt = typeof features.insuranceConfirmedAt === "string" ? features.insuranceConfirmedAt : null;
 syncCashDepositOption();
