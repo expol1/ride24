@@ -1019,7 +1019,7 @@ export function normalizeGroups(payload: unknown): ApiVehicleGroup[] {
       bags: boundedInteger(item.bags, 0, 99),
       image: safeHttpsImage(item.image),
       description: boundedText(item.description, 2000),
-      features: asRecord(sanitizedFeatures) || {},
+      features: { ...(asRecord(sanitizedFeatures) || {}), noCreditCard: true, noCardHold: true },
       mileage_limit: boundedNonNegativeNumber(item.mileage_limit),
       deposit_amount: boundedNonNegativeNumber(item.deposit_amount),
       driver_included: item.driver_included === true,
