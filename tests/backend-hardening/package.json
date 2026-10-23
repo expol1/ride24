@@ -10,7 +10,7 @@
     "test:native-contract": "node --test test-native-booking-contract.mjs",
     "test:api": "node --experimental-strip-types --test test-api-compatibility.mjs",
     "test:smart-search": "node --test test-smart-search.mjs && node test-smart-search-schema.mjs",
-    "test:marketing-ui": "node --test test-marketing-google-simple.mjs"
+    "test:marketing-ui": "node --test test-marketing-google-simple.mjs test-marketing-channel-separation.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",
