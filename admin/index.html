@@ -998,28 +998,41 @@
     <section class="marketing-simple" id="marketing-simple" aria-labelledby="marketing-simple-title">
         <h2 id="marketing-simple-title">Google Ads — prosta obsługa</h2>
         <p class="marketing-simple-desc" id="marketing-simple-overview" role="status" aria-live="polite">
-            Sprawdzam aktualne kampanie i ustawienia. Reklamy uruchamiają się dopiero po zatwierdzeniu wydatku.
+            Google Ads to osobny system. Propozycje tutaj nie są postami Facebook/Instagram/X. Płatna kampania wymaga Twojego zatwierdzenia.
         </p>
         <div class="marketing-simple-stats">
             <div class="marketing-simple-stat"><small>Budżet miesięczny w Ride24</small><strong id="marketing-simple-budget">Sprawdzam…</strong></div>
             <div class="marketing-simple-stat"><small>Aktywne kampanie</small><strong id="marketing-simple-active">Sprawdzam…</strong></div>
             <div class="marketing-simple-stat"><small>Zarejestrowany koszt z ostatnich 30 dni</small><strong id="marketing-simple-cost">Brak danych</strong></div>
         </div>
-        <div class="marketing-simple-actions">
-            <button type="button" class="btn-primary" id="marketing-simple-generate" onclick="runMarketingEngine()">1. Przygotuj propozycję reklamy</button>
-            <button type="button" class="btn-success" onclick="goToMarketingProposals()">2. Zobacz i zatwierdź propozycje</button>
-            <button type="button" class="btn-secondary" onclick="openMarketingAdvanced('monthly-budget')">Zmień budżet</button>
-            <button type="button" class="btn-secondary" onclick="synchronizeGoogleAdsDashboard(this)">Sprawdź stan w Google</button>
+        <div style="border:1px solid #DEE7F2;background:#F8FAFC;border-radius:12px;padding:16px;margin-bottom:16px">
+            <h3 style="margin:0 0 10px;color:#102B48">1. Nowa propozycja Google Ads</h3>
+            <label for="google-creative-location" style="display:block;font-size:13px;margin-bottom:6px">Wybierz lokalizację aktywnego partnera</label>
+            <select id="google-creative-location" class="smart-input" style="width:100%;max-width:480px;margin-bottom:12px">
+                <option value="">Ładowanie kierunków…</option>
+            </select>
+            <div class="marketing-simple-actions" style="margin:0">
+                <button type="button" class="btn-primary" id="google-creative-generate" onclick="createGoogleAdsDraft()">Przygotuj reklamę Google Ads</button>
+                <button type="button" class="btn-secondary" onclick="loadGoogleAdsDrafts()">Odśwież propozycje</button>
+                <button type="button" class="btn-secondary" onclick="openMarketingAdvanced('monthly-budget')">Zmień budżet</button>
+                <button type="button" class="btn-secondary" onclick="synchronizeGoogleAdsDashboard(this)">Sprawdź stan w Google</button>
+            </div>
+            <p id="google-creative-message" role="status" aria-live="polite" style="font-size:12px;margin:10px 0 0"></p>
         </div>
         <div class="marketing-simple-list">
-            <h3>Reklamy i ich wyłączanie</h3>
+            <h3>2. Osobne szkice Google Ads</h3>
+            <p>Zatwierdzisz propozycję Google Ads i dopiero potem wybierzesz czas i uruchomisz płatną kampanię. Żadne posty nie są publikowane na Facebooku ani Instagramie.</p>
+            <div id="google-ads-drafts" aria-live="polite">Ładowanie propozycji…</div>
+        </div>
+        <div class="marketing-simple-list">
+            <h3>3. Aktywne kampanie Google Ads i ich wyłączanie</h3>
             <p>Zatrzymanie wybranej reklamy wymaga potwierdzenia. Nie wyłącza innych kampanii ani konta Google. Dane i limity Ride24 nie zastępują limitów rozliczeń po stronie Google. <a href="https://ads.google.com/" target="_blank" rel="noopener noreferrer">Otwórz konto Google Ads i sprawdź wszystkie kampanie ↗</a></p>
             <div id="marketing-simple-campaigns" aria-live="polite">Wczytywanie kampanii…</div>
         </div>
         <p style="font-size:12px;color:#64748B;margin:9px 0 0" id="marketing-simple-last-sync">Aktualność wyników: sprawdzam…</p>
     </section>
     <details id="marketing-advanced" class="marketing-advanced">
-        <summary>Ustawienia zaawansowane, statystyki i szczegóły Google Ads</summary>
+        <summary>Ustawienia zaawansowane i statystyki Google Ads / Social Media</summary>
     <div class="stats-grid">
 
         
@@ -1326,9 +1339,10 @@
 
 </details>
 <div id="marketing-proposals" class="table-container" style="margin-top:20px;">
+<p style="padding:15px 20px 0;color:#64748B;font-size:13px">Osobny generator postów społecznościowych. Ich publikacja nie jest uruchomieniem Google Ads. Reklamy Google tworzy się wyżej.</p>
 
    <div class="table-header">
-    Wygenerowane posty AI — sprawdź przed uruchomieniem płatnej reklamy
+    Social Media AI — posty Facebook, Instagram i X
 </div>
 
 <div style="padding:20px; display:flex; gap:12px; flex-wrap:wrap;">
@@ -1696,6 +1710,7 @@
     <script src="../assets/helper/supabaseConfig.js"></script>
     <script src="../assets/js/admin-smart-search.js?v=20261023a"></script>
     <script src="../assets/js/admin-api-readiness.js?v=20261021a"></script>
+<script src="../assets/js/admin-google-ads-drafts.js?v=20261023a" defer></script>
 
     <script>
         async function loadMessages() {
