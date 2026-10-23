@@ -155,7 +155,7 @@
       }
       const ids=data.map(row=>row.id);
       const {data:creativeRows,error:creativeError}=await db.from("google_ads_creatives")
-        .select("marketing_queue_id,objective,final_url,landscape_url,headlines,descriptions,app_store_url")
+        .select("marketing_queue_id,objective,final_url,landscape_url,headlines,long_headline,descriptions,app_store_url")
         .in("marketing_queue_id",ids);
       if(creativeError)throw creativeError;
       const creativeMap=new Map((creativeRows||[]).map(row=>[row.marketing_queue_id,row]));
@@ -203,6 +203,7 @@
             try{
               const text=["Google Ads / "+(creative.objective==="app_install"?"App Campaign":"Performance Max"),
                 "Nagłówki:",...(creative.headlines||[]),
+                "Długi nagłówek:",creative.long_headline||"",
                 "Opisy:",...(creative.descriptions||[]),
                 "Strona docelowa: "+(creative.final_url||""),
                 creative.app_store_url?"Google Play: "+creative.app_store_url:"",
@@ -225,6 +226,11 @@
           note.textContent="Instalacje aplikacji wymagają osobnej kampanii App Campaign. Ten szkic nie uruchomi automatycznie Performance Max.";
           note.style.cssText="font-size:12px;color:#B45309;margin:10px 0 0";
           card.append(note);
+          const guide=document.createElement("a");
+          guide.href="https://ads.google.com/";guide.target="_blank";guide.rel="noopener noreferrer";
+          guide.textContent="Otwórz Google Ads i utwórz kampanię aplikacji ↗";
+          guide.style.cssText="display:inline-block;margin:10px 8px 0 0";
+          card.append(guide);
           if(creative?.app_store_url){
             const link=document.createElement("a");
             link.href=creative.app_store_url;link.target="_blank";link.rel="noopener noreferrer";
