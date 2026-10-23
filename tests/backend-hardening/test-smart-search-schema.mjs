@@ -4,6 +4,8 @@ const { PGlite } = await import(process.env.PGLITE_MODULE || "@electric-sql/pgli
 const db = new PGlite();
 await db.exec(await readFile(new URL("./smart-search-fixture.sql", import.meta.url), "utf8"));
 await db.exec(await readFile(new URL("../../supabase/migrations/20261020132227_restore_smart_search_mapping_and_logs.sql", import.meta.url), "utf8"));
+await db.exec(await readFile(new URL("../../supabase/migrations/20261023120000_smart_search_dismissal_and_dictionary_delete.sql", import.meta.url), "utf8"));
+await db.exec(await readFile(new URL("../../supabase/migrations/20261023124500_smart_search_dictionary_delete_grants.sql", import.meta.url), "utf8"));
 let checks = 0;
 async function ok(sql) { await db.exec(sql); checks++; }
 async function denied(sql) { await assert.rejects(db.exec(sql)); checks++; }
@@ -11,6 +13,8 @@ async function count(sql, expected) { assert.equal((await db.query(sql)).rows.le
 await ok("INSERT INTO locations_dictionary(category,name_en,name_pl,keywords,slug) VALUES ('city','Rome','Rzym','eternal city','rome'); INSERT INTO search_logs(query) VALUES ('rzim'),('rzim'),('rome'),('varnaa'); INSERT INTO search_logs(query,created_at) VALUES ('oldmiss',now()-interval '91 days');");
 await ok("SET ROLE anon");
 await denied("SELECT * FROM search_logs");
+await denied("SELECT * FROM smart_search_dismissals");
+await denied("INSERT INTO smart_search_dismissals(kind,entry_key,label) VALUES ('search','query','Query')");
 await denied("INSERT INTO search_logs(query) VALUES ('unauthorized')");
 await denied("SELECT * FROM get_top_searches()");
 await count("SELECT * FROM locations_dictionary", 1);
@@ -19,6 +23,9 @@ await ok("RESET ROLE; SET ROLE authenticated; SELECT set_config('request.jwt.cla
 await count("SELECT * FROM search_logs", 0);
 await count("SELECT * FROM partner_locations", 1);
 await count("SELECT * FROM get_top_searches()", 0);
+await count("SELECT * FROM smart_search_dismissals", 0);
+await denied("INSERT INTO smart_search_dismissals(kind,entry_key,label) VALUES ('search','varnaa','Varnaa')");
+await denied("DELETE FROM locations_dictionary WHERE name_en='Rome'");
 await denied("INSERT INTO search_logs(query) VALUES ('unauthorized')");
 await denied("UPDATE search_logs SET query='unauthorized'");
 await denied("DELETE FROM search_logs");
@@ -32,12 +39,19 @@ await count("SELECT * FROM search_logs", 5);
 await count("SELECT * FROM partner_locations", 2);
 await count("SELECT * FROM get_top_searches()", 2);
 assert.equal(Number((await db.query("SELECT count FROM get_top_searches() WHERE query='rzim'")).rows[0].count), 2); checks++;
+await ok("INSERT INTO smart_search_dismissals(kind,entry_key,label) VALUES ('search','varnaa','varnaa')");
+await count("SELECT * FROM get_top_searches() WHERE query='varnaa'", 0);
+await count("SELECT * FROM search_logs WHERE query='varnaa'", 1);
+await ok("DELETE FROM smart_search_dismissals WHERE kind='search' AND entry_key='varnaa'");
+await count("SELECT * FROM get_top_searches() WHERE query='varnaa'", 1);
 await ok("UPDATE locations_dictionary SET keywords='eternal city, rzim' WHERE name_en='Rome'");
 await count("SELECT * FROM get_top_searches() WHERE query='rzim'", 0);
 await count("SELECT * FROM search_logs WHERE query='rzim'", 2);
 await ok("INSERT INTO locations_dictionary(category,name_en,name_pl,slug) VALUES('location','Rome Airport (FCO)','Lotnisko Rzym (FCO)','rome-airport')");
 await denied("INSERT INTO locations_dictionary(category,name_en,name_pl) VALUES('invalid','Wrong','Błędny')");
 await denied("INSERT INTO search_logs(query) VALUES('admin-direct-write')");
+await ok("DELETE FROM locations_dictionary WHERE name_en='Rome'");
+await count("SELECT * FROM locations_dictionary WHERE name_en='Rome'", 0);
 await ok("RESET ROLE; SET ROLE service_role; INSERT INTO search_logs(query) VALUES('service-miss')");
 await count("SELECT * FROM search_logs WHERE query='service-miss'", 1);
 console.log(checks + " isolated Smart Search schema and role checks passed; no production changes.");
