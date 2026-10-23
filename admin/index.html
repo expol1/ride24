@@ -4469,7 +4469,10 @@ function renderSimpleGoogleAdsCampaigns(campaigns) {
         return;
     }
     const isActive = c => [c.google_status, c.status].some(value => String(value || "").toUpperCase() === "ENABLED");
-    const sorted = [...campaigns].sort((a, b) => Number(isActive(b)) - Number(isActive(a)));
+    const sorted = [
+        ...campaigns.filter(isActive),
+        ...campaigns.filter(c => !isActive(c)).slice(0, 5)
+    ];
     for (const campaign of sorted) {
         const active = isActive(campaign);
         const row = document.createElement("div");
@@ -4586,7 +4589,7 @@ async function loadGoogleAdsDashboard() {
         "get_google_ads_admin_dashboard",
         {
             p_days: 30,
-            p_limit: 30
+            p_limit: 100
         }
     );
 
