@@ -1,0 +1,24 @@
+name: Ride24 Partner Languages QA
+on:
+  pull_request:
+    paths:
+      - 'partner-dashboard.html'
+      - 'assets/i18n/partner-panel.js'
+      - 'assets/helper/partner*.js'
+      - 'assets/css/partner-languages.css'
+      - 'flagi/*.svg'
+      - 'tests/backend-hardening/test-partner-*.mjs'
+      - '.github/workflows/partner-languages.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated test dependencies
+        run: npm ci --prefix tests/backend-hardening
+      - name: Verify seven languages, unchanged data and partner onboarding
+        run: node --experimental-strip-types --test tests/backend-hardening/test-partner-languages.mjs tests/backend-hardening/test-partner-guide.mjs tests/backend-hardening/test-partner-onboarding.mjs tests/backend-hardening/test-booking-extras-ui.mjs

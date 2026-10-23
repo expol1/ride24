@@ -1,31 +1,30 @@
 // Separate obligatory after-hours fees from optional equipment extras.
 // Times are interpreted as the selected location's local wall-clock time.
 (function () {
-  const lang = () => localStorage.getItem('partner_lang') === 'en';
-  const label = (pl,en) => lang() ? en : pl;
-  const el = (tag,value) => {const n=document.createElement(tag); if(value!=null)n.textContent=value;return n;};
-  const field = (host,pl,en,control) => {const l=el('label');l.append(el('span',label(pl,en)),control);host.append(l);return control;};
+    const setLabel = (n,pl,en) => {if(window.Ride24PartnerI18n)return window.Ride24PartnerI18n.bind(n,pl,en);n.textContent=label(pl,en);return n;};
+  const lang = () => { if (window.Ride24PartnerI18n) return window.Ride24PartnerI18n.getLanguage() !== 'pl'; try { return localStorage.getItem('partner_lang') !== 'pl'; } catch (_) { return true; } };
+  const label = (pl,en) => window.Ride24PartnerI18n ? window.Ride24PartnerI18n.text(pl,en) : lang() ? en : pl;
+  const el = (tag,value,en) => {const n=document.createElement(tag);if(en!==undefined){n.dataset.pl=value;n.dataset.en=en;setLabel(n, value, en);}else if(value!=null)n.textContent=value;return n;};
+  const live = (n,render) => {if(window.Ride24PartnerI18n)return window.Ride24PartnerI18n.live(n,render);n.textContent=render();return n;};
+  const field = (host,pl,en,control) => {const l=el('label');l.append(el('span', pl, en),control);host.append(l);return control;};
   const input = (type,value='')=>{const i=el('input');i.type=type;i.value=value;return i;};
-  const choice=(items,selected)=>{const s=el('select');for(const [value,pl,en] of items){const o=el('option',label(pl,en));o.value=value;s.append(o)}s.value=selected;return s};
-  const money = (n,currency)=>new Intl.NumberFormat(lang()?'en-GB':'pl-PL',{style:'currency',currency:currency||'EUR'}).format(Number(n||0));
+  const choice=(items,selected)=>{const s=el('select');for(const [value,pl,en] of items){const o=el('option', pl, en);o.value=value;s.append(o)}s.value=selected;return s};
+  const money = (n,currency)=>new Intl.NumberFormat(window.Ride24PartnerI18n?.locale()||(lang()?'en-GB':'pl-PL'),{style:'currency',currency:currency||'EUR'}).format(Number(n||0));
 
   window.ride24PartnerTimeFees = {
     async mount(db,partner) {
       const host=document.getElementById('partnerTimeFeesCatalog');if(!host)return;
       host.replaceChildren();host.hidden=partner.provider_type==='api';if(host.hidden)return;
-      host.append(el('h3',label('Automatyczne dopłaty za godziny','Automatic time-based fees')));
-      host.append(el('p',label(
-        'Wybierz przedziały czasu, w których odbiór lub zwrot wymaga dopłaty. System doda ją sam w podsumowaniu przed rezerwacją — klient nie musi wybierać dodatku.',
-        'Set time windows when pickup or return requires a fee. It will automatically appear in the price summary before booking, without any optional selection.'
-      )));
+      host.append(el('h3', 'Automatyczne dopłaty za godziny', 'Automatic time-based fees'));
+      host.append(el('p', 'Wybierz przedziały czasu, w których odbiór lub zwrot wymaga dopłaty. System doda ją sam w podsumowaniu przed rezerwacją — klient nie musi wybierać dodatku.', 'Set time windows when pickup or return requires a fee. It will automatically appear in the price summary before booking, without any optional selection.'));
       const info=el('p');info.setAttribute('role','status');host.append(info);
-      const add=el('button',label('Dodaj regułę godzinową','Add time rule'));add.type='button';add.className='btn-primary';host.append(add);
+      const add=el('button', 'Dodaj regułę godzinową', 'Add time rule');add.type='button';add.className='btn-primary';host.append(add);
       const [feesResult,locationResult]=await Promise.all([
         db.from('partner_time_fees').select('*').eq('partner_id',partner.id).order('created_at'),
         db.from('partner_locations').select('id,location_name').eq('partner_id',partner.id).eq('active',true).eq('is_api_managed',false).order('location_name')
       ]);
       if(feesResult.error||locationResult.error){
-        info.textContent=label('Nie udało się wczytać reguł. Odśwież stronę.','Could not load time rules. Refresh the page.');
+        setLabel(info, 'Nie udało się wczytać reguł. Odśwież stronę.', 'Could not load time rules. Refresh the page.');
         add.disabled=true;return;
       }
       const fees=feesResult.data||[],locations=locationResult.data||[];
@@ -33,7 +32,7 @@
       const edit=(fee={})=>{
         const d=el('dialog');d.className='r24-extras-dialog';d.setAttribute('aria-modal','true');
         const head=el('div');head.className='r24-extras-dialog__head';
-        head.append(el('h3',fee.id?label('Edytuj regułę','Edit rule'):label('Dodaj regułę','Add rule')));
+        head.append(el('h3',fee.id?'Edytuj regułę':'Dodaj regułę',fee.id?'Edit rule':'Add rule'));
         const close=el('button','×');close.type='button';close.className='r24-extras-dialog__close';close.onclick=()=>d.close();head.append(close);d.append(head);
         const f=el('form');f.className='r24-extras-dialog__form';d.append(f);
         const status=el('p');status.className='r24-extras-dialog__status';status.setAttribute('role','alert');f.append(status);
@@ -54,10 +53,10 @@
         const approval=input('checkbox');approval.checked=fee.requires_approval===true;
         field(f,'Wymaga wcześniejszego uzgodnienia z wypożyczalnią','Requires prior approval from the rental company',approval);
         const enabled=input('checkbox');enabled.checked=fee.active!==false;field(f,'Reguła aktywna','Rule active',enabled);
-        f.append(el('p',label('Przykład: 22:00–07:00 obejmuje godziny nocne. Kwota zostanie automatycznie doliczona do ceny przed rezerwacją.','Example: 22:00–07:00 covers overnight times. The charge will be included in the total before booking.')));
+        f.append(el('p', 'Przykład: 22:00–07:00 obejmuje godziny nocne. Kwota zostanie automatycznie doliczona do ceny przed rezerwacją.', 'Example: 22:00–07:00 covers overnight times. The charge will be included in the total before booking.'));
         const buttons=el('div');buttons.className='r24-extras-dialog__actions';
-        const cancel=el('button',label('Anuluj','Cancel'));cancel.type='button';cancel.className='btn-secondary';cancel.onclick=()=>d.close();
-        const save=el('button',label('Zapisz','Save'));save.type='submit';save.className='btn-primary';buttons.append(cancel,save);f.append(buttons);
+        const cancel=el('button', 'Anuluj', 'Cancel');cancel.type='button';cancel.className='btn-secondary';cancel.onclick=()=>d.close();
+        const save=el('button', 'Zapisz', 'Save');save.type='submit';save.className='btn-primary';buttons.append(cancel,save);f.append(buttons);
         document.body.append(d);d.addEventListener('close',()=>d.remove());d.showModal();
         f.onsubmit=async e=>{
           e.preventDefault();save.disabled=true;
@@ -77,16 +76,16 @@
         };
       };
       add.onclick=()=>edit();
-      if(!fees.length)info.textContent=label('Nie ma jeszcze reguł godzinowych. Rezerwacje pozostają bez dodatkowej opłaty za czas.','No time rules yet. Time-related charges are not added.');
+      if(!fees.length)setLabel(info, 'Nie ma jeszcze reguł godzinowych. Rezerwacje pozostają bez dodatkowej opłaty za czas.', 'No time rules yet. Time-related charges are not added.');
       for(const fee of fees){
         const row=el('div');row.className='r24-extras-row';
-        const place=locations.find(x=>x.id===fee.location_id)?.location_name||label('Wszystkie lokalizacje','All locations');
-        const name=el('strong',actionName(fee.applies_to)+' · '+fee.starts_at.slice(0,5)+'–'+fee.ends_at.slice(0,5));
-        const detail=el('span',money(fee.amount,partner.currency)+' · '+place+
+        const place=()=>locations.find(x=>x.id===fee.location_id)?.location_name||label('Wszystkie lokalizacje','All locations');
+        const name=live(el('strong'),()=>actionName(fee.applies_to)+' · '+fee.starts_at.slice(0,5)+'–'+fee.ends_at.slice(0,5));
+        const detail=live(el('span'),()=>money(fee.amount,partner.currency)+' · '+place()+
           (fee.applies_to==='either'?(' · '+(fee.once_per_booking?label('raz za rezerwację','once per booking'):label('za każde zdarzenie','per event'))):'')+
           (fee.active?'':' · '+label('wyłączona','disabled')));
         row.append(name,detail);
-        const button=el('button',label('Edytuj','Edit'));button.type='button';button.className='btn-secondary';button.onclick=()=>edit(fee);row.append(button);
+        const button=el('button', 'Edytuj', 'Edit');button.type='button';button.className='btn-secondary';button.onclick=()=>edit(fee);row.append(button);
         host.append(row);
       }
     }

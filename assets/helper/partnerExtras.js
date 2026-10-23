@@ -1,8 +1,10 @@
 (function () {
+    const setLabel = (n,pl,en) => {if(window.Ride24PartnerI18n)return window.Ride24PartnerI18n.bind(n,pl,en);n.textContent=text(pl,en);return n;};
     const names = {child_seat:['Fotelik dziecięcy','Child seat'],booster_seat:['Podstawka dla dziecka','Booster seat'],gps:['Nawigacja GPS','GPS navigation'],additional_driver:['Dodatkowy kierowca','Additional driver'],custom:['Własny dodatek','Custom extra']};
-    const en = () => localStorage.getItem('partner_lang') === 'en';
-    const text = (pl,eng) => en() ? eng : pl;
-    const node = (tag,pl,eng) => {const n=document.createElement(tag);if(pl!=null){n.textContent=text(pl,eng??pl);n.dataset.pl=pl;n.dataset.en=eng??pl;}return n;};
+    const en = () => { if (window.Ride24PartnerI18n) return window.Ride24PartnerI18n.getLanguage() !== 'pl'; try { return localStorage.getItem('partner_lang') !== 'pl'; } catch (_) { return true; } };
+    const text = (pl,eng) => window.Ride24PartnerI18n ? window.Ride24PartnerI18n.text(pl,eng) : en() ? eng : pl;
+    const node = (tag,pl,eng) => {const n=document.createElement(tag);if(pl!=null){if(eng!==undefined){n.dataset.pl=pl;n.dataset.en=eng;setLabel(n, pl, eng);}else n.textContent=pl;}return n;};
+    const live = (n,render) => {if(window.Ride24PartnerI18n)return window.Ride24PartnerI18n.live(n,render);n.textContent=render();return n;};
     const amount = value => {
         const raw=String(value).trim().replace(',','.');
         if(!raw) return 0;
@@ -59,7 +61,7 @@
             const status=node('p');status.setAttribute('role','status');host.append(status);
             const add=node('button','Dodaj dodatek','Add extra');add.className='btn-primary';add.type='button';host.append(add);
             const {data,error}=await db.from('partner_extras').select('*').eq('partner_id',partner.id).order('created_at');
-            if(error){status.textContent=text('Nie udało się pobrać dodatków. Odśwież stronę.','Could not load extras. Refresh the page.');add.disabled=true;return;}
+            if(error){setLabel(status, 'Nie udało się pobrać dodatków. Odśwież stronę.', 'Could not load extras. Refresh the page.');add.disabled=true;return;}
             const edit=(extra={})=>{
                 const {d,f,status}=dialog(extra.id?'Edytuj dodatek':'Dodaj dodatek',extra.id?'Edit extra':'Add extra');
                 const code=node('select');code.style.cssText='padding:10px;border-radius:8px';for(const [key,n] of Object.entries(names)){const o=node('option',...n);o.value=key;code.append(o);}code.value=extra.code||'child_seat';field(f,'Dodatek','Extra',code);
@@ -82,7 +84,7 @@
                 }catch(error){status.textContent=error.message;}finally{save.disabled=false;}};
             };
             add.onclick=()=>edit();
-            for(const extra of data||[]){const row=node('div');row.className='r24-extras-row';const n=names[extra.code]&&extra.code!=='custom'?names[extra.code]:[extra.name_pl||extra.name_en,extra.name_en];const name=node('strong',...n);row.append(name,node('span',`${Number(extra.amount).toFixed(2)} ${partner.currency||'EUR'} / ${extra.billing==='day'?'dzień':'wynajem'}${extra.active?'':' • wyłączony'}`,`${Number(extra.amount).toFixed(2)} ${partner.currency||'EUR'} / ${extra.billing==='day'?'day':'rental'}${extra.active?'':' • disabled'}`));const b=node('button','Edytuj','Edit');b.className='btn-secondary';b.type='button';b.onclick=()=>edit(extra);row.append(b);host.append(row);}
+            for(const extra of data||[]){const row=node('div');row.className='r24-extras-row';const n=names[extra.code]&&extra.code!=='custom'?names[extra.code]:[extra.name_pl||extra.name_en,extra.name_en];const name=extra.code==='custom'?live(node('strong'),()=>en()?extra.name_en:(extra.name_pl||extra.name_en)):node('strong',...n);row.append(name,live(node('span'),()=>`${Number(extra.amount).toFixed(2)} ${partner.currency||'EUR'} / ${extra.billing==='day'?text('dzień','day'):text('wynajem','rental')}${extra.active?'':' • '+text('wyłączony','disabled')}`));const b=node('button','Edytuj','Edit');b.className='btn-secondary';b.type='button';b.onclick=()=>edit(extra);row.append(b);host.append(row);}
         },
         editFees(db,partner,location,refresh){
             const {d,f,status}=dialog('Opłaty za odbiór i zwrot','Pickup and return fees');f.append(node('p',location.location_name));

@@ -77,8 +77,16 @@ test("Search response carries independent return fee metadata for both route leg
 });
 test("Admin page still loads Smart Search and all its inline JavaScript parses", async () => {
   const html = await readFile(new URL("../../admin/index.html", import.meta.url), "utf8");
-  assert.match(html, /admin-smart-search.js\?v=20261020a/);
-  assert.match(html, /admin-api-readiness.js\?v=20261021a/);
+  const dom = new JSDOM(html);
+  for (const file of ['admin-smart-search.js', 'admin-api-readiness.js']) {
+    const reference = Array.from(dom.window.document.querySelectorAll('script[src]'))
+      .map(node => new URL(node.getAttribute('src'), 'https://ride24.pl/admin/'))
+      .find(url => url.pathname === '/assets/js/' + file);
+    assert.ok(reference, file + ' must remain loaded');
+    assert.ok(reference.searchParams.get('v'), file + ' must have a cache version');
+    await readFile(new URL('../../assets/js/' + file, import.meta.url), 'utf8');
+  }
+  dom.window.close();
   for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
     if (/\bsrc\s*=|application\/ld\+json|\btype\s*=\s*["']module/.test(match[1])) continue;
     new vm.Script(match[2]);
