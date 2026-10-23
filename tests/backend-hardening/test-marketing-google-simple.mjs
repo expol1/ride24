@@ -5,6 +5,7 @@ import vm from "node:vm";
 const { JSDOM } = await import(process.env.JSDOM_MODULE || "jsdom");
 
 const html = await readFile(new URL("../../admin/index.html", import.meta.url), "utf8");
+const marketingBackend = await readFile(new URL("../../supabase/functions/marketing-engine/index.ts", import.meta.url), "utf8");
 function extract(start, end) {
   const i = html.indexOf(start), j = html.indexOf(end, i);
   assert(i >= 0 && j > i, "Missing script section: " + start);
@@ -97,4 +98,13 @@ test("Pause requires confirmation, blocks repeated clicks and changes status onl
   assert.equal(refreshes, 3);
   assert.match(alerts.at(-1), /Nie udało się zatrzymać kampanii/);
   assert.equal(pending.size, 0);
+});
+
+
+test("Marketing generator never deletes campaign history on AI failures", () => {
+  assert.doesNotMatch(marketingBackend, /\.from\(["']marketing_queue["']\)\s*\.delete\s*\(/);
+  assert.doesNotMatch(marketingBackend, /\.from\(["']google_ads_campaigns["']\)\s*\.delete\s*\(/);
+  assert.match(marketingBackend, /AI_CREDITS_EXHAUSTED/);
+  assert.match(html, /onClick|onclick="runMarketingEngine\(\)"/);
+  assert.match(html, /credit_balance_exhausted|AI_CREDITS_EXHAUSTED/);
 });
