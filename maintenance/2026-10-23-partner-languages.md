@@ -47,6 +47,22 @@ account, payment or uploaded file is created or changed. No database migration,
 Edge Function deployment, retention change or Android update belongs to this change.
 The customer WEB pages and admin panel do not load the new locale module.
 
+## Publication
+
+PR #42 was merged as `212272feb2cc5e42d3046ebc81a8a6fcd1ae9757`.
+All three GitHub test jobs and Cloudflare preview checks passed on
+`c7f39ca2818bc03ff2f0632b3f85c654a2fdf208`.
+Cloudflare reported successful production deployment
+`5e0cda69-d54c-49e1-a1a7-a3f1c87c8a6d` for the merge commit.
+
+The existing admin smoke test now verifies the expected versioned script files
+without pinning an obsolete cache revision. No admin application code changed.
+
+Direct custom-domain content and authenticated visual verification remain
+unconfirmed: the browser environment was unavailable and public retrieval tools
+could not open the page/assets. Automated DOM tests and isolated form/price
+tests passed; they are not a physical-device or live-partner account test.
+
 ## Recovery
 
 Revert this feature's PR to restore only these UI changes while preserving later
