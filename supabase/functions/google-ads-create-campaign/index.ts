@@ -1279,6 +1279,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
             campaignBudget: budgetResource,
             maximizeConversions: {},
             brandGuidelinesEnabled: false,
+            // Only the user's own copy, artwork and landing page in custom campaigns.
+            ...(creative ? { assetAutomationSettings: [
+              {assetAutomationType:"FINAL_URL_EXPANSION_TEXT_ASSET_AUTOMATION",assetAutomationStatus:"OPTED_OUT"},
+              {assetAutomationType:"TEXT_ASSET_AUTOMATION",assetAutomationStatus:"OPTED_OUT"},
+              {assetAutomationType:"GENERATE_IMAGE_ENHANCEMENT",assetAutomationStatus:"OPTED_OUT"}
+            ]} : {}),
             containsEuPoliticalAdvertising:
               "DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING",
             startDateTime: campaignWindow.startDateTime,
