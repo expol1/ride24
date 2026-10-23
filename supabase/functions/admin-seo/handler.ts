@@ -148,6 +148,20 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
   const doc=await document(admin,body.id);
   if(action==='history'){return reply({revisions:check(await admin.from('seo_revisions').select('id,revision,note,created_at').eq('document_id',doc.id).order('revision',{ascending:false}).limit(100))});}
   if(!Number.isInteger(body.revision)||body.revision!==doc.revision)throw new SeoError('Odśwież stronę: dostępna jest nowsza wersja tekstu.',409);
+  if(action==='dismiss'||action==='restore_dismissed'){
+   if(doc.published!==null)throw new SeoError('Opublikowanej strony SEO nie można usunąć z kolejki szkiców.',409);
+   if(action==='dismiss'&&!['queued','draft'].includes(doc.state))throw new SeoError('Można usunąć tylko nieopublikowany szkic.',409);
+   if(action==='restore_dismissed'&&doc.state!=='dismissed')throw new SeoError('Ta propozycja nie jest usunięta.',409);
+   const state=action==='dismiss'?'dismissed':doc.content?'draft':'queued';
+   const result=await admin.from('seo_documents')
+    .update({state,revision:doc.revision+1,last_error:'',updated_at:new Date().toISOString()})
+    .eq('id',doc.id).eq('revision',doc.revision).eq('state',doc.state)
+    .is('published',null).is('lock_token',null).select('*').maybeSingle();
+   if(result.error)throw new SeoError('Nie udało się zmienić statusu propozycji SEO.',502);
+   if(!result.data)throw new SeoError('Szkic jest przetwarzany lub został zmieniony. Odśwież panel.',409);
+   return reply({document:result.data});
+  }
+  if(doc.state==='dismissed')throw new SeoError('Ten szkic został usunięty z kolejki. Przywróć go przed edycją.',409);
   const note=typeof body.note==='string'?body.note.trim().slice(0,2000):doc.review_note;
   if(action==='save')return reply({document:await rpc(admin,'admin_seo_save',{p_id:doc.id,p_revision:doc.revision,p_content:validatePair(body.content,doc.published?.content),p_note:note})});
   if(action==='restore'){
