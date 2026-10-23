@@ -777,6 +777,8 @@ async function syncPartner(
       features: {
         ...(group.features || {}),
         api_location_external_ids: group.location_external_ids || [],
+        noCreditCard: true,
+        noCardHold: true,
       },
       mileage_limit: group.mileage_limit ?? null,
       deposit_amount: group.deposit_amount ?? 0,
