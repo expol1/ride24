@@ -29,21 +29,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-    // usuwanie postów starszych niż 30 dni
-
-const thirtyDaysAgo =
-  new Date(
-    Date.now() -
-    30 * 24 * 60 * 60 * 1000
-  ).toISOString();
-
-await supabase
-  .from("marketing_queue")
-  .delete()
-  .lt(
-    "created_at",
-    thirtyDaysAgo
-  );
+    // The marketing generator must NEVER delete old posts.
+    // Google Ads campaigns reference marketing_queue rows with ON DELETE CASCADE.
+    // Keeping history also preserves campaign IDs needed to safely stop/sync promotions.
     const { data: settings, error: settingsError } =
       await supabase
         .from("marketing_settings")
@@ -559,13 +547,18 @@ ${contentData.hashtags}`,
   "MARKETING ENGINE ERROR",
   err
 );
+    const description = String(err);
+    const noAiCredits = /no credits remaining|credit_balance_exhausted|insufficient_quota|quota exceeded/i.test(description);
     return new Response(
       JSON.stringify({
         success: false,
-        error: String(err)
+        code: noAiCredits ? "AI_CREDITS_EXHAUSTED" : "MARKETING_GENERATION_FAILED",
+        error: noAiCredits
+          ? "Brak środków na koncie OpenAI API. Doładuj konto na platform.openai.com, a następnie ponów generowanie. Istniejące posty i kampanie nie zostały zmienione."
+          : "Nie udało się przygotować propozycji reklamy. Istniejące posty i kampanie nie zostały zmienione."
       }),
       {
-        status: 500,
+        status: noAiCredits ? 503 : 500,
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json"
