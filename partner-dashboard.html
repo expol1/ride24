@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="assets/css/partner-languages.css?v=20261023a">
+    <script src="assets/i18n/partner-panel.js?v=20261023a"></script>
+    <script src="assets/helper/partnerI18n.js?v=20261023a"></script>
 
     <title>Partner Panel - Ride24</title>
     <meta name="description" content="Private Ride24 partner panel for local car rental providers.">
@@ -1230,11 +1233,19 @@ async>
     <div class="main-wrapper">
         <header class="topbar">
             <div class="lang-switch">
-                <div class="lang-btn" id="lang-en" onclick="setLang('en')">
-                    <img src="flagi/uk.svg" style="height:24px;">
-                </div>
-                <div class="lang-btn" id="lang-pl" onclick="setLang('pl')">
-                    <img src="flagi/pl.svg" style="height:24px;">
+                <button type="button" id="partnerLanguageButton" aria-haspopup="listbox" aria-expanded="false" aria-controls="partnerLanguageMenu" aria-label="Panel language: English">
+                    <img id="partnerLanguageFlag" src="flagi/uk.svg" alt="" width="23" height="23">
+                    <span id="partnerLanguageCode">EN</span>
+                    <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div id="partnerLanguageMenu" class="r24-partner-language-menu" role="listbox" aria-label="Panel language" hidden>
+                    <button type="button" role="option" lang="en" data-partner-language="en" aria-label="English (EN)" aria-selected="true"><img src="flagi/uk.svg" alt="" width="23" height="23"><span>EN</span></button>
+                    <button type="button" role="option" lang="pl" data-partner-language="pl" aria-label="Polski (PL)" aria-selected="false"><img src="flagi/pl.svg" alt="" width="23" height="23"><span>PL</span></button>
+                    <button type="button" role="option" lang="es" data-partner-language="es" aria-label="Español (ES)" aria-selected="false"><img src="flagi/es.svg" alt="" width="23" height="23"><span>ES</span></button>
+                    <button type="button" role="option" lang="el" data-partner-language="el" aria-label="Ελληνικά (EL)" aria-selected="false"><img src="flagi/gr.svg" alt="" width="23" height="23"><span>EL</span></button>
+                    <button type="button" role="option" lang="it" data-partner-language="it" aria-label="Italiano (IT)" aria-selected="false"><img src="flagi/it.svg" alt="" width="23" height="23"><span>IT</span></button>
+                    <button type="button" role="option" lang="de" data-partner-language="de" aria-label="Deutsch (DE)" aria-selected="false"><img src="flagi/de.svg" alt="" width="23" height="23"><span>DE</span></button>
+                    <button type="button" role="option" lang="ru" data-partner-language="ru" aria-label="Русский (RU)" aria-selected="false"><img src="flagi/ru.svg" alt="" width="23" height="23"><span>RU</span></button>
                 </div>
             </div>
 
@@ -1250,7 +1261,7 @@ async>
             </div>
             
             <div class="partner-profile">
-                <span style="font-size:10px; font-weight:800; color:white; background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:6px; letter-spacing:0.5px;">PARTNER</span>
+                <span style="font-size:10px; font-weight:800; color:white; background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:6px; letter-spacing:0.5px;" data-pl="PARTNER" data-en="PARTNER">PARTNER</span>
                 <img id="partnerAvatar" src="avatar.png" onerror="this.onerror=null; this.src='avatar-default.png';" style="width:32px;height:32px;border-radius:50%; object-fit:cover;">
                 <span id="partnerNameDisplay">John Smith</span>
                 <span class="logout-btn" onclick="goToSearch()" style="background: #2563EB; border-color: #2563EB;" data-pl="Strona główna" data-en="Home page">Strona główna</span>
@@ -1360,7 +1371,7 @@ async>
                     <div class="stat-card highlight">
                         <div class="stat-title">
                             <span data-pl="Oczekujące zapytania" data-en="Pending requests">Pending requests</span>
-                            <span class="badge-new" style="animation: none;">NEW</span>
+                            <span class="badge-new" style="animation: none;" data-pl="NOWOŚĆ" data-en="NEW">NEW</span>
                         </div>
                         <div class="stat-value" id="statPending">0</div>
                     </div>
@@ -1527,7 +1538,7 @@ async>
                     
     <div class="form-group">
         <label data-pl="Nazwa firmy *" data-en="Company name *">Company name *</label>
-        <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent">
+        <input type="text" id="partnerCompany" placeholder="e.g. Ride24 Rent" data-pl="Np. Ride24 Rent" data-en="e.g. Ride24 Rent">
     </div>
 
     <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
@@ -1545,22 +1556,22 @@ async>
     
     <div class="form-group" style="grid-column: span 2;">
         <label data-pl="Adres siedziby (wymagany do umowy) *" data-en="Company address (required for agreement) *">Company address (required for agreement) *</label>
-        <input type="text" id="partnerAddress" placeholder="e.g. ul. Przykładowa 12, 00-000 Miasto">
+        <input type="text" id="partnerAddress" placeholder="e.g. ul. Przykładowa 12, 00-000 Miasto" data-pl="Np. Sample Street 12, 00-000 City" data-en="e.g. Sample Street 12, 00-000 City">
     </div>
 
     <div class="form-group">
         <label data-pl="Kraj *" data-en="Country *">Country *</label>
-        <input type="text" id="partnerCountry" placeholder="e.g. Portugal">
+        <input type="text" id="partnerCountry" placeholder="e.g. Portugal" data-pl="Np. Portugal" data-en="e.g. Portugal">
     </div>
     
     <div class="form-group">
         <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
-        <input type="text" id="partnerRegion" placeholder="e.g. Madeira">
+        <input type="text" id="partnerRegion" placeholder="e.g. Madeira" data-pl="Np. Madeira" data-en="e.g. Madeira">
     </div>
 
     <div class="form-group" style="grid-column: span 2;">
         <label data-pl="Główne miejsce odbioru" data-en="Main pickup location">Main pickup location</label>
-        <input type="text" id="partnerPickup" placeholder="e.g. Madeira Airport / Hotel delivery">
+        <input type="text" id="partnerPickup" placeholder="e.g. Madeira Airport / Hotel delivery" data-pl="Np. Madeira Airport / Hotel delivery" data-en="e.g. Madeira Airport / Hotel delivery">
     </div>
 
     <div class="form-group">
@@ -1580,7 +1591,7 @@ async>
     
     <div class="form-group">
         <label data-pl="Minimalny wiek kierowcy" data-en="Minimum driver age">Minimum driver age</label>
-        <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21">
+        <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21" data-pl="Np. 21" data-en="e.g. 21">
     </div>
 
     <div class="form-group">
@@ -1633,7 +1644,7 @@ async>
 <div id="apiSettingsSection" style="grid-column:span 2;display:none;margin-top:24px;padding:24px;background:#F8FAFC;border:1px solid var(--border);border-radius:12px;">
   <h3 style="margin:0 0 10px;font-size:18px;font-weight:800;color:var(--blue-dark);" data-pl="Integracja API" data-en="API Integration">API Integration</h3>
   <p style="margin:0;color:#64748B;line-height:1.6;" data-pl="Konfiguracja dostępu API jest zarządzana bezpiecznie przez administratora Ride24. Dane logowania i klucze API nie są wyświetlane ani przechowywane w panelu partnera." data-en="API access is securely managed by the Ride24 administrator. Login details and API keys are not displayed or stored in the partner panel.">API access is securely managed by the Ride24 administrator.</p>
-  <div id="partnerApiStatus" style="margin-top:14px;padding:10px 12px;border-radius:8px;background:#E2E8F0;font-weight:700;">API: administrator managed</div>
+  <div data-pl="API: zarządzane przez administratora" data-en="API: administrator managed" id="partnerApiStatus" style="margin-top:14px;padding:10px 12px;border-radius:8px;background:#E2E8F0;font-weight:700;">API: administrator managed</div>
 </div>
 <!-- ================= END API ================= -->
  
@@ -1862,18 +1873,18 @@ Dodaj opinię o Partnerze
                 <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:16px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Nazwa modelu (np. Toyota Yaris)" data-en="Model name">Model name</label>
-                        <input type="text" id="carModel" placeholder="e.g. Toyota Yaris">
+                        <input type="text" id="carModel" placeholder="e.g. Toyota Yaris" data-pl="Np. Toyota Yaris" data-en="e.g. Toyota Yaris">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Klasa auta" data-en="Car class">Car class</label>
                         <select id="carClass">
                             <option value="" disabled selected data-pl="Wybierz klasę" data-en="Select class">Select class</option>
-                            <option value="A">A - Economy</option>
-                            <option value="B">B - Compact</option>
-                            <option value="C">C - Sedan</option>
-                            <option value="D">D - SUV</option>
-                            <option value="E">E - Premium</option>
-                            <option value="F">F - Van / Family</option>
+                            <option value="A" data-pl="A - Ekonomiczna" data-en="A - Economy">A - Economy</option>
+                            <option value="B" data-pl="B - Kompaktowa" data-en="B - Compact">B - Compact</option>
+                            <option value="C" data-pl="C - Sedan" data-en="C - Sedan">C - Sedan</option>
+                            <option value="D" data-pl="D - SUV" data-en="D - SUV">D - SUV</option>
+                            <option value="E" data-pl="E - Premium" data-en="E - Premium">E - Premium</option>
+                            <option value="F" data-pl="F - Van / Rodzinna" data-en="F - Van / Family">F - Van / Family</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
@@ -1905,14 +1916,14 @@ Dodaj opinię o Partnerze
                             <input type="checkbox" id="unlimitedMileage" checked onchange="toggleMileageInput()">
                             <span data-pl="Bez limitu (Unlimited)" data-en="Unlimited mileage">Unlimited mileage</span>
                         </label>
-                        <input type="number" id="mileageInput" placeholder="km per day" min="0" style="display: none; margin-top: 8px;">
+                        <input type="number" id="mileageInput" placeholder="km per day" min="0" style="display: none; margin-top: 8px;" data-pl="km na dzień" data-en="km per day">
                     </div>
                 </div>
 
                 <div class="form-row-3" style="margin-bottom: 0;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Zwrotna kaucja gotówkowa (€) – opcjonalnie" data-en="Refundable cash deposit (€) – optional">Refundable cash deposit (€) – optional</label>
-                        <input type="number" id="carDeposit" placeholder="e.g. 100" min="0" step="0.01" oninput="syncCashDepositOption()">
+                        <input type="number" id="carDeposit" placeholder="e.g. 100" min="0" step="0.01" oninput="syncCashDepositOption()" data-pl="Np. 100" data-en="e.g. 100">
                         <small data-pl="Wpłata gotówką przy odbiorze, zwrot przy oddaniu auta zgodnie z warunkami umowy; to nie blokada karty." data-en="Cash on pickup, refunded upon return under rental terms; this is not a card hold.">Cash on pickup, refunded upon return under rental terms; this is not a card hold.</small>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
@@ -1927,7 +1938,7 @@ Dodaj opinię o Partnerze
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Cena podstawowa za dobę" data-en="Price per day">Price per day</label>
-                        <input type="number" id="carPrice" placeholder="e.g. 40" min="0">
+                        <input type="number" id="carPrice" placeholder="e.g. 40" min="0" data-pl="Np. 40" data-en="e.g. 40">
                    </div>
                    </div>
 <div class="form-group" style="grid-column: 1 / -1; margin-top: 16px; padding: 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
@@ -1981,17 +1992,17 @@ Dodaj opinię o Partnerze
 <div id="passwordModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
         <div style="background:white; width:100%; max-width:400px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
             <div style="padding: 20px 30px; border-bottom: 1px solid var(--border); background: #F8FAFC;">
-                <h2 id="pwdModalTitle" style="font-size: 18px; font-weight: 800; color: var(--text);">Security – Change Password</h2>
-                <p id="pwdModalDesc" style="font-size: 13px; color: var(--gray); margin-top: 5px; line-height: 1.5;">Update your password to secure your account.</p>
+                <h2 id="pwdModalTitle" style="font-size: 18px; font-weight: 800; color: var(--text);" data-pl="Bezpieczeństwo – Zmiana hasła" data-en="Security – Change Password">Security – Change Password</h2>
+                <p id="pwdModalDesc" style="font-size: 13px; color: var(--gray); margin-top: 5px; line-height: 1.5;" data-pl="Zaktualizuj swoje hasło, aby zabezpieczyć konto." data-en="Update your password to secure your account.">Update your password to secure your account.</p>
             </div>
             <div style="padding: 30px; display: flex; flex-direction: column; gap: 15px;">
                 <div class="form-group" style="margin-bottom:0;">
                     <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;" data-pl="Nowe hasło" data-en="New Password">New Password</label>
-                    <input type="password" id="new-partner-pwd" placeholder="Min. 8 characters" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                    <input type="password" id="new-partner-pwd" placeholder="Min. 8 characters" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;" data-pl="Min. 8 znaków" data-en="Min. 8 characters">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;" data-pl="Potwierdź nowe hasło" data-en="Confirm New Password">Confirm New Password</label>
-                    <input type="password" id="confirm-partner-pwd" placeholder="Repeat password" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                    <input type="password" id="confirm-partner-pwd" placeholder="Repeat password" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;" data-pl="Powtórz hasło" data-en="Repeat password">
                 </div>
 
                 <div id="force-terms-group" style="display: none; margin-top: 5px;">
@@ -2111,7 +2122,7 @@ Dodaj opinię o Partnerze
 
                         <label data-pl="Nazwa lokalizacji" data-en="Location name">Location name</label>
 
-                        <input type="text" id="locName" placeholder="e.g. Bari Airport (BRI), Bari - Hotel, Bari - Office">
+                        <input type="text" id="locName" placeholder="e.g. Bari Airport (BRI), Bari - Hotel, Bari - Office" data-pl="Np. Bari Airport (BRI), Bari - Hotel, Bari - Office" data-en="e.g. Bari Airport (BRI), Bari - Hotel, Bari - Office">
 
                     </div>
 
@@ -2146,7 +2157,7 @@ Dodaj opinię o Partnerze
 
     <label data-pl="Kraj" data-en="Country">Country</label>
 
-    <input type="text" id="locCountry" placeholder="e.g. Portugal (EN only)" autocomplete="off">
+    <input type="text" id="locCountry" placeholder="e.g. Portugal (EN only)" autocomplete="off" data-pl="Np. Portugal (tylko EN)" data-en="e.g. Portugal (EN only)">
 
     <div id="countryDropdown" class="autocomplete-dropdown"></div>
 
@@ -2156,7 +2167,7 @@ Dodaj opinię o Partnerze
 
     <label data-pl="Region / Wyspa" data-en="Region / Island">Region / Island</label>
 
-    <input type="text" id="locRegion" placeholder="e.g. Madeira (EN only)" autocomplete="off">
+    <input type="text" id="locRegion" placeholder="e.g. Madeira (EN only)" autocomplete="off" data-pl="Np. Madeira (tylko EN)" data-en="e.g. Madeira (EN only)">
 
     <div id="regionDropdown" class="autocomplete-dropdown"></div>
 
@@ -2169,7 +2180,7 @@ Dodaj opinię o Partnerze
 
     <label data-pl="Miasto" data-en="City">City</label>
 
-    <input type="text" id="locCity" placeholder="e.g. Funchal (EN only)" autocomplete="off">
+    <input type="text" id="locCity" placeholder="e.g. Funchal (EN only)" autocomplete="off" data-pl="Np. Funchal (tylko EN)" data-en="e.g. Funchal (EN only)">
 
     <div id="cityDropdown" class="autocomplete-dropdown"></div>
 
@@ -2268,10 +2279,10 @@ Dodaj opinię o Partnerze
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
-    <script src="assets/helper/partnerExtras.js"></script>
-    <script src="assets/helper/partnerTimeFees.js"></script>
-    <script src="assets/helper/partnerMandatoryRules.js"></script>
-    <script src="assets/helper/partnerGuide.js?v=20261017"></script>
+    <script src="assets/helper/partnerExtras.js?v=20261023a"></script>
+    <script src="assets/helper/partnerTimeFees.js?v=20261023a"></script>
+    <script src="assets/helper/partnerMandatoryRules.js?v=20261023a"></script>
+    <script src="assets/helper/partnerGuide.js?v=20261023a"></script>
 
     <script>
         
@@ -2285,7 +2296,7 @@ Dodaj opinię o Partnerze
     }
 }
        function createDocTile(title, url, type) {
-            const isEn = localStorage.getItem("partner_lang") === "en";
+            const isEn = getPartnerLang() !== "pl";
             
             // Przygotowujemy tłumaczenia tytułów w zależności od typu dokumentu
             let titlePl = title;
@@ -2303,8 +2314,8 @@ Dodaj opinię o Partnerze
             const safeTitlePl = escapeHtmlValue(titlePl);
             const safeTitleEn = escapeHtmlValue(titleEn);
             const safeUrl = escapeHtmlValue(safePublicUrl(url, "#"));
-            const viewTxt = isEn ? "View" : "Podgląd";
-            const delTxt = isEn ? "Delete" : "Usuń";
+            const viewTxt = partnerText("Podgląd", "View");
+            const delTxt = partnerText("Usuń", "Delete");
 
             return `
                 <div class="file-tile" style="cursor:default; background:#F8FAFC; width: 100%; max-width: 280px;">
@@ -2326,10 +2337,7 @@ window.deleteDocument = function(type) {
     const modal = document.getElementById("deleteConfirmModal");
     modal.classList.add("active");
     
-    const lang = localStorage.getItem("partner_lang") || "en";
-    modal.querySelectorAll("[data-pl]").forEach(el => {
-        if(el.dataset[lang]) el.innerHTML = el.dataset[lang];
-    });
+    applyPartnerLanguage(modal);
 
     document.getElementById("confirmDeleteBtn").onclick = () => executeDelete();
 };
@@ -2342,7 +2350,7 @@ window.closeDeleteModal = function() {
 async function executeDelete() {
     if (!documentToDelete) return;
     const type = documentToDelete;
-    const isEn = localStorage.getItem("partner_lang") === "en";
+    const isEn = getPartnerLang() !== "pl";
     const btn = document.getElementById("confirmDeleteBtn");
     
     btn.disabled = true;
@@ -2357,15 +2365,15 @@ async function executeDelete() {
         await db.from("partners").update({ [columnName]: null }).eq("user_id", userId);
         await db.storage.from("partner-documents").remove([`${userId}/${fileName}`]);
 
-        window.showToast(isEn ? "Document removed." : "Dokument został usunięty.", "success");
+        window.showToast(partnerText("Dokument został usunięty.", "Document removed."), "success");
         closeDeleteModal();
         await loadPartnerSettings(userId);
     } catch (err) {
         console.error(err);
-        window.showToast(isEn ? "Error" : "Błąd", "error");
+        window.showToast(partnerText("Błąd", "Error"), "error");
     } finally {
         btn.disabled = false;
-        btn.innerText = isEn ? "Delete" : "Usuń";
+        partnerLabel(btn, "Usuń", "Delete");
     }
 }
         const db = window.supabaseClient;
@@ -2485,7 +2493,7 @@ console.log("API status:", partnerData.api_status);
                     item.style.pointerEvents = "none";
                 });
                 openPasswordModal(true);
-                window.showToast(getPartnerLang() === "en" ? "Password change required!" : "Wymagana zmiana hasła!", "error");
+                window.showToast(partnerText("Wymagana zmiana hasła!", "Password change required!"), "error");
             }
 
             // 2. profil (🔥 NAJPIERW!)
@@ -2497,14 +2505,14 @@ console.log("API status:", partnerData.api_status);
                     }
                 });
                 switchTab('settings');
-                window.showToast(getPartnerLang() === "en" ? "Complete your profile to generate the agreement." : "Uzupełnij profil, aby wygenerować umowę.", "error");
+                window.showToast(partnerText("Uzupełnij profil, aby wygenerować umowę.", "Complete your profile to generate the agreement."), "error");
             }
 
             // 3. umowa (🔥 DOPIERO TERAZ)
             else if (partner && !partner.agreement_accepted) {
                 document.body.style.overflow = "hidden";
                 document.getElementById("agreement-modal").style.display = "flex";
-                renderAgreement(localStorage.getItem("partner_lang") || "pl");
+                renderAgreement(getPartnerLang() === "pl" ? "pl" : "en");
             }
 
             console.log("Partner logged in:", session.user.email);
@@ -2531,14 +2539,14 @@ console.log("API status:", partnerData.api_status);
                 const box = document.getElementById('visibilityBox');
                 const text = document.getElementById('visibilityText');
                 const dot = document.getElementById('visibilityDot');
-                const isEn = localStorage.getItem('partner_lang') === 'en';
+                const isEn = getPartnerLang() !== "pl";
 
                 if (checkbox.checked) {
                     box.style.background = 'var(--green)'; 
                     box.style.borderColor = '#58A300'; 
                     box.style.boxShadow = '0 4px 12px rgba(22, 163, 74, 0.4)';
                     if(dot) { dot.style.background = '#ffffff'; dot.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.3)'; }
-                    text.innerText = isEn ? 'ACTIVE' : 'AKTYWNY';
+                    partnerLabel(text, 'AKTYWNY', 'ACTIVE');
                     text.setAttribute('data-pl', 'AKTYWNY');
                     text.setAttribute('data-en', 'ACTIVE');
                 } else {
@@ -2546,7 +2554,7 @@ console.log("API status:", partnerData.api_status);
                     box.style.borderColor = '#B91C1C'; 
                     box.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
                     if(dot) { dot.style.background = '#ffffff'; dot.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.3)'; }
-                    text.innerText = isEn ? 'HIDDEN' : 'UKRYTY';
+                    partnerLabel(text, 'UKRYTY', 'HIDDEN');
                     text.setAttribute('data-pl', 'UKRYTY');
                     text.setAttribute('data-en', 'HIDDEN');
                 }
@@ -2554,47 +2562,52 @@ console.log("API status:", partnerData.api_status);
         };
         // --- UI LOGIC ---
         function getPartnerLang() {
-            return localStorage.getItem("partner_lang") === "pl" ? "pl" : "en";
+            if (window.Ride24PartnerI18n) return window.Ride24PartnerI18n.getLanguage();
+            try { return localStorage.getItem("partner_lang") === "pl" ? "pl" : "en"; }
+            catch (_) { return "en"; }
+        }
+
+        function partnerText(pl, en, params) {
+            return window.Ride24PartnerI18n
+                ? window.Ride24PartnerI18n.text(pl, en, params)
+                : (getPartnerLang() === "pl" ? pl : (en ?? pl));
+        }
+
+        function partnerLabel(element, pl, en, attribute = "textContent") {
+            if (window.Ride24PartnerI18n) return window.Ride24PartnerI18n.bind(element, pl, en, attribute);
+            if (element) {
+                element.dataset.pl = pl; element.dataset.en = en;
+                element[attribute] = partnerText(pl, en);
+            }
+            return element;
         }
 
         function applyPartnerLanguage(root = document) {
-            const lang = getPartnerLang();
-            document.documentElement.lang = lang;
-
+            document.documentElement.lang = getPartnerLang();
+            if (window.Ride24PartnerI18n) { window.Ride24PartnerI18n.apply(root); return; }
             root.querySelectorAll("[data-pl][data-en]").forEach(el => {
-                const translated = el.dataset[lang];
-                if (translated === undefined) return;
-
-                if ((el.tagName === "INPUT" || el.tagName === "TEXTAREA") && el.hasAttribute("placeholder")) {
-                    el.placeholder = translated;
-                } else if (el.tagName === "OPTION") {
-                    el.textContent = translated;
-                } else {
-                    el.innerHTML = translated;
-                }
+                const translated = partnerText(el.dataset.pl, el.dataset.en);
+                if (["INPUT", "TEXTAREA"].includes(el.tagName)) {
+                    if (el.hasAttribute("placeholder")) el.placeholder = translated;
+                } else el.textContent = translated;
             });
-
             root.querySelectorAll("[data-title-pl][data-title-en]").forEach(el => {
-                el.title = lang === "en" ? el.dataset.titleEn : el.dataset.titlePl;
+                el.title = partnerText(el.dataset.titlePl, el.dataset.titleEn);
             });
         }
 
         function setLang(lang) {
-            lang = lang === "pl" ? "pl" : "en";
-            localStorage.setItem("partner_lang", lang);
-            applyPartnerLanguage(document);
-
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
-            const activeBtn = document.getElementById('lang-' + lang);
-            if (activeBtn) activeBtn.classList.add('active-lang');
-
+            if (window.Ride24PartnerI18n) {
+                if (!window.Ride24PartnerI18n.setLanguage(lang)) return;
+            } else {
+                lang = lang === "pl" ? "pl" : "en";
+                try { localStorage.setItem("partner_lang", lang); } catch (_) { /* Private browsing. */ }
+                applyPartnerLanguage(document);
+            }
             if (typeof window.updateVisibilityUI === "function") window.updateVisibilityUI();
             if (document.getElementById("agreement-modal")?.style.display === "flex" && typeof renderAgreement === "function") {
-                renderAgreement(lang);
+                renderAgreement(getPartnerLang() === "pl" ? "pl" : "en");
             }
-
-            // Dynamic pricing rows are generated in the active language.
-            // Refresh them immediately if the partner switches PL/EN while the pricing modal is open.
             if (document.getElementById("seasonalModal")?.classList.contains("active") && currentSeasonalCarId) {
                 if (typeof loadSeasonalPrices === "function") loadSeasonalPrices();
                 if (typeof loadDurationDiscounts === "function") loadDurationDiscounts();
@@ -2676,17 +2689,22 @@ console.log("API status:", partnerData.api_status);
     const section = document.getElementById("apiSettingsSection");
     if (section) section.style.display = "block";
     const status = document.getElementById("partnerApiStatus");
-    if (status) status.textContent = `API: ${data.api_status || (data.api_enabled ? "active" : "configured")}`;
+    if (status) {
+        const apiState = data.api_status || (data.api_enabled ? "active" : "configured");
+        const apiLabels = {active:['Aktywne','API active'],configured:['Skonfigurowane','API configured'],error:['Błąd integracji','API error']};
+        if (apiLabels[apiState]) partnerLabel(status, ...apiLabels[apiState]);
+        else { status.removeAttribute('data-pl'); status.removeAttribute('data-en'); status.textContent = 'API: ' + apiState; }
+    }
 }
             }
         }
 
         // --- ZAPISYWANIE USTAWIEŃ DO BAZY (SAVE) ---
         async function savePartnerSettings(){
-            const isEn = localStorage.getItem("partner_lang") === "en";
+            const isEn = getPartnerLang() !== "pl";
             // Wyłapujemy przycisk, aby zablokować go na czas zapisu
             const btn = document.querySelector(".settings-card button.btn-primary");
-            if(btn) { btn.disabled = true; btn.innerText = localStorage.getItem("partner_lang") === "en" ? "Saving..." : "Zapisywanie..."; }
+            if(btn) { btn.disabled = true; partnerLabel(btn, "Zapisywanie...", "Saving..."); }
 
            try {
                 const { data: { session } } = await db.auth.getSession();
@@ -2702,8 +2720,8 @@ console.log("API status:", partnerData.api_status);
                 // KROK 6: WALIDACJA PÓL
                 if (!company || !country || !phone || !address) {
                     
-                    window.showToast(isEn ? "Please fill in all required fields (*)." : "Wypełnij wszystkie wymagane pola (*).", "error");
-                    if(btn) { btn.disabled = false; btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany"; }
+                    window.showToast(partnerText("Wypełnij wszystkie wymagane pola (*).", "Please fill in all required fields (*)."), "error");
+                    if(btn) { btn.disabled = false; partnerLabel(btn, "Zapisz zmiany", "Save Changes"); }
                     return;
                 }
 
@@ -2715,8 +2733,8 @@ console.log("API status:", partnerData.api_status);
                     .single();
 
                 if (!docCheck?.rental_terms_url || !docCheck?.rental_rules_url) {
-                    window.showToast(isEn ? "Please upload both required PDF documents." : "Musisz wgrać oba wymagane dokumenty PDF (Warunki i Regulamin).", "error");
-                    if(btn) { btn.disabled = false; btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany"; }
+                    window.showToast(partnerText("Musisz wgrać oba wymagane dokumenty PDF (Warunki i Regulamin).", "Please upload both required PDF documents."), "error");
+                    if(btn) { btn.disabled = false; partnerLabel(btn, "Zapisz zmiany", "Save Changes"); }
                     return;
                 }
 
@@ -2743,20 +2761,20 @@ const updateData = {
                     .select();
 
                 if(error) throw error;
-                if(!data || data.length === 0) throw new Error("Błąd zapisu do bazy.");
+                if(!data || data.length === 0) throw new Error(partnerText("Błąd zapisu do bazy.", "Database save failed."));
 
-                window.showToast(isEn ? "Settings saved! Panel unlocked." : "Ustawienia zapisane! Panel odblokowany.", "success");
+                window.showToast(partnerText("Ustawienia zapisane! Panel odblokowany.", "Settings saved! Panel unlocked."), "success");
                 
                 // KROK 9: RESTART PANELU
                 setTimeout(() => location.reload(), 1500);
 
             } catch(err) {
                 console.error(err);
-                alert((isEn ? "Save error: " : "Błąd zapisu: ") + err.message);
+                alert((partnerText("Błąd zapisu: ", "Save error: ")) + err.message);
                 if(btn) { 
                     btn.disabled = false; 
-                    const isEn = localStorage.getItem("partner_lang") === "en";
-                    btn.innerText = isEn ? "Save Changes" : "Zapisz zmiany"; 
+                    const isEn = getPartnerLang() !== "pl";
+                    partnerLabel(btn, "Zapisz zmiany", "Save Changes");
                 }
             }
         }
@@ -2765,7 +2783,7 @@ const updateData = {
         window.togglePartnerVisibility = async function() {
             const checkbox = document.getElementById('partnerActive');
             const isActive = checkbox.checked;
-            const isEn = localStorage.getItem('partner_lang') === 'en';
+            const isEn = getPartnerLang() !== "pl";
             
             try {
                 const { data: { session } } = await db.auth.getSession();
@@ -2776,13 +2794,13 @@ const updateData = {
                     .select();
                 
                 if (error) throw error;
-                if (!data || data.length === 0) throw new Error("Brak uprawnień do zmiany statusu!");
+                if (!data || data.length === 0) throw new Error(partnerText("Brak uprawnień do zmiany statusu!", "You are not allowed to change this status."));
                 
-                window.showToast(isEn ? "Visibility updated." : "Zaktualizowano widoczność.", "success");
+                window.showToast(partnerText("Zaktualizowano widoczność.", "Visibility updated."), "success");
                 updateVisibilityUI(); 
             } catch (err) {
                 console.error(err);
-                window.showToast(isEn ? "Error: " + err.message : "Błąd: " + err.message, "error");
+                window.showToast(partnerText("Błąd: ", "Error: ") + err.message, "error");
                 checkbox.checked = !isActive; // Cofnij wizualnie błąd
                 updateVisibilityUI();
             }
@@ -2819,13 +2837,13 @@ const updateData = {
         async function saveVehicle() {
             const btn = document.querySelector("#addCarModal .btn-primary");
             btn.disabled = true;
-            const isEn = localStorage.getItem("partner_lang") === "en";
-            btn.innerText = isEn ? "Saving..." : "Zapisywanie...";
+            const isEn = getPartnerLang() !== "pl";
+            partnerLabel(btn, "Zapisywanie...", "Saving...");
 
             try {
                 const { data: { session } } = await db.auth.getSession();
                 const { data: partner } = await db.from("partners").select("id").eq("user_id", session.user.id).single();
-                if (!partner) throw new Error(isEn ? "Partner profile not found." : "Nie znaleziono profilu partnera.");
+                if (!partner) throw new Error(partnerText("Nie znaleziono profilu partnera.", "Partner profile not found."));
 
                 const model = document.getElementById("carModel").value;
                 const class_code = document.getElementById("carClass").value;
@@ -2845,7 +2863,7 @@ const updateData = {
                 const partner_net_price = base_price * (1 - (commissionPercent / 100));
                 const final_customer_price = base_price * 1.10;
 
-                if (!base_price || base_price <= 0) throw new Error(isEn ? "Price must be > 0" : "Cena musi być większa od 0");
+                if (!base_price || base_price <= 0) throw new Error(partnerText("Cena musi być większa od 0", "Price must be > 0"));
 
                 // --- UPLOAD ZDJĘCIA (Z KOMPRESJĄ) ---
                 const fileInput = document.getElementById("vehicleImageUpload");
@@ -2857,7 +2875,7 @@ const updateData = {
                     try { file = await compressImage(file, 1024, 0.8); } catch (err) {}
                     const filePath = `${partner.id}/${Date.now()}-${file.name}`;
                     const { error:uploadError } = await db.storage.from("vehicle-images").upload(filePath, file);
-                    if(uploadError) throw new Error("Błąd wgrywania zdjęcia");
+                    if(uploadError) throw new Error(partnerText("Błąd wgrywania zdjęcia", "Image upload failed."));
                     
                     const { data } = db.storage.from("vehicle-images").getPublicUrl(filePath);
                     imageUrl = data.publicUrl;
@@ -2890,11 +2908,11 @@ const updateData = {
                 if (window.currentEditingVehicleId) {
                     const { error } = await db.from("car_classes").update(vehicleData).eq("id", window.currentEditingVehicleId);
                     if (error) throw error;
-                    window.showToast(isEn ? "Vehicle updated!" : "Pojazd zaktualizowany!", "success");
+                    window.showToast(partnerText("Pojazd zaktualizowany!", "Vehicle updated!"), "success");
                 } else {
                     const { error } = await db.from("car_classes").insert([vehicleData]);
                     if (error) throw error;
-                    window.showToast(isEn ? "Vehicle added!" : "Pojazd dodany do floty!", "success");
+                    window.showToast(partnerText("Pojazd dodany do floty!", "Vehicle added!"), "success");
                 }
 
                 closeModal();
@@ -2903,12 +2921,11 @@ const updateData = {
                 
             } catch (err) {
                 console.error("Błąd zapisu:", err);
-                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
+                window.showToast((partnerText("Błąd: ", "Error: ")) + err.message, "error");
             } finally {
                 btn.disabled = false;
-                btn.innerText = window.currentEditingVehicleId 
-                    ? (isEn ? "Save changes" : "Zapisz zmiany") 
-                    : (isEn ? "Add vehicle" : "Dodaj auto");
+                partnerLabel(btn, window.currentEditingVehicleId ? "Zapisz zmiany" : "Dodaj auto",
+                    window.currentEditingVehicleId ? "Save changes" : "Add vehicle");
             }
         }
 
@@ -2948,37 +2965,40 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
         window.openPartnerBookingItems = function(bookingId) {
             const snapshot = window.ride24PartnerBookingItems?.get(bookingId);
             if (!snapshot || !Array.isArray(snapshot.items)) return;
-            const isEn = localStorage.getItem('partner_lang') === 'en';
+            const isEn = getPartnerLang() !== "pl";
             const money = value => (Number(value || 0) / 100).toFixed(2) + ' ' + snapshot.currency;
             const modal = document.createElement('dialog');
             modal.className = 'r24-partner-items-dialog';
-            modal.setAttribute('aria-label',isEn ? 'Partner price breakdown' : 'Rozliczenie partnera');
+            modal.setAttribute('aria-label',partnerText('Rozliczenie partnera', 'Partner price breakdown'));
             const title=document.createElement('h3');
-            title.textContent=isEn?'Partner price breakdown':'Rozliczenie partnera';
+            partnerLabel(title, 'Rozliczenie partnera', 'Partner price breakdown');
             const head=document.createElement('div');head.className='r24-partner-items-head';
-            const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label',isEn?'Close':'Zamknij');close.onclick=()=>modal.close();
+            const close=document.createElement('button');close.type='button';close.textContent='×';close.setAttribute('aria-label',partnerText('Zamknij', 'Close'));close.onclick=()=>modal.close();
             head.append(title,close);modal.append(head);
             const body=document.createElement('div');body.className='r24-partner-items-body';
-            const heading=document.createElement('p');heading.textContent=isEn?'Only charges payable to you, based on the confirmed booking quote.':'Wyłącznie kwoty należne Twojej firmie zgodnie z zapisaną wyceną.';
+            const heading=document.createElement('p');partnerLabel(heading, 'Wyłącznie kwoty należne Twojej firmie zgodnie z zapisaną wyceną.', 'Only charges payable to you, based on the confirmed booking quote.');
             body.append(heading);
             // Rental, pickup, return and paid extras already carry partner-only amounts.
             for(const item of snapshot.items){
                 const line=document.createElement('div');line.className='r24-partner-items-line';
                 const name=document.createElement('span');
-                name.textContent=(isEn?item.name_en:item.name_pl) +
+                const renderName = () => (item.kind === 'rental' ? partnerText('Wynajem', 'Rental') :
+                    (getPartnerLang() === 'pl' ? item.name_pl : item.name_en)) +
                     (item.location_name?' — '+item.location_name:'') +
-                    (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(isEn?'days':'dni'):''):'');
+                    (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+partnerText('dni','days'):''):'');
+                if (window.Ride24PartnerI18n) window.Ride24PartnerI18n.live(name, renderName);
+                else name.textContent = renderName();
                 const cost=document.createElement('strong');cost.textContent=money(item.partner_cents);
                 line.append(name,cost);body.append(line);
             }
             const total=document.createElement('div');total.className='r24-partner-items-total';
-            const caption=document.createElement('strong');caption.textContent=isEn?'Total payable to partner':'Łącznie do zapłaty partnerowi';
+            const caption=document.createElement('strong');partnerLabel(caption, 'Łącznie do zapłaty partnerowi', 'Total payable to partner');
             const cost=document.createElement('strong');cost.textContent=money(snapshot.partner_cents);
             total.append(caption,cost);body.append(total);
             const cashDeposit=Number(window.ride24PartnerBookingDeposits?.get(bookingId) || 0);
             const deposit=document.createElement('div');deposit.className='r24-partner-items-deposit';
-            const depositLabel=document.createElement('span');depositLabel.textContent=isEn?'Refundable cash security deposit (not part of rental price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)';
-            const depositValue=document.createElement('strong');depositValue.textContent=cashDeposit>0 ? cashDeposit.toFixed(2)+' '+snapshot.currency : (isEn?'No cash deposit':'Brak kaucji');
+            const depositLabel=document.createElement('span');partnerLabel(depositLabel, 'Zwrotna kaucja gotówkowa (poza ceną wynajmu)', 'Refundable cash security deposit (not part of rental price)');
+            const depositValue=document.createElement('strong');depositValue.textContent=cashDeposit>0 ? cashDeposit.toFixed(2)+' '+snapshot.currency : (partnerText('Brak kaucji', 'No cash deposit'));
             deposit.append(depositLabel,depositValue);body.append(deposit);
             modal.append(body);
             document.body.append(modal);modal.addEventListener('close',()=>modal.remove(),{once:true});modal.showModal();
@@ -3027,9 +3047,9 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
             const bookTbody = document.getElementById('bookings-list-tbody');
 
             // Zmiana colspan na 7, bo doszła kolumna lokalizacji
-            const isEnLoading = localStorage.getItem("partner_lang") === "en";
-            if(dashTbody) dashTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie zapytań..." data-en="Loading requests...">${isEnLoading ? "Loading requests..." : "Ładowanie zapytań..."}</td></tr>`;
-            if(bookTbody) bookTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie rezerwacji..." data-en="Loading bookings...">${isEnLoading ? "Loading bookings..." : "Ładowanie rezerwacji..."}</td></tr>`;
+            const isEnLoading = getPartnerLang() !== "pl";
+            if(dashTbody) dashTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie zapytań..." data-en="Loading requests...">${partnerText("Ładowanie zapytań...", "Loading requests...")}</td></tr>`;
+            if(bookTbody) bookTbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie rezerwacji..." data-en="Loading bookings...">${partnerText("Ładowanie rezerwacji...", "Loading bookings...")}</td></tr>`;
 
             const { data: { session } } = await db.auth.getSession();
 
@@ -3045,7 +3065,7 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
 
             if(error) {
                 console.error(error);
-                const errorRow = `<tr><td colspan="7" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${localStorage.getItem("partner_lang") === "en" ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
+                const errorRow = `<tr><td colspan="7" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${partnerText("Błąd pobierania danych.", "Data loading error.")}</td></tr>`;
                 if(dashTbody) dashTbody.innerHTML = errorRow;
                 if(bookTbody) bookTbody.innerHTML = errorRow;
                 return;
@@ -3090,9 +3110,7 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
             if(dashTbody) dashTbody.innerHTML = "";
             if(bookTbody) bookTbody.innerHTML = "";
             if (bookingExtrasLoadFailed) {
-                const warning = isEnLoading
-                    ? 'Bookings are visible, but the extras breakdown is temporarily unavailable. Acceptance is disabled until pricing details load. Refresh to retry.'
-                    : 'Rezerwacje są widoczne, ale szczegóły dodatków są chwilowo niedostępne. Potwierdzanie jest zablokowane do czasu pobrania pełnej wyceny. Odśwież stronę, aby ponowić próbę.';
+                const warning = partnerText('Rezerwacje są widoczne, ale szczegóły dodatków są chwilowo niedostępne. Potwierdzanie jest zablokowane do czasu pobrania pełnej wyceny. Odśwież stronę, aby ponowić próbę.', 'Bookings are visible, but the extras breakdown is temporarily unavailable. Acceptance is disabled until pricing details load. Refresh to retry.');
                 const warningRow = `<tr><td colspan="8" style="padding:14px 18px;background:#fff7ed;color:#9a3412;font-weight:700;white-space:normal" role="alert">${escapeHtmlValue(warning)}</td></tr>`;
                 if(dashTbody) dashTbody.innerHTML = warningRow;
                 if(bookTbody) bookTbody.innerHTML = warningRow;
@@ -3102,9 +3120,9 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
             const topBadge = document.getElementById('notification-badge');
 
             if (!data || data.length === 0) {
-                const isEnEmpty = localStorage.getItem("partner_lang") === "en";
-                if(dashTbody) dashTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak nowych zapytań." data-en="No new requests.">${isEnEmpty ? "No new requests." : "Brak nowych zapytań."}</td></tr>`;
-                if(bookTbody) bookTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak rezerwacji w systemie." data-en="No bookings in the system.">${isEnEmpty ? "No bookings in the system." : "Brak rezerwacji w systemie."}</td></tr>`;
+                const isEnEmpty = getPartnerLang() !== "pl";
+                if(dashTbody) dashTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak nowych zapytań." data-en="No new requests.">${partnerText("Brak nowych zapytań.", "No new requests.")}</td></tr>`;
+                if(bookTbody) bookTbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak rezerwacji w systemie." data-en="No bookings in the system.">${partnerText("Brak rezerwacji w systemie.", "No bookings in the system.")}</td></tr>`;
                 if(navBadge) navBadge.style.display = 'none';
                 if(topBadge) topBadge.style.display = 'none';
                 return;
@@ -3130,23 +3148,23 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 
               // ================= STATUS (PREMIUM TILES) =================
                 let statusHtml = "";
-                const isEnLang = localStorage.getItem("partner_lang") === "en";
+                const isEnLang = getPartnerLang() !== "pl";
 
                 if (booking.status === "cancelled" || booking.refund_status === "completed" || booking.status === "rejected") {
-                    statusHtml = `<div class="status-tile cancelled" data-pl="🚫 Anulowana" data-en="🚫 Cancelled">🚫 ${isEnLang ? 'Cancelled' : 'Anulowana'}</div>`;
+                    statusHtml = `<div class="status-tile cancelled" data-pl="🚫 Anulowana" data-en="🚫 Cancelled">🚫 ${partnerText('Anulowana', 'Cancelled')}</div>`;
                 }
                 else if (booking.status === "paid") {
-                    statusHtml = `<div class="status-tile confirmed" data-pl="✅ Potwierdzona" data-en="✅ Confirmed">✅ ${isEnLang ? 'Confirmed' : 'Potwierdzona'}</div>`;
+                    statusHtml = `<div class="status-tile confirmed" data-pl="✅ Potwierdzona" data-en="✅ Confirmed">✅ ${partnerText('Potwierdzona', 'Confirmed')}</div>`;
                 }
                 else if (["pending", "awaiting_payment"].includes(booking.status)) {
-                    statusHtml = `<div class="status-tile pending" data-pl="⚡ Nowe zapytanie" data-en="⚡ New request">⚡ ${isEnLang ? 'New request' : 'Nowe zapytanie'}</div>`;
+                    statusHtml = `<div class="status-tile pending" data-pl="⚡ Nowe zapytanie" data-en="⚡ New request">⚡ ${partnerText('Nowe zapytanie', 'New request')}</div>`;
                 }
                
               else if (booking.status === "awaiting_payment") {
-                    statusHtml = `<div class="status-tile awaiting_payment" data-pl="⏳ Oczekuje płatności" data-en="⏳ Awaiting payment">⏳ ${isEnLang ? 'Awaiting payment' : 'Oczekuje płatności'}</div>`;
+                    statusHtml = `<div class="status-tile awaiting_payment" data-pl="⏳ Oczekuje płatności" data-en="⏳ Awaiting payment">⏳ ${partnerText('Oczekuje płatności', 'Awaiting payment')}</div>`;
                 }
                 else if (booking.status === "payment_expired" || booking.status === "expired") {
-                    statusHtml = `<div class="status-tile payment_expired" data-pl="⏰ Wygasła" data-en="⏰ Expired">⏰ ${isEnLang ? 'Expired' : 'Wygasła'}</div>`;
+                    statusHtml = `<div class="status-tile payment_expired" data-pl="⏰ Wygasła" data-en="⏰ Expired">⏰ ${partnerText('Wygasła', 'Expired')}</div>`;
                 }
                 else {
                     statusHtml = `<div class="status-tile inactive">${booking.status}</div>`;
@@ -3157,16 +3175,16 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 let actions = "";
 
                 if (booking.status === "pending" && bookingExtrasLoadFailed) {
-                    actions = `<span style="display:block;padding:10px;border:1px solid #fdba74;border-radius:9px;color:#9a3412;background:#fff7ed;font-size:12px;font-weight:700;white-space:normal">${isEnLang ? 'Acceptance paused: extras not loaded. Refresh before confirming.' : 'Potwierdzenie wstrzymane: dodatki nie zostały wczytane. Odśwież przed akceptacją.'}</span>`;
+                    actions = `<span style="display:block;padding:10px;border:1px solid #fdba74;border-radius:9px;color:#9a3412;background:#fff7ed;font-size:12px;font-weight:700;white-space:normal">${partnerText('Potwierdzenie wstrzymane: dodatki nie zostały wczytane. Odśwież przed akceptacją.', 'Acceptance paused: extras not loaded. Refresh before confirming.')}</span>`;
                 }
                 else if (booking.status === "pending") {
                     actions = `
                         <div style="display:flex;flex-direction:column;gap:8px;width:100%;min-width:120px;">
                             <button class="action-btn-premium btn-confirm-premium" onclick="acceptBooking('${booking.id}', this)" data-pl="✅ AKCEPTUJ" data-en="✅ ACCEPT">
-                                ✅ ${isEnLang ? 'ACCEPT' : 'AKCEPTUJ'}
+                                ✅ ${partnerText('AKCEPTUJ', 'ACCEPT')}
                             </button>
                             <button class="action-btn-premium btn-reject-premium" onclick="rejectBooking('${booking.id}', this)" data-pl="❌ ODRZUĆ" data-en="❌ REJECT">
-                                ❌ ${isEnLang ? 'REJECT' : 'ODRZUĆ'}
+                                ❌ ${partnerText('ODRZUĆ', 'REJECT')}
                             </button>
                         </div>
                     `;
@@ -3174,28 +3192,28 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 else if (booking.status === "cancelled" || booking.refund_status === "completed" || booking.status === "rejected") {
                     actions = `
                         <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;" data-pl="Zamknięta" data-en="Closed">
-                            ${isEnLang ? 'Closed' : 'Zamknięta'}
+                            ${partnerText('Zamknięta', 'Closed')}
                         </span>
                     `;
                 }
                 else if (booking.status === "awaiting_payment") {
                     actions = `
                         <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;" data-pl="Czekamy na klienta" data-en="Waiting for client">
-                            ${isEnLang ? 'Waiting for client' : 'Czekamy na klienta'}
+                            ${partnerText('Czekamy na klienta', 'Waiting for client')}
                         </span>
                     `;
                 }
                 else if (booking.status === "paid") {
                     actions = `
                         <span style="font-size:12px;color:var(--green);font-weight:700;padding:6px 0;" data-pl="🎉 Gotowe do odbioru" data-en="🎉 Ready for pickup">
-                            🎉 ${isEnLang ? 'Ready for pickup' : 'Gotowe do odbioru'}
+                            🎉 ${partnerText('Gotowe do odbioru', 'Ready for pickup')}
                         </span>
                     `;
                 }
                 else {
                     actions = `
                         <span style="font-size:12px;color:var(--gray);font-weight:600;padding:6px 0;" data-pl="Zamknięta" data-en="Closed">
-                            ${isEnLang ? 'Closed' : 'Zamknięta'}
+                            ${partnerText('Zamknięta', 'Closed')}
                         </span>
                     `;
                 }
@@ -3208,7 +3226,7 @@ const clientName = escapeHtmlValue(
     booking.client_name ||
     booking.full_name ||
     booking.name ||
-    "Client"
+    partnerText("Klient", "Client")
 );
 
 // 🔥 WIEK (jeśli istnieje)
@@ -3222,7 +3240,7 @@ const clientAge = !isNaN(ageValue) && ageValue > 0
                 if (booking.add_driver_name) {
                     extraDriverHtml = `
                         <div style="font-size: 11px; color: var(--gray); margin-top: 4px; font-weight: 600;">
-                            <span style="color: var(--blue);">+</span> ${escapeHtmlValue(booking.add_driver_name)} (<span data-pl="${Number(booking.add_driver_age) || '?'} lat" data-en="${Number(booking.add_driver_age) || '?'} yo">${Number(booking.add_driver_age) || '?'} ${isEnLang ? 'yo' : 'lat'}</span>)
+                            <span style="color: var(--blue);">+</span> ${escapeHtmlValue(booking.add_driver_name)} (<span data-pl="${Number(booking.add_driver_age) || '?'} lat" data-en="${Number(booking.add_driver_age) || '?'} yo">${Number(booking.add_driver_age) || '?'} ${partnerText('lat', 'yo')}</span>)
                         </div>
                     `;
                 }
@@ -3249,7 +3267,7 @@ if (booking.status === "paid") {
     // 🔒 PRZED OPŁACENIEM – ukryte
     contactDisplay = `
         <div style="font-size:11px; color:var(--gray); margin-top:4px; font-weight:600;">
-            <span data-pl="🔒 Dane kontaktowe widoczne po opłaceniu" data-en="🔒 Contact details visible after payment">${isEnLang ? "🔒 Contact details visible after payment" : "🔒 Dane kontaktowe widoczne po opłaceniu"}</span>
+            <span data-pl="🔒 Dane kontaktowe widoczne po opłaceniu" data-en="🔒 Contact details visible after payment">${partnerText("🔒 Dane kontaktowe widoczne po opłaceniu", "🔒 Contact details visible after payment")}</span>
         </div>
     `;
 
@@ -3261,8 +3279,8 @@ const dLoc = escapeHtmlValue(booking.return_location || booking.pickup_location 
 
 const locationDisplay = `
     <div style="font-size:12px; line-height:1.4;">
-        <span style="color:#73D700; font-weight:800;" data-pl="Odbiór:" data-en="Pickup:">${isEnLang ? "Pickup:" : "Odbiór:"}</span> ${pLoc}<br>
-        <span style="color:#F97316; font-weight:800;" data-pl="Zwrot:" data-en="Return:">${isEnLang ? "Return:" : "Zwrot:"}</span> ${dLoc}
+        <span style="color:#73D700; font-weight:800;" data-pl="Odbiór:" data-en="Pickup:">${partnerText("Odbiór:", "Pickup:")}</span> ${pLoc}<br>
+        <span style="color:#F97316; font-weight:800;" data-pl="Zwrot:" data-en="Return:">${partnerText("Zwrot:", "Return:")}</span> ${dLoc}
     </div>
 `;
 
@@ -3294,7 +3312,7 @@ const rowHtml = `
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${isEnLang ? 'Pricing details unavailable' : 'Szczegóły wyceny niedostępne'}</div>` : (booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : '')}
+            ${bookingExtrasLoadFailed ? `<div style="font-size:12px;color:#9a3412;white-space:normal">${partnerText('Szczegóły wyceny niedostępne', 'Pricing details unavailable')}</div>` : (booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openPartnerBookingItems('${booking.id}')">${partnerText('Zobacz rozliczenie', 'View breakdown')}</button>` : '')}
         </td>
 
         <!-- AKCJE -->
@@ -3328,7 +3346,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
     <tr class="clickable-row">
         <td>
             <div style="font-weight: 700;">
-            ${clientName} ${clientAge} <span class="badge-new" data-pl="NOWE" data-en="NEW">${isEnLang ? "NEW" : "NOWE"}</span>
+            ${clientName} ${clientAge} <span class="badge-new" data-pl="NOWE" data-en="NEW">${partnerText("NOWE", "NEW")}</span>
             </div>
             ${extraDriverHtml}
             ${contactDisplay}
@@ -3350,7 +3368,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
         <!-- 🔥 NOWA KOLUMNA -->
         <td style="font-weight:800; color:#73D700; white-space:nowrap;">
             ${pickupAmount} ${currency}
-            ${!bookingExtrasLoadFailed && booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openPartnerBookingItems('${booking.id}')">${isEnLang ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : ''}
+            ${!bookingExtrasLoadFailed && booking.pricing_items_snapshot?.items?.length ? `<button type="button" class="r24-items-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openPartnerBookingItems('${booking.id}')">${partnerText('Zobacz rozliczenie', 'View breakdown')}</button>` : ''}
         </td>
 
         <td>${actions}</td>
@@ -3370,14 +3388,14 @@ if (!window.partnerTimerRunning) {
         const deadlineStr = el.getAttribute('data-deadline');
 
         if (!deadlineStr || deadlineStr === "null" || deadlineStr === "undefined") {
-            el.innerHTML = localStorage.getItem("partner_lang") === "en" ? "⌛ No data" : "⌛ Brak danych";
+            el.innerHTML = partnerText("⌛ Brak danych", "⌛ No data");
             return;
         }
 
         const deadline = new Date(deadlineStr).getTime();
 
         if (isNaN(deadline)) {
-            el.innerHTML = localStorage.getItem("partner_lang") === "en" ? "⌛ Error" : "⌛ Błąd";
+            el.innerHTML = partnerText("⌛ Błąd", "⌛ Error");
             return;
         }
 
@@ -3385,7 +3403,7 @@ if (!window.partnerTimerRunning) {
         const diff = deadline - now;
 
         if (diff <= 0) {
-            el.innerHTML = localStorage.getItem("partner_lang") === "en" ? "⌛ Expired" : "⌛ Wygasło";
+            el.innerHTML = partnerText("⌛ Wygasło", "⌛ Expired");
             el.style.color = "var(--gray)";
             el.classList.remove("timer-urgent");
             return;
@@ -3430,18 +3448,16 @@ async function triggerBookingEmailWorker(bookingId) {
 window.acceptBooking = async function(id, btnElement) {
     btnElement.disabled = true;
     btnElement.innerText = "...";
-    const isEn = localStorage.getItem("partner_lang") === "en";
+    const isEn = getPartnerLang() !== "pl";
 
     try {
         const { data, error } = await db.rpc('partner_accept_booking', { p_booking_id: id });
         if (error) throw error;
-        if (!data || data.length === 0) throw new Error(isEn ? "Booking is no longer available." : "Rezerwacja nie jest już dostępna.");
+        if (!data || data.length === 0) throw new Error(partnerText("Rezerwacja nie jest już dostępna.", "Booking is no longer available."));
 
         // 3. sukces
         window.showToast(
-            isEn 
-            ? "Booking accepted! The client has 24h to confirm the reservation." 
-            : "Rezerwacja zaakceptowana! Klient ma 24h na potwierdzenie rezerwacji.", 
+            partnerText("Rezerwacja zaakceptowana! Klient ma 24h na potwierdzenie rezerwacji.", "Booking accepted! The client has 24h to confirm the reservation."),
             "success"
         );
 
@@ -3451,28 +3467,28 @@ window.acceptBooking = async function(id, btnElement) {
 
     } catch (err) {
         console.error("Błąd akceptacji:", err);
-        alert(isEn ? "Error: " + err.message : "Błąd: " + err.message);
+        alert(partnerText("Błąd: ", "Error: ") + err.message);
     } finally {
         btnElement.disabled = false;
-        btnElement.innerText = isEn ? "Accept" : "Akceptuj";
+        partnerLabel(btnElement, "Akceptuj", "Accept");
     }
 }
 
         window.rejectBooking = async function(id, btnElement) {
-            const isEn = localStorage.getItem("partner_lang") === "en";
+            const isEn = getPartnerLang() !== "pl";
             btnElement.disabled = true;
             btnElement.innerText = "...";
 
             const { error } = await db.rpc("partner_reject_booking", { p_booking_id: id });
 
             if (error) {
-                alert((isEn ? "Error: " : "Błąd: ") + error.message);
+                alert((partnerText("Błąd: ", "Error: ")) + error.message);
                 btnElement.disabled = false;
-                btnElement.innerText = isEn ? "Reject" : "Odrzuć";
+                partnerLabel(btnElement, "Odrzuć", "Reject");
                 return;
             }
 
-            window.showToast(isEn ? "Booking rejected." : "Rezerwacja odrzucona.", "error");
+            window.showToast(partnerText("Rezerwacja odrzucona.", "Booking rejected."), "error");
             await triggerBookingEmailWorker(id);
             await loadPartnerBookings();
             await loadDashboard();
@@ -3483,8 +3499,8 @@ window.acceptBooking = async function(id, btnElement) {
             const tbody = document.getElementById("fleet-list-tbody");
             if(!tbody) return;
 
-            const isEnFleet = localStorage.getItem("partner_lang") === "en";
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;" data-pl="Ładowanie floty..." data-en="Loading fleet...">${isEnFleet ? "Loading fleet..." : "Ładowanie floty..."}</td></tr>`;
+            const isEnFleet = getPartnerLang() !== "pl";
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;" data-pl="Ładowanie floty..." data-en="Loading fleet...">${partnerText("Ładowanie floty...", "Loading fleet...")}</td></tr>`;
 
             const { data: { session } } = await db.auth.getSession();
 
@@ -3502,14 +3518,14 @@ const { data, error } = await db
 
             if (error) {
                 console.error("Błąd ładowania floty:", error);
-                tbody.innerHTML = `<tr><td colspan="10" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${localStorage.getItem("partner_lang") === "en" ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${partnerText("Błąd pobierania danych.", "Data loading error.")}</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = "";
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color: var(--gray);" data-pl="Brak pojazdów we flocie. Dodaj pierwsze auto!" data-en="No vehicles in the fleet. Add your first vehicle!">${localStorage.getItem("partner_lang") === "en" ? "No vehicles in the fleet. Add your first vehicle!" : "Brak pojazdów we flocie. Dodaj pierwsze auto!"}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color: var(--gray);" data-pl="Brak pojazdów we flocie. Dodaj pierwsze auto!" data-en="No vehicles in the fleet. Add your first vehicle!">${partnerText("Brak pojazdów we flocie. Dodaj pierwsze auto!", "No vehicles in the fleet. Add your first vehicle!")}</td></tr>`;
                 return;
             }
 
@@ -3518,20 +3534,20 @@ const { data, error } = await db
                 tr.className = "clickable-row";
 
                 // --- SPRAWDZAMY AKTUALNY JĘZYK ---
-                const isEn = localStorage.getItem("partner_lang") === "en";
+                const isEn = getPartnerLang() !== "pl";
 
                 const isUnlimited = car.mileage_limit === null || car.mileage_limit === 0;
                 
                 // Tłumaczymy teksty w locie
                 const mileageText = isUnlimited 
-                    ? (isEn ? "Unlimited" : "Bez limitu") 
-                    : `${car.mileage_limit} km/${isEn ? 'day' : 'dzień'}`;
+                    ? (partnerText("Bez limitu", "Unlimited"))
+                    : `${car.mileage_limit} km/${partnerText('dzień', 'day')}`;
                     
                 const depositText = Number(car.deposit_amount) > 0
                     ? (car.features?.cashDepositRefundable === true
-                        ? (isEn ? `${car.deposit_amount} € refundable cash` : `${car.deposit_amount} € zwrotna gotówką`)
+                        ? (partnerText(`${car.deposit_amount} € zwrotna gotówką`, `${car.deposit_amount} € refundable cash`))
                         : `${car.deposit_amount} €`)
-                    : (isEn ? "No cash deposit" : "Brak kaucji gotówkowej");
+                    : (partnerText("Brak kaucji gotówkowej", "No cash deposit"));
 
                 // Model Marketplace: Wyświetlamy zysk netto partnera
                 const displayPrice = car.partner_net_price || car.public_price || 0;
@@ -3549,12 +3565,12 @@ const { data, error } = await db
                         </div>
                     </td>
                     <td style="font-weight: 700;">${safeCarName}</td>
-                    <td class="class-name"><span class="class-code">${safeCarCode}</span><span class="class-label" data-pl="Klasa" data-en="Class">${isEn ? "Class" : "Klasa"}</span></td>
+                    <td class="class-name"><span class="class-code">${safeCarCode}</span><span class="class-label" data-pl="Klasa" data-en="Class">${partnerText("Klasa", "Class")}</span></td>
                     <td>${car.seats || 5}</td>
-                    <td data-pl="${car.transmission === 'A' ? 'Automat' : 'Manualna'}" data-en="${car.transmission === 'A' ? 'Automatic' : 'Manual'}">${car.transmission === 'A' ? (isEn ? 'Automatic' : 'Automat') : (isEn ? 'Manual' : 'Manualna')}</td>
+                    <td data-pl="${car.transmission === 'A' ? 'Automat' : 'Manualna'}" data-en="${car.transmission === 'A' ? 'Automatic' : 'Manual'}">${car.transmission === 'A' ? (partnerText('Automat', 'Automatic')) : (partnerText('Manualna', 'Manual'))}</td>
                     <td>${car.bags || 2}</td>
                     <td data-pl="${isUnlimited ? 'Bez limitu' : car.mileage_limit + ' km/dzień'}" data-en="${isUnlimited ? 'Unlimited' : car.mileage_limit + ' km/day'}">${mileageText}</td>
-                    <td data-pl="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'Brak kaucji gotówkowej'}" data-en="${car.deposit_amount > 0 ? car.deposit_amount + ' €' : 'No cash deposit'}">${depositText}</td>
+                    <td data-pl="${Number(car.deposit_amount) > 0 ? car.deposit_amount + (car.features?.cashDepositRefundable ? ' € zwrotna gotówką' : ' €') : 'Brak kaucji gotówkowej'}" data-en="${Number(car.deposit_amount) > 0 ? car.deposit_amount + (car.features?.cashDepositRefundable ? ' € refundable cash' : ' €') : 'No cash deposit'}">${depositText}</td>
                     <td style="color: var(--green); font-weight: 800; text-align: center; vertical-align: middle;">
     ${Number(displayPrice).toFixed(2)} ${currentPartnerCurrency}
 </td>
@@ -3564,21 +3580,21 @@ const { data, error } = await db
               style="display: block; width: 85px; color: #F59E0B; border: 1px solid #F59E0B; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="openSeasonalModal('${safeCarId}', decodeURIComponent('${encodedCarName}'), ${Number(car.public_price || 0)})"
               data-pl="Ceny" data-en="Pricing">
-              ${isEn ? "Pricing" : "Ceny"}
+              ${partnerText("Ceny", "Pricing")}
         </span>
 
         <span class="action-link" 
               style="display: block; width: 85px; color: #2563EB; border: 1px solid #2563EB; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="editVehicle('${safeCarId}')"
               data-pl="Edytuj" data-en="Edit">
-              ${isEn ? "Edit" : "Edytuj"}
+              ${partnerText("Edytuj", "Edit")}
         </span>
 
         <span class="action-link" 
               style="display: block; width: 85px; color: #EF4444; border: 1px solid #EF4444; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 10px; text-transform: uppercase; text-align: center; cursor: pointer; background: white;" 
               onclick="deleteVehicle('${safeCarId}', decodeURIComponent('${encodedImageUrl}'))"
               data-pl="Usuń" data-en="Delete">
-              ${isEn ? "Delete" : "Usuń"}
+              ${partnerText("Usuń", "Delete")}
         </span>
     </div>
 </td>
@@ -3592,8 +3608,8 @@ const { data, error } = await db
             const tbody = document.getElementById("locations-table");
             if(!tbody) return;
 
-            const isEnLocations = localStorage.getItem("partner_lang") === "en";
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie lokalizacji..." data-en="Loading locations...">${isEnLocations ? "Loading locations..." : "Ładowanie lokalizacji..."}</td></tr>`;
+            const isEnLocations = getPartnerLang() !== "pl";
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" data-pl="Ładowanie lokalizacji..." data-en="Loading locations...">${partnerText("Ładowanie lokalizacji...", "Loading locations...")}</td></tr>`;
 
             const { data: { session } } = await db.auth.getSession();
 
@@ -3611,7 +3627,7 @@ const { data, error } = await db
 
             if (error) {
                 console.error("Błąd ładowania lokalizacji:", error);
-                tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${localStorage.getItem("partner_lang") === "en" ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${partnerText("Błąd pobierania danych.", "Data loading error.")}</td></tr>`;
                 return;
             }
 
@@ -3621,13 +3637,13 @@ const { data, error } = await db
             await window.ride24PartnerMandatoryRules.mount(db, partner);
 
             if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak zdefiniowanych lokalizacji. Dodaj pierwszą!" data-en="No locations defined. Add your first location!">${localStorage.getItem("partner_lang") === "en" ? "No locations defined. Add your first location!" : "Brak zdefiniowanych lokalizacji. Dodaj pierwszą!"}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--gray);" data-pl="Brak zdefiniowanych lokalizacji. Dodaj pierwszą!" data-en="No locations defined. Add your first location!">${partnerText("Brak zdefiniowanych lokalizacji. Dodaj pierwszą!", "No locations defined. Add your first location!")}</td></tr>`;
                 return;
             }
 
             data.forEach(loc => {
                 const tr = document.createElement("tr");
-                const isEn = localStorage.getItem("partner_lang") === "en";
+                const isEn = getPartnerLang() !== "pl";
                 const feeTextPl = `Odbiór: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Zwrot: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}`;
                 const feeTextEn = `Pickup: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Return: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}`;
                 const statusClass = loc.active ? "active" : "inactive";
@@ -3643,23 +3659,23 @@ const { data, error } = await db
                     custom: ["Inna lokalizacja", "Other location"]
                 };
                 const locationTypeLabel = typeLabels[loc.type]
-                    ? typeLabels[loc.type][isEn ? 1 : 0]
+                    ? partnerText(typeLabels[loc.type][0], typeLabels[loc.type][1])
                     : loc.type;
 
                 tr.innerHTML = `
                     <td>${escapeHtmlValue(loc.location_name)}</td>
                     <td>${escapeHtmlValue(loc.country)}</td>
                     <td>${escapeHtmlValue(loc.region)}</td>
-                    <td>${escapeHtmlValue(locationTypeLabel)}</td>
+                    <td data-pl="${escapeHtmlValue(typeLabels[loc.type]?.[0] || loc.type)}" data-en="${escapeHtmlValue(typeLabels[loc.type]?.[1] || loc.type)}">${escapeHtmlValue(locationTypeLabel)}</td>
                     <td data-pl="${escapeHtmlValue(feeTextPl)}" data-en="${escapeHtmlValue(feeTextEn)}">${escapeHtmlValue(isEn ? feeTextEn : feeTextPl)}</td>
                     <td><span class="status ${statusClass}" data-pl="${statusTextPl}" data-en="${statusTextEn}">${isEn ? statusTextEn : statusTextPl}</span></td>
                     <td>
-                        <span class="action-link reject" onclick="deleteLocation('${loc.id}')" data-pl="Usuń" data-en="Delete">${isEn ? "Delete" : "Usuń"}</span>
+                        <span class="action-link reject" onclick="deleteLocation('${loc.id}')" data-pl="Usuń" data-en="Delete">${partnerText("Usuń", "Delete")}</span>
                     </td>
                 `;
                 if (partner.provider_type !== 'api' && !loc.is_api_managed) {
                     const edit = document.createElement('button'); edit.type='button'; edit.className='action-link';
-                    edit.dataset.pl='Edytuj opłaty'; edit.dataset.en='Edit fees'; edit.textContent=isEn?'Edit fees':'Edytuj opłaty';
+                    edit.dataset.pl='Edytuj opłaty'; edit.dataset.en='Edit fees'; partnerLabel(edit, 'Edytuj opłaty', 'Edit fees');
                     edit.onclick=()=>window.ride24PartnerExtras.editFees(db,partner,loc,loadLocations);
                     tr.lastElementChild.prepend(edit);
                 }
@@ -3678,9 +3694,9 @@ const { data, error } = await db
 
         async function saveLocation() {
             const btn = document.querySelector("#locationModal .btn-primary");
-            const isEn = localStorage.getItem("partner_lang") === "en";
+            const isEn = getPartnerLang() !== "pl";
             btn.disabled = true;
-            btn.innerText = isEn ? "Saving..." : "Zapisywanie...";
+            partnerLabel(btn, "Zapisywanie...", "Saving...");
 
             try {
                 const { data: { session } } = await db.auth.getSession();
@@ -3690,7 +3706,7 @@ const { data, error } = await db
                     .eq("user_id", session.user.id)
                     .single();
 
-                if (!partner) throw new Error(isEn ? "Partner profile not found." : "Nie znaleziono profilu partnera.");
+                if (!partner) throw new Error(partnerText("Nie znaleziono profilu partnera.", "Partner profile not found."));
 
                 // 1. Zbieranie i normalizacja danych
                 const locationData = {
@@ -3708,7 +3724,7 @@ const { data, error } = await db
                 };
 
                 if (!locationData.location_name || !locationData.country) {
-                    throw new Error(isEn ? "Fill in the location name and country." : "Wypełnij nazwę lokalizacji i kraj.");
+                    throw new Error(partnerText("Wypełnij nazwę lokalizacji i kraj.", "Fill in the location name and country."));
                 }
 
                 // 2. TWARDA BLOKADA PL NAZW (Ultimate Gatekeeper)
@@ -3723,12 +3739,10 @@ const { data, error } = await db
                 const checkCity = locationData.city.toLowerCase();
 
                 if (forbiddenWords.includes(checkCountry) || forbiddenWords.includes(checkRegion) || forbiddenWords.includes(checkCity)) {
-                    window.showToast(isEn 
-                        ? "Please enter the location in English (e.g. Greece instead of Grecja, Crete instead of Kreta)." 
-                        : "Wpisz lokalizację po angielsku (np. Greece zamiast Grecja, Crete zamiast Kreta).", "error");
+                    window.showToast(partnerText("Wpisz lokalizację po angielsku (np. Greece zamiast Grecja, Crete zamiast Kreta).", "Please enter the location in English (e.g. Greece instead of Grecja, Crete instead of Kreta)."), "error");
                     
                     btn.disabled = false;
-                    btn.innerText = isEn ? "Save location" : "Zapisz lokalizację";
+                    partnerLabel(btn, "Zapisz lokalizację", "Save location");
                     return; // STOP! Nie zapisujemy polskiej nazwy
                 }
 
@@ -3739,7 +3753,7 @@ const { data, error } = await db
 
                 if (error) throw error;
 
-                window.showToast(isEn ? "Location added!" : "Lokalizacja została dodana!", "success");
+                window.showToast(partnerText("Lokalizacja została dodana!", "Location added!"), "success");
                 closeLocationModal();
                 await loadLocations();
                 await initPartnerAndroidPromo();
@@ -3757,16 +3771,16 @@ const { data, error } = await db
 
             } catch (err) {
                 console.error("Błąd zapisu lokalizacji:", err);
-                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
+                window.showToast((partnerText("Błąd: ", "Error: ")) + err.message, "error");
             } finally {
                 btn.disabled = false;
-                btn.innerText = isEn ? "Save location" : "Zapisz lokalizację";
+                partnerLabel(btn, "Zapisz lokalizację", "Save location");
             }
         }
 
         async function deleteLocation(id) {
-            const isEn = localStorage.getItem("partner_lang") === "en";
-            if (!confirm(isEn ? "Delete this location?" : "Czy na pewno chcesz usunąć tę lokalizację?")) return;
+            const isEn = getPartnerLang() !== "pl";
+            if (!confirm(partnerText("Czy na pewno chcesz usunąć tę lokalizację?", "Delete this location?"))) return;
 
             const { error } = await db
                 .from("partner_locations")
@@ -3774,16 +3788,16 @@ const { data, error } = await db
                 .eq("id", id);
 
             if (error) {
-                alert((isEn ? "Deletion error: " : "Błąd usuwania: ") + error.message);
+                alert((partnerText("Błąd usuwania: ", "Deletion error: ")) + error.message);
             } else {
-                window.showToast(isEn ? "Location deleted." : "Lokalizacja usunięta.", "success");
+                window.showToast(partnerText("Lokalizacja usunięta.", "Location deleted."), "success");
                 await loadLocations();
                 await initPartnerAndroidPromo();
             }
         }
 
         // --- INNE FUNKCJE ---
-        function detectLang() { setLang(localStorage.getItem("partner_lang") || "en"); }
+        function detectLang() { applyPartnerLanguage(document); }
 
         function switchTab(tabId) {
             if (tabId === 'android') {
@@ -3908,7 +3922,7 @@ const { data, error } = await db
     const apiStatusEn = partnerData.api_enabled ? "🟢 Connected" : "🔴 Not connected";
     apiStatus.setAttribute("data-pl", apiStatusPl);
     apiStatus.setAttribute("data-en", apiStatusEn);
-    apiStatus.innerHTML = getPartnerLang() === "en" ? apiStatusEn : apiStatusPl;
+    partnerLabel(apiStatus, apiStatusPl, apiStatusEn);
 
 }
 
@@ -4008,17 +4022,17 @@ function toggleDriverHours() {
        async function uploadPartnerDocument(file, type) {
     if(!file) return;
 
-    const isEn = localStorage.getItem("partner_lang") === "en";
+    const isEn = getPartnerLang() !== "pl";
 
     // --- BRAMKARZ 1: Tylko PDF ---
     if (file.type !== "application/pdf") {
-        window.showToast(localStorage.getItem("partner_lang") === "en" ? "Error: Only PDF files are allowed!" : "Błąd: Dozwolone są tylko pliki PDF!", "error");
+        window.showToast(partnerText("Błąd: Dozwolone są tylko pliki PDF!", "Error: Only PDF files are allowed!"), "error");
         return;
     }
 
     // --- BRAMKARZ 2: Limit 5MB ---
     if (file.size > 5 * 1024 * 1024) {
-        window.showToast(localStorage.getItem("partner_lang") === "en" ? "Error: The file is too large (max 5 MB)." : "Błąd: Plik jest za duży (maks. 5 MB).", "error");
+        window.showToast(partnerText("Błąd: Plik jest za duży (maks. 5 MB).", "Error: The file is too large (max 5 MB)."), "error");
         return;
     }
 
@@ -4042,7 +4056,7 @@ function toggleDriverHours() {
 
     if (type === "terms" && existing?.rental_terms_url) {
         window.showToast(
-            isEn ? "Remove old document first" : "Usuń stare dokumenty",
+            partnerText("Usuń stare dokumenty", "Remove old document first"),
             "error"
         );
         return;
@@ -4050,7 +4064,7 @@ function toggleDriverHours() {
 
     if (type === "rules" && existing?.rental_rules_url) {
         window.showToast(
-            isEn ? "Remove old document first" : "Usuń stare dokumenty",
+            partnerText("Usuń stare dokumenty", "Remove old document first"),
             "error"
         );
         return;
@@ -4058,7 +4072,7 @@ function toggleDriverHours() {
 
     const filePath = `${partnerId}/${type}.pdf`;
 
-    window.showToast(localStorage.getItem("partner_lang") === "en" ? "Uploading file..." : "Wgrywanie pliku...", "success");
+    window.showToast(partnerText("Wgrywanie pliku...", "Uploading file..."), "success");
 
     // upload
     const { error: uploadError } = await db.storage
@@ -4067,7 +4081,7 @@ function toggleDriverHours() {
 
     if (uploadError) {
         console.error(uploadError);
-        window.showToast(localStorage.getItem("partner_lang") === "en" ? "Server error during upload." : "Błąd serwera podczas wgrywania.", "error");
+        window.showToast(partnerText("Błąd serwera podczas wgrywania.", "Server error during upload."), "error");
         return;
     }
 
@@ -4089,7 +4103,7 @@ function toggleDriverHours() {
             .eq("user_id", partnerId);
     }
 
-    window.showToast(localStorage.getItem("partner_lang") === "en" ? "Document uploaded and saved successfully!" : "Dokument wgrany i zapisany pomyślnie!", "success");
+    window.showToast(partnerText("Dokument wgrany i zapisany pomyślnie!", "Document uploaded and saved successfully!"), "success");
 
     await loadPartnerSettings(partnerId);
 }
@@ -4106,8 +4120,8 @@ function toggleDriverHours() {
 
                 // 2. Limit wielkości pliku (max 4MB)
                 if(file.size > 4 * 1024 * 1024){
-                    const isEn = localStorage.getItem("partner_lang") === "en";
-                    window.showToast(isEn ? "Image is too large (max 4MB)" : "Zdjęcie jest za duże (max 4MB)", "error");
+                    const isEn = getPartnerLang() !== "pl";
+                    window.showToast(partnerText("Zdjęcie jest za duże (max 4MB)", "Image is too large (max 4MB)"), "error");
                     upload.value = ""; // Czyścimy input po błędzie
                     return;
                 }
@@ -4175,17 +4189,17 @@ function toggleDriverHours() {
             document.getElementById("confirm-partner-pwd").value = "";
             document.getElementById("force-terms-checkbox").checked = false; // Reset checkboxa
             
-            const isEn = localStorage.getItem("partner_lang") === "en";
+            const isEn = getPartnerLang() !== "pl";
 
             if (isForced) {
-                document.getElementById("pwdModalTitle").innerText = isEn ? "Welcome to Ride24!" : "Witamy w Ride24!";
-                document.getElementById("pwdModalDesc").innerText = isEn ? "Please change your temporary password and accept the terms to continue." : "Ze względów bezpieczeństwa zmień hasło tymczasowe i zaakceptuj regulamin, aby kontynuować.";
+                partnerLabel(document.getElementById("pwdModalTitle"), "Witamy w Ride24!", "Welcome to Ride24!");
+                partnerLabel(document.getElementById("pwdModalDesc"), "Ze względów bezpieczeństwa zmień hasło tymczasowe i zaakceptuj regulamin, aby kontynuować.", "Please change your temporary password and accept the terms to continue.");
                 
                 document.getElementById("cancelPwdBtn").style.display = "none"; // Ukrywamy przycisk anuluj
                 document.getElementById("force-terms-group").style.display = "block"; // Pokazujemy checkbox
             } else {
-                document.getElementById("pwdModalTitle").innerText = isEn ? "Security – Change Password" : "Bezpieczeństwo – Zmiana hasła";
-                document.getElementById("pwdModalDesc").innerText = isEn ? "Update your password to secure your account." : "Zaktualizuj swoje hasło, aby zabezpieczyć konto.";
+                partnerLabel(document.getElementById("pwdModalTitle"), "Bezpieczeństwo – Zmiana hasła", "Security – Change Password");
+                partnerLabel(document.getElementById("pwdModalDesc"), "Zaktualizuj swoje hasło, aby zabezpieczyć konto.", "Update your password to secure your account.");
                 
                 document.getElementById("cancelPwdBtn").style.display = "block"; // Pokazujemy przycisk anuluj
                 document.getElementById("force-terms-group").style.display = "none"; // Ukrywamy checkbox
@@ -4202,18 +4216,18 @@ function toggleDriverHours() {
             const termsGroup = document.getElementById("force-terms-group");
             const termsCheckbox = document.getElementById("force-terms-checkbox");
             const btn = document.getElementById("savePwdBtn");
-            const isEn = localStorage.getItem("partner_lang") === "en";
+            const isEn = getPartnerLang() !== "pl";
 
-            if (newPass !== confirmPass) return window.showToast(isEn ? "Passwords do not match!" : "Hasła nie są identyczne!", "error");
-            if (newPass.length < 8) return window.showToast(isEn ? "Min. 8 characters" : "Hasło musi mieć min. 8 znaków", "error");
+            if (newPass !== confirmPass) return window.showToast(partnerText("Hasła nie są identyczne!", "Passwords do not match!"), "error");
+            if (newPass.length < 8) return window.showToast(partnerText("Hasło musi mieć min. 8 znaków", "Min. 8 characters"), "error");
 
             // WERYFIKACJA REGULAMINU (jeśli pole jest widoczne, musi być zaznaczone)
             if (termsGroup.style.display === "block" && !termsCheckbox.checked) {
-                return window.showToast(isEn ? "You must accept the Terms of Cooperation!" : "Musisz zaakceptować Regulamin Współpracy!", "error");
+                return window.showToast(partnerText("Musisz zaakceptować Regulamin Współpracy!", "You must accept the Terms of Cooperation!"), "error");
             }
 
             btn.disabled = true;
-            btn.innerText = isEn ? "Saving..." : "Zapisywanie...";
+            partnerLabel(btn, "Zapisywanie...", "Saving...");
 
           try {
                 // Zmiana hasła
@@ -4228,29 +4242,28 @@ function toggleDriverHours() {
                     
                 if (profileError) throw profileError;
 
-                window.showToast(isEn ? "Success! Panel unlocked." : "Sukces! Panel odblokowany.", "success");
+                window.showToast(partnerText("Sukces! Panel odblokowany.", "Success! Panel unlocked."), "success");
                 setTimeout(() => location.reload(), 1500);
 
             } catch (err) {
-                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
+                window.showToast((partnerText("Błąd: ", "Error: ")) + err.message, "error");
                 btn.disabled = false;
-                btn.innerText = isEn ? "Save Password" : "Zapisz hasło";
+                partnerLabel(btn, "Zapisz hasło", "Save Password");
          }
         };
 
         // --- DEZAKTYWACJA KONTA (BEAUTIFUL UI) ---
         window.deactivatePartnerAccount = function() {
-            const isEn = localStorage.getItem("partner_lang") === "en";
-            const word = isEn ? "delete" : "usuń";
             
-            // Ustawiamy odpowiedni tekst z czerwonym słowem kluczem
-            const textPl = `UWAGA! Ta akcja ukryje Twój profil i pojazdy. Aby potwierdzić, wpisz słowo: <strong style="color:var(--red); text-transform:uppercase;">${word}</strong>`;
-            const textEn = `WARNING! This action will hide your profile and vehicles. To confirm, please type the word: <strong style="color:var(--red); text-transform:uppercase;">${word}</strong>`;
-            
-            document.getElementById("deactivateText").innerHTML = isEn ? textEn : textPl;
+            const explanation = partnerLabel(document.createElement("span"),
+                "UWAGA! Ta akcja ukryje Twój profil i pojazdy. Aby potwierdzić, wpisz słowo:",
+                "WARNING! This action will hide your profile and vehicles. To confirm, please type the word:");
+            const confirmation = partnerLabel(document.createElement("strong"), "usuń", "delete");
+            confirmation.style.cssText = "color:var(--red);text-transform:uppercase";
+            document.getElementById("deactivateText").replaceChildren(explanation, document.createTextNode(" "), confirmation);
             document.getElementById("deactivateConfirmInput").value = "";
-            document.getElementById("deactivateConfirmInput").placeholder = word;
-            
+            partnerLabel(document.getElementById("deactivateConfirmInput"), "usuń", "delete", "placeholder");
+
             // Otwieramy nasze nowe ładne okno
             document.getElementById("deactivateModal").classList.add("active");
         };
@@ -4260,13 +4273,13 @@ function toggleDriverHours() {
         };
 
         window.processDeactivation = async function() {
-            const isEn = localStorage.getItem("partner_lang") === "en";
-            const expectedWord = isEn ? "delete" : "usuń";
+            const isEn = getPartnerLang() !== "pl";
+            const expectedWord = partnerText("usuń", "delete");
             const inputWord = document.getElementById("deactivateConfirmInput").value.trim().toLowerCase();
 
             // Walidacja poprawności słowa z ładnym Toastem
             if (inputWord !== expectedWord) {
-                window.showToast(isEn ? "Incorrect confirmation word." : "Błędne słowo potwierdzające.", "error");
+                window.showToast(partnerText("Błędne słowo potwierdzające.", "Incorrect confirmation word."), "error");
                 document.getElementById("deactivateConfirmInput").style.borderColor = "red";
                 return;
             }
@@ -4286,7 +4299,7 @@ function toggleDriverHours() {
 
                 // Zamknięcie modala i piękny zielony Toast zamiast systemowego Alertu
                 closeDeactivateModal();
-                window.showToast(isEn ? "Account deactivated. Logging out..." : "Konto zdezaktywowane. Wylogowywanie...", "success");
+                window.showToast(partnerText("Konto zdezaktywowane. Wylogowywanie...", "Account deactivated. Logging out..."), "success");
                 
                 // Opóźnienie, aby partner zdążył zobaczyć powiadomienie przed wyrzuceniem
                 setTimeout(async () => {
@@ -4296,9 +4309,9 @@ function toggleDriverHours() {
                 
             } catch (err) {
                 console.error("Błąd dezaktywacji:", err);
-                window.showToast((isEn ? "Error: " : "Błąd: ") + err.message, "error");
+                window.showToast((partnerText("Błąd: ", "Error: ")) + err.message, "error");
                 btn.disabled = false;
-                btn.innerText = isEn ? "Confirm deactivation" : "Potwierdź dezaktywację";
+                partnerLabel(btn, "Potwierdź dezaktywację", "Confirm deactivation");
             }
         };
        
@@ -4310,8 +4323,8 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
 })
 // --- USUWANIE POJAZDU Z FLOTY ---
         window.deleteVehicle = async function(id, imageUrl) {
-            const isEn = localStorage.getItem("partner_lang") === "en";
-            if (!confirm(isEn ? "Are you sure you want to delete this vehicle?" : "Czy na pewno chcesz usunąć ten pojazd z floty?")) return;
+            const isEn = getPartnerLang() !== "pl";
+            if (!confirm(partnerText("Czy na pewno chcesz usunąć ten pojazd z floty?", "Are you sure you want to delete this vehicle?"))) return;
 
             try {
                 // 1. Jeśli auto miało zdjęcie, najpierw kasujemy je z Supabase Storage
@@ -4330,13 +4343,13 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                 if (error) throw error;
 
                 // 3. Sukces - odświeżamy interfejs
-                window.showToast(isEn ? "Vehicle deleted successfully." : "Pojazd został usunięty.", "success");
+                window.showToast(partnerText("Pojazd został usunięty.", "Vehicle deleted successfully."), "success");
                 await loadFleet();
                 await initPartnerAndroidPromo(); 
 
             } catch (err) {
                 console.error("Błąd usuwania:", err);
-                window.showToast(isEn ? "Error: " + err.message : "Błąd: " + err.message, "error");
+                window.showToast(partnerText("Błąd: ", "Error: ") + err.message, "error");
             }
         };
 
@@ -4356,21 +4369,19 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
     document.getElementById("featureFullInsurance").checked = true;
     syncCashDepositOption();
 
-    const isEn = localStorage.getItem("partner_lang") === "en";
+    const isEn = getPartnerLang() !== "pl";
 
-    document.querySelector("#addCarModal .modal-header h2").innerText =
-        isEn ? "Add new vehicle" : "Dodaj nowy pojazd";
+    partnerLabel(document.querySelector("#addCarModal .modal-header h2"), "Dodaj nowy pojazd", "Add new vehicle");
 
-    document.querySelector("#addCarModal .modal-footer .btn-primary").innerText =
-        isEn ? "Add vehicle" : "Dodaj auto";
+    partnerLabel(document.querySelector("#addCarModal .modal-footer .btn-primary"), "Dodaj auto", "Add vehicle");
 
     document.getElementById('addCarModal').classList.add('active');
 }
 
         // --- POBIERANIE DANYCH I UZUPEŁNIANIE FORMULARZA (EDYCJA) ---
         window.editVehicle = async function(id) {
-            const isEn = localStorage.getItem("partner_lang") === "en";
-            window.showToast(isEn ? "Loading vehicle data..." : "Pobieranie danych pojazdu...", "success");
+            const isEn = getPartnerLang() !== "pl";
+            window.showToast(partnerText("Pobieranie danych pojazdu...", "Loading vehicle data..."), "success");
 
             try {
                 const { data: car, error } = await db.from("car_classes").select("*").eq("id", id).single();
@@ -4485,15 +4496,15 @@ if (imageTile) {
 const header = document.querySelector("#addCarModal .modal-header h2");
 const btn = document.querySelector("#addCarModal .modal-footer .btn-primary");
 
-if (header) header.innerText = isEn ? "Edit vehicle" : "Edytuj pojazd";
-if (btn) btn.innerText = isEn ? "Save changes" : "Zapisz zmiany";
+if (header) partnerLabel(header, "Edytuj pojazd", "Edit vehicle");
+if (btn) partnerLabel(btn, "Zapisz zmiany", "Save changes");
 
 // 🔥 open modal
 document.getElementById('addCarModal').classList.add('active');
 
             } catch (err) {
                 console.error(err);
-                window.showToast(isEn ? "Error loading data." : "Błąd ładowania danych.", "error");
+                window.showToast(partnerText("Błąd ładowania danych.", "Error loading data."), "error");
             }
         };
         function closeLocationModal() {
@@ -4526,7 +4537,7 @@ async function uploadPartnerAvatar(file){
 
     if(error){
         console.error(error)
-        showToast(localStorage.getItem("partner_lang") === "en" ? "Upload error" : "Błąd przesyłania", "error")
+        showToast(partnerText("Błąd przesyłania", "Upload error"), "error")
         return
     }
 
@@ -4547,7 +4558,7 @@ async function uploadPartnerAvatar(file){
     document.getElementById("partnerAvatar").src =
         `${publicUrl}?t=${Date.now()}`
 
-    showToast(localStorage.getItem("partner_lang") === "en" ? "Avatar uploaded" : "Awatar przesłany", "success")
+    showToast(partnerText("Awatar przesłany", "Avatar uploaded"), "success")
 }
 // --- FUNKCJA KOMPRESUJĄCA ZDJĘCIA (CANVAS) ---
 function compressImage(file, maxWidth = 1024, quality = 0.8) {
@@ -4701,7 +4712,7 @@ function closeSeasonalModal() {
 async function openSeasonalModal(carId, carName, basePrice) {
     currentSeasonalCarId = carId;
     currentSeasonalBasePrice = Math.max(0, Number(basePrice) || 0);
-    const isEn = localStorage.getItem("partner_lang") === "en";
+    const isEn = getPartnerLang() !== "pl";
     
     const seasonalTitle = document.getElementById("seasonalModalTitle");
     const seasonalSub = document.getElementById("seasonalModalSub");
@@ -4713,8 +4724,8 @@ async function openSeasonalModal(carId, carName, basePrice) {
     seasonalTitle.setAttribute("data-en", titleEn);
     seasonalSub.setAttribute("data-pl", subPl);
     seasonalSub.setAttribute("data-en", subEn);
-    seasonalTitle.innerText = isEn ? titleEn : titlePl;
-    seasonalSub.innerText = isEn ? subEn : subPl;
+    partnerLabel(seasonalTitle, titlePl, titleEn);
+    partnerLabel(seasonalSub, subPl, subEn);
     
     document.getElementById("seasonPriceInput").value = "";
     document.getElementById("durationMinDaysInput").value = "";
@@ -4727,8 +4738,8 @@ async function openSeasonalModal(carId, carName, basePrice) {
 
 async function loadSeasonalPrices() {
     const tbody = document.getElementById("seasonal-table-body");
-    const isEn = localStorage.getItem("partner_lang") === "en";
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" data-pl="Ładowanie..." data-en="Loading...">${isEn ? 'Loading...' : 'Ładowanie...'}</td></tr>`;
+    const isEn = getPartnerLang() !== "pl";
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;" data-pl="Ładowanie..." data-en="Loading...">${partnerText('Ładowanie...', 'Loading...')}</td></tr>`;
 
     try {
         const { data, error } = await db
@@ -4741,19 +4752,19 @@ async function loadSeasonalPrices() {
 
         tbody.innerHTML = "";
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--gray);" data-pl="Brak ustawionych cen sezonowych." data-en="No seasonal prices set.">${isEn ? 'No seasonal prices set.' : 'Brak ustawionych cen sezonowych.'}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--gray);" data-pl="Brak ustawionych cen sezonowych." data-en="No seasonal prices set.">${partnerText('Brak ustawionych cen sezonowych.', 'No seasonal prices set.')}</td></tr>`;
             return;
         }
 
         data.forEach(season => {
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td style="font-weight: 800; color: ${season.season_type === 'HIGH' ? 'var(--red)' : (season.season_type === 'MID' ? '#F59E0B' : 'var(--blue)')}">${season.season_type}</td>
+                <td style="font-weight: 800; color: ${season.season_type === 'HIGH' ? 'var(--red)' : (season.season_type === 'MID' ? '#F59E0B' : 'var(--blue)')}" data-pl="${({HIGH:'WYSOKI',MID:'ŚREDNI',LOW:'NISKI'})[season.season_type] || season.season_type}" data-en="${season.season_type}">${partnerText(({HIGH:'WYSOKI',MID:'ŚREDNI',LOW:'NISKI'})[season.season_type] || season.season_type, season.season_type)}</td>
                 <td>${season.start_month}</td>
                 <td>${season.end_month}</td>
                 <td style="font-weight: 800; color: var(--green);">${season.public_price} ${currentPartnerCurrency}</td>
                 <td>
-                    <span class="action-link reject" onclick="deleteSeasonalPrice('${season.id}')" data-pl="Usuń" data-en="Delete">${isEn ? 'Delete' : 'Usuń'}</span>
+                    <span class="action-link reject" onclick="deleteSeasonalPrice('${season.id}')" data-pl="Usuń" data-en="Delete">${partnerText('Usuń', 'Delete')}</span>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -4761,13 +4772,13 @@ async function loadSeasonalPrices() {
 
     } catch (err) {
         console.error("Error:", err);
-        tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${isEn ? 'Data loading error.' : 'Błąd pobierania danych.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;" data-pl="Błąd pobierania danych." data-en="Data loading error.">${partnerText('Błąd pobierania danych.', 'Data loading error.')}</td></tr>`;
     }
 }
 
 async function saveSeasonalPrice() {
     if (!currentSeasonalCarId) return;
-    const isEn = localStorage.getItem("partner_lang") === "en";
+    const isEn = getPartnerLang() !== "pl";
 
     const type = document.getElementById("seasonTypeInput").value;
     const startM = parseInt(document.getElementById("seasonStartInput").value);
@@ -4776,13 +4787,13 @@ async function saveSeasonalPrice() {
 
     // Walidacja ceny
     if (!price || price <= 0) {
-        window.showToast(isEn ? "Please enter a valid price." : "Wpisz poprawną cenę.", "error");
+        window.showToast(partnerText("Wpisz poprawną cenę.", "Please enter a valid price."), "error");
         return;
     }
 
     // Walidacja miesięcy
     if (startM < 1 || startM > 12 || endM < 1 || endM > 12) {
-        window.showToast(isEn ? "Invalid months." : "Nieprawidłowe miesiące.", "error");
+        window.showToast(partnerText("Nieprawidłowe miesiące.", "Invalid months."), "error");
         return;
     }
 
@@ -4798,7 +4809,7 @@ async function saveSeasonalPrice() {
             .limit(1);
 
         if (existing && existing.length > 0) {
-            window.showToast(isEn ? "This season already exists." : "Taki sezon już istnieje.", "error");
+            window.showToast(partnerText("Taki sezon już istnieje.", "This season already exists."), "error");
             return;
         }
 
@@ -4814,28 +4825,28 @@ async function saveSeasonalPrice() {
 
         if (error) throw error;
 
-        window.showToast(isEn ? "Season added!" : "Sezon dodany!", "success");
+        window.showToast(partnerText("Sezon dodany!", "Season added!"), "success");
         document.getElementById("seasonPriceInput").value = "";
         await loadSeasonalPrices(); 
     } catch (err) {
         console.error(err);
-        window.showToast((isEn ? "Error saving: " : "Błąd zapisu: ") + err.message, "error");
+        window.showToast((partnerText("Błąd zapisu: ", "Error saving: ")) + err.message, "error");
     }
 }
 
 async function deleteSeasonalPrice(seasonId) {
-    const isEn = localStorage.getItem("partner_lang") === "en";
-    if (!confirm(isEn ? "Delete this season?" : "Usunąć ten sezon?")) return;
+    const isEn = getPartnerLang() !== "pl";
+    if (!confirm(partnerText("Usunąć ten sezon?", "Delete this season?"))) return;
 
     try {
         const { error } = await db.from("seasonal_prices").delete().eq("id", seasonId);
         if (error) throw error;
         
-        window.showToast(isEn ? "Season removed." : "Sezon usunięty.", "success");
+        window.showToast(partnerText("Sezon usunięty.", "Season removed."), "success");
         await loadSeasonalPrices();
     } catch (err) {
         console.error(err);
-        window.showToast(isEn ? "Deletion error." : "Błąd usuwania.", "error");
+        window.showToast(partnerText("Błąd usuwania.", "Deletion error."), "error");
     }
 }
 
@@ -4847,8 +4858,8 @@ async function loadDurationDiscounts() {
     const tbody = document.getElementById("duration-discounts-table-body");
     if (!tbody || !currentSeasonalCarId) return;
 
-    const isEn = localStorage.getItem("partner_lang") === "en";
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">${isEn ? "Loading..." : "Ładowanie..."}</td></tr>`;
+    const isEn = getPartnerLang() !== "pl";
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">${partnerText("Ładowanie...", "Loading...")}</td></tr>`;
 
     try {
         const { data, error } = await db
@@ -4862,7 +4873,7 @@ async function loadDurationDiscounts() {
 
         tbody.innerHTML = "";
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--gray);">${isEn ? "No rental-duration discounts set." : "Brak rabatów za długość wynajmu."}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--gray);">${partnerText("Brak rabatów za długość wynajmu.", "No rental-duration discounts set.")}</td></tr>`;
             return;
         }
 
@@ -4874,43 +4885,43 @@ async function loadDurationDiscounts() {
                 ? (currentSeasonalBasePrice * (1 - discount / 100)).toFixed(2)
                 : "—";
             const rangeLabel = maxDays == null
-                ? `${minDays}+ ${isEn ? "days" : "dni"}`
-                : `${minDays}–${maxDays} ${isEn ? "days" : "dni"}`;
+                ? `${minDays}+ ${partnerText("dni", "days")}`
+                : `${minDays}–${maxDays} ${partnerText("dni", "days")}`;
 
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td style="font-weight:800; color:var(--blue-dark);">${rangeLabel}</td>
                 <td style="font-weight:800; color:var(--green);">-${discount.toFixed(discount % 1 ? 2 : 0)}%</td>
-                <td>${examplePrice === "—" ? "—" : `${examplePrice} ${currentPartnerCurrency}/${isEn ? "day" : "dzień"}`}</td>
-                <td><span class="action-link reject" onclick="deleteDurationDiscount('${tier.id}')">${isEn ? "Delete" : "Usuń"}</span></td>
+                <td>${examplePrice === "—" ? "—" : `${examplePrice} ${currentPartnerCurrency}/${partnerText("dzień", "day")}`}</td>
+                <td><span class="action-link reject" onclick="deleteDurationDiscount('${tier.id}')">${partnerText("Usuń", "Delete")}</span></td>
             `;
             tbody.appendChild(tr);
         });
     } catch (err) {
         console.error("Duration pricing load error:", err);
-        tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">${isEn ? "Data loading error." : "Błąd pobierania danych."}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">${partnerText("Błąd pobierania danych.", "Data loading error.")}</td></tr>`;
     }
 }
 
 async function saveDurationDiscount() {
     if (!currentSeasonalCarId) return;
 
-    const isEn = localStorage.getItem("partner_lang") === "en";
+    const isEn = getPartnerLang() !== "pl";
     const minDays = Number.parseInt(document.getElementById("durationMinDaysInput").value, 10);
     const maxRaw = document.getElementById("durationMaxDaysInput").value.trim();
     const maxDays = maxRaw === "" ? null : Number.parseInt(maxRaw, 10);
     const discount = Number.parseFloat(document.getElementById("durationDiscountInput").value);
 
     if (!Number.isInteger(minDays) || minDays < 1) {
-        window.showToast(isEn ? "Enter a valid minimum number of days." : "Podaj poprawną minimalną liczbę dni.", "error");
+        window.showToast(partnerText("Podaj poprawną minimalną liczbę dni.", "Enter a valid minimum number of days."), "error");
         return;
     }
     if (maxDays !== null && (!Number.isInteger(maxDays) || maxDays < minDays)) {
-        window.showToast(isEn ? "Maximum days must be greater than or equal to minimum days." : "Maksymalna liczba dni musi być większa lub równa minimalnej.", "error");
+        window.showToast(partnerText("Maksymalna liczba dni musi być większa lub równa minimalnej.", "Maximum days must be greater than or equal to minimum days."), "error");
         return;
     }
     if (!Number.isFinite(discount) || discount < 0 || discount > 80) {
-        window.showToast(isEn ? "Discount must be between 0% and 80%." : "Rabat musi wynosić od 0% do 80%.", "error");
+        window.showToast(partnerText("Rabat musi wynosić od 0% do 80%.", "Discount must be between 0% and 80%."), "error");
         return;
     }
 
@@ -4932,7 +4943,7 @@ async function saveDurationDiscount() {
 
         if (overlaps) {
             window.showToast(
-                isEn ? "This rental period overlaps an existing tier." : "Ten okres nachodzi na istniejący próg.",
+                partnerText("Ten okres nachodzi na istniejący próg.", "This rental period overlaps an existing tier."),
                 "error"
             );
             return;
@@ -4951,23 +4962,23 @@ async function saveDurationDiscount() {
         document.getElementById("durationMinDaysInput").value = "";
         document.getElementById("durationMaxDaysInput").value = "";
         document.getElementById("durationDiscountInput").value = "";
-        window.showToast(isEn ? "Rental duration tier added." : "Dodano próg długości wynajmu.", "success");
+        window.showToast(partnerText("Dodano próg długości wynajmu.", "Rental duration tier added."), "success");
         await loadDurationDiscounts();
     } catch (err) {
         console.error("Duration pricing save error:", err);
         const overlap = String(err?.message || "").includes("DURATION_RANGE_OVERLAP");
         window.showToast(
             overlap
-                ? (isEn ? "This rental period overlaps an existing tier." : "Ten okres nachodzi na istniejący próg.")
-                : (isEn ? "Error saving rental duration tier." : "Błąd zapisu progu długości wynajmu."),
+                ? (partnerText("Ten okres nachodzi na istniejący próg.", "This rental period overlaps an existing tier."))
+                : (partnerText("Błąd zapisu progu długości wynajmu.", "Error saving rental duration tier.")),
             "error"
         );
     }
 }
 
 async function deleteDurationDiscount(tierId) {
-    const isEn = localStorage.getItem("partner_lang") === "en";
-    if (!confirm(isEn ? "Delete this rental duration tier?" : "Usunąć ten próg długości wynajmu?")) return;
+    const isEn = getPartnerLang() !== "pl";
+    if (!confirm(partnerText("Usunąć ten próg długości wynajmu?", "Delete this rental duration tier?"))) return;
 
     try {
         const { error } = await db
@@ -4976,11 +4987,11 @@ async function deleteDurationDiscount(tierId) {
             .eq("id", tierId);
 
         if (error) throw error;
-        window.showToast(isEn ? "Rental duration tier removed." : "Usunięto próg długości wynajmu.", "success");
+        window.showToast(partnerText("Usunięto próg długości wynajmu.", "Rental duration tier removed."), "success");
         await loadDurationDiscounts();
     } catch (err) {
         console.error("Duration pricing deletion error:", err);
-        window.showToast(isEn ? "Deletion error." : "Błąd usuwania.", "error");
+        window.showToast(partnerText("Błąd usuwania.", "Deletion error."), "error");
     }
 }
 
@@ -5141,6 +5152,7 @@ const agreementTexts = {
 
 let currentAgLang = 'pl';
 function renderAgreement(lang) {
+    lang = lang === "pl" ? "pl" : "en"; // The legal agreement retains its original PL/EN versions.
     currentAgLang = lang;
     const txt = agreementTexts[lang];
     
@@ -5154,13 +5166,11 @@ function renderAgreement(lang) {
     const rep = `${p.representative_name || ""} ${p.representative_surname || ""}`.trim();
     const disc = p.discount_percent ?? 0;
 
-    document.getElementById("ag-title").innerText = txt.title;
-    document.getElementById("ag-subtitle").innerText = txt.subtitle;
-    document.getElementById("ag-checkbox-label").innerText = txt.checkbox;
-    document.getElementById("ag-auth-text").innerText = txt.authText;
-    document.getElementById("ag-legal-boost").innerText = txt.legalBoost;
-    document.getElementById("sign-btn").innerText = txt.btnDefault;
-    
+    for (const [id, key] of [
+        ["ag-title", "title"], ["ag-subtitle", "subtitle"], ["ag-checkbox-label", "checkbox"],
+        ["ag-auth-text", "authText"], ["ag-legal-boost", "legalBoost"], ["sign-btn", "btnDefault"]
+    ]) partnerLabel(document.getElementById(id), agreementTexts.pl[key], agreementTexts.en[key]);
+
     // Zaktualizowane przekazywanie zmiennych do szablonu HTML
     document.getElementById("ag-content").innerHTML = sanitizeAgreementHtml(txt.content(comp, ctry, region, address, phone, email, rep, disc));
     
@@ -5189,7 +5199,7 @@ async function signAgreement() {
 
     // 🔒 2. Walidacja danych
     if (!partnerData || !partnerData.id) {
-        alert(getPartnerLang() === "en" ? "Partner data is missing. Refresh the page." : "Brak danych partnera. Odśwież stronę.");
+        alert(partnerText("Brak danych partnera. Odśwież stronę.", "Partner data is missing. Refresh the page."));
         return;
     }
 
@@ -5197,18 +5207,18 @@ async function signAgreement() {
     const txt = agreementTexts[currentAgLang];
 
     if (!cb.checked) {
-        alert(txt.alertError);
+        alert(partnerText(agreementTexts.pl.alertError, agreementTexts.en.alertError));
         return;
     }
 
-    btn.innerText = txt.btnLoading;
+    partnerLabel(btn, agreementTexts.pl.btnLoading, agreementTexts.en.btnLoading);
     btn.disabled = true;
 
     try {
         // 🔐 3. Sesja
         const { data: { session }, error: sessionError } = await db.auth.getSession();
         if (sessionError || !session) {
-            throw new Error("Brak autoryzacji / Unauthorized.");
+            throw new Error(partnerText("Brak autoryzacji. Zaloguj się ponownie.", "Session unavailable. Please log in again."));
         }
 
         // 🌍 4. IP
@@ -5225,8 +5235,8 @@ async function signAgreement() {
         const rawContent = document.getElementById("ag-content").innerHTML;
 
         if (!rawContent || rawContent.length < 50) {
-            alert(getPartnerLang() === "en" ? "Error: the agreement content was not loaded correctly." : "Błąd: treść umowy nie została poprawnie załadowana.");
-            btn.innerText = txt.btnDefault;
+            alert(partnerText("Błąd: treść umowy nie została poprawnie załadowana.", "Error: the agreement content was not loaded correctly."));
+            partnerLabel(btn, agreementTexts.pl.btnDefault, agreementTexts.en.btnDefault);
             btn.disabled = false;
             return;
         }
@@ -5255,7 +5265,7 @@ async function signAgreement() {
         });
 
         if (error || data !== true) {
-            throw error || new Error("Umowa została już podpisana lub brak dostępu.");
+            throw error || new Error(partnerText("Umowa została już podpisana lub brak dostępu.", "The agreement has already been signed or access is unavailable."));
         }
 
         // 🧠 10. Aktualizacja lokalna
@@ -5266,9 +5276,9 @@ async function signAgreement() {
         document.body.style.overflow = "auto";
         document.getElementById("agreement-modal").style.display = "none";
 
-        const isEn = localStorage.getItem("partner_lang") === "en";
+        const isEn = getPartnerLang() !== "pl";
         window.showToast(
-            isEn ? "Agreement successfully signed!" : "Umowa została prawnie zawarta!",
+            partnerText("Umowa została prawnie zawarta!", "Agreement successfully signed!"),
             "success"
         );
 
@@ -5280,9 +5290,9 @@ async function signAgreement() {
     } catch (err) {
         console.error("SIGN ERROR:", err);
 
-        alert((getPartnerLang() === "en" ? "Error: " : "Błąd: ") + err.message);
+        alert((partnerText("Błąd: ", "Error: ")) + err.message);
 
-        btn.innerText = txt.btnDefault;
+        partnerLabel(btn, agreementTexts.pl.btnDefault, agreementTexts.en.btnDefault);
         btn.disabled = false;
     }
 }
@@ -5299,18 +5309,18 @@ function showSignedAgreement() {
             document.getElementById("signed-agreement-content").innerHTML = sanitizeAgreementHtml(snapshot.content);
             
             // Tłumaczenie przycisków okienka na podstawie wykrytego języka umowy
-            document.getElementById("view-ag-title").innerText = isEnglish ? "Your Signed Agreement" : "Twoja Podpisana Umowa";
-            document.getElementById("view-ag-print").innerHTML = isEnglish ? "🖨️ Print" : "🖨️ Drukuj";
-            document.getElementById("view-ag-close").innerText = isEnglish ? "Close" : "Zamknij";
+            partnerLabel(document.getElementById("view-ag-title"), "Twoja Podpisana Umowa", "Your Signed Agreement");
+            partnerLabel(document.getElementById("view-ag-print"), "🖨️ Drukuj", "🖨️ Print");
+            partnerLabel(document.getElementById("view-ag-close"), "Zamknij", "Close");
 
             document.getElementById("view-agreement-modal").style.display = "flex";
         } catch (e) {
             console.error("Błąd parsowania snapshotu", e);
-            alert(getPartnerLang() === "en" ? "The agreement format cannot be read. Contact the administrator." : "Nie można odczytać formatu umowy. Skontaktuj się z administratorem.");
+            alert(partnerText("Nie można odczytać formatu umowy. Skontaktuj się z administratorem.", "The agreement format cannot be read. Contact the administrator."));
         }
     } else {
-        const isEn = localStorage.getItem("partner_lang") === "en";
-        alert(isEn ? "Agreement not found in database." : "Brak przypisanej umowy w systemie.");
+        const isEn = getPartnerLang() !== "pl";
+        alert(partnerText("Brak przypisanej umowy w systemie.", "Agreement not found in database."));
     }
 }
 
@@ -5335,6 +5345,8 @@ window.closeReviewModal = function() {
         
         <p id="ag-subtitle" style="color: #64748b; font-size: 13px; margin-bottom: 20px;"></p>
 
+        <p data-pl="Poniższa umowa jest wyświetlana w oryginalnej wersji angielskiej lub polskiej." data-en="The agreement below is shown in its original English or Polish version." style="font-size:12px;color:#64748b;margin:0 0 10px"></p>
+
         <div id="ag-content" style="flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; padding: 20px; background: #f8fafc; border-radius: 8px; font-size: 13px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
             </div>
 
@@ -5356,7 +5368,7 @@ window.closeReviewModal = function() {
 <div id="view-agreement-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99999; padding: 20px; align-items: center; justify-content: center;">
     <div style="background: white; width: 100%; max-width: 800px; border-radius: 12px; padding: 30px; display: flex; flex-direction: column; max-height: 90vh;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 id="view-ag-title" style="font-size: 20px; font-weight: 800; margin: 0;">Twoja Podpisana Umowa</h2>
+            <h2 id="view-ag-title" style="font-size: 20px; font-weight: 800; margin: 0;" data-pl="Twoja Podpisana Umowa" data-en="Your Signed Agreement">Twoja Podpisana Umowa</h2>
             <span onclick="document.getElementById('view-agreement-modal').style.display='none'" style="cursor: pointer; font-size: 24px; color: #64748b;">&times;</span>
         </div>
         
@@ -5364,8 +5376,8 @@ window.closeReviewModal = function() {
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
-            <button id="view-ag-print" onclick="window.print()" style="padding: 10px 20px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;">🖨️ Drukuj</button>
-            <button id="view-ag-close" onclick="document.getElementById('view-agreement-modal').style.display='none'" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Zamknij</button>
+            <button id="view-ag-print" onclick="window.print()" style="padding: 10px 20px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;" data-pl="🖨️ Drukuj" data-en="🖨️ Print">🖨️ Drukuj</button>
+            <button id="view-ag-close" onclick="document.getElementById('view-agreement-modal').style.display='none'" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" data-pl="Zamknij" data-en="Close">Zamknij</button>
         </div>
     </div>
 </div>
@@ -5373,8 +5385,8 @@ window.closeReviewModal = function() {
     <div class="modal-box" style="max-width: 750px;">
         <div class="modal-header">
             <div>
-                <h2 id="seasonalModalTitle">Ceny sezonowe</h2>
-                <p id="seasonalModalSub" style="font-size: 12px; color: var(--gray); margin-top: 4px;">Zarządzaj cenami na wysoki i niski sezon.</p>
+                <h2 id="seasonalModalTitle" data-pl="Ceny sezonowe" data-en="Seasonal prices">Ceny sezonowe</h2>
+                <p id="seasonalModalSub" style="font-size: 12px; color: var(--gray); margin-top: 4px;" data-pl="Zarządzaj cenami na wysoki i niski sezon." data-en="Manage high and low season prices.">Zarządzaj cenami na wysoki i niski sezon.</p>
             </div>
             <div class="modal-close" onclick="closeSeasonalModal()">&times;</div>
         </div>

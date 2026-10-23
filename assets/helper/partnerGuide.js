@@ -45,16 +45,22 @@
 
     function status(error) {
         const isPl = panelLanguage === 'pl';
+        const text = (pl, en) => window.Ride24PartnerI18n ? window.Ride24PartnerI18n.text(pl, en) : (isPl ? pl : en);
+        for (const [id, pl, en] of [
+            ['guideTitle', 'Instrukcja partnera', 'Partner guide'],
+            ['guideLanguageLabel', 'Język instrukcji', 'Guide language'],
+            ['guideChapterLabel', 'Rozdział', 'Chapter']
+        ]) if (byId(id)) byId(id).textContent = text(pl, en);
         const host = byId('guideContent');
         const card = element('div', 'guide-card');
         const message = element('p', '', error
-            ? (isPl ? 'Nie udało się wczytać instrukcji. Spróbuj ponownie.' : 'The guide could not be loaded. Please try again.')
-            : (isPl ? 'Ładowanie instrukcji…' : 'Loading the guide…'));
+            ? text('Nie udało się wczytać instrukcji. Spróbuj ponownie.', 'The guide could not be loaded. Please try again.')
+            : text('Ładowanie instrukcji…', 'Loading the guide…'));
         message.setAttribute('role', error ? 'alert' : 'status');
         card.append(message);
-        if (error) card.append(button(isPl ? 'Spróbuj ponownie' : 'Try again', load));
+        if (error) card.append(button(text('Spróbuj ponownie', 'Try again'), load));
         host.replaceChildren(card);
-        host.lang = isPl ? 'pl' : 'en';
+        host.lang = panelLanguage;
     }
 
     function validate(value) {
@@ -258,9 +264,9 @@
 
     window.Ride24PartnerGuide = {
         open(options = {}) {
-            panelLanguage = options.panelLanguage === 'pl' ? 'pl' : 'en';
+            panelLanguage = languages.includes(options.panelLanguage) ? options.panelLanguage : 'en';
             isApi = options.isApi === true;
-            language = language || storedLanguage() || panelLanguage;
+            language = storedLanguage() || panelLanguage;
             bind();
             if (!isOpen) {
                 previousFocus = document.activeElement;
@@ -284,6 +290,14 @@
         setPartnerType(api) {
             isApi = api === true;
             if (data) render();
+        },
+        setPanelLanguage(code) {
+            panelLanguage = languages.includes(code) ? code : 'en';
+            if (!storedLanguage()) {
+                language = panelLanguage;
+                if (data && isOpen) render();
+                else if (isOpen) status(false);
+            }
         },
         goTo
     };

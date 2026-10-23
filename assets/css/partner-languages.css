@@ -1,0 +1,16 @@
+/* Language controls only; the partner panel keeps its current layout. */
+#partnerLanguageButton { display:flex;align-items:center;gap:7px;min-height:40px;padding:7px 10px;border:1px solid #ffffffb3;border-radius:10px;background:#254b8a;color:#fff;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;line-height:1.2;flex-shrink:0; }
+#partnerLanguageButton img,.r24-partner-language-menu img { width:23px;height:23px;object-fit:contain;flex-shrink:0; }
+#partnerLanguageButton svg { width:12px;height:12px;transition:transform .15s; }
+#partnerLanguageButton[aria-expanded="true"] svg { transform:rotate(180deg); }
+#partnerLanguageButton:focus-visible,.r24-partner-language-menu button:focus-visible { outline:3px solid #2563eb;outline-offset:2px; }
+.r24-partner-language-menu { position:fixed;z-index:1000000;box-sizing:border-box;width:132px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;padding:6px;background:#fff;color:#14213d;border:1px solid #dbe4f0;border-radius:13px;box-shadow:0 14px 40px #0f172a33; }
+.r24-partner-language-menu[hidden] { display:none!important; }
+.r24-partner-language-menu button { display:flex;align-items:center;gap:12px;width:100%;min-height:40px;border:0;border-radius:8px;padding:7px 10px;background:#fff;color:#14213d;text-align:left;font-family:inherit;font-weight:700;font-size:13px;line-height:1.2;cursor:pointer; }
+.r24-partner-language-menu button:hover,.r24-partner-language-menu button:focus-visible { background:#eff6ff; }
+.r24-partner-language-menu button[aria-selected="true"] { background:#edf9d8;color:#295600; }
+.r24-partner-language-menu button[aria-selected="true"]::after { content:'✓';margin-left:auto; }
+@media(max-width:768px) {
+  .topbar #partnerLanguageButton { min-width:76px; }
+  .sidebar .nav-text { max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.15; }
+}

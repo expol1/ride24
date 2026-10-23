@@ -1,37 +1,38 @@
 // Mandatory conditional location/route fees and blocked service times.
 // Pricing and booking authorization always happen server-side.
 (function(){
-  const en=()=>localStorage.getItem('partner_lang')==='en';
-  const tr=(pl,eng)=>en()?eng:pl;
-  const node=(tag,t)=>{const n=document.createElement(tag);if(t!==undefined)n.textContent=t;return n;};
+    const setLabel = (n,pl,en) => {if(window.Ride24PartnerI18n)return window.Ride24PartnerI18n.bind(n,pl,en);n.textContent=tr(pl,en);return n;};
+  const en = () => { if (window.Ride24PartnerI18n) return window.Ride24PartnerI18n.getLanguage() !== 'pl'; try { return localStorage.getItem('partner_lang') !== 'pl'; } catch (_) { return true; } };
+  const tr=(pl,eng)=>window.Ride24PartnerI18n ? window.Ride24PartnerI18n.text(pl,eng) : en()?eng:pl;
+  const node=(tag,t,eng)=>{const n=document.createElement(tag);if(eng!==undefined){n.dataset.pl=t;n.dataset.en=eng;setLabel(n, t, eng);}else if(t!==undefined)n.textContent=t;return n;};
+  const live=(n,render)=>{if(window.Ride24PartnerI18n)return window.Ride24PartnerI18n.live(n,render);n.textContent=render();return n;};
   const inp=(type,value='')=>{const n=node('input');n.type=type;n.value=value;return n;};
-  const fld=(f,pl,eng,control)=>{const l=node('label');l.append(node('span',tr(pl,eng)),control);f.append(l);return control;};
-  const sel=(opts,v)=>{const n=node('select');for(const [value,pl,eng] of opts){const o=node('option',tr(pl,eng));o.value=value;n.append(o)}n.value=v;return n;};
+  const fld=(f,pl,eng,control)=>{const l=node('label');l.append(node('span', pl, eng),control);f.append(l);return control;};
+  const sel=(opts,v)=>{const n=node('select');for(const [value,pl,eng] of opts){const o=node('option', pl, eng);o.value=value;n.append(o)}n.value=v;return n;};
   const dialog=(titlePl,titleEn)=>{
     const d=node('dialog');d.className='r24-extras-dialog';d.setAttribute('aria-modal','true');
-    const head=node('div');head.className='r24-extras-dialog__head';head.append(node('h3',tr(titlePl,titleEn)));
+    const head=node('div');head.className='r24-extras-dialog__head';head.append(node('h3', titlePl, titleEn));
     const close=node('button','×');close.type='button';close.className='r24-extras-dialog__close';close.onclick=()=>d.close();head.append(close);d.append(head);
     const f=node('form');f.className='r24-extras-dialog__form';d.append(f);
     const status=node('p');status.className='r24-extras-dialog__status';status.setAttribute('role','alert');f.append(status);
     document.body.append(d);d.addEventListener('close',()=>d.remove());d.showModal();
-    const actions=node('div');actions.className='r24-extras-dialog__actions';const cancel=node('button',tr('Anuluj','Cancel'));cancel.type='button';cancel.className='btn-secondary';cancel.onclick=()=>d.close();
-    const save=node('button',tr('Zapisz','Save'));save.type='submit';save.className='btn-primary';actions.append(cancel,save);
+    const actions=node('div');actions.className='r24-extras-dialog__actions';const cancel=node('button', 'Anuluj', 'Cancel');cancel.type='button';cancel.className='btn-secondary';cancel.onclick=()=>d.close();
+    const save=node('button', 'Zapisz', 'Save');save.type='submit';save.className='btn-primary';actions.append(cancel,save);
     return {d,f,status,save,actions};
   };
   window.ride24PartnerMandatoryRules={
     async mount(db,partner){
       const parent=document.getElementById('partnerMandatoryRules');if(!parent)return;
       parent.replaceChildren();parent.hidden=partner.provider_type==='api';if(parent.hidden)return;
-      parent.append(node('h3',tr('Obowiązkowe opłaty i godziny niedostępne','Mandatory surcharges and unavailable hours')));
-      parent.append(node('p',tr('Tych opłat klient nie wybiera ręcznie. Są automatycznie uwzględniane w podsumowaniu. Godziny niedostępne blokują rezerwację.',
-        'Customers do not select these charges manually. They appear in the quote. Unavailable hours prevent booking.')));
-      const sections=[['conditional',tr('Dopłaty za lokalizację lub trasę','Location and route fees')],['blocks',tr('Godziny niedostępne','Unavailable hours')]];
+      parent.append(node('h3', 'Obowiązkowe opłaty i godziny niedostępne', 'Mandatory surcharges and unavailable hours'));
+      parent.append(node('p', 'Tych opłat klient nie wybiera ręcznie. Są automatycznie uwzględniane w podsumowaniu. Godziny niedostępne blokują rezerwację.', 'Customers do not select these charges manually. They appear in the quote. Unavailable hours prevent booking.'));
+      const sections=[['conditional','Dopłaty za lokalizację lub trasę','Location and route fees'],['blocks','Godziny niedostępne','Unavailable hours']];
       const [cf,bk,loc]=await Promise.all([
         db.from('partner_conditional_fees').select('*').eq('partner_id',partner.id).order('created_at'),
         db.from('partner_time_blocks').select('*').eq('partner_id',partner.id).order('created_at'),
         db.from('partner_locations').select('id,location_name,city').eq('partner_id',partner.id).eq('is_api_managed',false).order('location_name')
       ]);
-      if(cf.error||bk.error||loc.error){parent.append(node('p',tr('Nie udało się wczytać reguł.','Could not load rules.')));return;}
+      if(cf.error||bk.error||loc.error){parent.append(node('p', 'Nie udało się wczytać reguł.', 'Could not load rules.'));return;}
       const locations=loc.data||[];
       const locOpts=[['', 'Wybierz lokalizację','Select a location'],...locations.map(x=>[x.id,x.location_name,x.location_name])];
       const locationLabel=id=>locations.find(x=>x.id===id)?.location_name||tr('Wszystkie punkty','All locations');
@@ -45,7 +46,7 @@
           start=fld(f,'Od (włącznie)','From (inclusive)',inp('time',(fee.starts_at||'23:45').slice(0,5)));
           end=fld(f,'Do (bez tej minuty)','Until (exclusive)',inp('time',(fee.ends_at||'05:00').slice(0,5)));
           start.required=end.required=true;
-          f.append(node('p',tr('W tym przedziale system odmówi rezerwacji dla wybranego punktu i czynności.','Bookings at this place and time will be rejected.')));
+          f.append(node('p', 'W tym przedziale system odmówi rezerwacji dla wybranego punktu i czynności.', 'Bookings at this place and time will be rejected.'));
         }else{
           kind=fld(f,'Rodzaj opłaty','Fee type',sel([['location_either','Obsługa wybranej lokalizacji – raz za rezerwację','Selected location – once per booking'],['cross_city','Zwrot w innym mieście (wybrana lista miast)','One-way return between configured cities']],fee.kind||'location_either'));
           location=fld(f,'Lokalizacja','Location',sel(locOpts,fee.location_id||''));
@@ -82,19 +83,19 @@
           }catch(err){status.textContent=err.message;}finally{save.disabled=false;}
         };
       }
-      for(const [which,title] of sections){
-        const h=node('h4',title);h.style.margin='20px 0 10px';parent.append(h);
-        const add=node('button',tr('Dodaj regułę','Add rule'));add.type='button';add.className='btn-secondary';add.onclick=()=>edit(which);parent.append(add);
+      for(const [which,titlePl,titleEn] of sections){
+        const h=node('h4',titlePl,titleEn);h.style.margin='20px 0 10px';parent.append(h);
+        const add=node('button', 'Dodaj regułę', 'Add rule');add.type='button';add.className='btn-secondary';add.onclick=()=>edit(which);parent.append(add);
         const records=which==='blocks'?bk.data||[]:cf.data||[];
         for(const fee of records){
           const row=node('div');row.className='r24-extras-row';
-          const heading=which==='blocks'
+          const heading=()=>which==='blocks'
             ? (({pickup:tr('Odbiór','Pickup'),return:tr('Zwrot','Return'),either:tr('Odbiór i zwrot','Pickup and return')})[fee.applies_to]||fee.applies_to)
               +' '+fee.starts_at.slice(0,5)+'–'+fee.ends_at.slice(0,5)
-            : tr(fee.name_pl,fee.name_en);
-          const detail=which==='blocks' ? locationLabel(fee.location_id) : Number(fee.amount).toFixed(2)+' '+(partner.currency||'EUR')+' · '+(fee.kind==='cross_city'?fee.city_scope.join(', '):locationLabel(fee.location_id));
-          row.append(node('strong',heading),node('span',detail+(fee.active?'':' · '+tr('wyłączona','inactive'))));
-          const button=node('button',tr('Edytuj','Edit'));button.type='button';button.className='btn-secondary';button.onclick=()=>edit(which,fee);row.append(button);
+            : (en()?fee.name_en:fee.name_pl);
+          const detail=()=>which==='blocks' ? locationLabel(fee.location_id) : Number(fee.amount).toFixed(2)+' '+(partner.currency||'EUR')+' · '+(fee.kind==='cross_city'?fee.city_scope.join(', '):locationLabel(fee.location_id));
+          row.append(live(node('strong'),heading),live(node('span'),()=>detail()+(fee.active?'':' · '+tr('wyłączona','inactive'))));
+          const button=node('button', 'Edytuj', 'Edit');button.type='button';button.className='btn-secondary';button.onclick=()=>edit(which,fee);row.append(button);
           parent.append(row);
         }
       }
