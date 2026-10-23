@@ -198,6 +198,28 @@
         if (approved && item.promotion_status !== "active" && !install) {
           card.append(action("Wybierz czas i budżet Google Ads", () => reviewCampaign(item.id)));
         }
+        if(creative){
+          const copy=action("Kopiuj materiały reklamy",async()=>{
+            try{
+              const text=["Google Ads / "+(creative.objective==="app_install"?"App Campaign":"Performance Max"),
+                "Nagłówki:",...(creative.headlines||[]),
+                "Opisy:",...(creative.descriptions||[]),
+                "Strona docelowa: "+(creative.final_url||""),
+                creative.app_store_url?"Google Play: "+creative.app_store_url:"",
+                "Grafika: "+(creative.landscape_url||"")].filter(Boolean).join("\n");
+              await navigator.clipboard.writeText(text);
+              setMessage("Skopiowano teksty i linki. W kampanii instalacyjnej użyj ich bezpośrednio w Google Ads.");
+            }catch{setMessage("Nie udało się skopiować. Możesz zaznaczyć teksty i otworzyć grafikę z podglądu.",true);}
+          });
+          card.append(copy);
+          if(creative.landscape_url){
+            const link=document.createElement("a");
+            link.href=creative.landscape_url;link.target="_blank";link.rel="noopener noreferrer";
+            link.textContent="Otwórz przesłaną grafikę ↗";
+            link.style.cssText="display:inline-block;margin:10px 8px 0 0";
+            card.append(link);
+          }
+        }
         if(install){
           const note=document.createElement("p");
           note.textContent="Instalacje aplikacji wymagają osobnej kampanii App Campaign. Ten szkic nie uruchomi automatycznie Performance Max.";
