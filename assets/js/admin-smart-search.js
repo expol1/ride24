@@ -173,7 +173,7 @@
       ]);
       const queue = buildQueue(locations, rows).filter(item => !isDismissed("mapping", mappingKey(item)));
       el("unmapped-count").textContent = String(queue.length);
-      if (!queue.length) return tableMessage(tbody, "Wszystkie nazwy mają polskie tłumaczenia.", 3);
+      if (!queue.length) return tableMessage(tbody, "Brak pozycji do zmapowania — nazwy są przetłumaczone lub usunięte z kolejki.", 3);
       tbody.replaceChildren();
       queue.forEach(item => {
         const tr = document.createElement("tr"), name = document.createElement("td"),
