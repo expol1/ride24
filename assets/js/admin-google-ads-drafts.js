@@ -135,6 +135,9 @@
     if (typeof openPromotionModal !== "function") {
       return setMessage("Formularz uruchamiania Google Ads jest niedostępny.", true);
     }
+    const {data:creative,error:creativeError}=await db.from("google_ads_creatives").select("objective").eq("marketing_queue_id",id).maybeSingle();
+    if(creativeError)return setMessage("Nie udało się sprawdzić typu kampanii Google Ads.",true);
+    if(creative?.objective==="app_install")return setMessage("Kampania instalacyjna musi być utworzona jako App Campaign w Google Ads. Nie można uruchomić jej jako Performance Max.",true);
     openPromotionModal(id);
   }
   async function loadDrafts() {
@@ -147,10 +150,17 @@
         .eq("platform", "google_ads").order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
       if (!data?.length) {
-        list.textContent = "Nie ma jeszcze propozycji Google Ads. Utwórz ją powyżej — posty z mediów społecznościowych są całkowicie osobno.";
+        list.textContent = "Nie ma jeszcze propozycji Google Ads. Utwórz ją powyżej — posty z Facebooka pozostają osobno.";
         return;
       }
+      const ids=data.map(row=>row.id);
+      const {data:creativeRows,error:creativeError}=await db.from("google_ads_creatives")
+        .select("marketing_queue_id,objective,final_url,landscape_url,headlines,descriptions,app_store_url")
+        .in("marketing_queue_id",ids);
+      if(creativeError)throw creativeError;
+      const creativeMap=new Map((creativeRows||[]).map(row=>[row.marketing_queue_id,row]));
       for (const item of data) {
+        const creative=creativeMap.get(item.id);
         const card = document.createElement("div");
         card.className = "marketing-simple-campaign";
         card.style.cssText = "display:block;margin-bottom:12px";
@@ -158,17 +168,47 @@
         title.textContent = (item.headline || "Kampania Google Ads") + " · " + (item.city || "") + ", " + (item.country || "");
         const status = document.createElement("small");
         const approved = item.status === "approved";
-        status.textContent = approved ? "Zatwierdzona — czeka na ręczne uruchomienie Google Ads" : (item.status === "draft" ? "Szkic — do zatwierdzenia" : "Status: " + item.status);
+        const install=creative?.objective==="app_install";
+        status.textContent = (install?"App Campaign — instalacje aplikacji · ":"Performance Max · ") +
+          (approved ? (install?"Zatwierdzona — przygotowana do ręcznego wdrożenia w Google Ads":"Zatwierdzona — czeka na uruchomienie") :
+            (item.status==="draft"?"Szkic — do zatwierdzenia":"Status: "+item.status));
         const description = document.createElement("p");
         description.textContent = item.content || "";
         description.style.cssText = "white-space:pre-wrap;margin:10px 0;color:#334155;font-size:13px";
         card.append(title, status, description);
+        if(creative?.landscape_url){
+          const picture=document.createElement("img");
+          picture.src=creative.landscape_url;
+          picture.alt="Własna grafika Google Ads";
+          picture.loading="lazy";
+          picture.style.cssText="display:block;max-width:280px;width:100%;height:auto;border-radius:8px;margin:10px 0;border:1px solid #E2E8F0";
+          card.append(picture);
+        }
+        if(creative?.final_url){
+          const detail=document.createElement("small");
+          detail.textContent="Strona docelowa: "+creative.final_url;
+          card.append(detail);
+        }
         if (item.status === "draft") {
+          if(creative&&typeof window.editGoogleAdsCustomDraft==="function")
+            card.append(action("Edytuj treść i grafikę",()=>window.editGoogleAdsCustomDraft(item.id)));
           card.append(action("Zatwierdź treść", () => approveDraft(item.id)),
             action("Usuń szkic", () => deleteDraft(item.id), true));
         }
-        if (approved && item.promotion_status !== "active") {
-          card.append(action("Wybierz czas i uruchom Google Ads", () => reviewCampaign(item.id)));
+        if (approved && item.promotion_status !== "active" && !install) {
+          card.append(action("Wybierz czas i budżet Google Ads", () => reviewCampaign(item.id)));
+        }
+        if(install){
+          const note=document.createElement("p");
+          note.textContent="Instalacje aplikacji wymagają osobnej kampanii App Campaign. Ten szkic nie uruchomi automatycznie Performance Max.";
+          note.style.cssText="font-size:12px;color:#B45309;margin:10px 0 0";
+          card.append(note);
+          if(creative?.app_store_url){
+            const link=document.createElement("a");
+            link.href=creative.app_store_url;link.target="_blank";link.rel="noopener noreferrer";
+            link.textContent="Otwórz aplikację w Google Play ↗";
+            card.append(link);
+          }
         }
         list.append(card);
       }
