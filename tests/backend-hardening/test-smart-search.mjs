@@ -15,14 +15,35 @@ function adminFixture({ locations = [], dictionary = [], logs = [] } = {}) {
   const dom = new JSDOM(adminHtml, { url: "https://ride24.pl/admin/", runScripts: "outside-only" });
   const w = dom.window;
   w.HTMLElement.prototype.scrollIntoView = function () {};
-  const data = { partner_locations: locations, locations_dictionary: dictionary };
+  w.confirm = () => true;
+  const data = { partner_locations: locations, locations_dictionary: dictionary, smart_search_dismissals: [] };
   const writes = [];
   w.supabaseClient = {
     from(table) {
-      let first = 0, last = Infinity;
+      let first = 0, last = Infinity, deleting = false;
+      const filters = [];
       const chain = {
-        select() { return chain; }, order() { return chain; },
+        select() {
+          if (deleting) {
+            const deleted = data[table].filter(row => filters.every(fn => fn(row)));
+            data[table] = data[table].filter(row => !deleted.includes(row));
+            writes.push({ table, action: "delete", deleted });
+            return Promise.resolve({ data: structuredClone(deleted), error: null });
+          }
+          return chain;
+        },
+        eq(key, value) { filters.push(row => row[key] === value); return chain; },
+        delete() { deleting = true; return chain; },
+        order() { return chain; },
         range(a, b) { first = a; last = b; return chain; },
+        insert(row) {
+          const newRow = { ...row, id: String(data[table].length + 1000) };
+          if (data[table].some(existing => existing.kind === row.kind && existing.entry_key === row.entry_key))
+            return Promise.resolve({ error: { code: "23505" } });
+          data[table].push(newRow);
+          writes.push({ table, action: "insert", row: newRow });
+          return Promise.resolve({ error: null });
+        },
         upsert(rows, options) {
           writes.push({ table, rows, options });
           for (const row of rows) {
@@ -31,7 +52,7 @@ function adminFixture({ locations = [], dictionary = [], logs = [] } = {}) {
           }
           return Promise.resolve({ error: null });
         },
-        then(resolve, reject) { return Promise.resolve({ data: structuredClone((data[table] || []).slice(first, last + 1)), error: null }).then(resolve, reject); }
+        then(resolve, reject) { return Promise.resolve({ data: structuredClone((data[table] || []).filter(row => filters.every(fn => fn(row))).slice(first, last + 1)), error: null }).then(resolve, reject); }
       };
       return chain;
     },
@@ -111,6 +132,52 @@ test("Assigning a miss to an existing name updates it and keeps existing aliases
   assert.equal(s.writes[0].rows[0].id, "existing");
   assert.equal(s.writes[0].rows[0].slug, "rome");
   assert.equal(s.writes[0].rows[0].keywords, "eternal city, rzim");
+  s.close();
+});
+
+test("Admin can dismiss a partner mapping and restore it without editing partner locations", async () => {
+  const locations = [{ id: "partner-location", city: "Rome" }];
+  const s = adminFixture({ locations });
+  await s.w.loadUnmappedLocations();
+  const row = [...s.el("unmapped-locations-tbody").rows].find(row => row.cells[0].textContent === "Rome");
+  row.querySelectorAll("button")[1].click();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(s.el("unmapped-count").textContent, "0");
+  assert.equal(s.data.smart_search_dismissals.length, 1);
+  assert.equal(s.data.partner_locations.length, 1);
+  assert.equal(s.el("smart-dismissed-count").textContent, "1");
+  s.el("smart-dismissed-tbody").querySelector("button").click();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(s.data.smart_search_dismissals.length, 0);
+  assert.equal(s.el("unmapped-count").textContent, "1");
+  s.close();
+});
+
+test("Admin can dismiss a noisy search query without deleting its logs", async () => {
+  const logs = [{ query: "rzymmm", count: 8 }];
+  const s = adminFixture({ logs });
+  await s.w.loadSearchLogs();
+  s.el("search-logs-tbody").querySelectorAll("button")[1].click();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(s.el("search-logs-tbody").textContent.includes("rzymmm"), false);
+  assert.equal(s.data.smart_search_dismissals[0].kind, "search");
+  assert.equal(logs.length, 1);
+  s.close();
+});
+
+test("Main delete button removes only selected dictionary translation", async () => {
+  const dictionary = [{ id: "dictionary-row", category: "city", name_en: "Rome", name_pl: "Rzym",
+    keywords: "rzim", slug: "rome" }];
+  const s = adminFixture({ locations: [{ id: "location", city: "Rome" }], dictionary });
+  await s.w.loadUnmappedLocations();
+  s.el("dict-existing").value = "dictionary-row";
+  s.w.editSmartDictionary();
+  assert.equal(s.el("dict-delete").disabled, false);
+  await s.w.deleteSmartDictionary();
+  assert.equal(s.data.locations_dictionary.length, 0);
+  assert.equal(s.data.partner_locations.length, 1);
+  assert.equal(s.el("unmapped-count").textContent, "1");
+  assert.equal(s.el("dict-delete").disabled, true);
   s.close();
 });
 
