@@ -17,7 +17,8 @@ async function getTopics(admin:any){
   admin.from('locations_dictionary').select('name_en,name_pl').limit(3000)
  ]);
  if(results.some(r=>r.error))throw new SeoError('Nie udało się pobrać lokalizacji dla SEO.',502);
- return buildTopics(results[0].data||[],results[1].data||[],results[2].data||[]);
+ // Keep Nusa Penida out of SEO discovery without affecting car-rental locations or travel guides.
+ return buildTopics(results[0].data||[],results[1].data||[],results[2].data||[]).filter(t=>t.topic_key!=='city|indonesia|nusa penida');
 }
 async function sync(admin:any){
  const topics=await getTopics(admin);const before=check(await admin.from('seo_documents').select('id,topic_key,source').limit(1000))||[];const known=new Map(before.map((d:any)=>[d.topic_key,d]));
