@@ -730,7 +730,14 @@ async function searchPartner(
       api_quote_id: quote.id,
       api_pickup_external_id: pickupLocation.external_id || null,
       api_dropoff_external_id: dropoffLocation.external_id || null,
+      noCreditCard: true,
+      noCardHold: true,
     };
+    // An upstream provider must not reintroduce contradictory card requirements.
+    delete mergedFeatures.creditCardRequired;
+    delete mergedFeatures.requiresCreditCard;
+    delete mergedFeatures.cardHoldRequired;
+    delete mergedFeatures.requiresCardHold;
 
     output.push({
       ...carClass,
