@@ -898,7 +898,7 @@
   <div>
    <div class="seo-card">
     <h2>Strony SEO</h2>
-    <div class="seo-field"><label for="seo-filter">Pokaż</label><select id="seo-filter" onchange="seoRenderList()"><option value="all">Wszystkie</option><option value="queued">Do przygotowania</option><option value="draft">Szkice i poprawki</option><option value="published">Opublikowane</option></select></div>
+    <div class="seo-field"><label for="seo-filter">Pokaż</label><select id="seo-filter" onchange="seoRenderList()"><option value="all">Wszystkie</option><option value="queued">Do przygotowania</option><option value="draft">Szkice i poprawki</option><option value="published">Opublikowane</option><option value="dismissed">Usunięte propozycje</option></select></div>
     <div class="seo-field"><label for="seo-find">Szukaj kierunku</label><input id="seo-find" type="search" oninput="seoRenderList()" placeholder="np. Tirana"></div>
     <div id="seo-list" class="seo-list"></div>
    </div>
@@ -927,7 +927,8 @@
   </div>
   <div class="seo-card" id="seo-editor"><div id="seo-empty" class="seo-muted">Wybierz stronę z listy. Nowe kierunki pobierzesz przyciskiem „Odśwież lokalizacje”.</div><div id="seo-work" hidden>
    <h2 id="seo-editor-title" class="seo-editor-title"></h2><div id="seo-source" class="seo-muted"></div>
-   <div class="seo-actions"><button class="btn-primary" type="button" id="seo-generate" onclick="seoGenerate()">Przygotuj PL i EN</button><button class="btn-secondary" type="button" onclick="seoSave()">Zapisz szkic</button></div>
+   <div class="seo-actions"><button class="btn-primary" type="button" id="seo-generate" onclick="seoGenerate()">Przygotuj PL i EN</button><button class="btn-secondary" type="button" id="seo-save" onclick="seoSave()">Zapisz szkic</button></div>
+   <div class="seo-actions"><button class="btn-secondary" type="button" id="seo-dismiss" onclick="seoDismiss()" hidden>Usuń propozycję SEO</button><button class="btn-secondary" type="button" id="seo-undismiss" onclick="seoRestoreDismissed()" hidden>Przywróć propozycję SEO</button></div>
    <div class="seo-actions seo-tabs"><button type="button" class="active" id="seo-tab-pl" onclick="seoLanguage('pl')">Polski</button><button type="button" id="seo-tab-en" onclick="seoLanguage('en')">English</button></div>
    <div id="seo-fields"></div>
    <div class="seo-field"><label for="seo-note">Uwagi do poprawy — np. komunikat z Google lub brakujące informacje</label><textarea id="seo-note" maxlength="2000" placeholder="Zapisz uwagi i kliknij Przygotuj PL i EN, aby otrzymać poprawiony szkic. Możesz też edytować tekst ręcznie."></textarea></div>
@@ -5203,7 +5204,7 @@ async function connectX() {
 
     </script>
 <script src="../assets/js/admin-travel-guides.js?v=20261009a"></script>
-<script type="module" src="../assets/js/admin-seo.js?v=20261014c"></script>
+<script type="module" src="../assets/js/admin-seo.js?v=20261023a"></script>
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">
         
