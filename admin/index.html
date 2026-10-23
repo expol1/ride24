@@ -4465,7 +4465,7 @@ function renderSimpleGoogleAdsCampaigns(campaigns) {
     if (!root) return;
     root.replaceChildren();
     if (!campaigns.length) {
-        root.textContent = "Nie ma jeszcze kampanii Google Ads. Przygotuj propozycję i zatwierdź jej uruchomienie.";
+        root.textContent = "Nie ma kampanii zapisanych w Ride24. Wcześniejsze kampanie nadal mogą istnieć w koncie Google Ads. Sprawdź ich stan w Google Ads przed uruchomieniem nowych reklam.";
         return;
     }
     const isActive = c => [c.google_status, c.status].some(value => String(value || "").toUpperCase() === "ENABLED");
@@ -4998,7 +4998,19 @@ async function runMarketingEngine() {
                 "marketing-engine"
             );
 
-        if (error) throw error;
+        if (error || data?.success === false) {
+            let body = data || null;
+            if (!body && error?.context) {
+                try {
+                    body = await error.context.clone().json();
+                } catch (_) { /* Some network failures do not include JSON. */ }
+            }
+            const exhausted = body?.code === "AI_CREDITS_EXHAUSTED" ||
+                /no credits remaining|credit_balance_exhausted|insufficient_quota/i.test(String(body?.error || ""));
+            throw new Error(exhausted
+                ? "Generator jest chwilowo niedostępny: na koncie OpenAI API zabrakło środków. Doładuj saldo w platform.openai.com → Billing. Nie zmieniono istniejących reklam."
+                : (body?.error || error?.message || "Nie udało się wygenerować reklamy."));
+        }
 
         alert(
 `Kampanii wygenerowano: ${data.generated_posts}
@@ -5017,7 +5029,7 @@ ${data.sample_location?.city || "BRAK"}`
     } catch (err) {
 
         alert(
-            "Błąd: " + err.message
+            "Nie udało się przygotować reklamy.\n\n" + err.message
         );
 
     } finally {
