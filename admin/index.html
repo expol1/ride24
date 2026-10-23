@@ -1943,14 +1943,40 @@ async function loadDeletionRequests() {
         const db = window.supabaseClient;
         let currentPromotionPostId = null;
         function openPromotionModal(id) {
-
     currentPromotionPostId = id;
+    const modal = document.getElementById("promotion-modal");
+    if (modal) modal.style.display = "flex";
+    void previewGoogleAdsBudget();
+}
 
-    document
-        .getElementById(
-            "promotion-modal"
-        )
-        .style.display = "flex";
+async function previewGoogleAdsBudget() {
+    const label = document.getElementById("google-promotion-budget");
+    const submit = document.querySelector('#promotion-modal button[onclick="confirmPromotion()"]');
+    if (!label || !currentPromotionPostId) return;
+    const selected = document.querySelector('input[name="promotion-days"]:checked');
+    const days = Number(selected?.value || 3);
+    label.style.color = "#475569";
+    label.textContent = "Obliczanie dostępnego budżetu Google Ads…";
+    if (submit) submit.disabled = true;
+    try {
+        const result = await db.rpc("validate_google_ads_promotion", {
+            p_post_id: Number(currentPromotionPostId), p_days: days
+        });
+        if (result.error || !result.data?.can_start || result.data?.success !== true) {
+            label.style.color = "#B91C1C";
+            label.textContent = "Nie można uruchomić: " +
+                (result.data?.error || result.error?.message || "brak potwierdzonego budżetu");
+            return;
+        }
+        const budget = result.data.budget;
+        label.textContent = "Szacowany budżet całkowity: " +
+            formatGoogleAdsMoney(budget?.estimated_total_budget) +
+            " · Czas: " + days + " dni. Jest to propozycja — ostateczne uruchomienie wymaga potwierdzenia.";
+        if (submit) submit.disabled = false;
+    } catch (error) {
+        label.style.color = "#B91C1C";
+        label.textContent = "Nie udało się sprawdzić budżetu. Reklama nie zostanie uruchomiona.";
+    }
 }
 
 function closePromotionModal() {
@@ -5713,6 +5739,7 @@ async function connectX() {
                 <input
                     type="radio"
                     name="promotion-days"
+                    onchange="previewGoogleAdsBudget()"
                     value="3"
                     checked>
 
@@ -5723,12 +5750,15 @@ async function connectX() {
                 <input
                     type="radio"
                     name="promotion-days"
+                    onchange="previewGoogleAdsBudget()"
                     value="7">
 
                 7 dni
             </label>
 
         </div>
+
+        <p id="google-promotion-budget" style="text-align:left;font-size:13px;line-height:1.5;color:#475569" role="status">Obliczanie budżetu…</p>
 
         <div style="
             margin-top:25px;
