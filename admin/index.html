@@ -4563,6 +4563,7 @@ async function loadGoogleAdsDashboard() {
             </td>
         </tr>
     `;
+    setGoogleAdsDashboardText("marketing-simple-last-sync", "Aktualność wyników: sprawdzam…");
 
     const { data, error } = await db.rpc(
         "get_google_ads_admin_dashboard",
@@ -4584,6 +4585,12 @@ async function loadGoogleAdsDashboard() {
         `;
 
         setGoogleAdsDashboardText("google-ads-last-sync", "Błąd pobierania danych");
+        setGoogleAdsDashboardText("marketing-simple-active", "Nieznany");
+        setGoogleAdsDashboardText("marketing-simple-cost", "Nieznany");
+        setGoogleAdsDashboardText("marketing-simple-last-sync",
+            "Nie udało się sprawdzić kampanii. Odśwież dane przed podjęciem decyzji.");
+        const simple = document.getElementById("marketing-simple-campaigns");
+        if (simple) simple.textContent = "Brak aktualnych danych. Możesz sprawdzić reklamy w panelu Google Ads.";
         return;
     }
 
@@ -4597,6 +4604,13 @@ async function loadGoogleAdsDashboard() {
         "google-ads-active-campaigns",
         formatGoogleAdsNumber(summary.active_campaigns)
     );
+    setGoogleAdsDashboardText("marketing-simple-active",
+        formatGoogleAdsNumber(summary.active_campaigns));
+    setGoogleAdsDashboardText("marketing-simple-cost",
+        summary.last_metrics_update
+            ? formatGoogleAdsMoney(summary.cost)
+            : "Brak potwierdzonych danych");
+    renderSimpleGoogleAdsCampaigns(campaigns);
 
     setGoogleAdsDashboardText(
         "google-ads-cost",
@@ -4641,9 +4655,14 @@ async function loadGoogleAdsDashboard() {
     setGoogleAdsDashboardText(
         "google-ads-last-sync",
         lastSync
-            ? "Dane: " + formatGoogleAdsDate(lastSync, true)
-            : "Brak zapisanych metryk — kampanie testowe nie miały emisji"
+            ? "Ostatni zapis: " + formatGoogleAdsDate(lastSync, true)
+            : "Brak zapisanej aktualizacji"
     );
+    setGoogleAdsDashboardText("marketing-simple-last-sync",
+        lastSync
+            ? "Ostatni zapis w bazie: " + formatGoogleAdsDate(lastSync, true) +
+              ". Statusy i koszty mogą być opóźnione względem Google."
+            : "Brak zapisanej aktualizacji Google Ads. Sprawdź rzeczywisty stan przed uruchomieniem reklamy.");
 
     if (!campaigns.length) {
         tbody.innerHTML = `
