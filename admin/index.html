@@ -1998,6 +1998,8 @@ function closePromotionModal() {
             loadMarketingRuns();
             loadMarketingQueue();
             loadGoogleAdsDashboard();
+            if (typeof loadGoogleAdLocations === "function") loadGoogleAdLocations();
+            if (typeof loadGoogleAdsDrafts === "function") loadGoogleAdsDrafts();
         });
 
         // --- NAWIGACJA ---
@@ -2016,6 +2018,8 @@ function closePromotionModal() {
                 loadMarketingRuns();
                 loadMarketingQueue();
                 loadGoogleAdsDashboard();
+                if (typeof loadGoogleAdLocations === "function") loadGoogleAdLocations();
+                if (typeof loadGoogleAdsDrafts === "function") loadGoogleAdsDrafts();
             }
             if (tabId === "guides") {
 
@@ -3129,6 +3133,7 @@ async function loadMarketingQueue() {
     await db
         .from("marketing_queue")
         .select("*")
+        .neq("platform", "google_ads")
         .order(
             "created_at",
             {
@@ -3366,21 +3371,6 @@ ${post.is_manual ? true : false}
 : ""
 }
 
-${
-post.status === "published" &&
-!isActivePromotion
-? `
-<button
-    class="btn-warning"
-    style="width:130px;"
-    onclick="promoteMarketingPost(${post.id})">
-
-     Promuj w Google Ads
-
-</button>
-`
-: ""
-}
 ${
 isActivePromotion
 ? `
