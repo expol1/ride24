@@ -1,55 +1,20 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="pl">
 <head>
-<meta charset="utf-8">
-<title>Ride24 X Connect</title>
-
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ride24 — integracja X wyłączona</title>
+  <style>
+    body { font: 16px/1.6 system-ui, sans-serif; padding: min(10vw, 60px); background: #f5f8fb; color: #102b48; }
+    main { max-width: 640px; margin: 0 auto; padding: 28px; background: white; border-radius: 14px; }
+    a { color: #1768bd; }
+  </style>
 </head>
-
 <body>
-
-<h2>Łączenie X...</h2>
-
-<script>
-
-const supabaseUrl =
-    "https://zwyerdeuvyzgkgwglowr.supabase.co";
-
-const supabaseKey =
-    "sb_publishable_KMeRBCZCQH-S0Ubnr80v6w_Gub3vcQf";
-
-const db =
-    supabase.createClient(
-        supabaseUrl,
-        supabaseKey
-    );
-
-const params =
-    new URLSearchParams(
-        window.location.search
-    );
-
-const code =
-    params.get("code");
-
-document.body.innerHTML =
-`
-<h2>
-Kod OAuth odebrany
-</h2>
-
-<p>
-${code ? "OK" : "BRAK"}
-</p>
-`;
-
-console.log(
-    "X CODE:",
-    code
-);
-
-</script>
-
+  <main>
+    <h1>Publikowanie na X (Twitter) jest wyłączone</h1>
+    <p>Ride24 pozostawia publikowanie postów społecznościowych wyłącznie na Facebooku. Nie uruchamiamy połączenia X ani płatnego API.</p>
+    <p><a href="/admin/">Wróć do panelu administratora</a></p>
+  </main>
 </body>
 </html>
