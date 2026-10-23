@@ -1,78 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
 <head>
-<meta charset="UTF-8">
-<title>Łączenie X</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ride24 — integracja X wyłączona</title>
+  <style>
+    body { font: 16px/1.6 system-ui, sans-serif; padding: min(10vw, 60px); background: #f5f8fb; color: #102b48; }
+    main { max-width: 640px; margin: 0 auto; padding: 28px; background: white; border-radius: 14px; }
+    a { color: #1768bd; }
+  </style>
 </head>
-
 <body>
-
-<h2>Łączenie konta X...</h2>
-
-<script>
-
-const CLIENT_ID =
-    "c01GN2Y5cUFtOW1iR0NxUkk4cG06MTpjaQ";
-
-const REDIRECT_URI =
-    "https://ride24.pl/admin/x-callback.html";
-
-async function generateChallenge() {
-
-    const verifier =
-        crypto.randomUUID() +
-        crypto.randomUUID();
-
-    sessionStorage.setItem(
-        "x_code_verifier",
-        verifier
-    );
-
-    const encoder =
-        new TextEncoder();
-
-    const data =
-        encoder.encode(verifier);
-
-    const digest =
-        await crypto.subtle.digest(
-            "SHA-256",
-            data
-        );
-
-    const challenge =
-        btoa(
-            String.fromCharCode(
-                ...new Uint8Array(digest)
-            )
-        )
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-
-    const state =
-        crypto.randomUUID();
-
-    const authUrl =
-        "https://twitter.com/i/oauth2/authorize" +
-        "?response_type=code" +
-        "&client_id=" + CLIENT_ID +
-        "&redirect_uri=" +
-        encodeURIComponent(
-            REDIRECT_URI
-        ) +
-        "&scope=tweet.read tweet.write users.read offline.access" +
-        "&state=" + state +
-        "&code_challenge=" + challenge +
-        "&code_challenge_method=S256";
-
-    window.location.href =
-        authUrl;
-}
-
-generateChallenge();
-
-</script>
-
+  <main>
+    <h1>Publikowanie na X (Twitter) jest wyłączone</h1>
+    <p>Ride24 pozostawia publikowanie postów społecznościowych wyłącznie na Facebooku. Nie uruchamiamy połączenia X ani płatnego API.</p>
+    <p><a href="/admin/">Wróć do panelu administratora</a></p>
+  </main>
 </body>
 </html>
