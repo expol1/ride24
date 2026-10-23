@@ -1019,6 +1019,72 @@
             </div>
             <p id="google-creative-message" role="status" aria-live="polite" style="font-size:12px;margin:10px 0 0"></p>
         </div>
+        <div id="google-custom-form" style="border:1px solid #DEE7F2;background:#F8FAFC;border-radius:12px;padding:16px;margin-bottom:20px">
+            <h3 style="margin:0 0 8px;color:#102B48">Własna reklama Google Ads — tekst i grafika</h3>
+            <p style="font-size:12px;color:#516477;margin:0 0 14px">
+              Możesz reklamować Ride24 lub stronę promującą aplikację. Własne materiały zostaną zapisane jako szkic,
+              a reklama Google Ads wymaga osobnego zatwierdzenia. Formaty obrazu zostaną przygotowane automatycznie.
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px">
+              <div>
+                <label for="google-custom-objective" style="display:block;font-weight:600;font-size:12px;margin-bottom:6px">Co chcesz reklamować?</label>
+                <select id="google-custom-objective" class="smart-input" onchange="googleCustomObjectiveChanged()" style="width:100%">
+                  <option value="rental">Wynajem samochodów Ride24 (PMax)</option>
+                  <option value="app_website">Aplikacja Ride24 — reklama strony internetowej</option>
+                  <option value="app_install">Instalacje aplikacji — osobny szkic App Campaign</option>
+                </select>
+              </div>
+              <div>
+                <label for="google-custom-final-url" style="display:block;font-weight:600;font-size:12px;margin-bottom:6px">Strona docelowa reklamy (HTTPS ride24.pl)</label>
+                <input id="google-custom-final-url" class="smart-input" value="https://ride24.pl/" maxlength="2000" placeholder="https://ride24.pl/" style="width:100%" autocomplete="url">
+              </div>
+            </div>
+            <p id="google-custom-type-description" style="font-size:12px;color:#475569;margin:9px 0 15px">
+              Własna reklama Performance Max kierująca do strony Ride24.
+            </p>
+            <div id="google-custom-app-label" hidden>
+              <label for="google-custom-app-url" style="display:block;font-weight:600;font-size:12px;margin-bottom:6px">Link do aplikacji w Google Play</label>
+              <input id="google-custom-app-url" class="smart-input" maxlength="600" placeholder="https://play.google.com/store/apps/details?id=..." style="width:100%;margin-bottom:12px" autocomplete="url">
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-bottom:14px">
+              <div>
+                <label for="google-custom-headline1" style="font-size:12px;font-weight:600">Nagłówek 1 — do 30 znaków</label>
+                <input id="google-custom-headline1" class="smart-input" maxlength="30" placeholder="Ride24 — wygodny wynajem" style="width:100%">
+              </div>
+              <div>
+                <label for="google-custom-headline2" style="font-size:12px;font-weight:600">Nagłówek 2 — do 30 znaków</label>
+                <input id="google-custom-headline2" class="smart-input" maxlength="30" placeholder="Wynajem bez karty kredytowej" style="width:100%">
+              </div>
+              <div>
+                <label for="google-custom-headline3" style="font-size:12px;font-weight:600">Nagłówek 3 — do 30 znaków</label>
+                <input id="google-custom-headline3" class="smart-input" maxlength="30" placeholder="Pełne ubezpieczenie" style="width:100%">
+              </div>
+            </div>
+            <label for="google-custom-long-headline" style="font-size:12px;font-weight:600">Długi nagłówek — do 90 znaków</label>
+            <input id="google-custom-long-headline" class="smart-input" maxlength="90" style="width:100%;margin-bottom:12px" placeholder="Odkrywaj świat z Ride24">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-bottom:14px">
+              <div>
+                <label for="google-custom-description1" style="font-size:12px;font-weight:600">Opis 1 — do 90 znaków</label>
+                <textarea id="google-custom-description1" class="smart-input" maxlength="90" rows="3" style="width:100%"></textarea>
+              </div>
+              <div>
+                <label for="google-custom-description2" style="font-size:12px;font-weight:600">Opis 2 — do 90 znaków</label>
+                <textarea id="google-custom-description2" class="smart-input" maxlength="90" rows="3" style="width:100%"></textarea>
+              </div>
+            </div>
+            <label for="google-custom-image" style="font-size:12px;font-weight:600">Własna grafika (JPG/PNG/WebP, do 12 MB)</label>
+            <input id="google-custom-image" type="file" accept="image/jpeg,image/png,image/webp" onchange="googleCustomPreview()" style="display:block;margin:7px 0 12px;max-width:100%">
+            <img id="google-custom-preview" alt="Podgląd własnej grafiki Google Ads" hidden style="max-width:min(440px,100%);height:auto;border:1px solid #CBD5E1;border-radius:8px;margin:0 0 12px">
+            <p style="font-size:12px;color:#64748B;margin:4px 0 12px">
+              Google Ads Performance Max wymaga grafiki poziomej 1,91:1 oraz kwadratowej 1:1. System przygotuje obie z Twojego pliku, bez obcinania napisu i logo.
+              Grafiki oraz teksty podlegają zasadom Google Ads i mogą zostać odrzucone podczas weryfikacji przez Google.
+            </p>
+            <div class="marketing-simple-actions" style="margin:0">
+              <button id="google-custom-submit" type="button" class="btn-primary" onclick="createGoogleAdsCustomDraft()">Zapisz własny szkic Google Ads</button>
+              <button type="button" class="btn-secondary" onclick="resetGoogleAdsCustomForm()">Wyczyść formularz</button>
+            </div>
+            <p id="google-custom-message" role="status" aria-live="polite" style="font-size:12px;margin:10px 0 0"></p>
+        </div>
         <div class="marketing-simple-list">
             <h3>2. Osobne szkice Google Ads</h3>
             <p>Zatwierdzisz propozycję Google Ads i dopiero potem wybierzesz czas i uruchomisz płatną kampanię. Ta funkcja nie publikuje postów na Facebooku.</p>
@@ -1706,6 +1772,7 @@
     <script src="../assets/js/admin-smart-search.js?v=20261023a"></script>
     <script src="../assets/js/admin-api-readiness.js?v=20261021a"></script>
 <script src="../assets/js/admin-google-ads-drafts.js?v=20261023a" defer></script>
+<script src="../assets/js/admin-google-ads-custom.js?v=20261023b" defer></script>
 
     <script>
         async function loadMessages() {
