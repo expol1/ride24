@@ -1001,7 +1001,7 @@
             Sprawdzam aktualne kampanie i ustawienia. Reklamy uruchamiają się dopiero po zatwierdzeniu wydatku.
         </p>
         <div class="marketing-simple-stats">
-            <div class="marketing-simple-stat"><small>Ustalony limit na miesiąc</small><strong id="marketing-simple-budget">Sprawdzam…</strong></div>
+            <div class="marketing-simple-stat"><small>Budżet miesięczny w Ride24</small><strong id="marketing-simple-budget">Sprawdzam…</strong></div>
             <div class="marketing-simple-stat"><small>Aktywne kampanie</small><strong id="marketing-simple-active">Sprawdzam…</strong></div>
             <div class="marketing-simple-stat"><small>Zarejestrowany koszt z ostatnich 30 dni</small><strong id="marketing-simple-cost">Brak danych</strong></div>
         </div>
@@ -1009,10 +1009,11 @@
             <button type="button" class="btn-primary" id="marketing-simple-generate" onclick="runMarketingEngine()">1. Przygotuj propozycję reklamy</button>
             <button type="button" class="btn-success" onclick="goToMarketingProposals()">2. Zobacz i zatwierdź propozycje</button>
             <button type="button" class="btn-secondary" onclick="openMarketingAdvanced('monthly-budget')">Zmień budżet</button>
+            <button type="button" class="btn-secondary" onclick="synchronizeGoogleAdsDashboard(this)">Sprawdź stan w Google</button>
         </div>
         <div class="marketing-simple-list">
             <h3>Reklamy i ich wyłączanie</h3>
-            <p>Zatrzymanie wybranej reklamy wymaga potwierdzenia. Nie wyłącza innych kampanii ani konta Google.</p>
+            <p>Zatrzymanie wybranej reklamy wymaga potwierdzenia. Nie wyłącza innych kampanii ani konta Google. Dane i limity Ride24 nie zastępują limitów rozliczeń po stronie Google.</p>
             <div id="marketing-simple-campaigns" aria-live="polite">Wczytywanie kampanii…</div>
         </div>
         <p style="font-size:12px;color:#64748B;margin:9px 0 0" id="marketing-simple-last-sync">Aktualność wyników: sprawdzam…</p>
@@ -3343,7 +3344,7 @@ this,
 ${post.is_manual ? true : false}
 )">
 
-    Publikuj
+    Publikuj post
 
 </button>
 `
@@ -3359,7 +3360,7 @@ post.status === "published" &&
     style="width:130px;"
     onclick="promoteMarketingPost(${post.id})">
 
-     Promuj
+     Promuj w Google Ads
 
 </button>
 `
@@ -3373,7 +3374,7 @@ isActivePromotion
     style="width:130px;"
     onclick="stopPromotion(${post.id})">
 
-    Zakończ
+    Zatrzymaj reklamę
 
 </button>
 `
@@ -4467,7 +4468,7 @@ function renderSimpleGoogleAdsCampaigns(campaigns) {
         root.textContent = "Nie ma jeszcze kampanii Google Ads. Przygotuj propozycję i zatwierdź jej uruchomienie.";
         return;
     }
-    const isActive = c => String(c.google_status || c.status || "").toUpperCase() === "ENABLED";
+    const isActive = c => [c.google_status, c.status].some(value => String(value || "").toUpperCase() === "ENABLED");
     const sorted = [...campaigns].sort((a, b) => Number(isActive(b)) - Number(isActive(a)));
     for (const campaign of sorted) {
         const active = isActive(campaign);
@@ -4477,7 +4478,11 @@ function renderSimpleGoogleAdsCampaigns(campaigns) {
         const name = document.createElement("strong");
         name.textContent = campaign.campaign_name || "Reklama Ride24";
         const status = document.createElement("small");
-        const statusText = active ? "Aktywna" :
+        const statusText = active ? (
+            String(campaign.google_status || "").toUpperCase() === "PAUSED"
+                ? "Weryfikacja konieczna — statusy różnią się"
+                : "Aktywna"
+        ) :
             String(campaign.google_status || campaign.status || "").toUpperCase() === "PAUSED" ? "Wstrzymana" : "Nieaktywna / do weryfikacji";
         status.textContent = "Status w bazie: " + statusText +
             " · Budżet dzienny: " + formatGoogleAdsMoney(campaign.daily_budget);
