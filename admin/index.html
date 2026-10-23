@@ -1184,7 +1184,7 @@
      style="grid-column: span 2;">
 
     <div class="stat-title">
-        Ustawienia Marketing AI
+        Ustawienia budżetu reklam Google Ads
     </div>
 
     <div style="
@@ -3021,8 +3021,8 @@ async function loadMarketingSettings() {
     setGoogleAdsDashboardText("marketing-simple-budget", formatGoogleAdsMoney(data.monthly_budget));
     setGoogleAdsDashboardText("marketing-simple-overview",
         data.is_active
-            ? "Automat przygotowuje propozycje. Płatną reklamę uruchamiasz dopiero po zatwierdzeniu. Każdą możesz osobno zatrzymać."
-            : "Automatyczne przygotowywanie reklam jest wyłączone. Istniejące kampanie Google sprawdź poniżej — mogą wymagać osobnego zatrzymania."
+            ? "Google Ads: przygotuj oddzielny szkic poniżej, zatwierdź treść i budżet. Posty Facebook/Instagram/X znajdują się w osobnym module."
+            : "Ustawienia marketingu są wyłączone. Utworzone wcześniej kampanie Google Ads mogą nadal wymagać zatrzymania."
     );
 
     document.getElementById(
@@ -4897,7 +4897,8 @@ async function loadMarketingStats() {
             .select("*", {
                 count: "exact",
                 head: true
-            });
+            })
+            .neq("platform", "google_ads");
 
     document.getElementById(
         "marketing-posts"
@@ -5049,7 +5050,7 @@ async function runMarketingEngine() {
         }
 
         alert(
-`Kampanii wygenerowano: ${data.generated_posts}
+`Postów społecznościowych wygenerowano: ${data.generated_posts}
 
 Przeanalizowano lokalizacji: ${data.locations_found}
 
