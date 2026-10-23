@@ -998,7 +998,7 @@
     <section class="marketing-simple" id="marketing-simple" aria-labelledby="marketing-simple-title">
         <h2 id="marketing-simple-title">Google Ads — prosta obsługa</h2>
         <p class="marketing-simple-desc" id="marketing-simple-overview" role="status" aria-live="polite">
-            Google Ads to osobny system. Propozycje tutaj nie są postami Facebook/Instagram/X. Płatna kampania wymaga Twojego zatwierdzenia.
+            Google Ads to osobny system. Propozycje tutaj nie są postami Facebooka. Płatna kampania wymaga Twojego zatwierdzenia.
         </p>
         <div class="marketing-simple-stats">
             <div class="marketing-simple-stat"><small>Budżet miesięczny w Ride24</small><strong id="marketing-simple-budget">Sprawdzam…</strong></div>
@@ -1021,7 +1021,7 @@
         </div>
         <div class="marketing-simple-list">
             <h3>2. Osobne szkice Google Ads</h3>
-            <p>Zatwierdzisz propozycję Google Ads i dopiero potem wybierzesz czas i uruchomisz płatną kampanię. Żadne posty nie są publikowane na Facebooku ani Instagramie.</p>
+            <p>Zatwierdzisz propozycję Google Ads i dopiero potem wybierzesz czas i uruchomisz płatną kampanię. Ta funkcja nie publikuje postów na Facebooku.</p>
             <div id="google-ads-drafts" aria-live="polite">Ładowanie propozycji…</div>
         </div>
         <div class="marketing-simple-list">
@@ -1356,10 +1356,10 @@
 
 </details>
 <div id="marketing-proposals" class="table-container" style="margin-top:20px;">
-<p style="padding:15px 20px 0;color:#64748B;font-size:13px">Osobny generator postów społecznościowych. Ich publikacja nie jest uruchomieniem Google Ads. Reklamy Google tworzy się wyżej.</p>
+<p style="padding:15px 20px 0;color:#64748B;font-size:13px">Generator postów na Facebooka. Publikacja na Facebooku nie uruchamia reklam Google Ads — to osobny moduł powyżej.</p>
 
    <div class="table-header">
-    Social Media AI — posty Facebook, Instagram i X
+    Social Media AI — tylko Facebook
 </div>
 
 <div style="padding:20px; display:flex; gap:12px; flex-wrap:wrap;">
@@ -1384,17 +1384,7 @@
         Facebook
     </button>
 
-    <button
-    class="btn-success"
-    onclick="connectX()"
-    id="connect-x-btn"
-    style="
-        background:#000;
-        border-color:#000;
-        color:#fff;
-    ">
-    X (Twitter)
-</button>
+
 
 
 
@@ -3021,7 +3011,7 @@ async function loadMarketingSettings() {
     setGoogleAdsDashboardText("marketing-simple-budget", formatGoogleAdsMoney(data.monthly_budget));
     setGoogleAdsDashboardText("marketing-simple-overview",
         data.is_active
-            ? "Google Ads: przygotuj oddzielny szkic poniżej, zatwierdź treść i budżet. Posty Facebook/Instagram/X znajdują się w osobnym module."
+            ? "Google Ads: przygotuj oddzielny szkic poniżej, zatwierdź treść i budżet. Posty Facebooka znajdują się w osobnym module."
             : "Ustawienia marketingu są wyłączone. Utworzone wcześniej kampanie Google Ads mogą nadal wymagać zatrzymania."
     );
 
@@ -3204,7 +3194,7 @@ if (aiError || manualError) {
 
 const data = [
 
-    ...(aiPosts || []),
+    ...(aiPosts || []).filter(post => !["x","instagram"].includes(post.platform)),
 
     ...(manualPosts || []).map(
     post => ({
@@ -3253,10 +3243,9 @@ data.sort(
 
     const platformMap = {
     facebook: "Facebook",
-    instagram: "Instagram",
-    x: "X (Twitter)",
-    all: "Facebook + Instagram + X",
-    manual: "Manual"
+    // Legacy "all" drafts still publish exclusively to Facebook.
+    all: "Facebook",
+    manual: "Facebook (ręczny)"
     
 };
 
@@ -3395,7 +3384,7 @@ this,
 ${post.is_manual ? true : false}
 )">
 
-    Publikuj post
+    Publikuj na Facebooku
 
 </button>
 `
@@ -3715,7 +3704,7 @@ async function publishMarketingPost(
             const { error: insertError } = await db
                 .from("marketing_queue")
                 .insert({
-                    platform: "all",
+                    platform: "facebook",
                     status: "draft",
                     content: manualPost.content,
                     image_url: manualPost.image_url,
@@ -3737,7 +3726,7 @@ async function publishMarketingPost(
 
             await showAdminNotice(
                 "Post dodany do kolejki",
-                "Post ręczny został przeniesiony do kolejki marketingowej."
+                "Post ręczny został przeniesiony do kolejki Facebooka."
             );
 
             return;
@@ -3767,7 +3756,7 @@ async function publishMarketingPost(
         ]);
 
         await showAdminNotice(
-            "Post opublikowany",
+            "Opublikowano na Facebooku",
             "Facebook potwierdził publikację posta."
         );
 
@@ -4958,29 +4947,7 @@ async function connectFacebook() {
         "width=800,height=700"
     );
 }
-async function connectX() {
 
-    try {
-
-        const { data: { session } } =
-            await db.auth.getSession();
-
-        if (!session) {
-            alert("Sesja wygasła.");
-            return;
-        }
-
-        window.location.href =
-            "https://ride24.pl/x-connect.html";
-
-    } catch (err) {
-
-        console.error(err);
-        alert(err.message);
-
-    }
-
-}
 
 async function connectGoogleAds() {
 
@@ -5410,29 +5377,7 @@ hereinafter referred to as the “Partner”.
     generateAgreement(partner);
 }
   
-async function connectX() {
 
-    try {
-
-        const { data: { session } } =
-            await db.auth.getSession();
-
-        if (!session) {
-            alert("Sesja wygasła.");
-            return;
-        }
-
-        window.location.href =
-            "https://ride24.pl/x-connect.html";
-
-    } catch(err) {
-
-        console.error(err);
-        alert(err.message);
-
-    }
-
-}
 
     </script>
 <script src="../assets/js/admin-travel-guides.js?v=20261009a"></script>
