@@ -328,6 +328,32 @@
         .smart-input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px #DBEAFE; }
 
 
+
+/* Beginner Google Ads panel; existing OAuth and advertising flows stay unchanged. */
+.marketing-simple { margin-bottom:20px;padding:22px;border:1px solid #D9E5F4;background:#fff;border-radius:16px;box-shadow:0 5px 22px rgba(15,23,42,.04); }
+.marketing-simple h2 {margin:0 0 5px;font-size:21px;color:#102B48;}
+.marketing-simple-desc {color:#566980;font-size:13px;line-height:1.6;margin:0 0 18px;}
+.marketing-simple-stats {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+.marketing-simple-stat {background:#F6F9FD;border:1px solid #E2EAF3;border-radius:12px;padding:14px;}
+.marketing-simple-stat small {display:block;color:#64748B;font-size:12px;margin-bottom:6px;}
+.marketing-simple-stat strong {font-size:21px;color:#173958;overflow-wrap:anywhere;}
+.marketing-simple-actions {display:flex;gap:9px;flex-wrap:wrap;margin:12px 0 20px;}
+.marketing-simple-actions button {min-height:42px;}
+.marketing-simple-list {border-top:1px solid #E2E8F0;padding-top:17px;}
+.marketing-simple-list h3 {margin:0 0 4px;font-size:17px;color:#153858;}
+.marketing-simple-list p {color:#65758A;font-size:12px;margin:0 0 12px;line-height:1.5;}
+.marketing-simple-campaign {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:9px;background:#fff;}
+.marketing-simple-campaign strong {display:block;color:#102B48;font-size:14px;overflow-wrap:anywhere;}
+.marketing-simple-campaign small {display:block;color:#64748B;margin-top:5px;font-size:12px;}
+.marketing-simple-campaign button {flex-shrink:0;min-height:38px;background:#C62828;color:#fff;border:0;border-radius:8px;padding:8px 13px;font-weight:700;cursor:pointer;}
+.marketing-simple-campaign button:disabled {opacity:.55;cursor:wait;}
+.marketing-simple-campaign.is-active {border-color:#B9D9C1;background:#F8FCF8;}
+.marketing-advanced {margin:0 0 20px;}
+.marketing-advanced > summary {cursor:pointer;background:#F3F7FC;border:1px solid #E2E8F0;border-radius:10px;padding:13px 16px;color:#193F61;font-weight:700;margin-bottom:14px;}
+.marketing-advanced > summary::before {content:"›";display:inline-block;margin-right:9px;font-size:18px;}
+.marketing-advanced[open] > summary::before {transform:rotate(90deg);}
+@media(max-width:700px) {.marketing-simple{padding:14px}.marketing-simple-stats{grid-template-columns:1fr;gap:8px}.marketing-simple-campaign{align-items:flex-start;flex-direction:column}.marketing-simple-actions{flex-direction:column}.marketing-simple-actions button{width:100%;}.marketing-simple-campaign button{width:100%;}}
+
 /* --- GOOGLE ADS DASHBOARD --- */
 .google-ads-panel {
     margin-top: 20px;
@@ -619,6 +645,31 @@
         <h1 class="page-title">Radar (Statystyki na żywo)</h1>
     </div>
 
+
+    <section class="marketing-simple" id="marketing-simple" aria-labelledby="marketing-simple-title">
+        <h2 id="marketing-simple-title">Google Ads — prosta obsługa</h2>
+        <p class="marketing-simple-desc" id="marketing-simple-overview" role="status" aria-live="polite">
+            Sprawdzam aktualne kampanie i ustawienia. Reklamy uruchamiają się dopiero po zatwierdzeniu wydatku.
+        </p>
+        <div class="marketing-simple-stats">
+            <div class="marketing-simple-stat"><small>Ustalony limit na miesiąc</small><strong id="marketing-simple-budget">Sprawdzam…</strong></div>
+            <div class="marketing-simple-stat"><small>Aktywne kampanie</small><strong id="marketing-simple-active">Sprawdzam…</strong></div>
+            <div class="marketing-simple-stat"><small>Zarejestrowany koszt z ostatnich 30 dni</small><strong id="marketing-simple-cost">Brak danych</strong></div>
+        </div>
+        <div class="marketing-simple-actions">
+            <button type="button" class="btn-primary" id="marketing-simple-generate" onclick="runMarketingEngine()">1. Przygotuj propozycję reklamy</button>
+            <button type="button" class="btn-success" onclick="goToMarketingProposals()">2. Zobacz i zatwierdź propozycje</button>
+            <button type="button" class="btn-secondary" onclick="openMarketingAdvanced('monthly-budget')">Zmień budżet</button>
+        </div>
+        <div class="marketing-simple-list">
+            <h3>Reklamy i ich wyłączanie</h3>
+            <p>Zatrzymanie wybranej reklamy wymaga potwierdzenia. Nie wyłącza innych kampanii ani konta Google.</p>
+            <div id="marketing-simple-campaigns" aria-live="polite">Wczytywanie kampanii…</div>
+        </div>
+        <p style="font-size:12px;color:#64748B;margin:9px 0 0" id="marketing-simple-last-sync">Aktualność wyników: sprawdzam…</p>
+    </section>
+    <details id="marketing-advanced" class="marketing-advanced">
+        <summary>Ustawienia zaawansowane, statystyki i szczegóły Google Ads</summary>
     <div class="stats-grid">
         <div class="stat-card" style="border-left: 4px solid #3B82F6;">
             <div class="stat-title">Aktywne Rezerwacje (Wszystkie)</div>
@@ -1017,8 +1068,8 @@
 
         <div class="stat-card">
             <div class="stat-title">Status</div>
-            <div class="stat-value" style="color:#16A34A;">
-                AKTYWNY
+            <div class="stat-value" id="marketing-operation-status" style="color:#64748B;">
+                SPRAWDZAM
             </div>
         </div>
         <div class="stat-card">
@@ -1272,10 +1323,11 @@
     </div>
 </div>
 
-<div class="table-container" style="margin-top:20px;">
+</details>
+<div id="marketing-proposals" class="table-container" style="margin-top:20px;">
 
    <div class="table-header">
-    Wygenerowane posty AI
+    Wygenerowane posty AI — sprawdź przed uruchomieniem płatnej reklamy
 </div>
 
 <div style="padding:20px; display:flex; gap:12px; flex-wrap:wrap;">
@@ -1312,6 +1364,7 @@
     X (Twitter)
 </button>
 
+<details style="width:100%;padding-top:5px"><summary style="font-size:12px;cursor:pointer;color:#64748B">Ponowne łączenie kont (tylko w razie potrzeby)</summary>
 <button
     class="btn-success"
     onclick="connectGoogleAds()"
@@ -1323,6 +1376,7 @@
     ">
     Google Ads
 </button>
+</details>
 
 </div>
 
