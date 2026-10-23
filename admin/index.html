@@ -4045,9 +4045,10 @@ async function confirmPromotion() {
                
 
 async function stopPromotion(id) {
-
+    const postId = Number(id);
+    if (!Number.isSafeInteger(postId) || postId <= 0 || googleAdsStopPending.has(postId)) return;
     const confirmed = confirm(
-        "Zakończyć promocję Google Ads?\n\n" +
+        "Zatrzymać tę reklamę Google Ads?\n\n" +
         "Kampania zostanie najpierw zatrzymana w Google Ads, " +
         "a dopiero potem oznaczona jako zakończona w panelu."
     );
@@ -4055,6 +4056,11 @@ async function stopPromotion(id) {
     if (!confirmed) {
         return;
     }
+    googleAdsStopPending.add(postId);
+    document.querySelectorAll('[data-google-stop-post="' + postId + '"]').forEach(button => {
+        button.disabled = true;
+        button.textContent = "Zatrzymywanie…";
+    });
 
     try {
 
@@ -4062,7 +4068,7 @@ async function stopPromotion(id) {
             "google-ads-stop-campaign",
             {
                 body: {
-                    postId: Number(id)
+                    postId
                 }
             }
         );
@@ -4155,6 +4161,12 @@ async function stopPromotion(id) {
             (error?.message || "Nieznany błąd.") +
             "\n\nStatus promocji w bazie nie został celowo zmieniony."
         );
+    } finally {
+        googleAdsStopPending.delete(postId);
+        document.querySelectorAll('[data-google-stop-post="' + postId + '"]').forEach(button => {
+            button.disabled = false;
+            button.textContent = "Zatrzymaj reklamę";
+        });
     }
 }
 
@@ -4964,8 +4976,12 @@ async function runMarketingEngine() {
             "generate-posts-btn"
         );
 
+    if (btn.disabled) return;
+    const simpleBtn = document.getElementById("marketing-simple-generate");
     btn.disabled = true;
+    if (simpleBtn) simpleBtn.disabled = true;
     btn.innerText = "Generowanie...";
+    if (simpleBtn) simpleBtn.textContent = "Przygotowywanie…";
 
     try {
 
@@ -4999,6 +5015,10 @@ ${data.sample_location?.city || "BRAK"}`
     } finally {
 
         btn.disabled = false;
+        if (simpleBtn) {
+            simpleBtn.disabled = false;
+            simpleBtn.textContent = "1. Przygotuj propozycję reklamy";
+        }
         btn.innerText =
             "Generuj posty";
     }
