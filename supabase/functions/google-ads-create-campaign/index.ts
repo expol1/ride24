@@ -1594,13 +1594,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
       "assetGroups",
     );
 
+    // Resolve actual asset resource names returned for the user's uploaded artwork.
+    const uploadedImageResources = creative && googleData && typeof googleData === "object"
+      ? operations.flatMap((op, index) => {
+          if (!op.assetOperation?.create?.imageAsset?.data) return [];
+          try {
+            return [{
+              fieldType: operations[index + 1]?.assetGroupAssetOperation?.create?.fieldType,
+              resource: operationResponseResourceName(googleData, index, "assetResult"),
+            }];
+          } catch { return []; }
+        })
+      : [];
     const finalGoogleAssetResourceNames = {
       headlines: repeatedTextAssets.headlineResourceNames,
       longHeadline: createdResources.longHeadlineAssetResourceName,
       descriptions: repeatedTextAssets.descriptionResourceNames,
       businessName: createdResources.businessNameAssetResourceName,
-      landscapeImages: GOOGLE_IMAGE_ASSETS.landscape,
-      squareImages: GOOGLE_IMAGE_ASSETS.square,
+      landscapeImages: creative
+        ? uploadedImageResources.filter(a=>a.fieldType==="MARKETING_IMAGE").map(a=>a.resource)
+        : GOOGLE_IMAGE_ASSETS.landscape,
+      squareImages: creative
+        ? uploadedImageResources.filter(a=>a.fieldType==="SQUARE_MARKETING_IMAGE").map(a=>a.resource)
+        : GOOGLE_IMAGE_ASSETS.square,
       logo: GOOGLE_IMAGE_ASSETS.logo,
     };
 
