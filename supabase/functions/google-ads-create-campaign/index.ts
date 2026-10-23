@@ -689,6 +689,50 @@ async function resolveRepeatedTextAssets(
   };
 }
 
+
+function customTextAssets(c: JsonRecord): {headlines:string[];longHeadline:string;descriptions:string[];businessName:string} {
+  const values=(v:unknown,max:number,min:number,limit:number):string[]=>{
+    if(!Array.isArray(v)||v.length<min||v.length>limit) throw new Error("Nieprawidłowa liczba nagłówków lub opisów.");
+    const out=v.map(x=>typeof x==="string"?x.trim():"");
+    if(out.some(x=>!x||Array.from(x).length>max)||new Set(out.map(x=>x.toLowerCase())).size!==out.length)
+      throw new Error("Nieprawidłowe lub powtarzające się teksty reklamy.");
+    return out;
+  };
+  const headlines=values(c.headlines,30,3,15);
+  const descriptions=values(c.descriptions,90,2,5);
+  const longHeadline=String(c.long_headline||"").trim();
+  if(!longHeadline||Array.from(longHeadline).length>90) throw new Error("Długi nagłówek przekracza 90 znaków.");
+  return {headlines,longHeadline,descriptions,businessName:"Ride24"};
+}
+function customLandingPage(raw:unknown):string {
+  if(typeof raw!=="string"||raw.length>2000)throw new Error("Nieprawidłowy adres reklamy.");
+  const url=new URL(raw);
+  if(url.protocol!=="https:"||!["ride24.pl","www.ride24.pl"].includes(url.hostname)||
+     url.username||url.password||url.port)throw new Error("Adres docelowy musi wskazywać stronę HTTPS ride24.pl.");
+  return url.toString();
+}
+async function loadAdImage(raw:unknown):Promise<string> {
+  const root=Deno.env.get("SUPABASE_URL")||"";
+  const prefix=root+"/storage/v1/object/public/marketing-images/google-ads/";
+  if(typeof raw!=="string"||!raw.startsWith(prefix)||!raw.endsWith(".jpg")||raw.includes(".."))
+    throw new Error("Nieprawidłowy plik graficzny Google Ads.");
+  const res=await fetch(raw,{signal:AbortSignal.timeout(15000)});
+  if(!res.ok||!(res.headers.get("content-type")||"").startsWith("image/jpeg"))
+    throw new Error("Grafika Google Ads jest niedostępna lub ma zły format.");
+  const bytes=new Uint8Array(await res.arrayBuffer());
+  if(bytes.length<100||bytes.length>5_120_000||bytes[0]!==0xff||bytes[1]!==0xd8)
+    throw new Error("Nieprawidłowy rozmiar lub format grafiki.");
+  const pieces:string[]=[];
+  for(let i=0;i<bytes.length;i+=8192)pieces.push(String.fromCharCode(...bytes.subarray(i,i+8192)));
+  return btoa(pieces.join(""));
+}
+function addUploadedImage(ops:JsonRecord[],customerId:string,group:string,tempId:number,data:string,type:string):void {
+  const resourceName=`customers/${customerId}/assets/${tempId}`;
+  ops.push({assetOperation:{create:{resourceName,type:"IMAGE",
+    name:`Ride24 ${type} ${Date.now()} ${Math.abs(tempId)}`,imageAsset:{data}}}});
+  addExistingImageLink(ops,group,resourceName,type);
+}
+
 function buildTextAssets(post: JsonRecord): {
   headlines: string[];
   longHeadline: string;
@@ -1130,7 +1174,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const textAssets = buildTextAssets(post);
+    const {data:creative,error:creativeError}=await adminClient.from("google_ads_creatives")
+      .select("*").eq("marketing_queue_id",postId).maybeSingle();
+    if(creativeError)return jsonResponse({success:false,campaignCreated:false,
+      stage:"creative_lookup",error:"Nie udało się odczytać własnej reklamy."},500,origin);
+    if(creative?.objective==="app_install")return jsonResponse({success:false,campaignCreated:false,
+      stage:"app_campaign_required",
+      error:"Reklama instalacji aplikacji wymaga kampanii App Campaign, nie Performance Max."},409,origin);
+    let finalUrl="https://ride24.pl/";
+    let landscapeData:string|null=null,squareData:string|null=null;
+    let textAssets=buildTextAssets(post);
+    if(creative){
+      try{
+        finalUrl=customLandingPage(creative.final_url);
+        textAssets=customTextAssets(creative as JsonRecord);
+        if(!creative.landscape_url||!creative.square_url)throw new Error("Brakuje własnej grafiki.");
+        [landscapeData,squareData]=await Promise.all([loadAdImage(creative.landscape_url),loadAdImage(creative.square_url)]);
+      }catch(e){return jsonResponse({success:false,campaignCreated:false,stage:"creative_validation",
+        error:e instanceof Error?e.message:String(e)},400,origin);}
+    }
     const campaignWindow = buildCampaignWindow(days);
     const accessToken = await getGoogleAccessToken();
 
@@ -1230,8 +1292,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
             resourceName: assetGroupResource,
             name: assetGroupName,
             campaign: campaignResource,
-            finalUrls: ["https://ride24.pl/"],
-            finalMobileUrls: ["https://ride24.pl/"],
+            finalUrls: [finalUrl],
+            finalMobileUrls: [finalUrl],
             status: "PAUSED",
           },
         },
@@ -1276,6 +1338,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       "BUSINESS_NAME",
     );
 
+    if(landscapeData&&squareData){
+      addUploadedImage(operations,customerId,assetGroupResource,nextTempId--,landscapeData,"MARKETING_IMAGE");
+      addUploadedImage(operations,customerId,assetGroupResource,nextTempId--,squareData,"SQUARE_MARKETING_IMAGE");
+    }else{
     for (const asset of GOOGLE_IMAGE_ASSETS.landscape) {
       addExistingImageLink(
         operations,
@@ -1292,6 +1358,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         asset,
         "SQUARE_MARKETING_IMAGE",
       );
+    }
     }
 
     addExistingImageLink(
@@ -1326,15 +1393,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
         created: repeatedTextAssets.created,
         reused: repeatedTextAssets.reused,
       },
-      imageAssets: GOOGLE_IMAGE_ASSETS,
-      googleRequest: googleRequestPayload,
+      imageAssets: creative ? {landscape:[creative.landscape_url],square:[creative.square_url],logo:GOOGLE_IMAGE_ASSETS.logo} : GOOGLE_IMAGE_ASSETS,
+      googleRequest: creative ? {...googleRequestPayload,
+        mutateOperations:operations.map(op=>op.assetOperation?.create?.imageAsset?.data
+          ? {assetOperation:{create:{...op.assetOperation.create,imageAsset:{data:"[REDACTED]"}}}} : op)
+      } : googleRequestPayload,
     };
 
     const initialGoogleAssetResourceNames = {
       headlines: repeatedTextAssets.headlineResourceNames,
       descriptions: repeatedTextAssets.descriptionResourceNames,
-      landscapeImages: GOOGLE_IMAGE_ASSETS.landscape,
-      squareImages: GOOGLE_IMAGE_ASSETS.square,
+      landscapeImages: creative ? [creative.landscape_url] : GOOGLE_IMAGE_ASSETS.landscape,
+      squareImages: creative ? [creative.square_url] : GOOGLE_IMAGE_ASSETS.square,
       logo: GOOGLE_IMAGE_ASSETS.logo,
     };
 
@@ -1355,11 +1425,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         end_date: campaignWindow.endDateTime.slice(0, 10),
         country_code: "PL",
         language_code: "pl",
-        final_url: "https://ride24.pl/",
+        final_url: finalUrl,
         headlines: textAssets.headlines,
         long_headlines: [textAssets.longHeadline],
         descriptions: textAssets.descriptions,
-        image_urls: postImageUrls(post),
+        image_urls: creative ? [creative.landscape_url,creative.square_url] : postImageUrls(post),
         google_asset_resource_names: initialGoogleAssetResourceNames,
         request_snapshot: requestSnapshot,
         last_error: null,
