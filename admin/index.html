@@ -2954,10 +2954,25 @@ async function loadMarketingSettings() {
             "Marketing settings error:",
             error
         );
+        setGoogleAdsDashboardText("marketing-simple-budget", "Nieznany");
+        setGoogleAdsDashboardText("marketing-simple-overview",
+            "Nie udało się odczytać ustawień. Nie zakładaj, że automat lub budżety są aktywne.");
         return;
     }
 
     if (!data) return;
+
+    const marketingStatus = document.getElementById("marketing-operation-status");
+    if (marketingStatus) {
+        marketingStatus.textContent = data.is_active ? "WŁĄCZONY" : "WYŁĄCZONY";
+        marketingStatus.style.color = data.is_active ? "#16A34A" : "#B45309";
+    }
+    setGoogleAdsDashboardText("marketing-simple-budget", formatGoogleAdsMoney(data.monthly_budget));
+    setGoogleAdsDashboardText("marketing-simple-overview",
+        data.is_active
+            ? "Automat przygotowuje propozycje. Płatną reklamę uruchamiasz dopiero po zatwierdzeniu. Każdą możesz osobno zatrzymać."
+            : "Automatyczne przygotowywanie reklam jest wyłączone. Istniejące kampanie Google sprawdź poniżej — mogą wymagać osobnego zatrzymania."
+    );
 
     document.getElementById(
         "monthly-budget"
@@ -4418,6 +4433,61 @@ async function showMarketingPost(
         "flex";
 }
 
+
+
+function openMarketingAdvanced(focusId) {
+    const advanced = document.getElementById("marketing-advanced");
+    if (!advanced) return;
+    advanced.open = true;
+    const target = document.getElementById(focusId) || advanced;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (target !== advanced && typeof target.focus === "function") target.focus({ preventScroll: true });
+}
+function goToMarketingProposals() {
+    document.getElementById("marketing-proposals")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+const googleAdsStopPending = new Set();
+function renderSimpleGoogleAdsCampaigns(campaigns) {
+    const root = document.getElementById("marketing-simple-campaigns");
+    if (!root) return;
+    root.replaceChildren();
+    if (!campaigns.length) {
+        root.textContent = "Nie ma jeszcze kampanii Google Ads. Przygotuj propozycję i zatwierdź jej uruchomienie.";
+        return;
+    }
+    const isActive = c => String(c.google_status || c.status || "").toUpperCase() === "ENABLED";
+    const sorted = [...campaigns].sort((a, b) => Number(isActive(b)) - Number(isActive(a)));
+    for (const campaign of sorted) {
+        const active = isActive(campaign);
+        const row = document.createElement("div");
+        row.className = "marketing-simple-campaign" + (active ? " is-active" : "");
+        const description = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = campaign.campaign_name || "Reklama Ride24";
+        const status = document.createElement("small");
+        const statusText = active ? "Aktywna" :
+            String(campaign.google_status || campaign.status || "").toUpperCase() === "PAUSED" ? "Wstrzymana" : "Nieaktywna / do weryfikacji";
+        status.textContent = "Status w bazie: " + statusText +
+            " · Budżet dzienny: " + formatGoogleAdsMoney(campaign.daily_budget);
+        description.append(name, status);
+        row.append(description);
+        const postId = Number(campaign.marketing_queue_id);
+        if (active && Number.isSafeInteger(postId) && postId > 0) {
+            const stop = document.createElement("button");
+            stop.type = "button";
+            stop.textContent = "Zatrzymaj reklamę";
+            stop.dataset.googleStopPost = String(postId);
+            stop.disabled = googleAdsStopPending.has(postId);
+            stop.addEventListener("click", () => stopPromotion(postId));
+            row.append(stop);
+        } else if (active) {
+            const note = document.createElement("small");
+            note.textContent = "Brak powiązanego posta — sprawdź kampanię bezpośrednio w Google Ads.";
+            row.append(note);
+        }
+        root.append(row);
+    }
+}
 
 function setGoogleAdsDashboardText(id, value) {
     const element = document.getElementById(id);
