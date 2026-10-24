@@ -227,6 +227,16 @@
         .stat-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .stat-title { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; margin-bottom: 8px; }
         .stat-value { font-size: 28px; font-weight: 800; color: var(--text); font-family: 'Manrope', sans-serif;}
+        .stat-card-action {display:block;width:100%;text-align:left;font:inherit;cursor:pointer;position:relative;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;}
+.stat-card-action:hover {transform:translateY(-2px);box-shadow:0 8px 22px rgba(15,23,42,.10);border-color:#94A3B8;}
+.stat-card-action:focus-visible {outline:3px solid #2563EB;outline-offset:3px;}
+.stat-card-action::after {content:"↗";position:absolute;right:15px;top:13px;color:#94A3B8;font-size:16px;line-height:1;}
+.stat-card-action .stat-title {padding-right:14px;}
+.stat-card-action .stat-hint {margin-top:9px;font-size:11px;font-weight:500;color:#64748B;line-height:1.35;}
+.dashboard-table-status {font-size:12px;color:#64748B;margin:0 0 12px;}
+.admin-table-scroll {overflow-x:auto;}
+.admin-table-scroll table {min-width:720px;}
+
 
         /* --- TABELE --- */
         .table-container { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
@@ -568,6 +578,10 @@
         <span class="nav-text">Radar (Live)</span>
     </div>
 
+    <div class="nav-item" onclick="switchTab('clients')" id="nav-clients"><span class="nav-text">Zarejestrowani klienci</span></div>
+    <div class="nav-item" onclick="switchTab('bookings')" id="nav-bookings"><span class="nav-text">Rezerwacje</span></div>
+    <div class="nav-item" onclick="switchTab('finances')" id="nav-finances"><span class="nav-text">Rozliczenia Stripe</span></div>
+
     <!-- 2 -->
     <div class="nav-item" onclick="switchTab('partners')" id="nav-partners">
         <span class="nav-text">Zarządzanie Partnerami</span>
@@ -646,52 +660,116 @@
     </div>
 
 
-    <div class="stats-grid">
-        <div class="stat-card" style="border-left: 4px solid #3B82F6;">
-            <div class="stat-title">Aktywne Rezerwacje (Wszystkie)</div>
-            <div class="stat-value" id="stat-total">0</div>
-        </div>
+    <div class="stats-grid" id="radar-metrics" aria-label="Statystyki Ride24">
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #2563EB;" onclick="switchTab('clients')" aria-label="Zarejestrowani klienci — Otwórz listę klientów" title="Otwórz listę klientów">
+            <div class="stat-title">Zarejestrowani klienci</div>
+            <div class="stat-value" id="stat-clients">…</div>
+            <div class="stat-hint">Otwórz listę klientów</div>
+        </button>
 
-        <div class="stat-card" style="border-left: 4px solid #F59E0B;">
-            <div class="stat-title">Oczekujące na partnera (Pending)</div>
-            <div class="stat-value" id="stat-pending">0</div>
-        </div>
-
-        <div class="stat-card" style="border-left: 4px solid #10B981;">
-            <div class="stat-title">Opłacone i Gotowe (Paid)</div>
-            <div class="stat-value" id="stat-paid">0</div>
-        </div>
-
-        <div class="stat-card" style="border-left: 4px solid #6366F1;">
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #6366F1;" onclick="switchTab('partners')" aria-label="Zarejestrowani Partnerzy — Otwórz bazę partnerów" title="Otwórz bazę partnerów">
             <div class="stat-title">Zarejestrowani Partnerzy</div>
-            <div class="stat-value" id="stat-partners">0</div>
-        </div>
+            <div class="stat-value" id="stat-partners">…</div>
+            <div class="stat-hint">Otwórz bazę partnerów</div>
+        </button>
 
-        <div class="stat-card" style="border-left: 4px solid #14B8A6;">
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #3B82F6;" onclick="openRadarBookings('active')" aria-label="Aktywne Rezerwacje (Wszystkie) — Otwórz aktywne rezerwacje" title="Otwórz aktywne rezerwacje">
+            <div class="stat-title">Aktywne Rezerwacje (Wszystkie)</div>
+            <div class="stat-value" id="stat-total">…</div>
+            <div class="stat-hint">Otwórz aktywne rezerwacje</div>
+        </button>
+
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #F59E0B;" onclick="openRadarBookings('pending')" aria-label="Oczekujące na partnera (Pending) — Otwórz oczekujące rezerwacje" title="Otwórz oczekujące rezerwacje">
+            <div class="stat-title">Oczekujące na partnera (Pending)</div>
+            <div class="stat-value" id="stat-pending">…</div>
+            <div class="stat-hint">Otwórz oczekujące rezerwacje</div>
+        </button>
+
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #10B981;" onclick="openRadarBookings('paid')" aria-label="Opłacone i Gotowe (Paid) — Otwórz opłacone rezerwacje" title="Otwórz opłacone rezerwacje">
+            <div class="stat-title">Opłacone i Gotowe (Paid)</div>
+            <div class="stat-value" id="stat-paid">…</div>
+            <div class="stat-hint">Otwórz opłacone rezerwacje</div>
+        </button>
+
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #14B8A6;" onclick="switchTab('finances')" aria-label="Zarobione (PLN) — Rozliczenie Stripe" title="Rozliczenie Stripe">
             <div class="stat-title">Zarobione (PLN)</div>
-            <div class="stat-value" id="stat-revenue" style="color: #14B8A6;">—</div><div id="stat-revenue-details" style="font-size:11px;color:#64748B">Weryfikacja Stripe...</div>
-        </div>
+            <div class="stat-value" id="stat-revenue" style="color:#14B8A6;">—</div>
+            <div id="stat-revenue-details" class="stat-hint">Weryfikacja Stripe...</div>
+        </button>
 
-        <div class="stat-card" style="border-left: 4px solid #F43F5E;">
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #F43F5E;" onclick="switchTab('finances')" aria-label="Zwroty (PLN) — Zwroty potwierdzone przez Stripe" title="Zwroty potwierdzone przez Stripe">
             <div class="stat-title">Zwroty (PLN)</div>
-            <div class="stat-value" id="stat-refunds" style="color: #F43F5E;">—</div><div id="stat-refunds-details" style="font-size:11px;color:#64748B">Zwroty Stripe</div>
-        </div>
+            <div class="stat-value" id="stat-refunds" style="color:#F43F5E;">—</div>
+            <div id="stat-refunds-details" class="stat-hint">Zwroty Stripe</div>
+        </button>
 
-        <div class="stat-card" style="border-left: 4px solid var(--red);">
-            <div class="stat-title">Wnioski o usunięcie konta</div>
-            <div class="stat-value" id="stat-deletions">0</div>
-        </div>
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #8B5CF6;" onclick="switchTab('messages')" aria-label="Wiadomości — Otwórz skrzynkę wiadomości" title="Otwórz skrzynkę wiadomości">
+            <div class="stat-title">Wiadomości</div>
+            <div class="stat-value" id="stat-messages">…</div>
+            <div class="stat-hint">Otwórz skrzynkę wiadomości</div>
+        </button>
 
-        <div class="stat-card" style="border-left: 4px solid #8B5CF6;">
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #9333EA;" onclick="switchTab('refunds')" aria-label="Zwroty do akceptacji — Przejdź do wniosków o zwrot" title="Przejdź do wniosków o zwrot">
             <div class="stat-title">Zwroty do akceptacji</div>
-            <div class="stat-value" id="stat-pending-refunds" style="color: #8B5CF6;">0</div>
-        </div>
-        <div class="stat-card" style="border-left: 4px solid #8B5CF6; cursor: pointer;" onclick="switchTab('messages')">
-    <div class="stat-title">Wiadomości (Kontakt)</div>
-    <div class="stat-value" id="stat-messages" style="color: #8B5CF6;">0</div>
+            <div class="stat-value" id="stat-pending-refunds">…</div>
+            <div class="stat-hint">Przejdź do wniosków o zwrot</div>
+        </button>
+
+        <button type="button" class="stat-card stat-card-action" style="border-left:4px solid #EF4444;" onclick="switchTab('deletions')" aria-label="Wnioski o usunięcie konta — Otwórz wnioski o usunięcie konta" title="Otwórz wnioski o usunięcie konta">
+            <div class="stat-title">Wnioski o usunięcie konta</div>
+            <div class="stat-value" id="stat-deletions">…</div>
+            <div class="stat-hint">Otwórz wnioski o usunięcie konta</div>
+        </button>
+    </div>
 </div>
-</div> 
-</div> <div id="view-refunds" class="view-section">
+    <section id="view-clients" class="view-section">
+        <div class="page-header"><h1 class="page-title">Zarejestrowani klienci</h1></div>
+        <p id="admin-clients-count" class="dashboard-table-status" role="status">Ładowanie listy klientów...</p>
+        <div class="table-container admin-table-scroll">
+            <table><thead><tr><th>Klient</th><th>E-mail</th><th>Data rejestracji</th><th>Status</th></tr></thead>
+                <tbody id="admin-clients-tbody"><tr><td colspan="4">Ładowanie...</td></tr></tbody>
+            </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+          <button type="button" class="btn-secondary" id="admin-clients-prev" onclick="changeClientPage(-1)" disabled>← Poprzednie</button>
+          <button type="button" class="btn-secondary" id="admin-clients-next" onclick="changeClientPage(1)" disabled>Następne →</button>
+        </div>
+    </section>
+    <section id="view-bookings" class="view-section">
+        <div class="page-header"><h1 class="page-title">Rezerwacje</h1></div>
+        <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <label for="admin-bookings-filter" style="font-weight:700;font-size:13px;">Pokaż</label>
+            <select id="admin-bookings-filter" class="smart-input" style="max-width:280px" onchange="setBookingFilter(this.value)">
+                <option value="active">Wszystkie aktywne</option>
+                <option value="pending">Oczekujące na partnera (Pending)</option>
+                <option value="paid">Opłacone (Paid)</option>
+                <option value="all">Cała historia rezerwacji</option>
+            </select>
+        </div>
+        <p id="admin-bookings-count" class="dashboard-table-status" role="status">Ładowanie rezerwacji...</p>
+        <div class="table-container admin-table-scroll">
+            <table><thead><tr><th>Kod rezerwacji</th><th>Klient</th><th>Partner</th><th>Termin wynajmu</th><th>Status</th><th>Utworzono</th></tr></thead>
+                <tbody id="admin-bookings-tbody"><tr><td colspan="6">Ładowanie...</td></tr></tbody>
+            </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+          <button type="button" class="btn-secondary" id="admin-bookings-prev" onclick="changeBookingPage(-1)" disabled>← Poprzednie</button>
+          <button type="button" class="btn-secondary" id="admin-bookings-next" onclick="changeBookingPage(1)" disabled>Następne →</button>
+        </div>
+    </section>
+    <section id="view-finances" class="view-section">
+        <div class="page-header"><h1 class="page-title">Rozliczenie Stripe (PLN)</h1></div>
+        <p id="finance-status" class="dashboard-table-status" role="status">Weryfikacja płatności...</p>
+        <div class="stats-grid">
+            <div class="stat-card" style="border-left:4px solid #3B82F6;"><div class="stat-title">Pobrane płatności</div><div class="stat-value" id="finance-gross">—</div></div>
+            <div class="stat-card" style="border-left:4px solid #F43F5E;"><div class="stat-title">Zwroty zatwierdzone w Stripe</div><div class="stat-value" id="finance-refunds">—</div></div>
+            <div class="stat-card" style="border-left:4px solid #F59E0B;"><div class="stat-title">Opłaty Stripe</div><div class="stat-value" id="finance-fees">—</div></div>
+            <div class="stat-card" style="border-left:4px solid #14B8A6;"><div class="stat-title">Wynik po zwrotach i opłatach</div><div class="stat-value" id="finance-net">—</div></div>
+        </div>
+        <p style="color:#64748B;font-size:12px;line-height:1.6;">Zestawienie dotyczy opłat pobranych online przez Stripe, a nie całkowitej wartości wynajmów ani przychodu księgowego po podatkach. Niepotwierdzone kwoty nie są prezentowane jako zarobek.</p>
+        <button type="button" class="btn-secondary" onclick="loadStripeRevenue()" style="margin-top:14px;">Odśwież dane Stripe</button>
+    </section>
+ <div id="view-refunds" class="view-section">
     <div class="page-header">
         <h1 class="page-title">Zwroty do zatwierdzenia</h1>
     </div>
@@ -2104,6 +2182,11 @@ function closePromotionModal() {
 
         // --- NAWIGACJA ---
        window.switchTab = function(tabId) {
+            if (tabId === "radar") loadRadarData();
+            if (tabId === "clients") loadClientsData();
+            if (tabId === "bookings") loadBookingsData();
+            if (tabId === "partners") loadPartnersData();
+            if (tabId === "finances") loadStripeRevenue();
             if (tabId === "seo") loadSeo();
             if (tabId === "search") {
                 loadSearchLogs();
@@ -2162,6 +2245,15 @@ function closePromotionModal() {
         if(error || !data?.totals)throw new Error(data?.error||'Nie udało się uzgodnić Stripe.');
         const t=data.totals;
         const fmt=x=>Number(x).toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const financeField=(id,value)=>{const field=document.getElementById(id);if(field)field.textContent=value;};
+        const financeStatus=document.getElementById('finance-status');
+        financeField('finance-gross',fmt(t.gross));
+        financeField('finance-refunds',fmt(t.refunds));
+        financeField('finance-fees',t.fee_missing?'—':fmt(t.fees));
+        financeField('finance-net',data.complete?fmt(t.net):'—');
+        if(financeStatus)financeStatus.textContent=data.complete
+          ? 'Potwierdzone płatności: '+t.verified+' • aktualizacja: '+new Date(data.verified_at).toLocaleString('pl-PL')
+          : 'Rozliczenie niepełne: '+t.unverified+' płatności niepotwierdzonych, '+t.fee_missing+' prowizji niedostępnych. Wynik netto ukryty.';
         refunds.textContent=fmt(t.refunds);
         if(refundDetails)refundDetails.textContent='Zwroty potwierdzone przez Stripe';
         if(data.complete)revenue.textContent=fmt(t.net);
@@ -2175,124 +2267,152 @@ function closePromotionModal() {
         refunds.textContent='—';
         if(details)details.textContent='Brak potwierdzenia Stripe — nie pokazuję szacunkowych zarobków.';
         if(refundDetails)refundDetails.textContent='Sprawdź integrację Stripe.';
+        for(const id of ['finance-gross','finance-refunds','finance-fees','finance-net']){
+          const field=document.getElementById(id);if(field)field.textContent='—';
+        }
+        const financeStatus=document.getElementById('finance-status');
+        if(financeStatus)financeStatus.textContent='Nie udało się potwierdzić płatności Stripe. Nie pokazuję szacunkowych kwot.';
         console.error('Stripe reconciliation:',e);
     }
 }
 
-async function loadRadarData() {
-    const { data: bookings, error } = await db.from("bookings").select("status");
-    
-    if (error) {
-        console.error("Radar bookings error:", error);
-    } else {
-        const safeBookings = bookings || [];
-        document.getElementById("stat-total").innerText = safeBookings.length;
-        document.getElementById("stat-pending").innerText = safeBookings.filter(b => b.status === "pending").length;
-        document.getElementById("stat-paid").innerText = safeBookings.filter(b => b.status === "paid" || b.status === "confirmed").length;
-    }
-
-    const { count } = await db.from("partners").select("*", { count: 'exact', head: true });
-    document.getElementById("stat-partners").innerText = count || 0;
-
-   // Finance dashboard must use Stripe-confirmed charges, refunds and fees.
-loadStripeRevenue();
-const { count: msgCount, error: msgError } = await db
-        .from("contact_messages")
-        .select("*", { count: 'exact', head: true });
-
-    if (!msgError) {
-        document.getElementById("stat-messages").innerText = msgCount || 0;
-    }
-
-    // --- Wnioski o usunięcie ---
-// --- Wnioski o usunięcie (Klienci + Partnerzy) ---
-    const { data: clientsDel } = await db.rpc("admin_get_deletion_requests");
-    const { data: partnersDel } = await db.from("partners").select("id").in("account_status",["deleted","disabled"]);
-    let totalDelCount = (clientsDel ? clientsDel.length : 0) + (partnersDel ? partnersDel.length : 0);
-    document.getElementById("stat-deletions").innerText = totalDelCount;
-// --- ZWROTY DO AKCEPTACJI (RADAR) ---
-    const { data: pendingRefunds, error: pendingRefundsError } = await db.rpc("admin_get_refunds");
-    if (!pendingRefundsError && pendingRefunds) {
-        document.getElementById("stat-pending-refunds").innerText = pendingRefunds.length || 0;
-    } else {
-        document.getElementById("stat-pending-refunds").innerText = "Błąd";
-    }
+const RADAR_ACTIVE_BOOKING_STATUSES=['pending','accepted','awaiting_payment','paid'];
+async function loadRadarData(){
+  const counts=[
+    ['stat-clients',db.from('profiles').select('id',{count:'exact',head:true}).eq('role','client')],
+    ['stat-partners',db.from('partners').select('id',{count:'exact',head:true})],
+    ['stat-total',db.from('bookings').select('id',{count:'exact',head:true}).in('status',RADAR_ACTIVE_BOOKING_STATUSES)],
+    ['stat-pending',db.from('bookings').select('id',{count:'exact',head:true}).eq('status','pending')],
+    ['stat-paid',db.from('bookings').select('id',{count:'exact',head:true}).eq('status','paid')],
+    ['stat-messages',db.from('contact_messages').select('id',{count:'exact',head:true})]
+  ];
+  await Promise.all(counts.map(async ([id,promise])=>{
+    const el=document.getElementById(id);
+    try{
+      const {count,error}=await promise;
+      if(el)el.textContent=error?'—':Number(count??0).toLocaleString('pl-PL');
+      if(error)console.error('Radar count '+id,error);
+    }catch(error){if(el)el.textContent='—';console.error('Radar count '+id,error);}
+  }));
+  await Promise.all([
+    (async()=>{
+      const el=document.getElementById('stat-deletions');
+      try{
+        const [clients,partners]=await Promise.all([
+          db.rpc('admin_get_deletion_requests'),
+          db.from('partners').select('id',{count:'exact',head:true}).in('account_status',['deleted','disabled'])
+        ]);
+        if(el)el.textContent=(clients.error||partners.error)?'—':String((clients.data||[]).length+Number(partners.count??0));
+      }catch(error){if(el)el.textContent='—';console.error('Radar deletion requests',error);}
+    })(),
+    (async()=>{
+      const el=document.getElementById('stat-pending-refunds');
+      try{
+        const {data,error}=await db.rpc('admin_get_refunds');
+        if(el)el.textContent=error?'—':String((data||[]).length);
+      }catch(error){if(el)el.textContent='—';console.error('Radar pending refunds',error);}
+    })()
+  ]);
+  void loadStripeRevenue();
 }
 
         // --- DANE (REZERWACJE) ---
-        async function loadBookingsData() {
-            const { data, error } = await db
-    .from("bookings")
-    .select(`
-        id,
-        reservation_code,
-        status,
-        start_date,
-        end_date,
-        profiles:client_id!left (name, email),
-        partners:partner_id!left (company_name)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(50);
-    console.log("BOOKINGS DEBUG:", data, error);
-
-            const tbody = document.getElementById("admin-bookings-tbody");
-            tbody.innerHTML = "";
-
-            if (error) {
-    tbody.innerHTML = "<tr><td colspan='6'>Błąd ładowania rezerwacji</td></tr>";
-    return;
+        // Read-only drilldowns for dashboard tiles. Nothing here updates reservations.
+const ADMIN_RADAR_PAGE_SIZE=100;
+let bookingDashboardFilter='active',bookingPage=0,clientPage=0,bookingsRequestId=0,clientsRequestId=0;
+function radarDate(value){
+  const date=new Date(value);
+  return value&&!Number.isNaN(date.getTime())?date.toLocaleString('pl-PL'):'—';
 }
-
-if (!data.length) {
-    tbody.innerHTML = "<tr><td colspan='6'>Brak rezerwacji w systemie</td></tr>";
-    return;
+function openRadarBookings(filter){
+  bookingDashboardFilter=['active','pending','paid','all'].includes(filter)?filter:'active';
+  bookingPage=0;switchTab('bookings');
 }
-
-            data.forEach(b => {
-               const statusMap = {
-    pending: "Pending",
-    awaiting_payment: "Awaiting Payment",
-    paid: "Paid",
-    confirmed: "Paid",
-    cancelled: "Cancelled",
-    payment_expired: "Expired"
-};
-
-let safeStatusHtml = `
-<span class="status ${escapeHtml(b.status)}">
-${statusMap[b.status] || b.status}
-</span>`;
-                let safeClientName = escapeHtml(b.profiles ? b.profiles.name || b.profiles.email : "Nieznany");
-                let safeClientEmail = escapeHtml(b.profiles ? b.profiles.email : "");
-                let safePartnerName = escapeHtml(b.partners ? b.partners.company_name : "Brak przypisania");
-
-                let actionBtn = "";
-                if (
-    b.status !== "cancelled" &&
-    b.status !== "expired" &&
-    b.status !== "payment_expired"
-) {
-                    actionBtn = `<button class="btn-danger" onclick="forceCancel('${b.id}')">Force Cancel</button>`;
-                } else {
-                    actionBtn = `<span style="color:#94A3B8; font-size:11px;">Zakończone/Anulowane</span>`;
-                }
-                 
-                tbody.innerHTML += `
-                    <tr>
-                        <td style="font-weight:700;">${escapeHtml(b.reservation_code)}</td>
-                        <td>
-                            <div style="font-weight:600;">${safeClientName}</div>
-                            <div class="client-info">${safeClientEmail}</div>
-                        </td>
-                        <td class="company-name">${safePartnerName}</td>
-                        <td>${escapeHtml(b.start_date)} &rarr; ${escapeHtml(b.end_date)}</td>
-                        <td>${safeStatusHtml}</td>
-                        <td>${actionBtn}</td>
-                    </tr>
-                `;
-            });
-        }
+function setBookingFilter(filter){
+  if(!['active','pending','paid','all'].includes(filter))return;
+  bookingDashboardFilter=filter;bookingPage=0;void loadBookingsData();
+}
+function changeBookingPage(delta){
+  bookingPage=Math.max(0,bookingPage+delta);void loadBookingsData();
+}
+function changeClientPage(delta){
+  clientPage=Math.max(0,clientPage+delta);void loadClientsData();
+}
+async function loadClientsData(){
+  const tbody=document.getElementById('admin-clients-tbody');
+  const label=document.getElementById('admin-clients-count');
+  if(!tbody||!label)return;
+  const requestId=++clientsRequestId;
+  label.textContent='Pobieranie klientów...';
+  tbody.innerHTML='<tr><td colspan="4">Ładowanie...</td></tr>';
+  const {data,count,error}=await db.from('profiles')
+    .select('id,name,email,created_at,deletion_requested',{count:'exact'})
+    .eq('role','client').order('created_at',{ascending:false})
+    .range(clientPage*ADMIN_RADAR_PAGE_SIZE,(clientPage+1)*ADMIN_RADAR_PAGE_SIZE-1);
+  if(requestId!==clientsRequestId)return;
+  if(error){
+    label.textContent='Błąd odczytu listy klientów.';
+    tbody.innerHTML='<tr><td colspan="4">Nie udało się pobrać klientów.</td></tr>';
+    return;
+  }
+  const rows=data||[],start=rows.length?clientPage*ADMIN_RADAR_PAGE_SIZE+1:0,end=clientPage*ADMIN_RADAR_PAGE_SIZE+rows.length;
+  label.textContent='Zarejestrowani klienci: '+Number(count??0)+' • wyświetlono '+start+'–'+end;
+  const prev=document.getElementById('admin-clients-prev'),next=document.getElementById('admin-clients-next');
+  if(prev)prev.disabled=clientPage===0;
+  if(next)next.disabled=end>=Number(count??0);
+  tbody.innerHTML=rows.length?rows.map(u=>'<tr>'
+   +'<td><strong>'+escapeHtml(u.name||'—')+'</strong><div class="client-info">'+escapeHtml(u.id)+'</div></td>'
+   +'<td>'+escapeHtml(u.email||'—')+'</td>'
+   +'<td>'+escapeHtml(radarDate(u.created_at))+'</td>'
+   +'<td>'+(u.deletion_requested?'Wniosek o usunięcie':'Zarejestrowany')+'</td>'
+   +'</tr>').join(''):'<tr><td colspan="4">Brak zarejestrowanych klientów.</td></tr>';
+}
+async function loadBookingsData(){
+  const tbody=document.getElementById('admin-bookings-tbody');
+  const label=document.getElementById('admin-bookings-count');
+  if(!tbody||!label)return;
+  const requestId=++bookingsRequestId;
+  const selector=document.getElementById('admin-bookings-filter');
+  if(selector)selector.value=bookingDashboardFilter;
+  label.textContent='Pobieranie rezerwacji...';
+  tbody.innerHTML='<tr><td colspan="6">Ładowanie...</td></tr>';
+  let query=db.from('bookings')
+    .select('id,reservation_code,status,start_date,end_date,client_email,main_driver_name,partner_id,created_at',{count:'exact'})
+    .order('created_at',{ascending:false})
+    .range(bookingPage*ADMIN_RADAR_PAGE_SIZE,(bookingPage+1)*ADMIN_RADAR_PAGE_SIZE-1);
+  if(bookingDashboardFilter==='active')query=query.in('status',RADAR_ACTIVE_BOOKING_STATUSES);
+  else if(bookingDashboardFilter==='pending')query=query.eq('status','pending');
+  else if(bookingDashboardFilter==='paid')query=query.eq('status','paid');
+  const {data,count,error}=await query;
+  if(requestId!==bookingsRequestId)return;
+  if(error){
+    label.textContent='Błąd odczytu rezerwacji.';
+    tbody.innerHTML='<tr><td colspan="6">Nie udało się wczytać rezerwacji.</td></tr>';
+    return;
+  }
+  const rows=data||[];
+  const partnerIds=[...new Set(rows.map(b=>b.partner_id).filter(Boolean))];
+  let companies=new Map();
+  if(partnerIds.length){
+    const res=await db.from('partners').select('id,company_name').in('id',partnerIds);
+    if(requestId!==bookingsRequestId)return;
+    if(!res.error)companies=new Map((res.data||[]).map(p=>[p.id,p.company_name]));
+  }
+  const start=rows.length?bookingPage*ADMIN_RADAR_PAGE_SIZE+1:0,end=bookingPage*ADMIN_RADAR_PAGE_SIZE+rows.length;
+  label.textContent='Rezerwacje: '+Number(count??0)+' • wyświetlono '+start+'–'+end;
+  const prev=document.getElementById('admin-bookings-prev'),next=document.getElementById('admin-bookings-next');
+  if(prev)prev.disabled=bookingPage===0;
+  if(next)next.disabled=end>=Number(count??0);
+  const descriptions={pending:'Oczekuje na partnera',accepted:'Zaakceptowana',awaiting_payment:'Oczekuje na opłatę',paid:'Opłacona',cancelled:'Anulowana',rejected:'Odrzucona',expired:'Wygasła',payment_expired:'Płatność wygasła'};
+  tbody.innerHTML=rows.length?rows.map(b=>'<tr>'
+   +'<td><strong>'+escapeHtml(b.reservation_code||b.id)+'</strong></td>'
+   +'<td>'+escapeHtml(b.main_driver_name||'—')+'<div class="client-info">'+escapeHtml(b.client_email||'—')+'</div></td>'
+   +'<td>'+escapeHtml(companies.get(b.partner_id)||'—')+'</td>'
+   +'<td>'+escapeHtml(b.start_date||'—')+' → '+escapeHtml(b.end_date||'—')+'</td>'
+   +'<td><span class="status '+escapeHtml(b.status||'')+'">'+escapeHtml(descriptions[b.status]||b.status||'—')+'</span></td>'
+   +'<td>'+escapeHtml(radarDate(b.created_at))+'</td>'
+   +'</tr>').join(''):'<tr><td colspan="6">Brak rezerwacji dla wybranego filtra.</td></tr>';
+}
 
        // --- ZARZĄDZANIE PARTNERAMI (POPRAWIONE) ---
 
