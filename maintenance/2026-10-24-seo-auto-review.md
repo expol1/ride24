@@ -8,7 +8,7 @@ Limits: one automatic correction attempt per UTC day across workers, seven days 
 
 ## Validation
 
-- `npm run test:seo --prefix tests/backend-hardening`: 95 isolated scenarios across 53 passing Node test entries.
+- `npm run test:seo --prefix tests/backend-hardening`: 99 isolated scenarios across 57 passing Node test entries.
 - Includes authorization, manual draft protection, shared quota, daily correction reservation, concurrency, cooldowns, upstream errors, unchanged AI output, historical post rejection, PL/EN metadata and admin DOM behavior.
 - TypeScript semantic check for the handler dependency graph and `git diff --check` passed.
 - Tests use isolated fixtures/JSDOM/PGlite. They do not claim authenticated visual testing or Google acceptance of production content.
@@ -23,4 +23,10 @@ A scoped status backup was saved before live review: `RIDE24-SEO-stan-przed-kont
 
 Emergency stop: set `seo_settings.auto_review_enabled=false` for id 1. This stops automatic reviews/corrections while preserving manual actions and the original new-draft schedule. Unschedule only `ride24-seo-review` if needed. Restore only the modified function/admin files from the recovery branch; do not reset main or overwrite articles published afterward. Guarded status restoration from the ZIP applies only to unchanged document revisions/states, never deletes drafts and never resets AI quota.
 
-Live rollout results should be recorded after deployment. Search Console index status describes Google's stored index, rather than a real-time indexing promise. Business Profile publication and indexing are separate services.
+## Production verification
+
+PR #45 merged as `9164e788222e25b9e85db689a3f4c4cbbf2d5409`; all GitHub checks and the Cloudflare deployment passed. `admin-seo` version 13 and the additive migration were read back, then automatic review was enabled. All 55 published pairs were checked through the production function (110 managed page URLs). All checks returned HTTP 200; no page, metadata, sitemap or Google connection issue was recorded by the initial scan. Google reported 56 URLs indexed: 27 complete PL/EN pairs were healthy and 28 pairs still awaited confirmation for at least one language. No correction draft was needed.
+
+The published-snapshot digest, all 79 document revision/state pairs, 48 historical revisions, six stored credential ciphertext fingerprints and the existing AI budget (5/5 on 24 October) remained unchanged. New review timestamps and Google diagnostics are the intended writes.
+
+The scan also exposed a legacy Business Profile status `processing` with an empty post-ID map. A follow-up check reads Business Profile even in this case, can recover exact current-version matches without posting, and labels an unconfirmed publication accurately instead of claiming Google is processing it. Search indexing and Business Profile posts are separate services. Search Console inspection describes Google's stored index, rather than a real-time indexing promise.

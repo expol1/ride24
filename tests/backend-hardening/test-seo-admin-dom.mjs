@@ -85,3 +85,4 @@ test('automatic correction drafts still require a fresh publication approval',as
 test('review switch is saved without replacing connection secrets or the shared daily limit',async()=>{
  const f=await fixture();try{await f.w.seoSaveSettings({preventDefault(){}});const c=f.calls.find(c=>c.action==='configure');assert.equal(c.auto_review_enabled,true);assert.equal(c.daily_limit,5);assert.equal(c.gemini_key,'');assert.equal(c.google_client_secret,'');assert.match(f.d.getElementById('seo-review-summary').textContent,/poprawki dziś: 0 \/ 1/);}finally{f.dom.window.close();}
 });
+test('missing Business post confirmation is not described as Google processing',async()=>{const f=await fixture();try{f.doc.google.business={state:'not_published',posts:{}};await f.w.loadSeo();const status=f.d.getElementById('seo-google-status').textContent;assert.match(status,/brak potwierdzonych wpisów/);assert.doesNotMatch(status,/Google przetwarza wpisy/);}finally{f.dom.window.close();}});

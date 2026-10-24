@@ -265,16 +265,16 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
     const posts=await existingPosts(api,target);const result=google.business?.revision===doc.published.revision&&google.business?.target===target?{...google.business}:{revision:doc.published.revision,target,posts:{},state:'pending'};
     for(const lang of LANGS){
      if(result.posts[lang]?.name){const live=posts.find((p:any)=>p.name===result.posts[lang].name);if(live)result.posts[lang].state=live.state||'UNKNOWN';continue;}
-     if(action==='business_check')continue;
      const matched=posts.find((p:any)=>p.summary===postSummary(doc.published.content,lang)&&p.callToAction?.url===SITE+doc.published.content[lang].slug&&p.languageCode===lang);
      if(matched){result.posts[lang]={name:matched.name,state:matched.state||'UNKNOWN'};google.business=result;await patch({google});continue;}
+     if(action==='business_check')continue;
      if(result.uncertain===lang)throw new SeoError('Poprzednia wysyłka do Google nie ma potwierdzenia. Sprawdź wizytówkę; system nie wysłał duplikatu.',409);
      result.uncertain=lang;google.business=result;await patch({google});
      let post:any;try{post=await createPost(api,target,doc.published.content,lang);}catch(e){result.state='needs_check';google.business=result;await patch({google});throw e;}
      if(!post?.name)throw new SeoError('Google nie potwierdził wpisu. Sprawdź wizytówkę przed kolejną próbą.',502);
      result.posts[lang]={name:post.name,state:post.state||'PROCESSING'};delete result.uncertain;google.business=result;await patch({google});
     }
-    const states=Object.values(result.posts).map((p:any)=>p.state);result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':'processing';google.business=result;await patch({google,last_error:''});return reply({google});
+    const states=Object.values(result.posts).map((p:any)=>p.state);result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':states.length?'processing':'not_published';result.checked_at=new Date().toISOString();google.business=result;await patch({google,last_error:''});return reply({google});
    }
   }catch(e){await patch({last_error:e instanceof SeoError?e.message:'Operacja przerwana. Ponów tę samą wersję po sprawdzeniu statusu.'});throw e;}
   finally{await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',lock.lock_token);}
