@@ -1862,6 +1862,7 @@ async function deleteMessage(id) {
         // Remove the legacy warning only after the server has confirmed Auth deletion.
         const banner=document.getElementById('account-delete-warning');
         if (banner) banner.remove();
+        try { localStorage.setItem('ride24-auth-delete-verified','yes'); } catch {}
         const pending=result.data.cleanup_pending || [];
         alert(pending.length ? 'Konto usunięte z Auth. Sprawdź pozostałe dane: ' + pending.join(', ') :
             'Konto zostało usunięte również z Supabase Authentication.');
@@ -1877,6 +1878,7 @@ async function deleteUser(userId) {
 }
 
 async function loadDeletionRequests() {
+    try { if (localStorage.getItem('ride24-auth-delete-verified')==='yes') document.getElementById('account-delete-warning')?.remove(); } catch {}
     console.log("Pobieranie listy zgłoszeń do usunięcia...");
 
     const tbodyClients = document.getElementById("deletions-clients-tbody");
