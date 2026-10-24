@@ -22,4 +22,4 @@ jobs:
       - name: Install isolated test dependencies
         run: npm ci --prefix tests/backend-hardening
       - name: Verify automation, revision history, corrections and manual publication
-        run: node --experimental-strip-types --test tests/backend-hardening/test-seo.mjs tests/backend-hardening/test-seo-flow.mjs tests/backend-hardening/test-seo-db.mjs tests/backend-hardening/test-seo-automation.mjs tests/backend-hardening/test-seo-admin-dom.mjs
+        run: node --experimental-strip-types --test tests/backend-hardening/test-seo.mjs tests/backend-hardening/test-seo-flow.mjs tests/backend-hardening/test-seo-db.mjs tests/backend-hardening/test-seo-automation.mjs tests/backend-hardening/test-seo-admin-dom.mjs tests/backend-hardening/test-seo-review.mjs

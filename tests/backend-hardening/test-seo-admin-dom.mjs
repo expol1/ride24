@@ -16,7 +16,9 @@ async function fixture(){
  Object.defineProperty(w.navigator,'clipboard',{value:{writeText:async value=>clipboard.push(value)}});
  w.db={functions:{async invoke(name,{body}){
   assert.equal(name,'admin-seo');calls.push(structuredClone(body));
-  if(body.action==='list')return {data:{documents:[structuredClone(doc)],settings:{enabled:true,auto_generate:true,free_tier_confirmed:true,daily_limit:5,used_today:5,business_target:'accounts/1/locations/2'},connections:{github:true,gemini:true,search:true,business:true}}};
+  if(body.action==='list')return {data:{documents:[structuredClone(doc)],settings:{enabled:true,auto_generate:true,auto_review_enabled:true,correction_used_today:false,free_tier_confirmed:true,daily_limit:5,used_today:5,business_target:'accounts/1/locations/2'},connections:{github:true,gemini:true,search:true,business:true}}};
+  if(body.action==='review'){doc.google.review={state:'needs_correction',revision:doc.revision,checked_at:'2026-10-24T10:00:00Z',summary:'Google odrzuciło wpis. Przygotowanie szkicu wymaga sprawdzenia.',issues:[{code:'google_post_rejected',message:'Wpis PL wymaga poprawienia nagłówka i wstępu.'}]};return {data:{checked:1,document:structuredClone(doc)}};}
+  if(body.action==='configure')return {data:{saved:true}};
   if(body.action==='save'){save(body.content,body.note);return {data:{document:structuredClone(doc)}};}
   if(body.action==='generate'){const pair=structuredClone(doc.content);pair.pl.h1='Poprawiony nagłówek';pair.en.h1='Corrected heading';save(pair,body.note);return {data:{document:structuredClone(doc),warnings:[]}};}
   if(body.action==='publish'){assert.equal(body.approved,true);doc.published={...doc.published,revision:doc.revision,content:structuredClone(doc.content)};doc.state='published';doc.google.search={state:'pending',note:'Oczekiwanie na wdrożenie'};return {data:{published:structuredClone(doc.published),google:structuredClone(doc.google)}};}
@@ -70,4 +72,16 @@ test('copied browser prompt includes current offer-fact and refundable-cash safe
   await f.w.seoCopyPrompt();assert.equal(f.clipboard.length,1);assert.match(f.clipboard[0],/rental_offer_facts/);assert.match(f.clipboard[0],/all_three_confirmed_classes = 0/);assert.match(f.clipboard[0],/NIE blokadę na karcie/);
   assert.deepEqual(f.doc.published,f.published);assert.ok(!f.calls.some(c=>c.action==='generate'));
  }finally{f.dom.window.close();}
+});
+test('manual review shows the reason in Polish without editing or publishing the article',async()=>{
+ const f=await fixture();try{const old=structuredClone(f.doc.content);assert.equal(f.d.getElementById('seo-review-auto').checked,true);await f.w.seoReview();assert.match(f.d.getElementById('seo-google-status').textContent,/Wpis PL wymaga/);assert.deepEqual(f.doc.content,old);assert.deepEqual(f.doc.published,f.published);assert.ok(!f.calls.some(c=>['save','generate','publish'].includes(c.action)));}finally{f.dom.window.close();}
+});
+test('unsaved notes prevent review from replacing the editor',async()=>{
+ const f=await fixture();try{const note=f.d.getElementById('seo-note');note.value='Moja niezapisana uwaga';note.dispatchEvent(new f.w.Event('input',{bubbles:true}));await f.w.seoReview();assert.equal(f.d.getElementById('seo-note').value,'Moja niezapisana uwaga');assert.ok(!f.calls.some(c=>c.action==='review'));assert.equal(f.d.getElementById('seo-review-now').disabled,true);}finally{f.dom.window.close();}
+});
+test('automatic correction drafts still require a fresh publication approval',async()=>{
+ const f=await fixture();try{f.doc.state='changed';f.doc.revision=2;f.doc.google.review={state:'draft_ready',summary:'Poprawka gotowa do sprawdzenia',draft_revision:2};await f.w.loadSeo();assert.match(f.d.getElementById('seo-google-status').textContent,/poprawka gotowa do zatwierdzenia/);assert.equal(f.d.getElementById('seo-approved').checked,false);assert.equal(f.d.getElementById('seo-publish').disabled,true);assert.ok(!f.calls.some(c=>c.action==='publish'));}finally{f.dom.window.close();}
+});
+test('review switch is saved without replacing connection secrets or the shared daily limit',async()=>{
+ const f=await fixture();try{await f.w.seoSaveSettings({preventDefault(){}});const c=f.calls.find(c=>c.action==='configure');assert.equal(c.auto_review_enabled,true);assert.equal(c.daily_limit,5);assert.equal(c.gemini_key,'');assert.equal(c.google_client_secret,'');assert.match(f.d.getElementById('seo-review-summary').textContent,/poprawki dziś: 0 \/ 1/);}finally{f.dom.window.close();}
 });

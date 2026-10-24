@@ -5,13 +5,14 @@
     "test": "node test-stage1.mjs && node test-stage2.mjs && node --experimental-strip-types test-admin-guard.mjs && node test-cleanup.mjs && node test-indexes.mjs && node test-booking-rpcs.mjs",
     "test:guides": "node test-travel-guides.mjs && node test-travel-guides-db.mjs",
     "test:payments": "node test-payment-source-sync.mjs",
-    "test:seo": "node --experimental-strip-types test-seo.mjs && node --experimental-strip-types test-seo-flow.mjs && node test-seo-db.mjs && node test-seo-ui.mjs",
+    "test:seo": "node --experimental-strip-types --test test-seo.mjs test-seo-flow.mjs test-seo-db.mjs test-seo-automation.mjs test-seo-admin-dom.mjs test-seo-review.mjs",
     "test:extras": "node --test test-booking-items.mjs test-booking-options.mjs test-booking-v2-handlers.mjs test-priced-extras-schema.mjs test-booking-extras-ui.mjs test-voucher-booking-items.mjs",
     "test:native-contract": "node --test test-native-booking-contract.mjs",
     "test:api": "node --experimental-strip-types --test test-api-compatibility.mjs",
     "test:smart-search": "node --test test-smart-search.mjs && node test-smart-search-schema.mjs",
     "test:marketing-ui": "node --test test-marketing-google-simple.mjs test-marketing-channel-separation.mjs test-facebook-only-marketing.mjs test-google-custom-creatives.mjs",
-    "test:marketing-facebook": "node --test test-facebook-only-marketing.mjs"
+    "test:marketing-facebook": "node --test test-facebook-only-marketing.mjs",
+    "test:seo:browser": "node test-seo-ui.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14",

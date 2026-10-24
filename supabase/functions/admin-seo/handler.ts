@@ -1,6 +1,7 @@
 import {SeoError,validatePair,warnings,buildTopics,makePrompt,ensureSeoBenefits,hash,LANGS,SITE,type Pair} from './core.ts';
 import {publishPair,verifyPublic} from './github.ts';
 import {CALLBACK,credentials,googleAccess,googleApi,submitSitemap,inspectPair,businessTargets,existingPosts,createPost,postSummary,oauthStart,type Provider} from './google.ts';
+import {reviewDocument,dueReview,correctionAllowed,correctionChanged} from './review.ts';
 type Deps={fetch:typeof fetch;authorize:(req:Request)=>Promise<{admin:any;user:any}>;service:()=>any;env:(name:string)=>string|undefined};
 const origins=new Set(['https://ride24.pl','https://www.ride24.pl','http://localhost:8080','http://127.0.0.1:8080','http://localhost:5500','http://127.0.0.1:5500']);
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -27,11 +28,11 @@ async function sync(admin:any,currentTopics?:any[]){
  for(const t of topics){const d:any=known.get(t.topic_key);if(d&&JSON.stringify(d.source)!==JSON.stringify(t.source))check(await admin.from('seo_documents').update({source:t.source}).eq('id',d.id));}
  return {added:missing.length,active:topics.length};
 }
-async function generate(deps:Deps,admin:any,doc:any,note:string){
+async function generate(deps:Deps,admin:any,doc:any,note:string,heldClaim?:any,acceptCorrection?:(pair:Pair)=>boolean){
  const key=await secret(admin,'gemini');if(!key)throw new SeoError('Dodaj klucz Gemini z darmowego projektu w ustawieniach SEO.',409);
  const topics=await getTopics(admin);const live=topics.find(t=>t.topic_key===doc.topic_key);
  if(!live)throw new SeoError('Ten kierunek nie ma obecnie aktywnych lokalizacji z ofertami. Możesz poprawić tekst ręcznie, bez wymyślania dostępności.',409);
- const claimed=await rpc(admin,'admin_seo_claim',{p_id:doc.id,p_revision:doc.revision});
+ const claimed=heldClaim??await rpc(admin,'admin_seo_claim',{p_id:doc.id,p_revision:doc.revision});
  try{
   if(!await rpc(admin,'admin_seo_ai_slot'))throw new SeoError('Darmowy limit dzienny został wykorzystany lub nie potwierdzono poziomu Free. Tekst możesz edytować ręcznie.',429);
   const r=await deps.fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent',{method:'POST',redirect:'error',signal:AbortSignal.timeout(45000),headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({contents:[{role:'user',parts:[{text:makePrompt(live.source,doc.content,note)+'\nNie wskazuj konkretnego miejsca odbioru w terminalu, strefie obsługi podróżnych ani parkingu: źródło podaje nazwę lokalizacji, nie dokładny punkt spotkania. Nie twierdź, że w wybranej lokalizacji działa wielu partnerów. Pisz neutralnie o dostępnych ofertach i konieczności sprawdzenia instrukcji odbioru. Nie opisuj wielkości lotniska ani liczby podróżnych bez danych źródłowych.'}]}],generationConfig:{responseMimeType:'application/json',temperature:0.5,maxOutputTokens:10000,thinkingConfig:{thinkingLevel:'minimal'}}})});
@@ -48,9 +49,58 @@ async function generate(deps:Deps,admin:any,doc:any,note:string){
   // AI never chooses paths: existing paths remain stable, new paths come from deterministic source data.
   for(const lang of LANGS)pair[lang].slug=doc.content?.[lang]?.slug||live.source.slugs[lang];
    ensureSeoBenefits(pair,live.source); // Never turn unverified partner terms into a guarantee.
+  if(acceptCorrection&&!acceptCorrection(pair))throw new SeoError('AI nie przygotowało zmiany rozwiązującej wykryty problem. Zachowano publiczną wersję; sprawdź tekst ręcznie.',502);
   const saved=await rpc(admin,'admin_seo_save',{p_id:doc.id,p_revision:doc.revision,p_content:pair,p_note:note,p_lock:claimed.lock_token});
   return {document:saved,warnings:warnings(pair)};
- }finally{await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',claimed.lock_token);}
+ }finally{if(!heldClaim)await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',claimed.lock_token);}
+}
+async function runReview(deps:Deps,admin:any,cfg:any,id?:string){
+ const docs=check(await admin.from('seo_documents').select('*').eq('state','published').limit(1000))||[];
+ const next=id?await document(admin,id):docs.filter((d:any)=>dueReview(d)).sort((a:any,b:any)=>Date.parse(a.google?.review?.checked_at||'1970-01-01')-Date.parse(b.google?.review?.checked_at||'1970-01-01'))[0];
+ if(!next)return {checked:0,reason:'no_due_pages'};
+ try{return await reviewDocument({...deps,secret,rpc},admin,next,cfg,docs);}catch(e){if(e instanceof SeoError&&e.status===409&&!id)return {checked:0,reason:'busy_or_draft'};throw e;}
+}
+async function scheduledReviews(deps:Deps,admin:any,cfg:any){
+ const docs=check(await admin.from('seo_documents').select('*').eq('state','published').limit(1000))||[];
+ const due=docs.filter((d:any)=>dueReview(d)).sort((a:any,b:any)=>Date.parse(a.google?.review?.checked_at||'1970-01-01')-Date.parse(b.google?.review?.checked_at||'1970-01-01')).slice(0,2);
+ const results=await Promise.all(due.map(async(doc:any)=>{try{const {document:_,...status}=await reviewDocument({...deps,secret,rpc},admin,doc,cfg,docs);return status;}catch(e){return {checked:0,id:doc.id,error:e instanceof SeoError?e.message:'Nie udało się zakończyć kontroli tej strony.'};}}));
+ return {checked:results.reduce((n,r)=>n+r.checked,0),results,...(!due.length?{reason:'no_due_pages'}:{})};
+}
+async function automaticCorrection(deps:Deps,admin:any,cfg:any,topics:any[]){
+ if(!cfg.auto_review_enabled||cfg.auto_correction_day===new Date().toISOString().slice(0,10))return null;
+ const docs=check(await admin.from('seo_documents').select('*').eq('state','published').limit(1000))||[];
+ const candidate=docs.filter((d:any)=>correctionAllowed(d)&&(!d.lock_until||Date.parse(d.lock_until)<=Date.now())).sort((a:any,b:any)=>Date.parse(a.google.review.checked_at)-Date.parse(b.google.review.checked_at))[0];
+ if(!candidate)return null;
+ const ai=candidate.google.review.correction_kind==='content';
+ if(ai&&!topics.some(t=>t.topic_key===candidate.topic_key)){
+  const google=structuredClone(candidate.google);google.review.state='manual_attention';google.review.summary='Kierunek nie ma obecnie aktywnego źródła ofert. Sprawdź go ręcznie; automat nie wymyśla nowych warunków.';
+  check(await admin.from('seo_documents').update({google}).eq('id',candidate.id).eq('revision',candidate.revision).eq('state','published').is('lock_token',null));return null;
+ }
+ if(ai&&(!cfg.free_tier_confirmed||!await secret(admin,'gemini')))return null;
+ if(ai&&cfg.ai_day===new Date().toISOString().slice(0,10)&&cfg.ai_count>=cfg.daily_limit){
+  const google=structuredClone(candidate.google);google.review.state='quota_paused';google.review.summary='Poprawka oczekuje na wolny dzienny limit AI. Publiczna treść pozostaje dostępna.';
+  check(await admin.from('seo_documents').update({google}).eq('id',candidate.id).eq('revision',candidate.revision).eq('state','published').is('lock_token',null));return null;
+ }
+ let doc:any;
+ try{doc=await rpc(admin,'admin_seo_claim',{p_id:candidate.id,p_revision:candidate.revision});}catch(e){if(e instanceof SeoError&&e.status===409)return null;throw e;}
+ const google=structuredClone(doc.google||{});
+ try{
+  if(!correctionAllowed(doc))return null;
+  if(!await rpc(admin,'admin_seo_correction_slot'))return null;
+  const prior=google.review.correction;google.review.correction={base_revision:doc.revision,attempts:prior?.base_revision===doc.revision?Number(prior.attempts||0)+1:1,attempted_at:new Date().toISOString(),kind:google.review.correction_kind};google.review.state='preparing_correction';
+  check(await admin.from('seo_documents').update({google}).eq('id',doc.id).eq('revision',doc.revision).eq('lock_token',doc.lock_token));
+  const reasons=google.review.issues.slice(0,6).map((i:any)=>i.message).join('\n');
+  const note=((doc.review_note?doc.review_note.slice(0,700)+'\n\n':'')+'Automatyczna kontrola SEO — przygotuj szkic do zatwierdzenia:\n'+reasons+'\nDla odrzuconego wpisu Google zmień nagłówek i wstęp zgodnie z rzeczywistą ofertą. Nie wymyślaj powodu odrzucenia ani nowych warunków wynajmu.').slice(0,2000);
+  const result=ai?await generate(deps,admin,doc,note,doc,pair=>correctionChanged(pair,doc)):{document:await rpc(admin,'admin_seo_save',{p_id:doc.id,p_revision:doc.revision,p_content:validatePair(doc.content,doc.published.content),p_note:note,p_lock:doc.lock_token})};
+  const saved=result.document,updated=structuredClone(saved.google||google);updated.review={...google.review,state:'draft_ready',summary:'Automatyczna poprawka PL/EN jest gotowa. Sprawdź obie wersje i kliknij Opublikuj.',draft_revision:saved.revision};
+  const write=await admin.from('seo_documents').update({google:updated}).eq('id',doc.id).eq('revision',saved.revision).eq('state','changed').is('lock_token',null).select('id');
+  if(write.error||!write.data?.length)throw new SeoError('Szkic zapisano, ale jego status wymaga odświeżenia.',409);
+  return {corrected_id:doc.id,revision:saved.revision,state:'changed',correction_kind:ai?'content':'metadata'};
+ }catch(e){
+  google.review={...google.review,state:'correction_failed',summary:e instanceof SeoError?e.message:'Nie udało się przygotować poprawki. Publiczna treść jest zachowana.'};
+  await admin.from('seo_documents').update({google}).eq('id',doc.id).eq('revision',doc.revision).eq('lock_token',doc.lock_token);
+  return {correction_error:google.review.summary};
+ }finally{await admin.from('seo_documents').update({lock_token:null,lock_until:null}).eq('id',doc.id).eq('lock_token',doc.lock_token);}
 }
 // Retry only published, administrator-approved pages. No Gemini or GitHub writes.
 async function retryPendingSearch(deps:Deps,admin:any){
@@ -109,12 +159,14 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
   const body=await safeBody(req);const s=await settings(admin);const action=body.action||'list';
   if(cron){
    if(action==='recheck'){if(!s.enabled)return reply({skipped:true});return reply(await retryPendingSearch(deps,admin));}
+   if(action==='review'){if(!s.enabled||!s.auto_review_enabled)return reply({checked:0,reason:'review_disabled'});if(!body.document_id)return reply(await scheduledReviews(deps,admin,s));const result=await runReview(deps,admin,s,body.document_id);if('document' in result){const {document:_,...status}=result;return reply(status);}return reply(result);}
     if(action!=='cron')throw new SeoError('Scheduler może przygotowywać wyłącznie szkice.',403);
    if(!s.enabled)return reply({skipped:true});
    // Scoped maintenance may generate one explicitly selected queued draft, under the same Free quota.
    // It cannot edit existing drafts or publish anything, and does not enable automatic generation.
    if(body.draft_id){const target=await document(admin,body.draft_id);if(target.state!=='queued'||target.content!==null||target.published!==null)throw new SeoError('Przygotowanie wewnętrzne dotyczy tylko nowych, pustych szkiców.',409);const generated=await generate(deps,admin,target,'');return reply({generated_id:generated.document.id,revision:generated.document.revision,state:generated.document.state});}
    const topics=await getTopics(admin),result=await sync(admin,topics);
+   const correction=await automaticCorrection(deps,admin,s,topics);if(correction)return reply({...result,...correction});
    if(!s.auto_generate)return reply({...result,generation_skipped:'automation_disabled'});
    if(!s.free_tier_confirmed)return reply({...result,generation_skipped:'free_confirmation_required'});
    if(!await secret(admin,'gemini'))return reply({...result,generation_skipped:'gemini_not_configured'});
@@ -132,11 +184,11 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
    const docs=check(await admin.from('seo_documents').select('*').order('created_at',{ascending:false}).limit(1000));
    const [gemini,clientSecret,search,business,github]=await Promise.all([secret(admin,'gemini'),secret(admin,'google_client_secret'),secret(admin,'search_refresh'),secret(admin,'business_refresh'),rpc(admin,'admin_travel_guide_github_token')]);
    const client=credentials(s,clientSecret,deps.env);
-   return reply({documents:docs,settings:{enabled:s.enabled,auto_generate:s.auto_generate,free_tier_confirmed:s.free_tier_confirmed,daily_limit:s.daily_limit,used_today:s.ai_day===new Date().toISOString().slice(0,10)?s.ai_count:0,google_client_id:s.google_client_id,business_target:s.business_target},connections:{gemini:!!gemini,github:!!github,google_credentials:!!client.id&&!!client.secret,search:!!search,business:!!business,callback:CALLBACK}});
+   return reply({documents:docs,settings:{enabled:s.enabled,auto_generate:s.auto_generate,auto_review_enabled:s.auto_review_enabled===true,correction_used_today:s.auto_correction_day===new Date().toISOString().slice(0,10),free_tier_confirmed:s.free_tier_confirmed,daily_limit:s.daily_limit,used_today:s.ai_day===new Date().toISOString().slice(0,10)?s.ai_count:0,google_client_id:s.google_client_id,business_target:s.business_target},connections:{gemini:!!gemini,github:!!github,google_credentials:!!client.id&&!!client.secret,search:!!search,business:!!business,callback:CALLBACK}});
   }
   if(action==='configure'){
    const updates:any={updated_at:new Date().toISOString()};
-   for(const k of ['enabled','auto_generate','free_tier_confirmed'])if(typeof body[k]==='boolean')updates[k]=body[k];
+   for(const k of ['enabled','auto_generate','auto_review_enabled','free_tier_confirmed'])if(typeof body[k]==='boolean')updates[k]=body[k];
    if(body.daily_limit!==undefined){if(!Number.isInteger(body.daily_limit)||body.daily_limit<1||body.daily_limit>10)throw new SeoError('Limit dzienny musi wynosić od 1 do 10.');updates.daily_limit=body.daily_limit;}
    if(body.google_client_id){if(typeof body.google_client_id!=='string'||!/^\d+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(body.google_client_id.trim()))throw new SeoError('Nieprawidłowy Google OAuth Client ID.');updates.google_client_id=body.google_client_id.trim();}
    if(body.business_target!==undefined){if(typeof body.business_target!=='string'||body.business_target!==''&&!/^accounts\/\d+\/locations\/\d+$/.test(body.business_target))throw new SeoError('Nieprawidłowa wizytówka Google.');updates.business_target=body.business_target;}
@@ -179,6 +231,7 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
    return reply({document:await rpc(admin,'admin_seo_save',{p_id:doc.id,p_revision:doc.revision,p_content:validatePair(old.content,doc.published?.content),p_note:'Przywrócona treść historyczna — szkic do zatwierdzenia.'})});
   }
   if(action==='generate')return reply(await generate(deps,admin,doc,note));
+  if(action==='review')return reply(await runReview(deps,admin,s,doc.id));
   if(!['publish','verify','submit','inspect','business_publish','business_check'].includes(action))throw new SeoError('Nieznana akcja SEO.');
   if(action==='business_publish'&&(doc.state!=='published'||doc.published?.revision!==doc.revision))throw new SeoError('Najpierw opublikuj poprawione strony PL i EN. Wpis Google musi dotyczyć zatwierdzonej publicznej wersji.',409);
   if(['publish','business_publish'].includes(action)&&body.approved!==true)throw new SeoError('Sprawdź treść i zaznacz potwierdzenie przed publikacją.');
@@ -190,6 +243,7 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
     const published=await publishPair(deps.fetch,token,doc,pair);
     check(await admin.from('seo_revisions').upsert({document_id:doc.id,revision:doc.revision,content:pair,note:note||'Opublikowana wersja'},{onConflict:'document_id,revision',ignoreDuplicates:true}));
     google={...google,search:{state:'pending',note:'Oczekiwanie na dostępność nowej wersji strony.'}};
+    if(google.review)google.review={...google.review,state:'awaiting_check',summary:'Nowa wersja oczekuje na ponowną kontrolę Google.',revision:doc.revision,correction_kind:null,issues:[],errors:[],next_check_at:'1970-01-01T00:00:00Z'};
     await patch({published,state:'published',google,last_error:''});doc.published=published;
     // A deployment may take time. Never describe a Git commit as a finished Google publication.
     const verification=await verifyPublic(deps.fetch,published);google.verification=verification;
