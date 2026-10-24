@@ -33,7 +33,9 @@ Deno.serve(async (req: Request) => {
     const {error:deleteError} = await admin.auth.admin.deleteUser(uid,false);
     if (deleteError) return respond(409,{error:"Authentication nie usunęło konta. Żadne usunięcie nie zostało potwierdzone. Sprawdź zależności i pliki Storage."});
     const {data:stillThere,error:verifyError} = await admin.auth.admin.getUserById(uid);
-    if (!verifyError && stillThere?.user) return respond(502,{error:"Nie udało się potwierdzić usunięcia konta z Auth."});
+    // A 404 is the only acceptable verification outcome. Timeouts/403/5xx are NOT proof of deletion.
+    if (!verifyError || verifyError.status !== 404 || stillThere?.user)
+      return respond(502,{error:"Nie uzyskano jednoznacznego potwierdzenia usunięcia z Auth. Sprawdź stan przed ponowieniem."});
     const remaining: string[]=[];
     const related = [
       ["client_app_devices","user_id"],["client_app_notifications","client_id"],
