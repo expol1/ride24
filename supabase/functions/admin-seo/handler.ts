@@ -11,6 +11,34 @@ async function settings(admin:any){const r=await admin.from('seo_settings').sele
 async function document(admin:any,id:any){if(typeof id!=='string'||!UUID.test(id))throw new SeoError('Nieprawidłowy identyfikator SEO.');const r=await admin.from('seo_documents').select('*').eq('id',id).single();if(r.error||!r.data)throw new SeoError('Nie znaleziono strony SEO.',404);return r.data;}
 function check(r:any){if(r.error)throw new SeoError('Nie udało się zapisać danych SEO.',502);return r.data;}
 async function safeBody(req:Request){if(!req.headers.get('content-type')?.startsWith('application/json'))throw new SeoError('Wymagany formularz JSON.',415);const reader=req.body?.getReader();if(!reader)throw new SeoError('Brak danych.');let n=0;const chunks=[];for(;;){const {value,done}=await reader.read();if(done)break;n+=value.length;if(n>180000){await reader.cancel();throw new SeoError('Formularz jest zbyt duży.',413);}chunks.push(value);}const bytes=new Uint8Array(n);let i=0;for(const chunk of chunks){bytes.set(chunk,i);i+=chunk.length;}try{const v=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));if(!v||typeof v!=='object'||Array.isArray(v))throw new Error();return v;}catch{throw new SeoError('Nieprawidłowy formularz JSON.');}}
+async function autoBusinessPosts(deps:Deps,admin:any,cfg:any,published:any,revision:number,google:any,patch:(values:any)=>Promise<void>){
+ if(cfg.auto_business_post!==true||!cfg.business_target)return;
+ if(google.business?.revision===revision&&google.business?.target===cfg.business_target&&
+    (google.business?.state==='needs_check'||['pl','en'].every(l=>google.business?.posts?.[l]?.name)))return;
+ const pair=published.content;
+ try{
+  const refresh=await secret(admin,'business_refresh');
+  if(!refresh)throw new SeoError('Połącz wizytówkę Google w ustawieniach.',409);
+  const access=await googleAccess(deps.fetch,refresh,credentials(cfg,await secret(admin,'google_client_secret'),deps.env));
+  const api=googleApi(deps.fetch,access,12000),current=await existingPosts(api,cfg.business_target);
+  const result:any={revision,target:cfg.business_target,posts:{},state:'pending'};
+  for(const lang of LANGS){
+   const prior=current.find((p:any)=>p.summary===postSummary(pair,lang)&&p.callToAction?.url===SITE+pair[lang].slug&&p.languageCode===lang);
+   if(prior?.name){result.posts[lang]={name:prior.name,state:prior.state||'UNKNOWN'};continue;}
+   result.uncertain=lang;google.business=result;await patch({google});
+   const sent=await createPost(api,cfg.business_target,pair,lang);
+   if(!sent?.name)throw new SeoError('Google nie potwierdził publikacji; sprawdź wizytówkę.',502);
+   result.posts[lang]={name:sent.name,state:sent.state||'PROCESSING'};
+   delete result.uncertain;google.business=result;await patch({google});
+  }
+  const states=Object.values(result.posts).map((p:any)=>p.state);
+  result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':'processing';
+  result.checked_at=new Date().toISOString();google.business=result;
+ }catch(e){
+  google.business={...(google.business||{}),revision,target:cfg.business_target,
+   state:'needs_check',note:e instanceof SeoError?e.message:'Automatycznej publikacji nie potwierdzono. Sprawdź połączenie; nie wysyłaj duplikatu.'};
+ }
+}
 // Free Search Console Search Analytics. Store one snapshot per day; no Ads or paid APIs.
 async function searchPerformance(deps:Deps,admin:any,cfg:any){
  const today=new Date(),finish=new Date(today.getTime()-3*86400000),start=new Date(finish.getTime()-27*86400000);
@@ -161,6 +189,7 @@ async function retryPendingSearch(deps:Deps,admin:any){
    const cfg=await settings(admin);
    const access=await googleAccess(deps.fetch,await secret(admin,'search_refresh'),credentials(cfg,await secret(admin,'google_client_secret'),deps.env));
    google.search=await submitSitemap(googleApi(deps.fetch,access));
+   await autoBusinessPosts(deps,admin,cfg,doc.published,doc.revision,google,patch);
    await patch({google,last_error:''});return {checked:1,result:'submitted'};
   }catch(e){
    const error=e instanceof SeoError?e.message:'Google nie przyjął zgłoszenia mapy.';
@@ -277,33 +306,7 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
     // A deployment may take time. Never describe a Git commit as a finished Google publication.
     const verification=await verifyPublic(deps.fetch,published);google.verification=verification;
     if(verification.ready){try{const access=await googleAccess(deps.fetch,await secret(admin,'search_refresh'),credentials(s,await secret(admin,'google_client_secret'),deps.env));google.search=await submitSitemap(googleApi(deps.fetch,access));}catch(e){google.search={state:'pending',note:e instanceof SeoError?e.message:'Zgłoszenie Google oczekuje na ponowienie.'};}}
-    // Free Google Business Profile API: publish only after manual approval of SEO text,
-    // a verified live deployment and explicit optional auto-post flag.
-    if(verification.ready&&s.auto_business_post===true&&s.business_target){
-     try{
-      const refresh=await secret(admin,'business_refresh');
-      if(!refresh)throw new SeoError('Połącz wizytówkę Google w ustawieniach.',409);
-      const access=await googleAccess(deps.fetch,refresh,credentials(s,await secret(admin,'google_client_secret'),deps.env));
-      const api=googleApi(deps.fetch,access,12000),current=await existingPosts(api,s.business_target);
-      const result:any={revision:doc.revision,target:s.business_target,posts:{},state:'pending'};
-      for(const lang of LANGS){
-       const prior=current.find((p:any)=>p.summary===postSummary(pair,lang)&&p.callToAction?.url===SITE+pair[lang].slug&&p.languageCode===lang);
-       if(prior?.name){result.posts[lang]={name:prior.name,state:prior.state||'UNKNOWN'};continue;}
-       // Store the uncertainty before POST to avoid duplicate sends after a timeout.
-       result.uncertain=lang;google.business=result;await patch({google});
-       const sent=await createPost(api,s.business_target,pair,lang);
-       if(!sent?.name)throw new SeoError('Google nie potwierdził publikacji; sprawdź wizytówkę.',502);
-       result.posts[lang]={name:sent.name,state:sent.state||'PROCESSING'};
-       delete result.uncertain;google.business=result;await patch({google});
-      }
-      const states=Object.values(result.posts).map((p:any)=>p.state);
-      result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':'processing';
-      result.checked_at=new Date().toISOString();google.business=result;
-     }catch(e){
-      google.business={...(google.business||{}),revision:doc.revision,target:s.business_target,
-        state:'needs_check',note:e instanceof SeoError?e.message:'Automatycznej publikacji nie potwierdzono. Sprawdź połączenie; nie wysyłaj duplikatu.'};
-     }
-    }
+    if(verification.ready)await autoBusinessPosts(deps,admin,s,published,doc.revision,google,patch);
     await patch({google});return reply({published,google,warnings:warnings(pair)});
    }
    if(!doc.published)throw new SeoError('Najpierw opublikuj strony PL i EN.');
