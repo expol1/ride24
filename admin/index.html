@@ -669,12 +669,12 @@
 
         <div class="stat-card" style="border-left: 4px solid #14B8A6;">
             <div class="stat-title">Zarobione (PLN)</div>
-            <div class="stat-value" id="stat-revenue" style="color: #14B8A6;">0</div>
+            <div class="stat-value" id="stat-revenue" style="color: #14B8A6;">—</div><div id="stat-revenue-details" style="font-size:11px;color:#64748B">Weryfikacja Stripe...</div>
         </div>
 
         <div class="stat-card" style="border-left: 4px solid #F43F5E;">
             <div class="stat-title">Zwroty (PLN)</div>
-            <div class="stat-value" id="stat-refunds" style="color: #F43F5E;">0</div>
+            <div class="stat-value" id="stat-refunds" style="color: #F43F5E;">—</div><div id="stat-refunds-details" style="font-size:11px;color:#64748B">Zwroty Stripe</div>
         </div>
 
         <div class="stat-card" style="border-left: 4px solid var(--red);">
@@ -780,8 +780,8 @@
         <h1 class="page-title">Wnioski o usunięcie konta</h1>
     </div>
 
-    <div style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; font-weight: 600;">
-        ⚠️ WAŻNE: Po usunięciu konta w panelu, wejdź do Supabase /Authentication usuń ręcznie.
+    <div id="account-delete-warning" style="background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; padding: 16px 20px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; font-weight: 600;">
+        ⚠️ WAŻNE: Usuwanie kont wymaga również potwierdzenia w Supabase Authentication. Komunikat zostanie ukryty po pierwszym pomyślnie zweryfikowanym usunięciu.
     </div>
 
     <div class="saas-grid">
@@ -931,6 +931,10 @@
   <p class="seo-muted">Przygotuj treść PL i EN, sprawdź ją i opublikuj. Poprawki zachowują adresy stron oraz historię wersji.</p>
   <div id="seo-connections" class="seo-connection-list"></div>
   <p id="seo-review-summary" class="seo-muted" role="status" aria-live="polite"></p>
+   <div class="seo-card" style="margin:12px 0;padding:14px"><h3>Wyniki Google Search Console — ostatnie 28 dni</h3>
+    <div id="seo-performance" class="seo-muted">Raport czeka na pierwszy automatyczny odczyt.</div>
+    <button class="btn-secondary" type="button" onclick="seoPerformance()">Pobierz aktualne wyniki Google</button>
+   </div>
   <div class="seo-actions"><button class="btn-secondary" type="button" onclick="seoSync()">Odśwież lokalizacje</button><button class="btn-secondary" type="button" onclick="loadSeo()">Odśwież status</button></div>
   <div id="seo-message" class="seo-status" role="status" aria-live="polite">Wczytywanie SEO…</div>
  </div>
@@ -950,6 +954,7 @@
      <label class="seo-toggle"><input id="seo-free" type="checkbox"><span>Potwierdzam, że projekt Gemini działa na poziomie Free i nie ma włączonych płatności.</span></label>
      <label class="seo-toggle"><input id="seo-auto" type="checkbox"><span>Automatycznie przygotowuj szkice nowych kierunków. Publikuję je samodzielnie.</span></label>
      <label class="seo-toggle"><input id="seo-review-auto" type="checkbox"><span>Automatycznie sprawdzaj Google i przygotowuj uzasadnione poprawki PL/EN do mojego zatwierdzenia.</span></label>
+      <label class="seo-toggle"><input id="seo-business-auto" type="checkbox"><span>Po moim zatwierdzeniu i opublikowaniu strony, bezpłatnie wyślij wpisy PL/EN do wizytówki Google (jeśli API działa).</span></label>
      <p class="seo-muted">Najwyżej jedna automatyczna poprawka dziennie. Poprawki AI korzystają z tego samego limitu co nowe szkice. Samo oczekiwanie na indeksowanie nie powoduje przepisywania treści. Sprawdź oba języki przed publikacją.</p>
      <div class="seo-field"><label for="seo-limit">Maksymalna liczba prób AI dziennie</label><input id="seo-limit" type="number" min="1" max="10" value="3"></div>
      <div id="seo-ai-usage" class="seo-muted"></div>
@@ -1834,39 +1839,41 @@ async function deleteMessage(id) {
     }
 }
 
-       async function deleteUser(userId) {
-    if (!confirm("⚠️ Czy na pewno chcesz całkowicie USUNĄĆ użytkownika?")) return;
-
+       async function adminDeleteAccount(userId) {
     try {
-        // KROK 1: Usuwanie plików fizycznych (Storage API)
-        // Robimy to przed usunięciem rekordu z bazy
-        const { data: files } = await db.storage.from('avatars').list(userId);
-
-        if (files && files.length > 0) {
-            const filesToRemove = files.map(f => `${userId}/${f.name}`);
-            const { error: storageError } = await db.storage
-                .from('avatars')
-                .remove(filesToRemove);
-
-            if (storageError) console.warn("Błąd podczas czyszczenia Storage (ale kontynuuję):", storageError.message);
+        // The server independently checks administrator permissions, account eligibility
+        // and all booking/Storage dependencies. No Auth secret is exposed to the browser.
+        const preflight = await db.functions.invoke('admin-account-delete', {
+            body: { action: 'preflight', user_id: userId }
+        });
+        if (preflight.error || !preflight.data?.eligible) {
+            const blockers=preflight.data?.blockers || [];
+            alert('Nie można usunąć konta:\n' + (blockers.length ? blockers.join('\n') : (preflight.data?.error || 'Wymagana kontrola powiązań i uprawnień.')));
+            return false;
         }
-
-        // KROK 2: Wywołanie RPC (Baza danych)
-        // Ta funkcja NIE MOŻE mieć w środku linii "DELETE FROM storage.objects"
-        const { error: rpcError } = await db.rpc(
-            'admin_hard_delete_user',
-            { target_uid: userId }
-        );
-
-        if (rpcError) throw rpcError;
-
-        alert("Użytkownik usunięty pomyślnie!");
-        loadDeletionRequests(); // Odświeżenie listy
-
-    } catch (err) {
-        console.error("Błąd podczas usuwania:", err);
-        alert("Błąd: " + err.message);
+        if (!confirm('Trwale usunąć wskazane konto i jego wpis w Supabase Authentication? Operacji nie można cofnąć.')) return false;
+        const result = await db.functions.invoke('admin-account-delete', {
+            body: { action: 'delete', user_id: userId }
+        });
+        if (result.error || result.data?.auth_deleted !== true || result.data?.success !== true) {
+            const blockers=result.data?.blockers || [];
+            throw new Error(blockers.length ? blockers.join('\n') : (result.data?.error || 'Nie potwierdzono usunięcia z Auth.'));
+        }
+        // Remove the legacy warning only after the server has confirmed Auth deletion.
+        const banner=document.getElementById('account-delete-warning');
+        if (banner) banner.remove();
+        const pending=result.data.cleanup_pending || [];
+        alert(pending.length ? 'Konto usunięte z Auth. Sprawdź pozostałe dane: ' + pending.join(', ') :
+            'Konto zostało usunięte również z Supabase Authentication.');
+        await Promise.all([loadDeletionRequests(),loadRadarData(),loadPartnersData()]);
+        return true;
+    } catch (error) {
+        alert('Nie potwierdzono pełnego usunięcia: '+(error?.message || 'Błąd serwera. Konto wymaga kontroli.'));
+        return false;
     }
+}
+async function deleteUser(userId) {
+    return adminDeleteAccount(userId);
 }
 
 async function loadDeletionRequests() {
@@ -1914,7 +1921,7 @@ async function loadDeletionRequests() {
     const { data: partnersData, error: pError } = await db
         .from("partners")
         .select("user_id, company_name, email")
-        .or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled,active.eq.false");
+        .in("account_status",["deleted","disabled"]);
 
     if (pError) {
         console.error("Błąd pobierania partnerów:", pError);
@@ -2140,7 +2147,37 @@ function closePromotionModal() {
         }
 
         // --- DANE (RADAR) ---
-        async function loadRadarData() {
+        async function loadStripeRevenue() {
+    const revenue=document.getElementById('stat-revenue');
+    const refunds=document.getElementById('stat-refunds');
+    const details=document.getElementById('stat-revenue-details');
+    const refundDetails=document.getElementById('stat-refunds-details');
+    if (!revenue || !refunds) return;
+    revenue.textContent='—'; refunds.textContent='—';
+    if(details)details.textContent='Sprawdzam płatności w Stripe...';
+    try {
+        const {data,error}=await db.functions.invoke('admin-revenue',{body:{}});
+        if(error || !data?.totals)throw new Error(data?.error||'Nie udało się uzgodnić Stripe.');
+        const t=data.totals;
+        const fmt=x=>Number(x).toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2});
+        refunds.textContent=fmt(t.refunds);
+        if(refundDetails)refundDetails.textContent='Zwroty potwierdzone przez Stripe';
+        if(data.complete)revenue.textContent=fmt(t.net);
+        if(details)details.textContent=data.complete
+          ? 'Pobrano '+fmt(t.gross)+' zł • opłaty Stripe '+fmt(t.fees)+' zł • potwierdzono '+t.verified+' płatności'
+          : 'Niepełne rozliczenie: '+t.unverified+' płatności do sprawdzenia, '+t.fee_missing+' brakujących prowizji. Wynik ukryty.';
+        if(t.cancelled_paid && details)details.textContent+=' • Uwaga: '+t.cancelled_paid+' anulowanych/odrzuconych rezerwacji z niezwróconą płatnością';
+        if(!data.complete && data.issues?.length)console.warn('Stripe reconciliation:',data.issues);
+    } catch(e) {
+        revenue.textContent='—';
+        refunds.textContent='—';
+        if(details)details.textContent='Brak potwierdzenia Stripe — nie pokazuję szacunkowych zarobków.';
+        if(refundDetails)refundDetails.textContent='Sprawdź integrację Stripe.';
+        console.error('Stripe reconciliation:',e);
+    }
+}
+
+async function loadRadarData() {
     const { data: bookings, error } = await db.from("bookings").select("status");
     
     if (error) {
@@ -2155,26 +2192,8 @@ function closePromotionModal() {
     const { count } = await db.from("partners").select("*", { count: 'exact', head: true });
     document.getElementById("stat-partners").innerText = count || 0;
 
-   // --- REVENUE (Z BOOKINGS) ---
-const { data: revenueData, error: revenueError } = await db
-    .from("bookings")
-    .select("online_payment_pln, status");
-
-if (!revenueError && revenueData) {
-
-    let revenue = 0;
-
-    revenueData.forEach(b => {
-        if (b.status === "paid" || b.status === "confirmed") {
-            revenue += parseFloat(b.online_payment_pln || 0);
-        }
-    });
-
-    document.getElementById("stat-revenue").innerText = revenue.toFixed(2);
-
-} else {
-    document.getElementById("stat-revenue").innerText = "0.00";
-}
+   // Finance dashboard must use Stripe-confirmed charges, refunds and fees.
+loadStripeRevenue();
 const { count: msgCount, error: msgError } = await db
         .from("contact_messages")
         .select("*", { count: 'exact', head: true });
@@ -2183,30 +2202,10 @@ const { count: msgCount, error: msgError } = await db
         document.getElementById("stat-messages").innerText = msgCount || 0;
     }
 
-// --- REFUNDS (Z BOOKINGS) ---
-const { data: refundData, error: refundError } = await db
-    .from("bookings")
-    .select("refund_amount_pln, refund_status");
-
-if (!refundError && refundData) {
-
-    let refunds = 0;
-
-    refundData.forEach(b => {
-        if (b.refund_status === "completed") {
-            refunds += parseFloat(b.refund_amount_pln || 0);
-        }
-    });
-
-    document.getElementById("stat-refunds").innerText = refunds.toFixed(2);
-
-} else {
-    document.getElementById("stat-refunds").innerText = "0.00";
-}
     // --- Wnioski o usunięcie ---
 // --- Wnioski o usunięcie (Klienci + Partnerzy) ---
     const { data: clientsDel } = await db.rpc("admin_get_deletion_requests");
-    const { data: partnersDel } = await db.from("partners").select("id").or("account_status.is.null,active.is.null,account_status.eq.deleted,account_status.eq.disabled,active.eq.false");
+    const { data: partnersDel } = await db.from("partners").select("id").in("account_status",["deleted","disabled"]);
     let totalDelCount = (clientsDel ? clientsDel.length : 0) + (partnersDel ? partnersDel.length : 0);
     document.getElementById("stat-deletions").innerText = totalDelCount;
 // --- ZWROTY DO AKCEPTACJI (RADAR) ---
@@ -2481,18 +2480,9 @@ async function togglePartner(partnerId, makeActive) {
 }
 
 async function deletePartner(partnerId) {
-    if (!confirm("⚠️ UWAGA: Czy na pewno chcesz trwale USUNĄĆ partnera?")) return;
-    try {
-        const { error } = await db.rpc("admin_delete_partner", {
-            p_partner_id: partnerId
-        });
-        if (error) throw error;
-        alert("✅ Partner usunięty");
-        loadPartnersData();
-        loadRadarData();
-    } catch (err) {
-        alert("Błąd bazy: " + err.message);
-    }
+    const { data: partner, error } = await db.from('partners').select('user_id').eq('id',partnerId).maybeSingle();
+    if (error || !partner?.user_id) { alert('Nie znaleziono konta partnera.'); return; }
+    return adminDeleteAccount(partner.user_id);
 }
 
 async function forceCancel(bookingId) {

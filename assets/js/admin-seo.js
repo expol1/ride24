@@ -2,6 +2,39 @@ import {esc,validatePair,renderPage,makePrompt} from './seo-content.js?v=2026102
 let documents=[],selected=null,connections={},settings={},busy=false,dirty=false,language='pl';
 const $=id=>document.getElementById(id);
 const reviewLabels={awaiting_check:'oczekuje na kontrolę',healthy:'Google potwierdza indeksowanie',waiting_indexing:'oczekuje na indeksowanie',needs_correction:'poprawka w kolejce',draft_ready:'poprawka gotowa do zatwierdzenia',technical_issue:'sprawdź dostępność strony',google_attention:'sprawdź raport Google',connection_issue:'sprawdź połączenie Google',manual_attention:'wymaga ręcznej kontroli',temporary_error:'chwilowy błąd kontroli',quota_paused:'poprawka czeka na limit AI',preparing_correction:'przygotowywanie poprawki',correction_failed:'poprawka wymaga kontroli'};
+function renderPerformance(p){
+ const root=$('seo-performance');if(!root)return;
+ root.replaceChildren();
+ if(!p?.checked_at){root.textContent='Brak wyników. Automatyczny odczyt działa raz dziennie, możesz także pobrać dane teraz.';return;}
+ const fmt=(n)=>Number(n||0).toLocaleString('pl-PL',{maximumFractionDigits:1});
+ const t=p.totals||{};
+ const intro=document.createElement('p');
+ intro.textContent='Okres '+p.start_date+' – '+p.end_date+
+   ' | kliknięcia: '+fmt(t.clicks)+' | wyświetlenia: '+fmt(t.impressions)+
+   ' | CTR: '+(Number(t.ctr||0)*100).toFixed(2)+'% | średnia pozycja: '+fmt(t.position)+
+   ' | zbadane podstrony SEO: '+fmt(p.seo_pages)+'.';
+ root.append(intro);
+ const checked=document.createElement('p');checked.textContent='Ostatni odczyt: '+new Date(p.checked_at).toLocaleString('pl-PL');root.append(checked);
+ if(p.opportunities?.length){
+  const title=document.createElement('strong');title.textContent='Strony z wyświetleniami, ale słabym CTR — sprawdź tytuły i opisy:';root.append(title);
+  const list=document.createElement('ul');
+  for(const item of p.opportunities.slice(0,8)){
+   const li=document.createElement('li');li.textContent=String(item.url).replace('https://ride24.pl','')+
+    ' — '+fmt(item.impressions)+' wyświetleń, CTR '+(Number(item.ctr)*100).toFixed(2)+'%, pozycja '+fmt(item.position);
+   list.append(li);
+  }
+  root.append(list);
+ }else {const p2=document.createElement('p');p2.textContent='Na razie brak wystarczająco uzasadnionych sugestii zmian na podstawie CTR.';root.append(p2);}
+}
+async function seoPerformance(){
+ return run(async()=>{
+   message('Pobieram bezpłatny raport Search Console…');
+   const r=await invoke({action:'performance'});
+   settings.search_performance=r.performance||{};
+   renderPerformance(settings.search_performance);
+   message('Odczytano rzeczywiste statystyki Search Console. Zmiany treści wymagają Twojego zatwierdzenia.');
+ });
+}
 function reviewSummary(){const pages=documents.filter(d=>d.published),checked=pages.filter(d=>d.google?.review?.checked_at),ready=pages.filter(d=>d.state==='changed'&&d.google?.review?.state==='draft_ready');$('seo-review-summary').textContent=settings.auto_review_enabled?'Automatyczna kontrola włączona. Sprawdzone: '+checked.length+' / '+pages.length+'; Google potwierdza indeksowanie PL i EN: '+pages.filter(d=>d.google?.review?.state==='healthy').length+'; gotowe poprawki: '+ready.length+'; poprawki dziś: '+(settings.correction_used_today?1:0)+' / 1. System sprawdza kolejne strony co 15 minut, standardowo ponawiając kontrolę po 24 godzinach.':'Automatyczna kontrola Google jest wyłączona. Możesz ją włączyć w ustawieniach lub sprawdzić wybraną stronę ręcznie.';}
 
 function message(text,error=false){const el=$('seo-message');el.textContent=text;el.className='seo-status '+(error?'error':'success');}
@@ -12,7 +45,7 @@ function current(){return documents.find(d=>d.id===selected);}
 function updateDoc(d){const i=documents.findIndex(x=>x.id===d.id);if(i>=0)documents[i]=d;else documents.unshift(d);selected=d.id;dirty=false;renderEditor();seoRenderList();}
 async function refresh(){const data=await invoke({action:'list'});documents=data.documents||[];settings=data.settings||{};connections=data.connections||{};
  $('seo-connections').replaceChildren(...[['github','GitHub'],['gemini','Gemini'],['search','Search Console'],['business','Wizytówka Google']].map(([key,label])=>{const el=document.createElement('span');el.className='seo-badge'+(connections[key]?' ready':'');el.textContent=label+': '+(connections[key]?'skonfigurowane':'do połączenia');return el;}));
- $('seo-enabled').checked=settings.enabled;$('seo-auto').checked=settings.auto_generate;$('seo-review-auto').checked=settings.auto_review_enabled===true;$('seo-free').checked=settings.free_tier_confirmed;$('seo-limit').value=settings.daily_limit||3;$('seo-oauth-id').value=settings.google_client_id||'';$('seo-callback').value=connections.callback||'';$('seo-ai-usage').textContent='Próby AI dziś: '+settings.used_today+' / '+settings.daily_limit+'. Limit odnawia się o 00:00 UTC.';
+ $('seo-enabled').checked=settings.enabled;$('seo-auto').checked=settings.auto_generate;$('seo-review-auto').checked=settings.auto_review_enabled===true;$('seo-business-auto').checked=settings.auto_business_post===true;renderPerformance(settings.search_performance);$('seo-free').checked=settings.free_tier_confirmed;$('seo-limit').value=settings.daily_limit||3;$('seo-oauth-id').value=settings.google_client_id||'';$('seo-callback').value=connections.callback||'';$('seo-ai-usage').textContent='Próby AI dziś: '+settings.used_today+' / '+settings.daily_limit+'. Limit odnawia się o 00:00 UTC.';
  if(settings.business_target){const option=document.createElement('option');option.value=settings.business_target;option.textContent='Zapisana wizytówka Ride24';$('seo-business-target').replaceChildren(option);}
  seoRenderList();renderEditor();seoButtons();return data;
 }
@@ -44,12 +77,12 @@ async function seoReview(){return run(async()=>{const doc=current();if(!doc?.pub
 async function seoBusinessPublish(){return run(async()=>{const doc=current();if(!doc?.published||!$('seo-approved').checked||dirty)throw new Error('Zapisz zmiany i zatwierdź treści przed publikacją wpisów.');const r=await invoke({action:'business_publish',id:doc.id,revision:doc.revision,approved:true});doc.google=r.google;renderStatus(doc);message('Wpisy PL i EN wysłane do wizytówki Google. Sprawdź ich status.');});}
 async function seoHistory(){return run(async()=>{const doc=current();const r=await invoke({action:'history',id:doc.id});const box=$('seo-history');box.replaceChildren();for(const h of r.revisions){const b=document.createElement('button');b.type='button';b.textContent='Wersja '+h.revision+' • '+new Date(h.created_at).toLocaleString('pl-PL')+' — przywróć jako szkic';b.onclick=()=>seoRestore(h.id);box.append(b);}if(!r.revisions.length)box.textContent='Brak wcześniejszych zapisanych wersji.';});}
 async function seoRestore(history_id){if(dirty&&!confirm('Odrzucić niezapisane zmiany i przywrócić treść historyczną jako szkic?'))return;return run(async()=>{const doc=current();const r=await invoke({action:'restore',id:doc.id,revision:doc.revision,history_id});updateDoc(r.document);message('Przywrócono treść jako szkic. Sprawdź ją przed publikacją.');});}
-async function seoSaveSettings(event){event.preventDefault();if(dirty&&!confirm('Zapis ustawień odświeży panel i odrzuci niezapisane zmiany tekstu. Kontynuować?'))return;return run(async()=>{const payload={action:'configure',enabled:$('seo-enabled').checked,auto_generate:$('seo-auto').checked,auto_review_enabled:$('seo-review-auto').checked,free_tier_confirmed:$('seo-free').checked,daily_limit:Number($('seo-limit').value),google_client_id:$('seo-oauth-id').value.trim(),gemini_key:$('seo-gemini-key').value.trim(),google_client_secret:$('seo-oauth-secret').value.trim()};try{await invoke(payload);}finally{$('seo-gemini-key').value='';$('seo-oauth-secret').value='';}await refresh();message('Ustawienia zapisane. Puste pola kluczy zachowują dotychczasową konfigurację.');});}
+async function seoSaveSettings(event){event.preventDefault();if(dirty&&!confirm('Zapis ustawień odświeży panel i odrzuci niezapisane zmiany tekstu. Kontynuować?'))return;return run(async()=>{const payload={action:'configure',enabled:$('seo-enabled').checked,auto_generate:$('seo-auto').checked,auto_review_enabled:$('seo-review-auto').checked,auto_business_post:$('seo-business-auto').checked,free_tier_confirmed:$('seo-free').checked,daily_limit:Number($('seo-limit').value),google_client_id:$('seo-oauth-id').value.trim(),gemini_key:$('seo-gemini-key').value.trim(),google_client_secret:$('seo-oauth-secret').value.trim()};try{await invoke(payload);}finally{$('seo-gemini-key').value='';$('seo-oauth-secret').value='';}await refresh();message('Ustawienia zapisane. Puste pola kluczy zachowują dotychczasową konfigurację.');});}
 async function seoConnect(provider){return run(async()=>{const r=await invoke({action:'google_connect',provider});if(!r.url?.startsWith('https://accounts.google.com/o/oauth2/v2/auth?'))throw new Error('Nieprawidłowy adres logowania Google.');location.assign(r.url);});}
 async function seoLoadTargets(){return run(async()=>{const r=await invoke({action:'business_targets'});const select=$('seo-business-target');select.replaceChildren();const first=document.createElement('option');first.value='';first.textContent='Wybierz wizytówkę Ride24';select.append(first);for(const target of r.targets){const option=document.createElement('option');option.value=target.name;option.textContent=target.title;select.append(option);}select.value=settings.business_target||'';message(r.targets.length?'Wybierz wizytówkę Ride24 z listy.':'Google nie zwrócił wizytówek dla tego konta.');});}
 async function seoSelectTarget(){return run(async()=>{const target=$('seo-business-target').value;await invoke({action:'configure',business_target:target});settings.business_target=target;message('Zapisano wybraną wizytówkę.');});}
 async function seoCopyPrompt(){return run(async()=>{const d=current();await navigator.clipboard.writeText(makePrompt(d.source,d.content,$('seo-note').value));message('Instrukcja skopiowana. Możesz przygotować tekst we własnym generatorze i wkleić JSON.');});}
 async function seoImportJson(){return run(async()=>{const doc=current();let value;try{value=JSON.parse($('seo-json').value);}catch{throw new Error('Wklej poprawny JSON z sekcjami pl i en.');}const pair=validatePair(value,doc.published?.content);const r=await invoke({action:'save',id:doc.id,revision:doc.revision,content:pair,note:$('seo-note').value});updateDoc(r.document);message('Treść wczytana jako szkic. Sprawdź obie wersje przed publikacją.');});}
-Object.assign(window,{loadSeo,seoButtons,seoDismiss,seoRestoreDismissed,seoRenderList,seoLanguage,seoSave,seoSync,seoGenerate,seoPublish,seoGoogle,seoReview,seoBusinessPublish,seoHistory,seoSaveSettings,seoConnect,seoLoadTargets,seoSelectTarget,seoCopyPrompt,seoImportJson});
+Object.assign(window,{seoPerformance,loadSeo,seoButtons,seoDismiss,seoRestoreDismissed,seoRenderList,seoLanguage,seoSave,seoSync,seoGenerate,seoPublish,seoGoogle,seoReview,seoBusinessPublish,seoHistory,seoSaveSettings,seoConnect,seoLoadTargets,seoSelectTarget,seoCopyPrompt,seoImportJson});
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 document.addEventListener('DOMContentLoaded',()=>{const params=new URLSearchParams(location.search);if(location.hash==='#seo'||params.has('seo_google')){window.switchTab('seo');const result=params.get('seo_google');if(result){const success=result.endsWith('_connected');setTimeout(()=>message(success?'Konto Google połączone. Odśwież status i wybierz stronę.':'Google nie zostało połączone: '+({expired_state:'połączenie wygasło — rozpocznij ponownie',cancelled:'anulowano zgodę',missing_permission:'brak wymaganych uprawnień',connection_failed:'sprawdź konfigurację OAuth i adres powrotu'}[result]||'rozpocznij połączenie ponownie'),!success),1200);history.replaceState(null,'','/admin/#seo');}}});
