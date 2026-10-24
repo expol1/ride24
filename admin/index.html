@@ -2317,79 +2317,102 @@ async function loadRadarData(){
 }
 
         // --- DANE (REZERWACJE) ---
-        async function loadBookingsData() {
-            const { data, error } = await db
-    .from("bookings")
-    .select(`
-        id,
-        reservation_code,
-        status,
-        start_date,
-        end_date,
-        profiles:client_id!left (name, email),
-        partners:partner_id!left (company_name)
-    `)
-    .order("created_at", { ascending: false })
-    .limit(50);
-    console.log("BOOKINGS DEBUG:", data, error);
-
-            const tbody = document.getElementById("admin-bookings-tbody");
-            tbody.innerHTML = "";
-
-            if (error) {
-    tbody.innerHTML = "<tr><td colspan='6'>Błąd ładowania rezerwacji</td></tr>";
-    return;
+        // Read-only drilldowns for dashboard tiles. Nothing here updates reservations.
+const ADMIN_RADAR_PAGE_SIZE=100;
+let bookingDashboardFilter='active',bookingPage=0,clientPage=0,bookingsRequestId=0,clientsRequestId=0;
+function radarDate(value){
+  const date=new Date(value);
+  return value&&!Number.isNaN(date.getTime())?date.toLocaleString('pl-PL'):'—';
 }
-
-if (!data.length) {
-    tbody.innerHTML = "<tr><td colspan='6'>Brak rezerwacji w systemie</td></tr>";
-    return;
+function openRadarBookings(filter){
+  bookingDashboardFilter=['active','pending','paid','all'].includes(filter)?filter:'active';
+  bookingPage=0;switchTab('bookings');
 }
-
-            data.forEach(b => {
-               const statusMap = {
-    pending: "Pending",
-    awaiting_payment: "Awaiting Payment",
-    paid: "Paid",
-    confirmed: "Paid",
-    cancelled: "Cancelled",
-    payment_expired: "Expired"
-};
-
-let safeStatusHtml = `
-<span class="status ${escapeHtml(b.status)}">
-${statusMap[b.status] || b.status}
-</span>`;
-                let safeClientName = escapeHtml(b.profiles ? b.profiles.name || b.profiles.email : "Nieznany");
-                let safeClientEmail = escapeHtml(b.profiles ? b.profiles.email : "");
-                let safePartnerName = escapeHtml(b.partners ? b.partners.company_name : "Brak przypisania");
-
-                let actionBtn = "";
-                if (
-    b.status !== "cancelled" &&
-    b.status !== "expired" &&
-    b.status !== "payment_expired"
-) {
-                    actionBtn = `<button class="btn-danger" onclick="forceCancel('${b.id}')">Force Cancel</button>`;
-                } else {
-                    actionBtn = `<span style="color:#94A3B8; font-size:11px;">Zakończone/Anulowane</span>`;
-                }
-                 
-                tbody.innerHTML += `
-                    <tr>
-                        <td style="font-weight:700;">${escapeHtml(b.reservation_code)}</td>
-                        <td>
-                            <div style="font-weight:600;">${safeClientName}</div>
-                            <div class="client-info">${safeClientEmail}</div>
-                        </td>
-                        <td class="company-name">${safePartnerName}</td>
-                        <td>${escapeHtml(b.start_date)} &rarr; ${escapeHtml(b.end_date)}</td>
-                        <td>${safeStatusHtml}</td>
-                        <td>${actionBtn}</td>
-                    </tr>
-                `;
-            });
-        }
+function setBookingFilter(filter){
+  if(!['active','pending','paid','all'].includes(filter))return;
+  bookingDashboardFilter=filter;bookingPage=0;void loadBookingsData();
+}
+function changeBookingPage(delta){
+  bookingPage=Math.max(0,bookingPage+delta);void loadBookingsData();
+}
+function changeClientPage(delta){
+  clientPage=Math.max(0,clientPage+delta);void loadClientsData();
+}
+async function loadClientsData(){
+  const tbody=document.getElementById('admin-clients-tbody');
+  const label=document.getElementById('admin-clients-count');
+  if(!tbody||!label)return;
+  const requestId=++clientsRequestId;
+  label.textContent='Pobieranie klientów...';
+  tbody.innerHTML='<tr><td colspan="4">Ładowanie...</td></tr>';
+  const {data,count,error}=await db.from('profiles')
+    .select('id,name,email,created_at,deletion_requested',{count:'exact'})
+    .eq('role','client').order('created_at',{ascending:false})
+    .range(clientPage*ADMIN_RADAR_PAGE_SIZE,(clientPage+1)*ADMIN_RADAR_PAGE_SIZE-1);
+  if(requestId!==clientsRequestId)return;
+  if(error){
+    label.textContent='Błąd odczytu listy klientów.';
+    tbody.innerHTML='<tr><td colspan="4">Nie udało się pobrać klientów.</td></tr>';
+    return;
+  }
+  const rows=data||[],start=rows.length?clientPage*ADMIN_RADAR_PAGE_SIZE+1:0,end=clientPage*ADMIN_RADAR_PAGE_SIZE+rows.length;
+  label.textContent='Zarejestrowani klienci: '+Number(count??0)+' • wyświetlono '+start+'–'+end;
+  const prev=document.getElementById('admin-clients-prev'),next=document.getElementById('admin-clients-next');
+  if(prev)prev.disabled=clientPage===0;
+  if(next)next.disabled=end>=Number(count??0);
+  tbody.innerHTML=rows.length?rows.map(u=>'<tr>'
+   +'<td><strong>'+escapeHtml(u.name||'—')+'</strong><div class="client-info">'+escapeHtml(u.id)+'</div></td>'
+   +'<td>'+escapeHtml(u.email||'—')+'</td>'
+   +'<td>'+escapeHtml(radarDate(u.created_at))+'</td>'
+   +'<td>'+(u.deletion_requested?'Wniosek o usunięcie':'Zarejestrowany')+'</td>'
+   +'</tr>').join(''):'<tr><td colspan="4">Brak zarejestrowanych klientów.</td></tr>';
+}
+async function loadBookingsData(){
+  const tbody=document.getElementById('admin-bookings-tbody');
+  const label=document.getElementById('admin-bookings-count');
+  if(!tbody||!label)return;
+  const requestId=++bookingsRequestId;
+  const selector=document.getElementById('admin-bookings-filter');
+  if(selector)selector.value=bookingDashboardFilter;
+  label.textContent='Pobieranie rezerwacji...';
+  tbody.innerHTML='<tr><td colspan="6">Ładowanie...</td></tr>';
+  let query=db.from('bookings')
+    .select('id,reservation_code,status,start_date,end_date,client_email,main_driver_name,partner_id,created_at',{count:'exact'})
+    .order('created_at',{ascending:false})
+    .range(bookingPage*ADMIN_RADAR_PAGE_SIZE,(bookingPage+1)*ADMIN_RADAR_PAGE_SIZE-1);
+  if(bookingDashboardFilter==='active')query=query.in('status',RADAR_ACTIVE_BOOKING_STATUSES);
+  else if(bookingDashboardFilter==='pending')query=query.eq('status','pending');
+  else if(bookingDashboardFilter==='paid')query=query.eq('status','paid');
+  const {data,count,error}=await query;
+  if(requestId!==bookingsRequestId)return;
+  if(error){
+    label.textContent='Błąd odczytu rezerwacji.';
+    tbody.innerHTML='<tr><td colspan="6">Nie udało się wczytać rezerwacji.</td></tr>';
+    return;
+  }
+  const rows=data||[];
+  const partnerIds=[...new Set(rows.map(b=>b.partner_id).filter(Boolean))];
+  let companies=new Map();
+  if(partnerIds.length){
+    const res=await db.from('partners').select('id,company_name').in('id',partnerIds);
+    if(requestId!==bookingsRequestId)return;
+    if(!res.error)companies=new Map((res.data||[]).map(p=>[p.id,p.company_name]));
+  }
+  const start=rows.length?bookingPage*ADMIN_RADAR_PAGE_SIZE+1:0,end=bookingPage*ADMIN_RADAR_PAGE_SIZE+rows.length;
+  label.textContent='Rezerwacje: '+Number(count??0)+' • wyświetlono '+start+'–'+end;
+  const prev=document.getElementById('admin-bookings-prev'),next=document.getElementById('admin-bookings-next');
+  if(prev)prev.disabled=bookingPage===0;
+  if(next)next.disabled=end>=Number(count??0);
+  const descriptions={pending:'Oczekuje na partnera',accepted:'Zaakceptowana',awaiting_payment:'Oczekuje na opłatę',paid:'Opłacona',cancelled:'Anulowana',rejected:'Odrzucona',expired:'Wygasła',payment_expired:'Płatność wygasła'};
+  tbody.innerHTML=rows.length?rows.map(b=>'<tr>'
+   +'<td><strong>'+escapeHtml(b.reservation_code||b.id)+'</strong></td>'
+   +'<td>'+escapeHtml(b.main_driver_name||'—')+'<div class="client-info">'+escapeHtml(b.client_email||'—')+'</div></td>'
+   +'<td>'+escapeHtml(companies.get(b.partner_id)||'—')+'</td>'
+   +'<td>'+escapeHtml(b.start_date||'—')+' → '+escapeHtml(b.end_date||'—')+'</td>'
+   +'<td><span class="status '+escapeHtml(b.status||'')+'">'+escapeHtml(descriptions[b.status]||b.status||'—')+'</span></td>'
+   +'<td>'+escapeHtml(radarDate(b.created_at))+'</td>'
+   +'</tr>').join(''):'<tr><td colspan="6">Brak rezerwacji dla wybranego filtra.</td></tr>';
+}
 
        // --- ZARZĄDZANIE PARTNERAMI (POPRAWIONE) ---
 
