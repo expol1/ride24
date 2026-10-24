@@ -94,10 +94,11 @@ export async function reviewDocument(deps:Deps,admin:any,input:any,cfg:any,compa
   const [live,search,business]=await Promise.all([
    inspectPublic(deps.fetch,doc.published),
    (async()=>{if(!pathsValid)return null;try{const client=credentials(cfg,await deps.secret(admin,'google_client_secret'),deps.env);const access=await googleAccess(deps.fetch,await deps.secret(admin,'search_refresh'),client,10000);return await inspectPair(googleApi(deps.fetch,access,8000),doc.published.content);}catch(e){errors.push({...safeError(e),service:'search'});return null;}})(),
-   (async()=>{const previous=google.business;if(!pathsValid||previous?.revision!==doc.published.revision||previous?.target!==cfg.business_target||!Object.keys(previous.posts||{}).length)return null;
+   (async()=>{const previous=google.business;if(!pathsValid||previous?.revision!==doc.published.revision||previous?.target!==cfg.business_target)return null;
     try{const client=credentials(cfg,await deps.secret(admin,'google_client_secret'),deps.env);const access=await googleAccess(deps.fetch,await deps.secret(admin,'business_refresh'),client,10000);const posts=await existingPosts(googleApi(deps.fetch,access,8000),cfg.business_target);const result=structuredClone(previous);
-     for(const lang of LANGS)if(result.posts[lang]?.name){const p=posts.find((p:any)=>p.name===result.posts[lang].name);result.posts[lang].state=p?.state||'UNKNOWN';}
-     result.state=Object.values(result.posts).some((p:any)=>p.state==='REJECTED')?'needs_correction':Object.values(result.posts).length===2&&Object.values(result.posts).every((p:any)=>p.state==='LIVE')?'live':'processing';return result;
+     result.posts=result.posts||{};
+     for(const lang of LANGS){const stored=result.posts[lang];const p=stored?.name?posts.find((p:any)=>p.name===stored.name):posts.find((p:any)=>p.name&&p.summary===postSummary(doc.published.content,lang)&&p.callToAction?.url===SITE+doc.published.content[lang].slug&&p.languageCode===lang);if(p)result.posts[lang]={name:p.name,state:p.state||'UNKNOWN'};else if(stored?.name)result.posts[lang].state='UNKNOWN';}
+     const states=Object.values(result.posts).map((p:any)=>p.state);result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':states.length?'processing':'not_published';result.checked_at=new Date().toISOString();return result;
     }catch(e){errors.push({...safeError(e),service:'business'});return null;}
    })()
   ]);
