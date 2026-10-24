@@ -730,6 +730,10 @@
                 <tbody id="admin-clients-tbody"><tr><td colspan="4">Ładowanie...</td></tr></tbody>
             </table>
         </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+          <button type="button" class="btn-secondary" id="admin-clients-prev" onclick="changeClientPage(-1)" disabled>← Poprzednie</button>
+          <button type="button" class="btn-secondary" id="admin-clients-next" onclick="changeClientPage(1)" disabled>Następne →</button>
+        </div>
     </section>
     <section id="view-bookings" class="view-section">
         <div class="page-header"><h1 class="page-title">Rezerwacje</h1></div>
@@ -747,6 +751,10 @@
             <table><thead><tr><th>Kod rezerwacji</th><th>Klient</th><th>Partner</th><th>Termin wynajmu</th><th>Status</th><th>Utworzono</th></tr></thead>
                 <tbody id="admin-bookings-tbody"><tr><td colspan="6">Ładowanie...</td></tr></tbody>
             </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
+          <button type="button" class="btn-secondary" id="admin-bookings-prev" onclick="changeBookingPage(-1)" disabled>← Poprzednie</button>
+          <button type="button" class="btn-secondary" id="admin-bookings-next" onclick="changeBookingPage(1)" disabled>Następne →</button>
         </div>
     </section>
     <section id="view-finances" class="view-section">
@@ -2174,6 +2182,11 @@ function closePromotionModal() {
 
         // --- NAWIGACJA ---
        window.switchTab = function(tabId) {
+            if (tabId === "radar") loadRadarData();
+            if (tabId === "clients") loadClientsData();
+            if (tabId === "bookings") loadBookingsData();
+            if (tabId === "partners") loadPartnersData();
+            if (tabId === "finances") loadStripeRevenue();
             if (tabId === "seo") loadSeo();
             if (tabId === "search") {
                 loadSearchLogs();
@@ -2232,6 +2245,15 @@ function closePromotionModal() {
         if(error || !data?.totals)throw new Error(data?.error||'Nie udało się uzgodnić Stripe.');
         const t=data.totals;
         const fmt=x=>Number(x).toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const financeField=(id,value)=>{const field=document.getElementById(id);if(field)field.textContent=value;};
+        const financeStatus=document.getElementById('finance-status');
+        financeField('finance-gross',fmt(t.gross));
+        financeField('finance-refunds',fmt(t.refunds));
+        financeField('finance-fees',t.fee_missing?'—':fmt(t.fees));
+        financeField('finance-net',data.complete?fmt(t.net):'—');
+        if(financeStatus)financeStatus.textContent=data.complete
+          ? 'Potwierdzone płatności: '+t.verified+' • aktualizacja: '+new Date(data.verified_at).toLocaleString('pl-PL')
+          : 'Rozliczenie niepełne: '+t.unverified+' płatności niepotwierdzonych, '+t.fee_missing+' prowizji niedostępnych. Wynik netto ukryty.';
         refunds.textContent=fmt(t.refunds);
         if(refundDetails)refundDetails.textContent='Zwroty potwierdzone przez Stripe';
         if(data.complete)revenue.textContent=fmt(t.net);
@@ -2245,48 +2267,53 @@ function closePromotionModal() {
         refunds.textContent='—';
         if(details)details.textContent='Brak potwierdzenia Stripe — nie pokazuję szacunkowych zarobków.';
         if(refundDetails)refundDetails.textContent='Sprawdź integrację Stripe.';
+        for(const id of ['finance-gross','finance-refunds','finance-fees','finance-net']){
+          const field=document.getElementById(id);if(field)field.textContent='—';
+        }
+        const financeStatus=document.getElementById('finance-status');
+        if(financeStatus)financeStatus.textContent='Nie udało się potwierdzić płatności Stripe. Nie pokazuję szacunkowych kwot.';
         console.error('Stripe reconciliation:',e);
     }
 }
 
-async function loadRadarData() {
-    const { data: bookings, error } = await db.from("bookings").select("status");
-    
-    if (error) {
-        console.error("Radar bookings error:", error);
-    } else {
-        const safeBookings = bookings || [];
-        document.getElementById("stat-total").innerText = safeBookings.length;
-        document.getElementById("stat-pending").innerText = safeBookings.filter(b => b.status === "pending").length;
-        document.getElementById("stat-paid").innerText = safeBookings.filter(b => b.status === "paid" || b.status === "confirmed").length;
-    }
-
-    const { count } = await db.from("partners").select("*", { count: 'exact', head: true });
-    document.getElementById("stat-partners").innerText = count || 0;
-
-   // Finance dashboard must use Stripe-confirmed charges, refunds and fees.
-loadStripeRevenue();
-const { count: msgCount, error: msgError } = await db
-        .from("contact_messages")
-        .select("*", { count: 'exact', head: true });
-
-    if (!msgError) {
-        document.getElementById("stat-messages").innerText = msgCount || 0;
-    }
-
-    // --- Wnioski o usunięcie ---
-// --- Wnioski o usunięcie (Klienci + Partnerzy) ---
-    const { data: clientsDel } = await db.rpc("admin_get_deletion_requests");
-    const { data: partnersDel } = await db.from("partners").select("id").in("account_status",["deleted","disabled"]);
-    let totalDelCount = (clientsDel ? clientsDel.length : 0) + (partnersDel ? partnersDel.length : 0);
-    document.getElementById("stat-deletions").innerText = totalDelCount;
-// --- ZWROTY DO AKCEPTACJI (RADAR) ---
-    const { data: pendingRefunds, error: pendingRefundsError } = await db.rpc("admin_get_refunds");
-    if (!pendingRefundsError && pendingRefunds) {
-        document.getElementById("stat-pending-refunds").innerText = pendingRefunds.length || 0;
-    } else {
-        document.getElementById("stat-pending-refunds").innerText = "Błąd";
-    }
+const RADAR_ACTIVE_BOOKING_STATUSES=['pending','accepted','awaiting_payment','paid'];
+async function loadRadarData(){
+  const counts=[
+    ['stat-clients',db.from('profiles').select('id',{count:'exact',head:true}).eq('role','client')],
+    ['stat-partners',db.from('partners').select('id',{count:'exact',head:true})],
+    ['stat-total',db.from('bookings').select('id',{count:'exact',head:true}).in('status',RADAR_ACTIVE_BOOKING_STATUSES)],
+    ['stat-pending',db.from('bookings').select('id',{count:'exact',head:true}).eq('status','pending')],
+    ['stat-paid',db.from('bookings').select('id',{count:'exact',head:true}).eq('status','paid')],
+    ['stat-messages',db.from('contact_messages').select('id',{count:'exact',head:true})]
+  ];
+  await Promise.all(counts.map(async ([id,promise])=>{
+    const el=document.getElementById(id);
+    try{
+      const {count,error}=await promise;
+      if(el)el.textContent=error?'—':Number(count??0).toLocaleString('pl-PL');
+      if(error)console.error('Radar count '+id,error);
+    }catch(error){if(el)el.textContent='—';console.error('Radar count '+id,error);}
+  }));
+  await Promise.all([
+    (async()=>{
+      const el=document.getElementById('stat-deletions');
+      try{
+        const [clients,partners]=await Promise.all([
+          db.rpc('admin_get_deletion_requests'),
+          db.from('partners').select('id',{count:'exact',head:true}).in('account_status',['deleted','disabled'])
+        ]);
+        if(el)el.textContent=(clients.error||partners.error)?'—':String((clients.data||[]).length+Number(partners.count??0));
+      }catch(error){if(el)el.textContent='—';console.error('Radar deletion requests',error);}
+    })(),
+    (async()=>{
+      const el=document.getElementById('stat-pending-refunds');
+      try{
+        const {data,error}=await db.rpc('admin_get_refunds');
+        if(el)el.textContent=error?'—':String((data||[]).length);
+      }catch(error){if(el)el.textContent='—';console.error('Radar pending refunds',error);}
+    })()
+  ]);
+  void loadStripeRevenue();
 }
 
         // --- DANE (REZERWACJE) ---
