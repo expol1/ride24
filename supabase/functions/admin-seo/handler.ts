@@ -215,6 +215,15 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
   const body=await safeBody(req);const s=await settings(admin);const action=body.action||'list';
   if(cron){
    if(action==='performance'){if(!s.enabled)return reply({skipped:true});return reply(await searchPerformance(deps,admin,s));}
+   if(action==='business_probe'){
+    if(!s.enabled||!s.business_target)return reply({ready:false,reason:'no_business_target'});
+    const refresh=await secret(admin,'business_refresh');
+    if(!refresh)return reply({ready:false,reason:'no_business_connection'});
+    const access=await googleAccess(deps.fetch,refresh,credentials(s,await secret(admin,'google_client_secret'),deps.env));
+    const posts=await existingPosts(googleApi(deps.fetch,access),s.business_target);
+    return reply({ready:true,post_count:posts.length,checked_at:new Date().toISOString()});
+   }
+
    if(action==='recheck'){if(!s.enabled)return reply({skipped:true});return reply(await retryPendingSearch(deps,admin));}
    if(action==='review'){if(!s.enabled||!s.auto_review_enabled)return reply({checked:0,reason:'review_disabled'});if(!body.document_id)return reply(await scheduledReviews(deps,admin,s));const result=await runReview(deps,admin,s,body.document_id);if('document' in result){const {document:_,...status}=result;return reply(status);}return reply(result);}
     if(action!=='cron')throw new SeoError('Scheduler może przygotowywać wyłącznie szkice.',403);
