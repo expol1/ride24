@@ -20,8 +20,8 @@ async function getTopics(admin:any){
  // Keep Nusa Penida out of SEO discovery without affecting car-rental locations or travel guides.
  return buildTopics(results[0].data||[],results[1].data||[],results[2].data||[]).filter(t=>t.topic_key!=='city|indonesia|nusa penida');
 }
-async function sync(admin:any){
- const topics=await getTopics(admin);const before=check(await admin.from('seo_documents').select('id,topic_key,source').limit(1000))||[];const known=new Map(before.map((d:any)=>[d.topic_key,d]));
+async function sync(admin:any,currentTopics?:any[]){
+ const topics=currentTopics??await getTopics(admin);const before=check(await admin.from('seo_documents').select('id,topic_key,source').limit(1000))||[];const known=new Map(before.map((d:any)=>[d.topic_key,d]));
  const missing=topics.filter(t=>!known.has(t.topic_key));
  if(missing.length)check(await admin.from('seo_documents').upsert(missing,{onConflict:'topic_key',ignoreDuplicates:true}));
  for(const t of topics){const d:any=known.get(t.topic_key);if(d&&JSON.stringify(d.source)!==JSON.stringify(t.source))check(await admin.from('seo_documents').update({source:t.source}).eq('id',d.id));}
@@ -114,11 +114,19 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
    // Scoped maintenance may generate one explicitly selected queued draft, under the same Free quota.
    // It cannot edit existing drafts or publish anything, and does not enable automatic generation.
    if(body.draft_id){const target=await document(admin,body.draft_id);if(target.state!=='queued'||target.content!==null||target.published!==null)throw new SeoError('Przygotowanie wewnętrzne dotyczy tylko nowych, pustych szkiców.',409);const generated=await generate(deps,admin,target,'');return reply({generated_id:generated.document.id,revision:generated.document.revision,state:generated.document.state});}
-   const result=await sync(admin);
-   if(s.auto_generate&&s.free_tier_confirmed&&await secret(admin,'gemini')){
-    const queued=check(await admin.from('seo_documents').select('*').eq('state','queued').order('created_at').limit(1));
-    if(queued?.length){try{await generate(deps,admin,queued[0],'');}catch(e){const message=e instanceof SeoError?e.message:'Nie udało się przygotować szkicu.';await admin.from('seo_documents').update({last_error:message}).eq('id',queued[0].id);return reply({...result,generation_error:message});}}
-   }return reply(result);
+   const topics=await getTopics(admin),result=await sync(admin,topics);
+   if(!s.auto_generate)return reply({...result,generation_skipped:'automation_disabled'});
+   if(!s.free_tier_confirmed)return reply({...result,generation_skipped:'free_confirmation_required'});
+   if(!await secret(admin,'gemini'))return reply({...result,generation_skipped:'gemini_not_configured'});
+   // Old names remain available for manual editing, but must not block current locations.
+   // An unsuccessful attempt goes to the back of the queue; at most one AI call per run.
+   const queued=check(await admin.from('seo_documents').select('*').eq('state','queued').is('content',null).is('published',null).order('updated_at').order('created_at').limit(1000))||[];
+   const active=new Set(topics.map(t=>t.topic_key)),now=Date.now();
+   const next=queued.find((d:any)=>active.has(d.topic_key)&&(!d.lock_until||Date.parse(d.lock_until)<=now));
+   if(!next)return reply({...result,generation_skipped:'no_active_queued_topics'});
+   if(s.ai_day===new Date().toISOString().slice(0,10)&&s.ai_count>=s.daily_limit)return reply({...result,generation_skipped:'daily_limit',next_draft_id:next.id});
+   try{const generated=await generate(deps,admin,next,'');return reply({...result,generated_id:generated.document.id,revision:generated.document.revision,state:generated.document.state});}
+   catch(e){const message=e instanceof SeoError?e.message:'Nie udało się przygotować szkicu.';check(await admin.from('seo_documents').update({last_error:message,updated_at:new Date().toISOString()}).eq('id',next.id).eq('state','queued').eq('revision',next.revision));return reply({...result,generation_error:message});}
   }
   if(action==='list'){
    const docs=check(await admin.from('seo_documents').select('*').order('created_at',{ascending:false}).limit(1000));

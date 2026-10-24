@@ -1,4 +1,4 @@
-import {esc,validatePair,renderPage,makePrompt} from './seo-content.js?v=20261014c';
+import {esc,validatePair,renderPage,makePrompt} from './seo-content.js?v=20261024a';
 let documents=[],selected=null,connections={},settings={},busy=false,dirty=false,language='pl';
 const $=id=>document.getElementById(id);
 function message(text,error=false){const el=$('seo-message');el.textContent=text;el.className='seo-status '+(error?'error':'success');}

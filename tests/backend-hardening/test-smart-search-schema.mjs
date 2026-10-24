@@ -25,7 +25,10 @@ await count("SELECT * FROM partner_locations", 1);
 await count("SELECT * FROM get_top_searches()", 0);
 await count("SELECT * FROM smart_search_dismissals", 0);
 await denied("INSERT INTO smart_search_dismissals(kind,entry_key,label) VALUES ('search','varnaa','Varnaa')");
-await denied("DELETE FROM locations_dictionary WHERE name_en='Rome'");
+// DELETE is granted for admin use; RLS excludes every row for other users.
+// PostgreSQL reports zero deleted rows rather than a permission exception.
+await count("DELETE FROM locations_dictionary WHERE name_en='Rome' RETURNING name_en", 0);
+await count("SELECT * FROM locations_dictionary WHERE name_en='Rome'", 1);
 await denied("INSERT INTO search_logs(query) VALUES ('unauthorized')");
 await denied("UPDATE search_logs SET query='unauthorized'");
 await denied("DELETE FROM search_logs");
