@@ -11,6 +11,33 @@ async function settings(admin:any){const r=await admin.from('seo_settings').sele
 async function document(admin:any,id:any){if(typeof id!=='string'||!UUID.test(id))throw new SeoError('Nieprawidłowy identyfikator SEO.');const r=await admin.from('seo_documents').select('*').eq('id',id).single();if(r.error||!r.data)throw new SeoError('Nie znaleziono strony SEO.',404);return r.data;}
 function check(r:any){if(r.error)throw new SeoError('Nie udało się zapisać danych SEO.',502);return r.data;}
 async function safeBody(req:Request){if(!req.headers.get('content-type')?.startsWith('application/json'))throw new SeoError('Wymagany formularz JSON.',415);const reader=req.body?.getReader();if(!reader)throw new SeoError('Brak danych.');let n=0;const chunks=[];for(;;){const {value,done}=await reader.read();if(done)break;n+=value.length;if(n>180000){await reader.cancel();throw new SeoError('Formularz jest zbyt duży.',413);}chunks.push(value);}const bytes=new Uint8Array(n);let i=0;for(const chunk of chunks){bytes.set(chunk,i);i+=chunk.length;}try{const v=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));if(!v||typeof v!=='object'||Array.isArray(v))throw new Error();return v;}catch{throw new SeoError('Nieprawidłowy formularz JSON.');}}
+// Free Search Console Search Analytics. Store one snapshot per day; no Ads or paid APIs.
+async function searchPerformance(deps:Deps,admin:any,cfg:any){
+ const today=new Date(),finish=new Date(today.getTime()-3*86400000),start=new Date(finish.getTime()-27*86400000);
+ const date=(d:Date)=>d.toISOString().slice(0,10);
+ const client=credentials(cfg,await secret(admin,'google_client_secret'),deps.env);
+ const access=await googleAccess(deps.fetch,await secret(admin,'search_refresh'),client,10000);
+ const api=googleApi(deps.fetch,access,12000);
+ const url='https://www.googleapis.com/webmasters/v3/sites/'+encodeURIComponent('sc-domain:ride24.pl')+'/searchAnalytics/query';
+ const range={startDate:date(start),endDate:date(finish),type:'web'};
+ const [all,pageResult,queryResult]=await Promise.all([
+   api(url,'POST',{...range,rowLimit:1}),
+   api(url,'POST',{...range,dimensions:['page'],rowLimit:250}),
+   api(url,'POST',{...range,dimensions:['query'],rowLimit:100})
+ ]);
+ const zero={clicks:0,impressions:0,ctr:0,position:0};
+ const row=(all.rows||[])[0]||zero;
+ const pages=(pageResult.rows||[]).filter((p:any)=>String(p.keys?.[0]||'').startsWith('https://ride24.pl/seo/'));
+ const items=pages.map((p:any)=>({url:p.keys[0],clicks:p.clicks,impressions:p.impressions,ctr:p.ctr,position:p.position}));
+ const snapshot={checked_at:new Date().toISOString(),start_date:range.startDate,end_date:range.endDate,
+  totals:{clicks:row.clicks||0,impressions:row.impressions||0,ctr:row.ctr||0,position:row.position||0},
+  seo_pages:items.length,
+  top_pages:items.sort((a:any,b:any)=>b.clicks-a.clicks).slice(0,12),
+  opportunities:items.filter((p:any)=>p.impressions>=10&&p.ctr<0.03&&p.position<=20).sort((a:any,b:any)=>b.impressions-a.impressions).slice(0,12),
+  top_queries:(queryResult.rows||[]).slice(0,12).map((p:any)=>({query:p.keys?.[0],clicks:p.clicks,impressions:p.impressions,position:p.position}))};
+ check(await admin.from('seo_settings').update({search_performance:snapshot}).eq('id',1));
+ return {performance:snapshot};
+}
 async function getTopics(admin:any){
  const results=await Promise.all([
   admin.from('partner_locations').select('id,partner_id,country,region,city,location_name,type,active,extra_fee,extra_fee_amount,contact_required,partners!inner(active,account_status,api_enabled)').eq('active',true).limit(2000),
@@ -158,6 +185,7 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
   else ({admin,user}=await deps.authorize(req));
   const body=await safeBody(req);const s=await settings(admin);const action=body.action||'list';
   if(cron){
+   if(action==='performance'){if(!s.enabled)return reply({skipped:true});return reply(await searchPerformance(deps,admin,s));}
    if(action==='recheck'){if(!s.enabled)return reply({skipped:true});return reply(await retryPendingSearch(deps,admin));}
    if(action==='review'){if(!s.enabled||!s.auto_review_enabled)return reply({checked:0,reason:'review_disabled'});if(!body.document_id)return reply(await scheduledReviews(deps,admin,s));const result=await runReview(deps,admin,s,body.document_id);if('document' in result){const {document:_,...status}=result;return reply(status);}return reply(result);}
     if(action!=='cron')throw new SeoError('Scheduler może przygotowywać wyłącznie szkice.',403);
@@ -184,11 +212,11 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
    const docs=check(await admin.from('seo_documents').select('*').order('created_at',{ascending:false}).limit(1000));
    const [gemini,clientSecret,search,business,github]=await Promise.all([secret(admin,'gemini'),secret(admin,'google_client_secret'),secret(admin,'search_refresh'),secret(admin,'business_refresh'),rpc(admin,'admin_travel_guide_github_token')]);
    const client=credentials(s,clientSecret,deps.env);
-   return reply({documents:docs,settings:{enabled:s.enabled,auto_generate:s.auto_generate,auto_review_enabled:s.auto_review_enabled===true,correction_used_today:s.auto_correction_day===new Date().toISOString().slice(0,10),free_tier_confirmed:s.free_tier_confirmed,daily_limit:s.daily_limit,used_today:s.ai_day===new Date().toISOString().slice(0,10)?s.ai_count:0,google_client_id:s.google_client_id,business_target:s.business_target},connections:{gemini:!!gemini,github:!!github,google_credentials:!!client.id&&!!client.secret,search:!!search,business:!!business,callback:CALLBACK}});
+   return reply({documents:docs,settings:{enabled:s.enabled,auto_generate:s.auto_generate,auto_review_enabled:s.auto_review_enabled===true,correction_used_today:s.auto_correction_day===new Date().toISOString().slice(0,10),free_tier_confirmed:s.free_tier_confirmed,daily_limit:s.daily_limit,used_today:s.ai_day===new Date().toISOString().slice(0,10)?s.ai_count:0,google_client_id:s.google_client_id,business_target:s.business_target,auto_business_post:s.auto_business_post===true,search_performance:s.search_performance||{}},connections:{gemini:!!gemini,github:!!github,google_credentials:!!client.id&&!!client.secret,search:!!search,business:!!business,callback:CALLBACK}});
   }
   if(action==='configure'){
    const updates:any={updated_at:new Date().toISOString()};
-   for(const k of ['enabled','auto_generate','auto_review_enabled','free_tier_confirmed'])if(typeof body[k]==='boolean')updates[k]=body[k];
+   for(const k of ['enabled','auto_generate','auto_review_enabled','free_tier_confirmed','auto_business_post'])if(typeof body[k]==='boolean')updates[k]=body[k];
    if(body.daily_limit!==undefined){if(!Number.isInteger(body.daily_limit)||body.daily_limit<1||body.daily_limit>10)throw new SeoError('Limit dzienny musi wynosić od 1 do 10.');updates.daily_limit=body.daily_limit;}
    if(body.google_client_id){if(typeof body.google_client_id!=='string'||!/^\d+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(body.google_client_id.trim()))throw new SeoError('Nieprawidłowy Google OAuth Client ID.');updates.google_client_id=body.google_client_id.trim();}
    if(body.business_target!==undefined){if(typeof body.business_target!=='string'||body.business_target!==''&&!/^accounts\/\d+\/locations\/\d+$/.test(body.business_target))throw new SeoError('Nieprawidłowa wizytówka Google.');updates.business_target=body.business_target;}
@@ -205,6 +233,7 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
    const access=await googleAccess(deps.fetch,await secret(admin,'business_refresh'),credentials(s,await secret(admin,'google_client_secret'),deps.env));return reply({targets:await businessTargets(googleApi(deps.fetch,access))});
   }
   if(!s.enabled)throw new SeoError('Moduł SEO jest wyłączony. Włącz go w ustawieniach.',409);
+  if(action==='performance')return reply(await searchPerformance(deps,admin,s));
   if(action==='sync')return reply(await sync(admin));
   const doc=await document(admin,body.id);
   if(action==='history'){return reply({revisions:check(await admin.from('seo_revisions').select('id,revision,note,created_at').eq('document_id',doc.id).order('revision',{ascending:false}).limit(100))});}
@@ -248,6 +277,33 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
     // A deployment may take time. Never describe a Git commit as a finished Google publication.
     const verification=await verifyPublic(deps.fetch,published);google.verification=verification;
     if(verification.ready){try{const access=await googleAccess(deps.fetch,await secret(admin,'search_refresh'),credentials(s,await secret(admin,'google_client_secret'),deps.env));google.search=await submitSitemap(googleApi(deps.fetch,access));}catch(e){google.search={state:'pending',note:e instanceof SeoError?e.message:'Zgłoszenie Google oczekuje na ponowienie.'};}}
+    // Free Google Business Profile API: publish only after manual approval of SEO text,
+    // a verified live deployment and explicit optional auto-post flag.
+    if(verification.ready&&s.auto_business_post===true&&s.business_target){
+     try{
+      const refresh=await secret(admin,'business_refresh');
+      if(!refresh)throw new SeoError('Połącz wizytówkę Google w ustawieniach.',409);
+      const access=await googleAccess(deps.fetch,refresh,credentials(s,await secret(admin,'google_client_secret'),deps.env));
+      const api=googleApi(deps.fetch,access,12000),current=await existingPosts(api,s.business_target);
+      const result:any={revision:doc.revision,target:s.business_target,posts:{},state:'pending'};
+      for(const lang of LANGS){
+       const prior=current.find((p:any)=>p.summary===postSummary(pair,lang)&&p.callToAction?.url===SITE+pair[lang].slug&&p.languageCode===lang);
+       if(prior?.name){result.posts[lang]={name:prior.name,state:prior.state||'UNKNOWN'};continue;}
+       // Store the uncertainty before POST to avoid duplicate sends after a timeout.
+       result.uncertain=lang;google.business=result;await patch({google});
+       const sent=await createPost(api,s.business_target,pair,lang);
+       if(!sent?.name)throw new SeoError('Google nie potwierdził publikacji; sprawdź wizytówkę.',502);
+       result.posts[lang]={name:sent.name,state:sent.state||'PROCESSING'};
+       delete result.uncertain;google.business=result;await patch({google});
+      }
+      const states=Object.values(result.posts).map((p:any)=>p.state);
+      result.state=states.includes('REJECTED')?'needs_correction':states.length===2&&states.every(s=>s==='LIVE')?'live':'processing';
+      result.checked_at=new Date().toISOString();google.business=result;
+     }catch(e){
+      google.business={...(google.business||{}),revision:doc.revision,target:s.business_target,
+        state:'needs_check',note:e instanceof SeoError?e.message:'Automatycznej publikacji nie potwierdzono. Sprawdź połączenie; nie wysyłaj duplikatu.'};
+     }
+    }
     await patch({google});return reply({published,google,warnings:warnings(pair)});
    }
    if(!doc.published)throw new SeoError('Najpierw opublikuj strony PL i EN.');
