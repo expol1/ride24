@@ -8,7 +8,8 @@
         el: {name: 'Ελληνικά', flag: 'gr', locale: 'el-GR'},
         it: {name: 'Italiano', flag: 'it', locale: 'it-IT'},
         de: {name: 'Deutsch', flag: 'de', locale: 'de-DE'},
-        ru: {name: 'Русский', flag: 'ru', locale: 'ru-RU'}
+        ru: {name: 'Русский', flag: 'ru', locale: 'ru-RU'},
+        fr: {name: 'Français', flag: 'fr', locale: 'fr-FR'}
     };
     const catalog = window.Ride24PartnerLocales || {source: {}, languages: {}};
     const storageKey = 'partner_lang';

@@ -26,7 +26,7 @@ const declaration = name => {
     throw new Error('Missing panel function: ' + name);
 };
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
-const languages = ['en', 'pl', 'es', 'el', 'it', 'de', 'ru'];
+const languages = ['en', 'pl', 'es', 'el', 'it', 'de', 'ru', 'fr'];
 
 function setup({stored, preferred = ['en-GB'], storageBlocked = false} = {}) {
     const dom = new JSDOM(panel, {url: 'https://ride24.pl/partner-dashboard.html', runScripts: 'outside-only'});
@@ -79,10 +79,10 @@ function setup({stored, preferred = ['en-GB'], storageBlocked = false} = {}) {
     return {dom,w,d:w.document,i18n:w.Ride24PartnerI18n,writes,reads,records};
 }
 
-test('seven languages: browser preference, explicit override, fallback and denied storage', () => {
+test('eight languages: browser preference, explicit override, fallback and denied storage', () => {
     for (const [stored,preferred,expected] of [
         [undefined,['el-GR'],'el'],[undefined,['it-IT'],'it'],['es',['de-DE'],'es'],
-        [undefined,['ja-JP'],'en'],['__proto__',['ru-RU'],'ru'],['pl',['en-US'],'pl']
+        [undefined,['ja-JP'],'en'],['__proto__',['ru-RU'],'ru'],['pl',['en-US'],'pl'],[undefined,['fr-FR'],'fr'],[undefined,['fr-CA'],'fr'],[undefined,['fr-BE'],'fr'],['de',['fr-FR'],'de']
     ]) {
         const s=setup({stored,preferred});
         try {assert.equal(s.i18n.getLanguage(),expected);assert.equal(s.d.documentElement.lang,expected);}
@@ -99,7 +99,7 @@ test('catalogue completeness, placeholders, safe plain text and local flags', ()
         const catalog=s.w.Ride24PartnerLocales;
         assert.ok(Object.keys(catalog.source).length>=490);
         const tokens=value=>(value.match(/\{\w+\}/g)||[]).sort();
-        for (const code of ['es','el','it','de','ru']) {
+        for (const code of ['es','el','it','de','ru','fr']) {
             assert.deepEqual(Object.keys(catalog.languages[code]).sort(),Object.keys(catalog.source).sort());
             for (const [key,value] of Object.entries(catalog.languages[code])) {
                 assert.ok(value.trim(),code+': '+key);
@@ -187,16 +187,60 @@ test('dropdown works outside the mobile topbar with keyboard navigation and reme
         assert.equal(menu.parentElement,s.d.body);
         button.click();assert.equal(menu.hidden,false);assert.equal(button.getAttribute('aria-expanded'),'true');
         menu.dispatchEvent(new s.w.KeyboardEvent('keydown',{key:'End',bubbles:true}));
-        assert.equal(s.d.activeElement.dataset.partnerLanguage,'ru');
-        s.d.activeElement.click();assert.equal(s.i18n.getLanguage(),'ru');assert.equal(menu.hidden,true);
-        assert.equal(s.d.activeElement,button);assert.equal(s.w.localStorage.getItem('partner_lang'),'ru');
+        assert.equal(s.d.activeElement.dataset.partnerLanguage,'fr');
+        s.d.activeElement.click();assert.equal(s.i18n.getLanguage(),'fr');assert.equal(menu.hidden,true);
+        assert.equal(s.d.activeElement,button);assert.equal(s.w.localStorage.getItem('partner_lang'),'fr');
         button.click();menu.dispatchEvent(new s.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.equal(menu.hidden,true);
         const reloaded=setup({stored:s.w.localStorage.getItem('partner_lang'),preferred:['el-GR']});
-        try {assert.equal(reloaded.i18n.getLanguage(),'ru');} finally {reloaded.dom.window.close();}
+        try {assert.equal(reloaded.i18n.getLanguage(),'fr');} finally {reloaded.dom.window.close();}
     } finally {s.dom.window.close();}
 });
 
-test('actual vehicle and location form handlers produce identical data in all seven languages', async () => {
+test('eight-option language menu stays inside a narrow, short viewport', () => {
+    const s=setup({stored:'fr'});
+    try {
+        Object.defineProperty(s.w,'innerWidth',{value:320,configurable:true});
+        Object.defineProperty(s.w,'innerHeight',{value:320,configurable:true});
+        const button=s.d.getElementById('partnerLanguageButton'),menu=s.d.getElementById('partnerLanguageMenu');
+        button.getBoundingClientRect=()=>({left:302,bottom:60});
+        Object.defineProperty(menu,'offsetWidth',{value:132});
+        Object.defineProperty(menu,'offsetHeight',{value:304});
+        button.click();
+        assert.equal(menu.hidden,false);
+        assert.equal(menu.querySelectorAll('[data-partner-language]').length,8);
+        assert.ok(parseFloat(menu.style.left)>=8);
+        assert.ok(parseFloat(menu.style.left)+menu.offsetWidth<=s.w.innerWidth-8);
+        assert.ok(parseFloat(menu.style.top)>=8);
+        assert.ok(parseFloat(menu.style.top)+menu.offsetHeight<=s.w.innerHeight-8);
+    } finally {s.dom.window.close();}
+});
+
+test('French applies to panel, price templates, agreement controls and the illustrated guide', async () => {
+    const s=setup({preferred:['fr-CA']});
+    try {
+        assert.equal(s.i18n.getLanguage(),'fr');
+        assert.equal(s.i18n.locale(),'fr-FR');
+        assert.equal(s.d.documentElement.lang,'fr');
+        assert.equal(s.d.getElementById('partnerLanguageCode').textContent,'FR');
+        assert.equal(s.d.querySelector('#view-dashboard .page-title').textContent,'Tableau de bord');
+        assert.equal(s.d.getElementById('locCountry').placeholder,'ex. Portugal (anglais uniquement)');
+        assert.equal(s.i18n.text('Odbiór: 50.00 EUR · Zwrot: 0.00 EUR','Pickup: 50.00 EUR · Return: 0.00 EUR'),
+            'Prise en charge : 50.00 EUR · Retour : 0.00 EUR');
+        s.w.renderAgreement('fr');
+        assert.match(s.d.getElementById('ag-content').textContent,/PARTNER AGREEMENT/);
+        assert.equal(s.d.getElementById('ag-title').textContent,'Acceptation du contrat');
+        const manual=JSON.parse(read('assets/partner-guide/manual.json'));
+        s.w.fetch=async()=>({ok:true,json:async()=>structuredClone(manual)});
+        s.w.eval(read('assets/helper/partnerGuide.js'));
+        await s.w.Ride24PartnerGuide.open({panelLanguage:s.i18n.getLanguage()});
+        assert.equal(s.d.getElementById('guideLanguage').value,'fr');
+        assert.equal(s.d.getElementById('guideTitle').textContent,manual.languages.fr.ui.title);
+        assert.equal(s.d.getElementById('guideModal').lang,'fr');
+        assert.equal(s.writes.length,0);
+    } finally {s.dom.window.close();}
+});
+
+test('actual vehicle and location form handlers produce identical data in all eight languages', async () => {
     const s=setup();
     try {
         let expectedVehicle,expectedLocation;
@@ -219,7 +263,7 @@ test('actual vehicle and location form handlers produce identical data in all se
             assert.equal(location.data[0].extra_fee_amount,50);assert.equal(location.data[0].return_fee_amount,50);
             assert.equal(location.data[0].country,'Albania');assert.equal(location.data[0].type,'airport');
         }
-        assert.equal(s.writes.length,14);
+        assert.equal(s.writes.length,2*languages.length);
     } finally {s.dom.window.close();}
 });
 
@@ -280,7 +324,7 @@ test('saving an extra preserves original PL/EN catalogue names and exact amount 
             assert.equal(write.data.code,'gps');assert.equal(write.data.name_en,'GPS navigation');
             assert.equal(write.data.name_pl,'Nawigacja GPS');assert.equal(write.data.amount,7.5);assert.equal(write.data.max_quantity,2);
         }
-        assert.equal(s.writes.length,7);
+        assert.equal(s.writes.length,languages.length);
     } finally {s.dom.window.close();}
 });
 
