@@ -931,6 +931,10 @@
   <p class="seo-muted">Przygotuj treść PL i EN, sprawdź ją i opublikuj. Poprawki zachowują adresy stron oraz historię wersji.</p>
   <div id="seo-connections" class="seo-connection-list"></div>
   <p id="seo-review-summary" class="seo-muted" role="status" aria-live="polite"></p>
+   <div class="seo-card" style="margin:12px 0;padding:14px"><h3>Wyniki Google Search Console — ostatnie 28 dni</h3>
+    <div id="seo-performance" class="seo-muted">Raport czeka na pierwszy automatyczny odczyt.</div>
+    <button class="btn-secondary" type="button" onclick="seoPerformance()">Pobierz aktualne wyniki Google</button>
+   </div>
   <div class="seo-actions"><button class="btn-secondary" type="button" onclick="seoSync()">Odśwież lokalizacje</button><button class="btn-secondary" type="button" onclick="loadSeo()">Odśwież status</button></div>
   <div id="seo-message" class="seo-status" role="status" aria-live="polite">Wczytywanie SEO…</div>
  </div>
@@ -950,6 +954,7 @@
      <label class="seo-toggle"><input id="seo-free" type="checkbox"><span>Potwierdzam, że projekt Gemini działa na poziomie Free i nie ma włączonych płatności.</span></label>
      <label class="seo-toggle"><input id="seo-auto" type="checkbox"><span>Automatycznie przygotowuj szkice nowych kierunków. Publikuję je samodzielnie.</span></label>
      <label class="seo-toggle"><input id="seo-review-auto" type="checkbox"><span>Automatycznie sprawdzaj Google i przygotowuj uzasadnione poprawki PL/EN do mojego zatwierdzenia.</span></label>
+      <label class="seo-toggle"><input id="seo-business-auto" type="checkbox"><span>Po moim zatwierdzeniu i opublikowaniu strony, bezpłatnie wyślij wpisy PL/EN do wizytówki Google (jeśli API działa).</span></label>
      <p class="seo-muted">Najwyżej jedna automatyczna poprawka dziennie. Poprawki AI korzystają z tego samego limitu co nowe szkice. Samo oczekiwanie na indeksowanie nie powoduje przepisywania treści. Sprawdź oba języki przed publikacją.</p>
      <div class="seo-field"><label for="seo-limit">Maksymalna liczba prób AI dziennie</label><input id="seo-limit" type="number" min="1" max="10" value="3"></div>
      <div id="seo-ai-usage" class="seo-muted"></div>
