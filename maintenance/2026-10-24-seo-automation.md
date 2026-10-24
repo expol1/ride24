@@ -66,6 +66,12 @@ they are not authenticated visual tests on production. No test SEO article or
 Google post is published. AI quota and credential values are never reset or
 exported. The new SEO CI workflow runs these isolated tests on subsequent changes.
 
+The broader Smart Search CI exposed an existing test expectation: a non-admin
+DELETE with table privilege is filtered to zero rows by RLS, rather than throwing
+a permission exception. The isolated check now asserts zero returned/deleted rows
+and confirms the dictionary entry remains. No Smart Search application, policy,
+grant or production dictionary data is changed.
+
 No schema migration, cron schedule change, booking, payment, partner, Android,
 uploaded-file or retention change is included. Existing credentials are retained.
 
