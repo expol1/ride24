@@ -904,6 +904,30 @@
         /* RIDE24 MOBILE: seasonal minimum & settings stay inside the viewport.
            Keep desktop layout and all booking logic untouched. */
         @media (max-width: 768px) {
+            /* Single vertical scroller: the previous nested scrolling of
+               .main-wrapper and .content-area caused a blank mint screen
+               after expanding or collapsing the seasonal editor on Android. */
+            .main-wrapper {
+                display:flex !important;
+                flex-direction:column !important;
+                width:100%; min-width:0;
+                height:calc(100dvh - 75px) !important;
+                max-height:calc(100dvh - 75px) !important;
+                overflow:hidden !important;
+            }
+            .main-wrapper > .topbar {
+                flex:0 0 60px !important;
+                min-height:60px;
+            }
+            .main-wrapper > .content-area {
+                flex:1 1 auto !important;
+                min-height:0 !important;
+                min-width:0;
+                overflow-x:hidden !important;
+                overflow-y:auto !important;
+                overscroll-behavior-y:contain;
+                -webkit-overflow-scrolling:touch;
+            }
             #view-settings { width:100%; min-width:0; max-width:100%; }
             #view-settings > .settings-card {
                 width:100%; min-width:0; max-width:100%;
