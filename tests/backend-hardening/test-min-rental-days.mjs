@@ -5,6 +5,7 @@ import {JSDOM} from "jsdom";
 
 const read = path => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 const modalScript = read("assets/js/min-rental-search.js");
+const durationScript = read("assets/js/rentalDuration.js");
 const index = read("index.html");
 const partner = read("partner-dashboard.html");
 const results = read("results.html");
@@ -17,7 +18,7 @@ function setup(partners, carPartnerIds, opts = {}) {
   const {window:w} = dom;
   w.localStorage.setItem("lang", "pl");
   const location = {location_name:"Airport",country:"Poland",city:"Wroclaw"};
-  const search = {pickup_location:location,drop_location:location,pickup_date:"2026-10-25",drop_date:"2026-10-26"};
+  const search = {pickup_location:location,drop_location:location,pickup_date:"2026-10-25",drop_date:"2026-10-26",pickup_time:"10:00",drop_time:"10:00"};
   let searchCalls = 0, calendarCalls = [];
   w.collectSearchData = () => ({...search});
   w.ride24DateRangePicker = {setDate:(dates,trigger,format) => calendarCalls.push({dates,trigger,format})};
@@ -51,6 +52,7 @@ function setup(partners, carPartnerIds, opts = {}) {
     }
   };
   w.document.querySelector("#searchBtn").addEventListener("click",()=>{searchCalls++;});
+  w.eval(durationScript);
   w.eval(modalScript);
   return {w, search,dom, get searchCalls(){return searchCalls;}, get calendarCalls(){return calendarCalls;}};
 }
@@ -62,8 +64,8 @@ test("the existing search button and its click listener remain structurally unto
   assert.match(index, /document\.getElementById\("searchBtn"\)\?\.addEventListener\("click", async function\(\)/);
   assert.match(index, /assets\/js\/min-rental-search\.js/);
   assert.match(partner, /id="partner-min-rental-days"/);
-  assert.match(results, /\.lte\('partners\.min_rental_days', days\)/);
-  assert.match(apiSearch, /minimum > days\) uniquePartners\.delete/);
+  assert.match(results, /\.lte\('partners\.min_rental_days', Math\.max\(1, duration\.fullDays\)\)/);
+  assert.match(apiSearch, /meetsMinimumRental\(duration,/);
   assert.match(booking, /code: "MIN_RENTAL_DAYS"/);
 });
 
@@ -125,4 +127,53 @@ test("every local partner language has the new settings labels",()=>{
     assert.ok(dictionary.source[key],key);
     for(const lang of ["es","el","it","de","ru","fr"]) assert.ok(dictionary.languages[lang][key],lang+" "+key);
   }
+});
+
+
+test("time-aware WEB rental days: exact 48h 2, 49h 3, same-day 1",()=>{
+  const w=new JSDOM("",{url:"https://ride24.pl/",runScripts:"outside-only"}).window;
+  w.eval(durationScript);
+  const d=w.Ride24RentalDuration;
+  assert.equal(d.calculate("2026-11-05","2026-11-07","10:00","10:00").billedDays,2);
+  assert.equal(d.calculate("2026-11-05","2026-11-07","10:00","09:00").billedDays,2);
+  assert.equal(d.calculate("2026-11-05","2026-11-07","10:00","11:00").billedDays,3);
+  assert.equal(d.calculate("2026-11-05","2026-11-05","10:00","18:00").billedDays,1);
+  assert.throws(()=>d.calculate("2026-11-05","2026-11-05","10:00","09:00"),/INVALID_RENTAL_DURATION/);
+  assert.throws(()=>d.calculate("2026-11-05","2026-11-05","10:00","10:00"),/INVALID_RENTAL_DURATION/);
+  assert.equal(d.calculate("2026-12-31","2027-01-01","10:00","11:00").billedDays,2);
+  assert.equal(d.calculate("2026-03-28","2026-03-29","10:00","10:00").billedDays,1);
+  w.close();
+});
+
+test("minimum 3 full days is independent of 3 billable days and does not alter return time",async()=>{
+  const s=setup([row("one",3)],["one"]);
+  s.search.pickup_date="2026-11-05";
+  s.search.drop_date="2026-11-07";
+  s.search.pickup_time="10:00";
+  s.search.drop_time="11:00";
+  s.w.document.querySelector("#searchBtn").click();
+  await tick();
+  assert.equal(s.searchCalls,0);
+  assert.match(s.w.document.querySelector("#r24-minimum-overlay").textContent,/3 dni/);
+  s.w.document.querySelector("#r24-minimum-accept").click();
+  assert.equal(s.w.document.querySelector("#drop-date").value,"2026-11-08");
+  assert.equal(s.searchCalls,1);
+  const d=s.w.Ride24RentalDuration.calculate("2026-11-05","2026-11-08","10:00","11:00");
+  assert.equal(d.billedDays,4);
+  assert.equal(s.w.Ride24RentalDuration.meetsMinimum(d,3),true);
+  s.dom.window.close();
+});
+
+test("minimum adjustment preserves earlier user-selected return time by extending the date",async()=>{
+  const s=setup([row("one",3)],["one"]);
+  s.search.pickup_date="2026-11-05";
+  s.search.drop_date="2026-11-07";
+  s.search.pickup_time="10:00";
+  s.search.drop_time="09:00";
+  s.w.document.querySelector("#searchBtn").click();
+  await tick();
+  s.w.document.querySelector("#r24-minimum-accept").click();
+  assert.equal(s.w.document.querySelector("#drop-date").value,"2026-11-09");
+  assert.equal(s.searchCalls,1);
+  s.dom.window.close();
 });
