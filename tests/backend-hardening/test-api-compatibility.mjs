@@ -6,6 +6,7 @@ import ts from 'typescript';
 import * as contract from '../../supabase/functions/_shared/api-quote-contract.mjs';
 import * as readiness from '../../supabase/functions/_shared/api-readiness.mjs';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
+import * as durationRules from '../../supabase/functions/_shared/rental-duration.ts';
 import {normalizeLocations, assertSafeApiUrl} from '../../supabase/functions/_shared/partner-api.ts';
 
 const uid='10000000-0000-4000-8000-000000000001', partner='20000000-0000-4000-8000-000000000001';
@@ -99,6 +100,7 @@ function setup() {
       if(specifier.includes('api-readiness'))return readiness;
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
+      if(specifier.includes('rental-duration.ts'))return durationRules;
       if(specifier.includes('ride24-security'))return security;
       if(specifier.includes('booking-request'))return {readJsonObject:req=>req.json()};
       if(specifier.includes('booking-exchange-rate'))return {exchangeRate:async()=>4.3};
