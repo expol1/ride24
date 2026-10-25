@@ -2376,6 +2376,69 @@ Dodaj opinię o Partnerze
     <script src="assets/helper/partnerTimeFees.js?v=20261023a"></script>
     <script src="assets/helper/partnerMandatoryRules.js?v=20261023a"></script>
     <script src="assets/helper/partnerGuide.js?v=20261023a"></script>
+    <script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
+    
+    <script>
+    /* Informational season editor: the base minimum remains the only enforced server rule. */
+    (() => {
+        "use strict";
+        let selectedMonths = [];
+        const el = id => document.getElementById(id);
+        function renderSeasonalMinimum() {
+            const toggle = el("partner-season-min-enabled");
+            if (!toggle) return;
+            const on = toggle.checked;
+            el("partner-season-min-settings").hidden = !on;
+            const lang = typeof getPartnerLang === "function" ? getPartnerLang() : "en";
+            const days = Number(el("partner-season-min-days").value);
+            document.querySelectorAll(".r24-season-month").forEach(btn => {
+                const active = selectedMonths.includes(Number(btn.dataset.month));
+                btn.classList.toggle("is-selected", active);
+                btn.setAttribute("aria-pressed", active ? "true" : "false");
+            });
+            const preview = el("r24-season-preview");
+            if (!on || !selectedMonths.length) {
+                preview.textContent = lang === "pl" ? "Wybierz przynajmniej jeden miesiąc." : "Select at least one month.";
+            } else if (!Number.isInteger(days) || days < 1 || days > 366) {
+                preview.textContent = lang === "pl" ? "Podaj od 1 do 366 dni." : "Enter 1–366 days.";
+            } else {
+                preview.textContent = lang === "pl"
+                    ? "W zaznaczonych miesiącach: preferowane " + days + " dni (tylko informacyjnie)."
+                    : "Selected months: " + days + " preferred days (information only).";
+            }
+        }
+        window.r24LoadSeasonalMinimum = partner => {
+            selectedMonths = window.Ride24SeasonalMinimum.normalizedMonths(partner.seasonal_min_rental_months);
+            const days = Number(partner.seasonal_min_rental_days);
+            el("partner-season-min-days").value = Number.isInteger(days) && days >= 1 && days <= 366 ? days : 5;
+            el("partner-season-min-enabled").checked = selectedMonths.length > 0 && Number.isInteger(days) && days >= 1 && days <= 366;
+            renderSeasonalMinimum();
+        };
+        window.r24GetSeasonalMinimum = () => {
+            if (!el("partner-season-min-enabled").checked) return {days:null,months:[]};
+            const daysText = el("partner-season-min-days").value.trim();
+            const days = Number(daysText);
+            if (!daysText || !Number.isInteger(days) || days < 1 || days > 366 || selectedMonths.length === 0) {
+                throw new Error(typeof getPartnerLang === "function" && getPartnerLang() === "pl"
+                    ? "Włączając sezon, ustaw 1–366 dni i wybierz przynajmniej jeden miesiąc."
+                    : "To enable the season, set 1–366 days and select at least one month.");
+            }
+            return {days, months:[...selectedMonths]};
+        };
+        const toggle = el("partner-season-min-enabled");
+        if (toggle) {
+            toggle.addEventListener("change", renderSeasonalMinimum);
+            el("partner-season-min-days").addEventListener("input", renderSeasonalMinimum);
+            document.querySelectorAll(".r24-season-month").forEach(btn => btn.addEventListener("click", () => {
+                const month = Number(btn.dataset.month);
+                selectedMonths = selectedMonths.includes(month) ? selectedMonths.filter(m => m !== month)
+                    : window.Ride24SeasonalMinimum.normalizedMonths([...selectedMonths,month]);
+                renderSeasonalMinimum();
+            }));
+            renderSeasonalMinimum();
+        }
+    })();
+    </script>
 
     <script>
         
@@ -5629,69 +5692,5 @@ window.closeReviewModal = function() {
         </div>
     </div>
 </div>
-<script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
-
-<script>
-/* Informational season editor: the base minimum remains the only enforced server rule. */
-(() => {
-    "use strict";
-    let selectedMonths = [];
-    const el = id => document.getElementById(id);
-    function renderSeasonalMinimum() {
-        const toggle = el("partner-season-min-enabled");
-        if (!toggle) return;
-        const on = toggle.checked;
-        el("partner-season-min-settings").hidden = !on;
-        const lang = typeof getPartnerLang === "function" ? getPartnerLang() : "en";
-        const days = Number(el("partner-season-min-days").value);
-        document.querySelectorAll(".r24-season-month").forEach(btn => {
-            const active = selectedMonths.includes(Number(btn.dataset.month));
-            btn.classList.toggle("is-selected", active);
-            btn.setAttribute("aria-pressed", active ? "true" : "false");
-        });
-        const preview = el("r24-season-preview");
-        if (!on || !selectedMonths.length) {
-            preview.textContent = lang === "pl" ? "Wybierz przynajmniej jeden miesiąc." : "Select at least one month.";
-        } else if (!Number.isInteger(days) || days < 1 || days > 366) {
-            preview.textContent = lang === "pl" ? "Podaj od 1 do 366 dni." : "Enter 1–366 days.";
-        } else {
-            preview.textContent = lang === "pl"
-                ? "W zaznaczonych miesiącach: preferowane " + days + " dni (tylko informacyjnie)."
-                : "Selected months: " + days + " preferred days (information only).";
-        }
-    }
-    window.r24LoadSeasonalMinimum = partner => {
-        selectedMonths = window.Ride24SeasonalMinimum.normalizedMonths(partner.seasonal_min_rental_months);
-        const days = Number(partner.seasonal_min_rental_days);
-        el("partner-season-min-days").value = Number.isInteger(days) && days >= 1 && days <= 366 ? days : 5;
-        el("partner-season-min-enabled").checked = selectedMonths.length > 0 && Number.isInteger(days) && days >= 1 && days <= 366;
-        renderSeasonalMinimum();
-    };
-    window.r24GetSeasonalMinimum = () => {
-        if (!el("partner-season-min-enabled").checked) return {days:null,months:[]};
-        const daysText = el("partner-season-min-days").value.trim();
-        const days = Number(daysText);
-        if (!daysText || !Number.isInteger(days) || days < 1 || days > 366 || selectedMonths.length === 0) {
-            throw new Error(typeof getPartnerLang === "function" && getPartnerLang() === "pl"
-                ? "Włączając sezon, ustaw 1–366 dni i wybierz przynajmniej jeden miesiąc."
-                : "To enable the season, set 1–366 days and select at least one month.");
-        }
-        return {days, months:[...selectedMonths]};
-    };
-    const toggle = el("partner-season-min-enabled");
-    if (toggle) {
-        toggle.addEventListener("change", renderSeasonalMinimum);
-        el("partner-season-min-days").addEventListener("input", renderSeasonalMinimum);
-        document.querySelectorAll(".r24-season-month").forEach(btn => btn.addEventListener("click", () => {
-            const month = Number(btn.dataset.month);
-            selectedMonths = selectedMonths.includes(month) ? selectedMonths.filter(m => m !== month)
-                : window.Ride24SeasonalMinimum.normalizedMonths([...selectedMonths,month]);
-            renderSeasonalMinimum();
-        }));
-        renderSeasonalMinimum();
-    }
-})();
-</script>
-
 </body>
 </html>
