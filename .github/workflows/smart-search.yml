@@ -5,11 +5,14 @@ on:
       - 'admin/index.html'
       - 'index.html'
       - 'assets/js/*smart-search*'
+      - 'assets/js/location-names.js'
       - 'assets/js/search-miss.js'
       - 'supabase/functions/**search-miss*'
       - 'supabase/functions/record-search-miss/**'
       - 'supabase/migrations/*smart_search*'
       - 'tests/backend-hardening/*smart-search*'
+      - 'tests/backend-hardening/test-georgia-location-normalization.mjs'
+      - 'supabase/migrations/*georgia_location*'
       - 'tests/backend-hardening/package*.json'
       - '.github/workflows/smart-search.yml'
 jobs:
@@ -26,3 +29,5 @@ jobs:
         working-directory: tests/backend-hardening
       - run: npm run test:smart-search
         working-directory: tests/backend-hardening
+      - run: node --check assets/js/location-names.js
+      - run: node --test tests/backend-hardening/test-georgia-location-normalization.mjs
