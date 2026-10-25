@@ -501,6 +501,7 @@ let query = db
             account_status,
             currency,
             min_driver_age,
+            min_rental_days,
             provider_type,
             api_enabled,
             partner_locations!inner(
@@ -518,7 +519,8 @@ let query = db
     .eq('active', true)
     .eq('partners.active', true)
     .eq('partners.account_status', 'active') 
-    .eq('partners.partner_locations.active', true);
+    .eq('partners.partner_locations.active', true)
+    .lte('partners.min_rental_days', days);
 
                 // Filtrujemy zwrot PRZED paginacją, inaczej można ukryć poprawne auta.
                 const selectedReturnLocation = filters.drop_location || loc;
@@ -651,7 +653,7 @@ let query = db
                     });
                     const apiData = await apiResponse.json().catch(() => ({}));
                     if (apiResponse.ok && Array.isArray(apiData.cars)) {
-                        cars.push(...apiData.cars);
+                        cars.push(...apiData.cars.filter(car => Number(car.partners?.min_rental_days ?? 1) <= days));
                     }
                 } catch (apiError) {
                     // Awaria pojedynczej integracji API nie może wyłączyć ofert lokalnych.

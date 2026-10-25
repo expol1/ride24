@@ -70,6 +70,7 @@ type PartnerRow = {
   discount_percent: number | string | null;
   currency: string | null;
   min_driver_age: number | string | null;
+  min_rental_days: number | string | null;
   active: boolean | null;
   account_status: string | null;
 };
@@ -288,6 +289,9 @@ function partnerFromRelation(value: unknown): PartnerRow | null {
     min_driver_age: typeof row.min_driver_age === "number" || typeof row.min_driver_age === "string"
       ? row.min_driver_age
       : null,
+    min_rental_days: typeof row.min_rental_days === "number" || typeof row.min_rental_days === "string"
+      ? row.min_rental_days
+      : 1,
     active: row.active === true,
     account_status: typeof row.account_status === "string" ? row.account_status : null,
   };
@@ -771,6 +775,7 @@ async function searchPartner(
         api_enabled: true,
         currency: partnerCurrency,
         min_driver_age: partner.min_driver_age,
+        min_rental_days: partner.min_rental_days,
         partner_locations: returnedLocations.map((location) => ({
           country: location.country,
           region: location.region,
@@ -848,6 +853,7 @@ serve(async (req) => {
           discount_percent,
           currency,
           min_driver_age,
+          min_rental_days,
           active,
           account_status
         )
@@ -879,6 +885,11 @@ serve(async (req) => {
       if (uniquePartners.size >= MAX_PARTNERS_PER_SEARCH) break;
     }
 
+    // Avoid generating external API quotes for durations below the partner's minimum.
+    for (const [partnerId, location] of uniquePartners) {
+      const minimum = Number(location.partners.min_rental_days ?? 1);
+      if (Number.isInteger(minimum) && minimum > days) uniquePartners.delete(partnerId);
+    }
     const quoteBudget: QuoteBudget = { remaining: MAX_RESULTS_PER_SEARCH };
     const partnerResults = await mapConcurrent(
       [...uniquePartners.values()],

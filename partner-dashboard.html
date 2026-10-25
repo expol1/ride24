@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/partner-languages.css?v=20261023a">
-    <script src="assets/i18n/partner-panel.js?v=20261024fr1"></script>
+    <script src="assets/i18n/partner-panel.js?v=20261025min1"></script>
     <script src="assets/helper/partnerI18n.js?v=20261024fr1"></script>
 
     <title>Partner Panel - Ride24</title>
@@ -288,6 +288,11 @@
 
         .settings-card { background: #F6FCED; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 1000px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .settings-card button { grid-column: span 2; }
+        .r24-min-days-setting { grid-column: span 2; display:flex; flex-direction:column; gap:8px; padding:18px 20px; background:#F8FCEF; border:1px solid #DCEACB; border-radius:13px; margin-bottom:12px; }
+        .r24-min-days-header { display:flex; align-items:center; gap:9px; color:#1D3E21; font-size:15px; font-weight:800; }
+        .r24-min-days-control { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .r24-min-days-control input { width:110px; height:44px; text-align:center; font-size:17px; font-weight:750; border:1px solid #C6D9AD; border-radius:9px; background:white; }
+        .r24-min-days-help { font-size:12px; line-height:1.6; color:#475569; margin:0; }
         .form-group { margin-bottom: 16px; width: 100%; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray); margin-bottom: 6px; }
         .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: white;}
@@ -1595,6 +1600,21 @@ async>
         <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21" data-pl="Np. 21" data-en="e.g. 21">
     </div>
 
+    <div class="r24-min-days-setting">
+        <div class="r24-min-days-header">
+            <span aria-hidden="true">📅</span>
+            <span data-pl="Minimalna długość wynajmu" data-en="Minimum rental duration">Minimum rental duration</span>
+        </div>
+        <div class="r24-min-days-control">
+            <div class="form-group" style="max-width:150px;margin:0;">
+                <label for="partner-min-rental-days" data-pl="Minimum (dni)" data-en="Minimum (days)">Minimum (days)</label>
+                <input id="partner-min-rental-days" type="number" inputmode="numeric" min="1" max="366" step="1" value="1" required>
+            </div>
+            <span data-pl="dni kalendarzowych" data-en="calendar days" style="font-size:13px;color:#64748B;font-weight:600;">calendar days</span>
+        </div>
+        <p class="r24-min-days-help" data-pl="Dotyczy wszystkich Twoich lokalizacji. Wartość 1 oznacza brak dodatkowego ograniczenia. Klient otrzyma informację, gdy wybierze zbyt krótki termin." data-en="Applies to all your locations. A value of 1 means no extra restriction. Customers will see a notice when their selected rental period is too short.">Applies to all your locations. A value of 1 means no extra restriction. Customers will see a notice when their selected rental period is too short.</p>
+    </div>
+
     <div class="form-group">
         <label data-pl="Waluta (Zablokowana)" data-en="Currency (Locked)">Currency (Locked)</label>
         <div id="partnerCurrency" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: #F1F5F9; color: var(--gray); font-weight: 700; cursor: not-allowed; height: 42px; display: flex; align-items: center;">
@@ -2634,6 +2654,7 @@ console.log("API status:", partnerData.api_status);
     rental_terms_url,
     rental_rules_url,
     min_driver_age,
+    min_rental_days,
 
     provider_type,
     api_provider,
@@ -2673,6 +2694,7 @@ console.log("API status:", partnerData.api_status);
                 if(data.min_driver_age){
     document.getElementById("partner-min-age").value = data.min_driver_age;
 }
+                document.getElementById("partner-min-rental-days").value = Number.isInteger(Number(data.min_rental_days)) ? data.min_rental_days : 1;
                 
                 if(data.currency) {
                     document.getElementById("partnerCurrency").innerText = data.currency;
@@ -2726,7 +2748,14 @@ console.log("API status:", partnerData.api_status);
                     return;
                 }
 
-                // KROK 7: WALIDACJA DOKUMENTÓW PDF
+                const minRentalInput = document.getElementById("partner-min-rental-days").value.trim();
+                 const minRentalDays = Number(minRentalInput);
+                 if (!minRentalInput || !Number.isInteger(minRentalDays) || minRentalDays < 1 || minRentalDays > 366) {
+                     window.showToast(partnerText("Minimalny wynajem musi wynosić od 1 do 366 dni.", "Minimum rental duration must be between 1 and 366 days."), "error");
+                     if(btn) { btn.disabled = false; partnerLabel(btn, "Zapisz zmiany", "Save Changes"); }
+                     return;
+                 }
+                 // KROK 7: WALIDACJA DOKUMENTÓW PDF
                 const { data: docCheck } = await db
                     .from("partners")
                     .select("rental_terms_url, rental_rules_url")
@@ -2752,6 +2781,7 @@ const updateData = {
     phone: phone,
     emergency_phone: emergency,
     min_driver_age: minAgeInput ? parseInt(minAgeInput) : null,
+    min_rental_days: minRentalDays,
     profile_completed: true
 };
 
