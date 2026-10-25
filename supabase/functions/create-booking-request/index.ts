@@ -40,6 +40,7 @@ type PartnerRelation = {
   api_enabled: boolean;
   rental_terms_url: string | null;
   rental_rules_url: string | null;
+  min_rental_days: number;
 };
 
 type CarRow = {
@@ -251,6 +252,8 @@ function normalizePartner(value: unknown): PartnerRelation | null {
     api_enabled: row.api_enabled === true,
     rental_terms_url: cleanText(row.rental_terms_url, 2_000),
     rental_rules_url: cleanText(row.rental_rules_url, 2_000),
+    min_rental_days: Number.isInteger(Number(row.min_rental_days)) && Number(row.min_rental_days) >= 1
+      ? Number(row.min_rental_days) : 1,
   };
 }
 
@@ -917,7 +920,8 @@ serve(async (req) => {
           provider_type,
           api_enabled,
           rental_terms_url,
-          rental_rules_url
+          rental_rules_url,
+          min_rental_days
         )
       `)
       .eq("id", body.car_class_id)
@@ -936,6 +940,16 @@ serve(async (req) => {
         { error: "Wybrana grupa pojazdów nie jest dostępna" },
         400,
       );
+    }
+
+    // Authoritative protection: old apps and direct API requests cannot bypass
+    // the minimum even if they never saw the optional web notice.
+    if (bookingDays < car.partner.min_rental_days) {
+      return jsonResponse(req, {
+        error: "Minimalny okres wynajmu u tej wypożyczalni to " + car.partner.min_rental_days + " dni.",
+        code: "MIN_RENTAL_DAYS",
+        min_rental_days: car.partner.min_rental_days,
+      }, 400);
     }
 
     let mainDriverName = profileName;
