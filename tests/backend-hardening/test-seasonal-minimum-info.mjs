@@ -31,3 +31,20 @@ test('web uses season preference only as a notice, preserving the enforced base 
  assert.match(partner,/seasonal_min_rental_months: seasonalMonths/);
  assert.match(partner,/seasonal_min_rental_days: seasonalDays/);
 });
+
+test('mobile settings editor never uses the desktop two-column grid or six-column month selector',()=>{
+ const partner=read('partner-dashboard.html');
+ const start=partner.indexOf('/* RIDE24 MOBILE: seasonal minimum & settings stay inside the viewport.');
+ const end=partner.indexOf('</style>',start);
+ assert.ok(start>0 && end>start,'mobile responsive CSS is present');
+ const mobile=partner.slice(start,end);
+ assert.match(mobile,/@media\s*\(max-width:\s*768px\)/);
+ assert.match(mobile,/#view-settings\s*>\s*\.settings-card\s*\{[^}]*grid-template-columns:\s*minmax\(0,1fr\)\s*!important/s);
+ assert.match(mobile,/#view-settings\s*>\s*\.settings-card\s*>\s*\*\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
+ assert.match(mobile,/\.r24-min-panels\s*\{[^}]*grid-template-columns:\s*minmax\(0,1fr\)\s*!important/s);
+ assert.match(mobile,/\.r24-season-months\s*\{[^}]*grid-template-columns:\s*repeat\(4,minmax\(0,1fr\)\)\s*!important/s);
+ assert.match(mobile,/@media\s*\(max-width:\s*360px\)/);
+ assert.match(mobile,/\.r24-season-months\s*\{[^}]*grid-template-columns:\s*repeat\(3,minmax\(0,1fr\)\)\s*!important/s);
+ assert.match(partner,/id="partner-season-min-enabled"/);
+ assert.match(partner,/id="partner-min-rental-days"/);
+});
