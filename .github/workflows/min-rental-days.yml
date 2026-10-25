@@ -7,13 +7,16 @@ on:
       - 'partner-dashboard.html'
       - 'assets/js/min-rental-search.js'
       - 'assets/js/rentalDuration.js'
+      - 'assets/js/seasonal-minimum-info.js'
       - 'assets/i18n/partner-panel.js'
       - 'supabase/functions/create-booking-request/index.ts'
       - 'supabase/functions/search-api/index.ts'
       - 'supabase/functions/booking-options/index.ts'
       - 'supabase/functions/_shared/rental-duration.ts'
       - 'supabase/migrations/*partner_min_rental_days*'
+      - 'supabase/migrations/*seasonal_minimum*'
       - 'tests/backend-hardening/test-min-rental-days.mjs'
+      - 'tests/backend-hardening/test-seasonal-minimum-info.mjs'
       - '.github/workflows/min-rental-days.yml'
   workflow_dispatch:
 jobs:
@@ -27,4 +30,5 @@ jobs:
       - run: npm ci --prefix tests/backend-hardening --ignore-scripts --no-audit --no-fund
       - run: node --check assets/js/min-rental-search.js
       - run: node --check assets/js/rentalDuration.js
-      - run: node --experimental-strip-types --test tests/backend-hardening/test-min-rental-days.mjs
+      - run: node --check assets/js/seasonal-minimum-info.js
+      - run: node --experimental-strip-types --test tests/backend-hardening/test-min-rental-days.mjs tests/backend-hardening/test-seasonal-minimum-info.mjs
