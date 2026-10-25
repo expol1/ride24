@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {JSDOM} from "jsdom";
+import {rentalDuration, meetsMinimumRental} from "../../supabase/functions/_shared/rental-duration.ts";
 
 const read = path => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 const modalScript = read("assets/js/min-rental-search.js");
@@ -176,4 +177,27 @@ test("minimum adjustment preserves earlier user-selected return time by extendin
   assert.equal(s.w.document.querySelector("#drop-date").value,"2026-11-09");
   assert.equal(s.searchCalls,1);
   s.dom.window.close();
+});
+
+
+test("Edge shared duration matches WEB for exact and partial rental days",()=>{
+  const w=new JSDOM("",{url:"https://ride24.pl/",runScripts:"outside-only"}).window;
+  w.eval(durationScript);
+  const cases=[
+    ["2026-11-05","2026-11-07","10:00","10:00"],
+    ["2026-11-05","2026-11-07","10:00","11:00"],
+    ["2026-11-05","2026-11-07","10:00","09:00"],
+    ["2026-11-05","2026-11-05","10:00","18:00"],
+    ["2026-12-31","2027-01-01","23:30","23:00"],
+    ["2026-03-28","2026-03-29","09:00","09:00"]
+  ];
+  for (const [a,b,pt,rt] of cases) {
+    const ui=w.Ride24RentalDuration.calculate(a,b,pt,rt);
+    const server=rentalDuration(a,b,pt,rt);
+    assert.equal(ui.billedDays,server.billedDays);
+    assert.equal(ui.fullDays,server.fullDays);
+    assert.equal(ui.elapsedMs,server.elapsedMs);
+    for(const min of [1,2,3]) assert.equal(w.Ride24RentalDuration.meetsMinimum(ui,min),meetsMinimumRental(server,min));
+  }
+  w.close();
 });
