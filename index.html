@@ -3276,6 +3276,7 @@
 <link rel="stylesheet" href="assets/css/world-map-regions.css?v=20261012-1">
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261021a">
 <link rel="stylesheet" href="assets/css/home-scroll-performance.css?v=20261019b">
+<script src="assets/js/location-names.js?v=20261025"></script>
 </head>
 <body>
     <div id="toast-container"></div>
@@ -5363,7 +5364,7 @@ function collectSearchData() {
         }
         let locationsQuery = db
             .from('partner_locations')
-            .select('id, partner_id, location_name, country, region, city, type')
+            .select('id, partner_id, location_name, display_name, country, region, city, type')
             .or(orFilters)
             .eq('active', true);
         if (type === 'drop') {
@@ -5392,7 +5393,7 @@ function collectSearchData() {
             }
 
             return {
-                name: item.location_name || item.city || item.country,
+                name: window.Ride24LocationNames.displayName(item),
                 id: item.id,
                 partner_id: item.partner_id,
                 location_name: item.location_name,
@@ -6391,7 +6392,7 @@ data-en="🌍 Ride24 World Map">
         }
 
         locations.forEach(location => {
-            const locationName = location.location_name;
+            const locationName = window.Ride24LocationNames.displayName(location);
 
             if (!locationName) {
                 return;
@@ -6446,7 +6447,7 @@ data-en="🌍 Ride24 World Map">
     }
 
     function selectWorldLocation(location){
-        const locationName = location.location_name;
+        const locationName = window.Ride24LocationNames.displayName(location);
         const pickupInput =
         document
         .getElementById(
@@ -6493,7 +6494,7 @@ setTimeout(() => {
 
         const selectedLocation = {
             name: locationName,
-            location_name: locationName,
+            location_name: location.location_name,
             country: location.country,
             region: location.region,
             city: location.city,
