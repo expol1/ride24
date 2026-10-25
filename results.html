@@ -218,6 +218,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
+<script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -506,6 +507,8 @@ let query = db
             currency,
             min_driver_age,
             min_rental_days,
+            seasonal_min_rental_days,
+            seasonal_min_rental_months,
             provider_type,
             api_enabled,
             partner_locations!inner(
@@ -954,6 +957,11 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej i blokady karty' : 'No credit card or card hold'}</div>` 
                         : '';
                         
+                    const seasonalMinDays = window.Ride24SeasonalMinimum?.forPickup(car.partners, filters.pickup_date) ?? null;
+                    const seasonalMinNotice = seasonalMinDays === null ? "" : `
+                        <div class="feature-item" style="grid-column:1 / -1;max-width:100%;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;color:#1D4ED8;font-size:12px;line-height:1.45;">
+                            📅 ${lang === "pl" ? `Preferowany okres wynajmu w sezonie: ${seasonalMinDays} dni (informacja, krótsza rezerwacja wymaga akceptacji wypożyczalni)` : `Preferred seasonal rental: ${seasonalMinDays} days (information only; shorter requests require rental company approval)`}
+                        </div>`;
                     const insuranceHtml = parsedFeatures.fullInsurance 
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Pełne ubezpieczenie' : 'Full insurance'}</div>` 
                         : '';
@@ -1007,6 +1015,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
         ${depositHtml}
         ${creditCardHtml}
         ${insuranceHtml}
+        ${seasonalMinNotice}
 
       <div style="grid-column: 1 / span 2; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px;">
             <span style="

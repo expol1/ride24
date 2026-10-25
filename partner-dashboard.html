@@ -293,6 +293,36 @@
         .r24-min-days-control { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
         .r24-min-days-control input { width:110px; height:44px; text-align:center; font-size:17px; font-weight:750; border:1px solid #C6D9AD; border-radius:9px; background:white; }
         .r24-min-days-help { font-size:12px; line-height:1.6; color:#475569; margin:0; }
+
+        /* Rental minimum: compact, responsive two-column partner editor. */
+        .r24-min-days-setting {gap:14px;background:#F5FAEC;padding:20px;border-color:#D8E8BC}
+        .r24-min-panels {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+        .r24-min-panel {min-width:0;background:white;border:1px solid #DDE7D2;border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:10px}
+        .r24-min-panel>strong,.r24-season-head strong {color:#193F24;font-size:14px;line-height:1.3;font-weight:800}
+        .r24-min-panel p {margin:0;color:#526274;font-size:12px;line-height:1.55}
+        .r24-season-panel {background:#F8FAFF;border-color:#DCE5F4}
+        .r24-season-head {display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+        .r24-season-head>div {flex:1;min-width:130px}
+        .r24-season-toggle {display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:#1D4D83;font-size:12px;font-weight:800;white-space:nowrap}
+        .r24-season-toggle input {position:absolute;width:1px;height:1px;opacity:0}
+        .r24-season-toggle-track {width:40px;height:24px;border-radius:99px;background:#CAD5E3;position:relative;transition:background .16s}
+        .r24-season-toggle-track::after {content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:white;box-shadow:0 1px 4px #0002;transition:transform .16s}
+        .r24-season-toggle input:checked+.r24-season-toggle-track {background:#246BE9}
+        .r24-season-toggle input:checked+.r24-season-toggle-track::after {transform:translateX(16px)}
+        .r24-season-toggle input:focus-visible+.r24-season-toggle-track {outline:3px solid #93C5FD;outline-offset:2px}
+        .r24-season-config {display:flex;flex-direction:column;gap:12px}
+        .r24-season-config[hidden] {display:none!important}
+        .r24-season-days-input {margin:0}
+        .r24-season-days-input input {max-width:135px;height:42px;text-align:center;font-weight:800;font-size:16px}
+        .r24-season-month-label {font-size:12px;font-weight:800;color:#2B496B}
+        .r24-season-months {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+        .settings-card .r24-season-month {grid-column:auto!important;border:1px solid #CCD9EA;background:white;color:#355171;border-radius:9px;padding:10px 0;min-width:0;font-size:11px;font-weight:800;cursor:pointer;transition:background .15s,border-color .15s}
+        .settings-card .r24-season-month.is-selected {background:#2563EB;color:white;border-color:#2563EB}
+        .settings-card .r24-season-month:focus-visible {outline:2px solid #1D4ED8;outline-offset:2px}
+        .r24-season-preview {padding:10px 12px;border-radius:10px;background:#EAF1FF;color:#1E4290!important;font-weight:700}
+        .r24-min-save-note {font-size:12px!important;color:#356047;font-weight:700;margin:0}
+        @media(max-width:680px){.r24-min-panels{grid-template-columns:1fr}.r24-min-days-setting{padding:14px}.r24-min-panel{padding:14px}.r24-season-months{grid-template-columns:repeat(6,minmax(0,1fr))}}
+
         .form-group { margin-bottom: 16px; width: 100%; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--gray); margin-bottom: 6px; }
         .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: white;}
@@ -1605,14 +1635,56 @@ async>
             <span aria-hidden="true">📅</span>
             <span data-pl="Minimalna długość wynajmu" data-en="Minimum rental duration">Minimum rental duration</span>
         </div>
-        <div class="r24-min-days-control">
-            <div class="form-group" style="max-width:150px;margin:0;">
-                <label for="partner-min-rental-days" data-pl="Minimum (dni)" data-en="Minimum (days)">Minimum (days)</label>
-                <input id="partner-min-rental-days" type="number" inputmode="numeric" min="1" max="366" step="1" value="1" required>
+        <div class="r24-min-panels">
+            <div class="r24-min-panel">
+                <strong data-pl="Podstawowe minimum" data-en="Standard minimum">Standard minimum</strong>
+                <p data-pl="Obowiązuje przez cały rok. System blokuje zbyt krótkie rezerwacje." data-en="Applies all year. Shorter bookings are blocked.">Applies all year. Shorter bookings are blocked.</p>
+                <div class="r24-min-days-control">
+                    <div class="form-group" style="max-width:150px;margin:0;">
+                        <label for="partner-min-rental-days" data-pl="Minimum (dni)" data-en="Minimum (days)">Minimum (days)</label>
+                        <input id="partner-min-rental-days" type="number" inputmode="numeric" min="1" max="366" step="1" value="1" required>
+                    </div>
+                </div>
+                <p class="r24-min-days-help" data-pl="Wartość 1 oznacza brak dodatkowego ograniczenia. Dla większych wartości wymagane są pełne doby." data-en="A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.">A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.</p>
             </div>
-            <span data-pl="dni kalendarzowych" data-en="calendar days" style="font-size:13px;color:#64748B;font-weight:600;">calendar days</span>
+            <div class="r24-min-panel r24-season-panel">
+                <div class="r24-season-head">
+                    <div>
+                        <strong data-pl="Sezonowe minimum" data-en="Seasonal minimum">Seasonal minimum</strong>
+                        <p data-pl="Opcjonalnie, dla wybranych miesięcy." data-en="Optional, for selected months.">Optional, for selected months.</p>
+                    </div>
+                    <label class="r24-season-toggle">
+                        <input type="checkbox" id="partner-season-min-enabled" aria-controls="partner-season-min-settings">
+                        <span class="r24-season-toggle-track" aria-hidden="true"></span>
+                        <span data-pl="Włącz" data-en="Enable">Enable</span>
+                    </label>
+                </div>
+                <div id="partner-season-min-settings" class="r24-season-config" hidden>
+                    <div class="form-group r24-season-days-input">
+                        <label for="partner-season-min-days" data-pl="Preferowane minimum (dni)" data-en="Preferred minimum (days)">Preferred minimum (days)</label>
+                        <input type="number" id="partner-season-min-days" min="1" max="366" step="1" value="5" inputmode="numeric">
+                    </div>
+                    <label class="r24-season-month-label" data-pl="Miesiące sezonu" data-en="Season months">Season months</label>
+                    <div class="r24-season-months" role="group" aria-label="Season months">
+                        <button type="button" class="r24-season-month" data-month="1" data-pl="Sty" data-en="Jan" aria-pressed="false">Jan</button>
+                        <button type="button" class="r24-season-month" data-month="2" data-pl="Lut" data-en="Feb" aria-pressed="false">Feb</button>
+                        <button type="button" class="r24-season-month" data-month="3" data-pl="Mar" data-en="Mar" aria-pressed="false">Mar</button>
+                        <button type="button" class="r24-season-month" data-month="4" data-pl="Kwi" data-en="Apr" aria-pressed="false">Apr</button>
+                        <button type="button" class="r24-season-month" data-month="5" data-pl="Maj" data-en="May" aria-pressed="false">May</button>
+                        <button type="button" class="r24-season-month" data-month="6" data-pl="Cze" data-en="Jun" aria-pressed="false">Jun</button>
+                        <button type="button" class="r24-season-month" data-month="7" data-pl="Lip" data-en="Jul" aria-pressed="false">Jul</button>
+                        <button type="button" class="r24-season-month" data-month="8" data-pl="Sie" data-en="Aug" aria-pressed="false">Aug</button>
+                        <button type="button" class="r24-season-month" data-month="9" data-pl="Wrz" data-en="Sep" aria-pressed="false">Sep</button>
+                        <button type="button" class="r24-season-month" data-month="10" data-pl="Paź" data-en="Oct" aria-pressed="false">Oct</button>
+                        <button type="button" class="r24-season-month" data-month="11" data-pl="Lis" data-en="Nov" aria-pressed="false">Nov</button>
+                        <button type="button" class="r24-season-month" data-month="12" data-pl="Gru" data-en="Dec" aria-pressed="false">Dec</button>
+                    </div>
+                    <p id="r24-season-preview" class="r24-season-preview" aria-live="polite"></p>
+                </div>
+                <p class="r24-min-days-help" data-pl="Tylko informacja w ofercie WWW, nie blokuje krótszych rezerwacji. Termin liczymy według miesiąca odbioru. Aplikacje Android bez zmian." data-en="Shown as information on web offers only; does not block shorter bookings. Season is based on the pickup month. Android apps are unchanged.">Shown as information on web offers only; does not block shorter bookings. Season is based on the pickup month. Android apps are unchanged.</p>
+            </div>
         </div>
-        <p class="r24-min-days-help" data-pl="Dotyczy wszystkich Twoich lokalizacji. Wartość 1 oznacza brak dodatkowego ograniczenia. Klient otrzyma informację, gdy wybierze zbyt krótki termin." data-en="Applies to all your locations. A value of 1 means no extra restriction. Customers will see a notice when their selected rental period is too short.">Applies to all your locations. A value of 1 means no extra restriction. Customers will see a notice when their selected rental period is too short.</p>
+        <p class="r24-min-save-note" data-pl="Zapisz oba ustawienia przyciskiem „Zapisz zmiany” poniżej." data-en="Save both settings with the “Save Changes” button below.">Save both settings with the “Save Changes” button below.</p>
     </div>
 
     <div class="form-group">
@@ -2304,6 +2376,69 @@ Dodaj opinię o Partnerze
     <script src="assets/helper/partnerTimeFees.js?v=20261023a"></script>
     <script src="assets/helper/partnerMandatoryRules.js?v=20261023a"></script>
     <script src="assets/helper/partnerGuide.js?v=20261023a"></script>
+    <script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
+    
+    <script>
+    /* Informational season editor: the base minimum remains the only enforced server rule. */
+    (() => {
+        "use strict";
+        let selectedMonths = [];
+        const el = id => document.getElementById(id);
+        function renderSeasonalMinimum() {
+            const toggle = el("partner-season-min-enabled");
+            if (!toggle) return;
+            const on = toggle.checked;
+            el("partner-season-min-settings").hidden = !on;
+            const lang = typeof getPartnerLang === "function" ? getPartnerLang() : "en";
+            const days = Number(el("partner-season-min-days").value);
+            document.querySelectorAll(".r24-season-month").forEach(btn => {
+                const active = selectedMonths.includes(Number(btn.dataset.month));
+                btn.classList.toggle("is-selected", active);
+                btn.setAttribute("aria-pressed", active ? "true" : "false");
+            });
+            const preview = el("r24-season-preview");
+            if (!on || !selectedMonths.length) {
+                preview.textContent = lang === "pl" ? "Wybierz przynajmniej jeden miesiąc." : "Select at least one month.";
+            } else if (!Number.isInteger(days) || days < 1 || days > 366) {
+                preview.textContent = lang === "pl" ? "Podaj od 1 do 366 dni." : "Enter 1–366 days.";
+            } else {
+                preview.textContent = lang === "pl"
+                    ? "W zaznaczonych miesiącach: preferowane " + days + " dni (tylko informacyjnie)."
+                    : "Selected months: " + days + " preferred days (information only).";
+            }
+        }
+        window.r24LoadSeasonalMinimum = partner => {
+            selectedMonths = window.Ride24SeasonalMinimum.normalizedMonths(partner.seasonal_min_rental_months);
+            const days = Number(partner.seasonal_min_rental_days);
+            el("partner-season-min-days").value = Number.isInteger(days) && days >= 1 && days <= 366 ? days : 5;
+            el("partner-season-min-enabled").checked = selectedMonths.length > 0 && Number.isInteger(days) && days >= 1 && days <= 366;
+            renderSeasonalMinimum();
+        };
+        window.r24GetSeasonalMinimum = () => {
+            if (!el("partner-season-min-enabled").checked) return {days:null,months:[]};
+            const daysText = el("partner-season-min-days").value.trim();
+            const days = Number(daysText);
+            if (!daysText || !Number.isInteger(days) || days < 1 || days > 366 || selectedMonths.length === 0) {
+                throw new Error(typeof getPartnerLang === "function" && getPartnerLang() === "pl"
+                    ? "Włączając sezon, ustaw 1–366 dni i wybierz przynajmniej jeden miesiąc."
+                    : "To enable the season, set 1–366 days and select at least one month.");
+            }
+            return {days, months:[...selectedMonths]};
+        };
+        const toggle = el("partner-season-min-enabled");
+        if (toggle) {
+            toggle.addEventListener("change", renderSeasonalMinimum);
+            el("partner-season-min-days").addEventListener("input", renderSeasonalMinimum);
+            document.querySelectorAll(".r24-season-month").forEach(btn => btn.addEventListener("click", () => {
+                const month = Number(btn.dataset.month);
+                selectedMonths = selectedMonths.includes(month) ? selectedMonths.filter(m => m !== month)
+                    : window.Ride24SeasonalMinimum.normalizedMonths([...selectedMonths,month]);
+                renderSeasonalMinimum();
+            }));
+            renderSeasonalMinimum();
+        }
+    })();
+    </script>
 
     <script>
         
@@ -2655,6 +2790,8 @@ console.log("API status:", partnerData.api_status);
     rental_rules_url,
     min_driver_age,
     min_rental_days,
+    seasonal_min_rental_days,
+    seasonal_min_rental_months,
 
     provider_type,
     api_provider,
@@ -2695,6 +2832,7 @@ console.log("API status:", partnerData.api_status);
     document.getElementById("partner-min-age").value = data.min_driver_age;
 }
                 document.getElementById("partner-min-rental-days").value = Number.isInteger(Number(data.min_rental_days)) ? data.min_rental_days : 1;
+                window.r24LoadSeasonalMinimum(data);
                 
                 if(data.currency) {
                     document.getElementById("partnerCurrency").innerText = data.currency;
@@ -2755,6 +2893,16 @@ console.log("API status:", partnerData.api_status);
                      if(btn) { btn.disabled = false; partnerLabel(btn, "Zapisz zmiany", "Save Changes"); }
                      return;
                  }
+                 let seasonalDays, seasonalMonths;
+                 try {
+                     const seasonal = window.r24GetSeasonalMinimum();
+                     seasonalDays = seasonal.days;
+                     seasonalMonths = seasonal.months;
+                 } catch (validationError) {
+                     window.showToast(validationError.message, "error");
+                     if(btn) { btn.disabled = false; partnerLabel(btn, "Zapisz zmiany", "Save Changes"); }
+                     return;
+                 }
                  // KROK 7: WALIDACJA DOKUMENTÓW PDF
                 const { data: docCheck } = await db
                     .from("partners")
@@ -2782,6 +2930,8 @@ const updateData = {
     emergency_phone: emergency,
     min_driver_age: minAgeInput ? parseInt(minAgeInput) : null,
     min_rental_days: minRentalDays,
+    seasonal_min_rental_days: seasonalDays,
+    seasonal_min_rental_months: seasonalMonths,
     profile_completed: true
 };
 
