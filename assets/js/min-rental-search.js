@@ -21,8 +21,8 @@
     return Number.isFinite(date) && new Date(date).toISOString().slice(0, 10) === value
       ? date : NaN;
   };
-  const wholeDays = (start, end) => Math.round((utcDate(end) - utcDate(start)) / DAY_MS);
-  const addDays = (start, days) => new Date(utcDate(start) + days * DAY_MS).toISOString().slice(0, 10);
+  const rentalRules = window.Ride24RentalDuration;
+  const addDays = (start, days) => rentalRules.dateAfter(start, days);
   const minDays = value => {
     const n = Number(value);
     return Number.isInteger(n) && n >= 1 && n <= 366 ? n : 1;
@@ -136,7 +136,9 @@
       close();
       const dropInput = document.getElementById("drop-date");
       if (!dropInput) return;
-      const end = addDays(search.pickup_date, minimum);
+      const end = rentalRules.earliestReturnDate(
+        search.pickup_date, search.pickup_time || "10:00", search.drop_time || "10:00", minimum
+      );
       dropInput.value = end;
       const picker = window.ride24DateRangePicker;
       if (picker?.setDate) picker.setDate([search.pickup_date, end], false, "Y-m-d");
@@ -165,7 +167,9 @@
       t("W tej lokalizacji minimalny okres wynajmu wynosi " + minimum + " dni. Możemy dostosować datę zwrotu bez zmieniania pozostałych pól wyszukiwarki.",
         "The minimum rental period at this location is " + minimum + " days. You can extend the return date without changing other search fields.");
     overlay.querySelector("#r24-minimum-dates").textContent =
-      t("Nowa data zwrotu: ", "New return date: ") + addDays(search.pickup_date, minimum);
+      t("Nowa data zwrotu: ", "New return date: ") + rentalRules.earliestReturnDate(
+          search.pickup_date, search.pickup_time || "10:00", search.drop_time || "10:00", minimum
+        );
     overlay.querySelector("#r24-minimum-cancel").textContent = t("Anuluj", "Cancel");
     overlay.querySelector("#r24-minimum-accept").textContent = t("Dostosuj datę", "Adjust date");
     overlay.classList.add("r24-minimum-visible");
@@ -179,10 +183,16 @@
     if (!button || bypass || button.disabled) return;
     if (!window.collectSearchData || !window.supabaseClient) return;
     const search = window.collectSearchData();
-    const rental = wholeDays(search.pickup_date, search.drop_date);
+    let rental;
+    try {
+      rental = rentalRules.calculate(
+        search.pickup_date, search.drop_date,
+        search.pickup_time || "10:00", search.drop_time || "10:00"
+      );
+    } catch (_) { return; }
     const dropInput = document.getElementById("smart-search-drop");
     if (!search.pickup_location || (dropInput?.value?.trim() && !search.drop_location)
-        || !Number.isInteger(rental) || rental < 1 || rental > 366) return;
+        || !Number.isInteger(rental.billedDays) || rental.billedDays < 1 || rental.billedDays > 366) return;
 
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -190,7 +200,7 @@
     checking = true;
     try {
       const minimum = await minimumAtLocation(search);
-      if (minimum && rental < minimum) showMinimum(search, minimum, button);
+      if (minimum && !rentalRules.meetsMinimum(rental, minimum)) showMinimum(search, minimum, button);
       else originalSearch(button);
     } catch (error) {
       console.error("Ride24 minimum rental availability lookup failed", error);
