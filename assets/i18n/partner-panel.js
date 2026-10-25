@@ -1,6 +1,7 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+    "For Georgia, enter a city and a real region (not “Other”).": "Dla Gruzji podaj miasto i prawidłowy region (nie „Other”).",
     "Standard minimum": "Podstawowe minimum",
     "Applies all year. Shorter bookings are blocked.": "Obowiązuje przez cały rok. System blokuje zbyt krótkie rezerwacje.",
     "A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.": "Wartość 1 oznacza brak dodatkowego ograniczenia. Dla większych wartości wymagane są pełne doby.",
@@ -530,6 +531,7 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+    "For Georgia, enter a city and a real region (not “Other”).": "Para Georgia, indica una ciudad y una región válida (no «Other»).",
     "Standard minimum": "Mínimo habitual",
     "Applies all year. Shorter bookings are blocked.": "Se aplica todo el año. Se bloquean las reservas más cortas.",
     "A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.": "El valor 1 significa sin restricciones adicionales. Los mínimos mayores requieren períodos completos de 24 horas.",
@@ -1058,6 +1060,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+    "For Georgia, enter a city and a real region (not “Other”).": "Για τη Γεωργία, συμπληρώστε πόλη και έγκυρη περιφέρεια (όχι «Other»).",
     "Standard minimum": "Βασικό ελάχιστο",
     "Applies all year. Shorter bookings are blocked.": "Ισχύει όλο τον χρόνο. Οι συντομότερες κρατήσεις αποκλείονται.",
     "A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.": "Η τιμή 1 δεν επιβάλλει επιπλέον περιορισμό. Οι μεγαλύτερες ελάχιστες διάρκειες απαιτούν πλήρη 24ωρα.",
@@ -1586,6 +1589,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+    "For Georgia, enter a city and a real region (not “Other”).": "Per la Georgia, indica città e regione valida (non «Other»).",
     "Standard minimum": "Minimo standard",
     "Applies all year. Shorter bookings are blocked.": "Valido tutto l'anno. Le prenotazioni più brevi vengono bloccate.",
     "A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.": "Il valore 1 non comporta restrizioni aggiuntive. Minimi maggiori richiedono periodi completi di 24 ore.",
@@ -2114,6 +2118,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+    "For Georgia, enter a city and a real region (not “Other”).": "Für Georgien bitte Stadt und gültige Region angeben (nicht „Other“).",
     "Standard minimum": "Standard-Mindestdauer",
     "Applies all year. Shorter bookings are blocked.": "Gilt ganzjährig. Kürzere Buchungen werden gesperrt.",
     "A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.": "Wert 1 bedeutet keine zusätzliche Beschränkung. Höhere Mindestwerte erfordern volle 24-Stunden-Zeiträume.",
@@ -2642,6 +2647,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+    "For Georgia, enter a city and a real region (not “Other”).": "Для Грузии укажите город и действительный регион (не «Other»).",
     "Standard minimum": "Основной минимум",
     "Applies all year. Shorter bookings are blocked.": "Действует круглый год. Более короткие бронирования блокируются.",
     "A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.": "Значение 1 означает отсутствие дополнительных ограничений. Больший минимум требует полных суток.",
@@ -3170,6 +3176,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+    "For Georgia, enter a city and a real region (not “Other”).": "Pour la Géorgie, indiquez une ville et une région valide (pas «Other»).",
     "Standard minimum": "Minimum standard",
     "Applies all year. Shorter bookings are blocked.": "S'applique toute l'année. Les réservations plus courtes sont bloquées.",
     "A value of 1 means no additional restriction. Higher minimums require complete 24-hour periods.": "La valeur 1 signifie aucune restriction supplémentaire. Les minimums plus élevés exigent des périodes complètes de 24 h.",
