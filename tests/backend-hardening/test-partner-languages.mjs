@@ -66,7 +66,7 @@ function setup({stored, preferred = ['en-GB'], storageBlocked = false} = {}) {
     for (const name of ['loadFleet','loadLocations','initPartnerAndroidPromo']) w[name] = async () => {};
     for (const name of ['closeModal','closeLocationModal']) w[name] = () => {};
     w.sanitizeAgreementHtml = value => value;
-    w.eval(catalogCode); w.eval(runtimeCode); w.eval(read('assets/helper/partnerExtras.js'));
+    w.eval(catalogCode); w.eval(runtimeCode); w.eval(read('assets/helper/partnerExtras.js')); w.eval(read('assets/js/location-names.js'));
     const functions = ['getPartnerLang','partnerText','partnerLabel','applyPartnerLanguage','setLang',
         'collectFeatures','saveVehicle','normalizeLocationInput','saveLocation','renderAgreement','toggleSignButton',
         'showSignedAgreement','openPartnerBookingItems','deactivatePartnerAccount'];
