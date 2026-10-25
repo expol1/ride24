@@ -2455,6 +2455,7 @@ Dodaj opinię o Partnerze
     <script src="assets/helper/partnerTimeFees.js?v=20261023a"></script>
     <script src="assets/helper/partnerMandatoryRules.js?v=20261023a"></script>
     <script src="assets/helper/partnerGuide.js?v=20261023a"></script>
+    <script src="assets/js/location-names.js?v=20261025"></script>
     <script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
     
     <script>
@@ -3923,7 +3924,7 @@ const { data, error } = await db
                     : loc.type;
 
                 tr.innerHTML = `
-                    <td>${escapeHtmlValue(loc.location_name)}</td>
+                    <td>${escapeHtmlValue(window.Ride24LocationNames.displayName(loc))}</td>
                     <td>${escapeHtmlValue(loc.country)}</td>
                     <td>${escapeHtmlValue(loc.region)}</td>
                     <td data-pl="${escapeHtmlValue(typeLabels[loc.type]?.[0] || loc.type)}" data-en="${escapeHtmlValue(typeLabels[loc.type]?.[1] || loc.type)}">${escapeHtmlValue(locationTypeLabel)}</td>
@@ -3985,6 +3986,19 @@ const { data, error } = await db
 
                 if (!locationData.location_name || !locationData.country) {
                     throw new Error(partnerText("Wypełnij nazwę lokalizacji i kraj.", "Fill in the location name and country."));
+                }
+                // Georgia: enforce complete geographic components and canonical
+                // public names, while preserving the technical key for older APKs.
+                try {
+                    Object.assign(locationData, window.Ride24LocationNames.normalizeForSave(locationData));
+                } catch (normalizationError) {
+                    if (normalizationError.message === "GEORGIA_LOCATION_FIELDS_REQUIRED") {
+                        throw new Error(partnerText(
+                            "Dla Gruzji podaj miasto i prawidłowy region (nie „Other”).",
+                            "For Georgia, enter a city and a real region (not “Other”)."
+                        ));
+                    }
+                    throw normalizationError;
                 }
 
                 // 2. TWARDA BLOKADA PL NAZW (Ultimate Gatekeeper)
