@@ -1,0 +1,26 @@
+name: Ride24 Minimum Rental QA
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'results.html'
+      - 'partner-dashboard.html'
+      - 'assets/js/min-rental-search.js'
+      - 'assets/i18n/partner-panel.js'
+      - 'supabase/functions/create-booking-request/index.ts'
+      - 'supabase/functions/search-api/index.ts'
+      - 'supabase/migrations/*partner_min_rental_days*'
+      - 'tests/backend-hardening/test-min-rental-days.mjs'
+      - '.github/workflows/min-rental-days.yml'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix tests/backend-hardening --ignore-scripts --no-audit --no-fund
+      - run: node --check assets/js/min-rental-search.js
+      - run: node --test tests/backend-hardening/test-min-rental-days.mjs
