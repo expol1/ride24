@@ -217,6 +217,7 @@
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
+<script src="assets/js/rentalDuration.js?v=20261025b"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -466,9 +467,12 @@ async function getExchangeRate(currency) {
                 // Nagłówek wyników (Szlif UX: "Dostępne auta w: ...")
                 document.querySelector("h1").innerText = `${(localStorage.getItem("lang") || "pl") === "pl" ? "Dost\u0119pne auta w:" : "Available cars in:"} ${loc.name}`;
 
-                const start = new Date(filters.pickup_date);
-                const end = new Date(filters.drop_date);
-                const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+                // Shared day rules: charge each started 24-hour rental period.
+                const duration = window.Ride24RentalDuration.calculate(
+                    filters.pickup_date, filters.drop_date,
+                    filters.pickup_time || "10:00", filters.drop_time || "10:00"
+                );
+                const days = duration.billedDays;
                 const { data: marginData, error: marginError } = await db.rpc("get_global_platform_margin");
                 const parsedGlobalMargin = Number(marginData);
                 const globalMarginPercent = !marginError && Number.isFinite(parsedGlobalMargin)
@@ -520,7 +524,7 @@ let query = db
     .eq('partners.active', true)
     .eq('partners.account_status', 'active') 
     .eq('partners.partner_locations.active', true)
-    .lte('partners.min_rental_days', days);
+    .lte('partners.min_rental_days', Math.max(1, duration.fullDays));
 
                 // Filtrujemy zwrot PRZED paginacją, inaczej można ukryć poprawne auta.
                 const selectedReturnLocation = filters.drop_location || loc;
@@ -653,7 +657,9 @@ let query = db
                     });
                     const apiData = await apiResponse.json().catch(() => ({}));
                     if (apiResponse.ok && Array.isArray(apiData.cars)) {
-                        cars.push(...apiData.cars.filter(car => Number(car.partners?.min_rental_days ?? 1) <= days));
+                        cars.push(...apiData.cars.filter(car =>
+                            window.Ride24RentalDuration.meetsMinimum(duration, car.partners?.min_rental_days ?? 1)
+                        ));
                     }
                 } catch (apiError) {
                     // Awaria pojedynczej integracji API nie może wyłączyć ofert lokalnych.
@@ -685,7 +691,7 @@ let query = db
 
                     // Logika przeliczania ceny sezonowej do sortowania
                     function getSeasonPrice(car) {
-                        const pickupMonth = new Date(filters.pickup_date).getMonth() + 1;
+                        const pickupMonth = new Date(filters.pickup_date + "T00:00:00Z").getUTCMonth() + 1;
                         let publicPrice = Number(car.public_price) || 0;
 
                         const activeSeason = (car.seasonal_prices || []).find(s => {
@@ -808,15 +814,10 @@ badgeTextEn = `Pickup fee from ${feeAmount} ${feeCurrency}`;
                     // --- LOGIKA SEZONOWA RIDE24 ---
 
 // 1. Obliczamy liczbę dni (używając filters.drop_date)
-const days = Math.max(
-    1,
-    Math.ceil(
-        (new Date(filters.drop_date) - new Date(filters.pickup_date)) / (1000 * 60 * 60 * 24)
-    )
-);
+const days = duration.billedDays;
 
 // 2. Pobieramy miesiąc odbioru
-const pickupMonth = new Date(filters.pickup_date).getMonth() + 1;
+const pickupMonth = new Date(filters.pickup_date + "T00:00:00Z").getUTCMonth() + 1;
 
 // 3. Sprawdzamy sezon (z obsługą przełomu roku)
 let currentPublicPrice = Number(car.public_price) || 0;
