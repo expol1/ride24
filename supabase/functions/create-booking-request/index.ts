@@ -1,6 +1,7 @@
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
   authenticatedUser,
   corsHeaders,
@@ -809,10 +810,15 @@ serve(async (req) => {
 
     const startDate = parseIsoDate(body.start_date);
     const endDate = parseIsoDate(body.end_date);
-    const bookingDays = Math.round(
-      (endDate.timestamp - startDate.timestamp) / 86_400_000,
-    );
-
+    const pickupTime = cleanTime(body.pickup_time);
+    const returnTime = cleanTime(body.return_time);
+    let duration: ReturnType<typeof rentalDuration>;
+    try {
+      duration = rentalDuration(startDate.text, endDate.text, pickupTime, returnTime);
+    } catch (_) {
+      return jsonResponse(req, { error: "Nieprawidłowy okres lub godziny wynajmu" }, 400);
+    }
+    const bookingDays = duration.billedDays;
     if (bookingDays < 1 || bookingDays > MAX_BOOKING_DAYS) {
       return jsonResponse(
         req,
@@ -863,9 +869,6 @@ serve(async (req) => {
         400,
       );
     }
-
-    const pickupTime = cleanTime(body.pickup_time);
-    const returnTime = cleanTime(body.return_time);
 
     const { data: rawProfile, error: profileError } = await admin
       .from("profiles")
@@ -944,7 +947,7 @@ serve(async (req) => {
 
     // Authoritative protection: old apps and direct API requests cannot bypass
     // the minimum even if they never saw the optional web notice.
-    if (bookingDays < car.partner.min_rental_days) {
+    if (!meetsMinimumRental(duration, car.partner.min_rental_days)) {
       return jsonResponse(req, {
         error: "Minimalny okres wynajmu u tej wypożyczalni to " + car.partner.min_rental_days + " dni.",
         code: "MIN_RENTAL_DAYS",
@@ -1093,7 +1096,9 @@ serve(async (req) => {
         {
           car_id: car.id,
           start_date: startDate.text,
-          end_date: endDate.text,
+          // Virtual pricing end date reflects billed 24h blocks; actual pickup
+          // and return dates/times remain unchanged in the reservation.
+          end_date: duration.pricingEndDate,
         },
       );
 

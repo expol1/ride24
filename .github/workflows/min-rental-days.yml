@@ -6,9 +6,12 @@ on:
       - 'results.html'
       - 'partner-dashboard.html'
       - 'assets/js/min-rental-search.js'
+      - 'assets/js/rentalDuration.js'
       - 'assets/i18n/partner-panel.js'
       - 'supabase/functions/create-booking-request/index.ts'
       - 'supabase/functions/search-api/index.ts'
+      - 'supabase/functions/booking-options/index.ts'
+      - 'supabase/functions/_shared/rental-duration.ts'
       - 'supabase/migrations/*partner_min_rental_days*'
       - 'tests/backend-hardening/test-min-rental-days.mjs'
       - '.github/workflows/min-rental-days.yml'
@@ -23,4 +26,5 @@ jobs:
           node-version: '22'
       - run: npm ci --prefix tests/backend-hardening --ignore-scripts --no-audit --no-fund
       - run: node --check assets/js/min-rental-search.js
-      - run: node --test tests/backend-hardening/test-min-rental-days.mjs
+      - run: node --check assets/js/rentalDuration.js
+      - run: node --experimental-strip-types --test tests/backend-hardening/test-min-rental-days.mjs

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
   corsHeaders,
   enforceRateLimit,
@@ -810,10 +811,6 @@ serve(async (req) => {
     const body = await readJsonObject(req) as SearchBody;
     const pickupDate = parseIsoDate(body.pickupDate);
     const returnDate = parseIsoDate(body.returnDate);
-    if (returnDate.timestamp <= pickupDate.timestamp) {
-      throw new Error("Nieprawidłowe daty");
-    }
-
     const pickupCriteria = criteriaFromBody(body, "pickup");
     const dropoffCriteria = criteriaFromBody(body, "dropoff");
     if (!hasLocationCriteria(pickupCriteria)) {
@@ -822,10 +819,8 @@ serve(async (req) => {
 
     const pickupTime = cleanTime(body.pickupTime);
     const returnTime = cleanTime(body.returnTime);
-    const days = Math.max(
-      1,
-      Math.round((returnDate.timestamp - pickupDate.timestamp) / 86_400_000),
-    );
+    const duration = rentalDuration(pickupDate.text, returnDate.text, pickupTime, returnTime);
+    const days = duration.billedDays;
     const platformMarginPercent = await loadGlobalPlatformMargin(admin);
 
     let query = admin
@@ -887,8 +882,9 @@ serve(async (req) => {
 
     // Avoid generating external API quotes for durations below the partner's minimum.
     for (const [partnerId, location] of uniquePartners) {
-      const minimum = Number(location.partners.min_rental_days ?? 1);
-      if (Number.isInteger(minimum) && minimum > days) uniquePartners.delete(partnerId);
+      if (!meetsMinimumRental(duration, location.partners.min_rental_days)) {
+        uniquePartners.delete(partnerId);
+      }
     }
     const quoteBudget: QuoteBudget = { remaining: MAX_RESULTS_PER_SEARCH };
     const partnerResults = await mapConcurrent(
