@@ -765,7 +765,7 @@ let query = db
                     const minAge = car.partners?.min_driver_age || 21;
                   // 🔥 TYLKO DLA AKTUALNIE WYBRANEJ LOKALIZACJI
 const specialLoc = car.partners?.partner_locations?.find(
-    l => l.location_name === loc.name
+    l => l.location_name === (loc.location_name || loc.name)
 );
 
 let customBadgeHtml = '';
