@@ -1,5 +1,16 @@
 name: Ride24 Partner Languages QA
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'partner-dashboard.html'
+      - 'assets/i18n/partner-panel.js'
+      - 'assets/helper/partner*.js'
+      - 'assets/js/seasonal-minimum-info.js'
+      - 'assets/js/location-names.js'
+      - 'assets/css/partner-languages.css'
+      - 'tests/backend-hardening/test-partner-*.mjs'
+      - '.github/workflows/partner-languages.yml'
   pull_request:
     paths:
       - 'partner-dashboard.html'
