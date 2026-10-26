@@ -218,7 +218,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
-<script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
+<script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -607,10 +607,12 @@ let query = db
                 }            
                 // 📄 4️⃣ PAGINACJA (Limit wyników)
                 const PAGE_SIZE = 20;
+                // Filter seasons after joining partner rows, not after an early 20-car page.
+                const FETCH_LIMIT = 100;
                 let rawCars = [];
                 if (returnPartnerIds.length > 0) {
                     query = query.in('partner_id', returnPartnerIds);
-                    const { data, error } = await query.limit(PAGE_SIZE);
+                    const { data, error } = await query.limit(FETCH_LIMIT);
                     if (error) throw error;
                     rawCars = data || [];
                 }
@@ -628,7 +630,13 @@ let query = db
                     });
                 }
                 let cars = Array.from(unique.values())
-                    .filter(car => (car.partners?.provider_type || "local") !== "api");
+                    .filter(car => (car.partners?.provider_type || "local") !== "api")
+                    .filter(car => window.Ride24RentalDuration.meetsMinimum(
+                        duration,
+                        window.Ride24SeasonalMinimum.effectiveForPickup(
+                            car.partners, filters.pickup_date
+                        ).days
+                    ));
 
                 // Partnerzy API zwracają te same grupy pojazdów i przechodzą przez
                 // ten sam mechanizm rabatu partnera oraz globalnej marży Ride24.
@@ -739,6 +747,9 @@ let query = db
                     if (!Number.isFinite(priceA) && !Number.isFinite(priceB)) return 0;
                     return priceA - priceB;
                 });
+
+                const hasMoreCars = cars.length > PAGE_SIZE || rawCars.length === FETCH_LIMIT;
+                cars = cars.slice(0, PAGE_SIZE);
 
                 if (cars.length === 0) {
                     const lang = localStorage.getItem("lang") || "pl";
@@ -957,10 +968,18 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej i blokady karty' : 'No credit card or card hold'}</div>` 
                         : '';
                         
-                    const seasonalMinDays = window.Ride24SeasonalMinimum?.forPickup(car.partners, filters.pickup_date) ?? null;
-                    const seasonalMinNotice = seasonalMinDays === null ? "" : `
-                        <div class="feature-item" style="grid-column:1 / -1;max-width:100%;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;color:#1D4ED8;font-size:12px;line-height:1.45;">
-                            📅 ${lang === "pl" ? `Preferowany okres wynajmu w sezonie: ${seasonalMinDays} dni (informacja, krótsza rezerwacja wymaga akceptacji wypożyczalni)` : `Preferred seasonal rental: ${seasonalMinDays} days (information only; shorter requests require rental company approval)`}
+                    const effectiveMinimum = window.Ride24SeasonalMinimum.effectiveForPickup(
+                        car.partners, filters.pickup_date
+                    );
+                    const partnerHasSeason = Array.isArray(car.partners?.seasonal_min_rental_months)
+                        && car.partners.seasonal_min_rental_months.length > 0;
+                    const showMinimum = effectiveMinimum.days > 1 || partnerHasSeason;
+                    const minimumLabel = lang === "pl"
+                        ? `Minimalny okres wynajmu: ${effectiveMinimum.days} dni${effectiveMinimum.seasonal ? " (sezonowy)" : ""}`
+                        : `Minimum rental period: ${effectiveMinimum.days} days${effectiveMinimum.seasonal ? " (seasonal)" : ""}`;
+                    const seasonalMinNotice = !showMinimum ? "" : `
+                        <div class="feature-item" style="grid-column:1 / -1;max-width:100%;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;color:#1D4ED8;font-size:12px;line-height:1.45;font-weight:700;">
+                            📅 ${minimumLabel}
                         </div>`;
                     const insuranceHtml = parsedFeatures.fullInsurance 
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Pełne ubezpieczenie' : 'Full insurance'}</div>` 
@@ -1058,7 +1077,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                 });
                 // 📄 4️⃣ KOMUNIKAT O LIMITACH (Transparentność ofert)
                 // Wyświetla się tylko, gdy baza zwróci równe 20 wyników (czyli osiągnięto limit strony)
-                if (rawCars && rawCars.length === PAGE_SIZE) {
+                if (hasMoreCars) {
                     const more = document.createElement("div");
                     more.style = "text-align:center; color:white; margin: 30px 0; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 12px;";
                     const lang = localStorage.getItem("lang") || "pl";
