@@ -4295,7 +4295,7 @@ function toggleDriverHours() {
             if(el2) el2.innerText = value + "%";
         }
 
-        async function logout() { await db.auth.signOut(); window.location.href = "index.html"; }
+        async function logout() { await db.auth.signOut({ scope: "local" }); window.location.href = "index.html"; }
 
         // --- FILE UPLOADS ---
         function initDocUploadListeners() {
