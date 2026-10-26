@@ -4,21 +4,25 @@ on:
     branches: [main]
     paths:
       - 'partner-dashboard.html'
+      - 'index.html'
       - 'assets/i18n/partner-panel.js'
       - 'assets/helper/partner*.js'
       - 'assets/js/seasonal-minimum-info.js'
       - 'assets/js/location-names.js'
       - 'assets/css/partner-languages.css'
       - 'tests/backend-hardening/test-partner-*.mjs'
+      - 'tests/backend-hardening/test-partner-login-mobile.mjs'
       - '.github/workflows/partner-languages.yml'
   pull_request:
     paths:
       - 'partner-dashboard.html'
+      - 'index.html'
       - 'assets/i18n/partner-panel.js'
       - 'assets/helper/partner*.js'
       - 'assets/css/partner-languages.css'
       - 'flagi/*.svg'
       - 'tests/backend-hardening/test-partner-*.mjs'
+      - 'tests/backend-hardening/test-partner-login-mobile.mjs'
       - '.github/workflows/partner-languages.yml'
   workflow_dispatch:
 jobs:
@@ -32,4 +36,4 @@ jobs:
       - name: Install isolated test dependencies
         run: npm ci --prefix tests/backend-hardening
       - name: Verify eight languages, unchanged data and partner onboarding
-        run: node --experimental-strip-types --test tests/backend-hardening/test-partner-languages.mjs tests/backend-hardening/test-partner-guide.mjs tests/backend-hardening/test-partner-onboarding.mjs tests/backend-hardening/test-booking-extras-ui.mjs
+        run: node --experimental-strip-types --test tests/backend-hardening/test-partner-languages.mjs tests/backend-hardening/test-partner-guide.mjs tests/backend-hardening/test-partner-onboarding.mjs tests/backend-hardening/test-booking-extras-ui.mjs tests/backend-hardening/test-partner-login-mobile.mjs
