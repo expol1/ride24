@@ -5567,7 +5567,7 @@ async function signAgreement() {
 
         // 🧠 8. UPDATE + SECURITY
         const { data, error } = await db.rpc("partner_accept_agreement", {
-            p_version: "v1.3"
+            p_version: "v1.3",
             p_snapshot: finalSnapshot,
             p_ip: userIp || ""
         });
