@@ -5340,8 +5340,10 @@ const agreementTexts = {
             <h3 style="font-size: 15px; margin-top: 15px;">§7. Vouchers</h3>
             <p>Ride24 may issue vouchers confirming bookings. The Partner agrees to honor valid vouchers issued by Ride24.</p>
 
-            <h3 style="font-size: 15px; margin-top: 15px;">§8. Non-Circumvention</h3>
-            <p>The Partner shall not directly or indirectly bypass Ride24 by engaging with customers introduced through the platform outside of Ride24. This includes offering direct deals, discounts, or future cooperation outside Ride24. This obligation applies during the term of this Agreement and for 12 months after its termination.</p>
+            <h3 style="font-size: 15px; margin-top: 15px;">§8. Protection Against Intentional Booking Circumvention</h3>
+            <p>The Partner shall not intentionally induce customers to cancel, transfer or replace an existing Ride24 reservation with a direct booking or a booking through another sales channel for the purpose of bypassing Ride24.</p>
+            <p>Nothing in this provision prevents a customer from independently contacting the Partner and making a new, future booking directly with the Partner or through another channel. The Partner is not required to refuse such independently initiated bookings.</p>
+            <p>This provision does not restrict the Partner from communicating directly with customers as necessary to fulfil confirmed rentals, provide customer support or enforce lawful rental terms.</p>
 
             <h3 style="font-size: 15px; margin-top: 15px;">§9. Independent Pricing Policy</h3>
             <p>The Partner retains full independence in determining its rental prices and commercial conditions across all distribution channels, including its own website and third-party booking platforms.</p>
@@ -5416,8 +5418,10 @@ const agreementTexts = {
             <h3 style="font-size: 15px; margin-top: 15px;">§7. Vouchery</h3>
             <p>Ride24 może wystawiać vouchery potwierdzające rezerwacje. Partner zgadza się honorować ważne vouchery wystawione przez Ride24.</p>
 
-            <h3 style="font-size: 15px; margin-top: 15px;">§8. Zakaz Omijania Pośrednika</h3>
-            <p>Partner nie będzie bezpośrednio ani pośrednio omijać Ride24 poprzez kontaktowanie się z klientami wprowadzonymi przez platformę poza Ride24. Obejmuje to oferowanie bezpośrednich ofert, rabatów lub przyszłej współpracy poza Ride24. Obowiązek ten obowiązuje w okresie obowiązywania niniejszej Umowy oraz przez 12 miesięcy po jej rozwiązaniu.</p>
+            <h3 style="font-size: 15px; margin-top: 15px;">§8. Ochrona przed Celowym Omijaniem Rezerwacji</h3>
+            <p>Partner nie będzie celowo nakłaniać klientów do anulowania, przeniesienia ani zastąpienia istniejącej rezerwacji Ride24 rezerwacją bezpośrednią lub rezerwacją za pośrednictwem innego kanału sprzedaży w celu ominięcia Ride24.</p>
+            <p>Niniejszy zapis nie ogranicza prawa klienta do samodzielnego kontaktu z Partnerem i dokonania nowej, przyszłej rezerwacji bezpośrednio u Partnera lub przez inny kanał. Partner nie jest zobowiązany do odmawiania przyjęcia takich rezerwacji zainicjowanych niezależnie przez klienta.</p>
+            <p>Zapis nie ogranicza bezpośredniego kontaktu Partnera z klientami w celu realizacji potwierdzonych wynajmów, obsługi klientów ani dochodzenia roszczeń wynikających z zgodnych z prawem warunków wynajmu.</p>
 
             <h3 style="font-size: 15px; margin-top: 15px;">§9. Niezależna Polityka Cenowa</h3>
             <p>Partner zachowuje pełną niezależność w ustalaniu cen wynajmu oraz warunków handlowych we wszystkich kanałach dystrybucji, w tym na własnej stronie internetowej oraz za pośrednictwem zewnętrznych platform rezerwacyjnych.</p>
@@ -5550,7 +5554,7 @@ async function signAgreement() {
 
         // 📦 7. SNAPSHOT (pełny dowód)
         const finalSnapshot = JSON.stringify({
-            version: "v1.2",
+            version: "v1.3",
             lang: currentAgLang,
             company: partnerData.company_name,
             country: partnerData.country,
@@ -5563,7 +5567,7 @@ async function signAgreement() {
 
         // 🧠 8. UPDATE + SECURITY
         const { data, error } = await db.rpc("partner_accept_agreement", {
-            p_version: "v1.2"
+            p_version: "v1.3"
             p_snapshot: finalSnapshot,
             p_ip: userIp || ""
         });
