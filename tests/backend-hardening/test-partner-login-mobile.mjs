@@ -82,4 +82,4 @@ test('partner login rejects missing CAPTCHA and restores retry on authentication
     assert.equal(failed.resets,1);
 });
 
-dom.window.close();
+// JSDOM remains open until node:test finishes executing the registered assertions.
