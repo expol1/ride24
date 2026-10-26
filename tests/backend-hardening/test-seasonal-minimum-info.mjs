@@ -20,10 +20,13 @@ test('disabled and invalid seasonal preferences fail closed for display',()=>{
   assert.equal(seasonal.forPickup({seasonal_min_rental_days:5,seasonal_min_rental_months:[6]},'2027-00-01'),null);
   assert.deepEqual([...seasonal.normalizedMonths([9,6,9,2,0,13,'7'])],[2,6,7,9]);
 });
-test('web uses season preference only as a notice, preserving the enforced base minimum and Android contracts',()=>{
+test('web presents and filters by effective season minimum without changing Android/server contracts',()=>{
  const results=read('results.html'), partner=read('partner-dashboard.html'), booking=read('supabase/functions/create-booking-request/index.ts');
  assert.match(results,/seasonal_min_rental_months/);
- assert.match(results,/Ride24SeasonalMinimum\?\.forPickup/);
+ assert.match(results,/Ride24SeasonalMinimum\.effectiveForPickup/);
+ assert.match(results,/\.filter\(car => window\.Ride24RentalDuration\.meetsMinimum\(/);
+ assert.match(results,/Minimalny okres wynajmu:/);
+ assert.doesNotMatch(results,/Preferred seasonal rental:/);
  assert.match(results,/\.lte\('partners\.min_rental_days', Math\.max\(1, duration\.fullDays\)\)/);
  assert.match(booking,/meetsMinimumRental\(duration, car\.partner\.min_rental_days\)/);
  assert.doesNotMatch(booking,/seasonal_min_rental_days/);
@@ -142,4 +145,39 @@ test('partner season editor does not expose internal Android or booking implemen
  assert.match(html,/id="partner-season-min-enabled"/);
  assert.match(html,/id="partner-season-min-settings"/);
  assert.match(html,/data-pl="Opcjonalnie, dla wybranych miesięcy\."/);
+});
+
+test('effective WEB minimum chooses pickup season, baseline otherwise, never lowers base',()=>{
+ const p={min_rental_days:3,seasonal_min_rental_days:5,seasonal_min_rental_months:[6,7,8,9]};
+ const cases=[
+  ['2027-01-04',3,false],
+  ['2027-05-31',3,false],
+  ['2027-06-01',5,true],
+  ['2027-06-30',5,true],
+  ['2027-09-15',5,true],
+  ['2027-10-01',3,false],
+  ['2028-06-01',5,true],
+ ];
+ for(const [date,days,isSeason] of cases){
+   const result=seasonal.effectiveForPickup(p,date);
+   assert.equal(result.days,days,date);
+   assert.equal(result.seasonal,isSeason,date);
+ }
+ assert.equal(seasonal.effectiveForPickup({...p,seasonal_min_rental_days:2},'2027-06-05').days,3);
+ assert.equal(seasonal.effectiveForPickup({min_rental_days:3,seasonal_min_rental_days:null,seasonal_min_rental_months:[]},'2027-06-05').days,3);
+ assert.equal(seasonal.effectiveForPickup({min_rental_days:1},'2027-06-05').days,1);
+ assert.equal(seasonal.effectiveForPickup({},'invalid').days,1);
+});
+test('web home search loads season helper and results require complete days',()=>{
+ const home=read('index.html');
+ const modal=read('assets/js/min-rental-search.js');
+ const results=read('results.html');
+ const helper=read('assets/js/seasonal-minimum-info.js');
+ assert.ok(home.indexOf('assets/js/seasonal-minimum-info.js')<home.indexOf('assets/js/min-rental-search.js'));
+ assert.match(modal,/seasonal_min_rental_days,seasonal_min_rental_months/);
+ assert.match(modal,/effectiveForPickup\(partner, search\.pickup_date\)\.days/);
+ assert.match(results,/\.lte\('partners\.min_rental_days', Math\.max\(1, duration\.fullDays\)\)/);
+ assert.match(results,/Ride24RentalDuration\.meetsMinimum\(/);
+ assert.match(results,/FETCH_LIMIT = 100/);
+ assert.match(helper,/seasonal: seasonalDays !== null && days > baseDays/);
 });
