@@ -132,3 +132,14 @@ test('touching the seasonal toggle does not lose the previous mobile scroll offs
    assert.equal(toggle.getAttribute('aria-expanded'),'false');
  } finally {dom.window.close();}
 });
+
+test('partner season editor does not expose internal Android or booking implementation details',()=>{
+ const html=read('partner-dashboard.html');
+ const catalog=read('assets/i18n/partner-panel.js');
+ assert.doesNotMatch(html,/Tylko informacja w ofercie WWW, nie blokuje krótszych rezerwacji/);
+ assert.doesNotMatch(html,/Shown as information on web offers only; does not block shorter bookings/);
+ assert.doesNotMatch(catalog,/Shown as information on web offers only; does not block shorter bookings/);
+ assert.match(html,/id="partner-season-min-enabled"/);
+ assert.match(html,/id="partner-season-min-settings"/);
+ assert.match(html,/data-pl="Opcjonalnie, dla wybranych miesięcy\."/);
+});
