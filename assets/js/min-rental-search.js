@@ -1,5 +1,5 @@
 /**
- * Ride24 WEB-only rental minimum.
+ * Ride24 WEB rental minimum, including pickup-month seasonal rules.
  * A standalone dialog; no changes to the existing search form or its click handler.
  */
 (() => {
@@ -23,15 +23,11 @@
   };
   const rentalRules = window.Ride24RentalDuration;
   const addDays = (start, days) => rentalRules.dateAfter(start, days);
-  const minDays = value => {
-    const n = Number(value);
-    return Number.isInteger(n) && n >= 1 && n <= 366 ? n : 1;
-  };
 
   async function locationsFor(db, selected) {
     if (!selected?.location_name) return [];
     let query = db.from("partner_locations")
-      .select("partner_id,partners!inner(id,active,account_status,provider_type,api_enabled,min_rental_days)")
+      .select("partner_id,partners!inner(id,active,account_status,provider_type,api_enabled,min_rental_days,seasonal_min_rental_days,seasonal_min_rental_months)")
       .eq("active", true).eq("location_name", selected.location_name)
       .eq("partners.active", true).eq("partners.account_status", "active");
     if (selected.country) query = query.eq("country", selected.country);
@@ -70,7 +66,8 @@
     if (!available.length) return null;
     // The lowest eligible minimum wins; a stricter company cannot extend
     // someone else's shorter, valid rental at the same pickup location.
-    return Math.min(...available.map(([, partner]) => minDays(partner.min_rental_days)));
+    return Math.min(...available.map(([, partner]) =>
+      window.Ride24SeasonalMinimum.effectiveForPickup(partner, search.pickup_date).days));
   }
 
   function originalSearch(button) {

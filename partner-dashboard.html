@@ -1742,7 +1742,7 @@ async>
                 </div>
                 <div id="partner-season-min-settings" class="r24-season-config" hidden>
                     <div class="form-group r24-season-days-input">
-                        <label for="partner-season-min-days" data-pl="Preferowane minimum (dni)" data-en="Preferred minimum (days)">Preferred minimum (days)</label>
+                        <label for="partner-season-min-days" data-pl="Minimum sezonowe (dni)" data-en="Seasonal minimum (days)">Seasonal minimum (days)</label>
                         <input type="number" id="partner-season-min-days" min="1" max="366" step="1" value="5" inputmode="numeric">
                     </div>
                     <label class="r24-season-month-label" data-pl="Miesiące sezonu" data-en="Season months">Season months</label>
@@ -2485,8 +2485,8 @@ Dodaj opinię o Partnerze
                 preview.textContent = lang === "pl" ? "Podaj od 1 do 366 dni." : "Enter 1–366 days.";
             } else {
                 preview.textContent = lang === "pl"
-                    ? "W zaznaczonych miesiącach: preferowane " + days + " dni (tylko informacyjnie)."
-                    : "Selected months: " + days + " preferred days (information only).";
+                    ? "W zaznaczonych miesiącach: minimum " + days + " dni."
+                    : "Selected months: minimum " + days + " days.";
             }
         }
         window.r24LoadSeasonalMinimum = partner => {

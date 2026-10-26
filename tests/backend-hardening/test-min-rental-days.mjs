@@ -44,7 +44,8 @@ function setup(partners, carPartnerIds, opts = {}) {
             (!equal.city || equal.city === p.city)
           )).map(p=>({
             partner_id:p.id,
-            partners:{id:p.id,min_rental_days:p.min,provider_type:p.api?"api":"local",
+            partners:{id:p.id,min_rental_days:p.min,seasonal_min_rental_days:p.seasonal ?? null,
+              seasonal_min_rental_months:p.months ?? [],provider_type:p.api?"api":"local",
               api_enabled:p.api===true,active:true,account_status:"active"}
           })),error:null};
         }
@@ -54,6 +55,7 @@ function setup(partners, carPartnerIds, opts = {}) {
   };
   w.document.querySelector("#searchBtn").addEventListener("click",()=>{searchCalls++;});
   w.eval(durationScript);
+  w.eval(read("assets/js/seasonal-minimum-info.js"));
   w.eval(modalScript);
   return {w, search,dom, get searchCalls(){return searchCalls;}, get calendarCalls(){return calendarCalls;}};
 }
@@ -200,4 +202,46 @@ test("Edge shared duration matches WEB for exact and partial rental days",()=>{
     for(const min of [1,2,3]) assert.equal(w.Ride24RentalDuration.meetsMinimum(ui,min),meetsMinimumRental(server,min));
   }
   w.close();
+});
+
+test("one rental partner requires 3 days in January and 5 days in June, using pickup month",async()=>{
+ const partner={...row("one",3),seasonal:5,months:[6,7,8,9]};
+ const s=setup([partner],["one"]);
+ s.search.pickup_date="2027-01-10";
+ s.search.drop_date="2027-01-13";
+ s.w.document.querySelector("#searchBtn").click();
+ await tick();
+ assert.equal(s.searchCalls,1);
+ assert.equal(s.w.document.querySelector("#r24-minimum-overlay"),null);
+ s.search.pickup_date="2027-06-10";
+ s.search.drop_date="2027-06-13";
+ s.w.document.querySelector("#searchBtn").click();
+ await tick();
+ assert.equal(s.searchCalls,1);
+ const modal=s.w.document.querySelector("#r24-minimum-overlay");
+ assert.ok(modal?.classList.contains("r24-minimum-visible"));
+ assert.match(modal.textContent,/5 dni/);
+ modal.querySelector("#r24-minimum-accept").click();
+ assert.equal(s.w.document.querySelector("#drop-date").value,"2027-06-15");
+ assert.equal(s.searchCalls,2);
+ s.dom.window.close();
+});
+test("another partner offering 3 days prevents unnecessary 5-day modal in June",async()=>{
+ const one={...row("one",3),seasonal:5,months:[6]};
+ const two=row("two",3);
+ const s=setup([one,two],["one","two"]);
+ s.search.pickup_date="2027-06-10";s.search.drop_date="2027-06-13";
+ s.w.document.querySelector("#searchBtn").click();
+ await tick();
+ assert.equal(s.searchCalls,1);
+ assert.equal(s.w.document.querySelector("#r24-minimum-overlay"),null);
+ s.dom.window.close();
+});
+test("June minimum stays at 3 days when partner sets a lower seasonal number",async()=>{
+ const one={...row("one",3),seasonal:2,months:[6]};
+ const s=setup([one],["one"]);
+ s.search.pickup_date="2027-06-10";s.search.drop_date="2027-06-12";
+ s.w.document.querySelector("#searchBtn").click();await tick();
+ assert.match(s.w.document.querySelector("#r24-minimum-overlay").textContent,/3 dni/);
+ s.dom.window.close();
 });
