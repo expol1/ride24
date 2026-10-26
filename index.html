@@ -3277,6 +3277,16 @@
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261021a">
 <link rel="stylesheet" href="assets/css/home-scroll-performance.css?v=20261019b">
 <script src="assets/js/location-names.js?v=20261025"></script>
+    <!-- Mobile partner login: avoid full-screen backdrop blur during keyboard input. -->
+    <style id="ride24-partner-login-mobile-performance">
+        @media (max-width: 768px) {
+            #partnerModal {
+                background: rgba(15, 23, 42, 0.86) !important;
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="toast-container"></div>
@@ -4760,8 +4770,8 @@ window.closeLegal = function() {
         <span onclick="closePartnerAuth()" style="position:absolute; top:20px; right:20px; font-size:24px; cursor:pointer; color:white;">×</span>
         <h2 style="text-align:center; margin-bottom:25px; color:white;" data-pl="Panel Partnera" data-en="Partner Panel">Panel Partnera</h2>
         
-        <input type="email" id="partner-email" placeholder="Email partnera" data-pl="Email partnera" data-en="Partner email" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
-        <input type="password" id="partner-password" placeholder="Hasło" data-pl="Hasło" data-en="Password" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+        <input type="email" id="partner-email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" placeholder="Email partnera" data-pl="Email partnera" data-en="Partner email" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
+        <input type="password" id="partner-password" autocomplete="current-password" placeholder="Hasło" data-pl="Hasło" data-en="Password" style="width:100%; padding:14px; margin-bottom:12px; border:none; border-radius:12px; outline:none; color:#0F172A;">
         
         <div style="text-align: right; margin-top: -8px; margin-bottom: 15px;">
             <a href="javascript:void(0)" onclick="handlePartnerPasswordReset(event)" style="color: #F1FCE3; font-size: 13px; text-decoration: underline; font-weight: 600; cursor: pointer;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#F1FCE3'" data-pl="Zapomniałeś hasła?" data-en="Forgot password?">
@@ -4990,7 +5000,7 @@ function closePartnerAuth() {
 async function partnerLogin() {
     const db = window.supabaseClient;
     const email = document.getElementById("partner-email").value.trim().toLowerCase();
-    const pass = document.getElementById("partner-password").value.trim();
+    const pass = document.getElementById("partner-password").value;
     const btn = document.getElementById("partnerAuthBtn");
     
     const turnstileToken = document.querySelector('#partnerModal [name="cf-turnstile-response"]')?.value;
