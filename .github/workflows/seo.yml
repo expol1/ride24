@@ -9,6 +9,10 @@ on:
       - 'assets/js/seo-content.js'
       - 'admin/index.html'
       - 'tests/backend-hardening/test-seo*.mjs'
+      - 'seo/**'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '_redirects'
       - 'tests/backend-hardening/test-admin-dashboard.mjs'
       - '.github/workflows/seo.yml'
   workflow_dispatch:
@@ -23,4 +27,4 @@ jobs:
       - name: Install isolated test dependencies
         run: npm ci --prefix tests/backend-hardening
       - name: Verify automation, revision history, corrections and manual publication
-        run: node --experimental-strip-types --test tests/backend-hardening/test-seo.mjs tests/backend-hardening/test-seo-flow.mjs tests/backend-hardening/test-seo-db.mjs tests/backend-hardening/test-seo-automation.mjs tests/backend-hardening/test-seo-admin-dom.mjs tests/backend-hardening/test-seo-review.mjs tests/backend-hardening/test-admin-dashboard.mjs
+        run: node --experimental-strip-types --test tests/backend-hardening/test-seo.mjs tests/backend-hardening/test-seo-flow.mjs tests/backend-hardening/test-seo-db.mjs tests/backend-hardening/test-seo-automation.mjs tests/backend-hardening/test-seo-admin-dom.mjs tests/backend-hardening/test-seo-review.mjs tests/backend-hardening/test-seo-canonical-consistency.mjs tests/backend-hardening/test-admin-dashboard.mjs
