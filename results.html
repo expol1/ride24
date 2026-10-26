@@ -968,19 +968,6 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej i blokady karty' : 'No credit card or card hold'}</div>` 
                         : '';
                         
-                    const effectiveMinimum = window.Ride24SeasonalMinimum.effectiveForPickup(
-                        car.partners, filters.pickup_date
-                    );
-                    const partnerHasSeason = Array.isArray(car.partners?.seasonal_min_rental_months)
-                        && car.partners.seasonal_min_rental_months.length > 0;
-                    const showMinimum = effectiveMinimum.days > 1 || partnerHasSeason;
-                    const minimumLabel = lang === "pl"
-                        ? `Minimalny okres wynajmu: ${effectiveMinimum.days} dni${effectiveMinimum.seasonal ? " (sezonowy)" : ""}`
-                        : `Minimum rental period: ${effectiveMinimum.days} days${effectiveMinimum.seasonal ? " (seasonal)" : ""}`;
-                    const seasonalMinNotice = !showMinimum ? "" : `
-                        <div class="feature-item" style="grid-column:1 / -1;max-width:100%;padding:9px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;color:#1D4ED8;font-size:12px;line-height:1.45;font-weight:700;">
-                            📅 ${minimumLabel}
-                        </div>`;
                     const insuranceHtml = parsedFeatures.fullInsurance 
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Pełne ubezpieczenie' : 'Full insurance'}</div>` 
                         : '';
@@ -1034,7 +1021,6 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
         ${depositHtml}
         ${creditCardHtml}
         ${insuranceHtml}
-        ${seasonalMinNotice}
 
       <div style="grid-column: 1 / span 2; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px;">
             <span style="

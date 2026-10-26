@@ -25,7 +25,10 @@ test('web presents and filters by effective season minimum without changing Andr
  assert.match(results,/seasonal_min_rental_months/);
  assert.match(results,/Ride24SeasonalMinimum\.effectiveForPickup/);
  assert.match(results,/\.filter\(car => window\.Ride24RentalDuration\.meetsMinimum\(/);
- assert.match(results,/Minimalny okres wynajmu:/);
+ // Offer rows stay uncluttered: booking eligibility still uses the effective minimum.
+ assert.doesNotMatch(results,/Minimalny okres wynajmu:/);
+ assert.doesNotMatch(results,/Minimum rental period:/);
+ assert.doesNotMatch(results,/seasonalMinNotice|minimumLabel|showMinimum/);
  assert.doesNotMatch(results,/Preferred seasonal rental:/);
  assert.match(results,/\.lte\('partners\.min_rental_days', Math\.max\(1, duration\.fullDays\)\)/);
  assert.match(booking,/meetsMinimumRental\(duration, car\.partner\.min_rental_days\)/);
