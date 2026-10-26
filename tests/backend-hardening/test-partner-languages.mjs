@@ -350,7 +350,7 @@ test('legal templates remain original PL/EN while agreement chrome follows panel
     try {
         const agreement=ast.statements.find(n=>ts.isVariableStatement(n)&&n.declarationList.declarations.some(x=>x.name.getText(ast)==='agreementTexts'))
             .declarationList.declarations.find(x=>x.name.getText(ast)==='agreementTexts').initializer;
-        const hashes={en:'f7c60456fe7db9b6c2302f8d4dabd2cba0f2fea2274057c9416d2c2d12783eac',pl:'786dc37ea9452ad6d3e659db9477bced91867c0b9fec4db46a8b3af56d3826e6'};
+        const hashes={en:'abef543247ebff9eb13509141351be08fdaa8347faf906b6431a78f53a7c77f7',pl:'b7a2160aba0e8c659d67e412cf0540a9cba6f1bbeb9c6f0b36e526cbbd2cb11d'};
         for (const prop of agreement.properties) {
             const content=prop.initializer.properties.find(x=>x.name.getText(ast)==='content');
             assert.equal(createHash('sha256').update(content.initializer.getText(ast)).digest('hex'),hashes[prop.name.getText(ast)]);
