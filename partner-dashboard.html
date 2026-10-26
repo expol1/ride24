@@ -5343,8 +5343,11 @@ const agreementTexts = {
             <h3 style="font-size: 15px; margin-top: 15px;">§8. Non-Circumvention</h3>
             <p>The Partner shall not directly or indirectly bypass Ride24 by engaging with customers introduced through the platform outside of Ride24. This includes offering direct deals, discounts, or future cooperation outside Ride24. This obligation applies during the term of this Agreement and for 12 months after its termination.</p>
 
-            <h3 style="font-size: 15px; margin-top: 15px;">§9. Rate Parity</h3>
-            <p>The Partner agrees that prices offered to Ride24 shall not be higher than prices offered through any other sales channel, including the Partner’s own website or third-party platforms.</p>
+            <h3 style="font-size: 15px; margin-top: 15px;">§9. Independent Pricing Policy</h3>
+            <p>The Partner retains full independence in determining its rental prices and commercial conditions across all distribution channels, including its own website and third-party booking platforms.</p>
+            <p>The Partner is not required to offer Ride24 prices equal to or lower than those available through other distribution channels.</p>
+            <p>The Partner agrees to provide Ride24 with accurate and up-to-date rental prices and availability, taking into account the individually agreed Partner Discount.</p>
+            <p>The Partner shall honour the agreed rental prices and conditions for all confirmed reservations and shall not introduce additional undisclosed charges or modify the agreed booking conditions after confirmation.</p>
 
             <h3 style="font-size: 15px; margin-top: 15px;">§10. Confidentiality</h3>
             <p>The Partner agrees to keep all commercial terms, including pricing, discounts, and cooperation conditions, strictly confidential. This obligation survives termination of the Agreement.</p>
@@ -5416,8 +5419,11 @@ const agreementTexts = {
             <h3 style="font-size: 15px; margin-top: 15px;">§8. Zakaz Omijania Pośrednika</h3>
             <p>Partner nie będzie bezpośrednio ani pośrednio omijać Ride24 poprzez kontaktowanie się z klientami wprowadzonymi przez platformę poza Ride24. Obejmuje to oferowanie bezpośrednich ofert, rabatów lub przyszłej współpracy poza Ride24. Obowiązek ten obowiązuje w okresie obowiązywania niniejszej Umowy oraz przez 12 miesięcy po jej rozwiązaniu.</p>
 
-            <h3 style="font-size: 15px; margin-top: 15px;">§9. Parytet Stawek</h3>
-            <p>Partner zgadza się, że ceny oferowane Ride24 nie będą wyższe niż ceny oferowane za pośrednictwem jakiegokolwiek innego kanału sprzedaży, w tym własnej strony internetowej Partnera lub platform osób trzecich.</p>
+            <h3 style="font-size: 15px; margin-top: 15px;">§9. Niezależna Polityka Cenowa</h3>
+            <p>Partner zachowuje pełną niezależność w ustalaniu cen wynajmu oraz warunków handlowych we wszystkich kanałach dystrybucji, w tym na własnej stronie internetowej oraz za pośrednictwem zewnętrznych platform rezerwacyjnych.</p>
+            <p>Partner nie jest zobowiązany do oferowania Ride24 cen równych lub niższych od cen dostępnych w innych kanałach dystrybucji.</p>
+            <p>Partner zobowiązuje się przekazywać Ride24 prawidłowe i aktualne ceny wynajmu oraz informacje o dostępności pojazdów, z uwzględnieniem indywidualnie uzgodnionego Rabatu Partnerskiego.</p>
+            <p>Partner zobowiązuje się honorować uzgodnione ceny i warunki wszystkich potwierdzonych rezerwacji oraz nie wprowadzać dodatkowych, wcześniej nieujawnionych opłat ani nie zmieniać uzgodnionych warunków po potwierdzeniu rezerwacji.</p>
 
             <h3 style="font-size: 15px; margin-top: 15px;">§10. Poufność</h3>
             <p>Partner zgadza się zachować wszystkie warunki handlowe, w tym ceny, rabaty i warunki współpracy, w ścisłej tajemnicy. Obowiązek ten pozostaje w mocy po rozwiązaniu Umowy.</p>
@@ -5544,7 +5550,7 @@ async function signAgreement() {
 
         // 📦 7. SNAPSHOT (pełny dowód)
         const finalSnapshot = JSON.stringify({
-            version: "v1.1",
+            version: "v1.2",
             lang: currentAgLang,
             company: partnerData.company_name,
             country: partnerData.country,
@@ -5557,7 +5563,7 @@ async function signAgreement() {
 
         // 🧠 8. UPDATE + SECURITY
         const { data, error } = await db.rpc("partner_accept_agreement", {
-            p_version: "v1.1",
+            p_version: "v1.2"
             p_snapshot: finalSnapshot,
             p_ip: userIp || ""
         });
