@@ -94,3 +94,41 @@ test('toggling the seasonal minimum keeps the settings visible and does not navi
    assert.deepEqual(Array.from(w.r24GetSeasonalMinimum().months),[7,8]);
  }finally{dom.window.close();}
 });
+
+test('season toggle stays in its actual 44px touch target instead of moving focus outside on mobile',()=>{
+ const page=read('partner-dashboard.html');
+ assert.match(page,/\.r24-season-toggle\s*\{[^}]*position:relative[^}]*min-height:44px/s);
+ assert.match(page,/\.r24-season-toggle input\s*\{[^}]*position:absolute;inset:0;width:100%;height:100%/s);
+ assert.match(page,/\.main-wrapper\s*>\s*\.content-area\s*\{[^}]*overflow-anchor:none/s);
+ assert.match(page,/const mainContent = document\.querySelector\('\.main-wrapper > \.content-area'\);[\s\S]*?mainContent\.scrollTop = 0/);
+});
+test('touching the seasonal toggle does not lose the previous mobile scroll offset',()=>{
+ const html=read('partner-dashboard.html');
+ const dom=new JSDOM(html,{runScripts:'outside-only',url:'https://ride24.pl/partner-dashboard.html'});
+ const w=dom.window;
+ try {
+   w.getPartnerLang=()=> 'pl';
+   w.eval(read('assets/js/seasonal-minimum-info.js'));
+   const start=html.indexOf('/* Informational season editor:');
+   const end=html.indexOf('</script>',start);
+   w.eval(html.slice(start,end));
+   w.matchMedia=()=>({matches:true});
+   w.requestAnimationFrame=callback=>callback();
+   const scroller=w.document.querySelector('.main-wrapper > .content-area');
+   Object.defineProperties(scroller,{scrollHeight:{value:1450},clientHeight:{value:490}});
+   scroller.scrollTop=340;
+   const toggle=w.document.getElementById('partner-season-min-enabled');
+   toggle.dispatchEvent(new w.Event('pointerdown',{bubbles:true}));
+   scroller.scrollTop=0; // Simulate browser's unwanted scrolling to a focusable child.
+   toggle.checked=true;
+   toggle.dispatchEvent(new w.Event('change',{bubbles:true}));
+   assert.equal(scroller.scrollTop,340);
+   assert.equal(toggle.getAttribute('aria-expanded'),'true');
+   assert.equal(w.document.getElementById('partner-season-min-settings').hidden,false);
+   toggle.dispatchEvent(new w.Event('pointerdown',{bubbles:true}));
+   toggle.checked=false;
+   toggle.dispatchEvent(new w.Event('change',{bubbles:true}));
+   assert.equal(scroller.scrollTop,340);
+   assert.equal(toggle.getAttribute('aria-expanded'),'false');
+ } finally {dom.window.close();}
+});

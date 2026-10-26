@@ -3,7 +3,6 @@ Allow: /
 
 Disallow: /admin/
 Disallow: /auth/
-Disallow: /assets/
 Disallow: /supabase/
 Disallow: /partner-dashboard.html
 Disallow: /reset-password.html
