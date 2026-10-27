@@ -48,7 +48,10 @@ test('feature flag disabled after selecting paid extra never submits a silent le
 test('partner car form relies on refundable cash amount, not an insurance confirmation gate',async()=>{
   const panel=await readFile(new URL('../../partner-dashboard.html',import.meta.url),'utf8');
   assert.doesNotMatch(panel,/featureFullInsuranceConfirmed/);
-  assert.match(panel,/if \(lowCash\) lowCash\.checked = amount > 0/);
+  assert.match(panel,/function syncCashDepositOption\(source = "load"\)/);
+  assert.match(panel,/lowCash\.checked = hasCashDeposit/);
+  assert.match(panel,/amountInput\.disabled = false/);
+  assert.match(panel,/cashDepositSelected \? parsedCashDeposit : 0/);
   assert.match(panel,/cashDepositMethod: amount > 0 \? "cash" : null/);
   assert.match(panel,/featureFullInsurance" checked/);
 });
