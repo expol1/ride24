@@ -1,6 +1,7 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+    "Enter a refundable cash deposit amount greater than zero.": "Podaj kwotę zwrotnej kaucji gotówkowej większą od zera.",
     "For Georgia, enter a city and a real region (not “Other”).": "Dla Gruzji podaj miasto i prawidłowy region (nie „Other”).",
     "Standard minimum": "Podstawowe minimum",
     "Applies all year. Shorter bookings are blocked.": "Obowiązuje przez cały rok. System blokuje zbyt krótkie rezerwacje.",
@@ -530,6 +531,7 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+    "Enter a refundable cash deposit amount greater than zero.": "Introduce un importe de depósito reembolsable en efectivo superior a cero.",
     "For Georgia, enter a city and a real region (not “Other”).": "Para Georgia, indica una ciudad y una región válida (no «Other»).",
     "Standard minimum": "Mínimo habitual",
     "Applies all year. Shorter bookings are blocked.": "Se aplica todo el año. Se bloquean las reservas más cortas.",
@@ -1058,6 +1060,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+    "Enter a refundable cash deposit amount greater than zero.": "Εισαγάγετε ποσό επιστρεφόμενης εγγύησης σε μετρητά μεγαλύτερο από το μηδέν.",
     "For Georgia, enter a city and a real region (not “Other”).": "Για τη Γεωργία, συμπληρώστε πόλη και έγκυρη περιφέρεια (όχι «Other»).",
     "Standard minimum": "Βασικό ελάχιστο",
     "Applies all year. Shorter bookings are blocked.": "Ισχύει όλο τον χρόνο. Οι συντομότερες κρατήσεις αποκλείονται.",
@@ -1586,6 +1589,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+    "Enter a refundable cash deposit amount greater than zero.": "Inserisci un importo della cauzione rimborsabile in contanti maggiore di zero.",
     "For Georgia, enter a city and a real region (not “Other”).": "Per la Georgia, indica città e regione valida (non «Other»).",
     "Standard minimum": "Minimo standard",
     "Applies all year. Shorter bookings are blocked.": "Valido tutto l'anno. Le prenotazioni più brevi vengono bloccate.",
@@ -2114,6 +2118,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+    "Enter a refundable cash deposit amount greater than zero.": "Geben Sie einen Betrag für die erstattungsfähige Barkaution größer als null ein.",
     "For Georgia, enter a city and a real region (not “Other”).": "Für Georgien bitte Stadt und gültige Region angeben (nicht „Other“).",
     "Standard minimum": "Standard-Mindestdauer",
     "Applies all year. Shorter bookings are blocked.": "Gilt ganzjährig. Kürzere Buchungen werden gesperrt.",
@@ -2642,6 +2647,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+    "Enter a refundable cash deposit amount greater than zero.": "Укажите сумму возвращаемого залога наличными больше нуля.",
     "For Georgia, enter a city and a real region (not “Other”).": "Для Грузии укажите город и действительный регион (не «Other»).",
     "Standard minimum": "Основной минимум",
     "Applies all year. Shorter bookings are blocked.": "Действует круглый год. Более короткие бронирования блокируются.",
@@ -3170,6 +3176,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+    "Enter a refundable cash deposit amount greater than zero.": "Saisissez un montant de caution remboursable en espèces supérieur à zéro.",
     "For Georgia, enter a city and a real region (not “Other”).": "Pour la Géorgie, indiquez une ville et une région valide (pas «Other»).",
     "Standard minimum": "Minimum standard",
     "Applies all year. Shorter bookings are blocked.": "S'applique toute l'année. Les réservations plus courtes sont bloquées.",
