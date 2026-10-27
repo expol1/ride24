@@ -11,6 +11,7 @@ on:
       - 'assets/js/location-names.js'
       - 'assets/css/partner-languages.css'
       - 'tests/backend-hardening/test-partner-*.mjs'
+      - 'tests/backend-hardening/test-booking-extras-ui.mjs'
       - 'tests/backend-hardening/test-partner-login-mobile.mjs'
       - '.github/workflows/partner-languages.yml'
   pull_request:
@@ -22,6 +23,7 @@ on:
       - 'assets/css/partner-languages.css'
       - 'flagi/*.svg'
       - 'tests/backend-hardening/test-partner-*.mjs'
+      - 'tests/backend-hardening/test-booking-extras-ui.mjs'
       - 'tests/backend-hardening/test-partner-login-mobile.mjs'
       - '.github/workflows/partner-languages.yml'
   workflow_dispatch:
