@@ -2795,14 +2795,23 @@ window.processAddPartner = async function() {
     catch (error) { alert(error.message); return; }
 
     const providerType = document.getElementById("new-p-provider-type").value;
-    const rawCurrency = document.getElementById("new-p-currency").value.trim().toUpperCase();
-    const currency = rawCurrency === "TRL" ? "TRY" : rawCurrency;
-    if (!/^[A-Z]{3}$/.test(currency)) {
-        alert("Podaj trzyznakowy kod waluty, np. EUR, TRY lub EGP.");
+    const currency = document.getElementById("new-p-currency").value;
+    if (!["EUR", "USD", "PLN"].includes(currency)) {
+        alert("Wybierz walutę: EUR, USD lub PLN.");
         return;
     }
-    if (providerType === "local" && !["EUR", "USD", "PLN"].includes(currency)) {
-        alert("Partner lokalny może używać wyłącznie EUR, USD lub PLN.");
+
+    // Jedno pole widoczne w formularzu, kompatybilny zapis w obecnych kolumnach.
+    const representativeFullName = document.getElementById("new-p-rep-fullname").value.trim().replace(/\s+/g, " ");
+    const surnameBreak = representativeFullName.lastIndexOf(" ");
+    const representativeName = surnameBreak > 0
+        ? representativeFullName.slice(0, surnameBreak)
+        : representativeFullName;
+    const representativeSurname = surnameBreak > 0
+        ? representativeFullName.slice(surnameBreak + 1)
+        : "";
+    if (representativeName.length > 120 || representativeSurname.length > 120) {
+        alert("Imię i nazwisko reprezentanta są zbyt długie.");
         return;
     }
 
@@ -2810,8 +2819,8 @@ const data = {
     email: document.getElementById("new-p-email").value.trim(),
     password: document.getElementById("new-p-pass").value.trim(),
     company_name: document.getElementById("new-p-company").value.trim(),
-    representative_name: document.getElementById("new-p-rep-name").value.trim(),
-    representative_surname: document.getElementById("new-p-rep-surname").value.trim(),
+    representative_name: representativeName,
+    representative_surname: representativeSurname,
     address: document.getElementById("new-p-address").value.trim(),
     country: document.getElementById("new-p-country").value.trim(),
     region: document.getElementById("new-p-region").value.trim(),
@@ -2917,8 +2926,7 @@ const data = {
             (result.email_sent === false ? "\nUwaga: nie udało się wysłać e-maila powitalnego." : ""));
 
         closeAddPartnerModal();
-        document.getElementById("new-p-rep-name").value = "";
-document.getElementById("new-p-rep-surname").value = "";
+        document.getElementById("new-p-rep-fullname").value = "";
 
         document.getElementById("new-p-email").value = "";
         document.getElementById("new-p-pass").value = "";
@@ -2955,18 +2963,9 @@ document.getElementById("new-p-rep-surname").value = "";
 
 window.togglePartnerType = function () {
     const type = document.getElementById("new-p-provider-type").value;
-    const apiBox = document.getElementById("api-config-box");
-    const currencyInput = document.getElementById("new-p-currency");
-    const currencyHelp = document.getElementById("new-p-currency-help");
-
-    apiBox.style.display = type === "api" ? "block" : "none";
-    if (type === "api") {
-        currencyHelp.textContent = "Waluta operacyjna cen zwracanych przez API, np. TRY, EGP, IDR.";
-    } else {
-        currencyHelp.textContent = "Partner lokalny: EUR, USD lub PLN.";
-        const current = String(currencyInput.value || "EUR").toUpperCase();
-        if (!["EUR", "USD", "PLN"].includes(current)) currencyInput.value = "EUR";
-    }
+    document.getElementById("api-config-box").style.display = type === "api" ? "block" : "none";
+    const currencySelect = document.getElementById("new-p-currency");
+    if (!["EUR", "USD", "PLN"].includes(currencySelect.value)) currencySelect.value = "EUR";
 };
 
 
@@ -5746,13 +5745,9 @@ hereinafter referred to as the “Partner”.
             <div style="grid-column: span 2; margin-top: 10px;">
     <h3 style="font-size: 14px; color: var(--blue); text-transform: uppercase;">2. Informacje o Firmie</h3>
 </div>
-<div class="form-group">
-    <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Imię Reprezentanta</label>
-    <input type="text" id="new-p-rep-name" placeholder="np. Jan" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-</div>
-<div class="form-group">
-    <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Nazwisko Reprezentanta</label>
-    <input type="text" id="new-p-rep-surname" placeholder="np. Kowalski" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+<div class="form-group" style="grid-column: span 2;">
+    <label for="new-p-rep-fullname" style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Imię i nazwisko reprezentanta</label>
+    <input type="text" id="new-p-rep-fullname" maxlength="240" autocomplete="name" placeholder="np. Mohammed Abdullah Qasem Elfayez" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
 </div>
 <div class="form-group" style="grid-column: span 2;">
     <label style="display:block; font-size: 12px; font-weight: 700; margin-bottom: 5px;">Nazwa Wypożyczalni (Publiczna)</label>
@@ -5781,14 +5776,17 @@ hereinafter referred to as the “Partner”.
 
 <div class="form-group">
     <label style="display:block; font-size:12px; font-weight:700; margin-bottom:5px;">Waluta rozliczeń / operacyjna</label>
-    <input id="new-p-currency" list="ride24-currency-codes" value="EUR" maxlength="3" autocomplete="off"
-        style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; text-transform:uppercase;">
+    <select id="new-p-currency" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+        <option value="EUR" selected>EUR (€)</option>
+        <option value="USD">USD ($)</option>
+        <option value="PLN">PLN (zł)</option>
+    </select>
     <datalist id="ride24-currency-codes">
         <option value="EUR"><option value="USD"><option value="PLN"><option value="TRY">
         <option value="EGP"><option value="IDR"><option value="THB"><option value="AED">
         <option value="MAD"><option value="MXN"><option value="BRL"><option value="GBP"><option value="BAM">
     </datalist>
-    <div id="new-p-currency-help" style="font-size:11px; color:#64748B; margin-top:5px;">Partner lokalny: EUR, USD lub PLN.</div>
+    <div id="new-p-currency-help" style="font-size:11px; color:#64748B; margin-top:5px;">Wybierz walutę oferty: EUR, USD lub PLN.</div>
 </div>
 
 <div class="form-group">
