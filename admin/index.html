@@ -2506,7 +2506,9 @@ async function loadPartnersData() {
         active,
         country,
         account_status,
-        provider_type
+        provider_type,
+        rental_terms_url,
+        rental_rules_url
     `)
     .order("created_at", { ascending: false });
 
@@ -2587,14 +2589,19 @@ if ((p.provider_type ?? "local") === "api") {
 
 }
     }
-actionBtn += `
-    <button type="button" class="r24-admin-pdf-btn"
-        aria-label="PDF Terms / PDF Rules"
-        title="Wgraj warunki wynajmu lub regulamin PDF"
-        onclick="openAdminPartnerDocs('${p.id}')">
-        <span>PDF Terms</span><span>PDF Rules</span>
-    </button>
-`;
+// Pokazuj przycisk tylko przy brakujących dokumentach.
+const hasTerms = typeof p.rental_terms_url === "string" && p.rental_terms_url.trim().length > 0;
+const hasRules = typeof p.rental_rules_url === "string" && p.rental_rules_url.trim().length > 0;
+if (!hasTerms || !hasRules) {
+    actionBtn += `
+        <button type="button" class="r24-admin-pdf-btn"
+            aria-label="PDF Terms / PDF Rules"
+            title="Wgraj brakujące warunki wynajmu lub regulamin PDF"
+            onclick="openAdminPartnerDocs('${p.id}')">
+            <span>PDF Terms</span><span>PDF Rules</span>
+        </button>
+    `;
+}
 let providerBadge = "";
 
 if ((p.provider_type ?? "local") === "api") {
