@@ -2023,7 +2023,7 @@ Dodaj opinię o Partnerze
                         <label data-pl="Opcje wynajmu" data-en="Rental options">Rental options</label>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: center; background: white; padding: 16px; border: 1px solid var(--border); border-radius: 12px; height: calc(100% - 28px); margin-top: 6px;">
                             <label class="checkbox-group" style="margin-bottom: 0;">
-                                <input type="checkbox" id="featureNoDeposit" onchange="syncCashDepositOption()">
+                                <input type="checkbox" id="featureNoDeposit" checked onchange="syncCashDepositOption('no-deposit')">
                                 <span data-pl="Bez kaucji gotówkowej" data-en="No cash security deposit">No cash security deposit</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
@@ -2031,7 +2031,7 @@ Dodaj opinię o Partnerze
                                 <span data-pl="Pełne ubezpieczenie" data-en="Full insurance">Full insurance</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
-                                <input type="checkbox" id="lowDeposit" onchange="syncCashDepositOption()">
+                                <input type="checkbox" id="lowDeposit" onchange="syncCashDepositOption('cash-deposit')">
                                 <span data-pl="Niska kaucja gotówkowa" data-en="Low cash deposit">Low cash deposit</span>
                             </label>
                             <label class="checkbox-group" style="margin-bottom: 0;">
@@ -2096,7 +2096,7 @@ Dodaj opinię o Partnerze
                 <div class="form-row-3" style="margin-bottom: 0;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Zwrotna kaucja gotówkowa (€) – opcjonalnie" data-en="Refundable cash deposit (€) – optional">Refundable cash deposit (€) – optional</label>
-                        <input type="number" id="carDeposit" placeholder="e.g. 100" min="0" step="0.01" oninput="syncCashDepositOption()" data-pl="Np. 100" data-en="e.g. 100">
+                        <input type="number" id="carDeposit" placeholder="e.g. 100" min="0" step="0.01" disabled oninput="syncCashDepositOption('amount')" data-pl="Np. 100" data-en="e.g. 100">
                         <small data-pl="Wpłata gotówką przy odbiorze, zwrot przy oddaniu auta zgodnie z warunkami umowy; to nie blokada karty." data-en="Cash on pickup, refunded upon return under rental terms; this is not a card hold.">Cash on pickup, refunded upon return under rental terms; this is not a card hold.</small>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
@@ -3090,16 +3090,42 @@ const updateData = {
 
 
         // --- FEATURES JSON ---
-        function syncCashDepositOption() {
-            // A refundable CASH amount is the source of truth, never a card hold.
-            const amount = Number(document.getElementById("carDeposit")?.value || 0);
+        function syncCashDepositOption(source = "load") {
             const noCash = document.getElementById("featureNoDeposit");
             const lowCash = document.getElementById("lowDeposit");
-            if (noCash) noCash.checked = !(amount > 0);
-            if (lowCash) lowCash.checked = amount > 0;
+            const amountInput = document.getElementById("carDeposit");
+            if (!noCash || !lowCash || !amountInput) return;
+
+            if (source === "no-deposit") {
+                lowCash.checked = !noCash.checked;
+            } else if (source === "cash-deposit") {
+                noCash.checked = !lowCash.checked;
+            } else if (source === "amount") {
+                if (Number(amountInput.value) > 0) {
+                    lowCash.checked = true;
+                    noCash.checked = false;
+                }
+            } else {
+                // On new forms and edits, initialize from the saved amount.
+                const hasCashDeposit = Number(amountInput.value) > 0;
+                lowCash.checked = hasCashDeposit;
+                noCash.checked = !hasCashDeposit;
+            }
+
+            // Exactly one option must be selected.
+            if (!noCash.checked && !lowCash.checked) noCash.checked = true;
+            if (noCash.checked) {
+                lowCash.checked = false;
+                amountInput.value = "";
+                amountInput.disabled = true;
+            } else {
+                lowCash.checked = true;
+                amountInput.disabled = false;
+            }
         }
         function collectFeatures() {
-            const amount = Number(document.getElementById("carDeposit")?.value || 0);
+            const amount = document.getElementById("lowDeposit")?.checked
+                ? Number(document.getElementById("carDeposit")?.value || 0) : 0;
             const full = document.getElementById("featureFullInsurance").checked;
             return {
                 noDeposit: !(amount > 0),
@@ -3136,7 +3162,13 @@ const updateData = {
                 const unlimited = document.getElementById("unlimitedMileage").checked;
                 const mileage_limit = unlimited ? null : parseInt(document.getElementById("mileageInput").value);
                 
-                const deposit_amount = parseFloat(document.getElementById("carDeposit").value) || 0;
+                const cashDepositSelected = document.getElementById("lowDeposit").checked;
+                const cashDepositValue = document.getElementById("carDeposit").value.trim();
+                const parsedCashDeposit = Number(cashDepositValue);
+                if (cashDepositSelected && (!cashDepositValue || !Number.isFinite(parsedCashDeposit) || parsedCashDeposit <= 0)) {
+                    throw new Error(partnerText("Podaj kwotę zwrotnej kaucji gotówkowej większą od zera.", "Enter a refundable cash deposit amount greater than zero."));
+                }
+                const deposit_amount = cashDepositSelected ? parsedCashDeposit : 0;
                 const fuel_type = document.getElementById("carFuel").value;
                 const base_price = parseFloat(document.getElementById("carPrice").value);
                 const commissionPercent = parseInt(document.getElementById("partnerDiscount").innerText) || 15;
@@ -4280,12 +4312,7 @@ function toggleDriverHours() {
         function openDetails(id) { console.log("Details for: " + id); }
 
         function handleDepositOptions() {
-            const noDep = document.getElementById("noDeposit");
-            const lowDep = document.getElementById("lowDeposit");
-            if(noDep && lowDep) {
-                noDep.addEventListener("change", () => { if(noDep.checked) lowDep.checked = false; });
-                lowDep.addEventListener("change", () => { if(lowDep.checked) noDep.checked = false; });
-            }
+            syncCashDepositOption();
         }
 
         function setPartnerCommission(value){
