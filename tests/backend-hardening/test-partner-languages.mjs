@@ -249,6 +249,9 @@ test('actual vehicle and location form handlers produce identical data in all ei
             for (const [id,value] of Object.entries({carModel:'Toyota Yaris',carClass:'B',carSeats:'5',carTransmission:'A',carBags:'2',mileageInput:'200',carDeposit:'100',carFuel:'B',carPrice:'123.45',driverHours:'8'})) s.d.getElementById(id).value=value;
             s.d.getElementById('partnerDiscount').textContent='10%';
             s.d.getElementById('featureFullInsurance').checked=true;
+            // Simulate selecting the cash deposit option before entering the amount.
+            s.d.getElementById('lowDeposit').checked=true;
+            s.d.getElementById('featureNoDeposit').checked=false;
             s.d.getElementById('unlimitedMileage').checked=false;
             await s.w.saveVehicle();
             const vehicle=s.writes.at(-1);assert.equal(vehicle.table,'car_classes');
