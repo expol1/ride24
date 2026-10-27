@@ -107,13 +107,10 @@ serve(async (req) => {
         fields[doc.column] = admin.storage.from(BUCKET).getPublicUrl(doc.path).data.publicUrl;
       }
 
-      const { data: updated, error: updateError } = await admin.from("partners")
-        .update(fields)
-        .eq("id", partner.id)
-        .is("rental_terms_url", terms ? null : partner.rental_terms_url)
-        .is("rental_rules_url", rules ? null : partner.rental_rules_url)
-        .select("id")
-        .maybeSingle();
+      let update = admin.from("partners").update(fields).eq("id", partner.id);
+      if (terms) update = update.is("rental_terms_url", null);
+      if (rules) update = update.is("rental_rules_url", null);
+      const { data: updated, error: updateError } = await update.select("id").maybeSingle();
 
       if (updateError || !updated) throw new Error("Nie udało się przypisać dokumentów do partnera");
 
