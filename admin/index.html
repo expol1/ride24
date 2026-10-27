@@ -559,6 +559,40 @@
 
 /* Ukrywamy dolne menu na komputerze */
 .mobile-nav { display: none; }
+/* Partner documents: vivid green, compact two-line button. */
+.r24-admin-pdf-btn {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    vertical-align: middle;
+    min-width: 116px;
+    min-height: 38px;
+    padding: 7px 14px;
+    margin: 5px 0 0 6px;
+    border: 1px solid #65be00;
+    border-radius: 10px;
+    background: #73d700;
+    color: #142508;
+    font: 800 11px/1.1 'Inter', sans-serif;
+    letter-spacing: .15px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(67, 122, 0, .13);
+    transition: background-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.r24-admin-pdf-btn:hover {
+    background: #86ed00;
+    border-color: #68c400;
+    box-shadow: 0 4px 10px rgba(67, 122, 0, .22);
+    transform: translateY(-1px);
+}
+.r24-admin-pdf-btn:active { transform: translateY(0); }
+.r24-admin-pdf-btn:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    .r24-admin-pdf-btn { transition: none; }
+}
 </style>
 <link rel="stylesheet" href="../assets/css/admin-seo.css?v=20261014a">
 <link rel="stylesheet" href="../assets/css/brand-logo.css?v=20261019b">
@@ -2554,9 +2588,12 @@ if ((p.provider_type ?? "local") === "api") {
 }
     }
 actionBtn += `
-    <button type="button" class="btn-primary"
-        style="margin-left:6px;"
-        onclick="openAdminPartnerDocs('${p.id}')">Dokumenty PDF</button>
+    <button type="button" class="r24-admin-pdf-btn"
+        aria-label="PDF Terms / PDF Rules"
+        title="Wgraj warunki wynajmu lub regulamin PDF"
+        onclick="openAdminPartnerDocs('${p.id}')">
+        <span>PDF Terms</span><span>PDF Rules</span>
+    </button>
 `;
 let providerBadge = "";
 
