@@ -2553,6 +2553,11 @@ if ((p.provider_type ?? "local") === "api") {
 
 }
     }
+actionBtn += `
+    <button type="button" class="btn-primary"
+        style="margin-left:6px;"
+        onclick="openAdminPartnerDocs('${p.id}')">Dokumenty PDF</button>
+`;
 let providerBadge = "";
 
 if ((p.provider_type ?? "local") === "api") {
@@ -2650,9 +2655,100 @@ window.generatePass = () => {
     document.getElementById("new-p-pass").value = pass;
 };
 
+const ADMIN_PARTNER_PDF_MAX_BYTES = 5 * 1024 * 1024;
+
+function validateSelectedPartnerPdfs(terms, rules) {
+    for (const [label, file] of [["Warunki", terms], ["Regulamin", rules]]) {
+        if (!file) continue;
+        if (file.size < 50 || file.size > ADMIN_PARTNER_PDF_MAX_BYTES ||
+            (file.type && file.type.toLowerCase() !== "application/pdf") ||
+            !file.name.toLowerCase().endsWith(".pdf")) {
+            throw new Error(label + ": wybierz poprawny PDF (maks. 5 MB).");
+        }
+    }
+}
+
+async function uploadAdminPartnerPdfs(partnerId, terms, rules) {
+    if (!terms && !rules) return { uploaded: [] };
+    validateSelectedPartnerPdfs(terms, rules);
+    const payload = new FormData();
+    payload.append("partner_id", partnerId);
+    if (terms) payload.append("terms", terms, "terms.pdf");
+    if (rules) payload.append("rules", rules, "rules.pdf");
+    const { data, error } = await db.functions.invoke("admin-upload-partner-documents", {
+        body: payload,
+    });
+    if (error) {
+        let message = error.message || "Błąd wysyłania dokumentów";
+        try {
+            const detail = await error.context?.json?.();
+            if (detail?.error) message = detail.error;
+        } catch (_) { /* Odpowiedź błędu bez JSON. */ }
+        throw new Error(message);
+    }
+    if (!data?.success) throw new Error(data?.error || "Nie udało się przypisać dokumentów PDF");
+    return data;
+}
+
+window.currentAdminDocsPartnerId = null;
+
+window.openAdminPartnerDocs = async function(partnerId) {
+    try {
+        const { data, error } = await db.from("partners")
+            .select("id,company_name,rental_terms_url,rental_rules_url")
+            .eq("id", partnerId).single();
+        if (error || !data) throw new Error("Nie znaleziono partnera");
+        window.currentAdminDocsPartnerId = data.id;
+        document.getElementById("admin-pdf-partner-name").textContent = data.company_name || "Partner";
+        const t = document.getElementById("admin-pdf-terms");
+        const r = document.getElementById("admin-pdf-rules");
+        t.value = "";
+        r.value = "";
+        t.disabled = Boolean(data.rental_terms_url);
+        r.disabled = Boolean(data.rental_rules_url);
+        const allDone = t.disabled && r.disabled;
+        document.getElementById("admin-pdf-status").textContent =
+            (t.disabled ? "Warunki: już przypisane. " : "Warunki: brak. ") +
+            (r.disabled ? "Regulamin: już przypisany." : "Regulamin: brak.");
+        document.getElementById("admin-pdf-upload-btn").disabled = allDone;
+        document.getElementById("adminPartnerDocsModal").style.display = "flex";
+    } catch (error) {
+        alert("Błąd otwierania dokumentów: " + error.message);
+    }
+};
+
+window.closeAdminPartnerDocs = function() {
+    document.getElementById("adminPartnerDocsModal").style.display = "none";
+    window.currentAdminDocsPartnerId = null;
+};
+
+window.submitAdminPartnerDocs = async function() {
+    const partnerId = window.currentAdminDocsPartnerId;
+    if (!partnerId) return;
+    const terms = document.getElementById("admin-pdf-terms").files[0] || null;
+    const rules = document.getElementById("admin-pdf-rules").files[0] || null;
+    if (!terms && !rules) return alert("Wybierz co najmniej jeden PDF.");
+    const button = document.getElementById("admin-pdf-upload-btn");
+    button.disabled = true;
+    try {
+        document.getElementById("admin-pdf-status").textContent = "Wgrywanie i przypisywanie plików...";
+        await uploadAdminPartnerPdfs(partnerId, terms, rules);
+        await loadPartnersData();
+        alert("PDF-y wgrane i automatycznie przypisane do konta partnera.");
+        closeAdminPartnerDocs();
+    } catch (error) {
+        document.getElementById("admin-pdf-status").textContent = "Błąd: " + error.message;
+        button.disabled = false;
+    }
+};
+
 window.processAddPartner = async function() {
 
     const btn = document.getElementById("savePartnerBtn");
+    const selectedTermsPdf = document.getElementById("new-p-terms-pdf").files[0] || null;
+    const selectedRulesPdf = document.getElementById("new-p-rules-pdf").files[0] || null;
+    try { validateSelectedPartnerPdfs(selectedTermsPdf, selectedRulesPdf); }
+    catch (error) { alert(error.message); return; }
 
     const providerType = document.getElementById("new-p-provider-type").value;
     const rawCurrency = document.getElementById("new-p-currency").value.trim().toUpperCase();
@@ -2759,7 +2855,24 @@ const data = {
             throw new Error(result.error || "Błąd Edge Function. Kod: " + response.status);
         }
 
-        alert("Sukces! Partner " + data.company_name + " został utworzony.");
+        let pdfOutcome = "Nie dołączono PDF-ów (partner może je wgrać samodzielnie).";
+        if (selectedTermsPdf || selectedRulesPdf) {
+            if (!result.partner_id) {
+                pdfOutcome = "UWAGA: Konto utworzone, ale brak ID do uploadu. Skorzystaj z przycisku Dokumenty PDF przy partnerze.";
+            } else {
+                try {
+                    await uploadAdminPartnerPdfs(result.partner_id, selectedTermsPdf, selectedRulesPdf);
+                    pdfOutcome = "Załączone PDF-y wgrane i przypisane automatycznie.";
+                } catch (pdfError) {
+                    pdfOutcome = "UWAGA: Konto zostało utworzone, ale upload PDF nie powiódł się: " +
+                        pdfError.message + ". Użyj przycisku Dokumenty PDF — nie zakładaj konta ponownie.";
+                }
+            }
+        }
+        alert("Partner " + data.company_name + " został utworzony.
+" + pdfOutcome +
+            (result.email_sent === false ? "
+Uwaga: nie udało się wysłać e-maila powitalnego." : ""));
 
         closeAddPartnerModal();
         document.getElementById("new-p-rep-name").value = "";
@@ -2773,6 +2886,8 @@ document.getElementById("new-p-rep-surname").value = "";
         document.getElementById("new-p-country").value = "";
         document.getElementById("new-p-region").value = "";
         document.getElementById("new-p-discount").value = "15";
+        document.getElementById("new-p-terms-pdf").value = "";
+        document.getElementById("new-p-rules-pdf").value = "";
         document.getElementById("new-p-api-provider").value = "";
         document.getElementById("new-p-api-url").value = "";
         document.getElementById("new-p-api-key").value = "";
@@ -5638,6 +5753,16 @@ hereinafter referred to as the “Partner”.
     <label style="display:block; font-size:12px; font-weight:700; margin-bottom:5px;">Rabat partnera (%)</label>
     <input type="number" id="new-p-discount" value="15" min="0" max="50" step="1" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
 </div>
+<div style="grid-column:span 2; margin-top:8px; border:1px solid #DBEAFE; background:#F8FAFC; border-radius:12px; padding:16px;">
+  <h3 style="font-size:14px; margin:0 0 7px; color:#1E3A8A;">Dokumenty PDF (opcjonalnie)</h3>
+  <p style="font-size:12px; color:#64748B; margin:0 0 12px;">Możesz od razu dołączyć dokumenty partnera lub pozostawić pola puste. Maks. 5 MB na każdy plik. Pliki zostaną przypisane automatycznie do nowego konta.</p>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;">
+    <div class="form-group"><label for="new-p-terms-pdf">Warunki wynajmu / Rental Terms (PDF)</label>
+      <input type="file" accept=".pdf,application/pdf" id="new-p-terms-pdf" style="width:100%;"></div>
+    <div class="form-group"><label for="new-p-rules-pdf">Regulamin / Rental Rules (PDF)</label>
+      <input type="file" accept=".pdf,application/pdf" id="new-p-rules-pdf" style="width:100%;"></div>
+  </div>
+</div>
 <div class="form-group">
     <label style="display:block; font-size:12px; font-weight:700; margin-bottom:5px;">
         Typ partnera
@@ -5717,6 +5842,20 @@ hereinafter referred to as the “Partner”.
             <button onclick="closeAddPartnerModal()" style="padding: 10px 20px; background: transparent; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Anuluj</button>
             <button onclick="processAddPartner()" id="savePartnerBtn" style="padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Utwórz Partnera</button>
       </div> </div> </div>
+      <div id="adminPartnerDocsModal" style="display:none; position:fixed; inset:0; z-index:100000; background:rgba(2,6,23,.8); align-items:center; justify-content:center; padding:20px;">
+        <div style="background:#fff; border-radius:15px; width:100%; max-width:580px; max-height:90vh; overflow-y:auto; padding:24px;">
+          <h2 style="font-size:19px; margin:0 0 8px;">Dołącz dokumenty PDF partnera</h2>
+          <p id="admin-pdf-partner-name" style="font-weight:700; margin:0 0 12px;"></p>
+          <p style="font-size:12px; color:#64748B; margin:0 0 16px;">Wgrywanie jest opcjonalne; istniejące dokumenty nie zostaną nadpisane. Tylko PDF, maks. 5 MB na plik.</p>
+          <div class="form-group" style="margin-bottom:13px;"><label for="admin-pdf-terms">Warunki wynajmu</label><input type="file" id="admin-pdf-terms" accept=".pdf,application/pdf" style="width:100%;"></div>
+          <div class="form-group" style="margin-bottom:13px;"><label for="admin-pdf-rules">Regulamin</label><input type="file" id="admin-pdf-rules" accept=".pdf,application/pdf" style="width:100%;"></div>
+          <div id="admin-pdf-status" style="font-size:12px; color:#475569; margin:12px 0;" role="status"></div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+            <button type="button" onclick="closeAdminPartnerDocs()" class="btn-warn">Zamknij</button>
+            <button type="button" id="admin-pdf-upload-btn" onclick="submitAdminPartnerDocs()" class="btn-primary">Wgraj wybrane PDF-y</button>
+          </div>
+        </div>
+      </div>
       <div id="apiPartnerModal"
      style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(2,6,23,.75); backdrop-filter:blur(8px); justify-content:center; align-items:center; padding:20px;">
 
