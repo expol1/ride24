@@ -2869,10 +2869,8 @@ const data = {
                 }
             }
         }
-        alert("Partner " + data.company_name + " został utworzony.
-" + pdfOutcome +
-            (result.email_sent === false ? "
-Uwaga: nie udało się wysłać e-maila powitalnego." : ""));
+        alert("Partner " + data.company_name + " został utworzony.\n" + pdfOutcome +
+            (result.email_sent === false ? "\nUwaga: nie udało się wysłać e-maila powitalnego." : ""));
 
         closeAddPartnerModal();
         document.getElementById("new-p-rep-name").value = "";
