@@ -36,4 +36,4 @@ jobs:
       - name: Install isolated test dependencies
         run: npm ci --prefix tests/backend-hardening
       - name: Verify eight languages, unchanged data and partner onboarding
-        run: node --experimental-strip-types --test tests/backend-hardening/test-partner-languages.mjs tests/backend-hardening/test-partner-guide.mjs tests/backend-hardening/test-partner-onboarding.mjs tests/backend-hardening/test-booking-extras-ui.mjs tests/backend-hardening/test-partner-login-mobile.mjs
+        run: node --experimental-strip-types --test tests/backend-hardening/test-partner-languages.mjs tests/backend-hardening/test-partner-guide.mjs tests/backend-hardening/test-partner-onboarding.mjs tests/backend-hardening/test-booking-extras-ui.mjs tests/backend-hardening/test-partner-login-mobile.mjs tests/backend-hardening/test-partner-cash-deposit.mjs
