@@ -1,0 +1,208 @@
+/* Ride24 Partner: bookings/dashboard RESPONSIVE PRESENTATION ONLY (2026-10-28).
+   Original booking JavaScript, payment locks, actions and SQL remain unchanged.
+   Disable instantly by removing the stylesheet link from partner-dashboard.html. */
+:is(#view-bookings,#view-dashboard) .table-container .class-label,
+:is(#view-bookings,#view-dashboard) .table-container .r24-items-open {
+  max-width:100%; overflow-wrap:anywhere; white-space:normal;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-items-open {
+  display:block; width:fit-content; margin-top:4px; text-align:left;
+}
+:is(#view-bookings,#view-dashboard) .table-container .action-btn-premium {
+  min-width:0; white-space:normal; line-height:1.25;
+}
+:is(#view-bookings,#view-dashboard) .table-container .status-tile,
+:is(#view-bookings,#view-dashboard) .table-container .timer-badge {
+  max-width:100%; overflow-wrap:anywhere; flex-wrap:wrap;
+}
+
+@media (min-width:1201px) {
+  :is(#view-bookings,#view-dashboard) .table-container {overflow-x:hidden;}
+  :is(#view-bookings,#view-dashboard) .table-container table,
+  :is(#view-bookings,#view-dashboard) .table-container thead,
+  :is(#view-bookings,#view-dashboard) .table-container tbody {
+    display:block; width:100%; min-width:0; table-layout:auto;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tr {
+    display:grid; width:100%; align-items:center;
+    grid-template-columns:minmax(0,1.34fr) minmax(0,.9fr) minmax(0,1.58fr)
+                          minmax(0,1.1fr) minmax(0,1.02fr) minmax(124px,1.08fr);
+  }
+  :is(#view-bookings,#view-dashboard) .table-container thead tr {
+    position:sticky;top:0;z-index:3;background:#f8fafc;
+    border-bottom:1px solid #e2e8f0;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container th {
+    display:block;min-width:0;width:auto!important;padding:12px 8px;
+    font-size:10px;line-height:1.45;overflow-wrap:anywhere;border-bottom:none;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container td {
+    display:block;min-width:0;width:auto;max-width:100%;padding:12px 8px;
+    font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere;
+    border-bottom:none;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr {
+    border-bottom:1px solid #e2e8f0;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr:last-child {border-bottom:none;}
+
+  /* Bookings: ID + customer / car / route + dates / status / amount / actions */
+  #view-bookings .table-container thead th:nth-child(1),
+  #view-bookings .table-container thead th:nth-child(6) {display:none;}
+  #view-bookings .table-container thead th:nth-child(2) {grid-column:1;}
+  #view-bookings .table-container thead th:nth-child(3) {grid-column:2;}
+  #view-bookings .table-container thead th:nth-child(4) {grid-column:3;}
+  #view-bookings .table-container thead th:nth-child(5) {grid-column:4;}
+  #view-bookings .table-container thead th:nth-child(7) {grid-column:5;}
+  #view-bookings .table-container thead th:nth-child(8) {grid-column:6;}
+  #view-bookings .table-container tbody tr {grid-template-rows:auto 1fr;}
+  #view-bookings .table-container tbody td:nth-child(1) {
+    grid-column:1;grid-row:1;align-self:end;padding-bottom:0;
+    color:#2563eb;font-size:11px;font-weight:800;
+  }
+  #view-bookings .table-container tbody td:nth-child(2) {
+    grid-column:1;grid-row:2;align-self:start;padding-top:2px;
+  }
+  #view-bookings .table-container tbody td:nth-child(3) {grid-column:2;grid-row:1/3;}
+  #view-bookings .table-container tbody td:nth-child(4) {
+    grid-column:3;grid-row:1;align-self:end;padding-bottom:2px;
+  }
+  #view-bookings .table-container tbody td:nth-child(5) {grid-column:4;grid-row:1/3;}
+  #view-bookings .table-container tbody td:nth-child(6) {
+    grid-column:3;grid-row:2;align-self:start;padding-top:2px;
+    color:#64748b;font-size:11px;
+  }
+  #view-bookings .table-container tbody td:nth-child(7) {grid-column:5;grid-row:1/3;}
+  #view-bookings .table-container tbody td:nth-child(8) {grid-column:6;grid-row:1/3;}
+
+  /* Dashboard: customer / car / route + dates / status + timer / amount / actions */
+  #view-dashboard .table-container thead th:nth-child(4),
+  #view-dashboard .table-container thead th:nth-child(6) {display:none;}
+  #view-dashboard .table-container thead th:nth-child(1) {grid-column:1;}
+  #view-dashboard .table-container thead th:nth-child(2) {grid-column:2;}
+  #view-dashboard .table-container thead th:nth-child(3) {grid-column:3;}
+  #view-dashboard .table-container thead th:nth-child(5) {grid-column:4;}
+  #view-dashboard .table-container thead th:nth-child(7) {grid-column:5;}
+  #view-dashboard .table-container thead th:nth-child(8) {grid-column:6;}
+  #view-dashboard .table-container tbody tr {grid-template-rows:auto auto;}
+  #view-dashboard .table-container tbody td:nth-child(1) {grid-column:1;grid-row:1/3;}
+  #view-dashboard .table-container tbody td:nth-child(2) {grid-column:2;grid-row:1/3;}
+  #view-dashboard .table-container tbody td:nth-child(3) {
+    grid-column:3;grid-row:1;align-self:end;padding-bottom:2px;
+  }
+  #view-dashboard .table-container tbody td:nth-child(4) {
+    grid-column:3;grid-row:2;align-self:start;padding-top:2px;
+    color:#64748b;font-size:11px;
+  }
+  #view-dashboard .table-container tbody td:nth-child(5) {
+    grid-column:4;grid-row:1;align-self:end;padding-bottom:3px;
+  }
+  #view-dashboard .table-container tbody td:nth-child(6) {
+    grid-column:4;grid-row:2;align-self:start;padding-top:3px;
+  }
+  #view-dashboard .table-container tbody td:nth-child(7) {grid-column:5;grid-row:1/3;}
+  #view-dashboard .table-container tbody td:nth-child(8) {grid-column:6;grid-row:1/3;}
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr > td:only-child {
+    grid-column:1/-1!important;grid-row:1/-1!important;padding:18px!important;
+  }
+}
+
+/* Cards instead of horizontal tables on phones, tablets and narrower laptop windows. */
+@media (max-width:1200px) {
+  :is(#view-bookings,#view-dashboard) .table-container {
+    width:100%!important;max-width:100%;margin-left:0!important;
+    overflow-x:hidden!important;overflow-y:visible!important;max-height:none;
+    background:transparent;border:0;border-radius:0!important;box-shadow:none;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container table {
+    display:block;width:100%!important;min-width:0!important;max-width:100%;
+    table-layout:auto;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container thead {display:none;}
+  :is(#view-bookings,#view-dashboard) .table-container tbody {
+    display:grid;grid-template-columns:minmax(0,1fr);
+    width:100%;gap:12px;padding:1px 0 12px;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr {
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto);
+    grid-template-rows:auto;align-items:start;column-gap:12px;
+    width:100%;min-width:0;max-width:780px;margin:0 auto;padding:14px;
+    background:white;border:1px solid #dbe4ee;border-radius:14px;
+    box-shadow:0 3px 11px rgba(15,23,42,.045);
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody td {
+    display:block;min-width:0;width:auto;max-width:100%;
+    padding:6px 0!important;border:0!important;
+    font-size:13px!important;line-height:1.45;
+    white-space:normal!important;overflow-wrap:anywhere;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody td .status-tile {
+    font-size:11px;
+  }
+  /* Bookings cards preserve the eight original cells and their original contents. */
+  #view-bookings .table-container tbody td:nth-child(1) {
+    grid-column:1;grid-row:1;color:#2563eb;font-weight:800;
+  }
+  #view-bookings .table-container tbody td:nth-child(5) {
+    grid-column:2;grid-row:1;justify-self:end;text-align:right;
+  }
+  #view-bookings .table-container tbody td:nth-child(2) {grid-column:1/-1;grid-row:2;}
+  #view-bookings .table-container tbody td:nth-child(3) {grid-column:1/-1;grid-row:3;}
+  #view-bookings .table-container tbody td:nth-child(4) {grid-column:1/-1;grid-row:4;}
+  #view-bookings .table-container tbody td:nth-child(6) {grid-column:1/-1;grid-row:5;}
+  #view-bookings .table-container tbody td:nth-child(7) {grid-column:1/-1;grid-row:6;}
+  #view-bookings .table-container tbody td:nth-child(8) {grid-column:1/-1;grid-row:7;}
+  /* Dashboard cards: action cell always last. */
+  #view-dashboard .table-container tbody td:nth-child(2) {grid-column:1;grid-row:1;}
+  #view-dashboard .table-container tbody td:nth-child(5) {
+    grid-column:2;grid-row:1;justify-self:end;text-align:right;
+  }
+  #view-dashboard .table-container tbody td:nth-child(1) {grid-column:1/-1;grid-row:2;}
+  #view-dashboard .table-container tbody td:nth-child(3) {grid-column:1/-1;grid-row:3;}
+  #view-dashboard .table-container tbody td:nth-child(4) {grid-column:1/-1;grid-row:4;}
+  #view-dashboard .table-container tbody td:nth-child(6) {grid-column:1/-1;grid-row:5;}
+  #view-dashboard .table-container tbody td:nth-child(7) {grid-column:1/-1;grid-row:6;}
+  #view-dashboard .table-container tbody td:nth-child(8) {grid-column:1/-1;grid-row:7;}
+  #view-bookings .table-container tbody td:nth-child(4),
+  #view-dashboard .table-container tbody td:nth-child(3) {
+    padding:10px 12px!important;margin-top:7px;border-radius:9px;
+    background:#f6f9fc;
+  }
+  #view-bookings .table-container tbody td:nth-child(6),
+  #view-dashboard .table-container tbody td:nth-child(4) {
+    padding-top:9px!important;color:#475569;
+    border-top:1px dashed #dbe4ee!important;
+  }
+  #view-bookings .table-container tbody td:nth-child(6)::before,
+  #view-dashboard .table-container tbody td:nth-child(4)::before {
+    content:'📅 ';margin-right:5px;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody td:nth-child(7) {
+    padding:11px 12px!important;margin-top:7px;border-radius:9px;
+    background:#f5fbec;color:#437e00!important;
+    font-size:17px!important;font-weight:800;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody td:nth-child(7) .r24-items-open {
+    display:block;width:fit-content;margin-top:6px;font-size:12px;text-align:left;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody td:last-child {
+    margin-top:9px;padding-top:13px!important;
+    border-top:1px solid #e2e8f0!important;
+  }
+  #view-bookings .table-container tbody td:last-child > div > div,
+  #view-dashboard .table-container tbody td:last-child > div {
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:8px!important;width:100%;min-width:0!important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody td:last-child .action-btn-premium {
+    min-height:43px;width:100%;padding:10px 7px;font-size:12px;
+  }
+  #view-bookings .table-container tbody td:last-child .countdown-timer {
+    margin-top:8px!important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr > td:only-child {
+    grid-column:1/-1!important;grid-row:1/-1!important;
+    padding:12px!important;text-align:center;
+  }
+}
