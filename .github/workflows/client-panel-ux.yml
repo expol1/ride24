@@ -1,0 +1,31 @@
+name: Ride24 Client Panel UX QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'klient.html'
+      - 'assets/css/client-panel-ux.css'
+      - 'assets/css/client-android-showcase.css'
+      - 'assets/app-promo/client-app-screen-20261029.svg'
+      - 'tests/backend-hardening/test-client-panel-ux.mjs'
+      - '.github/workflows/client-panel-ux.yml'
+  pull_request:
+    paths:
+      - 'klient.html'
+      - 'assets/css/client-panel-ux.css'
+      - 'assets/css/client-android-showcase.css'
+      - 'assets/app-promo/client-app-screen-20261029.svg'
+      - 'tests/backend-hardening/test-client-panel-ux.mjs'
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated test dependencies
+        run: npm ci --prefix tests/backend-hardening
+      - name: Ensure responsive client views retain every booking and payment function
+        run: node --test tests/backend-hardening/test-client-panel-ux.mjs
