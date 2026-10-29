@@ -2788,18 +2788,54 @@ window.submitAdminPartnerDocs = async function() {
     }
 };
 
+// Wynik tworzenia partnera: komunikat wizualny, bez zmiany operacji w Supabase.
+window.showAdminPartnerCreateResult = function({ type = "success", partnerName = "", message = "", notices = [], redirectOnClose = false } = {}) {
+    const modal = document.getElementById("adminPartnerResultModal");
+    const isError = type === "error";
+    modal.classList.toggle("is-error", isError);
+    document.getElementById("adminPartnerResultIcon").textContent = isError ? "❌" : "✅";
+    document.getElementById("adminPartnerResultTitle").textContent =
+        isError ? "Nie udało się utworzyć partnera" : "Partner został utworzony";
+    document.getElementById("adminPartnerResultSubtitle").textContent =
+        isError ? "Konto nie zostało potwierdzone jako zapisane" : "Konto partnera zostało zapisane poprawnie";
+    document.getElementById("adminPartnerResultMessage").textContent =
+        message || (isError ? "Sprawdź dane i spróbuj ponownie." :
+            "Partner " + partnerName + " został poprawnie utworzony.");
+    const list = document.getElementById("adminPartnerResultNotices");
+    list.replaceChildren();
+    for (const notice of notices) {
+        if (!notice) continue;
+        const line = document.createElement("div");
+        line.className = "admin-partner-result-notice";
+        const warning = /^UWAGA[:!]/i.test(notice) || /nie udało się wysłać/i.test(notice);
+        if (warning) line.classList.add("is-warning");
+        line.textContent = notice;
+        list.appendChild(line);
+    }
+    modal.dataset.redirectOnClose = redirectOnClose ? "true" : "false";
+    modal.hidden = false;
+    document.getElementById("adminPartnerResultOk").focus();
+};
+window.closeAdminPartnerCreateResult = function() {
+    const modal = document.getElementById("adminPartnerResultModal");
+    const redirect = modal.dataset.redirectOnClose === "true";
+    modal.hidden = true;
+    modal.dataset.redirectOnClose = "false";
+    if (redirect) window.location.href = "../index.html";
+};
+
 window.processAddPartner = async function() {
 
     const btn = document.getElementById("savePartnerBtn");
     const selectedTermsPdf = document.getElementById("new-p-terms-pdf").files[0] || null;
     const selectedRulesPdf = document.getElementById("new-p-rules-pdf").files[0] || null;
     try { validateSelectedPartnerPdfs(selectedTermsPdf, selectedRulesPdf); }
-    catch (error) { alert(error.message); return; }
+    catch (error) { showAdminPartnerCreateResult({ type: "error", message: error.message }); return; }
 
     const providerType = document.getElementById("new-p-provider-type").value;
     const currency = document.getElementById("new-p-currency").value;
     if (!["EUR", "USD", "PLN"].includes(currency)) {
-        alert("Wybierz walutę: EUR, USD lub PLN.");
+        showAdminPartnerCreateResult({ type: "error", message: "Wybierz walutę: EUR, USD lub PLN." });
         return;
     }
 
@@ -2813,7 +2849,7 @@ window.processAddPartner = async function() {
         ? representativeFullName.slice(surnameBreak + 1)
         : "";
     if (representativeName.length > 120 || representativeSurname.length > 120) {
-        alert("Imię i nazwisko reprezentanta są zbyt długie.");
+        showAdminPartnerCreateResult({ type: "error", message: "Imię i nazwisko reprezentanta są zbyt długie." });
         return;
     }
 
@@ -2860,7 +2896,7 @@ const data = {
 };
 
     if (!data.email.includes("@") || !data.company_name) {
-        alert("Podaj poprawny email i nazwę firmy!");
+        showAdminPartnerCreateResult({ type: "error", message: "Podaj poprawny email i nazwę firmy!" });
         return;
     }
 
@@ -2874,13 +2910,15 @@ const data = {
         const { data: { session } } = await db.auth.getSession();
 
         if (!session) {
-    alert("Sesja wygasła. Zaloguj się ponownie.");
+    showAdminPartnerCreateResult({
+        type: "error",
+        message: "Sesja wygasła. Zaloguj się ponownie.",
+        redirectOnClose: true
+    });
 
     btn.disabled = false;
     btn.style.opacity = "1";
     btn.style.pointerEvents = "auto";
-
-    window.location.href = "../index.html";
     return;
 }
     
@@ -2924,8 +2962,10 @@ const data = {
                 }
             }
         }
-        alert("Partner " + data.company_name + " został utworzony.\n" + pdfOutcome +
-            (result.email_sent === false ? "\nUwaga: nie udało się wysłać e-maila powitalnego." : ""));
+        const partnerCreationNotices = [pdfOutcome];
+        if (result.email_sent === false) {
+            partnerCreationNotices.push("UWAGA: Nie udało się wysłać e-maila powitalnego.");
+        }
 
         closeAddPartnerModal();
         document.getElementById("new-p-rep-fullname").value = "";
@@ -2949,11 +2989,19 @@ const data = {
         document.getElementById("new-p-api-bearer").value = "";
 
         loadPartnersData();
-        
+        showAdminPartnerCreateResult({
+            type: "success",
+            partnerName: data.company_name,
+            notices: partnerCreationNotices
+        });
+
     } catch (err) {
 
         console.error("Błąd Edge Function:", err);
-        alert("Błąd: " + err.message);
+        showAdminPartnerCreateResult({
+            type: "error",
+            message: "Nie udało się utworzyć konta partnera. " + (err?.message || "Nieznany błąd.")
+        });
 
     } finally {
         btn.disabled = false;
@@ -5633,6 +5681,7 @@ window.generateAgreement = function(partnerData) {
             .sign-box { width: 40%; border-top: 1px solid #000; padding-top: 10px; text-align: center; font-weight: bold; }
             @media print { body { padding: 0; margin: 0; } }
         </style>
+    <link rel="stylesheet" href="../assets/css/admin-partner-create-result.css?v=20261029a">
     </head>
     <body>
         <h1>PARTNER AGREEMENT</h1>
@@ -5722,6 +5771,28 @@ hereinafter referred to as the “Partner”.
     </script>
 <script src="../assets/js/admin-travel-guides.js?v=20261009a"></script>
 <script type="module" src="../assets/js/admin-seo.js?v=20261024c"></script>
+    <!-- Wynik tworzenia konta B2B. Widoczny wyłącznie po próbie zapisu. -->
+    <div id="adminPartnerResultModal" role="dialog" aria-modal="true"
+         aria-labelledby="adminPartnerResultTitle" aria-describedby="adminPartnerResultMessage" hidden
+         onkeydown="if(event.key === 'Escape'){event.preventDefault();closeAdminPartnerCreateResult();}">
+        <div class="admin-partner-result-card">
+            <div class="admin-partner-result-header">
+                <span id="adminPartnerResultIcon" class="admin-partner-result-icon" aria-hidden="true">✅</span>
+                <div class="admin-partner-result-header-text">
+                    <h2 id="adminPartnerResultTitle" class="admin-partner-result-title">Partner został utworzony</h2>
+                    <p id="adminPartnerResultSubtitle" class="admin-partner-result-subtitle">Konto partnera zostało zapisane poprawnie</p>
+                </div>
+            </div>
+            <div class="admin-partner-result-body">
+                <p id="adminPartnerResultMessage" class="admin-partner-result-message"></p>
+                <div id="adminPartnerResultNotices" class="admin-partner-result-notices"></div>
+            </div>
+            <div class="admin-partner-result-footer">
+                <button id="adminPartnerResultOk" class="admin-partner-result-ok" type="button" onclick="closeAdminPartnerCreateResult()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">
         
