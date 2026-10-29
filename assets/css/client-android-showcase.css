@@ -36,7 +36,7 @@
   color:#365f2b;font-size:13px;font-weight:800;
 }
 #view-android .r24-capp-image-wrap {
-  width:100%;min-width:0;display:flex;flex-direction:column;
+  margin:0;width:100%;min-width:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;padding:18px 0 6px;
   background:radial-gradient(ellipse,rgba(37,99,235,.13),transparent 70%);
 }
