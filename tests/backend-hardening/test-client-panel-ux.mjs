@@ -124,3 +124,33 @@ test('dashboard APK promotion keeps original eligibility and both handlers',()=>
         assert.ok(css.includes(k),'Official localized Google Play badge missing');
     assert.ok(css.includes('@media(max-width:820px)'));
 });
+
+test('dashboard lists only five newest actionable bookings and keeps the full history untouched',()=>{
+    assert.ok(!dashboard.includes('onclick="submitBooking()"'), 'Obsolete dashboard booking form CTA must be absent');
+    assert.ok(dashboard.includes('data-pl="Najnowsze rezerwacje wymagające uwagi"'));
+    assert.ok(dashboard.includes('data-en="Latest bookings needing attention"'));
+    const load=part('async function loadClientBookings()','// =====================================================================\n        // PRZYWRÓCONY STARY KOD');
+    assert.ok(load.includes(".order(\"created_at\", { ascending: false })"), 'Latest must come first');
+    assert.ok(load.includes("b.status === 'pending' || b.status === 'awaiting_payment'"));
+    assert.ok(load.includes('.slice(0, 5)'), 'Queue should show a maximum of five bookings');
+    assert.ok(load.includes('const dashboardAttentionIds = new Set('));
+    assert.ok(load.includes('bookTbody.innerHTML += rowHtml;'), 'My Bookings must preserve the full history');
+    assert.ok(load.includes('if (dashboardAttentionIds.has(String(booking.id)))'));
+    assert.ok(load.includes('if (dashboardAttentionIds.size === 0)'));
+    assert.ok(html.includes('window.submitBooking();'), 'Booking from search must remain possible');
+    assert.ok(html.includes('goToPayment('), 'Payment workflow must remain available');
+    // Test intended queue selection for mixed chronological data (newest first).
+    const ordered=[
+      {id:'new-cancelled',status:'cancelled'},
+      {id:'b1',status:'awaiting_payment'},
+      {id:'paid',status:'paid'},
+      {id:'b2',status:'pending'},
+      {id:'b3',status:'pending'},
+      {id:'b4',status:'awaiting_payment'},
+      {id:'b5',status:'pending'},
+      {id:'b6',status:'pending'}
+    ];
+    const result=ordered.filter(b=>b.status==='pending'||b.status==='awaiting_payment').slice(0,5).map(b=>b.id);
+    assert.deepEqual(result,['b1','b2','b3','b4','b5']);
+    assert.equal(ordered.length,8,'Full bookings list must be unfiltered');
+});
