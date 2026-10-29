@@ -154,3 +154,27 @@ test('dashboard lists only five newest actionable bookings and keeps the full hi
     assert.deepEqual(result,['b1','b2','b3','b4','b5']);
     assert.equal(ordered.length,8,'Full bookings list must be unfiltered');
 });
+
+test('24h partner countdown uses stored booking deadline; payment stage uses the separate new deadline',()=>{
+    const partner=read('partner-dashboard.html');
+    const clientQuery=part('async function loadClientBookings()','// =====================================================================\n        // PRZYWRÓCONY STARY KOD');
+    assert.ok(clientQuery.includes('partner_response_deadline,'),'Client query must fetch authoritative partner 24h deadline');
+    assert.ok(clientQuery.includes('data-deadline="\${booking.partner_response_deadline ||'), 'Client pending counter must use DB deadline');
+    assert.ok(!clientQuery.includes('data-created="\${booking.created_at}"'), 'Do not derive partner timeout from creation timestamp on UI');
+    assert.ok(clientQuery.includes("const deadlineStr = el.getAttribute('data-deadline')"),'Pending timer must read deadline attribute');
+    assert.ok(clientQuery.includes('data-deadline="\${booking.payment_deadline}"'), 'Client payment timer must use payment_deadline');
+    assert.ok(clientQuery.includes('const diff = new Date(deadline) - new Date()'), 'Payment counter must count down against deadline');
+    const deadlinePart = "booking.status === 'pending' ? (booking.partner_response_deadline || '') : (booking.payment_deadline || '')";
+    assert.equal(partner.split(deadlinePart).length-1,2,'Partner dashboard and bookings both need the new client 24h after acceptance');
+    assert.match(partner,/else if \(booking\.status === "pending"\) \{\s*statusHtml =/,'Partner pending-only status');
+    assert.match(partner,/else if \(booking\.status === "awaiting_payment"\) \{\s*statusHtml =/,'Partner payment state after acceptance');
+    assert.ok(partner.includes("db.rpc('partner_accept_booking'"),'Partner accept action preserved');
+    assert.ok(clientQuery.includes("goToPayment("),'Client payment action preserved');
+    const partnerCreated = new Date('2026-10-29T09:00:00Z');
+    const accepted = new Date('2026-10-30T08:30:00Z');
+    const expectedPartner = new Date(partnerCreated.getTime() + 24*60*60*1000);
+    const expectedClient = new Date(accepted.getTime() + 24*60*60*1000);
+    assert.equal(expectedPartner.toISOString(),'2026-10-30T09:00:00.000Z');
+    assert.equal(expectedClient.toISOString(),'2026-10-31T08:30:00.000Z');
+});
+
