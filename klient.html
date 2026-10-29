@@ -1651,6 +1651,7 @@ async>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 <link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
+<link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261029a">
 </head>
 <body> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -1789,14 +1790,29 @@ Potwierdź rezerwację
 
 
                 <div class="r24-app-promo-banner" id="clientAndroidPromoBanner">
-                    <div class="r24-app-promo-icon">📱</div>
-                    <div class="r24-app-promo-copy">
+                    <div class="r24-dash-promo-copy">
+                        <span class="r24-dash-promo-eyebrow" data-pl="📱 Ride24 na Androida" data-en="📱 Ride24 for Android">📱 Ride24 na Androida</span>
                         <strong data-pl="Twoje rezerwacje zawsze pod ręką" data-en="Your bookings always at hand">Twoje rezerwacje zawsze pod ręką</strong>
-                        <span data-pl="Masz już rezerwację w Ride24. W aplikacji na Androida sprawdzisz ją wygodnie z telefonu i otrzymasz ważne powiadomienia." data-en="You already have a Ride24 booking. In the Android app you can conveniently check it from your phone and receive important notifications.">Masz już rezerwację w Ride24. W aplikacji na Androida sprawdzisz ją wygodnie z telefonu i otrzymasz ważne powiadomienia.</span>
+                        <p data-pl="Znajdź samochód, śledź rezerwacje i odbieraj powiadomienia prosto na telefonie." data-en="Find cars, track your bookings and get notifications straight on your phone.">Znajdź samochód, śledź rezerwacje i odbieraj powiadomienia prosto na telefonie.</p>
+                        <div class="r24-dash-promo-features">
+                            <span data-pl="🔎 Wyszukuj auta" data-en="🔎 Find cars">🔎 Wyszukuj auta</span>
+                            <span data-pl="📋 Moje rezerwacje" data-en="📋 My bookings">📋 Moje rezerwacje</span>
+                            <span data-pl="🔔 Powiadomienia" data-en="🔔 Notifications">🔔 Powiadomienia</span>
+                        </div>
+                        <p class="r24-dash-promo-login" data-pl="✅ Ten sam login i hasło co w Ride24.pl" data-en="✅ Use the same Ride24.pl login and password">✅ Ten sam login i hasło co w Ride24.pl</p>
                     </div>
-                    <div class="r24-app-promo-actions">
-                        <button type="button" class="r24-app-play-btn" onclick="window.openClientAndroidPlay('dashboard_banner')" data-pl="Pobierz z Google Play" data-en="Get it on Google Play">Pobierz z Google Play</button>
-                        <button type="button" class="r24-app-dismiss" onclick="window.dismissClientAndroidPromo()" aria-label="Close">×</button>
+                    <div class="r24-dash-promo-actions">
+                        <div class="r24-dash-promo-phone" aria-hidden="true">
+                            <img src="assets/app-promo/client-app-screen-20261029.svg" width="125" height="278" loading="lazy" decoding="async" alt="">
+                        </div>
+                        <div class="r24-dash-promo-buttons">
+                            <button type="button" class="r24-dash-promo-play" onclick="window.openClientAndroidPlay('dashboard_banner')" aria-label="Google Play">
+                                <span class="r24-dash-promo-play-badge" aria-hidden="true"></span>
+                            </button>
+                            <button type="button" class="r24-app-dismiss" onclick="window.dismissClientAndroidPromo()" aria-label="Close">
+                                <span data-pl="Nie pokazuj ponownie" data-en="Dismiss for now">Nie pokazuj ponownie</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2027,6 +2043,12 @@ Potwierdź rezerwację
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="r24-mobile-account-action">
+                    <button type="button" class="btn-delete-account" onclick="requestDeleteAccount()">
+                        <span aria-hidden="true">🗑️</span>
+                        <span data-pl="Usuń konto" data-en="Delete account">Usuń konto</span>
+                    </button>
                 </div>
 
             </div>
@@ -3296,9 +3318,15 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
 
                             <td>${startFull} &rarr; ${endFull}</td>
                             <td>
-                                <div style="font-size:12px; line-height:1.2;">
-                                    <span title="${isEn ? 'Pickup' : 'Odbiór'}" data-title-pl="Odbiór" data-title-en="Pickup">📍 ${pickup}</span><br>
-                                    <span title="${isEn ? 'Return' : 'Zwrot'}" data-title-pl="Zwrot" data-title-en="Return" style="color:var(--gray);">🏁 ${drop}</span>
+                                <div class="r24-client-route">
+                                    <div class="r24-client-route-place r24-client-route-pickup">
+                                        <span class="r24-client-route-label" data-pl="📍 Odbiór" data-en="📍 Pickup">${isEn ? '📍 Pickup' : '📍 Odbiór'}</span>
+                                        <strong class="r24-client-route-value">${pickup}</strong>
+                                    </div>
+                                    <div class="r24-client-route-place r24-client-route-return">
+                                        <span class="r24-client-route-label" data-pl="🏁 Zwrot" data-en="🏁 Return">${isEn ? '🏁 Return' : '🏁 Zwrot'}</span>
+                                        <strong class="r24-client-route-value">${drop}</strong>
+                                    </div>
                                 </div>
                             </td>
                             <td>${statusHtml}</td>
