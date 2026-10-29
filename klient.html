@@ -3070,6 +3070,7 @@ document.addEventListener("click", async function(e) {
     pickup_location,
     return_location,
     status,
+    partner_response_deadline,
     payment_deadline,
     refund_status,
     receipt_generated,
@@ -3214,7 +3215,7 @@ if (s === 'pending') {
     actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;" data-pl="Decyzja partnera:" data-en="Partner decision:">
         ${isEn ? 'Partner decision:' : 'Decyzja partnera:'}
     </span>`;
-    actionsHtml += `<span class="timer-badge countdown-timer" data-created="${booking.created_at}" style="font-size:13px; margin-top:0; color:var(--orange);">
+    actionsHtml += `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="font-size:13px; margin-top:0; color:var(--orange);">
         ⌛ --:--:--
     </span>`;
     actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
@@ -3370,13 +3371,13 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                     window.bookingTimerRunning = true;
                     setInterval(() => {
                         document.querySelectorAll('.countdown-timer').forEach(el => {
-                            const createdStr = el.getAttribute('data-created');
-                            if (!createdStr) return;
-
-                            const createdAt = new Date(createdStr).getTime();
-                            const deadline = createdAt + (24 * 60 * 60 * 1000);
-                            const now = new Date().getTime();
-                            const diff = deadline - now;
+                            const deadlineStr = el.getAttribute('data-deadline');
+                            const deadline = deadlineStr ? new Date(deadlineStr).getTime() : NaN;
+                            if (!Number.isFinite(deadline)) {
+                                el.innerHTML = localStorage.getItem("client_lang") === "en" ? "⌛ Deadline unavailable" : "⌛ Brak terminu";
+                                return;
+                            }
+                            const diff = deadline - Date.now();
 
                             if (diff <= 0) {
                                 el.innerHTML = localStorage.getItem("client_lang") === "en" ? "⌛ Time expired" : "⌛ Czas minął";
