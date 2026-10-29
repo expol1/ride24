@@ -88,3 +88,39 @@ test('client module scripts remain syntactically valid and changes use separate 
     assert.ok(html.includes('assets/css/client-panel-ux.css'));
     assert.ok(html.includes('assets/css/client-android-showcase.css'));
 });
+
+test('mobile menu stays within the viewport and preserves every destination and delete account access',()=>{
+    const css=read('assets/css/client-mobile-dashboard-polish.css');
+    for(const nav of ['nav-dashboard','nav-bookings','nav-payments','nav-profile','nav-android'])
+        assert.ok(html.includes('id="'+nav+'"'),'Navigation item missing: '+nav);
+    assert.ok(html.includes('onclick="showReviewModal()"'),'Reviews navigation missing');
+    assert.match(css,/body > \.sidebar \{/);
+    assert.match(css,/position:fixed!important/);
+    assert.match(css,/height:100dvh!important/);
+    assert.match(css,/overscroll-behavior-y:contain/);
+    assert.match(css,/safe-area-inset-bottom/);
+    assert.match(css,/#view-profile \.r24-mobile-account-action/);
+    assert.ok(html.includes('class="r24-mobile-account-action"'),'Delete account must remain available in Profile');
+    assert.equal((html.match(/onclick="requestDeleteAccount\(\)"/g)||[]).length,2);
+});
+test('pickup and return remain visible and differentiated on the same booking row',()=>{
+    const css=read('assets/css/client-mobile-dashboard-polish.css');
+    const row=part('const rowHtml = ','dashTbody.innerHTML += rowHtml');
+    for(const marker of ['r24-client-route-pickup','r24-client-route-return','${pickup}','${drop}','data-pl="📍 Odbiór"','data-en="🏁 Return"'])
+        assert.ok(row.includes(marker),'Route field missing: '+marker);
+    assert.match(css,/\.r24-client-route-pickup/);
+    assert.match(css,/\.r24-client-route-return/);
+    assert.equal((row.match(/<td\b/g)||[]).length,8,'Route styling may not remove booking columns');
+});
+test('dashboard APK promotion keeps original eligibility and both handlers',()=>{
+    const css=read('assets/css/client-mobile-dashboard-polish.css');
+    assert.ok(dashboard.includes('id="clientAndroidPromoBanner"'));
+    assert.equal((dashboard.match(/id="clientAndroidPromoBanner"/g)||[]).length,1);
+    assert.ok(dashboard.includes('assets/app-promo/client-app-screen-20261029.svg'));
+    assert.ok(dashboard.includes("window.openClientAndroidPlay('dashboard_banner')"));
+    assert.ok(dashboard.includes('window.dismissClientAndroidPromo()'));
+    assert.ok(html.includes("banner.classList.toggle('show', eligible && !dismissed && !clicked)"));
+    for(const k of ['pl_badge_web_generic.png','en_badge_web_generic.png'])
+        assert.ok(css.includes(k),'Official localized Google Play badge missing');
+    assert.ok(css.includes('@media(max-width:820px)'));
+});
