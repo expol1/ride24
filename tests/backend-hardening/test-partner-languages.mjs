@@ -280,7 +280,7 @@ test('extras and mandatory-fee forms retain catalogue values and retranslate wit
         await s.w.ride24PartnerMandatoryRules.mount(s.w.__testDB,partner);
         await tick();
         assert.match(s.d.getElementById('partnerExtrasCatalog').textContent,/Silla infantil/);
-        assert.match(s.d.getElementById('partnerTimeFeesCatalog').textContent,/Suplementos automáticos/);
+        assert.match(s.d.getElementById('partnerTimeFeesCatalog').textContent,/Suplementos nocturnos/);
         assert.match(s.d.getElementById('partnerMandatoryRules').textContent,/One-way service/);
         s.d.querySelector('#partnerExtrasCatalog .btn-primary').click();
         const dialog=s.d.querySelector('dialog.r24-extras-dialog');assert.ok(dialog);
@@ -289,7 +289,7 @@ test('extras and mandatory-fee forms retain catalogue values and retranslate wit
         const reads=s.reads.length;
         s.w.setLang('ru');await tick();
         assert.match(s.d.getElementById('partnerExtrasCatalog').textContent,/Детское кресло/);
-        assert.match(s.d.getElementById('partnerTimeFeesCatalog').textContent,/Автоматические доплаты/);
+        assert.match(s.d.getElementById('partnerTimeFeesCatalog').textContent,/Ночные доплаты/);
         assert.match(s.d.getElementById('partnerMandatoryRules').textContent,/One-way service/);
         assert.equal(number.value,'7,50');assert.equal(code.value,'gps');assert.equal(s.reads.length,reads);assert.equal(s.writes.length,0);
     } finally {s.dom.window.close();}
