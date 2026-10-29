@@ -141,6 +141,42 @@ test('static panel labels, placeholders and helper messages have catalogue entri
     } finally {s.dom.window.close();}
 });
 
+test('Android promotion translates every visible message and accessible label in all eight languages', () => {
+    const s=setup();
+    try {
+        const area=s.d.getElementById('view-android');
+        const nodes=Array.from(area.querySelectorAll('[data-pl][data-en]'));
+        const accessible=Array.from(area.querySelectorAll('[data-aria-pl][data-aria-en]'));
+        const source=s.w.Ride24PartnerLocales.source;
+        const dictionaries=s.w.Ride24PartnerLocales.languages;
+        assert.ok(nodes.length >= 16, 'Android promotion should retain all marketing messages');
+        assert.ok(accessible.length >= 2, 'Android preview and Google Play download need translated labels');
+        assert.match(panel, /assets\\/i18n\\/partner-panel\\.js\\?v=20261029android2/, 'Fresh i18n cache version must be used');
+        for (const language of languages) {
+            assert.equal(s.w.setLang(language), undefined);
+            assert.equal(s.d.documentElement.lang,language);
+            for (const node of nodes) {
+                const key=node.dataset.en;
+                const expected=language==='en'?key:language==='pl'?node.dataset.pl:dictionaries[language][key];
+                assert.ok(expected && expected.trim(), language+' missing Android text: '+key);
+                assert.equal(node.textContent,expected,language+' Android text: '+key);
+                if (language!=='en' && language!=='pl' && key!== 'Android') {
+                    assert.notEqual(expected,key,language+' not localized: '+key);
+                }
+            }
+            for (const node of accessible) {
+                const key=node.dataset.ariaEn;
+                const expected=language==='en'?key:language==='pl'?node.dataset.ariaPl:dictionaries[language][key];
+                assert.ok(expected,language+' missing Android accessible text: '+key);
+                assert.equal(node.getAttribute('aria-label'),expected,language+' Android accessible text: '+key);
+            }
+        }
+        assert.ok(area.querySelector('.r24-android-phone-screen img[src$="partner-dashboard-preview.svg"]'));
+        assert.match(area.querySelector('.r24-android-play-button').getAttribute('onclick'),/openPartnerAndroidPlay/);
+        assert.equal(s.writes.length,0,'Language switching must not write data');
+    } finally {s.dom.window.close();}
+});
+
 test('language switching preserves form controls, typed data, money, auth and original records', async () => {
     const s=setup();
     try {
