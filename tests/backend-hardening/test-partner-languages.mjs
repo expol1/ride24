@@ -151,7 +151,7 @@ test('Android promotion translates every visible message and accessible label in
         const dictionaries=s.w.Ride24PartnerLocales.languages;
         assert.ok(nodes.length >= 16, 'Android promotion should retain all marketing messages');
         assert.ok(accessible.length >= 2, 'Android preview and Google Play download need translated labels');
-        assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261029android2'), 'Fresh i18n cache version must be used');
+        assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261029status3'), 'Fresh i18n cache version must be used');
         for (const language of languages) {
             assert.equal(s.w.setLang(language), undefined);
             assert.equal(s.d.documentElement.lang,language);
@@ -175,6 +175,21 @@ test('Android promotion translates every visible message and accessible label in
         assert.match(area.querySelector('.r24-android-play-button').getAttribute('onclick'),/openPartnerAndroidPlay/);
         assert.equal(s.writes.length,0,'Language switching must not write data');
     } finally {s.dom.window.close();}
+});
+
+test('payment-waiting partner label is short in all supported languages', () => {
+    const dict = JSON.parse(catalogCode.slice(catalogCode.indexOf('Object.freeze(') + 14, catalogCode.lastIndexOf(');')));
+    assert.ok(panel.includes('data-pl="⏳ Oczekuje" data-en="⏳ Waiting"'));
+    assert.ok(panel.includes("partnerText('Oczekuje', 'Waiting')"));
+    assert.ok(panel.includes('booking.status === "awaiting_payment"'));
+    assert.equal(dict.source.Waiting, 'Oczekuje');
+    const expected = {
+        es: 'En espera', el: 'Σε αναμονή', it: 'In attesa',
+        de: 'Wartet', ru: 'Ожидает', fr: 'En attente'
+    };
+    for (const [lang, label] of Object.entries(expected)) {
+        assert.equal(dict.languages[lang].Waiting, label, lang + ' short waiting status');
+    }
 });
 
 test('language switching preserves form controls, typed data, money, auth and original records', async () => {
