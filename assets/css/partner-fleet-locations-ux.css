@@ -197,7 +197,12 @@ html:lang(fr) :is(#view-fleet,#view-locations){--r24-seats:"Places";--r24-transm
     color:#16733a!important;text-align:left!important;font-size:18px!important;
     font-weight:850!important;padding:11px 13px!important;
   }
-  #view-fleet .table-container tbody td:nth-child(10) {grid-column:1/-1;grid-row:6;margin-top:6px;}
+  /* Full-width action cell overrides the older 106px desktop rule.
+     Without this, three buttons were squeezed into one narrow column. */
+  #view-fleet .table-container tbody td:nth-child(10) {
+    grid-column:1/-1;grid-row:6;margin-top:6px;
+    box-sizing:border-box;width:100%!important;min-width:0!important;max-width:100%!important;
+  }
   #view-fleet .table-container .fleet-thumb {width:100%!important;height:87px!important;max-width:125px;}
   #view-fleet .table-container tbody td:nth-child(4)::before {content:var(--r24-seats,"Seats");}
   #view-fleet .table-container tbody td:nth-child(5)::before {content:var(--r24-transmission,"Transmission");}
