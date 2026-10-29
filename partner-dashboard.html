@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/partner-languages.css?v=20261023a">
-    <script src="assets/i18n/partner-panel.js?v=20261029android2"></script>
+    <script src="assets/i18n/partner-panel.js?v=20261029status3"></script>
     <script src="assets/helper/partnerI18n.js?v=20261024fr1"></script>
 
     <title>Partner Panel - Ride24</title>
@@ -3506,7 +3506,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 }
                
               else if (booking.status === "awaiting_payment") {
-                    statusHtml = `<div class="status-tile awaiting_payment" data-pl="⏳ Oczekuje płatności" data-en="⏳ Awaiting payment">⏳ ${partnerText('Oczekuje płatności', 'Awaiting payment')}</div>`;
+                    statusHtml = `<div class="status-tile awaiting_payment" data-pl="⏳ Oczekuje" data-en="⏳ Waiting">⏳ ${partnerText('Oczekuje', 'Waiting')}</div>`;
                 }
                 else if (booking.status === "payment_expired" || booking.status === "expired") {
                     statusHtml = `<div class="status-tile payment_expired" data-pl="⏰ Wygasła" data-en="⏰ Expired">⏰ ${partnerText('Wygasła', 'Expired')}</div>`;
