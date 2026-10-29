@@ -1,0 +1,157 @@
+/* Ride24 Partner – Android download tab only (2026-10-29).
+   Presentation layer: no application logic, modal, auth, API, booking or nav changes.
+   Remove the stylesheet link to revert this design. */
+#view-android .r24-android-showcase {
+  position:relative;isolation:isolate;overflow:hidden;box-sizing:border-box;
+  width:100%;max-width:1140px;margin:0 auto 32px;
+  padding:clamp(20px,3.2vw,43px);border-radius:23px;
+  background:radial-gradient(circle at 86% 14%,rgba(151,215,0,.15),transparent 40%),
+             linear-gradient(138deg,#fff 18%,#eff6ff 75%,#e4f2ff);
+  border:1px solid #b7d6f6;box-shadow:0 18px 46px rgba(30,58,138,.10);
+}
+#view-android .r24-android-showcase::before {
+  content:"";position:absolute;inset:0 0 auto;height:5px;
+  background:linear-gradient(90deg,#2563eb 0 72%,#97d700 72%);z-index:1;
+}
+#view-android .r24-android-hero {
+  display:grid;grid-template-columns:minmax(0,1.12fr) minmax(245px,.88fr);
+  align-items:center;gap:clamp(24px,4vw,56px);min-width:0;
+}
+#view-android .r24-android-copy {min-width:0;max-width:650px;}
+#view-android .r24-android-eyebrow {
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 13px;border-radius:999px;background:#e7f3ff;
+  color:#20539c;font-size:12px;font-weight:850;line-height:1.3;
+  border:1px solid #bedafd;
+}
+#view-android .r24-android-copy h2 {
+  margin:18px 0 15px;font-size:clamp(27px,3.15vw,42px);
+  font-weight:900;line-height:1.13;letter-spacing:-.04em;color:#173679;
+  text-wrap:balance;overflow-wrap:anywhere;
+}
+#view-android .r24-android-copy > p {
+  margin:0;font-size:clamp(14px,1.5vw,17px);line-height:1.75;
+  color:#4e6685;max-width:60ch;overflow-wrap:anywhere;
+}
+#view-android .r24-android-hero-mark {
+  display:flex;align-items:center;gap:9px;margin-top:23px;
+  padding:12px 15px;border:1px solid #d0e5a8;background:#f4fbea;
+  border-radius:12px;color:#365923;font-size:13px;font-weight:800;
+}
+#view-android .r24-android-hero-mark span:first-child {font-size:20px;line-height:1;}
+#view-android .r24-android-device-side {display:grid;justify-items:center;min-width:0;}
+#view-android .r24-android-device-backdrop {
+  display:grid;place-items:center;width:100%;min-height:490px;
+  padding:18px 6px 6px;box-sizing:border-box;
+  background:radial-gradient(ellipse at 50% 48%,rgba(37,99,235,.13),transparent 66%);
+}
+#view-android .r24-android-phone {
+  position:relative;width:min(100%,257px);
+  padding:9px;background:#0c1836;border:2px solid #334766;
+  border-radius:39px;box-sizing:border-box;
+  box-shadow:0 24px 45px rgba(6,24,61,.26),inset 0 0 0 2px rgba(255,255,255,.09);
+}
+#view-android .r24-android-phone::before {
+  content:"";position:absolute;left:50%;top:4px;transform:translateX(-50%);
+  width:58px;height:4px;border-radius:12px;background:#344562;z-index:2;
+}
+#view-android .r24-android-phone-screen {
+  overflow:hidden;border-radius:29px;background:linear-gradient(140deg,#031347,#004f4d);
+}
+#view-android .r24-android-phone-screen img {
+  width:100%;height:auto;display:block;
+  aspect-ratio:200 / 445;object-fit:cover;object-position:center;
+}
+#view-android .r24-android-phone-caption {
+  margin:13px 0 0!important;text-align:center!important;
+  color:#536d91!important;font-size:11px!important;font-weight:700;
+  line-height:1.45;max-width:290px;
+}
+#view-android .r24-android-benefits {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:11px;margin:21px 0 18px;
+}
+#view-android .r24-android-benefit {
+  display:flex;align-items:center;min-width:0;min-height:76px;
+  padding:16px 14px;border:1px solid #cfdef0;border-left:4px solid #97d700;
+  border-radius:13px;background:rgba(255,255,255,.86);
+  color:#214678;font-weight:800;font-size:13px;line-height:1.45;
+  overflow-wrap:anywhere;box-sizing:border-box;
+}
+#view-android .r24-android-info-grid {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;margin:0 0 20px;
+}
+#view-android .r24-android-info {
+  min-width:0;padding:17px 19px;border-radius:13px;border:1px solid #c9def5;
+  background:#eaf5ff;box-sizing:border-box;
+}
+#view-android .r24-android-info.team {background:#eff8e9;border-color:#c8e4bc;}
+#view-android .r24-android-info strong {
+  display:block;color:#173e79;font-size:15px;line-height:1.4;margin-bottom:5px;
+}
+#view-android .r24-android-info.team strong {color:#2d5e27;}
+#view-android .r24-android-info p {
+  margin:0;color:#506681;font-size:12px;line-height:1.65;overflow-wrap:anywhere;
+}
+#view-android .r24-android-download {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:22px;flex-wrap:wrap;min-width:0;
+  border-radius:16px;background:#f8fbff;border:1px solid #d4e3f5;
+  padding:15px 22px;
+}
+#view-android .r24-android-download-copy {min-width:0;flex:1 1 200px;}
+#view-android .r24-android-download-copy strong {
+  display:block;color:#183e78;font-size:17px;line-height:1.35;font-weight:850;
+}
+#view-android .r24-android-download-copy p {
+  margin:5px 0 0;color:#566b85;font-size:12px;line-height:1.4;
+}
+#view-android .r24-android-play-button {
+  appearance:none;border:0;background:transparent;display:block;
+  flex:none;position:relative;cursor:pointer;
+  width:222px;height:88px;padding:0;margin:0;box-sizing:border-box;
+  border-radius:12px;transition:transform .15s ease;
+}
+#view-android .r24-android-play-button:hover {transform:translateY(-2px);}
+#view-android .r24-android-play-button:focus-visible {
+  outline:3px solid #2563eb;outline-offset:3px;
+}
+#view-android .r24-android-play-badge {
+  display:block;width:100%;height:100%;
+  background:center/contain no-repeat
+    url("https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png");
+}
+html:lang(pl) #view-android .r24-android-play-badge {background-image:url("https://play.google.com/intl/en_us/badges/static/images/badges/pl_badge_web_generic.png");}
+html:lang(es) #view-android .r24-android-play-badge {background-image:url("https://play.google.com/intl/en_us/badges/static/images/badges/es_badge_web_generic.png");}
+html:lang(it) #view-android .r24-android-play-badge {background-image:url("https://play.google.com/intl/en_us/badges/static/images/badges/it_badge_web_generic.png");}
+html:lang(de) #view-android .r24-android-play-badge {background-image:url("https://play.google.com/intl/en_us/badges/static/images/badges/de_badge_web_generic.png");}
+html:lang(fr) #view-android .r24-android-play-badge {background-image:url("https://play.google.com/intl/en_us/badges/static/images/badges/fr_badge_web_generic.png");}
+/* The Google Play badge uses the official English version for EL/RU where
+   the verified static asset is unavailable; panel copy stays localized. */
+@media(max-width:880px) {
+  #view-android .r24-android-hero {grid-template-columns:minmax(0,1fr);gap:8px;}
+  #view-android .r24-android-copy {max-width:none;}
+  #view-android .r24-android-device-backdrop {min-height:0;padding-top:21px;}
+  #view-android .r24-android-phone {width:min(100%,232px);}
+  #view-android .r24-android-benefits {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:540px) {
+  #view-android .r24-android-showcase {padding:19px 15px 21px;border-radius:17px;}
+  #view-android .r24-android-copy h2 {font-size:25px;margin:14px 0 11px;}
+  #view-android .r24-android-copy > p {font-size:13px;line-height:1.65;}
+  #view-android .r24-android-hero-mark {padding:10px;font-size:11px;margin-top:16px;}
+  #view-android .r24-android-device-backdrop {padding:12px 0 0;}
+  #view-android .r24-android-phone {width:min(100%,219px);}
+  #view-android .r24-android-benefits {gap:9px;margin:19px 0 13px;}
+  #view-android .r24-android-benefit {font-size:11px;min-height:67px;padding:12px 9px;}
+  #view-android .r24-android-info-grid {grid-template-columns:minmax(0,1fr);gap:10px;}
+  #view-android .r24-android-info {padding:15px;}
+  #view-android .r24-android-download {display:grid;grid-template-columns:minmax(0,1fr);
+    justify-items:center;text-align:center;gap:5px;padding:14px;}
+  #view-android .r24-android-download-copy {width:100%;flex:none;}
+  #view-android .r24-android-play-button {width:224px;max-width:100%;}
+}
+@media(prefers-reduced-motion:reduce) {
+  #view-android .r24-android-play-button {transition:none;}
+}
