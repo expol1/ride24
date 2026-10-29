@@ -1649,6 +1649,8 @@ async>
 .r24-client-price-deposit{background:#fffbeb;color:#92400e;padding:15px;margin-top:12px;border:1px solid #fde68a;border-radius:10px}
 </style>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
+<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261029a">
+<link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
 </head>
 <body> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -1848,26 +1850,39 @@ Potwierdź rezerwację
                 <div class="page-header">
                     <h1 class="page-title" data-pl="Ride24 na Androida" data-en="Ride24 for Android">Ride24 na Androida</h1>
                 </div>
-
-                <div class="r24-app-view-card">
-                    <div class="r24-app-view-head">
-                        <div class="r24-app-view-icon">📱</div>
-                        <div>
-                            <h2 data-pl="Rezerwuj i zarządzaj wygodnie z telefonu" data-en="Book and manage conveniently from your phone">Rezerwuj i zarządzaj wygodnie z telefonu</h2>
-                            <p data-pl="Zaloguj się tym samym kontem co na Ride24.pl. Wyszukuj samochody, składaj rezerwacje i sprawdzaj ich status bez otwierania przeglądarki." data-en="Sign in with the same account you use on Ride24.pl. Search for cars, make bookings and check their status without opening a browser.">Zaloguj się tym samym kontem co na Ride24.pl. Wyszukuj samochody, składaj rezerwacje i sprawdzaj ich status bez otwierania przeglądarki.</p>
+                <section class="r24-capp-showcase">
+                    <div class="r24-capp-hero">
+                        <div class="r24-capp-copy">
+                            <span class="r24-capp-eyebrow" data-pl="Ride24 • Aplikacja dla klientów" data-en="Ride24 • Customer app">Ride24 • Aplikacja dla klientów</span>
+                            <h2 data-pl="Znajdź samochód i zarządzaj rezerwacją z telefonu" data-en="Find a car and manage your booking on your phone">Znajdź samochód i zarządzaj rezerwacją z telefonu</h2>
+                            <p data-pl="Wyszukuj samochody, rezerwuj wygodnie i sprawdzaj status wynajmu bez otwierania przeglądarki. Wszystkie ważne informacje masz zawsze pod ręką." data-en="Search for cars, book conveniently and check your rental status without opening a browser. All your important information stays at your fingertips.">Wyszukuj samochody, rezerwuj wygodnie i sprawdzaj status wynajmu bez otwierania przeglądarki. Wszystkie ważne informacje masz zawsze pod ręką.</p>
+                            <div class="r24-capp-trust" data-pl="✅ To samo konto i hasło co na Ride24.pl — bez dodatkowej rejestracji." data-en="✅ Use the same account and password as on Ride24.pl — no extra registration.">✅ To samo konto i hasło co na Ride24.pl — bez dodatkowej rejestracji.</div>
                         </div>
+                        <figure class="r24-capp-image-wrap" aria-label="Podgląd Ride24 Client App">
+                            <div class="r24-capp-phone">
+                                <div class="r24-capp-screen">
+                                    <img src="assets/app-promo/client-app-pl.jpg" width="691" height="1536" loading="lazy" decoding="async" alt="Ride24 Client App — ekran wyszukiwania samochodu" data-alt-pl="Ride24 Client App — ekran wyszukiwania samochodu" data-alt-en="Ride24 Client App — car search screen">
+                                </div>
+                            </div>
+                            <figcaption class="r24-capp-caption" data-pl="Prawdziwy ekran aplikacji Ride24 Client App" data-en="Actual Ride24 Client App screen">Prawdziwy ekran aplikacji Ride24 Client App</figcaption>
+                        </figure>
                     </div>
-                    <div class="r24-app-feature-grid">
-                        <div class="r24-app-feature" data-pl="🔎 Wyszukiwanie i rezerwacja auta" data-en="🔎 Search and book a car">🔎 Wyszukiwanie i rezerwacja auta</div>
-                        <div class="r24-app-feature" data-pl="📋 Rezerwacje i ich statusy" data-en="📋 Bookings and their statuses">📋 Rezerwacje i ich statusy</div>
-                        <div class="r24-app-feature" data-pl="🔔 Ważne powiadomienia" data-en="🔔 Important notifications">🔔 Ważne powiadomienia</div>
+                    <div class="r24-capp-features">
+                        <div class="r24-capp-feature" data-pl="🔎 Wyszukiwanie i rezerwacja samochodu" data-en="🔎 Search for and book a car">🔎 Wyszukiwanie i rezerwacja samochodu</div>
+                        <div class="r24-capp-feature" data-pl="📋 Rezerwacje i ich aktualne statusy" data-en="📋 Bookings and their current statuses">📋 Rezerwacje i ich aktualne statusy</div>
+                        <div class="r24-capp-feature" data-pl="🔔 Ważne powiadomienia w telefonie" data-en="🔔 Important notifications on your phone">🔔 Ważne powiadomienia w telefonie</div>
                     </div>
-                    <button type="button" class="r24-app-big-play" onclick="window.openClientAndroidPlay('client_tab')">
-                        <span>▶</span>
-                        <span data-pl="Pobierz Ride24 z Google Play" data-en="Get Ride24 on Google Play">Pobierz Ride24 z Google Play</span>
-                    </button>
-                    <p class="r24-app-small-note" data-pl="Aplikacja dla klientów Ride24 • Android" data-en="Ride24 customer app • Android">Aplikacja dla klientów Ride24 • Android</p>
-                </div>
+                    <div class="r24-capp-account" data-pl="🔐 Zaloguj się takim samym adresem e-mail i hasłem jak w panelu klienta Ride24. Nie potrzebujesz osobnego konta." data-en="🔐 Sign in with the same email address and password as in the Ride24 Customer Panel. No separate account is needed.">🔐 Zaloguj się takim samym adresem e-mail i hasłem jak w panelu klienta Ride24. Nie potrzebujesz osobnego konta.</div>
+                    <div class="r24-capp-download">
+                        <div class="r24-capp-download-text">
+                            <strong data-pl="Pobierz aplikację Ride24 na Androida" data-en="Get the Ride24 Android app">Pobierz aplikację Ride24 na Androida</strong>
+                            <p data-pl="Dostępna w sklepie Google Play" data-en="Available on Google Play">Dostępna w sklepie Google Play</p>
+                        </div>
+                        <button type="button" class="r24-capp-play" onclick="window.openClientAndroidPlay('client_tab')" aria-label="Pobierz z Google Play" data-aria-pl="Pobierz z Google Play" data-aria-en="Get it on Google Play">
+                            <span class="r24-capp-badge" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                </section>
             </div>
 
             <div id="view-bookings" class="view-section">
@@ -2249,38 +2264,78 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
     html += `</div>`;
 }
             body.innerHTML = html;
+            // Presentation only: reuse the existing saved booking amounts inside this details modal.
+            const priceSection = document.createElement('section');
+            priceSection.className = 'r24-unified-pricing';
+            body.appendChild(priceSection);
+            window.openClientPriceBreakdown(bookingId, priceSection);
             document.getElementById("bookingDetailsModal").style.display = "flex";
         };
 
-        window.openClientPriceBreakdown = function(id) {
-            const b=window.ride24BookingsById?.[id], p=b?.pricing_items_snapshot;
-            if(p?.version!==2 || !Array.isArray(p.items))return;
-            const en=localStorage.getItem('client_lang')==='en';
-            const money=(c,cur=p.currency)=>(Number(c||0)/100).toFixed(2)+' '+cur;
-            const node=(tag,text)=>{const e=document.createElement(tag);if(text!=null)e.textContent=text;return e;};
-            const dialog=node('dialog');dialog.className='r24-client-price-modal';
-            dialog.setAttribute('aria-label',en?'Price breakdown':'Rozliczenie rezerwacji');
-            const head=node('div');head.className='r24-client-price-head';
-            const title=node('h3',en?'Price breakdown':'Rozliczenie rezerwacji');
-            const close=node('button','×');close.type='button';close.setAttribute('aria-label',en?'Close':'Zamknij');close.onclick=()=>dialog.close();
-            head.append(title,close);dialog.append(head);
+        window.openClientPriceBreakdown = function(id, inlineTarget = null) {
+            const booking = window.ride24BookingsById?.[id];
+            if (!booking) return;
+            const snapshot = booking.pricing_items_snapshot;
+            const valid = snapshot?.version === 2 && Array.isArray(snapshot.items);
+            // Preserve the old public action for any external callers, but never create a
+            // second modal when details are opened through the unified flow.
+            if (!inlineTarget && !valid) return;
+            const en = localStorage.getItem('client_lang') === 'en';
+            const node = (tag, text) => {
+                const el = document.createElement(tag);
+                if (text != null) el.textContent = text;
+                return el;
+            };
+            const dialog = inlineTarget ? null : node('dialog');
+            if (dialog) {
+                dialog.className = 'r24-client-price-modal';
+                dialog.setAttribute('aria-label',en?'Price breakdown':'Rozliczenie rezerwacji');
+                const head=node('div');head.className='r24-client-price-head';
+                const title=node('h3',en?'Price breakdown':'Rozliczenie rezerwacji');
+                const close=node('button','×');close.type='button';
+                close.setAttribute('aria-label',en?'Close':'Zamknij');close.onclick=()=>dialog.close();
+                head.append(title,close);dialog.append(head);
+            }
             const body=node('div');body.className='r24-client-price-body';
-            function row(name,value,kind='') {
+            const row=(name,value,kind='')=>{
                 const r=node('div');r.className='r24-client-price-row '+kind;
                 r.append(node('span',name),node('strong',value));body.append(r);
+            };
+            if (valid) {
+                const money=(c,cur=snapshot.currency)=>(Number(c||0)/100).toFixed(2)+' '+cur;
+                for(const item of snapshot.items){
+                    const name=(en?item.name_en:item.name_pl)+(item.location_name?' — '+item.location_name:'')+
+                      (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(en?'days':'dni'):''):'');
+                    row(name,money(item.customer_cents));
+                }
+                if(snapshot.loyalty_discount_cents)
+                    row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(snapshot.loyalty_discount_cents));
+                row(en?'Total price':'Cena łączna',money(snapshot.total_cents),'r24-client-price-total');
+                row('Online Ride24',money(snapshot.online_pln_cents,'PLN'));
+                row(en?'Payable to partner':'Do zapłaty partnerowi',money(snapshot.partner_cents));
+                const deposit=Number(booking.deposit_snapshot||0);
+                row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
+                    deposit>0?deposit.toFixed(2)+' '+snapshot.currency:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
+            } else {
+                // Older bookings have no v2 itemised snapshot; show only amounts already
+                // stored on that booking. Never calculate or invent a rental breakdown.
+                const notice=node('p',en
+                    ?'An itemised breakdown was not saved for this booking. The recorded amounts are shown below.'
+                    :'Dla tej rezerwacji nie zapisano rozliczenia szczegółowego. Poniżej znajdują się zapisane kwoty.');
+                notice.className='r24-price-legacy';body.append(notice);
+                row('Online Ride24',(Number(booking.online_payment_pln)||0).toFixed(2)+' PLN');
+                const curr=booking.car_classes?.partners?.currency||'EUR';
+                row(en?'At pickup':'Przy odbiorze',(Number(booking.pickup_payment_partner_currency)||0).toFixed(2)+' '+curr);
+                const deposit=Number(booking.deposit_snapshot||0);
+                row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
+                    deposit>0?deposit.toFixed(2)+' '+curr:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
             }
-            for(const item of p.items){
-                const name=(en?item.name_en:item.name_pl)+(item.location_name?' — '+item.location_name:'')+
-                  (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(en?'days':'dni'):''):'');
-                row(name,money(item.customer_cents));
+            if (inlineTarget) {
+                inlineTarget.replaceChildren(node('h4',en?'Price breakdown':'Rozliczenie rezerwacji'),body);
+                return;
             }
-            if(p.loyalty_discount_cents)row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(p.loyalty_discount_cents));
-            row(en?'Total price':'Cena łączna',money(p.total_cents),'r24-client-price-total');
-            row('Online Ride24',money(p.online_pln_cents,'PLN'));
-            row(en?'Payable to partner':'Do zapłaty partnerowi',money(p.partner_cents));
-            const deposit=Number(b.deposit_snapshot||0);
-            row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',deposit>0?deposit.toFixed(2)+' '+p.currency:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
-            dialog.append(body);document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
+            dialog.append(body);document.body.append(dialog);
+            dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();
         };
         window.closeDetailsModal = function() {
             document.getElementById("bookingDetailsModal").style.display = "none";
@@ -3251,7 +3306,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     <strong>
         ${(booking.pickup_payment_partner_currency || 0).toFixed(2)} ${partnerCurrency}
     </strong>
-    ${booking.pricing_items_snapshot?.version === 2 ? `<button type="button" class="r24-client-price-open" data-pl="Zobacz rozliczenie" data-en="View breakdown" onclick="openClientPriceBreakdown('${booking.id}')">${isEn ? 'View breakdown' : 'Zobacz rozliczenie'}</button>` : ''}
+
 </td>
                             <td class="price-due">
     ${(booking.online_payment_pln || 0).toFixed(2)} PLN<br>
@@ -4677,7 +4732,7 @@ window.closeReviewModal = function() {
     <!-- Modal Usuwania Konta -->
      <div id="bookingDetailsModal" class="custom-modal">
         <div class="modal-content" style="max-width: 400px; text-align: left;">
-            <h3 style="margin-top: 0; color: white;" data-pl="Szczegóły wynajmu" data-en="Rental Details">Szczegóły wynajmu</h3>
+            <h3 style="margin-top: 0; color: white;" data-pl="Szczegóły rezerwacji" data-en="Booking details">Szczegóły rezerwacji</h3>
 
             <div id="bookingDetailsBody" style="color: #94A3B8; font-size: 14px; line-height: 1.8; background: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
                 </div>
