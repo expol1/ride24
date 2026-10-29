@@ -41,7 +41,8 @@ test('all actions still exist for every booking, payment and refund state',()=>{
     for(const s of ['pending','accepted','awaiting_payment','paid','cancelled','rejected','expired','payment_expired'])
         assert.ok(html.includes(s),'Missing booking status '+s);
     const paymentRenderer=part('window.loadPayments =','window.goToHome =');
-    const paymentRow=paymentRenderer.slice(paymentRenderer.indexOf('tbody.innerHTML += `'));
+    const paymentRow=paymentRenderer.match(/tbody\.innerHTML \+= `\s*<tr>([\s\S]*?)<\/tr>\s*`/)?.[1];
+    assert.ok(paymentRow,'Missing payment row template');
     assert.equal((paymentRow.match(/<td\b/g)||[]).length,4,'Generated payment row lost a field');
     assert.match(paymentRenderer,/refund_status === "completed"/);
     assert.match(paymentRenderer,/refund_status === "pending"/);
