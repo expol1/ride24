@@ -1,6 +1,7 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+    "Waiting": "Oczekuje",
     "Manage bookings from anywhere — together with your team.": "Zarządzaj rezerwacjami z każdego miejsca — razem ze swoim zespołem.",
     "Respond to new requests, check bookings and scan vouchers straight from your phone.": "Odpowiadaj na nowe zapytania, sprawdzaj rezerwacje i skanuj vouchery bezpośrednio na telefonie.",
     "👥 Your whole team, online at the same time": "👥 Cały zespół jednocześnie w aplikacji",
@@ -550,6 +551,7 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+    "Waiting": "En espera",
     "Manage bookings from anywhere — together with your team.": "Gestiona las reservas desde cualquier lugar, junto con tu equipo.",
     "Respond to new requests, check bookings and scan vouchers straight from your phone.": "Responde a nuevas solicitudes, consulta las reservas y escanea los vales directamente desde el teléfono.",
     "👥 Your whole team, online at the same time": "👥 Todo tu equipo conectado al mismo tiempo",
@@ -1098,6 +1100,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+    "Waiting": "Σε αναμονή",
     "Manage bookings from anywhere — together with your team.": "Διαχειριστείτε κρατήσεις από παντού, μαζί με την ομάδα σας.",
     "Respond to new requests, check bookings and scan vouchers straight from your phone.": "Απαντήστε σε νέα αιτήματα, ελέγξτε κρατήσεις και σαρώστε κουπόνια απευθείας από το κινητό σας.",
     "👥 Your whole team, online at the same time": "👥 Όλη η ομάδα σας ταυτόχρονα στην εφαρμογή",
@@ -1646,6 +1649,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+    "Waiting": "In attesa",
     "Manage bookings from anywhere — together with your team.": "Gestisci le prenotazioni ovunque, insieme al tuo team.",
     "Respond to new requests, check bookings and scan vouchers straight from your phone.": "Rispondi alle nuove richieste, controlla le prenotazioni e scansiona i voucher direttamente dal telefono.",
     "👥 Your whole team, online at the same time": "👥 Tutto il team connesso contemporaneamente",
@@ -2194,6 +2198,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+    "Waiting": "Wartet",
     "Manage bookings from anywhere — together with your team.": "Verwalten Sie Buchungen von überall – gemeinsam mit Ihrem Team.",
     "Respond to new requests, check bookings and scan vouchers straight from your phone.": "Reagieren Sie auf neue Anfragen, prüfen Sie Buchungen und scannen Sie Voucher direkt auf Ihrem Smartphone.",
     "👥 Your whole team, online at the same time": "👥 Das ganze Team gleichzeitig online",
@@ -2742,6 +2747,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+    "Waiting": "Ожидает",
     "Manage bookings from anywhere — together with your team.": "Управляйте бронированиями откуда угодно вместе со своей командой.",
     "Respond to new requests, check bookings and scan vouchers straight from your phone.": "Отвечайте на новые заявки, проверяйте бронирования и сканируйте ваучеры прямо с телефона.",
     "👥 Your whole team, online at the same time": "👥 Вся команда в приложении одновременно",
@@ -3290,6 +3296,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+    "Waiting": "En attente",
     "Manage bookings from anywhere — together with your team.": "Gérez les réservations où que vous soyez, avec votre équipe.",
     "Respond to new requests, check bookings and scan vouchers straight from your phone.": "Répondez aux nouvelles demandes, consultez les réservations et scannez les vouchers directement depuis votre téléphone.",
     "👥 Your whole team, online at the same time": "👥 Toute votre équipe connectée en même temps",
