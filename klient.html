@@ -1783,9 +1783,6 @@ async>
             <div id="view-dashboard" class="view-section active">
                 <div class="page-header">
                     <h1 class="page-title" data-pl="Pulpit" data-en="Dashboard">Pulpit</h1>
-                    <button class="btn-primary" onclick="submitBooking()" style="margin-bottom:20px;" data-pl="Potwierdź rezerwację" data-en="Confirm booking">
-Potwierdź rezerwację
-</button>
                 </div>
 
 
@@ -1841,7 +1838,7 @@ Potwierdź rezerwację
 </div>
 
                 <div class="table-container">
-                    <div class="table-header" data-pl="Ostatnie rezerwacje" data-en="Recent bookings">Ostatnie rezerwacje</div>
+                    <div class="table-header" data-pl="Najnowsze rezerwacje wymagające uwagi" data-en="Latest bookings needing attention">Najnowsze rezerwacje wymagające uwagi</div>
                     <table>
                         <thead>
                             <tr>
@@ -3161,6 +3158,17 @@ if (badge) {
                     return;
                 }
 
+                // Dashboard: only the five newest bookings awaiting a partner's
+                // decision or the customer's online payment. The full booking
+                // history and existing actions remain in "My bookings".
+                // The query already sorts created_at descending.
+                const dashboardAttentionIds = new Set(
+                    clientBookings
+                        .filter(b => b.status === 'pending' || b.status === 'awaiting_payment')
+                        .slice(0, 5)
+                        .map(b => String(b.id))
+                );
+
                 // Generowanie tabel
                 for (const booking of clientBookings) {
                     const carName = booking.car_classes?.description || "Auto";
@@ -3346,8 +3354,15 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                             </td>
                         </tr>
                     `;
-                    dashTbody.innerHTML += rowHtml;
+                    // Never remove rows from the full "My bookings" history.
                     bookTbody.innerHTML += rowHtml;
+                    if (dashboardAttentionIds.has(String(booking.id))) {
+                        dashTbody.innerHTML += rowHtml;
+                    }
+                }
+
+                if (dashboardAttentionIds.size === 0) {
+                    dashTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--gray); padding:24px;" data-pl="Nie masz nowych rezerwacji wymagających działania ani oczekujących na potwierdzenie partnera." data-en="No recent bookings need your action or are awaiting partner confirmation.">${isEn ? "No recent bookings need your action or are awaiting partner confirmation." : "Nie masz nowych rezerwacji wymagających działania ani oczekujących na potwierdzenie partnera."}</td></tr>`;
                 }
 
                 // --- SILNIK ODLICZANIA 24H DLA STATUSU PENDING ---
