@@ -1,0 +1,27 @@
+name: Ride24 Admin Partner Result QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'admin/index.html'
+      - 'assets/css/admin-partner-create-result.css'
+      - 'tests/backend-hardening/test-admin-partner-create-result.mjs'
+      - '.github/workflows/admin-partner-result.yml'
+  pull_request:
+    paths:
+      - 'admin/index.html'
+      - 'assets/css/admin-partner-create-result.css'
+      - 'tests/backend-hardening/test-admin-partner-create-result.mjs'
+  workflow_dispatch:
+jobs:
+  result-dialog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test dependencies
+        run: npm ci --prefix tests/backend-hardening
+      - name: Verify partner creation result modal and original logic
+        run: node --test tests/backend-hardening/test-admin-partner-create-result.mjs
