@@ -1,6 +1,13 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+    "Vehicle pickup and return fees": "Opłaty za odbiór i zwrot samochodu",
+    "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Tutaj ustalasz standardową opłatę za podstawienie samochodu do tej lokalizacji przy odbiorze oraz odebranie go od klienta przy zwrocie. Możesz podać różne kwoty. Opłaty są doliczane automatycznie. Puste pole oznacza bezpłatnie; zmiany dotyczą tylko nowych rezerwacji.",
+    "Night-time and out-of-hours fees": "Dopłaty nocne i poza godzinami pracy",
+    "Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.": "Ustal godziny, w których odbiór lub zwrot samochodu wymaga dopłaty (np. 22:00–07:00). Możesz wybrać lokalizację, kwotę i naliczanie tylko raz na rezerwację, gdy oba zdarzenia przypadają w tym przedziale. System automatycznie pokaże dopłatę klientowi przed rezerwacją.",
+    "Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.": "Tu ustawisz obowiązkową dopłatę za obsługę wybranego miejsca (np. hotelu) lub zwrot samochodu w innym mieście. System nalicza ją automatycznie po spełnieniu warunków. Uważaj, aby nie naliczać ponownie opłaty już ustawionej za odbiór lub zwrot w lokalizacji. W sekcji godzin niedostępnych ustawisz pory, w których rezerwacja odbioru lub zwrotu jest zablokowana — bez dodatkowych opłat.",
+    "Additional location or route fees": "Dodatkowe opłaty za lokalizację lub trasę",
+    "Unavailable pickup and return hours": "Godziny niedostępne dla odbioru i zwrotu",
     "Enter a refundable cash deposit amount greater than zero.": "Podaj kwotę zwrotnej kaucji gotówkowej większą od zera.",
     "For Georgia, enter a city and a real region (not “Other”).": "Dla Gruzji podaj miasto i prawidłowy region (nie „Other”).",
     "Standard minimum": "Podstawowe minimum",
@@ -531,6 +538,13 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+    "Vehicle pickup and return fees": "Tarifas de recogida y devolución del vehículo",
+    "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Aquí puedes fijar la tarifa estándar por entregar el vehículo en este lugar al inicio del alquiler y recogerlo al finalizar. Los importes pueden ser distintos. Las tarifas se añaden automáticamente. Deja un campo vacío si es gratuito; los cambios solo afectan a las nuevas reservas.",
+    "Night-time and out-of-hours fees": "Suplementos nocturnos y fuera del horario de atención",
+    "Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.": "Define las horas en que la recogida o devolución requiere un suplemento (p. ej., 22:00–07:00). Elige el lugar, el importe y si se cobra una sola vez por reserva cuando ambos eventos coinciden con esa franja. El suplemento se muestra automáticamente antes de reservar.",
+    "Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.": "Configura un suplemento obligatorio por atender un lugar específico (p. ej., un hotel) o por devolver el coche en otra ciudad. Se aplica automáticamente cuando se cumplen las condiciones. Evita cobrar dos veces por un servicio ya cubierto por la tarifa estándar de recogida o devolución en ese lugar. En la sección de horarios no disponibles, bloquea las horas sin servicio de recogida o devolución, sin añadir ningún cargo.",
+    "Additional location or route fees": "Suplementos adicionales por ubicación o trayecto",
+    "Unavailable pickup and return hours": "Horarios no disponibles para recogida y devolución",
     "Enter a refundable cash deposit amount greater than zero.": "Introduce un importe de depósito reembolsable en efectivo superior a cero.",
     "For Georgia, enter a city and a real region (not “Other”).": "Para Georgia, indica una ciudad y una región válida (no «Other»).",
     "Standard minimum": "Mínimo habitual",
@@ -1060,6 +1074,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+    "Vehicle pickup and return fees": "Χρεώσεις παραλαβής και επιστροφής οχήματος",
+    "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Ορίστε τη βασική χρέωση για την παράδοση του αυτοκινήτου σε αυτή την τοποθεσία κατά την παραλαβή και για την παραλαβή του από τον πελάτη κατά την επιστροφή. Μπορείτε να ορίσετε διαφορετικά ποσά. Οι χρεώσεις προστίθενται αυτόματα. Αφήστε ένα πεδίο κενό για δωρεάν εξυπηρέτηση· οι αλλαγές ισχύουν μόνο για νέες κρατήσεις.",
+    "Night-time and out-of-hours fees": "Νυχτερινές χρεώσεις και χρεώσεις εκτός ωραρίου",
+    "Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.": "Ορίστε τις ώρες κατά τις οποίες η παραλαβή ή η επιστροφή οχήματος επιβαρύνεται με πρόσθετη χρέωση (π.χ. 22:00–07:00). Επιλέξτε τοποθεσία, ποσό και αν η χρέωση εφαρμόζεται μόνο μία φορά ανά κράτηση όταν και οι δύο ενέργειες εμπίπτουν στο διάστημα. Η χρέωση εμφανίζεται αυτόματα πριν από την κράτηση.",
+    "Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.": "Ορίστε υποχρεωτική επιπλέον χρέωση για εξυπηρέτηση συγκεκριμένου σημείου (π.χ. ξενοδοχείου) ή επιστροφή του οχήματος σε άλλη πόλη. Η χρέωση προστίθεται αυτόματα όταν πληρούνται οι προϋποθέσεις. Αποφύγετε τη διπλή χρέωση για υπηρεσία που ήδη καλύπτεται από τη βασική χρέωση παραλαβής ή επιστροφής στην τοποθεσία. Στην ενότητα μη διαθέσιμων ωρών μπορείτε να αποκλείσετε ώρες χωρίς εξυπηρέτηση, χωρίς πρόσθετη χρέωση.",
+    "Additional location or route fees": "Πρόσθετες χρεώσεις τοποθεσίας ή διαδρομής",
+    "Unavailable pickup and return hours": "Μη διαθέσιμες ώρες παραλαβής και επιστροφής",
     "Enter a refundable cash deposit amount greater than zero.": "Εισαγάγετε ποσό επιστρεφόμενης εγγύησης σε μετρητά μεγαλύτερο από το μηδέν.",
     "For Georgia, enter a city and a real region (not “Other”).": "Για τη Γεωργία, συμπληρώστε πόλη και έγκυρη περιφέρεια (όχι «Other»).",
     "Standard minimum": "Βασικό ελάχιστο",
@@ -1589,6 +1610,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+    "Vehicle pickup and return fees": "Tariffe di ritiro e riconsegna del veicolo",
+    "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Imposta la tariffa standard per consegnare l'auto in questa località all'inizio del noleggio e ritirarla alla riconsegna. Puoi indicare importi diversi. Le tariffe vengono aggiunte automaticamente. Lascia un campo vuoto se il servizio è gratuito; le modifiche valgono solo per le nuove prenotazioni.",
+    "Night-time and out-of-hours fees": "Supplementi notturni e fuori orario",
+    "Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.": "Imposta le fasce orarie in cui il ritiro o la riconsegna richiede un supplemento (ad es. 22:00–07:00). Puoi scegliere la località, l'importo e se addebitare il supplemento una sola volta per prenotazione quando entrambi gli eventi rientrano nella fascia. Il supplemento viene mostrato automaticamente prima della prenotazione.",
+    "Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.": "Imposta un supplemento obbligatorio per il servizio in un luogo specifico (ad es. un hotel) o per la riconsegna in un'altra città. Il supplemento viene applicato automaticamente quando ricorrono le condizioni. Evita di addebitare due volte un servizio già coperto dalla tariffa standard di ritiro o riconsegna della località. Nella sezione degli orari non disponibili puoi bloccare il ritiro o la riconsegna quando il servizio non è offerto, senza aggiungere un costo.",
+    "Additional location or route fees": "Supplementi aggiuntivi per località o tratta",
+    "Unavailable pickup and return hours": "Orari non disponibili per ritiro e riconsegna",
     "Enter a refundable cash deposit amount greater than zero.": "Inserisci un importo della cauzione rimborsabile in contanti maggiore di zero.",
     "For Georgia, enter a city and a real region (not “Other”).": "Per la Georgia, indica città e regione valida (non «Other»).",
     "Standard minimum": "Minimo standard",
@@ -2118,6 +2146,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+    "Vehicle pickup and return fees": "Gebühren für Abholung und Rückgabe des Fahrzeugs",
+    "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Hier legen Sie die Standardgebühr für die Bereitstellung des Fahrzeugs an diesem Abholort und seine Rücknahme bei der Rückgabe fest. Sie können unterschiedliche Beträge eingeben. Die Gebühren werden automatisch hinzugefügt. Ein leeres Feld bedeutet kostenlos; Änderungen gelten nur für neue Buchungen.",
+    "Night-time and out-of-hours fees": "Nachtzuschläge und Gebühren außerhalb der Geschäftszeiten",
+    "Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.": "Legen Sie fest, zu welchen Uhrzeiten Abholung oder Rückgabe einen Zuschlag erfordern (z. B. 22:00–07:00). Wählen Sie Standort und Betrag und ob der Zuschlag nur einmal pro Buchung anfällt, wenn beide Vorgänge in diesen Zeitraum fallen. Der Zuschlag wird vor der Buchung automatisch angezeigt.",
+    "Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.": "Legen Sie einen verpflichtenden Zuschlag für die Bedienung eines bestimmten Standorts (z. B. Hotels) oder für die Rückgabe in einer anderen Stadt fest. Er wird automatisch berechnet, sobald die Bedingungen erfüllt sind. Vermeiden Sie Doppelberechnungen für Leistungen, die bereits durch die Standardgebühr für Abholung oder Rückgabe am Standort abgedeckt sind. Im Bereich der nicht verfügbaren Zeiten können Sie Zeiten ohne Abhol- oder Rückgabeservice sperren, ohne Gebühren hinzuzufügen.",
+    "Additional location or route fees": "Zusätzliche Standort- oder Streckengebühren",
+    "Unavailable pickup and return hours": "Nicht verfügbare Abhol- und Rückgabezeiten",
     "Enter a refundable cash deposit amount greater than zero.": "Geben Sie einen Betrag für die erstattungsfähige Barkaution größer als null ein.",
     "For Georgia, enter a city and a real region (not “Other”).": "Für Georgien bitte Stadt und gültige Region angeben (nicht „Other“).",
     "Standard minimum": "Standard-Mindestdauer",
@@ -2647,6 +2682,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+    "Vehicle pickup and return fees": "Плата за выдачу и возврат автомобиля",
+    "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Здесь можно установить стандартную плату за выдачу автомобиля в этом пункте и его приём при возврате. Суммы могут отличаться. Плата добавляется автоматически. Пустое поле означает бесплатную услугу; изменения действуют только для новых бронирований.",
+    "Night-time and out-of-hours fees": "Ночные доплаты и доплаты в нерабочее время",
+    "Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.": "Укажите часы, когда выдача или возврат автомобиля требуют доплаты (например, 22:00–07:00). Выберите пункт, сумму и нужно ли начислять доплату только один раз за бронирование, если оба события попадают в этот период. Доплата автоматически показывается клиенту до бронирования.",
+    "Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.": "Установите обязательную доплату за обслуживание конкретного места (например, отеля) или возврат автомобиля в другом городе. Она начисляется автоматически при выполнении условий. Избегайте повторного начисления за услугу, уже включённую в стандартную плату за выдачу или возврат в данном пункте. В разделе недоступных часов можно запретить выдачу или возврат в нерабочее время без дополнительных начислений.",
+    "Additional location or route fees": "Дополнительные доплаты за пункт или маршрут",
+    "Unavailable pickup and return hours": "Недоступные часы выдачи и возврата",
     "Enter a refundable cash deposit amount greater than zero.": "Укажите сумму возвращаемого залога наличными больше нуля.",
     "For Georgia, enter a city and a real region (not “Other”).": "Для Грузии укажите город и действительный регион (не «Other»).",
     "Standard minimum": "Основной минимум",
@@ -3176,6 +3218,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+    "Vehicle pickup and return fees": "Frais de prise en charge et de retour du véhicule",
+    "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Définissez les frais habituels pour la mise à disposition du véhicule à ce lieu de prise en charge et sa récupération lors du retour. Les montants peuvent être différents. Les frais sont ajoutés automatiquement. Laissez un champ vide si le service est gratuit ; les changements s'appliquent uniquement aux nouvelles réservations.",
+    "Night-time and out-of-hours fees": "Suppléments de nuit et hors horaires d'ouverture",
+    "Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.": "Définissez les heures où la prise en charge ou le retour du véhicule entraîne un supplément (par ex. 22:00–07:00). Choisissez le lieu, le montant et si le supplément n'est facturé qu'une seule fois par réservation lorsque les deux opérations ont lieu dans cette plage. Il est affiché automatiquement avant la réservation.",
+    "Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.": "Configurez un supplément obligatoire pour desservir un lieu précis (par ex. un hôtel) ou pour rendre le véhicule dans une autre ville. Il est ajouté automatiquement lorsque les conditions sont remplies. Évitez une double facturation d'un service déjà couvert par les frais habituels de prise en charge ou de retour à ce lieu. Dans la section des horaires indisponibles, bloquez les heures où ces services ne sont pas proposés, sans ajouter de frais.",
+    "Additional location or route fees": "Frais supplémentaires liés au lieu ou au trajet",
+    "Unavailable pickup and return hours": "Horaires indisponibles pour la prise en charge et le retour",
     "Enter a refundable cash deposit amount greater than zero.": "Saisissez un montant de caution remboursable en espèces supérieur à zéro.",
     "For Georgia, enter a city and a real region (not “Other”).": "Pour la Géorgie, indiquez une ville et une région valide (pas «Other»).",
     "Standard minimum": "Minimum standard",
