@@ -62,6 +62,7 @@
   white-space:normal!important;overflow-wrap:anywhere;min-height:43px;
 }
 #bookingDetailsModal .r24-unified-pricing {margin-top:22px;padding-top:18px;border-top:1px solid #55708c}
+#bookingDetailsModal .r24-unified-pricing .r24-client-price-body {padding:0!important;max-height:none!important;overflow:visible!important}
 #bookingDetailsModal .r24-unified-pricing h4 {margin:0 0 13px;color:#ddecff;font-size:16px;line-height:1.35}
 #bookingDetailsModal .r24-unified-pricing .r24-client-price-row {
   display:flex;justify-content:space-between;gap:16px;align-items:flex-start;
