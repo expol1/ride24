@@ -4499,14 +4499,14 @@ window.cancelBooking = async function(id, currentStatus) {
         }
 
         window.logout = async function() {
-            if(db) await db.auth.signOut();
+            if(db) await db.auth.signOut({ scope: 'local' });
             window.location.href = "index.html";
         }
         window.goToSearch = function() {
     window.location.href = "index.html";
 };
 window.logout = async function() {
-            if(db) await db.auth.signOut();
+            if(db) await db.auth.signOut({ scope: 'local' });
             window.location.href = "index.html";
         }
         window.goToSearch = function() {
