@@ -3501,7 +3501,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                 else if (booking.status === "paid") {
                     statusHtml = `<div class="status-tile confirmed" data-pl="✅ Potwierdzona" data-en="✅ Confirmed">✅ ${partnerText('Potwierdzona', 'Confirmed')}</div>`;
                 }
-                else if (["pending", "awaiting_payment"].includes(booking.status)) {
+                else if (booking.status === "pending") {
                     statusHtml = `<div class="status-tile pending" data-pl="⚡ Nowe zapytanie" data-en="⚡ New request">⚡ ${partnerText('Nowe zapytanie', 'New request')}</div>`;
                 }
                
@@ -3666,7 +3666,7 @@ const rowHtml = `
                 ${actions}
                 ${
                    ["pending", "awaiting_payment"].includes(booking.status)
-                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="margin-top: 4px;">
+                    ? `<span class="timer-badge countdown-timer" data-deadline="${booking.status === 'pending' ? (booking.partner_response_deadline || '') : (booking.payment_deadline || '')}" style="margin-top: 4px;">
                         ⌛ --:--:--
                        </span>`
                     : ""
@@ -3682,7 +3682,7 @@ const rowHtml = `
 if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
 
     const timerHtml = `
-        <span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}">
+        <span class="timer-badge countdown-timer" data-deadline="${booking.status === 'pending' ? (booking.partner_response_deadline || '') : (booking.payment_deadline || '')}">
             ⌛ --:--:--
         </span>
     `;
@@ -3691,7 +3691,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
     <tr class="clickable-row">
         <td>
             <div style="font-weight: 700;">
-            ${clientName} ${clientAge} <span class="badge-new" data-pl="NOWE" data-en="NEW">${partnerText("NOWE", "NEW")}</span>
+            ${clientName} ${clientAge} ${booking.status === 'pending' ? `<span class="badge-new" data-pl="NOWE" data-en="NEW">${partnerText("NOWE", "NEW")}</span>` : ''}
             </div>
             ${extraDriverHtml}
             ${contactDisplay}
