@@ -25,8 +25,8 @@
       const parent=document.getElementById('partnerMandatoryRules');if(!parent)return;
       parent.replaceChildren();parent.hidden=partner.provider_type==='api';if(parent.hidden)return;
       parent.append(node('h3', 'Obowiązkowe opłaty i godziny niedostępne', 'Mandatory surcharges and unavailable hours'));
-      parent.append(node('p', 'Tych opłat klient nie wybiera ręcznie. Są automatycznie uwzględniane w podsumowaniu. Godziny niedostępne blokują rezerwację.', 'Customers do not select these charges manually. They appear in the quote. Unavailable hours prevent booking.'));
-      const sections=[['conditional','Dopłaty za lokalizację lub trasę','Location and route fees'],['blocks','Godziny niedostępne','Unavailable hours']];
+      parent.append(node('p', 'Tu ustawisz obowiązkową dopłatę za obsługę wybranego miejsca (np. hotelu) lub zwrot samochodu w innym mieście. System nalicza ją automatycznie po spełnieniu warunków. Uważaj, aby nie naliczać ponownie opłaty już ustawionej za odbiór lub zwrot w lokalizacji. W sekcji godzin niedostępnych ustawisz pory, w których rezerwacja odbioru lub zwrotu jest zablokowana — bez dodatkowych opłat.', 'Set a mandatory fee for serving a specific place (e.g. a hotel) or returning a car in another city. The system adds it automatically when its conditions are met. Avoid charging twice for a service already covered by the standard location pickup or return fee. In the unavailable-hours section, block pickup or return times when service is not offered — without adding a fee.'));
+      const sections=[['conditional','Dodatkowe opłaty za lokalizację lub trasę','Additional location or route fees'],['blocks','Godziny niedostępne dla odbioru i zwrotu','Unavailable pickup and return hours']];
       const [cf,bk,loc]=await Promise.all([
         db.from('partner_conditional_fees').select('*').eq('partner_id',partner.id).order('created_at'),
         db.from('partner_time_blocks').select('*').eq('partner_id',partner.id).order('created_at'),
