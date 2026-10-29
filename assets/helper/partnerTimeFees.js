@@ -15,8 +15,8 @@
     async mount(db,partner) {
       const host=document.getElementById('partnerTimeFeesCatalog');if(!host)return;
       host.replaceChildren();host.hidden=partner.provider_type==='api';if(host.hidden)return;
-      host.append(el('h3', 'Automatyczne dopłaty za godziny', 'Automatic time-based fees'));
-      host.append(el('p', 'Wybierz przedziały czasu, w których odbiór lub zwrot wymaga dopłaty. System doda ją sam w podsumowaniu przed rezerwacją — klient nie musi wybierać dodatku.', 'Set time windows when pickup or return requires a fee. It will automatically appear in the price summary before booking, without any optional selection.'));
+      host.append(el('h3', 'Dopłaty nocne i poza godzinami pracy', 'Night-time and out-of-hours fees'));
+      host.append(el('p', 'Ustal godziny, w których odbiór lub zwrot samochodu wymaga dopłaty (np. 22:00–07:00). Możesz wybrać lokalizację, kwotę i naliczanie tylko raz na rezerwację, gdy oba zdarzenia przypadają w tym przedziale. System automatycznie pokaże dopłatę klientowi przed rezerwacją.', 'Set the hours when vehicle pickup or return requires an extra fee (e.g. 22:00–07:00). Choose the location, amount, and whether to charge only once per booking if both events fall within that window. The fee appears automatically before booking.'));
       const info=el('p');info.setAttribute('role','status');host.append(info);
       const add=el('button', 'Dodaj regułę godzinową', 'Add time rule');add.type='button';add.className='btn-primary';host.append(add);
       const [feesResult,locationResult]=await Promise.all([
