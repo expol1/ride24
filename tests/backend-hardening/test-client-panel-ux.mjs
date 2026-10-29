@@ -178,3 +178,10 @@ test('24h partner countdown uses stored booking deadline; payment stage uses the
     assert.equal(expectedClient.toISOString(),'2026-10-31T08:30:00.000Z');
 });
 
+test('client web sign-out stays local and does not revoke Android sessions',()=>{
+    const webLogout = "if(db) await db.auth.signOut({ scope: 'local' });";
+    assert.equal(html.split(webLogout).length-1,2,
+        'Both browser logout handlers must scope sign-out to the local session');
+    assert.ok(html.includes('await db.auth.signOut();'),
+        'Account deletion flow must retain global session revocation');
+});
