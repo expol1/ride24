@@ -1,0 +1,274 @@
+/* Ride24 Partner — Flota/Lokalizacje + 3 list sections, presentation only.
+   Original table DOM, buttons, modal forms, pricing, permissions and data stay intact.
+   Revert instantly by removing this stylesheet link from partner-dashboard.html.
+   Mobile labels are visual CSS content mapped to existing 8-language catalogue. */
+
+/* Visual labels use the existing eight-language Partner Panel catalogue. */
+html:lang(en) :is(#view-fleet,#view-locations){--r24-seats:"Seats";--r24-transmission:"Transmission";--r24-bags:"Bags";--r24-mileage:"Mileage";--r24-deposit:"Deposit";--r24-price:"Price per day";--r24-country:"Country";--r24-region:"Region";--r24-type:"Type";--r24-fee:"Extra fee";--r24-status:"Status";}
+html:lang(pl) :is(#view-fleet,#view-locations){--r24-seats:"Miejsca";--r24-transmission:"Skrzynia";--r24-bags:"Bagaże";--r24-mileage:"Limit km";--r24-deposit:"Kaucja";--r24-price:"Cena/dzień";--r24-country:"Kraj";--r24-region:"Region";--r24-type:"Typ";--r24-fee:"Dodatkowa opłata";--r24-status:"Status";}
+html:lang(es) :is(#view-fleet,#view-locations){--r24-seats:"Plazas";--r24-transmission:"Cambio";--r24-bags:"Equipaje";--r24-mileage:"Kilometraje";--r24-deposit:"Depósito de garantía";--r24-price:"Precio por día";--r24-country:"País";--r24-region:"Región";--r24-type:"Tipo";--r24-fee:"Suplemento";--r24-status:"Estado";}
+html:lang(el) :is(#view-fleet,#view-locations){--r24-seats:"Θέσεις";--r24-transmission:"Κιβώτιο ταχυτήτων";--r24-bags:"Αποσκευές";--r24-mileage:"Χιλιόμετρα";--r24-deposit:"Εγγύηση";--r24-price:"Τιμή ανά ημέρα";--r24-country:"Χώρα";--r24-region:"Περιοχή";--r24-type:"Τύπος";--r24-fee:"Πρόσθετη χρέωση";--r24-status:"Κατάσταση";}
+html:lang(it) :is(#view-fleet,#view-locations){--r24-seats:"Posti";--r24-transmission:"Cambio";--r24-bags:"Bagagli";--r24-mileage:"Chilometraggio";--r24-deposit:"Deposito cauzionale";--r24-price:"Prezzo al giorno";--r24-country:"Paese";--r24-region:"Regione";--r24-type:"Tipo";--r24-fee:"Supplemento";--r24-status:"Stato";}
+html:lang(de) :is(#view-fleet,#view-locations){--r24-seats:"Sitzplätze";--r24-transmission:"Getriebe";--r24-bags:"Gepäck";--r24-mileage:"Kilometerbegrenzung";--r24-deposit:"Kaution";--r24-price:"Preis pro Tag";--r24-country:"Land";--r24-region:"Region";--r24-type:"Typ";--r24-fee:"Zusatzgebühr";--r24-status:"Status";}
+html:lang(ru) :is(#view-fleet,#view-locations){--r24-seats:"Места";--r24-transmission:"Коробка передач";--r24-bags:"Багаж";--r24-mileage:"Пробег";--r24-deposit:"Залог";--r24-price:"Цена за день";--r24-country:"Страна";--r24-region:"Регион";--r24-type:"Тип";--r24-fee:"Доплата";--r24-status:"Статус";}
+html:lang(fr) :is(#view-fleet,#view-locations){--r24-seats:"Places";--r24-transmission:"Boîte de vitesses";--r24-bags:"Bagages";--r24-mileage:"Kilométrage";--r24-deposit:"Caution";--r24-price:"Prix par jour";--r24-country:"Pays";--r24-region:"Région";--r24-type:"Type";--r24-fee:"Supplément";--r24-status:"Statut";}
+
+
+/* Shared desktop table appearance. Existing cells and headers all remain present. */
+:is(#view-fleet,#view-locations) .table-container {
+  background:#f5f9ff;border:1px solid #cbdff6;border-radius:16px;
+  box-shadow:0 6px 20px rgba(30,64,175,.055);max-width:100%;
+}
+:is(#view-fleet,#view-locations) .table-container table {
+  width:100%!important;min-width:0!important;table-layout:auto!important;
+}
+:is(#view-fleet,#view-locations) .table-container th {
+  width:auto!important;min-width:0;white-space:normal!important;
+  overflow-wrap:anywhere;vertical-align:middle;line-height:1.35;
+  background:#eff6ff;color:#365476;
+  padding:13px 9px!important;font-size:10px!important;
+}
+:is(#view-fleet,#view-locations) .table-container td {
+  min-width:0;max-width:100%;white-space:normal!important;
+  overflow-wrap:anywhere;vertical-align:middle;line-height:1.5;
+  padding:12px 9px!important;font-size:12px!important;
+}
+:is(#view-fleet,#view-locations) .table-container tbody tr {
+  background:white;transition:background .16s ease;
+}
+:is(#view-fleet,#view-locations) .table-container tbody tr:nth-child(even) {
+  background:#f7fbff;
+}
+:is(#view-fleet,#view-locations) .table-container tbody tr:hover {
+  background:#eaf4ff;
+}
+#view-fleet .table-container th:nth-child(1) {width:78px!important;}
+#view-fleet .table-container th:nth-child(10) {width:108px!important;}
+#view-fleet .table-container .fleet-thumb {
+  width:62px;height:47px;border-radius:9px;overflow:hidden;border-color:#cadef5;
+}
+#view-fleet .table-container td:nth-child(2) {font-weight:800!important;color:#1e3a5f;}
+#view-fleet .table-container td:nth-child(3) .class-label {display:block;font-size:10px;}
+#view-fleet .table-container td:nth-child(9) {font-size:14px!important;white-space:normal!important;}
+#view-fleet .table-container td:nth-child(10) {min-width:100px;width:106px!important;}
+#view-fleet .table-container td:nth-child(10)>div {gap:6px!important;}
+#view-fleet .table-container td:nth-child(10) .action-link {
+  min-height:28px;display:flex!important;align-items:center;justify-content:center;
+  padding:6px 3px!important;margin:0!important;box-sizing:border-box;
+  text-decoration:none;line-height:1.25;white-space:normal!important;
+}
+#view-locations .table-container td:first-child {font-weight:800;color:#1e3a5f;}
+#view-locations .table-container td:nth-child(5) {font-size:12px;min-width:140px;}
+#view-locations .table-container td:last-child {min-width:128px;}
+#view-locations .table-container td:last-child .action-link {
+  display:inline-flex;align-items:center;justify-content:center;min-height:34px;
+  border:1px solid #bcd6f6;border-radius:9px;background:white;
+  padding:7px 10px;margin:3px 5px 3px 0;box-sizing:border-box;
+  white-space:normal!important;font-size:12px;
+}
+#view-locations .table-container td:last-child .action-link.reject {
+  border-color:#fecaca;background:#fff8f8;
+}
+:is(#view-fleet,#view-locations) .table-container tr>td[colspan] {
+  text-align:center!important;white-space:normal!important;overflow-wrap:anywhere;
+}
+
+/* Three original section containers, without affecting their modal dialogs.
+   :not([hidden]) preserves the API-provider visibility rules. */
+#view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog):not([hidden]) {
+  display:block!important;box-sizing:border-box;width:100%;max-width:none;min-width:0;
+  margin-top:22px!important;padding:21px 22px;
+  border:1px solid #bfdbfe;border-left:4px solid #93c5fd;
+  border-radius:17px;background:linear-gradient(140deg,#f0f8ff,#e9f4ff);
+  box-shadow:0 5px 18px rgba(37,99,235,.07);
+}
+#view-locations > #partnerMandatoryRules:not([hidden]) {border-left-color:#9cbfef;}
+#view-locations > #partnerExtrasCatalog:not([hidden]) {border-left-color:#97d700;}
+#view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog)[hidden] {
+  display:none!important;
+}
+#view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) > h3 {
+  margin:0 0 10px!important;color:#173c75;font-weight:850;
+  font-size:18px;line-height:1.35;overflow-wrap:anywhere;
+}
+#view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) > p {
+  margin:0 0 14px!important;color:#506784;font-size:13px;line-height:1.6;
+  max-width:95ch;overflow-wrap:anywhere;
+}
+#view-locations > #partnerMandatoryRules > h4 {
+  margin:21px 0 11px!important;padding-top:14px;
+  border-top:1px solid #d2e3f6;color:#21446f;
+  font-size:14px;font-weight:800;line-height:1.4;
+}
+#view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) > button {
+  grid-column:auto!important;max-width:100%;min-height:42px;
+  padding:10px 17px;border-radius:10px;white-space:normal!important;
+  text-align:center;line-height:1.35;overflow-wrap:anywhere;
+}
+/* The original list rows, labels, amounts and Edit handlers are kept. */
+#view-locations :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) .r24-extras-row {
+  display:grid!important;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1.35fr) minmax(95px,auto)!important;
+  gap:14px!important;align-items:center;box-sizing:border-box;width:100%;
+  min-width:0;margin:12px 0 0!important;padding:15px!important;
+  border:1px solid #c8dff8;border-left:3px solid #93c5fd;border-radius:13px;
+  background:linear-gradient(140deg,#fff,#f4f9ff);
+  box-shadow:0 2px 8px rgba(25,66,130,.04);
+}
+#view-locations :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) .r24-extras-row > strong {
+  min-width:0;color:#173b68;font-size:13px;line-height:1.45;overflow-wrap:anywhere;
+}
+#view-locations :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) .r24-extras-row > span {
+  min-width:0;color:#53677e;font-size:12px;line-height:1.5;
+  overflow-wrap:anywhere;white-space:normal!important;
+}
+#view-locations :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) .r24-extras-row > button {
+  grid-column:3!important;grid-row:auto!important;justify-self:end;
+  max-width:100%;min-width:95px;min-height:40px;
+  padding:9px 15px;border:1px solid #bfdbfe;border-radius:10px;
+  background:#fff;color:#2456a0;font-size:12px;font-weight:800;
+  white-space:normal!important;line-height:1.25;
+}
+
+/* The narrow-screen app originally forced every table to 850px. Override
+   only these two table views, keeping other tabs and native dialogs untouched. */
+@media (max-width:1200px) {
+  :is(#view-fleet,#view-locations) .table-container {
+    width:100%!important;max-width:100%!important;margin-left:0!important;
+    padding:0!important;max-height:none!important;
+    border:0!important;border-radius:0!important;box-shadow:none!important;
+    background:transparent!important;overflow:visible!important;
+  }
+  :is(#view-fleet,#view-locations) .table-container table {
+    display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;
+  }
+  :is(#view-fleet,#view-locations) .table-container thead {
+    position:absolute!important;width:1px!important;height:1px!important;
+    padding:0!important;margin:-1px!important;overflow:hidden!important;
+    clip-path:inset(50%)!important;white-space:nowrap!important;
+    border:0!important;
+  }
+  :is(#view-fleet,#view-locations) .table-container tbody {
+    display:grid!important;grid-template-columns:minmax(0,1fr);
+    gap:13px;min-width:0;width:100%;
+  }
+  :is(#view-fleet,#view-locations) .table-container tbody tr {
+    display:grid!important;position:relative;box-sizing:border-box;
+    width:100%;max-width:800px;min-width:0;margin:0 auto!important;
+    padding:14px!important;
+    background:linear-gradient(145deg,#f2f9ff,#e7f3ff)!important;
+    border:1px solid #b8d9f8!important;border-left:4px solid #93c5fd!important;
+    border-radius:15px!important;box-shadow:0 4px 14px rgba(37,99,235,.08);
+    overflow:hidden;
+  }
+  :is(#view-fleet,#view-locations) .table-container tbody td {
+    box-sizing:border-box;display:block!important;min-width:0!important;
+    width:auto!important;max-width:100%!important;overflow-wrap:anywhere;
+    padding:8px 6px!important;white-space:normal!important;
+    border:0!important;line-height:1.4;
+  }
+  :is(#view-fleet,#view-locations) .table-container tbody td::before {
+    display:block;font-size:10px;font-weight:700;letter-spacing:.02em;
+    text-transform:uppercase;color:#5b7390;line-height:1.3;margin-bottom:5px;
+  }
+  :is(#view-fleet,#view-locations) .table-container tbody tr:has(>td[colspan]) {
+    display:block!important;padding:0!important;
+  }
+  :is(#view-fleet,#view-locations) .table-container tbody tr>td[colspan] {
+    display:block!important;width:100%!important;padding:20px 14px!important;
+  }
+
+  /* Fleet card: photo + model + class, 3 parameters, 2 conditions, price, actions. */
+  #view-fleet .table-container tbody tr {
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    column-gap:6px;row-gap:2px;
+  }
+  #view-fleet .table-container tbody td:nth-child(1) {grid-column:1/3;grid-row:1/3;align-self:center;}
+  #view-fleet .table-container tbody td:nth-child(2) {grid-column:3/-1;grid-row:1;align-self:end;font-size:17px!important;}
+  #view-fleet .table-container tbody td:nth-child(3) {grid-column:3/-1;grid-row:2;align-self:start;}
+  #view-fleet .table-container tbody td:nth-child(4) {grid-column:1/3;grid-row:3;}
+  #view-fleet .table-container tbody td:nth-child(5) {grid-column:3/5;grid-row:3;}
+  #view-fleet .table-container tbody td:nth-child(6) {grid-column:5/7;grid-row:3;}
+  #view-fleet .table-container tbody td:nth-child(7) {grid-column:1/4;grid-row:4;}
+  #view-fleet .table-container tbody td:nth-child(8) {grid-column:4/7;grid-row:4;}
+  #view-fleet .table-container tbody td:nth-child(9) {
+    grid-column:1/-1;grid-row:5;margin-top:7px;
+    background:#e8f6ea;border:1px solid #c6e8ca!important;border-radius:10px;
+    color:#16733a!important;text-align:left!important;font-size:18px!important;
+    font-weight:850!important;padding:11px 13px!important;
+  }
+  #view-fleet .table-container tbody td:nth-child(10) {grid-column:1/-1;grid-row:6;margin-top:6px;}
+  #view-fleet .table-container .fleet-thumb {width:100%!important;height:87px!important;max-width:125px;}
+  #view-fleet .table-container tbody td:nth-child(4)::before {content:var(--r24-seats,"Seats");}
+  #view-fleet .table-container tbody td:nth-child(5)::before {content:var(--r24-transmission,"Transmission");}
+  #view-fleet .table-container tbody td:nth-child(6)::before {content:var(--r24-bags,"Bags");}
+  #view-fleet .table-container tbody td:nth-child(7)::before {content:var(--r24-mileage,"Mileage");}
+  #view-fleet .table-container tbody td:nth-child(8)::before {content:var(--r24-deposit,"Deposit");}
+  #view-fleet .table-container tbody td:nth-child(9)::before {content:var(--r24-price,"Price per day");color:#417d52;}
+  #view-fleet .table-container tbody td:nth-child(10)>div {
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    width:100%!important;gap:8px!important;align-items:stretch!important;
+  }
+  #view-fleet .table-container tbody td:nth-child(10) .action-link {
+    box-sizing:border-box;width:100%!important;min-width:0;min-height:42px;
+    margin:0!important;padding:11px 5px!important;font-size:11px!important;
+    white-space:normal!important;overflow-wrap:anywhere;
+    border-radius:9px!important;
+  }
+
+  /* Location card: name, country/region, type/status, full fee text, actions. */
+  #view-locations .table-container tbody tr {
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 10px;
+  }
+  #view-locations .table-container tbody td:nth-child(1) {
+    grid-column:1/-1;grid-row:1;font-weight:850;font-size:16px!important;
+    color:#174176;padding-bottom:11px!important;border-bottom:1px solid #d7e7f9!important;
+  }
+  #view-locations .table-container tbody td:nth-child(2) {grid-column:1;grid-row:2;}
+  #view-locations .table-container tbody td:nth-child(3) {grid-column:2;grid-row:2;}
+  #view-locations .table-container tbody td:nth-child(4) {grid-column:1;grid-row:3;}
+  #view-locations .table-container tbody td:nth-child(6) {grid-column:2;grid-row:3;}
+  #view-locations .table-container tbody td:nth-child(5) {
+    grid-column:1/-1;grid-row:4;margin-top:5px;
+    background:#fff;border:1px solid #cbdff4!important;
+    padding:11px 12px!important;border-radius:10px;
+  }
+  #view-locations .table-container tbody td:nth-child(7) {
+    grid-column:1/-1;grid-row:5;margin-top:6px;
+    display:flex!important;gap:9px;align-items:stretch;flex-wrap:wrap;
+  }
+  #view-locations .table-container tbody td:nth-child(2)::before {content:var(--r24-country,"Country");}
+  #view-locations .table-container tbody td:nth-child(3)::before {content:var(--r24-region,"Region");}
+  #view-locations .table-container tbody td:nth-child(4)::before {content:var(--r24-type,"Type");}
+  #view-locations .table-container tbody td:nth-child(5)::before {content:var(--r24-fee,"Extra fee");}
+  #view-locations .table-container tbody td:nth-child(6)::before {content:var(--r24-status,"Status");}
+  #view-locations .table-container tbody td:nth-child(7) .action-link {
+    display:flex!important;align-items:center;justify-content:center;flex:1 1 135px;
+    min-height:42px;min-width:0;margin:0!important;padding:10px 12px!important;
+    border-radius:10px!important;white-space:normal!important;
+  }
+
+  /* Main location section cards stay separate and fully expanded. */
+  #view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog):not([hidden]) {
+    margin-top:18px!important;padding:16px!important;border-radius:14px!important;
+  }
+  #view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) > h3 {
+    font-size:16px;line-height:1.4;
+  }
+  #view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) > p {
+    font-size:12px;
+  }
+  #view-locations > :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) > button {
+    display:block;width:100%;min-height:43px;
+  }
+  #view-locations :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) .r24-extras-row {
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    gap:6px!important;padding:13px!important;
+  }
+  #view-locations :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) .r24-extras-row > :is(strong,span,button) {
+    grid-column:1/-1!important;grid-row:auto!important;justify-self:stretch;
+  }
+  #view-locations :is(#partnerTimeFeesCatalog,#partnerMandatoryRules,#partnerExtrasCatalog) .r24-extras-row > button {
+    min-width:0;width:100%;margin-top:7px;
+  }
+}
