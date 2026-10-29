@@ -1,6 +1,7 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+    "🔒 Contact details visible after confirmation": "🔒 Dane kontaktowe widoczne po potwierdzeniu",
     "Vehicle pickup and return fees": "Opłaty za odbiór i zwrot samochodu",
     "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Tutaj ustalasz standardową opłatę za podstawienie samochodu do tej lokalizacji przy odbiorze oraz odebranie go od klienta przy zwrocie. Możesz podać różne kwoty. Opłaty są doliczane automatycznie. Puste pole oznacza bezpłatnie; zmiany dotyczą tylko nowych rezerwacji.",
     "Night-time and out-of-hours fees": "Dopłaty nocne i poza godzinami pracy",
@@ -538,6 +539,7 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+    "🔒 Contact details visible after confirmation": "🔒 Datos de contacto visibles después de la confirmación",
     "Vehicle pickup and return fees": "Tarifas de recogida y devolución del vehículo",
     "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Aquí puedes fijar la tarifa estándar por entregar el vehículo en este lugar al inicio del alquiler y recogerlo al finalizar. Los importes pueden ser distintos. Las tarifas se añaden automáticamente. Deja un campo vacío si es gratuito; los cambios solo afectan a las nuevas reservas.",
     "Night-time and out-of-hours fees": "Suplementos nocturnos y fuera del horario de atención",
@@ -1074,6 +1076,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+    "🔒 Contact details visible after confirmation": "🔒 Στοιχεία επικοινωνίας διαθέσιμα μετά την επιβεβαίωση",
     "Vehicle pickup and return fees": "Χρεώσεις παραλαβής και επιστροφής οχήματος",
     "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Ορίστε τη βασική χρέωση για την παράδοση του αυτοκινήτου σε αυτή την τοποθεσία κατά την παραλαβή και για την παραλαβή του από τον πελάτη κατά την επιστροφή. Μπορείτε να ορίσετε διαφορετικά ποσά. Οι χρεώσεις προστίθενται αυτόματα. Αφήστε ένα πεδίο κενό για δωρεάν εξυπηρέτηση· οι αλλαγές ισχύουν μόνο για νέες κρατήσεις.",
     "Night-time and out-of-hours fees": "Νυχτερινές χρεώσεις και χρεώσεις εκτός ωραρίου",
@@ -1610,6 +1613,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+    "🔒 Contact details visible after confirmation": "🔒 Dati di contatto visibili dopo la conferma",
     "Vehicle pickup and return fees": "Tariffe di ritiro e riconsegna del veicolo",
     "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Imposta la tariffa standard per consegnare l'auto in questa località all'inizio del noleggio e ritirarla alla riconsegna. Puoi indicare importi diversi. Le tariffe vengono aggiunte automaticamente. Lascia un campo vuoto se il servizio è gratuito; le modifiche valgono solo per le nuove prenotazioni.",
     "Night-time and out-of-hours fees": "Supplementi notturni e fuori orario",
@@ -2146,6 +2150,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+    "🔒 Contact details visible after confirmation": "🔒 Kontaktdaten nach der Bestätigung sichtbar",
     "Vehicle pickup and return fees": "Gebühren für Abholung und Rückgabe des Fahrzeugs",
     "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Hier legen Sie die Standardgebühr für die Bereitstellung des Fahrzeugs an diesem Abholort und seine Rücknahme bei der Rückgabe fest. Sie können unterschiedliche Beträge eingeben. Die Gebühren werden automatisch hinzugefügt. Ein leeres Feld bedeutet kostenlos; Änderungen gelten nur für neue Buchungen.",
     "Night-time and out-of-hours fees": "Nachtzuschläge und Gebühren außerhalb der Geschäftszeiten",
@@ -2682,6 +2687,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+    "🔒 Contact details visible after confirmation": "🔒 Контактные данные доступны после подтверждения",
     "Vehicle pickup and return fees": "Плата за выдачу и возврат автомобиля",
     "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Здесь можно установить стандартную плату за выдачу автомобиля в этом пункте и его приём при возврате. Суммы могут отличаться. Плата добавляется автоматически. Пустое поле означает бесплатную услугу; изменения действуют только для новых бронирований.",
     "Night-time and out-of-hours fees": "Ночные доплаты и доплаты в нерабочее время",
@@ -3218,6 +3224,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+    "🔒 Contact details visible after confirmation": "🔒 Coordonnées visibles après confirmation",
     "Vehicle pickup and return fees": "Frais de prise en charge et de retour du véhicule",
     "Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.": "Définissez les frais habituels pour la mise à disposition du véhicule à ce lieu de prise en charge et sa récupération lors du retour. Les montants peuvent être différents. Les frais sont ajoutés automatiquement. Laissez un champ vide si le service est gratuit ; les changements s'appliquent uniquement aux nouvelles réservations.",
     "Night-time and out-of-hours fees": "Suppléments de nuit et hors horaires d'ouverture",
