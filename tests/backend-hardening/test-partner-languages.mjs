@@ -430,3 +430,11 @@ test('all partner scripts parse and localization is loaded by the partner panel 
     }
     for (const file of ['index.html','klient.html','results.html','admin/index.html']) assert.doesNotMatch(read(file),/partnerI18n\.js|partner-panel\.js/);
 });
+
+test('web booking breakdown CTA is visible in dashboard and bookings with translated descriptions', () => {
+    assert.equal(panel.split('class="r24-items-open r24-booking-details-cta"').length - 1, 2);
+    assert.ok(panel.includes('data-pl="Szczegóły i rozliczenie" data-en="Details and price breakdown"'));
+    assert.ok(panel.includes('data-pl="Sprawdź foteliki, dodatki, dopłaty i cenę" data-en="Check child seats, extras, surcharges and price"'));
+    assert.ok(panel.includes('assets/css/partner-bookings-ux.css?v=20261030details1'));
+    assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261030details1'));
+});
