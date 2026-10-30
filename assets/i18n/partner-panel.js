@@ -1,6 +1,7 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+    "Choose a location.": "Wybierz lokalizację.",
     "Add a required fee or block hours when pickup or return is unavailable.": "Dodaj obowiązkową dopłatę albo zablokuj godziny, w których odbiór lub zwrot auta nie jest możliwy.",
     "What should be blocked?": "Co zablokować?",
     "At which location?": "W którym miejscu?",
@@ -580,6 +581,7 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+      "Choose a location.": "Elige un lugar.",
       "Add a required fee or block hours when pickup or return is unavailable.": "Añade un suplemento obligatorio o bloquea las horas en las que no se puede recoger ni devolver el coche.",
       "What should be blocked?": "¿Qué quieres bloquear?",
       "At which location?": "¿En qué lugar?",
@@ -1158,6 +1160,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+      "Choose a location.": "Επιλέξτε τοποθεσία.",
       "Add a required fee or block hours when pickup or return is unavailable.": "Προσθέστε υποχρεωτική χρέωση ή αποκλείστε ώρες κατά τις οποίες δεν είναι δυνατή η παραλαβή ή η επιστροφή.",
       "What should be blocked?": "Τι θέλετε να αποκλείσετε;",
       "At which location?": "Σε ποια τοποθεσία;",
@@ -1736,6 +1739,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+      "Choose a location.": "Seleziona una località.",
       "Add a required fee or block hours when pickup or return is unavailable.": "Aggiungi un supplemento obbligatorio o blocca le ore in cui non è possibile ritirare o riconsegnare l'auto.",
       "What should be blocked?": "Che cosa vuoi bloccare?",
       "At which location?": "In quale località?",
@@ -2314,6 +2318,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+      "Choose a location.": "Standort auswählen.",
       "Add a required fee or block hours when pickup or return is unavailable.": "Füge eine Pflichtgebühr hinzu oder sperre Zeiten, in denen Abholung oder Rückgabe nicht möglich ist.",
       "What should be blocked?": "Was soll gesperrt werden?",
       "At which location?": "An welchem Standort?",
@@ -2892,6 +2897,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+      "Choose a location.": "Выберите место.",
       "Add a required fee or block hours when pickup or return is unavailable.": "Добавьте обязательную доплату или заблокируйте часы, когда получение или возврат автомобиля невозможны.",
       "What should be blocked?": "Что заблокировать?",
       "At which location?": "В каком месте?",
@@ -3470,6 +3476,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+      "Choose a location.": "Choisissez un lieu.",
       "Add a required fee or block hours when pickup or return is unavailable.": "Ajoutez des frais obligatoires ou bloquez les heures où la prise en charge ou le retour est impossible.",
       "What should be blocked?": "Que souhaitez-vous bloquer ?",
       "At which location?": "À quel endroit ?",
