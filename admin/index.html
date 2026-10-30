@@ -8,6 +8,7 @@
     <meta name="description" content="Private Ride24 administration panel.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="https://ride24.pl/admin/">
+    <link rel="stylesheet" href="../assets/css/admin-partner-create-result.css?v=20261030b">
 
     <style>
         /* --- FONTY --- */
@@ -2795,9 +2796,9 @@ window.showAdminPartnerCreateResult = function({ type = "success", partnerName =
     modal.classList.toggle("is-error", isError);
     document.getElementById("adminPartnerResultIcon").textContent = isError ? "❌" : "✅";
     document.getElementById("adminPartnerResultTitle").textContent =
-        isError ? "Nie udało się utworzyć partnera" : "Partner został utworzony";
+        isError ? "Nie udało się zapisać partnera" : "Partner został pomyślnie dodany";
     document.getElementById("adminPartnerResultSubtitle").textContent =
-        isError ? "Konto nie zostało potwierdzone jako zapisane" : "Konto partnera zostało zapisane poprawnie";
+        isError ? "Dane nie zostały zapisane poprawnie" : "Dane partnera zostały zapisane";
     document.getElementById("adminPartnerResultMessage").textContent =
         message || (isError ? "Sprawdź dane i spróbuj ponownie." :
             "Partner " + partnerName + " został poprawnie utworzony.");
@@ -5681,7 +5682,6 @@ window.generateAgreement = function(partnerData) {
             .sign-box { width: 40%; border-top: 1px solid #000; padding-top: 10px; text-align: center; font-weight: bold; }
             @media print { body { padding: 0; margin: 0; } }
         </style>
-    <link rel="stylesheet" href="../assets/css/admin-partner-create-result.css?v=20261029a">
     </head>
     <body>
         <h1>PARTNER AGREEMENT</h1>
@@ -5779,8 +5779,8 @@ hereinafter referred to as the “Partner”.
             <div class="admin-partner-result-header">
                 <span id="adminPartnerResultIcon" class="admin-partner-result-icon" aria-hidden="true">✅</span>
                 <div class="admin-partner-result-header-text">
-                    <h2 id="adminPartnerResultTitle" class="admin-partner-result-title">Partner został utworzony</h2>
-                    <p id="adminPartnerResultSubtitle" class="admin-partner-result-subtitle">Konto partnera zostało zapisane poprawnie</p>
+                    <h2 id="adminPartnerResultTitle" class="admin-partner-result-title">Partner został pomyślnie dodany</h2>
+                    <p id="adminPartnerResultSubtitle" class="admin-partner-result-subtitle">Dane partnera zostały zapisane</p>
                 </div>
             </div>
             <div class="admin-partner-result-body">
