@@ -29,7 +29,9 @@ function setup(){
 }
 
 test('new B2B result modal is isolated, accessible, responsive and hidden initially',()=>{
-    assert.ok(html.includes('assets/css/admin-partner-create-result.css?v=20261029a'));
+    const mainHead = html.slice(0,html.indexOf('</head>'));
+    assert.match(mainHead,/<link rel="stylesheet" href="\.\.\/assets\/css\/admin-partner-create-result\.css\?v=[^"]+">/);
+    assert.equal((html.match(/admin-partner-create-result\.css/g)||[]).length,1);
     assert.ok(modalHtml.includes('role="dialog" aria-modal="true"'));
     assert.equal((html.match(/id="adminPartnerResultModal"/g)||[]).length,1);
     assert.match(css,/#adminPartnerResultModal\[hidden\]\s*\{display:none!important;/);
