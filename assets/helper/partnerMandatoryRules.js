@@ -46,7 +46,7 @@
       '.r24-mandatory-dialog .r24-rule-preview strong{display:block;color:#173b68;font-size:13px;margin-bottom:7px;}',
       '.r24-mandatory-dialog .r24-rule-preview p{color:#1e3a5f;font-size:14px;overflow-wrap:anywhere;}',
       '.r24-mandatory-dialog .r24-rule-city-input{display:flex;gap:8px;align-items:stretch;}',
-      '.r24-mandatory-dialog .r24-rule-city-input input{flex:1;min-width:0;}',
+      '.r24-mandatory-dialog .r24-rule-city-input select{flex:1;min-width:0;}',
       '.r24-mandatory-dialog .r24-rule-city-input button{flex-shrink:0;border-radius:10px;padding:8px 13px;}',
       '.r24-mandatory-dialog .r24-rule-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;}',
       '.r24-mandatory-dialog .r24-rule-chip{display:inline-flex;gap:7px;align-items:center;background:#e7f2ff;border:1px solid #bfd8f6;border-radius:999px;padding:7px 9px 7px 12px;font-size:13px;color:#173b68;max-width:100%;overflow-wrap:anywhere;}',
@@ -108,9 +108,11 @@
       ];
       const place = id => locations.find(x => x.id === id)?.location_name
         || tr('Wszystkie punkty', 'All locations');
-      const citySuggestions = [...new Set(locations.map(x => String(x.city || '').trim()).filter(Boolean))]
+      // Use the exact city values already configured in this partner's locations.
+      // Do not invent city names or allow unlinked, free-form strings.
+      const citySuggestions = [...new Map(locations.map(x => String(x.city || '').trim())
+        .filter(Boolean).map(city => [city.toLocaleLowerCase(), city])).values()]
         .sort((a, b) => a.localeCompare(b));
-      let editorCount = 0;
       const displayKind = kind => kind === 'cross_city'
         ? tr('Zwrot w innym mieście', 'Return in another city')
         : tr('Obsługa wybranej lokalizacji', 'Service at a selected location');
@@ -157,20 +159,24 @@
             select(locationOptions, rule.location_id || ''));
           const cityGroup = group(form, 'Miasta objęte dopłatą', 'Cities covered by the fee');
           const cityRow = node('div'); cityRow.className = 'r24-rule-city-input';
-          cityEntry = input('text'); cityEntry.maxLength = 100;
-          cityEntry.placeholder = tr('Wpisz nazwę miasta', 'Type a city name');
-          if (window.Ride24PartnerI18n) window.Ride24PartnerI18n.bind(
-            cityEntry, 'Wpisz nazwę miasta', 'Type a city name', 'placeholder'
-          );
-          const datalist = node('datalist'); datalist.id = 'r24MandatoryCities' + (++editorCount);
-          for (const city of citySuggestions) {
-            const option = node('option'); option.value = city; datalist.append(option);
-          }
-          cityEntry.setAttribute('list', datalist.id);
+          cityEntry = select([
+            ['', 'Wybierz miasto z listy', 'Choose a city from the list'],
+            ...citySuggestions.map(city => [city, city, city])
+          ], '');
+          cityEntry.setAttribute('aria-label', tr('Wybierz miasto z listy', 'Choose a city from the list'));
           const addCityButton = node('button', 'Dodaj miasto', 'Add city');
           addCityButton.className = 'btn-secondary'; addCityButton.type = 'button';
           cityRow.append(cityEntry, addCityButton);
-          cityGroup.append(datalist, cityRow);
+          cityGroup.append(cityRow);
+          cityGroup.append(node('p',
+            'Lista zawiera miasta dodane wcześniej w zakładce Lokalizacje.',
+            'The list contains cities already set up under Locations.'));
+          if (!citySuggestions.length) {
+            cityEntry.disabled = true;
+            cityGroup.append(node('p',
+              'Najpierw dodaj lokalizacje odbioru i zwrotu z nazwami miast w zakładce Lokalizacje.',
+              'First add pickup and return locations with city names under Locations.'));
+          }
           const chips = node('div'); chips.className = 'r24-rule-chips';
           cityGroup.append(chips, node('p',
             'Wybierz od 2 do 12 miast. Dopłata obowiązuje przy odbiorze i zwrocie w różnych miastach z tej listy.',
@@ -190,22 +196,31 @@
               };
               chip.append(remove); chips.append(chip);
             }
+            // Keep old saved city scopes visible, even when a location was later removed.
+            // Only actual current partner-location cities can be added to a rule.
+            for (const option of cityEntry.options) {
+              if (option.value) option.disabled = cities.some(
+                city => city.toLocaleLowerCase() === option.value.toLocaleLowerCase()
+              );
+            }
+            cityEntry.value = '';
+            addCityButton.disabled = true;
           };
           const addCity = () => {
-            const city = cityEntry.value.trim();
-            if (!city) return;
+            const city = cityEntry.value;
+            if (!citySuggestions.includes(city)) return;
             if (cities.some(x => x.toLocaleLowerCase() === city.toLocaleLowerCase())) {
-              cityEntry.value = ''; return;
+              renderCities(); return;
             }
             if (cities.length >= 12) {
               status.textContent = tr('Możesz wybrać maksymalnie 12 miast.', 'You can choose up to 12 cities.');
               return;
             }
-            cities.push(city); cityEntry.value = ''; status.textContent = '';
-            renderCities(); refresh(); cityEntry.focus();
+            cities.push(city); status.textContent = '';
+            renderCities(); refresh();
           };
-          cityEntry.addEventListener('keydown', e => {
-            if (e.key === 'Enter') { e.preventDefault(); addCity(); }
+          cityEntry.addEventListener('change', () => {
+            addCityButton.disabled = !cityEntry.value;
           });
           addCityButton.onclick = addCity;
           renderCities();
