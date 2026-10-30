@@ -207,3 +207,44 @@
     padding:12px!important;text-align:center;
   }
 }
+
+/* Web Partner Dashboard + Bookings ONLY: make the existing breakdown action unmistakable.
+   The booking snapshot, pricing, backend, and native Android applications are untouched. */
+:is(#view-bookings,#view-dashboard) .table-container .r24-items-open.r24-booking-details-cta {
+  display:flex;flex-direction:column;align-items:stretch;gap:7px;
+  width:100%;max-width:350px;min-width:0;min-height:76px;
+  margin:12px 0 0;padding:13px 15px;
+  border:1px solid #1d4ed8;border-radius:12px;
+  background:linear-gradient(135deg,#1d4ed8,#1e40af);
+  color:#fff;text-align:left;text-decoration:none;
+  font:inherit;line-height:1.35;white-space:normal;overflow-wrap:anywhere;
+  box-shadow:0 5px 13px rgba(29,78,216,.18);
+  cursor:pointer;touch-action:manipulation;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta:hover {
+  background:linear-gradient(135deg,#1e40af,#172e82);
+  border-color:#1e40af;box-shadow:0 7px 16px rgba(29,78,216,.27);
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta:focus-visible {
+  outline:3px solid #84cc16;outline-offset:3px;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-cta-primary {
+  display:flex;align-items:center;gap:9px;width:100%;
+  color:#fff;font-size:14px;font-weight:800;line-height:1.3;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-cta-icon {
+  flex-shrink:0;font-size:19px;line-height:1;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-cta-arrow {
+  margin-left:auto;flex-shrink:0;font-size:25px;line-height:1;font-weight:700;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-cta-hint {
+  display:block;color:#e0edff;font-size:12px;line-height:1.5;
+  font-weight:500;letter-spacing:normal;
+}
+@media(max-width:1200px) {
+  :is(#view-bookings,#view-dashboard) .table-container tbody td:nth-child(7) .r24-items-open.r24-booking-details-cta {
+    display:flex;width:100%;max-width:none;min-height:78px;
+    margin-top:10px;padding:14px;
+  }
+}
