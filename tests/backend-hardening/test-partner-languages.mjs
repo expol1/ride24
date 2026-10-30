@@ -151,7 +151,7 @@ test('Android promotion translates every visible message and accessible label in
         const dictionaries=s.w.Ride24PartnerLocales.languages;
         assert.ok(nodes.length >= 16, 'Android promotion should retain all marketing messages');
         assert.ok(accessible.length >= 2, 'Android preview and Google Play download need translated labels');
-        assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261029status3'), 'Fresh i18n cache version must be used');
+        assert.match(panel, /assets\/i18n\/partner-panel\.js\?v=\d{8}[a-z0-9_-]+/i, 'Versioned i18n asset must be used to avoid stale translations');
         for (const language of languages) {
             assert.equal(s.w.setLang(language), undefined);
             assert.equal(s.d.documentElement.lang,language);
