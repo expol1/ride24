@@ -2675,7 +2675,7 @@ if ((p.provider_type ?? "local") === "api") {
 
     actionBtn = `
         <button class="btn-warn"
-            onclick="togglePartner('${p.id}', ${!isActive})">
+            onclick="togglePartner('${p.id}', ${!isActive}, this)">
             ${isActive ? "Zawieś" : "Odblokuj"}
         </button>
 
@@ -2814,18 +2814,63 @@ function partnerContactOnClose() {
     partnerContactPreviousFocus = null;
 }
 
-async function togglePartner(partnerId, makeActive) {
-    if (!confirm("Czy na pewno chcesz zmienić status tego partnera?")) return;
+let partnerStatusChangeBusy = false;
+
+async function togglePartner(partnerId, makeActive, button) {
+    if (partnerStatusChangeBusy) return;
+    const actionLabel = makeActive ? "odblokować" : "zawiesić";
+    if (!confirm("Czy na pewno chcesz " + actionLabel + " tego partnera?")) return;
+
+    partnerStatusChangeBusy = true;
+    const previousLabel = button?.textContent;
+    if (button) {
+        button.disabled = true;
+        button.textContent = "Zapisywanie…";
+    }
+
     try {
-        const { error } = await db.rpc('admin_toggle_partner_status', { 
-            p_partner_id: partnerId, 
-            p_active: makeActive 
+        // Pobierz nowy JWT; odczyt sesji z localStorage nie wystarcza do RPC.
+        const { data: refreshed, error: refreshError } = await db.auth.refreshSession();
+        const session = refreshed?.session;
+        if (refreshError || !session?.access_token) {
+            throw new Error("Sesja administratora wygasła. Zaloguj się ponownie.");
+        }
+
+        // Potwierdź użytkownika po stronie Supabase Auth, nie z pamięci przeglądarki.
+        const { data: identity, error: identityError } = await db.auth.getUser(session.access_token);
+        if (identityError || !identity?.user || identity.user.id !== session.user.id) {
+            throw new Error("Nie można potwierdzić sesji administratora. Zaloguj się ponownie.");
+        }
+
+        // Wyślij JWT jawnie, by baza rozpoznała auth.uid() w funkcji RPC.
+        const response = await fetch(supabaseUrl + "/rest/v1/rpc/admin_toggle_partner_status", {
+            method: "POST",
+            headers: {
+                "apikey": supabaseKey,
+                "Authorization": "Bearer " + session.access_token,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ p_partner_id: partnerId, p_active: makeActive })
         });
-        if (error) throw error;
-        alert("✅ Status zmieniony");
-        loadPartnersData();
+
+        if (!response.ok) {
+            const details = await response.json().catch(() => null);
+            if (response.status === 401 || details?.message?.includes("Only admins")) {
+                throw new Error("Brak aktualnych uprawnień administratora. Wyloguj się i zaloguj ponownie.");
+            }
+            throw new Error(details?.message || ("Błąd zapisu (HTTP " + response.status + ")."));
+        }
+
+        await loadPartnersData();
+        alert(makeActive ? "✅ Partner został odblokowany." : "✅ Partner został zawieszony.");
     } catch (err) {
-        alert("Błąd bazy: " + err.message);
+        alert("Nie udało się zmienić statusu partnera: " + (err?.message || "nieznany błąd"));
+    } finally {
+        partnerStatusChangeBusy = false;
+        if (button && button.isConnected) {
+            button.disabled = false;
+            button.textContent = previousLabel;
+        }
     }
 }
 
