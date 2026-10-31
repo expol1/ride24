@@ -248,3 +248,44 @@
     margin-top:10px;padding:14px;
   }
 }
+
+/* R24 DESKTOP COMPACT PRICE BREAKDOWN CTA — 2026-10-31
+   Both partner Bookings and Dashboard share this responsive class.
+   Phones/tablets (<=1200px) keep the existing blue expanded action unchanged. */
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-cta-compact {
+  display:none;
+}
+@media (min-width:1201px) {
+  :is(#view-bookings,#view-dashboard) .table-container .r24-items-open.r24-booking-details-cta {
+    display:inline-flex;flex-direction:row;align-items:center;justify-content:center;
+    gap:0;width:100%;max-width:148px;min-height:38px;
+    margin:8px 0 0;padding:7px 9px;
+    border:1px solid #bfdbfe;border-left:3px solid #2563eb;
+    border-radius:8px;background:#eff6ff;color:#1d4ed8;
+    text-align:center;white-space:nowrap;overflow-wrap:normal;
+    box-shadow:0 1px 4px rgba(37,99,235,.09);
+    transition:background .16s,border-color .16s,box-shadow .16s;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta:hover {
+    background:#dbeafe;border-color:#60a5fa;
+    box-shadow:0 2px 8px rgba(37,99,235,.16);
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-primary {
+    display:flex;flex-direction:row;align-items:center;justify-content:center;
+    gap:5px;width:100%;color:#1d4ed8;font-size:12px;
+    line-height:1.2;font-weight:800;white-space:nowrap;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-icon {
+    font-size:15px;line-height:1;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-arrow {
+    margin-left:auto;font-size:18px;line-height:1;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-full,
+  :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-hint {
+    display:none;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-compact {
+    display:inline;white-space:nowrap;
+  }
+}
