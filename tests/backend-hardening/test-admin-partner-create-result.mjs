@@ -164,23 +164,27 @@ test('partner company names are keyboard-focusable triggers and contact modal is
     assert.equal(modal.getAttribute('aria-describedby'),'partner-contact-status');
     assert.ok(d.window.document.getElementById('partner-contact-email'));
     assert.ok(d.window.document.getElementById('partner-contact-phone'));
+    assert.ok(d.window.document.getElementById('partner-contact-emergency'));
     d.window.close();
 });
 
-test('clicking partner contact loads scoped data and makes safe mailto/tel links',async()=>{
+test('clicking partner contact loads scoped data and makes safe Zoho mailto, WhatsApp and emergency links',async()=>{
     const f=contactSetup({data:{company_name:'GMG <img src=x onerror=alert(1)>',
-        email:'gmgrentcar@gmail.com',phone:'+995 555 855 959'},error:null});
+        email:'gmgrentcar@gmail.com',phone:'+995 555 855 959',emergency_phone:'+995 514 855 959'},error:null});
     try{
         await f.w.openPartnerContact(validPartnerId);
         assert.equal(f.modal.open,true);
         assert.equal(f.d.getElementById('partner-contact-title').textContent,'GMG <img src=x onerror=alert(1)>');
         assert.equal(f.d.getElementById('partner-contact-title').querySelector('img'),null);
         assert.equal(f.d.getElementById('partner-contact-email').getAttribute('href'),'mailto:gmgrentcar@gmail.com');
-        assert.equal(f.d.getElementById('partner-contact-phone').getAttribute('href'),'tel:+995555855959');
+        assert.equal(f.d.getElementById('partner-contact-phone').getAttribute('href'),'https://wa.me/995555855959');
+        assert.equal(f.d.getElementById('partner-contact-phone').getAttribute('target'),'_blank');
+        assert.equal(f.d.getElementById('partner-contact-phone').getAttribute('rel'),'noopener noreferrer');
+        assert.equal(f.d.getElementById('partner-contact-emergency').getAttribute('href'),'tel:+995514855959');
         assert.equal(f.d.getElementById('partner-contact-status').textContent,'');
         assert.deepEqual(f.calls.map(x=>x.method),['from','select','eq']);
         assert.equal(f.calls[0].table,'partners');
-        assert.equal(f.calls[1].fields,'id,company_name,email,phone');
+        assert.equal(f.calls[1].fields,'id,company_name,email,phone,emergency_phone');
         assert.equal(f.calls[2].value,validPartnerId);
         f.w.closePartnerContact();assert.equal(f.modal.open,false);
     } finally { f.dom.window.close(); }
@@ -188,11 +192,12 @@ test('clicking partner contact loads scoped data and makes safe mailto/tel links
 
 test('missing or unsafe contact data cannot open arbitrary links',async()=>{
     const f=contactSetup({data:{company_name:'No details',
-      email:'foo@example.com?subject=injected',phone:'javascript:alert(1)'},error:null});
+      email:'foo@example.com?subject=injected',phone:'javascript:alert(1)',emergency_phone:'https://bad.example'},error:null});
     try{
         await f.w.openPartnerContact(validPartnerId);
         assert.equal(f.d.getElementById('partner-contact-email').getAttribute('href'),null);
         assert.equal(f.d.getElementById('partner-contact-phone').getAttribute('href'),null);
+        assert.equal(f.d.getElementById('partner-contact-emergency').getAttribute('href'),null);
         f.w.closePartnerContact();
     }finally{f.dom.window.close();}
     const missing=contactSetup({data:{company_name:'No details',email:null,phone:''},error:null});
@@ -200,6 +205,7 @@ test('missing or unsafe contact data cannot open arbitrary links',async()=>{
         await missing.w.openPartnerContact(validPartnerId);
         assert.equal(missing.d.getElementById('partner-contact-email').textContent,'Nie podano');
         assert.equal(missing.d.getElementById('partner-contact-phone').textContent,'Nie podano');
+        assert.equal(missing.d.getElementById('partner-contact-emergency').textContent,'Nie podano');
         missing.w.closePartnerContact();
     }finally{missing.dom.window.close();}
 });
