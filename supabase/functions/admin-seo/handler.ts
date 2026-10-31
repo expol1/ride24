@@ -86,7 +86,7 @@ async function sync(admin:any,currentTopics?:any[]){
 async function generate(deps:Deps,admin:any,doc:any,note:string,heldClaim?:any,acceptCorrection?:(pair:Pair)=>boolean){
  const key=await secret(admin,'gemini');if(!key)throw new SeoError('Dodaj klucz Gemini z darmowego projektu w ustawieniach SEO.',409);
  const topics=await getTopics(admin);const live=topics.find(t=>t.topic_key===doc.topic_key);
- if(!live)throw new SeoError('Ten kierunek nie ma obecnie aktywnych lokalizacji z ofertami. Możesz poprawić tekst ręcznie, bez wymyślania dostępności.',409);
+ if(!live)throw new SeoError('Ta historyczna propozycja SEO nie odpowiada już aktualnemu identyfikatorowi kierunku. Lokalizacja mogła zmienić nazwę lub mieć już nowszą opublikowaną stronę. Sprawdź aktualną listę SEO; nie tworzymy duplikatów ani nie zakładamy dostępności.',409);
  const claimed=heldClaim??await rpc(admin,'admin_seo_claim',{p_id:doc.id,p_revision:doc.revision});
  try{
   if(!await rpc(admin,'admin_seo_ai_slot'))throw new SeoError('Darmowy limit dzienny został wykorzystany lub nie potwierdzono poziomu Free. Tekst możesz edytować ręcznie.',429);
@@ -250,7 +250,11 @@ export function createSeoHandler(deps:Deps){return async(req:Request)=>{
    const docs=check(await admin.from('seo_documents').select('*').order('created_at',{ascending:false}).limit(1000));
    const [gemini,clientSecret,search,business,github]=await Promise.all([secret(admin,'gemini'),secret(admin,'google_client_secret'),secret(admin,'search_refresh'),secret(admin,'business_refresh'),rpc(admin,'admin_travel_guide_github_token')]);
    const client=credentials(s,clientSecret,deps.env);
-   return reply({documents:docs,settings:{enabled:s.enabled,auto_generate:s.auto_generate,auto_review_enabled:s.auto_review_enabled===true,correction_used_today:s.auto_correction_day===new Date().toISOString().slice(0,10),free_tier_confirmed:s.free_tier_confirmed,daily_limit:s.daily_limit,used_today:s.ai_day===new Date().toISOString().slice(0,10)?s.ai_count:0,google_client_id:s.google_client_id,business_target:s.business_target,auto_business_post:s.auto_business_post===true,search_performance:s.search_performance||{}},connections:{gemini:!!gemini,github:!!github,google_credentials:!!client.id&&!!client.secret,search:!!search,business:!!business,callback:CALLBACK}});
+   // Catalog failures must not block access to existing drafts or falsely mark them stale.
+   let catalog:{state:'ready'|'unavailable';keys:string[];active_count?:number}={state:'unavailable',keys:[]};
+   try{const topics=await getTopics(admin);catalog={state:'ready',keys:topics.map(t=>t.topic_key),active_count:topics.length};}
+   catch{/* Temporary location data error: status remains unverified. */}
+   return reply({documents:docs,catalog,settings:{enabled:s.enabled,auto_generate:s.auto_generate,auto_review_enabled:s.auto_review_enabled===true,correction_used_today:s.auto_correction_day===new Date().toISOString().slice(0,10),free_tier_confirmed:s.free_tier_confirmed,daily_limit:s.daily_limit,used_today:s.ai_day===new Date().toISOString().slice(0,10)?s.ai_count:0,google_client_id:s.google_client_id,business_target:s.business_target,auto_business_post:s.auto_business_post===true,search_performance:s.search_performance||{}},connections:{gemini:!!gemini,github:!!github,google_credentials:!!client.id&&!!client.secret,search:!!search,business:!!business,callback:CALLBACK}});
   }
   if(action==='configure'){
    const updates:any={updated_at:new Date().toISOString()};
