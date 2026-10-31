@@ -473,3 +473,61 @@ test('desktop breakdown CTA stays compact on Bookings and Dashboard while mobile
     assert.equal(catalogue.source.Details, 'Szczegóły');
     for(const lang of ['es','el','it','de','ru','fr']) assert.ok(catalogue.languages[lang].Details);
 });
+
+
+test('homepage world map counters use correct Polish grammatical forms and preserve English', () => {
+    const home = read('index.html');
+    const start = home.indexOf('    // Polish cardinal-number agreement:');
+    const end = home.indexOf('    function updateWorldExplorerCounters()', start);
+    assert.ok(start > 0 && end > start, 'World stats helper functions missing');
+    const helpers = home.slice(start, end);
+    const getStats = new Function('counts', 'language', `
+        "use strict";
+        const ride24WorldStats = { countries: counts.countries, locations: counts.locations, partners: 0 };
+        const getRide24Lang = () => language;
+        ${helpers}
+        return { summary: getRide24StatsText().summaryPl, locationTooltip: getRide24LocationCountText(counts.locations),
+                 worldStats: getRide24StatsText() };
+    `);
+    for (const [countries,locations,expectedCountries,expectedLocations] of [
+        [0,0,'0 krajów','0 lokalizacji'],
+        [1,1,'1 kraj','1 lokalizacja'],
+        [2,2,'2 kraje','2 lokalizacje'],
+        [4,4,'4 kraje','4 lokalizacje'],
+        [5,5,'5 krajów','5 lokalizacji'],
+        [10,64,'10 krajów','64 lokalizacje'],
+        [11,11,'11 krajów','11 lokalizacji'],
+        [12,12,'12 krajów','12 lokalizacji'],
+        [14,14,'14 krajów','14 lokalizacji'],
+        [21,21,'21 krajów','21 lokalizacji'],
+        [22,22,'22 kraje','22 lokalizacje'],
+        [24,24,'24 kraje','24 lokalizacje'],
+        [25,25,'25 krajów','25 lokalizacji'],
+        [101,101,'101 krajów','101 lokalizacji']
+    ]) {
+        const result = getStats({countries,locations}, 'pl');
+        assert.equal(result.summary, expectedCountries + ' • ' + expectedLocations);
+        assert.equal(result.locationTooltip, expectedLocations);
+        assert.equal(result.worldStats.countriesPl, '🌍 ' + expectedCountries);
+        assert.equal(result.worldStats.locationsPl, '📍 ' + expectedLocations);
+    }
+    const english = getStats({countries:10,locations:64}, 'en');
+    assert.equal(english.worldStats.summaryEn, '10 countries • 64 locations');
+    assert.equal(english.locationTooltip, '64 locations');
+});
+
+test('homepage map uses the existing image as both desktop and mobile card backgrounds', () => {
+    const home = read('index.html');
+    const dom = new JSDOM(home);
+    const d = dom.window.document;
+    const css = d.getElementById('ride24-world-explorer-full-image')?.textContent || '';
+    assert.ok(css.includes('url("assets/img/ride24-map-card.webp")'));
+    assert.ok(css.includes('background-size: cover, cover'));
+    assert.ok(css.includes('.world-explorer-map-art { display: none !important; }'));
+    assert.ok(css.includes('.world-explorer.world-explorer-mobile'));
+    assert.equal(d.querySelectorAll('.world-explorer .world-explorer-map-image[src="assets/img/ride24-map-card.webp"]').length, 2);
+    assert.match(home, /Thailand:\s*\{\s*code:\s*"TH"/);
+    assert.match(home, /tajlandia:\s*"Thailand"/);
+    assert.match(home, /\.from\('partner_locations'\)[\s\S]*?\.eq\('active', true\)/);
+    dom.window.close();
+});
