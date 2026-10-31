@@ -1,5 +1,21 @@
 name: Ride24 SEO QA
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/admin-seo/**'
+      - 'supabase/functions/seo-google-callback/**'
+      - 'supabase/migrations/*seo*.sql'
+      - 'assets/js/admin-seo.js'
+      - 'assets/js/seo-content.js'
+      - 'admin/index.html'
+      - 'tests/backend-hardening/test-seo*.mjs'
+      - 'seo/**'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '_redirects'
+      - 'tests/backend-hardening/test-admin-dashboard.mjs'
+      - '.github/workflows/seo.yml'
   pull_request:
     paths:
       - 'supabase/functions/admin-seo/**'
