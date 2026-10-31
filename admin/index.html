@@ -2628,7 +2628,11 @@ if ((p.provider_type ?? "local") === "api") {
     tbody.innerHTML += `
         <tr>
             <td class="company-name">
-    ${escapeHtml(p.company_name || "Brak nazwy")}
+    <button type="button" class="partner-contact-name"
+        onclick="openPartnerContact('${p.id}')"
+        aria-haspopup="dialog" title="Pokaż e-mail i telefon partnera">
+        ${escapeHtml(p.company_name || "Brak nazwy")}
+    </button>
     ${providerBadge}
 </td>
             <td>${escapeHtml(p.country ?? "---")}</td>
@@ -5682,7 +5686,26 @@ window.generateAgreement = function(partnerData) {
             .signatures { display: flex; justify-content: space-between; margin-top: 80px; }
             .sign-box { width: 40%; border-top: 1px solid #000; padding-top: 10px; text-align: center; font-weight: bold; }
             @media print { body { padding: 0; margin: 0; } }
-        </style>
+    
+        /* Compact, accessible read-only partner contact dialog. */
+        .partner-contact-name { border:0; padding:4px 0; background:none; color:#1D4ED8; cursor:pointer; font:inherit; font-weight:700; text-align:left; text-decoration:underline; text-decoration-color:#BFDBFE; text-underline-offset:3px; overflow-wrap:anywhere; }
+        .partner-contact-name:hover { color:#1E40AF; text-decoration-color:currentColor; }
+        .partner-contact-name:focus-visible { outline:3px solid #93C5FD; outline-offset:3px; border-radius:3px; }
+        #partner-contact-modal { border:1px solid #E2E8F0; border-radius:16px; padding:0; margin:auto; width:min(400px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); background:#fff; color:#0F172A; box-shadow:0 28px 75px rgba(2,6,23,.3); font-family:'Inter',sans-serif; }
+        #partner-contact-modal::backdrop { background:rgba(2,6,23,.58); backdrop-filter:blur(3px); }
+        .partner-contact-header { padding:18px 20px; display:flex; align-items:flex-start; gap:12px; justify-content:space-between; background:#F8FAFC; border-bottom:1px solid #E2E8F0; }
+        .partner-contact-header h2 { margin:0; font-size:17px; line-height:1.4; overflow-wrap:anywhere; }
+        .partner-contact-close { background:#E2E8F0; color:#334155; border:0; border-radius:8px; cursor:pointer; font-size:22px; width:34px; height:34px; flex-shrink:0; }
+        .partner-contact-close:focus-visible { outline:3px solid #93C5FD; }
+        .partner-contact-body { padding:20px; display:grid; gap:16px; }
+        .partner-contact-field { display:grid; gap:5px; min-width:0; }
+        .partner-contact-field span { font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:.04em; }
+        .partner-contact-field a { font-size:15px; font-weight:600; color:#2563EB; overflow-wrap:anywhere; }
+        .partner-contact-field a:not([href]) { color:#64748B; text-decoration:none; cursor:default; }
+        #partner-contact-status { font-size:13px; color:#475569; min-height:1em; }
+        #partner-contact-status:empty { display:none; }
+
+    </style>
     </head>
     <body>
         <h1>PARTNER AGREEMENT</h1>
@@ -5793,6 +5816,23 @@ hereinafter referred to as the “Partner”.
             </div>
         </div>
     </div>
+
+
+    <dialog id="partner-contact-modal" aria-labelledby="partner-contact-title"
+            aria-describedby="partner-contact-status"
+            onclose="partnerContactOnClose()"
+            onclick="if(event.target===this)closePartnerContact()">
+        <div class="partner-contact-header">
+            <h2 id="partner-contact-title">Kontakt z partnerem</h2>
+            <button class="partner-contact-close" type="button" aria-label="Zamknij"
+                    onclick="closePartnerContact()">&times;</button>
+        </div>
+        <div class="partner-contact-body">
+            <p id="partner-contact-status" role="status" aria-live="polite"></p>
+            <div class="partner-contact-field"><span>E-mail</span><a id="partner-contact-email">Nie podano</a></div>
+            <div class="partner-contact-field"><span>Telefon</span><a id="partner-contact-phone">Nie podano</a></div>
+        </div>
+    </dialog>
 
     <div id="addPartnerModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(2,6,23,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
     <div style="background:white; width:100%; max-width:800px; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; max-height: 90vh;">
