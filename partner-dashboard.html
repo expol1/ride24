@@ -2407,18 +2407,6 @@ Dodaj opinię o Partnerze
                     </div>
                     <small data-pl="Kwoty w walucie partnera, należne partnerowi. Puste pole oznacza bezpłatną dostawę lub zwrot." data-en="Amounts in the partner currency, payable to the partner. Leave blank for free pickup or return.">Amounts in the partner currency, payable to the partner. Leave blank for free pickup or return.</small>
 
-                    <div style="height: 1px; background: var(--border); width: 100%;"></div>
-
-
-                    <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
-
-                        <input type="checkbox" id="locContact">
-
-                        <span data-pl="Wymaga kontaktu z wypożyczalnią" data-en="Requires contact with rental company">Requires contact with rental company</span>
-
-                    </label>
-
-
                 </div>
 
 
@@ -4070,7 +4058,6 @@ const { data, error } = await db
                     extra_fee: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value) > 0,
                     extra_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value),
                     return_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locReturnFeeAmount').value),
-                    contact_required: document.getElementById('locContact').checked,
                     active: document.getElementById('locActive').checked
                 };
 
@@ -4110,6 +4097,11 @@ const { data, error } = await db
                     return; // STOP! Nie zapisujemy polskiej nazwy
                 }
 
+                // Contact guidance is inferred from the normalized pickup type.
+                // Keep this legacy DB field compatible with older clients, but no manual toggle.
+                locationData.contact_required = ["city", "hotel", "office", "railway_station", "seaport", "custom"]
+                    .includes(String(locationData.type || "").trim().toLowerCase());
+
                 // 3. Zapis do bazy partner_locations
                 const { error } = await db
                     .from("partner_locations")
@@ -4130,7 +4122,6 @@ const { data, error } = await db
                 document.getElementById('locExtraFee').checked = false;
                 document.getElementById('locExtraFeeAmount').value = "";
                 document.getElementById('locReturnFeeAmount').value = "";
-                document.getElementById('locContact').checked = false;
                 if (typeof toggleExtraFeeInput === "function") toggleExtraFeeInput();
 
             } catch (err) {

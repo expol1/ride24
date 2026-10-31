@@ -29,4 +29,4 @@ jobs:
           test-booking-v2-handlers.mjs test-priced-extras-schema.mjs test-booking-extras-ui.mjs
           test-voucher-booking-items.mjs test-automatic-time-fees.mjs
           test-native-booking-contract.mjs test-payment-return.mjs
-          test-results-location-fee-sort.mjs
+          test-results-location-fee-sort.mjs test-auto-contact-notice.mjs
