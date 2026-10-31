@@ -119,7 +119,7 @@ test('existing admin JavaScript parses without syntax errors',()=>{
 
 const contactHelper=html.slice(
     html.indexOf('let partnerContactRequestId = 0;'),
-    html.indexOf('async function togglePartner(partnerId, makeActive)')
+    html.indexOf('let partnerStatusChangeBusy = false;')
 );
 const validPartnerId='b3cc022f-e116-4a3a-9778-18916a93b71f';
 
