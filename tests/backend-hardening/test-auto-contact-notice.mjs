@@ -60,11 +60,10 @@ test('search restores compact contact-only notice without pickup fee duplication
 });
 
 test('partner can no longer toggle contact; location type automatically sets legacy field', () => {
-    assert.match(partner, /location-contact-notice\.js\?v=/);
+    assert.doesNotMatch(partner, /location-contact-notice\.js\?v=/);
     assert.doesNotMatch(partner, /id="locContact"/);
     assert.doesNotMatch(partner, /getElementById\('locContact'\)/);
-    assert.match(partner, /locationData\.contact_required = window\.Ride24LocationContact\.requiresContact\(locationData\)/);
-    assert.match(partner, /Ride24 automatycznie informuje klienta/);
+    assert.match(partner, /locationData\.contact_required = \["city", "hotel", "office", "railway_station", "seaport", "custom"\]/);
 });
 
 test('new helper and current inline result scripts parse successfully', () => {
