@@ -38,6 +38,7 @@ function fixture(){
  }
  const admin={from:table=>new Query(table),async rpc(name,args={}){
   if(name==='admin_seo_secret')return {data:secrets[args.p_name]||null};
+  if(name==='admin_travel_guide_github_token')return {data:null};
   if(name==='admin_seo_ai_slot'){
    const today=new Date().toISOString().slice(0,10);if(cfg.ai_day!==today){cfg.ai_day=today;cfg.ai_count=0;}
    if(!cfg.enabled||!cfg.free_tier_confirmed||cfg.ai_count>=cfg.daily_limit)return {data:false};cfg.ai_count++;return {data:true};
@@ -53,14 +54,16 @@ function fixture(){
   }
   throw Error('Unexpected RPC '+name);
  }};
- const handler=createSeoHandler({authorize:async()=>{throw Error('Cron must use scoped authorization');},service:()=>admin,env:()=>undefined,fetch:async(url,init)=>{
+ const handler=createSeoHandler({authorize:async()=>({admin,user:{id:uuid(777)}}),service:()=>admin,env:()=>undefined,fetch:async(url,init)=>{
   requests.push(String(url));assert.equal(new URL(url).hostname,'generativelanguage.googleapis.com');assert.equal(init.headers['x-goog-api-key'],'fixture-gemini');state.aiCalls++;
   if(state.providerStatus!==200)return Response.json({}, {status:state.providerStatus});
   const body=JSON.parse(init.body);assert.ok(body.contents[0].parts[0].text.includes('Tirana'));const pair=structuredClone(seed);
   return Response.json({candidates:[{content:{parts:[{text:state.invalidJson?'not JSON':JSON.stringify(pair)}]}}]});
  }});
  async function cron(body={}){const response=await handler(new Request('https://fixture.invalid/admin-seo',{method:'POST',headers:{'Content-Type':'application/json','x-seo-cron':'fixture-cron'},body:JSON.stringify({action:'cron',...body})}));return {status:response.status,body:await response.json()};}
- return {rows,target,stale,cfg,secrets,state,requests,writes,cron};
+ async function list(){const response=await handler(new Request('https://fixture.invalid/admin-seo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list'})}));return {status:response.status,body:await response.json()};}
+ async function manualGenerate(id){const response=await handler(new Request('https://fixture.invalid/admin-seo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'generate',id,revision:1})}));return {status:response.status,body:await response.json()};}
+ return {rows,target,stale,cfg,secrets,state,requests,writes,cron,list,manualGenerate};
 }
 
 test('inactive oldest proposals do not starve the next active queued draft',async()=>{
@@ -110,4 +113,21 @@ test('source read failure stops safely before AI or SEO writes',async()=>{
 });
 test('concurrent workers still claim and generate the same draft only once',async()=>{
  const f=fixture();await Promise.all([f.cron(),f.cron()]);assert.equal(f.state.aiCalls,1);assert.equal(f.target.state,'draft');assert.equal(f.target.revision,2);assert.equal(f.cfg.ai_count,1);
+});
+
+
+test('admin list identifies historical queued items without changing the saved SEO queue',async()=>{
+ const f=fixture(),prior=structuredClone(f.rows);
+ const result=await f.list();
+ assert.equal(result.status,200);assert.equal(result.body.catalog.state,'ready');
+ assert.equal(result.body.catalog.keys.includes(f.stale.topic_key),false);
+ assert.equal(result.body.catalog.keys.includes(f.target.topic_key),true);
+ assert.deepEqual(f.rows,prior);
+});
+test('manual generation of an obsolete topic explains stale identifiers without consuming Gemini quota',async()=>{
+ const f=fixture(),prior=structuredClone(f.stale);
+ const result=await f.manualGenerate(f.stale.id);
+ assert.equal(result.status,409);
+ assert.match(result.body.error,/historyczna propozycja SEO|historyczny/i);
+ assert.equal(f.state.aiCalls,0);assert.equal(f.cfg.ai_count,0);assert.deepEqual(f.stale,prior);
 });
