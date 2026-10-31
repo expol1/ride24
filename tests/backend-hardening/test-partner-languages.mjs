@@ -435,7 +435,7 @@ test('web booking breakdown CTA is visible in dashboard and bookings with transl
     assert.equal(panel.split('class="r24-items-open r24-booking-details-cta"').length - 1, 2);
     assert.ok(panel.includes('data-pl="Szczegóły i rozliczenie" data-en="Details and price breakdown"'));
     assert.ok(panel.includes('data-pl="Sprawdź foteliki, dodatki, dopłaty i cenę" data-en="Check child seats, extras, surcharges and price"'));
-    assert.ok(panel.includes('assets/css/partner-bookings-ux.css?v=20261031compact1'));
+    assert.ok(panel.includes('assets/css/partner-bookings-ux.css?v=20261031amount2'));
     assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261031compact1'));
 });
 
@@ -445,8 +445,17 @@ test('desktop breakdown CTA stays compact on Bookings and Dashboard while mobile
     assert.equal((panel.match(/class="r24-items-open r24-booking-details-cta"/g) || []).length, 2);
     assert.equal((panel.match(/class="r24-booking-cta-compact"/g) || []).length, 2);
     assert.equal((panel.match(/class="r24-booking-cta-full"/g) || []).length, 2);
+    assert.equal((panel.match(/<td class="r24-booking-amount-cell"/g) || []).length, 2);
+    assert.equal((panel.match(/<span class="r24-booking-amount-value">/g) || []).length, 2);
+    for (const block of [
+        panel.slice(panel.indexOf('const rowHtml = `'),panel.indexOf('if(bookTbody) bookTbody.innerHTML += rowHtml;')),
+        panel.slice(panel.indexOf('const dashRowHtml = `'),panel.indexOf('dashTbody.innerHTML += dashRowHtml;'))
+    ]) {
+        assert.ok(block.indexOf('class="r24-booking-amount-value"') < block.indexOf('class="r24-items-open r24-booking-details-cta"'), 'Price must precede breakdown action');
+        assert.match(block, /onclick="openPartnerBookingItems/);
+    }
     assert.equal((panel.match(/onclick="openPartnerBookingItems/g) || []).length, 2);
-    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=20261031compact1/);
+    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=20261031amount2/);
     assert.match(css, /@media\s*\(max-width:1200px\)[\s\S]*min-height:78px/);
     const marker = css.indexOf('R24 DESKTOP COMPACT PRICE BREAKDOWN CTA');
     assert.ok(marker > 0, 'Desktop-only compact styling is missing');
@@ -454,6 +463,10 @@ test('desktop breakdown CTA stays compact on Bookings and Dashboard while mobile
     assert.match(desktop, /@media \(min-width:1201px\)/);
     assert.match(desktop, /:is\(#view-bookings,#view-dashboard\)/);
     assert.match(desktop, /background:#eff6ff;color:#1d4ed8/);
+    assert.match(desktop, /tbody td\.r24-booking-amount-cell\s*\{\s*display:flex;flex-direction:column;align-items:flex-start/);
+    assert.match(desktop, /minmax\(145px,1\.10fr\) minmax\(140px,1\.06fr\)/);
+    assert.match(desktop, /\.r24-booking-details-cta\s*\{[\s\S]*?margin:0;padding:6px 9px/);
+
     assert.match(desktop, /\.r24-booking-cta-hint\s*\{\s*display:none;/);
     assert.match(desktop, /\.r24-booking-cta-compact\s*\{\s*display:inline;/);
     const catalogue = JSON.parse(catalogCode.slice(catalogCode.indexOf('Object.freeze(') + 14, catalogCode.lastIndexOf(');')));
