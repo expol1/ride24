@@ -3277,27 +3277,42 @@
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261021a">
 <link rel="stylesheet" href="assets/css/home-scroll-performance.css?v=20261019b">
 <style id="ride24-world-explorer-full-image">
-/* Homepage presence: premium light surface with the original map art at a
-   natural, contained scale on the right. Never stretch the small WebP to cover
-   the entire card: that created large, blurry pins over the text. */
+/* Ride24 homepage — keep the same presence card, slightly clearer map detail.
+   The small existing artwork is drawn separately so contrast can be adjusted
+   without altering or sharpening the text and CTA. */
 .world-explorer.world-explorer-desktop,
 .world-explorer.world-explorer-mobile {
     position: relative;
     isolation: isolate;
     overflow: hidden;
     border-radius: 20px;
-    background-image:
-        linear-gradient(100deg, rgba(255,255,255,.99) 0%, rgba(252,254,255,.98) 43%, rgba(247,251,255,.82) 70%, rgba(240,248,255,.66) 100%),
-        url("assets/img/ride24-map-card.webp"),
-        linear-gradient(145deg, #fff 0%, #e9f4ff 100%) !important;
-    background-position: center, right 12px center, center !important;
-    background-size: 100% 100%, 214px auto, 100% 100% !important;
-    background-repeat: no-repeat !important;
+    background: linear-gradient(105deg,#fff 0%,#fcfeff 47%,#eef7ff 100%) !important;
     border: 1px solid rgba(207,224,243,.95) !important;
     box-shadow: 0 12px 30px rgba(15,54,104,.13), inset 0 1px 0 rgba(255,255,255,.94) !important;
 }
+/* Higher specificity intentionally overrides the older premium stylesheet's
+   content:none/display:none declarations for this decorative pseudo-element. */
+body .world-explorer.world-explorer-desktop::before,
+body .world-explorer.world-explorer-mobile::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    bottom: 57px;
+    width: 214px;
+    background: url("assets/img/ride24-map-card.webp") center / contain no-repeat;
+    opacity: .88;
+    filter: contrast(1.18) saturate(1.12) brightness(1.02);
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 27%);
+    mask-image: linear-gradient(to right, transparent, #000 27%);
+    z-index: 0;
+    pointer-events: none;
+}
 .world-explorer.world-explorer-desktop { padding: 16px 18px 17px; }
 .world-explorer .world-explorer-card-head {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-template-columns: 48px minmax(0,1fr) !important;
     align-items: center;
@@ -3332,12 +3347,14 @@
 @media (max-width:768px) {
     .world-explorer.world-explorer-mobile {
         padding: 15px 15px 16px !important;
-        background-image:
-            linear-gradient(105deg,rgba(255,255,255,.99) 0%,rgba(253,254,255,.97) 48%,rgba(242,249,255,.75) 100%),
-            url("assets/img/ride24-map-card.webp"),
-            linear-gradient(145deg,#fff,#eaf4ff) !important;
-        background-size: 100% 100%, 155px auto, 100% 100% !important;
-        background-position: center, right 9px center, center !important;
+    }
+    body .world-explorer.world-explorer-mobile::before {
+        top: 10px;
+        right: 9px;
+        bottom: 58px;
+        width: 155px;
+        opacity: .84;
+        filter: contrast(1.16) saturate(1.1) brightness(1.02);
     }
     .world-explorer.world-explorer-mobile h3 { font-size: 20px !important; }
     .world-explorer.world-explorer-mobile .world-explorer-summary { font-size: 12px !important; }
