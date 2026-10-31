@@ -594,7 +594,107 @@
 @media (prefers-reduced-motion: reduce) {
     .r24-admin-pdf-btn { transition: none; }
 }
-</style>
+
+        /* RIDE24_PARTNER_CONTACT_DIALOG_START: styles must be in the document HEAD, not in print HTML. */
+        .partner-contact-name {
+            border:0; padding:5px 0; background:transparent; color:#1D4ED8;
+            cursor:pointer; font:inherit; font-weight:750; text-align:left;
+            text-decoration:underline; text-decoration-color:#BFDBFE;
+            text-decoration-thickness:1px; text-underline-offset:4px;
+            overflow-wrap:anywhere; transition:color .2s ease;
+        }
+        .partner-contact-name:hover { color:#1E40AF; text-decoration-color:currentColor; }
+        .partner-contact-name:focus-visible { outline:3px solid #93C5FD; outline-offset:4px; border-radius:4px; }
+        #partner-contact-modal:not([open]) { display:none; }
+        #partner-contact-modal {
+            position:fixed; inset:0; margin:auto;
+            width:min(420px,calc(100vw - 32px)); max-width:420px;
+            max-height:calc(100dvh - 32px);
+            padding:0; border:0; border-radius:18px;
+            background:#fff; color:#0F172A;
+            font-family:'Inter',sans-serif; overflow:auto;
+            box-shadow:0 30px 90px rgba(2,6,23,.40),0 1px 3px rgba(2,6,23,.14);
+            box-sizing:border-box;
+        }
+        #partner-contact-modal::backdrop { background:rgba(2,6,23,.66); backdrop-filter:blur(4px); }
+        #partner-contact-modal .partner-contact-header {
+            padding:21px 22px; display:flex; align-items:center;
+            gap:13px; background:linear-gradient(125deg,#0F172A,#1E40AF);
+            color:#fff;
+        }
+        #partner-contact-modal .partner-contact-avatar {
+            width:44px; height:44px; flex:0 0 44px; border-radius:13px;
+            background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22);
+            display:grid; place-items:center; font-size:21px;
+        }
+        #partner-contact-modal .partner-contact-heading { min-width:0; flex:1; }
+        #partner-contact-modal .partner-contact-kicker {
+            font-size:11px; font-weight:700; letter-spacing:.09em;
+            text-transform:uppercase; color:#BFDBFE; margin:0 0 4px;
+        }
+        #partner-contact-modal .partner-contact-header h2 {
+            margin:0; font-size:17px; font-weight:800; line-height:1.35;
+            color:#fff; overflow-wrap:anywhere; letter-spacing:-.015em;
+        }
+        #partner-contact-modal .partner-contact-close {
+            width:34px; height:34px; flex:0 0 34px; display:grid; place-items:center;
+            color:#fff; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.18);
+            border-radius:10px; font-size:23px; line-height:1; cursor:pointer;
+        }
+        #partner-contact-modal .partner-contact-close:hover { background:rgba(255,255,255,.27); }
+        #partner-contact-modal :is(button,a):focus-visible { outline:3px solid #93C5FD; outline-offset:3px; }
+        #partner-contact-modal .partner-contact-body {
+            padding:21px 22px 15px; display:grid; gap:13px;
+            background:#fff;
+        }
+        #partner-contact-modal #partner-contact-status {
+            font-size:13px; line-height:1.5; color:#475569;
+            margin:0;
+        }
+        #partner-contact-modal #partner-contact-status:empty { display:none; }
+        #partner-contact-modal .partner-contact-field {
+            display:flex; align-items:center; gap:12px; min-width:0;
+            padding:13px 14px; border-radius:12px; border:1px solid #E2E8F0;
+            background:#F8FAFC;
+        }
+        #partner-contact-modal .partner-contact-field-icon {
+            flex:0 0 37px; width:37px; height:37px; border-radius:11px;
+            display:grid; place-items:center; background:#DBEAFE;
+            color:#1D4ED8; font-size:18px;
+        }
+        #partner-contact-modal .partner-contact-field-text {
+            display:grid; gap:5px; min-width:0; flex:1;
+        }
+        #partner-contact-modal .partner-contact-field span {
+            color:#64748B; font-size:11px; font-weight:800;
+            text-transform:uppercase; letter-spacing:.05em;
+        }
+        #partner-contact-modal .partner-contact-field a {
+            font-size:14px; line-height:1.4; font-weight:750; color:#1D4ED8;
+            overflow-wrap:anywhere; text-decoration:none;
+        }
+        #partner-contact-modal .partner-contact-field a[href]:hover { text-decoration:underline; }
+        #partner-contact-modal .partner-contact-field a:not([href]) { color:#64748B; cursor:default; }
+        #partner-contact-modal .partner-contact-footer {
+            padding:8px 22px 21px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+        }
+        #partner-contact-modal .partner-contact-footnote {
+            margin:0; color:#64748B; line-height:1.35; font-size:11px;
+        }
+        #partner-contact-modal .partner-contact-done {
+            padding:10px 17px; border:0; border-radius:9px;
+            background:#1D4ED8; color:#fff; font-size:13px;
+            font-weight:700; cursor:pointer;
+        }
+        #partner-contact-modal .partner-contact-done:hover { background:#1E40AF; }
+        @media(max-width:460px) {
+            #partner-contact-modal .partner-contact-header { padding:18px 17px; }
+            #partner-contact-modal .partner-contact-body { padding:16px 17px 12px; }
+            #partner-contact-modal .partner-contact-footer { padding:6px 17px 17px; }
+        }
+        /* RIDE24_PARTNER_CONTACT_DIALOG_END */
+
+    </style>
 <link rel="stylesheet" href="../assets/css/admin-seo.css?v=20261014a">
 <link rel="stylesheet" href="../assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -5746,24 +5846,6 @@ window.generateAgreement = function(partnerData) {
             .sign-box { width: 40%; border-top: 1px solid #000; padding-top: 10px; text-align: center; font-weight: bold; }
             @media print { body { padding: 0; margin: 0; } }
     
-        /* Compact, accessible read-only partner contact dialog. */
-        .partner-contact-name { border:0; padding:4px 0; background:none; color:#1D4ED8; cursor:pointer; font:inherit; font-weight:700; text-align:left; text-decoration:underline; text-decoration-color:#BFDBFE; text-underline-offset:3px; overflow-wrap:anywhere; }
-        .partner-contact-name:hover { color:#1E40AF; text-decoration-color:currentColor; }
-        .partner-contact-name:focus-visible { outline:3px solid #93C5FD; outline-offset:3px; border-radius:3px; }
-        #partner-contact-modal { border:1px solid #E2E8F0; border-radius:16px; padding:0; margin:auto; width:min(400px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); background:#fff; color:#0F172A; box-shadow:0 28px 75px rgba(2,6,23,.3); font-family:'Inter',sans-serif; }
-        #partner-contact-modal::backdrop { background:rgba(2,6,23,.58); backdrop-filter:blur(3px); }
-        .partner-contact-header { padding:18px 20px; display:flex; align-items:flex-start; gap:12px; justify-content:space-between; background:#F8FAFC; border-bottom:1px solid #E2E8F0; }
-        .partner-contact-header h2 { margin:0; font-size:17px; line-height:1.4; overflow-wrap:anywhere; }
-        .partner-contact-close { background:#E2E8F0; color:#334155; border:0; border-radius:8px; cursor:pointer; font-size:22px; width:34px; height:34px; flex-shrink:0; }
-        .partner-contact-close:focus-visible { outline:3px solid #93C5FD; }
-        .partner-contact-body { padding:20px; display:grid; gap:16px; }
-        .partner-contact-field { display:grid; gap:5px; min-width:0; }
-        .partner-contact-field span { font-size:11px; font-weight:800; color:#64748B; text-transform:uppercase; letter-spacing:.04em; }
-        .partner-contact-field a { font-size:15px; font-weight:600; color:#2563EB; overflow-wrap:anywhere; }
-        .partner-contact-field a:not([href]) { color:#64748B; text-decoration:none; cursor:default; }
-        #partner-contact-status { font-size:13px; color:#475569; min-height:1em; }
-        #partner-contact-status:empty { display:none; }
-
     </style>
     </head>
     <body>
@@ -5877,19 +5959,40 @@ hereinafter referred to as the “Partner”.
     </div>
 
 
+
     <dialog id="partner-contact-modal" aria-labelledby="partner-contact-title"
             aria-describedby="partner-contact-status"
             onclose="partnerContactOnClose()"
             onclick="if(event.target===this)closePartnerContact()">
         <div class="partner-contact-header">
-            <h2 id="partner-contact-title">Kontakt z partnerem</h2>
-            <button class="partner-contact-close" type="button" aria-label="Zamknij"
+            <div class="partner-contact-avatar" aria-hidden="true">☎</div>
+            <div class="partner-contact-heading">
+                <p class="partner-contact-kicker">Szybki kontakt</p>
+                <h2 id="partner-contact-title">Kontakt z partnerem</h2>
+            </div>
+            <button type="button" class="partner-contact-close" aria-label="Zamknij okno kontaktu"
                     onclick="closePartnerContact()">&times;</button>
         </div>
         <div class="partner-contact-body">
             <p id="partner-contact-status" role="status" aria-live="polite"></p>
-            <div class="partner-contact-field"><span>E-mail</span><a id="partner-contact-email">Nie podano</a></div>
-            <div class="partner-contact-field"><span>Telefon</span><a id="partner-contact-phone">Nie podano</a></div>
+            <div class="partner-contact-field">
+                <div class="partner-contact-field-icon" aria-hidden="true">✉</div>
+                <div class="partner-contact-field-text">
+                    <span>E-mail</span>
+                    <a id="partner-contact-email">Nie podano</a>
+                </div>
+            </div>
+            <div class="partner-contact-field">
+                <div class="partner-contact-field-icon" aria-hidden="true">☎</div>
+                <div class="partner-contact-field-text">
+                    <span>Telefon</span>
+                    <a id="partner-contact-phone">Nie podano</a>
+                </div>
+            </div>
+        </div>
+        <div class="partner-contact-footer">
+            <p class="partner-contact-footnote">Kliknij adres lub numer, aby nawiązać kontakt.</p>
+            <button class="partner-contact-done" type="button" onclick="closePartnerContact()">Zamknij</button>
         </div>
     </dialog>
 
