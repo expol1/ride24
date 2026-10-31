@@ -447,7 +447,7 @@ test('desktop breakdown CTA stays compact on Bookings and Dashboard while mobile
     assert.equal((panel.match(/class="r24-booking-cta-full"/g) || []).length, 2);
     assert.equal((panel.match(/onclick="openPartnerBookingItems/g) || []).length, 2);
     assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=20261031compact1/);
-    assert.match(css, /@media \(max-width:1200px\)[\s\S]*min-height:78px/);
+    assert.match(css, /@media\s*\(max-width:1200px\)[\s\S]*min-height:78px/);
     const marker = css.indexOf('R24 DESKTOP COMPACT PRICE BREAKDOWN CTA');
     assert.ok(marker > 0, 'Desktop-only compact styling is missing');
     const desktop = css.slice(marker);
