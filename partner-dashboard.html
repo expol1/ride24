@@ -2410,13 +2410,7 @@ Dodaj opinię o Partnerze
                     <div style="height: 1px; background: var(--border); width: 100%;"></div>
 
 
-                    <label class="checkbox-group" style="margin: 0; font-weight: 600; color: var(--blue-dark);">
-
-                        <input type="checkbox" id="locContact">
-
-                        <span data-pl="Wymaga kontaktu z wypożyczalnią" data-en="Requires contact with rental company">Requires contact with rental company</span>
-
-                    </label>
+                    <small data-pl="Przy odbiorze poza lotniskiem Ride24 automatycznie informuje klienta o konieczności wcześniejszego kontaktu z wypożyczalnią." data-en="For non-airport pickup, Ride24 automatically tells customers to contact the rental company in advance.">Przy odbiorze poza lotniskiem Ride24 automatycznie informuje klienta o konieczności wcześniejszego kontaktu z wypożyczalnią.</small>
 
 
                 </div>
@@ -2489,6 +2483,7 @@ Dodaj opinię o Partnerze
     <script src="assets/helper/partnerMandatoryRules.js?v=20261030cities2"></script>
     <script src="assets/helper/partnerGuide.js?v=20261023a"></script>
     <script src="assets/js/location-names.js?v=20261025"></script>
+    <script src="assets/js/location-contact-notice.js?v=20261031a"></script>
     <script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
     
     <script>
@@ -4070,7 +4065,6 @@ const { data, error } = await db
                     extra_fee: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value) > 0,
                     extra_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value),
                     return_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locReturnFeeAmount').value),
-                    contact_required: document.getElementById('locContact').checked,
                     active: document.getElementById('locActive').checked
                 };
 
@@ -4110,6 +4104,10 @@ const { data, error } = await db
                     return; // STOP! Nie zapisujemy polskiej nazwy
                 }
 
+                // Contact guidance is inferred from the normalized pickup type.
+                // Keep this legacy DB field compatible with older clients, but no manual toggle.
+                locationData.contact_required = window.Ride24LocationContact.requiresContact(locationData);
+
                 // 3. Zapis do bazy partner_locations
                 const { error } = await db
                     .from("partner_locations")
@@ -4130,7 +4128,6 @@ const { data, error } = await db
                 document.getElementById('locExtraFee').checked = false;
                 document.getElementById('locExtraFeeAmount').value = "";
                 document.getElementById('locReturnFeeAmount').value = "";
-                document.getElementById('locContact').checked = false;
                 if (typeof toggleExtraFeeInput === "function") toggleExtraFeeInput();
 
             } catch (err) {
