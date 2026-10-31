@@ -219,7 +219,6 @@
     <script src="assets/helper/supabaseConfig.js"></script>
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
 <script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
-<script src="assets/js/results-location-pricing.js?v=20261031a"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -534,11 +533,10 @@ let query = db
                 const selectedReturnLocation = filters.drop_location || loc;
                 const returnLocationName = String(selectedReturnLocation.location_name || selectedReturnLocation.name || "").trim();
                 let returnPartnerIds = [];
-                const returnLocationRowsByPartner = new Map();
                 if (returnLocationName) {
                     let returnQuery = db
                         .from('partner_locations')
-                        .select('partner_id,return_fee_amount')
+                        .select('partner_id')
                         .eq('active', true)
                         .eq('location_name', returnLocationName);
                     if (selectedReturnLocation.country) {
@@ -550,12 +548,6 @@ let query = db
                     const { data: returnLocations, error: locationsError } = await returnQuery;
                     if (locationsError) throw locationsError;
                     returnPartnerIds = [...new Set((returnLocations || []).map(item => item.partner_id).filter(Boolean))];
-                    for (const row of returnLocations || []) {
-                        if (!row.partner_id) continue;
-                        const key = String(row.partner_id);
-                        if (!returnLocationRowsByPartner.has(key)) returnLocationRowsByPartner.set(key, []);
-                        returnLocationRowsByPartner.get(key).push(row);
-                    }
                 }
     
                 
@@ -698,53 +690,63 @@ let query = db
                 const resultCurrencies = [...new Set(cars.map(car => String(car.partners?.currency || "EUR").toUpperCase()))];
                 await Promise.all(resultCurrencies.map(code => getExchangeRate(code)));
 
-                // Price ranking includes mandatory pickup and return charges for the
-                // exact selected locations. Location charges are once per leg, not per day.
-                // Refundable deposits and optional extras do not enter the ranking.
-                const resultPricing = window.Ride24ResultPricing;
-                const selectedPickupName = String(loc.location_name || loc.name || "").trim();
-                const locationFeesByCar = new Map(cars.map(car => {
-                    const fees = resultPricing.selectedLocationFees(
-                        car, selectedPickupName, returnLocationName, returnLocationRowsByPartner
-                    );
-                    const margin = Number(car.platform_margin_percent ?? globalMarginPercent);
-                    return [car, resultPricing.customerLocationFeeTotal(fees, margin)];
-                }));
+                // --- 💰 KROK 1: RANKING (Sortowanie sezonowe) ---
+                cars.sort((a, b) => {
+                    // 💎 VIP z kierowcą nadal na górze
+                    const aVip = a.driver_included === true ? 1 : 0;
+                    const bVip = b.driver_included === true ? 1 : 0;
 
-                function getSeasonPrice(car) {
-                    const pickupMonth = new Date(filters.pickup_date + "T00:00:00Z").getUTCMonth() + 1;
-                    let publicPrice = Number(car.public_price) || 0;
-                    const activeSeason = (car.seasonal_prices || []).find(s => {
-                        if (!s.active) return false;
-                        return s.start_month <= s.end_month
-                            ? pickupMonth >= s.start_month && pickupMonth <= s.end_month
-                            : pickupMonth >= s.start_month || pickupMonth <= s.end_month;
-                    });
-                    if (activeSeason) publicPrice = Number(activeSeason.public_price);
-                    const durationTier = (car.rental_duration_discounts || []).find(tier => {
-                        if (!tier.active) return false;
-                        const minDays = Number(tier.min_days);
-                        const maxDays = tier.max_days == null ? Number.POSITIVE_INFINITY : Number(tier.max_days);
-                        return days >= minDays && days <= maxDays;
-                    });
-                    const durationDiscount = durationTier
-                        ? Math.max(0, Math.min(80, Number(durationTier.discount_percent) || 0))
-                        : 0;
-                    publicPrice *= 1 - durationDiscount / 100;
-                    const discountPerc = Number(car.partner_discount_percent ?? 10);
-                    const marginPerc = Number(car.platform_margin_percent ?? globalMarginPercent);
-                    return publicPrice * (1 - discountPerc / 100) * (1 + marginPerc / 100);
-                }
+                    if (aVip !== bVip) {
+                        return bVip - aVip;
+                    }
 
-                const rankingPrices = new Map(cars.map(car => {
-                    const currency = String(car.partners?.currency || "EUR").toUpperCase();
-                    const rate = exchangeRateCache.get(currency);
-                    return [car, resultPricing.totalRankPrice(
-                        getSeasonPrice(car) * days, locationFeesByCar.get(car), rate
-                    )];
-                }));
-                // Strictly lowest comparable full price first; chauffeur only breaks ties.
-                cars.sort((a, b) => resultPricing.compareByTotalPrice(a, b, rankingPrices));
+                    // Logika przeliczania ceny sezonowej do sortowania
+                    function getSeasonPrice(car) {
+                        const pickupMonth = new Date(filters.pickup_date + "T00:00:00Z").getUTCMonth() + 1;
+                        let publicPrice = Number(car.public_price) || 0;
+
+                        const activeSeason = (car.seasonal_prices || []).find(s => {
+                            if (!s.active) return false;
+                            return s.start_month <= s.end_month
+                                ? (pickupMonth >= s.start_month && pickupMonth <= s.end_month)
+                                : (pickupMonth >= s.start_month || pickupMonth <= s.end_month);
+                        });
+
+                        if (activeSeason) {
+                            publicPrice = Number(activeSeason.public_price);
+                        }
+
+                        // Optional long-rental discount. One set of duration tiers
+                        // applies automatically to the active seasonal/base price.
+                        const durationTier = (car.rental_duration_discounts || []).find(tier => {
+                            if (!tier.active) return false;
+                            const minDays = Number(tier.min_days);
+                            const maxDays = tier.max_days == null ? Number.POSITIVE_INFINITY : Number(tier.max_days);
+                            return days >= minDays && days <= maxDays;
+                        });
+                        const durationDiscount = durationTier
+                            ? Math.max(0, Math.min(80, Number(durationTier.discount_percent) || 0))
+                            : 0;
+                        publicPrice = publicPrice * (1 - durationDiscount / 100);
+
+                        const discountPerc = Number(car.partner_discount_percent ?? 10);
+                        const marginPerc = Number(car.platform_margin_percent ?? globalMarginPercent);
+
+                        const partnerNet = publicPrice * (1 - (discountPerc / 100));
+                        return partnerNet * (1 + (marginPerc / 100));
+                    }
+
+                    const currencyA = String(a.partners?.currency || "EUR").toUpperCase();
+                    const currencyB = String(b.partners?.currency || "EUR").toUpperCase();
+                    const rateA = exchangeRateCache.get(currencyA);
+                    const rateB = exchangeRateCache.get(currencyB);
+                    const priceA = Number.isFinite(rateA) ? getSeasonPrice(a) * days * rateA : Number.POSITIVE_INFINITY;
+                    const priceB = Number.isFinite(rateB) ? getSeasonPrice(b) * days * rateB : Number.POSITIVE_INFINITY;
+
+                    // OD NAJTAŃSZYCH DO NAJDROŻSZYCH po porównywalnej wartości PLN
+                    if (!Number.isFinite(priceA) && !Number.isFinite(priceB)) return 0;
+                    return priceA - priceB;
+                });
 
                 const hasMoreCars = cars.length > PAGE_SIZE || rawCars.length === FETCH_LIMIT;
                 cars = cars.slice(0, PAGE_SIZE);
@@ -1041,11 +1043,8 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 </div>
 
 <div class="car-price-box">
-    <div class="price-info">${lang === 'pl' ? 'Wynajem' : 'Rental'} ${labels.daysInfo}</div>
+    <div class="price-info">${lang === 'pl' ? 'Łącznie' : 'Total'} ${labels.daysInfo}</div>
     <div class="price-total">${displayTotal} <span>${safeCurrency}</span></div>
-    ${locationFeesByCar.get(car) > 0
-        ? `<div class="price-info">${lang === 'pl' ? 'Opłaty za odbiór i zwrot' : 'Pickup and return fees'}: ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(locationFeesByCar.get(car))} ${safeCurrency}</div>`
-        : ''}
     <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc})">
         ${labels.bookBtn}
     </button>
