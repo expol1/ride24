@@ -438,3 +438,25 @@ test('web booking breakdown CTA is visible in dashboard and bookings with transl
     assert.ok(panel.includes('assets/css/partner-bookings-ux.css?v=20261030details1'));
     assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261030details1'));
 });
+
+
+test('desktop breakdown CTA stays compact on Bookings and Dashboard while mobile retains the full tile', () => {
+    const css = read('assets/css/partner-bookings-ux.css');
+    assert.equal((panel.match(/class="r24-items-open r24-booking-details-cta"/g) || []).length, 2);
+    assert.equal((panel.match(/class="r24-booking-cta-compact"/g) || []).length, 2);
+    assert.equal((panel.match(/class="r24-booking-cta-full"/g) || []).length, 2);
+    assert.equal((panel.match(/onclick="openPartnerBookingItems/g) || []).length, 2);
+    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=20261031compact1/);
+    assert.match(css, /@media \(max-width:1200px\)[\s\S]*min-height:78px/);
+    const marker = css.indexOf('R24 DESKTOP COMPACT PRICE BREAKDOWN CTA');
+    assert.ok(marker > 0, 'Desktop-only compact styling is missing');
+    const desktop = css.slice(marker);
+    assert.match(desktop, /@media \(min-width:1201px\)/);
+    assert.match(desktop, /:is\(#view-bookings,#view-dashboard\)/);
+    assert.match(desktop, /background:#eff6ff;color:#1d4ed8/);
+    assert.match(desktop, /\.r24-booking-cta-hint\s*\{\s*display:none;/);
+    assert.match(desktop, /\.r24-booking-cta-compact\s*\{\s*display:inline;/);
+    const catalogue = JSON.parse(catalogCode.slice(catalogCode.indexOf('Object.freeze(') + 14, catalogCode.lastIndexOf(');')));
+    assert.equal(catalogue.source.Details, 'Szczegóły');
+    for(const lang of ['es','el','it','de','ru','fr']) assert.ok(catalogue.languages[lang].Details);
+});
