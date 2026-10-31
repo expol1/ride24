@@ -522,7 +522,11 @@ test('homepage map uses the existing image as both desktop and mobile card backg
     const d = dom.window.document;
     const css = d.getElementById('ride24-world-explorer-full-image')?.textContent || '';
     assert.ok(css.includes('url("assets/img/ride24-map-card.webp")'));
-    assert.ok(css.includes('background-size: cover, cover'));
+    assert.ok(css.includes('background-size: 100% 100%, 214px auto, 100% 100%'));
+    assert.ok(css.includes('background-size: 100% 100%, 155px auto, 100% 100%'));
+    assert.ok(css.includes('background-position: center, right 12px center, center'));
+    assert.ok(!css.includes('background-size: cover, cover'), 'Do not enlarge the thumbnail across the full card');
+    assert.ok(css.includes('rgba(255,255,255,.99)'), 'Keep the stats readable above the map');
     assert.ok(css.includes('.world-explorer-map-art { display: none !important; }'));
     assert.ok(css.includes('.world-explorer.world-explorer-mobile'));
     assert.equal(d.querySelectorAll('.world-explorer .world-explorer-map-image[src="assets/img/ride24-map-card.webp"]').length, 2);
