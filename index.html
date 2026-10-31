@@ -3276,6 +3276,76 @@
 <link rel="stylesheet" href="assets/css/world-map-regions.css?v=20261012-1">
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261021a">
 <link rel="stylesheet" href="assets/css/home-scroll-performance.css?v=20261019b">
+<style id="ride24-world-explorer-full-image">
+/* Homepage presence card: reuse the existing thumbnail as a full-card backdrop.
+   The overlay retains strong contrast while leaving the right side of the map visible. */
+.world-explorer.world-explorer-desktop,
+.world-explorer.world-explorer-mobile {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 20px;
+    background-image:
+        linear-gradient(105deg, rgba(255,255,255,.97) 0%, rgba(247,251,255,.91) 51%, rgba(241,248,255,.54) 100%),
+        url("assets/img/ride24-map-card.webp") !important;
+    background-position: center, center !important;
+    background-size: cover, cover !important;
+    background-repeat: no-repeat, no-repeat !important;
+    border: 1px solid rgba(198,220,249,.9);
+    box-shadow: 0 12px 28px rgba(15,54,104,.13);
+}
+.world-explorer.world-explorer-desktop { padding: 16px 18px 17px; }
+.world-explorer .world-explorer-card-head {
+    display: grid;
+    grid-template-columns: 48px minmax(0,1fr) !important;
+    align-items: center;
+    column-gap: 12px;
+    min-height: 73px;
+}
+.world-explorer .world-explorer-map-art { display: none !important; }
+.world-explorer .world-explorer-copy { min-width: 0; text-align: left; }
+.world-explorer .world-explorer-globe {
+    display: grid;
+    place-items: center;
+    width: 46px; height: 46px; border-radius: 50%;
+    background: rgba(235,246,255,.87);
+    font-size: 26px;
+    box-shadow: 0 3px 12px rgba(37,99,235,.11);
+}
+.world-explorer.world-explorer-desktop h3,
+.world-explorer.world-explorer-mobile h3 {
+    color: #102a6b !important;
+    font-size: 22px !important;
+    margin-bottom: 4px !important;
+    text-shadow: 0 1px 3px rgba(255,255,255,.65);
+}
+.world-explorer .world-explorer-summary {
+    color: #294262 !important;
+    white-space: normal !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+    text-shadow: 0 1px 3px rgba(255,255,255,.65);
+}
+.world-explorer .world-map-btn { position: relative; z-index: 1; }
+@media (max-width:768px) {
+    .world-explorer.world-explorer-mobile {
+        padding: 15px 15px 16px !important;
+        background-image:
+            linear-gradient(105deg, rgba(255,255,255,.97) 0%, rgba(247,251,255,.92) 56%, rgba(241,248,255,.60) 100%),
+            url("assets/img/ride24-map-card.webp") !important;
+    }
+    .world-explorer.world-explorer-mobile h3 { font-size: 20px !important; }
+    .world-explorer.world-explorer-mobile .world-explorer-summary { font-size: 12px !important; }
+    .world-explorer.world-explorer-mobile .world-explorer-card-head {
+        grid-template-columns: 44px minmax(0,1fr) !important;
+        gap: 10px;
+        min-height: 66px;
+    }
+    .world-explorer.world-explorer-mobile .world-explorer-globe {
+        width: 42px; height: 42px; font-size: 24px;
+    }
+}
+</style>
 <script src="assets/js/location-names.js?v=20261025"></script>
     <!-- Mobile partner login: avoid full-screen backdrop blur during keyboard input. -->
     <style id="ride24-partner-login-mobile-performance">
@@ -6069,28 +6139,38 @@ data-en="🌍 Ride24 World Map">
         return ride24Countries[country]?.flag || "🌍";
     }
 
-    function ride24Plural(value, singularPl, pluralPl, singularEn, pluralEn){
-        const lang = getRide24Lang();
+    // Polish cardinal-number agreement: 1 kraj, 2–4 kraje, 5–21 krajów, 22–24 kraje.
+    function ride24PolishCountWord(value, one, few, many){
+        const n = Math.abs(Number(value));
+        const lastTwo = n % 100;
+        const lastDigit = n % 10;
+        if (n === 1) return one;
+        return lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14) ? few : many;
+    }
 
-        if (lang === "en") {
+    function ride24Plural(value, singularPl, pluralPl, singularEn, pluralEn, manyPl = pluralPl){
+        if (getRide24Lang() === "en") {
             return `${value} ${value === 1 ? singularEn : pluralEn}`;
         }
-
-        return `${value} ${value === 1 ? singularPl : pluralPl}`;
+        return `${value} ${ride24PolishCountWord(value, singularPl, pluralPl, manyPl)}`;
     }
 
     function getRide24LocationCountText(count){
-        return ride24Plural(count, "lokalizacja", "lokalizacje", "location", "locations");
+        return ride24Plural(count, "lokalizacja", "lokalizacje", "location", "locations", "lokalizacji");
     }
 
     function getRide24StatsText(){
+        const countries = ride24WorldStats.countries;
+        const locations = ride24WorldStats.locations;
+        const countriesPl = `${countries} ${ride24PolishCountWord(countries, "kraj", "kraje", "krajów")}`;
+        const locationsPl = `${locations} ${ride24PolishCountWord(locations, "lokalizacja", "lokalizacje", "lokalizacji")}`;
         return {
-            summaryPl: `${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "kraj" : "kraje"} • ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "lokalizacja" : "lokalizacje"}`,
-            summaryEn: `${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "country" : "countries"} • ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "location" : "locations"}`,
-            countriesPl: `🌍 ${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "kraj" : "kraje"}`,
-            countriesEn: `🌍 ${ride24WorldStats.countries} ${ride24WorldStats.countries === 1 ? "country" : "countries"}`,
-            locationsPl: `📍 ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "lokalizacja" : "lokalizacje"}`,
-            locationsEn: `📍 ${ride24WorldStats.locations} ${ride24WorldStats.locations === 1 ? "location" : "locations"}`,
+            summaryPl: `${countriesPl} • ${locationsPl}`,
+            summaryEn: `${countries} ${countries === 1 ? "country" : "countries"} • ${locations} ${locations === 1 ? "location" : "locations"}`,
+            countriesPl: `🌍 ${countriesPl}`,
+            countriesEn: `🌍 ${countries} ${countries === 1 ? "country" : "countries"}`,
+            locationsPl: `📍 ${locationsPl}`,
+            locationsEn: `📍 ${locations} ${locations === 1 ? "location" : "locations"}`,
             partnersPl: `🚗 ${ride24WorldStats.partners} ${ride24WorldStats.partners === 1 ? "partner" : "partnerów"}`,
             partnersEn: `🚗 ${ride24WorldStats.partners} ${ride24WorldStats.partners === 1 ? "partner" : "partners"}`
         };
