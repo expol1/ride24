@@ -150,7 +150,13 @@ test('partner company names are keyboard-focusable triggers and contact modal is
     assert.match(html,/<button type="button" class="partner-contact-name"[\s\S]*?aria-haspopup="dialog"/);
     assert.ok(html.includes('onclick="openPartnerContact('));
     assert.ok(html.includes('.partner-contact-name:focus-visible'));
-    assert.match(html,/#partner-contact-modal\s*\{[^}]*width:min\(400px,calc\(100vw - 32px\)\)/);
+    const head=html.slice(0,html.indexOf('</head>'));
+    assert.ok(head.includes('/* RIDE24_PARTNER_CONTACT_DIALOG_START:'),'Dialog CSS must be loaded by the admin, not printed in agreement HTML');
+    assert.match(head,/#partner-contact-modal\s*\{[^}]*position:fixed; inset:0; margin:auto;/);
+    assert.match(head,/width:min\(420px,calc\(100vw - 32px\)\)/);
+    assert.match(head,/#partner-contact-modal::backdrop/);
+    assert.ok(!html.slice(html.indexOf('async function generateAgreementForPartner(')).includes('/* RIDE24_PARTNER_CONTACT_DIALOG_START:'),
+        'Printed partner agreement must not include admin modal styles');
     const d=setup();
     const modal=d.window.document.getElementById('partner-contact-modal');
     assert.equal(modal.localName,'dialog');
