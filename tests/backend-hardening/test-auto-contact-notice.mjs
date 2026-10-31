@@ -57,7 +57,7 @@ test('search restores compact contact-only notice without pickup fee duplication
     assert.match(search, /Odbiór poza lotniskiem – skontaktuj się z wypożyczalnią/);
     assert.match(search, /Non-airport pickup – contact the rental company/);
     assert.doesNotMatch(search, /wcześniejszy kontakt z wypożyczalnią/);
-    assert.doesNotMatch(search, /<span aria-hidden="true">☎<\\/span>/);
+    assert.doesNotMatch(search, /☎/);
     assert.match(search, /<svg width="14" height="14" viewBox="0 0 24 24"/);
     assert.doesNotMatch(search, /Opłata za odbiór od/);
 });
