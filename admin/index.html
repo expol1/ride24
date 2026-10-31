@@ -2643,6 +2643,65 @@ if ((p.provider_type ?? "local") === "api") {
 });
 }
 
+
+let partnerContactRequestId = 0;
+let partnerContactPreviousFocus = null;
+
+function setPartnerContactValue(id, value, kind) {
+    const element = document.getElementById(id);
+    const display = typeof value === "string" ? value.trim() : "";
+    element.textContent = display || "Nie podano";
+    element.removeAttribute("href");
+    if (kind === "email" && /^[^\s@?&#<>]+@[^\s@?&#<>]+\.[^\s@?&#<>]+$/.test(display)) {
+        element.setAttribute("href", "mailto:" + display);
+    } else if (kind === "phone" && /^\+?[\d\s().-]{5,32}$/.test(display)) {
+        element.setAttribute("href", "tel:" + display.replace(/[^\d+]/g, ""));
+    }
+}
+
+async function openPartnerContact(partnerId) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(partnerId))) return;
+    const modal = document.getElementById("partner-contact-modal");
+    if (!modal) return;
+    partnerContactPreviousFocus = document.activeElement;
+    const requestId = ++partnerContactRequestId;
+    document.getElementById("partner-contact-title").textContent = "Kontakt z partnerem";
+    setPartnerContactValue("partner-contact-email", "", "email");
+    setPartnerContactValue("partner-contact-phone", "", "phone");
+    const status = document.getElementById("partner-contact-status");
+    status.textContent = "Ładowanie danych kontaktowych…";
+    if (!modal.open) modal.showModal();
+    try {
+        const { data, error } = await db.from("partners")
+            .select("id,company_name,email,phone")
+            .eq("id", partnerId).maybeSingle();
+        if (requestId !== partnerContactRequestId || !modal.open) return;
+        if (error || !data) {
+            status.textContent = "Nie udało się pobrać danych kontaktowych partnera.";
+            return;
+        }
+        document.getElementById("partner-contact-title").textContent = data.company_name || "Partner";
+        setPartnerContactValue("partner-contact-email", data.email, "email");
+        setPartnerContactValue("partner-contact-phone", data.phone, "phone");
+        status.textContent = "";
+    } catch (_) {
+        if (requestId === partnerContactRequestId && modal.open)
+            status.textContent = "Nie udało się pobrać danych kontaktowych partnera.";
+    }
+}
+
+function closePartnerContact() {
+    const modal = document.getElementById("partner-contact-modal");
+    if (modal && modal.open) modal.close();
+}
+
+function partnerContactOnClose() {
+    ++partnerContactRequestId;
+    if (partnerContactPreviousFocus && partnerContactPreviousFocus.isConnected)
+        partnerContactPreviousFocus.focus();
+    partnerContactPreviousFocus = null;
+}
+
 async function togglePartner(partnerId, makeActive) {
     if (!confirm("Czy na pewno chcesz zmienić status tego partnera?")) return;
     try {
