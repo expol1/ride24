@@ -674,6 +674,7 @@
             overflow-wrap:anywhere; text-decoration:none;
         }
         #partner-contact-modal .partner-contact-field a[href]:hover { text-decoration:underline; }
+        #partner-contact-modal .partner-contact-emergency .partner-contact-field-icon { background:#FEE2E2; color:#B91C1C; }
         #partner-contact-modal .partner-contact-field a:not([href]) { color:#64748B; cursor:default; }
         #partner-contact-modal .partner-contact-footer {
             padding:8px 22px 21px; display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -2752,8 +2753,17 @@ function setPartnerContactValue(id, value, kind) {
     const display = typeof value === "string" ? value.trim() : "";
     element.textContent = display || "Nie podano";
     element.removeAttribute("href");
+    element.removeAttribute("target");
+    element.removeAttribute("rel");
     if (kind === "email" && /^[^\s@?&#<>]+@[^\s@?&#<>]+\.[^\s@?&#<>]+$/.test(display)) {
         element.setAttribute("href", "mailto:" + display);
+    } else if (kind === "whatsapp" && /^\+[\d\s().-]{5,32}$/.test(display)) {
+        const number = display.replace(/\D/g, "");
+        if (number.length >= 8 && number.length <= 15) {
+            element.setAttribute("href", "https://wa.me/" + number);
+            element.setAttribute("target", "_blank");
+            element.setAttribute("rel", "noopener noreferrer");
+        }
     } else if (kind === "phone" && /^\+?[\d\s().-]{5,32}$/.test(display)) {
         element.setAttribute("href", "tel:" + display.replace(/[^\d+]/g, ""));
     }
@@ -2767,13 +2777,14 @@ async function openPartnerContact(partnerId) {
     const requestId = ++partnerContactRequestId;
     document.getElementById("partner-contact-title").textContent = "Kontakt z partnerem";
     setPartnerContactValue("partner-contact-email", "", "email");
-    setPartnerContactValue("partner-contact-phone", "", "phone");
+    setPartnerContactValue("partner-contact-phone", "", "whatsapp");
+    setPartnerContactValue("partner-contact-emergency", "", "phone");
     const status = document.getElementById("partner-contact-status");
     status.textContent = "Ładowanie danych kontaktowych…";
     if (!modal.open) modal.showModal();
     try {
         const { data, error } = await db.from("partners")
-            .select("id,company_name,email,phone")
+            .select("id,company_name,email,phone,emergency_phone")
             .eq("id", partnerId).maybeSingle();
         if (requestId !== partnerContactRequestId || !modal.open) return;
         if (error || !data) {
@@ -2782,7 +2793,8 @@ async function openPartnerContact(partnerId) {
         }
         document.getElementById("partner-contact-title").textContent = data.company_name || "Partner";
         setPartnerContactValue("partner-contact-email", data.email, "email");
-        setPartnerContactValue("partner-contact-phone", data.phone, "phone");
+        setPartnerContactValue("partner-contact-phone", data.phone, "whatsapp");
+        setPartnerContactValue("partner-contact-emergency", data.emergency_phone, "phone");
         status.textContent = "";
     } catch (_) {
         if (requestId === partnerContactRequestId && modal.open)
@@ -5978,20 +5990,27 @@ hereinafter referred to as the “Partner”.
             <div class="partner-contact-field">
                 <div class="partner-contact-field-icon" aria-hidden="true">✉</div>
                 <div class="partner-contact-field-text">
-                    <span>E-mail</span>
+                    <span>E-mail · Zoho Mail</span>
                     <a id="partner-contact-email">Nie podano</a>
                 </div>
             </div>
             <div class="partner-contact-field">
                 <div class="partner-contact-field-icon" aria-hidden="true">☎</div>
                 <div class="partner-contact-field-text">
-                    <span>Telefon</span>
+                    <span>WhatsApp · numer partnera</span>
                     <a id="partner-contact-phone">Nie podano</a>
+                </div>
+            </div>
+            <div class="partner-contact-field partner-contact-emergency">
+                <div class="partner-contact-field-icon" aria-hidden="true">✚</div>
+                <div class="partner-contact-field-text">
+                    <span>Telefon alarmowy · połączenie</span>
+                    <a id="partner-contact-emergency">Nie podano</a>
                 </div>
             </div>
         </div>
         <div class="partner-contact-footer">
-            <p class="partner-contact-footnote">Kliknij adres lub numer, aby nawiązać kontakt.</p>
+            <p class="partner-contact-footnote">WhatsApp otwiera czat. E-mail używa ustawionej w przeglądarce poczty (Zoho Mail). Numer alarmowy służy do połączenia.</p>
             <button class="partner-contact-done" type="button" onclick="closePartnerContact()">Zamknij</button>
         </div>
     </dialog>
