@@ -152,14 +152,6 @@
     color: var(--green);
     flex-shrink: 0;
 }
-        /* Compact contact-only badge; never duplicates a pickup/return fee. */
-        .r24-contact-chip {
-            display: inline-flex; align-items: center; gap: 6px;
-            max-width: 100%; background: linear-gradient(135deg, #FEF2F2, #FECACA);
-            color: #991B1B; font-weight: 700; font-size: 12px;
-            padding: 6px 12px; border: 1px solid #FCA5A5;
-            border-radius: 999px; line-height: 1.35;
-        }
         /* SEKACJA CENY */
         .car-price-box { 
             width: 220px; min-width: 220px; background: var(--bg-price);
@@ -228,7 +220,6 @@
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
 <script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
 <script src="assets/js/results-location-pricing.js?v=20261031a"></script>
-    <script src="assets/js/location-contact-notice.js?v=20261031a"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -527,7 +518,6 @@ let query = db
                 city,
                 location_name,
                 active,
-                type,
                 contact_required,
                 extra_fee,
                 extra_fee_amount
@@ -782,14 +772,6 @@ let query = db
                     console.log("CAR:", car);
                     const lang = localStorage.getItem("lang") || "pl";
                     const minAge = car.partners?.min_driver_age || 21;
-                    // Pickup contact guidance follows the selected location type, not the legacy partner toggle.
-                    const contactBadgeHtml = window.Ride24LocationContact.showForPickup(car, loc)
-                        ? '<span class="r24-contact-chip"><span aria-hidden="true">☎</span> '
-                            + (lang === "pl"
-                                ? "Odbiór poza lotniskiem – wcześniejszy kontakt z wypożyczalnią"
-                                : "Non-airport pickup – contact the rental company in advance")
-                            + "</span>"
-                        : "";
                     // 🛡️ 1️⃣ WALIDACJA DANYCH (Safe Prices)
                     // --- LOGIKA SEZONOWA RIDE24 ---
 
@@ -1002,7 +984,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                 </svg>
                 ${lang === 'pl' ? `Min. wiek ${minAge}+` : `Min age ${minAge}+`}
             </span>
-            ${contactBadgeHtml}
+
         </div>
     </div>
 </div>
