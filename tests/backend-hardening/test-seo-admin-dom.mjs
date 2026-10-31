@@ -6,7 +6,7 @@ import {JSDOM,VirtualConsole} from 'jsdom';
 import * as core from '../../assets/js/seo-content.js';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const seed=JSON.parse(read('supabase/functions/admin-seo/legacy-seed.json'))[0];
-async function fixture(){
+async function fixture(options={}){
  const dom=new JSDOM(read('admin/index.html'),{url:'https://ride24.invalid/admin/',runScripts:'outside-only',virtualConsole:new VirtualConsole()});
  const w=dom.window,d=w.document,calls=[],history=[],clipboard=[];
  const doc={...structuredClone(seed),id:'11111111-1111-4111-8111-111111111111',state:'published',revision:1,review_note:'',last_error:'',google:{inspection:{results:{pl:{verdict:'NEUTRAL',coverage:'Wykryto — obecnie niezindeksowana'}}},business:{state:'needs_correction',posts:{pl:{state:'REJECTED'},en:{state:'LIVE'}}}}};
@@ -16,7 +16,7 @@ async function fixture(){
  Object.defineProperty(w.navigator,'clipboard',{value:{writeText:async value=>clipboard.push(value)}});
  w.db={functions:{async invoke(name,{body}){
   assert.equal(name,'admin-seo');calls.push(structuredClone(body));
-  if(body.action==='list')return {data:{documents:[structuredClone(doc)],settings:{enabled:true,auto_generate:true,auto_review_enabled:true,correction_used_today:false,free_tier_confirmed:true,daily_limit:5,used_today:5,business_target:'accounts/1/locations/2'},connections:{github:true,gemini:true,search:true,business:true}}};
+  if(body.action==='list')return {data:{documents:[structuredClone(doc),...(options.extraDocuments||[])],catalog:options.catalog||{state:'unavailable',keys:[]},settings:{enabled:true,auto_generate:true,auto_review_enabled:true,correction_used_today:false,free_tier_confirmed:true,daily_limit:5,used_today:5,business_target:'accounts/1/locations/2'},connections:{github:true,gemini:true,search:true,business:true}}};
   if(body.action==='review'){doc.google.review={state:'needs_correction',revision:doc.revision,checked_at:'2026-10-24T10:00:00Z',summary:'Google odrzuciło wpis. Przygotowanie szkicu wymaga sprawdzenia.',issues:[{code:'google_post_rejected',message:'Wpis PL wymaga poprawienia nagłówka i wstępu.'}]};return {data:{checked:1,document:structuredClone(doc)}};}
   if(body.action==='configure')return {data:{saved:true}};
   if(body.action==='save'){save(body.content,body.note);return {data:{document:structuredClone(doc)}};}
@@ -86,3 +86,23 @@ test('review switch is saved without replacing connection secrets or the shared 
  const f=await fixture();try{await f.w.seoSaveSettings({preventDefault(){}});const c=f.calls.find(c=>c.action==='configure');assert.equal(c.auto_review_enabled,true);assert.equal(c.daily_limit,5);assert.equal(c.gemini_key,'');assert.equal(c.google_client_secret,'');assert.match(f.d.getElementById('seo-review-summary').textContent,/poprawki dziś: 0 \/ 1/);}finally{f.dom.window.close();}
 });
 test('missing Business post confirmation is not described as Google processing',async()=>{const f=await fixture();try{f.doc.google.business={state:'not_published',posts:{}};await f.w.loadSeo();const status=f.d.getElementById('seo-google-status').textContent;assert.match(status,/brak potwierdzonych wpisów/);assert.doesNotMatch(status,/Google przetwarza wpisy/);}finally{f.dom.window.close();}});
+
+
+test('SEO admin separates historical proposals and blocks duplicate AI generation',async()=>{
+ const stale={...structuredClone(seed),id:'33333333-3333-4333-8333-333333333333',topic_key:'airport|italy|catania',label:'Lotnisko Katania (stare)',state:'queued',content:null,published:null,revision:1,last_error:'Ten kierunek nie ma obecnie aktywnych lokalizacji z ofertami.',google:{}};
+ const f=await fixture({extraDocuments:[stale],catalog:{state:'ready',keys:[frozenKey()],active_count:1}});
+ try{
+  const select=f.d.getElementById('seo-filter');
+  assert.match(f.d.getElementById('seo-queue-summary').textContent,/Historyczne wpisy.*: 1/);
+  select.value='queued';f.w.seoRenderList();assert.equal(f.d.querySelectorAll('#seo-list button').length,0);
+  select.value='outdated';f.w.seoRenderList();assert.equal(f.d.querySelectorAll('#seo-list button').length,1);
+  f.d.querySelector('#seo-list button').click();
+  assert.equal(f.d.getElementById('seo-generate').disabled,true);
+  assert.match(f.d.getElementById('seo-source').textContent,/Historyczny wpis/);
+  const before=f.calls.filter(c=>c.action==='generate').length;
+  await f.w.seoGenerate();
+  assert.equal(f.calls.filter(c=>c.action==='generate').length,before);
+  assert.match(f.d.getElementById('seo-message').textContent,/historyczny wariant/);
+ }finally{f.dom.window.close();}
+});
+function frozenKey(){return 'airport|italy|cta';}
