@@ -54,8 +54,11 @@ test('search restores compact contact-only notice without pickup fee duplication
     assert.match(search, /partner_locations!inner\([\s\S]*?type,[\s\S]*?contact_required,/);
     assert.match(search, /const contactBadgeHtml = window\.Ride24LocationContact\.showForPickup\(car, loc\)/);
     assert.match(search, /\$\{contactBadgeHtml\}/);
-    assert.match(search, /Odbiór poza lotniskiem/);
-    assert.match(search, /Non-airport pickup/);
+    assert.match(search, /Odbiór poza lotniskiem – skontaktuj się z wypożyczalnią/);
+    assert.match(search, /Non-airport pickup – contact the rental company/);
+    assert.doesNotMatch(search, /wcześniejszy kontakt z wypożyczalnią/);
+    assert.doesNotMatch(search, /☎/);
+    assert.match(search, /<svg width="14" height="14" viewBox="0 0 24 24"/);
     assert.doesNotMatch(search, /Opłata za odbiór od/);
 });
 
