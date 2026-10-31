@@ -115,3 +115,109 @@ test('existing admin JavaScript parses without syntax errors',()=>{
     const parsed=ts.createSourceFile('admin.js',source,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
     assert.deepEqual(parsed.parseDiagnostics.map(x=>ts.flattenDiagnosticMessageText(x.messageText,'\n')),[]);
 });
+
+
+const contactHelper=html.slice(
+    html.indexOf('let partnerContactRequestId = 0;'),
+    html.indexOf('async function togglePartner(partnerId, makeActive)')
+);
+const validPartnerId='b3cc022f-e116-4a3a-9778-18916a93b71f';
+
+function contactSetup(result) {
+    const dom=setup(),w=dom.window,d=w.document,modal=d.getElementById('partner-contact-modal');
+    const calls=[];
+    assert.ok(modal, 'Contact modal must exist');
+    modal.showModal=()=>modal.setAttribute('open','');
+    modal.close=()=>{
+        modal.removeAttribute('open');
+        w.partnerContactOnClose();
+    };
+    w.db={from(table){
+        calls.push({method:'from',table});
+        return {select(fields){
+            calls.push({method:'select',fields});
+            return {eq(field,value){
+                calls.push({method:'eq',field,value});
+                return {maybeSingle:async()=>typeof result==='function'?result():result};
+            }};
+        }};
+    }};
+    w.eval('const db=window.db;\n'+contactHelper);
+    return {dom,w,d,modal,calls};
+}
+
+test('partner company names are keyboard-focusable triggers and contact modal is compact',()=>{
+    assert.match(html,/<button type="button" class="partner-contact-name"[\s\S]*?aria-haspopup="dialog"/);
+    assert.ok(html.includes('onclick="openPartnerContact('));
+    assert.ok(html.includes('.partner-contact-name:focus-visible'));
+    assert.match(html,/#partner-contact-modal\s*\{[^}]*width:min\(400px,calc\(100vw - 32px\)\)/);
+    const d=setup();
+    const modal=d.window.document.getElementById('partner-contact-modal');
+    assert.equal(modal.localName,'dialog');
+    assert.equal(modal.getAttribute('aria-labelledby'),'partner-contact-title');
+    assert.equal(modal.getAttribute('aria-describedby'),'partner-contact-status');
+    assert.ok(d.window.document.getElementById('partner-contact-email'));
+    assert.ok(d.window.document.getElementById('partner-contact-phone'));
+    d.window.close();
+});
+
+test('clicking partner contact loads scoped data and makes safe mailto/tel links',async()=>{
+    const f=contactSetup({data:{company_name:'GMG <img src=x onerror=alert(1)>',
+        email:'gmgrentcar@gmail.com',phone:'+995 555 855 959'},error:null});
+    try{
+        await f.w.openPartnerContact(validPartnerId);
+        assert.equal(f.modal.open,true);
+        assert.equal(f.d.getElementById('partner-contact-title').textContent,'GMG <img src=x onerror=alert(1)>');
+        assert.equal(f.d.getElementById('partner-contact-title').querySelector('img'),null);
+        assert.equal(f.d.getElementById('partner-contact-email').getAttribute('href'),'mailto:gmgrentcar@gmail.com');
+        assert.equal(f.d.getElementById('partner-contact-phone').getAttribute('href'),'tel:+995555855959');
+        assert.equal(f.d.getElementById('partner-contact-status').textContent,'');
+        assert.deepEqual(f.calls.map(x=>x.method),['from','select','eq']);
+        assert.equal(f.calls[0].table,'partners');
+        assert.equal(f.calls[1].fields,'id,company_name,email,phone');
+        assert.equal(f.calls[2].value,validPartnerId);
+        f.w.closePartnerContact();assert.equal(f.modal.open,false);
+    } finally { f.dom.window.close(); }
+});
+
+test('missing or unsafe contact data cannot open arbitrary links',async()=>{
+    const f=contactSetup({data:{company_name:'No details',
+      email:'foo@example.com?subject=injected',phone:'javascript:alert(1)'},error:null});
+    try{
+        await f.w.openPartnerContact(validPartnerId);
+        assert.equal(f.d.getElementById('partner-contact-email').getAttribute('href'),null);
+        assert.equal(f.d.getElementById('partner-contact-phone').getAttribute('href'),null);
+        f.w.closePartnerContact();
+    }finally{f.dom.window.close();}
+    const missing=contactSetup({data:{company_name:'No details',email:null,phone:''},error:null});
+    try{
+        await missing.w.openPartnerContact(validPartnerId);
+        assert.equal(missing.d.getElementById('partner-contact-email').textContent,'Nie podano');
+        assert.equal(missing.d.getElementById('partner-contact-phone').textContent,'Nie podano');
+        missing.w.closePartnerContact();
+    }finally{missing.dom.window.close();}
+});
+
+test('closed dialog ignores stale responses and contact errors are presented without mutations',async()=>{
+    let release;
+    const pending=new Promise(resolve=>{release=resolve;});
+    const f=contactSetup(()=>pending);
+    try{
+        const action=f.w.openPartnerContact(validPartnerId);
+        assert.equal(f.modal.open,true);
+        f.w.closePartnerContact();
+        release({data:{company_name:'Should not show',email:'outdated@example.com',phone:'+48 123 456 789'},error:null});
+        await action;
+        assert.equal(f.modal.open,false);
+        assert.equal(f.d.getElementById('partner-contact-email').getAttribute('href'),null);
+        assert.ok(!f.calls.some(x=>['delete','update','insert'].includes(x.method)));
+        await f.w.openPartnerContact('bad-id');
+        assert.equal(f.calls.filter(x=>x.method==='from').length,1);
+    }finally{f.dom.window.close();}
+    const failure=contactSetup({data:null,error:{message:'Access denied'}});
+    try{
+        await failure.w.openPartnerContact(validPartnerId);
+        assert.match(failure.d.getElementById('partner-contact-status').textContent,/Nie udało się pobrać/);
+        assert.equal(failure.d.getElementById('partner-contact-phone').getAttribute('href'),null);
+    }finally{failure.dom.window.close();}
+});
