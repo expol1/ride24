@@ -4720,6 +4720,20 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
     window.editingInsuranceWasTrue = false;
     window.editingInsuranceConfirmedAt = null;
     document.getElementById("vehicleForm").reset();
+    // A previously opened vehicle must never leave its photo preview or file selected.
+    const vehicleImageInput = document.getElementById("vehicleImageUpload");
+    if (vehicleImageInput) {
+        vehicleImageInput.value = "";
+        const imageTile = vehicleImageInput.closest(".file-tile");
+        if (imageTile) {
+            imageTile.querySelector(".preview-img")?.remove();
+            delete imageTile.dataset.existingImage;
+            for (const selector of [".file-icon", ".file-title", ".file-sub"]) {
+                const element = imageTile.querySelector(selector);
+                if (element) element.style.display = "";
+            }
+        }
+    }
     document.getElementById("featureFullInsurance").checked = true;
     syncCashDepositOption();
 
@@ -4817,6 +4831,8 @@ syncCashDepositOption();
 
 // 4. Przywracanie miniaturki zdjęcia
 const uploadInput = document.getElementById("vehicleImageUpload");
+// Reset the old file selection when switching vehicles; preserve car.image until a NEW file is chosen.
+if (uploadInput) uploadInput.value = "";
 const imageTile = uploadInput ? uploadInput.closest(".file-tile") : null;
 
 if (imageTile) {
