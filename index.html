@@ -3368,7 +3368,7 @@ body .world-explorer.world-explorer-mobile::before {
     }
 }
 </style>
-<script src="assets/js/location-names.js?v=20261025"></script>
+<script src="assets/js/location-names.js?v=20261101pl1"></script>
     <!-- Mobile partner login: avoid full-screen backdrop blur during keyboard input. -->
     <style id="ride24-partner-login-mobile-performance">
         @media (max-width: 768px) {
@@ -6225,6 +6225,11 @@ data-en="🌍 Ride24 World Map">
     }
 
     function updateWorldExplorerLanguage(){
+        const english = getRide24Lang() === "en";
+        document.querySelectorAll("#countryLocations .country-location-name").forEach(name => {
+            const label = english ? name.dataset.r24En : name.dataset.r24Pl;
+            if (label !== undefined) name.textContent = label;
+        });
         if (ride24WorldMap && typeof ride24WorldMap.updateSize === "function") {
             ride24WorldMap.updateSize();
         }
@@ -6516,7 +6521,10 @@ data-en="🌍 Ride24 World Map">
 
             const name = document.createElement("span");
             name.className = "country-location-name";
-            name.textContent = `📍 ${locationName}`;
+            // Keep translated display labels as text, never HTML.
+            name.dataset.r24Pl = `📍 ${window.Ride24LocationNames.displayName(location, "pl")}`;
+            name.dataset.r24En = `📍 ${window.Ride24LocationNames.displayName(location, "en")}`;
+            name.textContent = getRide24Lang() === "en" ? name.dataset.r24En : name.dataset.r24Pl;
             button.appendChild(name);
 
             const type = document.createElement("span");
