@@ -9,7 +9,26 @@
     { city: "Kutaisi", type: "airport", code: "KUT", region: "Imereti", display_name: "Kutaisi International Airport (KUT)" },
     { city: "Batumi", type: "airport", code: "BUS", region: "Adjara", display_name: "Batumi International Airport (BUS)" },
   ];
-  function displayName(location) {
+  // Public labels are language-specific; database location_name remains the stable booking key.
+  const turkishAirports = Object.freeze({
+    "Milas-Bodrum Airport": {
+      pl: "Lotnisko Milas–Bodrum (BJV)",
+      en: "Milas–Bodrum Airport (BJV)"
+    },
+    "İzmir Adnan Menderes Airport": {
+      pl: "Lotnisko Izmir-Adnan Menderes (ADB)",
+      en: "Izmir Adnan Menderes Airport (ADB)"
+    }
+  });
+  function currentLang() {
+    try { return root.localStorage?.getItem("lang") === "en" ? "en" : "pl"; }
+    catch (_) { return "pl"; }
+  }
+  function displayName(location, language = currentLang()) {
+    const key = String(location?.location_name || "").trim();
+    const country = String(location?.country || "").trim().toLowerCase();
+    const label = country === "turkey" ? turkishAirports[key] : null;
+    if (label) return label[language === "en" ? "en" : "pl"];
     return String(location?.display_name || location?.location_name || location?.city || "");
   }
   function normalizeForSave(data) {
