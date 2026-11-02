@@ -538,6 +538,7 @@ let query = db
     .eq('partners.active', true)
     .eq('partners.account_status', 'active') 
     .eq('partners.partner_locations.active', true)
+    .eq('partners.partner_locations.return_only', false)
     .lte('partners.min_rental_days', Math.max(1, duration.fullDays));
 
                 // Filtrujemy zwrot PRZED paginacją, inaczej można ukryć poprawne auta.
@@ -549,7 +550,7 @@ let query = db
                     let returnQuery = db
                         .from('partner_locations')
                         .select('partner_id,return_fee_amount')
-                        .eq('active', true)
+                        .or('active.eq.true,return_only.eq.true')
                         .eq('location_name', returnLocationName);
                     if (selectedReturnLocation.country) {
                         returnQuery = returnQuery.eq('country', selectedReturnLocation.country);
