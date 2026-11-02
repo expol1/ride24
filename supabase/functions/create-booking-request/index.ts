@@ -747,17 +747,14 @@ async function resolveLocalLocation(
   admin: AdminClient,
   partnerId: string,
   locationName: string,
-  isReturn: boolean = false,
 ): Promise<LocationRow | null> {
-  let query = admin
+  const { data, error } = await admin
     .from("partner_locations")
     .select("id, location_name")
     .eq("partner_id", partnerId)
-    .eq("location_name", locationName);
-  query = isReturn
-    ? query.or("active.eq.true,return_only.eq.true")
-    : query.eq("active", true).eq("return_only", false);
-  const { data, error } = await query.maybeSingle();
+    .eq("location_name", locationName)
+    .eq("active", true)
+    .maybeSingle();
 
   if (
     error
@@ -1245,7 +1242,6 @@ serve(async (req) => {
         admin,
         car.partner_id,
         returnName,
-        true,
       );
       // Sprawdzamy oba punkty po ID właściciela samochodu, nie globalnej nazwie.
       // Zapobiega mieszaniu punktów dwóch wypożyczalni przez starsze klienty.
