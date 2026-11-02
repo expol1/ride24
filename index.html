@@ -5443,15 +5443,13 @@ function collectSearchData() {
                 .from('partner_locations')
                 .select('partner_id')
                 .eq('location_name', pickupAtSearch)
-                .eq('active', true)
-                .eq('return_only', false);
+                .eq('active', true);
             if (SELECTED_PICKUP?.country) {
                 pickupOwnersQuery = pickupOwnersQuery.eq('country', SELECTED_PICKUP.country);
             }
             if (SELECTED_PICKUP?.city) {
                 pickupOwnersQuery = pickupOwnersQuery.eq('city', SELECTED_PICKUP.city);
             }
-            // Return-only locations can never authorize a pickup partner.
             const { data: pickupRows, error: pickupError } = await pickupOwnersQuery;
             if (pickupError) {
                 console.error("Błąd filtrowania zwrotu:", pickupError);
@@ -5469,11 +5467,8 @@ function collectSearchData() {
         let locationsQuery = db
             .from('partner_locations')
             .select('id, partner_id, location_name, display_name, country, region, city, type')
-            .or(orFilters);
-        // Drop-off suggestions also include designated return-only rows. Pickup never does.
-        locationsQuery = type === 'drop'
-            ? locationsQuery.or('active.eq.true,return_only.eq.true')
-            : locationsQuery.eq('active', true).eq('return_only', false);
+            .or(orFilters)
+            .eq('active', true);
         if (type === 'drop') {
             locationsQuery = locationsQuery.in('partner_id', eligiblePickupPartnerIds);
         }
@@ -5571,17 +5566,6 @@ function collectSearchData() {
         if (results.length === 0) window.Ride24SearchMiss?.schedule(query, type, resultsBox);
     }
 
-    // Public label is translated independently from the stable database booking key.
-    function localizedLocationLabel(item, lang) {
-        const plCities = { Cairo: 'Kair', Giza: 'Giza', Luxor: 'Luksor', Aswan: 'Asuan' };
-        if (lang === 'pl' && item.country === 'Egypt'
-            && String(item.location_name || '').endsWith(' — Return Only')
-            && plCities[item.city]) {
-            return plCities[item.city] + ' — tylko zwrot';
-        }
-        return item.name;
-    }
-
     // Dodaj też tę brakującą funkcję pomocniczą:
     function renderSmartResults(results, lang, resultsBox, type) {
         resultsBox.innerHTML = "";
@@ -5600,7 +5584,7 @@ function collectSearchData() {
             // Wyświetlamy nazwę i szczegóły lokalizacji
             div.innerHTML = `
                 <div style="display:flex; flex-direction:column;">
-                    <span style="font-weight: 700; color: var(--blue-dark);">${localizedLocationLabel(r, lang)}</span>
+                    <span style="font-weight: 700; color: var(--blue-dark);">${r.name}</span>
                     <span class="sub-text" style="color: var(--gray); font-size: 12px;">${subText}</span>
                 </div>`;
                 
@@ -5686,7 +5670,7 @@ function collectSearchData() {
         if (item.city && item.city !== item.name) inputDetails.push(item.city);
         if (item.country && item.country !== item.name) inputDetails.push(item.country);
         let detailsStr = inputDetails.length > 0 ? ` (${inputDetails.join(', ')})` : '';
-        const formattedName = `${localizedLocationLabel(item, localStorage.getItem("lang") || "pl")}${detailsStr}`;
+        const formattedName = `${item.name}${detailsStr}`;
         
         const inputId = type === 'pickup' ? "smart-search-pickup" : "smart-search-drop";
         const resId = type === 'pickup' ? "pickup-results" : "drop-results";
