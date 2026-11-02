@@ -5443,13 +5443,15 @@ function collectSearchData() {
                 .from('partner_locations')
                 .select('partner_id')
                 .eq('location_name', pickupAtSearch)
-                .eq('active', true);
+                .eq('active', true)
+                .eq('return_only', false);
             if (SELECTED_PICKUP?.country) {
                 pickupOwnersQuery = pickupOwnersQuery.eq('country', SELECTED_PICKUP.country);
             }
             if (SELECTED_PICKUP?.city) {
                 pickupOwnersQuery = pickupOwnersQuery.eq('city', SELECTED_PICKUP.city);
             }
+            // Return-only locations can never authorize a pickup partner.
             const { data: pickupRows, error: pickupError } = await pickupOwnersQuery;
             if (pickupError) {
                 console.error("Błąd filtrowania zwrotu:", pickupError);
@@ -5467,8 +5469,11 @@ function collectSearchData() {
         let locationsQuery = db
             .from('partner_locations')
             .select('id, partner_id, location_name, display_name, country, region, city, type')
-            .or(orFilters)
-            .eq('active', true);
+            .or(orFilters);
+        // Drop-off suggestions also include designated return-only rows. Pickup never does.
+        locationsQuery = type === 'drop'
+            ? locationsQuery.or('active.eq.true,return_only.eq.true')
+            : locationsQuery.eq('active', true).eq('return_only', false);
         if (type === 'drop') {
             locationsQuery = locationsQuery.in('partner_id', eligiblePickupPartnerIds);
         }
