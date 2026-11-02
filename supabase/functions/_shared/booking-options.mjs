@@ -14,7 +14,7 @@ export async function pricedExtrasEnabled(admin) {
 }
 export async function loadBookingOptions(admin, partnerId, pickupName, returnName) {
   const [locations,extras,timeFees,timeBlocks,conditional] = await Promise.all([
-    admin.from('partner_locations').select('id,location_name,city,extra_fee,extra_fee_amount,return_fee_amount,active,return_only').eq('partner_id',partnerId).or('active.eq.true,return_only.eq.true').eq('is_api_managed',false),
+    admin.from('partner_locations').select('id,location_name,city,extra_fee,extra_fee_amount,return_fee_amount').eq('partner_id',partnerId).eq('active',true).eq('is_api_managed',false),
     admin.from('partner_extras').select('id,code,name_en,name_pl,amount,billing,max_quantity,active').eq('partner_id',partnerId).eq('active',true).order('id'),
     admin.from('partner_time_fees').select('id,location_id,applies_to,starts_at,ends_at,amount,once_per_booking,requires_approval,active').eq('partner_id',partnerId).eq('active',true).order('id'),
     admin.from('partner_time_blocks').select('id,location_id,applies_to,starts_at,ends_at,active').eq('partner_id',partnerId).eq('active',true).order('id'),
@@ -22,7 +22,7 @@ export async function loadBookingOptions(admin, partnerId, pickupName, returnNam
   ]);
   if (locations.error || extras.error || timeFees.error || timeBlocks.error || conditional.error) throw new Error('BOOKING_OPTIONS_UNAVAILABLE');
   const resolve = (name,kind) => {
-    const matches=(locations.data || []).filter(x => x.location_name === name && (kind === 'pickup' ? (x.active === true && x.return_only !== true) : (x.active === true || x.return_only === true)));
+    const matches=(locations.data || []).filter(x => x.location_name === name);
     if(matches.length !== 1) throw new BookingOptionsError('LOCATION_UNAVAILABLE','Wybrana lokalizacja nie jest dostępna. Wróć do wyszukiwarki.','This location is unavailable. Return to search.');
     const row=matches[0];
     return {id:row.id,name:row.location_name,city:row.city,amount:kind==='pickup' ? (row.extra_fee===true ? row.extra_fee_amount ?? 0 : 0) : row.return_fee_amount};
