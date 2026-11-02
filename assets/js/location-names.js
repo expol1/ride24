@@ -20,6 +20,22 @@
       en: "Izmir Adnan Menderes Airport (ADB)"
     }
   });
+  // Polish public labels for Maneuver's exact Hurghada pickup/return areas.
+  // The stored location_name remains in English for existing booking contracts.
+  const hurghadaPolish = Object.freeze({
+    "Hurghada International Airport (HRG)": "Lotnisko Hurgada (HRG)",
+    "Maneuver Office - Hurghada": "Biuro Maneuver – Hurgada",
+    "Hurghada - Sakkala": "Hurgada – Sakkala (centrum)",
+    "Hurghada - El Dahar": "Hurgada – El Dahar",
+    "Hurghada - El Hadaba": "Hurgada – El Hadaba",
+    "Hurghada - Arabia": "Hurgada – Arabia",
+    "Hurghada - El Kawther": "Hurgada – El Kawther",
+    "Hurghada - El Mamsha": "Hurgada – El Mamsha",
+    "Hurghada - Villages Road": "Hurgada – Villages Road",
+    "Hurghada - Intercontinental": "Hurgada – Intercontinental",
+    "Hurghada - Magawish": "Hurgada – Magawish",
+    "Hurghada - El Ahyaa": "Hurgada – El Ahyaa"
+  });
   function currentLang() {
     try { return root.localStorage?.getItem("lang") === "en" ? "en" : "pl"; }
     catch (_) { return "pl"; }
@@ -29,6 +45,9 @@
     const country = String(location?.country || "").trim().toLowerCase();
     const label = country === "turkey" ? turkishAirports[key] : null;
     if (label) return label[language === "en" ? "en" : "pl"];
+    if (country === "egypt" && language === "pl" && hurghadaPolish[key]) {
+      return hurghadaPolish[key];
+    }
     return String(location?.display_name || location?.location_name || location?.city || "");
   }
   function normalizeForSave(data) {
