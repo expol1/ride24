@@ -12,6 +12,40 @@
   };
   const mode = () => document.querySelector('input[name="partnerEmailMode"]:checked')?.value || "contact";
 
+  let captchaId=null;
+  let lastFocus=null;
+  const siteKey="0x4AAAAAACu2gUuoR8cE8lAv"; // Public widget key from partner login.
+
+  async function authenticatedUser() {
+    const {data,error}=await db.auth.getUser();
+    if(error || !data?.user?.id || !data.user.email) throw Error("AUTH");
+    return data.user;
+  }
+
+  function renderCaptcha() {
+    if(mode()!=="login" || !get("partnerEmailModal").classList.contains("active"))return;
+    if(!window.turnstile?.render)return;
+    if(captchaId!==null){ window.turnstile.reset(captchaId); return; }
+    const id=window.turnstile.render(get("partnerEmailCaptcha"),{
+      sitekey:siteKey,theme:"light"
+    });
+    if(id!==undefined && id!==null)captchaId=id;
+  }
+  function ensureCaptcha(){
+    if(window.turnstile?.render){renderCaptcha();return;}
+    if(document.querySelector('script[data-r24-partner-email-captcha]'))return;
+    const script=document.createElement("script");
+    script.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.async=true;
+    script.dataset.r24PartnerEmailCaptcha="1";
+    script.onload=renderCaptcha;
+    script.onerror=()=>status(
+      "Nie można uruchomić weryfikacji. Spróbuj później.",
+      "Security check unavailable. Please try again."
+    );
+    document.head.appendChild(script);
+  }
+
   window.openPartnerEmailModal=()=>{
     get("partnerEmailModal").classList.add("active");
     get("partnerEmailNew").value=get("partnerEmail").value||"";
