@@ -43,7 +43,9 @@ export function renteonExtrasCatalog(model) {
     const id = serviceId(service);
     if (!id || seen.has(id)) invalid("API_EXTRAS_DUPLICATE_SERVICE");
     seen.add(id);
-    if (service.IsMandatory === true) continue;
+    // Preselected provider services (often insurance) remain part of the default bundle.
+    // Without provider-specific opt-out rules we must not allow customers to disable them.
+    if (service.IsMandatory === true || service.IsSelected === true) continue;
     const name = cleanName(service.Name);
     if (!name) continue;
     extras.push({
