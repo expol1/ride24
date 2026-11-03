@@ -26,6 +26,54 @@ function fixture(options={}){
  element('accept-cb').checked=true;element('ag-content').innerHTML='<p>'+('Fixture agreement content. '.repeat(5))+'</p>';
  return {c,window,element,writes,alerts,toasts,uploads,partner,get counts(){return {passwordCalls,rpcCalls,reloads};}};
 }
+
+function emailModalFixture(opts={}){
+ const script=readFileSync(new URL('../../assets/helper/partnerEmailSettings.js',import.meta.url),'utf8');
+ const elements=new Map(),writes=[],authCalls=[],toasts=[];
+ const el=id=>{
+  if(!elements.has(id)){
+   const flags=new Set();
+   elements.set(id,{value:'',textContent:'',disabled:false,hidden:false,checked:false,style:{},
+     classList:{add:x=>flags.add(x),remove:x=>flags.delete(x),contains:x=>flags.has(x)},
+     setAttribute(){},focus(){}});
+  }
+  return elements.get(id);
+ };
+ el('partnerEmail').value='contact@old.test';
+ el('partnerEmailModeContact').checked=true;
+ const user={id:'uid-1',email:'login@old.test'};
+ const db={
+  supabaseUrl:'https://example.supabase.co',supabaseKey:'public-publishable-key',
+  auth:{getUser:async()=>({data:{user:opts.noUser?null:user},error:null})},
+  from(table){assert.equal(table,'partners');let payload;
+   return {update(p){payload=p;return this;},eq(k,id){assert.equal(k,'user_id');assert.equal(id,user.id);return this;},
+    select(){return this;},single:async()=>{writes.push(payload);return opts.contactError?{data:null,error:Error('fail')}:{data:{id:'p1',email:payload.email},error:null};}};
+  }
+ };
+ const window={
+  supabaseClient:db,showToast:(...args)=>toasts.push(args),
+  Ride24PartnerI18n:{text:(pl,en)=>en,bind:(node,pl,en)=>{node.textContent=en;}},
+  turnstile:opts.noCaptcha?null:{render:()=>{authCalls.push('captcha-render');return 'widget';},
+    getResponse:()=>opts.expiredCaptcha?'':'challenge',isExpired:()=>!!opts.expiredCaptcha,reset:()=>authCalls.push('captcha-reset')},
+  supabase:{createClient:(url,key,config)=>{
+    authCalls.push({kind:'client',url,key,config});
+    return {auth:{
+     signInWithPassword:async credentials=>{authCalls.push({kind:'signin',credentials});
+       return opts.badPassword?{data:null,error:Error('invalid')}:{data:{user:{id:opts.otherUser?'uid-2':user.id}},error:null};},
+     updateUser:async attrs=>{authCalls.push({kind:'update',attrs});return {error:opts.changeError?Error('invalid'):null};},
+     signOut:async config=>{authCalls.push({kind:'logout',config});return {error:null};}
+    }};
+  }}
+ };
+ const document={activeElement:{focus(){}},head:{appendChild(){}},addEventListener(){},
+   createElement:()=>({dataset:{}}),getElementById:el,
+   querySelector:sel=>sel.includes('input[name="partnerEmailMode"]:checked')
+     ?{value:el('partnerEmailModeLogin').checked?'login':'contact'}:null};
+ const c=vm.createContext({document,window,console});
+ vm.runInContext(script,c);
+ return {c,window,el,writes,authCalls,toasts,db};
+}
+
 let passed=0;async function test(name,fn){await fn();passed++;console.log('PASS '+name);}
 await test('password changes before clearing the forced-change flag',async()=>{const f=fixture();await f.window.updatePartnerPassword();assert.equal(f.counts.passwordCalls,1);assert.equal(f.writes[0].payload.must_change_password,false);});
 await test('mismatched passwords never call Auth',async()=>{const f=fixture();f.element('confirm-partner-pwd').value='other';await f.window.updatePartnerPassword();assert.equal(f.counts.passwordCalls,0);});
