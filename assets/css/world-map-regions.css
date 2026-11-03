@@ -22,6 +22,8 @@
 #worldMapModal.r24-regions .r24-map-zoom button{width:40px;height:40px;padding:0;border:0;background:#fff;color:#193b68;font:inherit;font-size:22px;cursor:pointer}
 #worldMapModal.r24-regions .r24-map-zoom button+button{border-top:1px solid #dde6ed}
 #worldMapModal.r24-regions .r24-map-credit{position:absolute;bottom:5px;right:5px;font-size:11px;color:#596d80;background:#ffffffde;padding:2px 5px;border-radius:3px;pointer-events:none}
+#worldMapModal.r24-regions .r24-map-country-tooltip{position:absolute;z-index:5;max-width:min(230px,calc(100% - 16px));padding:6px 10px;border-radius:8px;background:#193b68;color:#fff;font:600 12px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;overflow-wrap:anywhere;box-shadow:0 4px 14px #07183744;pointer-events:none;transform:translate(-50%,-100%)}
+#worldMapModal.r24-regions .r24-map-country-tooltip[hidden]{display:none!important}
 #worldMapModal.r24-regions .world-locations-panel{height:100%!important;min-height:0!important;max-height:none!important;padding:16px!important;border:1px solid #dde6ed!important;border-radius:15px!important;background:#fff!important;overflow-y:auto!important;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;box-shadow:none!important}
 #worldMapModal.r24-regions .country-locations-title{display:flex;align-items:center;gap:8px;margin:0 0 10px!important;padding:0;border:0;color:#193b68!important;font-size:19px!important;line-height:1.25;overflow-wrap:anywhere}
 #worldMapModal.r24-regions #countryLocations{display:block!important}
