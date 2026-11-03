@@ -2762,13 +2762,29 @@ async function executeDelete() {
 
             const { data: profile, error: profileError } = await db
                 .from("profiles")
-                .select("role, must_change_password")
+                .select("role, must_change_password, email")
                 .eq("id", session.user.id)
                 .single();
 
             if (profileError || !profile || profile.role !== "partner") {
                 window.location.href = "index.html";
                 return;
+            }
+
+            // Sync a confirmed Auth login change to the profile, never to the contact email.
+            // getUser() reads verified server state; a pending email-change request does not qualify.
+            try {
+                const { data: identity, error: identityError } = await db.auth.getUser();
+                const verified = identity?.user;
+                if (!identityError && verified?.id === session.user.id && verified.email &&
+                    String(profile.email || "").toLowerCase() !== verified.email.toLowerCase()) {
+                    const { error: syncError } = await db.from("profiles")
+                        .update({ email: verified.email })
+                        .eq("id", verified.id);
+                    if (syncError) console.warn("Partner profile email sync failed.");
+                }
+            } catch (_) {
+                console.warn("Partner profile email sync unavailable.");
             }
 
           // POBRANIE FLAGI KOMPLETNOŚCI PROFILU, STATUSU KONTA I UMOWY
