@@ -1202,20 +1202,21 @@ export async function previewRenteonExtras(
   credentials: PartnerApiCredentials,
   input: ProviderBookingInput,
   selections: unknown[] = [],
-): Promise<{ catalog: ReturnType<typeof renteonExtrasCatalog>; total: number }> {
+): Promise<{ catalog: ReturnType<typeof renteonExtrasCatalog>; baseTotal: number; total: number }> {
   const { createBody } = buildRenteonCreateInput(input);
   const created = await renteonRequest<Record<string, unknown>>(
     credentials, "booking_create", providerEndpoint("renteon", credentials, "booking_create"),
     { method: "POST", body: createBody },
   );
   const catalog = renteonExtrasCatalog(created);
+  const baseTotal = assertRenteonRepricedTotal(created);
   const updated = applyRenteonExtras(created, selections);
   const calculated = await renteonRequest<Record<string, unknown>>(
     credentials, "booking_calculate", providerEndpoint("renteon", credentials, "booking_calculate"),
     { method: "POST", body: updated },
   );
   assertRenteonExtrasConfirmed(calculated, selections);
-  return { catalog, total: assertRenteonRepricedTotal(calculated) };
+  return { catalog, baseTotal, total: assertRenteonRepricedTotal(calculated) };
 }
 
 export async function createProviderBooking(
