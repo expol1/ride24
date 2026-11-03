@@ -204,7 +204,7 @@ test('Renteon extra options must produce a server-authored quote consumed once b
   s.tables.api_quotes[0].raw_response.provider_quote_data={availability_car_category:{CarCategoryId:17,Amount:100}};
   const selections=[{id:'renteon:2',quantity:1}];
   const preview=await s.handler('booking-options')({...body(),extras:selections});
-  assert.equal(preview.status,200,await preview.text());
+  assert.equal(preview.status,200,await preview.clone().text());
   const value=await preview.json();
   assert.equal(value.enabled,true);
   assert.equal(value.api_quote_id,'60000000-0000-4000-8000-000000000002');
