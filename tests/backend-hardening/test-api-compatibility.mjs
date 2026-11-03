@@ -76,7 +76,8 @@ function setup() {
       let rows=(tables[this.table]||[]).filter(r=>this.filters.every(f=>f(r))).slice(0,this.max);
       if(this.updated){rows.forEach(r=>Object.assign(r,this.updated));operations.push({table:this.table,update:this.updated,count:rows.length});}
       if(this.inserted){
-        const row={...this.inserted,id:this.table==='bookings'?booking:quoteId};
+        const row={...this.inserted,id:this.table==='bookings'?booking:
+          this.table==='api_quotes'&&tables.api_quotes.length>0?'60000000-0000-4000-8000-000000000002':quoteId};
         if(this.table==='bookings'){saved.push(this.inserted);row.reservation_code='R24-API-TEST';row.status='pending';}
         (tables[this.table]??=[]).push(row);rows=[row];
       }
@@ -96,6 +97,11 @@ function setup() {
     searchProvider:async()=>[{external_id:'group-1',class_code:'A',active:true,currency:'EUR',public_price:33.33,
       price_is_total:true,public_price_total:100,location_external_ids:['airport-1','office-1']}],
     createProviderBooking:async()=>{outgoing.push('provider-create');return {reference:'external-1',status:'pending'};},
+    previewRenteonExtras:async(_credentials,_input,selections)=>({
+      catalog:[{id:'renteon:2',name_en:'Child seat',name_pl:'Fotelik dziecięcy',code:null,
+        billing:'rental',max_quantity:3,unit_customer_cents:null}],
+      baseTotal:100,total:selections.length?120:100,
+    }),
     cancelProviderBooking:async()=>({})};
   function handler(name){
     let serve;
@@ -192,6 +198,44 @@ test('new mandatory fee and selected extras block API bookings before side effec
     assert.equal(response.status,409);assert.equal(t.saved.length+t.outgoing.length,0);
   }
 });
+test('Renteon extra options must produce a server-authored quote consumed once by booking',async()=>{
+  const s=setup();
+  s.tables.partners[0].api_provider='renteon';
+  s.tables.api_quotes[0].raw_response.provider_quote_data={availability_car_category:{CarCategoryId:17,Amount:100}};
+  const selections=[{id:'renteon:2',quantity:1}];
+  const preview=await s.handler('booking-options')({...body(),extras:selections});
+  assert.equal(preview.status,200,await preview.text());
+  const value=await preview.json();
+  assert.equal(value.enabled,true);
+  assert.equal(value.api_quote_id,'60000000-0000-4000-8000-000000000002');
+  assert.equal(value.pricing.pickup_payment_cents,12000);
+  assert.equal(value.pricing.total_cents,14700);
+  assert.equal(value.catalog[0].id,'renteon:2');
+  const priced={...body(),api_quote_id:value.api_quote_id,
+    pricing_version:3,pricing_fingerprint:value.fingerprint,extras:selections};
+  const saved=await s.handler('create-booking-request')(priced);
+  assert.equal(saved.status,200,await saved.text());
+  assert.equal(s.saved.length,1);
+  assert.equal(s.saved[0].partner_net_price_snapshot,120);
+  assert.equal(s.saved[0].pricing_items_snapshot.provider_priced,true);
+  assert.equal(s.tables.api_quotes[1].booking_id,booking);
+  const again=await s.handler('create-booking-request')(priced);
+  assert.equal(again.status,409);
+});
+
+test('Renteon extra selections cannot be changed after server quote',async()=>{
+  const s=setup();s.tables.partners[0].api_provider='renteon';
+  s.tables.api_quotes[0].raw_response.provider_quote_data={availability_car_category:{CarCategoryId:17,Amount:100}};
+  const chosen=[{id:'renteon:2',quantity:1}];
+  const preview=await s.handler('booking-options')({...body(),extras:chosen});
+  assert.equal(preview.status,200);
+  const value=await preview.json();
+  const forged=await s.handler('create-booking-request')({...body(),api_quote_id:value.api_quote_id,
+    pricing_version:3,pricing_fingerprint:value.fingerprint,extras:[{id:'renteon:2',quantity:2}]});
+  assert.equal(forged.status,409);
+  assert.equal(s.saved.length,0);
+});
+
 test('booking-options exposes API pricing failures in Polish and English instead of silently disabling fees',async()=>{
   const s=setup(),request=s.handler('booking-options');
   const ok=await request(body());assert.equal(ok.status,200);assert.equal((await ok.json()).enabled,false);
