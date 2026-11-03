@@ -9,7 +9,7 @@ function fixture(options={}){
  const els=new Map(),writes=[],alerts=[],toasts=[],uploads=[];let passwordCalls=0,rpcCalls=0,reloads=0;
  const element=id=>{if(!els.has(id))els.set(id,{value:'',checked:false,disabled:false,style:{},innerHTML:''});return els.get(id);};
  const partner={id:'fixture-partner',company_name:'Fixture',country:'Cyprus',discount_percent:10,agreement_accepted:false};
- const session={user:{id:'fixture-user'}};
+ const session={user:{id:'fixture-user',email:'login@example.test'}};
  const docs=options.noDocs?{}:{rental_terms_url:'https://fixture.test/terms.pdf',rental_rules_url:'https://fixture.test/rules.pdf'};
  const db={auth:{getSession:async()=>({data:{session}}),updateUser:async()=>{passwordCalls++;return {error:options.authError?new Error('Auth failure'):null};}},
  from(table){let payload;const q={select(){return this;},update(p){payload=p;return this;},eq(field,id){assert.equal(id,session.user.id);return this;},single:async()=>({data:options.emptyDocs?{}:docs}),then(resolve){if(payload)writes.push({table,payload});return Promise.resolve({data:payload?[{id:partner.id}]:docs,error:options.saveError?new Error('Database unavailable'):null}).then(resolve);}};return q;},
@@ -21,7 +21,7 @@ function fixture(options={}){
  const partnerLabel=(el,pl,en)=>{el.innerText=partnerText(pl,en);return el;};
  const c=vm.createContext({window,document:{getElementById:element,querySelector:()=>element('settings-button'),body:{style:{}}},db,localStorage:{getItem:()=>options.lang||'en'},setTimeout:fn=>fn(),location,console:{log(){},error(){},warn(){}},alert:x=>alerts.push(x),fetch:async()=>({json:async()=>({ip:'192.0.2.1'})}),navigator:{userAgent:'isolated-test'},partnerData:partner,currentAgLang:'en',agreementTexts:{en:{alertError:'Accept first',btnLoading:'Saving',btnDefault:'Sign'},pl:{alertError:'Zaakceptuj najpierw',btnLoading:'Zapisywanie',btnDefault:'Podpisz'}},getPartnerLang:()=>options.lang||'en',partnerText,partnerLabel,loadPartnerSettings:async()=>{}});
  vm.runInContext(code,c);
- for(const [id,value] of Object.entries({partnerCompany:'Fixture',partnerAddress:'Fixture street',partnerCountry:'Cyprus',partnerRegion:'Paphos',partnerPhone:'123456789',partnerEmergency:'', 'partner-min-age':'21','partner-min-rental-days':'1','new-partner-pwd':'FixturePass123!','confirm-partner-pwd':'FixturePass123!'}))element(id).value=value;
+ for(const [id,value] of Object.entries({partnerCompany:'Fixture',partnerAddress:'Fixture street',partnerCountry:'Cyprus',partnerRegion:'Paphos',partnerPhone:'123456789',partnerEmail:'login@example.test',partnerEmergency:'', 'partner-min-age':'21','partner-min-rental-days':'1','new-partner-pwd':'FixturePass123!','confirm-partner-pwd':'FixturePass123!'}))element(id).value=value;
  element('force-terms-group').style.display='block';element('force-terms-checkbox').checked=true;
  element('accept-cb').checked=true;element('ag-content').innerHTML='<p>'+('Fixture agreement content. '.repeat(5))+'</p>';
  return {c,window,element,writes,alerts,toasts,uploads,partner,get counts(){return {passwordCalls,rpcCalls,reloads};}};
@@ -35,8 +35,21 @@ await test('incomplete profile is not saved',async()=>{const f=fixture();f.eleme
 await test('invalid minimum rental duration is rejected before any profile save',async()=>{const f=fixture();f.element('partner-min-rental-days').value='0';await f.c.savePartnerSettings();assert.equal(f.writes.length,0);assert.equal(f.element('settings-button').disabled,false);});
 await test('both rental PDFs are required before profile completion',async()=>{const f=fixture({noDocs:true});await f.c.savePartnerSettings();assert.equal(f.writes.length,0);});
 await test('complete profile is saved without accepting agreement',async()=>{const f=fixture();await f.c.savePartnerSettings();assert.equal(f.writes[0].payload.profile_completed,true);assert.equal(f.writes[0].payload.min_rental_days,1);assert.equal(f.writes[0].payload.seasonal_min_rental_days,null);assert.deepEqual(Array.from(f.writes[0].payload.seasonal_min_rental_months),[]);assert.equal(f.writes[0].payload.agreement_accepted,undefined);assert.equal(f.counts.rpcCalls,0);});
+await test('partner can save a different contact email without changing the login',async()=>{const f=fixture();f.element('partnerEmail').value='bookings@example.test';await f.c.savePartnerSettings();assert.equal(f.writes[0].payload.email,'bookings@example.test');assert.equal(f.counts.passwordCalls,0);});
+await test('empty contact email cannot be saved',async()=>{const f=fixture();f.element('partnerEmail').value='';await f.c.savePartnerSettings();assert.equal(f.writes.length,0);});
+await test('invalid contact email cannot be saved',async()=>{const f=fixture();f.element('partnerEmail').value='not-an-email';await f.c.savePartnerSettings();assert.equal(f.writes.length,0);});
 await test('seasonal months save only with explicit enablement',async()=>{const f=fixture({seasonalEnabled:true});await f.c.savePartnerSettings();assert.equal(f.writes[0].payload.seasonal_min_rental_days,5);assert.deepEqual(Array.from(f.writes[0].payload.seasonal_min_rental_months),[6,7,8,9]);});
 await test('invalid season cannot be saved',async()=>{const f=fixture({invalidSeason:true});await f.c.savePartnerSettings();assert.equal(f.writes.length,0);});
+await test('saved contact email loads into partner settings, with login fallback',async()=>{
+ const loadCode=slice('async function loadPartnerSettings(userId){','// --- ZAPISYWANIE USTAWIEŃ');
+ for (const contactEmail of ['contact@example.test',null]) {
+   const els=new Map();const element=id=>{if(!els.has(id))els.set(id,{value:'',checked:false,innerHTML:'',innerText:'',src:''});return els.get(id);};
+   const db={from:table=>{assert.equal(table,'partners');return {select(){return this;},eq(){return this;},single:async()=>({data:{email:contactEmail,currency:'EUR',active:true,discount_percent:10,min_rental_days:1}})};},auth:{getSession:async()=>({data:{session:{user:{email:'login@example.test'}}}})}};
+   const c=vm.createContext({db,document:{getElementById:element},window:{r24LoadSeasonalMinimum(){}},updateVisibilityUI(){},setPartnerCommission(){},currentPartnerCurrency:'EUR'});
+   vm.runInContext(loadCode,c);await c.loadPartnerSettings('fixture-user');
+   assert.equal(element('partnerEmail').value,contactEmail||'login@example.test');
+ }
+});
 for(const lang of ['pl','en'])await test('save failure displays actual error and restores retry in '+lang,async()=>{const f=fixture({saveError:true,lang});await f.c.savePartnerSettings();assert.ok(f.alerts[0].includes('Database unavailable'));assert.equal(f.element('settings-button').disabled,false);assert.equal(f.counts.reloads,0);});
 await test('agreement cannot be submitted without explicit checkbox',async()=>{const f=fixture();f.element('accept-cb').checked=false;await f.c.signAgreement();assert.equal(f.counts.rpcCalls,0);});
 await test('agreement submits snapshot once and updates UI after success',async()=>{const f=fixture();await f.c.signAgreement();await f.c.signAgreement();assert.equal(f.counts.rpcCalls,1);assert.equal(f.partner.agreement_accepted,true);});
