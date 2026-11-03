@@ -91,6 +91,7 @@ const ENDPOINT_NAMES = new Set([
   "groups",
   "search",
   "booking_create",
+  "booking_calculate",
   "booking_save",
   "booking_status",
   "booking_cancel",
