@@ -43,6 +43,20 @@
   const countryOf = row => window.normalizeRide24Country(row.country);
   const countryCode = country => window.getRide24CountryCode(country);
   const label = area => area[lang()] || window.getRide24CountryLabel(area.country, lang());
+  // Reuse the local PL/EN registry, without additional requests or map changes.
+  const countryLabelsByCode = new Map(Object.values(window.RIDE24_COUNTRIES || {})
+    .filter(country => country?.code)
+    .map(country => [country.code, country]));
+
+  function hoveredCountryName(target) {
+    const shape = target?.closest?.('.r24-map-coverage, .r24-map-land, .r24-map-target');
+    if (!shape || !stage?.contains(shape)) return '';
+    const area = areas.find(item => item.id === shape.dataset.area);
+    if (area) return label(area);
+    const code = shape.dataset.country;
+    if (code === 'CY-NORTH') return text('Cypr północny', 'Northern Cyprus');
+    return countryLabelsByCode.get(code)?.[lang()] || shape.dataset.countryName || '';
+  }
 
   function areaForLocation(row) {
     const country = countryOf(row);
@@ -279,6 +293,9 @@
         if (active) {
           node.dataset.area = feature.properties.id;
           node.onclick = () => chooseArea(feature.properties.id);
+        } else {
+          node.dataset.country = feature.properties.code || '';
+          node.dataset.countryName = feature.properties.name || '';
         }
         if (!children[index]) group.append(node);
       });
@@ -344,28 +361,58 @@
       control.setAttribute('aria-label', text(pl, en));
       controls.append(control);
     });
-    stage.append(mapSvg, targets, controls, element('small', 'r24-map-credit', 'Natural Earth'));
+    const countryTooltip = element('div', 'r24-map-country-tooltip');
+    countryTooltip.hidden = true;
+    countryTooltip.setAttribute('aria-hidden', 'true');
+    const hideTooltip = () => { countryTooltip.hidden = true; };
+    const showTooltip = event => {
+      const name = hoveredCountryName(event.target);
+      if (!name) return hideTooltip();
+      countryTooltip.textContent = name;
+      countryTooltip.hidden = false;
+      const rect = stage.getBoundingClientRect();
+      const halfWidth = countryTooltip.offsetWidth / 2 + 8;
+      const x = Math.max(halfWidth, Math.min(rect.width - halfWidth, event.clientX - rect.left));
+      const y = Math.max(countryTooltip.offsetHeight + 8, event.clientY - rect.top - 12);
+      countryTooltip.style.left = x + 'px';
+      countryTooltip.style.top = y + 'px';
+    };
+    stage.append(mapSvg, targets, controls, element('small', 'r24-map-credit', 'Natural Earth'), countryTooltip);
     let drag;
     stage.onpointerdown = event => {
+      hideTooltip();
       if (event.target.closest('button') || event.button !== 0) return;
       drag = { x: event.clientX, y: event.clientY, pan: [...pan], moved: false };
     };
     stage.onpointermove = event => {
-      if (!drag) return;
+      if (!drag) {
+        if (event.pointerType !== 'touch') showTooltip(event);
+        return;
+      }
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
       if (Math.abs(dx) + Math.abs(dy) > 8) {
         drag.moved = true;
         stage.setPointerCapture(event.pointerId);
         pan = [drag.pan[0] + dx, drag.pan[1] + dy];
+        hideTooltip();
         draw();
       }
     };
     stage.onpointerup = event => {
-      if (drag?.moved) event.preventDefault();
+      if (drag?.moved) {
+        event.preventDefault();
+        hideTooltip();
+      } else if (event.pointerType === 'touch') {
+        // A tap on an inactive country shows its name; active-area clicks still work.
+        showTooltip(event);
+      }
       drag = null;
     };
-    stage.onpointercancel = () => { drag = null; };
+    stage.onpointercancel = () => { drag = null; hideTooltip(); };
+    stage.addEventListener('pointerleave', event => {
+      if (event.pointerType !== 'touch') hideTooltip();
+    });
     observer?.disconnect();
     if (window.ResizeObserver) {
       observer = new ResizeObserver(draw);
