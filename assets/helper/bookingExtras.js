@@ -50,7 +50,9 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         for (const extra of quote.catalog) {
             const r = node('label'); r.className = 'booking-extra-row';
             const copy = node('span'); copy.append(node('strong', isEn() ? extra.name_en : extra.name_pl));
-            copy.append(node('small', money(extra.unit_customer_cents, p.currency) + ' / ' + (extra.billing === 'day' ? label('dzień', 'day') : label('wynajem', 'rental'))));
+            copy.append(node('small', extra.unit_customer_cents == null
+                    ? label('Cena zostanie wyliczona przez wypożyczalnię i pokazana w podsumowaniu.', 'The rental company prices this option; see the updated total.')
+                    : money(extra.unit_customer_cents, p.currency) + ' / ' + (extra.billing === 'day' ? label('dzień', 'day') : label('wynajem', 'rental'))));
             r.append(copy);
             if (extra.code === 'additional_driver') {
                 r.append(node('small', label('Wybierz osobę w polu „Dodatkowy kierowca”.', 'Select a person in “Additional driver”.')));
@@ -119,7 +121,7 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         payload() {
             if (selections.length && !quote?.enabled) throw new Error(label('Płatne dodatki nie są obecnie dostępne. Nie można ich pominąć po cichu.', 'Paid extras are currently unavailable and cannot be silently removed.'));
             if (!ready || busy || quoteContext !== JSON.stringify(context())) throw new Error(label('Sprawdź aktualne podsumowanie ceny.', 'Review the current price summary.'));
-            return quote?.enabled ? { pricing_version: 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })) } : {};
+            return quote?.enabled ? { pricing_version: quote.api_quote_id ? 3 : 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })), ...(quote.api_quote_id ? {api_quote_id:quote.api_quote_id} : {}) } : {};
         },
         canSubmit: () => ready && !busy,
     };

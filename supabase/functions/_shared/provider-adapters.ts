@@ -10,6 +10,12 @@ import {
   type PartnerApiCredentials,
 } from "./partner-api.ts";
 import { serviceClient } from "./ride24-security.ts";
+import {
+  renteonExtrasCatalog,
+  applyRenteonExtras,
+  assertRenteonExtrasConfirmed,
+  assertRenteonRepricedTotal,
+} from "./provider-extras.mjs";
 
 export type ProviderKey =
   | "ride24_standard_v1"
@@ -77,6 +83,7 @@ type ProviderEndpointName =
   | "search"
   | "booking_create"
   | "booking_save"
+  | "booking_calculate"
   | "booking_status"
   | "booking_cancel";
 
@@ -90,6 +97,7 @@ const PROVIDER_DEFAULT_ENDPOINTS: Partial<
     groups: "/api/ExCarCategory/Search",
     search: "/api/ExBooking/Availability",
     booking_create: "/api/ExBooking/Create",
+    booking_calculate: "/api/ExBooking/Calculate",
     booking_save: "/api/ExBooking/Save",
     booking_status: "/api/ExBooking/{id}",
     booking_cancel: "/api/ExBooking/Cancel/{id}",
@@ -1112,14 +1120,7 @@ function partnerBookingRequest(input: ProviderBookingInput): Record<string, unkn
   return Object.fromEntries(fields.filter(key => input[key] !== undefined).map(key => [key, input[key]]));
 }
 
-export async function createProviderBooking(
-  providerValue: unknown,
-  credentials: PartnerApiCredentials,
-  input: ProviderBookingInput,
-): Promise<Record<string, unknown>> {
-  const provider = safeProvider(providerValue);
-
-  if (provider === "renteon") {
+function buildRenteonCreateInput(input: ProviderBookingInput) {
     const quote = renteonProviderQuote(input);
     const categoryId = positiveInteger(input.vehicle_group_id);
     const officeOutId = positiveInteger(input.pickup_location_id);
@@ -1191,12 +1192,64 @@ export async function createProviderBooking(
       },
     };
 
-    const created = await renteonRequest<Record<string, unknown>>(
+    return { quote, availabilityCategory, ride24PartnerAmount, bookingDrivers, createBody };
+}
+
+// Preview only: Renteon Create/Calculate return unsaved models.
+// A later booking-options adapter must persist a server-authoritative quote
+// before exposing any selectable service to the customer.
+export async function previewRenteonExtras(
+  credentials: PartnerApiCredentials,
+  input: ProviderBookingInput,
+  selections: unknown[] = [],
+): Promise<{ catalog: ReturnType<typeof renteonExtrasCatalog>; baseTotal: number; total: number }> {
+  const { createBody } = buildRenteonCreateInput(input);
+  const created = await renteonRequest<Record<string, unknown>>(
+    credentials, "booking_create", providerEndpoint("renteon", credentials, "booking_create"),
+    { method: "POST", body: createBody },
+  );
+  const catalog = renteonExtrasCatalog(created);
+  const baseTotal = assertRenteonRepricedTotal(created);
+  const updated = applyRenteonExtras(created, selections);
+  const calculated = await renteonRequest<Record<string, unknown>>(
+    credentials, "booking_calculate", providerEndpoint("renteon", credentials, "booking_calculate"),
+    { method: "POST", body: updated },
+  );
+  assertRenteonExtrasConfirmed(calculated, selections);
+  return { catalog, baseTotal, total: assertRenteonRepricedTotal(calculated) };
+}
+
+export async function createProviderBooking(
+  providerValue: unknown,
+  credentials: PartnerApiCredentials,
+  input: ProviderBookingInput,
+): Promise<Record<string, unknown>> {
+  const provider = safeProvider(providerValue);
+
+  if (provider === "renteon") {
+    const { quote, availabilityCategory, ride24PartnerAmount, bookingDrivers, createBody } = buildRenteonCreateInput(input);
+
+    let created = await renteonRequest<Record<string, unknown>>(
       credentials,
       "booking_create",
       providerEndpoint(provider, credentials, "booking_create"),
       { method: "POST", body: createBody },
     );
+
+    // Only a server-authored, priced quote may supply ride24_selected_extras.
+    // Existing rentals with no extra selections keep their previous path.
+    if (Array.isArray(quote.ride24_selected_extras)) {
+      const selections = quote.ride24_selected_extras;
+      const selectedDraft = applyRenteonExtras(created, selections);
+      created = await renteonRequest<Record<string, unknown>>(
+        credentials,
+        "booking_calculate",
+        providerEndpoint(provider, credentials, "booking_calculate"),
+        { method: "POST", body: selectedDraft },
+      );
+      assertRenteonExtrasConfirmed(created, selections);
+      assertRenteonRepricedTotal(created);
+    }
 
     assertProviderPartnerAmount(
       provider,
@@ -1234,6 +1287,9 @@ export async function createProviderBooking(
         providerBookingTotal(saved),
         ride24PartnerAmount,
       );
+      if (Array.isArray(quote.ride24_selected_extras)) {
+        assertRenteonExtrasConfirmed(saved, quote.ride24_selected_extras);
+      }
     } catch (priceError) {
       if (reference) {
         try {

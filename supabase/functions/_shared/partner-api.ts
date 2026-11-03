@@ -328,6 +328,7 @@ const DEFAULT_ENDPOINTS = {
   groups: "/vehicle-groups",
   search: "/search",
   booking_create: "/bookings",
+  booking_calculate: "/bookings/calculate",
   booking_save: "/bookings/save",
   booking_status: "/bookings/{id}",
   booking_cancel: "/bookings/{id}/cancel",
