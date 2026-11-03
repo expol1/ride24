@@ -87,6 +87,31 @@
     window.Ride24PartnerI18n?.bind(btn,pl,en);
   };
 
+
+  async function requestLoginEmailChange(user,newEmail){
+    // Do not replace the existing dashboard session with a password re-login.
+    if(!window.supabase?.createClient || !db.supabaseUrl || !db.supabaseKey){
+      throw Error("AUTH_UNAVAILABLE");
+    }
+    const client=window.supabase.createClient(db.supabaseUrl,db.supabaseKey,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
+    });
+    try{
+      const {data,error}=await client.auth.signInWithPassword({
+        email:user.email,
+        password:get("partnerEmailPassword").value,
+        options:{captchaToken:window.turnstile.getResponse(captchaId)}
+      });
+      if(error || !data?.user || data.user.id!==user.id)throw Error("PASSWORD_CHECK_FAILED");
+      // A request is not a completed change. Supabase Auth confirms the new address.
+      const result=await client.auth.updateUser({email:newEmail});
+      if(result.error)throw Error("AUTH_EMAIL_CHANGE_FAILED");
+    }finally{
+      // Local-only logout revokes this temporary session, not the dashboard session.
+      try{await client.auth.signOut({scope:"local"});}catch(_){}
+    }
+  }
+
   window.r24SavePartnerEmail=async()=>{
     if(working || pending)return;
     const email=get("partnerEmailNew").value.trim();
