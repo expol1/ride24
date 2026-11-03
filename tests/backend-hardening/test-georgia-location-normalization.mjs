@@ -48,7 +48,10 @@ test('normalization never alters stored API/Android location_name columns or pri
  assert.match(index,/\.select\('id, partner_id, location_name, display_name, country, region, city, type'\)/);
  assert.match(index,/name: window\.Ride24LocationNames\.displayName\(item\)/);
  assert.match(index,/location_name: location\.location_name/);
- assert.match(results,/l => l\.location_name === \(loc\.location_name \|\| loc\.name\)/);
+ // Exact stored pickup/return names remain the matching keys; display labels are never used.
+ assert.match(results,/query\s*=\s*query\.eq\(\s*'partners\.partner_locations\.location_name',\s*loc\.location_name\s*\)/);
+ assert.match(results,/\.eq\('location_name',\s*returnLocationName\)/);
+ assert.doesNotMatch(results,/\.eq\(\s*'partners\.partner_locations\.display_name'/);
  assert.match(panel,/window\.Ride24LocationNames\.normalizeForSave\(locationData\)/);
  assert.match(panel,/window\.Ride24LocationNames\.displayName\(loc\)/);
  const api=read('supabase/functions/search-api/index.ts');
