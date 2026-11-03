@@ -1038,6 +1038,7 @@ serve(async (req) => {
     let apiPickupExternalId: string | null = null;
     let apiDropoffExternalId: string | null = null;
     let apiQuoteCurrency: string | null = null;
+    let apiExtrasSnapshot: Record<string, unknown> | null = null;
 
     if (car.partner.provider_type === "api") {
       if (
@@ -1054,7 +1055,6 @@ serve(async (req) => {
         );
       }
 
-      assertApiRequestedOptions(body);
       await assertApiPricingCompatible(admin, car.partner_id);
       quoteClaim = await claimApiQuote(
         admin,
@@ -1076,6 +1076,30 @@ serve(async (req) => {
       }
 
       const quote = quoteClaim.row;
+      // API option quotes are minted by booking-options, never priced by the browser.
+      const quoteRaw = isRecord(quote.raw_response) ? quote.raw_response : null;
+      const apiExtras = isRecord(quoteRaw?.ride24_api_extras)
+        ? quoteRaw.ride24_api_extras : null;
+      if (apiExtras) {
+        const snapshot = isRecord(apiExtras.snapshot) ? apiExtras.snapshot : null;
+        if (body.pricing_version !== 3
+          || typeof body.pricing_fingerprint !== "string"
+          || body.pricing_fingerprint !== apiExtras.fingerprint
+          || apiExtras.user_id !== user.id
+          || !Array.isArray(body.extras)
+          || !Array.isArray(apiExtras.selections)
+          || JSON.stringify(body.extras) !== JSON.stringify(apiExtras.selections)
+          || !snapshot
+          || snapshot.provider_priced !== true
+          || Number(snapshot.partner_cents) !== Math.round(Number(quote.partner_net_total)*100)
+          || Number(snapshot.gross_cents) !== Math.round(Number(quote.final_total)*100)
+          || Number(snapshot.commission_cents) !== Math.round(Number(quote.commission_total)*100)) {
+          throw quoteChanged();
+        }
+        apiExtrasSnapshot = snapshot;
+      } else {
+        assertApiRequestedOptions(body);
+      }
       baseTotal = finiteNumber(quote.partner_net_total)!;
       commission = finiteNumber(quote.commission_total)!;
       finalTotal = finiteNumber(quote.final_total)!;
@@ -1256,12 +1280,20 @@ serve(async (req) => {
       returnName = dropoffLocation.location_name || returnName;
     }
 
-    let pricingItemsSnapshot = null;
+    let pricingItemsSnapshot = apiExtrasSnapshot;
     const selections = body.extras ?? [];
     if (!Array.isArray(selections) || selections.length > 20) throw quoteChanged();
     if (car.partner.provider_type === "api") {
-      // API provider quotes remain authoritative, including their own services.
-      if (selections.length || body.pricing_version === 2) throw quoteChanged();
+      if (!apiExtrasSnapshot && (selections.length || body.pricing_version === 2 || body.pricing_version === 3)) {
+        throw quoteChanged();
+      }
+      if (apiExtrasSnapshot) {
+        const expectedOnline = Number(apiExtrasSnapshot.online_pln_cents) / 100;
+        if (!Number.isFinite(expectedOnline) || Math.abs(onlinePaymentPln - expectedOnline) > 0.011) {
+          throw quoteChanged();
+        }
+        onlinePaymentPln = expectedOnline;
+      }
     } else if (await pricedExtrasEnabled(admin)) {
       const options = await loadBookingOptions(admin, car.partner_id, pickupName, returnName);
       if (body.pricing_version !== 2) {
