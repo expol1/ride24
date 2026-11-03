@@ -6,6 +6,9 @@ import ts from 'typescript';
 import * as contract from '../../supabase/functions/_shared/api-quote-contract.mjs';
 import * as readiness from '../../supabase/functions/_shared/api-readiness.mjs';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
+import * as providerExtras from '../../supabase/functions/_shared/provider-extras.mjs';
+import * as providerExtraQuotes from '../../supabase/functions/_shared/api-provider-extras-quote.mjs';
+import * as bookingItems from '../../supabase/functions/_shared/booking-items.mjs';
 import * as durationRules from '../../supabase/functions/_shared/rental-duration.ts';
 import {normalizeLocations, assertSafeApiUrl} from '../../supabase/functions/_shared/partner-api.ts';
 
@@ -29,7 +32,7 @@ function adapters() {
   const requests=[];
   const transport={endpointFor:()=>'/reservations',sanitizePartnerPayload:x=>x,
     partnerApiRequest:async(_credentials,path,request)=>{requests.push({path,...request});return {id:'external-1',status:'pending'};}};
-  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:(()=>{throw Error(name)})(),
+  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('provider-extras')?providerExtras:(()=>{throw Error(name)})(),
     URL,URLSearchParams,TextEncoder,TextDecoder,crypto,console};
   vm.runInNewContext(adapterCode,sandbox);
   return {requests,...sandbox.exports};
@@ -98,6 +101,8 @@ function setup() {
     let serve;
     const sandbox={exports:{},require:specifier=>{
       if(specifier.includes('api-readiness'))return readiness;
+      if(specifier.includes('api-provider-extras-quote'))return providerExtraQuotes;
+      if(specifier.includes('booking-items.mjs'))return bookingItems;
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
       if(specifier.includes('rental-duration.ts'))return durationRules;
