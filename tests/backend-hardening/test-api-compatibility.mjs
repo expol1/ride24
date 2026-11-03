@@ -78,6 +78,7 @@ function setup() {
       if(this.inserted){
         const row={...this.inserted,id:this.table==='bookings'?booking:
           this.table==='api_quotes'&&tables.api_quotes.length>0?'60000000-0000-4000-8000-000000000002':quoteId};
+        if(this.table==='api_quotes') { row.used_at??=null; row.booking_id??=null; }
         if(this.table==='bookings'){saved.push(this.inserted);row.reservation_code='R24-API-TEST';row.status='pending';}
         (tables[this.table]??=[]).push(row);rows=[row];
       }
