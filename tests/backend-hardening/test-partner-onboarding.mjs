@@ -154,4 +154,25 @@ await test('captcha and verified session are mandatory for sensitive email chang
  }
 });
 
+
+await test('only confirmed Auth email is synced to the login profile, not contact details',async()=>{
+ const syncCode=slice('// Sync a confirmed Auth login change','// POBRANIE FLAGI');
+ for(const option of [
+   {stored:'login@old.test',live:'login@new.test',writes:1},
+   {stored:'login@old.test',live:'login@old.test',writes:0},
+   {stored:'login@old.test',live:'login@new.test',identity:'other-user',writes:0},
+   {stored:'login@old.test',live:null,writes:0}
+ ]){
+   const writes=[],profile={email:option.stored},session={user:{id:'fixture-user'}};
+   const db={auth:{getUser:async()=>({data:{user:option.live?{id:option.identity||session.user.id,email:option.live}:null},error:null})},
+     from:table=>{assert.equal(table,'profiles');let data;
+       return {update:(payload)=>{data=payload;return {eq:(column,id)=>{assert.equal(column,'id');assert.equal(id,session.user.id);writes.push(data);return Promise.resolve({error:null});}}}};}
+   };
+   const c=vm.createContext({db,profile,session,console:{warn(){}}});
+   await vm.runInContext('(async()=>{'+syncCode+'})()',c);
+   assert.equal(writes.length,option.writes);
+   if(writes.length)assert.equal(writes[0].email,option.live);
+ }
+});
+
 console.log(JSON.stringify({passed,scope:'isolated onboarding functions; no production accounts, signatures, files or emails changed'}));
