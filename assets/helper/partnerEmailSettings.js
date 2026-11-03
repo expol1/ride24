@@ -47,18 +47,24 @@
   }
 
   window.openPartnerEmailModal=()=>{
+    lastFocus=document.activeElement;
     get("partnerEmailModal").classList.add("active");
+    get("partnerEmailModal").setAttribute("aria-hidden","false");
     get("partnerEmailNew").value=get("partnerEmail").value||"";
     get("partnerEmailPassword").value="";
     get("partnerEmailModeContact").checked=true;
     get("partnerEmailStatus").textContent="";
+    get("partnerEmailSubmit").disabled=false;
     window.r24SwitchEmailMode();
+    get("partnerEmailNew").focus();
   };
   window.closePartnerEmailModal=()=>{
     if(working)return;
     get("partnerEmailModal").classList.remove("active");
+    get("partnerEmailModal").setAttribute("aria-hidden","true");
     get("partnerEmailPassword").value="";
     get("partnerEmailNew").value="";
+    lastFocus?.focus?.();
   };
   window.r24SwitchEmailMode=()=>{
     if(working)return;
@@ -66,6 +72,13 @@
     get("partnerEmailLoginOptions").hidden=!isLogin;
     get("partnerEmailStatus").textContent="";
     get("partnerEmailPassword").value="";
+    if(isLogin){
+      get("partnerEmailNew").value="";
+      authenticatedUser().then(user=>{
+        if(get("partnerEmailModal").classList.contains("active")&&mode()==="login")get("partnerEmailCurrentLogin").textContent=user.email;
+      }).catch(()=>status("Zaloguj się ponownie.","Please sign in again."));
+      ensureCaptcha();
+    } else get("partnerEmailNew").value=get("partnerEmail").value||"";
     const btn=get("partnerEmailSubmit");
     const pl=isLogin?"Wyślij potwierdzenie":"Zapisz adres";
     const en=isLogin?"Send confirmation":"Save email";
