@@ -334,6 +334,22 @@
         .checkbox-group input { width: auto; transform: scale(1.2); cursor: pointer; accent-color: var(--green); }
         .fleet-thumb { width: 60px; height: 40px; background: #F1F5F9; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); cursor: pointer; }
 
+
+        .r24-email-inline { display:flex; align-items:center; gap:9px; }
+        .r24-email-inline input { flex:1; min-width:0; background:#F1F5F9; color:#334155; }
+        .r24-email-edit { padding:10px 14px; border:1px solid #2563EB; border-radius:9px; background:#EFF6FF; color:#1D4ED8; cursor:pointer; font-weight:700; white-space:nowrap; }
+        .r24-email-choice { display:flex; gap:9px; padding:12px; border:1px solid #CBD5E1; border-radius:10px; background:white; cursor:pointer; align-items:flex-start; }
+        .r24-email-choice input { width:auto; margin-top:4px; flex-shrink:0; }
+        .r24-email-choice small { display:block; font-weight:400; color:#64748B; margin-top:3px; line-height:1.4; }
+        #partnerEmailModal .modal-body { background:#F8FAFC; }
+        #partnerEmailModal .form-group { margin-bottom:0; }
+        #partnerEmailModal .modal-box { max-width:470px; }
+        #partnerEmailModal .modal-body { display:flex; flex-direction:column; gap:12px; }
+        #partnerEmailModal input[type="email"], #partnerEmailModal input[type="password"] { width:100%; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; background:white; }
+        #partnerEmailModal [hidden] { display:none !important; }
+        #partnerEmailStatus:not(:empty) { padding:10px; background:white; border-radius:8px; font-size:13px; line-height:1.5; }
+        @media(max-width:480px) { .r24-email-inline { flex-wrap:wrap; } #partnerEmailModal .modal-box { max-width:100%; } }
+
         .modal-overlay {
     position: fixed !important;
     inset: 0 !important;
@@ -2229,6 +2245,49 @@ Dodaj opinię o Partnerze
             </div>
         </div>
     </div>
+
+<div class="modal-overlay" id="partnerEmailModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="partnerEmailModalTitle">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="partnerEmailModalTitle" data-pl="Zmiana e-maila" data-en="Change email">Change email</h2>
+      <button type="button" class="modal-close" onclick="closePartnerEmailModal()" aria-label="Close" style="background:transparent;border:0;">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0;font-size:13px;color:#475569;" data-pl="Wybierz rodzaj zmiany" data-en="Choose what to change">Choose what to change</p>
+      <label class="r24-email-choice">
+        <input type="radio" name="partnerEmailMode" id="partnerEmailModeContact" value="contact" checked onchange="r24SwitchEmailMode()">
+        <span><strong data-pl="Tylko e-mail kontaktowy" data-en="Contact email only">Contact email only</strong>
+        <small data-pl="Login pozostaje bez zmian." data-en="Sign-in email stays unchanged.">Sign-in email stays unchanged.</small></span>
+      </label>
+      <label class="r24-email-choice">
+        <input type="radio" name="partnerEmailMode" id="partnerEmailModeLogin" value="login" onchange="r24SwitchEmailMode()">
+        <span><strong data-pl="E-mail logowania" data-en="Sign-in email">Sign-in email</strong>
+        <small data-pl="Wymaga potwierdzenia nowego adresu." data-en="Requires new email confirmation.">Requires new email confirmation.</small></span>
+      </label>
+      <div class="form-group">
+        <label for="partnerEmailNew" data-pl="Nowy adres e-mail" data-en="New email address">New email address</label>
+        <input type="email" id="partnerEmailNew" maxlength="254" autocomplete="off" inputmode="email">
+      </div>
+      <div id="partnerEmailLoginOptions" hidden style="display:flex;flex-direction:column;gap:12px;">
+        <p style="margin:0;font-size:13px;color:#475569;"><span data-pl="Aktualny login" data-en="Current sign-in email">Current sign-in email</span>: <strong id="partnerEmailCurrentLogin">—</strong></p>
+        <div class="form-group">
+          <label for="partnerEmailPassword" data-pl="Aktualne hasło" data-en="Current password">Current password</label>
+          <input type="password" id="partnerEmailPassword" autocomplete="current-password">
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;" data-pl="Weryfikacja bezpieczeństwa" data-en="Security check">Security check</div>
+          <div id="partnerEmailCaptcha"></div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:#475569;" data-pl="Po wysłaniu prośby sprawdź wiadomości na starym i nowym adresie. E-mail kontaktowy nie zmieni się automatycznie." data-en="After requesting the change, check both inboxes. Your contact email will not change automatically.">After requesting the change, check both inboxes. Your contact email will not change automatically.</p>
+      </div>
+      <p id="partnerEmailStatus" role="status" aria-live="polite" style="margin:0;"></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-secondary" onclick="closePartnerEmailModal()" data-pl="Anuluj" data-en="Cancel">Cancel</button>
+      <button type="button" class="btn-primary" id="partnerEmailSubmit" onclick="r24SavePartnerEmail()" data-pl="Zapisz adres" data-en="Save email">Save email</button>
+    </div>
+  </div>
+</div>
     <div id="partnerTermsModal" style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(15,23,42,0.8); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding: 20px;">
         <div style="background:white; width:100%; max-width:850px; max-height:85vh; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); position:relative;">
             <div style="padding: 20px 30px; border-bottom: 1px solid var(--border); background: #F8FAFC; display: flex; justify-content: space-between; align-items: center;">
