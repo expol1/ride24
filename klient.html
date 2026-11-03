@@ -2837,7 +2837,8 @@ document.addEventListener("click", async function(e) {
                pickup_time: localStorage.getItem("bookingPickupTime") || "10:00", return_time: localStorage.getItem("bookingDropTime") || "10:00",
                pickup_location: search.pickup_location?.name || "Do ustalenia",
                return_location: search.drop_location?.name || search.pickup_location?.name || "Do ustalenia",
-               additional_driver_id: additional?.length === 36 ? additional : null
+               additional_driver_id: additional?.length === 36 ? additional : null,
+               api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
            };
        }
        const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
@@ -2988,14 +2989,14 @@ document.addEventListener("click", async function(e) {
                         driver_id: driverId,
                         additional_driver_id: additionalDriverId,
                         terms_accepted: true,
-                        ...pricingPayload,
-                        api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
+                        api_quote_id: localStorage.getItem("selectedApiQuoteId") || null,
+                        ...pricingPayload
                     })
                 });
 
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || !result?.success) {
-                    if (["QUOTE_CHANGED", "INVALID_BOOKING_OPTIONS", "DRIVER_EXTRA_MISMATCH", "PRICING_UPDATE_REQUIRED"].includes(result?.code)) await bookingExtras.refresh();
+                    if (["QUOTE_CHANGED", "INVALID_BOOKING_OPTIONS", "DRIVER_EXTRA_MISMATCH", "PRICING_UPDATE_REQUIRED", "API_QUOTE_CHANGED", "API_EXTRAS_INVALID_SELECTION"].includes(result?.code)) await bookingExtras.refresh();
                     throw new Error((isEn ? result?.error_en : result?.error) || result?.error || (isEn ? "Could not create booking." : "Nie udało się utworzyć rezerwacji."));
                 }
 
