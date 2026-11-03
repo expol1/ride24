@@ -1287,6 +1287,9 @@ export async function createProviderBooking(
         providerBookingTotal(saved),
         ride24PartnerAmount,
       );
+      if (Array.isArray(quote.ride24_selected_extras)) {
+        assertRenteonExtrasConfirmed(saved, quote.ride24_selected_extras);
+      }
     } catch (priceError) {
       if (reference) {
         try {
