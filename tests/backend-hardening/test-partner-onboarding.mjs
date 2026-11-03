@@ -103,4 +103,55 @@ await test('agreement submits snapshot once and updates UI after success',async(
 await test('agreement error preserves unsigned state and enables retry',async()=>{const f=fixture({rpcError:true});await f.c.signAgreement();assert.equal(f.partner.agreement_accepted,false);assert.equal(f.element('sign-btn').disabled,false);});
 await test('PDF upload writes only the signed-in partner path',async()=>{const f=fixture({emptyDocs:true});await f.c.uploadPartnerDocument({type:'application/pdf',size:100},'terms');assert.deepEqual(f.uploads,['fixture-user/terms.pdf']);assert.equal(f.writes[0].payload.rental_terms_url,'https://fixture.test/fixture-user/terms.pdf');});
 await test('invalid and oversized documents are rejected',async()=>{const f=fixture({emptyDocs:true});await f.c.uploadPartnerDocument({type:'text/html',size:100},'terms');await f.c.uploadPartnerDocument({type:'application/pdf',size:6*1024*1024},'rules');assert.equal(f.uploads.length,0);});
+
+await test('contact editor saves only partners.email and never touches Auth',async()=>{
+ const f=emailModalFixture();f.window.openPartnerEmailModal();f.el('partnerEmailNew').value='new@contact.test';
+ await f.window.r24SavePartnerEmail();
+ assert.equal(f.writes.length,1);assert.equal(f.writes[0].email,'new@contact.test');
+ assert.equal(f.authCalls.length,0);assert.equal(f.el('partnerEmail').value,'new@contact.test');
+ assert.equal(f.el('partnerEmailModal').classList.contains('active'),false);
+});
+await test('invalid contact email never writes to Auth or database',async()=>{
+ const f=emailModalFixture();f.window.openPartnerEmailModal();f.el('partnerEmailNew').value='invalid';
+ await f.window.r24SavePartnerEmail();assert.equal(f.writes.length,0);assert.equal(f.authCalls.length,0);
+});
+await test('login update checks current password and captcha in separate Auth session',async()=>{
+ const f=emailModalFixture();f.window.openPartnerEmailModal();
+ f.el('partnerEmailModeContact').checked=false;f.el('partnerEmailModeLogin').checked=true;
+ f.window.r24SwitchEmailMode();f.el('partnerEmailNew').value='new@login.test';f.el('partnerEmailPassword').value='current-secret';
+ await f.window.r24SavePartnerEmail();
+ const login=f.authCalls.find(x=>x.kind==='signin'),update=f.authCalls.find(x=>x.kind==='update');
+ const isolation=f.authCalls.find(x=>x.kind==='client'),logout=f.authCalls.find(x=>x.kind==='logout');
+ assert.equal(login.credentials.email,'login@old.test');assert.equal(login.credentials.options.captchaToken,'challenge');
+ assert.equal(update.attrs.email,'new@login.test');
+ assert.equal(isolation.config.auth.persistSession,false);assert.equal(isolation.config.auth.detectSessionInUrl,false);
+ assert.equal(logout.config.scope,'local');assert.equal(f.writes.length,0);
+ assert.equal(f.el('partnerEmail').value,'contact@old.test');assert.equal(f.el('partnerEmailPassword').value,'');
+ assert.equal(f.el('partnerEmailSubmit').disabled,true);
+});
+await test('wrong password prevents login change and preserves partner session',async()=>{
+ const f=emailModalFixture({badPassword:true});f.window.openPartnerEmailModal();
+ f.el('partnerEmailModeLogin').checked=true;f.window.r24SwitchEmailMode();
+ f.el('partnerEmailNew').value='new@login.test';f.el('partnerEmailPassword').value='wrong';
+ await f.window.r24SavePartnerEmail();
+ assert.equal(f.authCalls.filter(x=>x.kind==='update').length,0);
+ assert.equal(f.writes.length,0);assert.equal(f.el('partnerEmailSubmit').disabled,false);
+});
+await test('incorrect user identity never triggers an Auth email change',async()=>{
+ const f=emailModalFixture({otherUser:true});f.window.openPartnerEmailModal();
+ f.el('partnerEmailModeLogin').checked=true;f.window.r24SwitchEmailMode();
+ f.el('partnerEmailNew').value='new@login.test';f.el('partnerEmailPassword').value='password';
+ await f.window.r24SavePartnerEmail();
+ assert.equal(f.authCalls.filter(x=>x.kind==='update').length,0);
+});
+await test('captcha and verified session are mandatory for sensitive email changes',async()=>{
+ for(const opts of [{noCaptcha:true},{expiredCaptcha:true},{noUser:true}]){
+  const f=emailModalFixture(opts);f.window.openPartnerEmailModal();
+  f.el('partnerEmailModeLogin').checked=true;f.window.r24SwitchEmailMode();
+  f.el('partnerEmailNew').value='new@login.test';f.el('partnerEmailPassword').value='password';
+  await f.window.r24SavePartnerEmail();
+  assert.equal(f.authCalls.filter(x=>x.kind==='update').length,0);assert.equal(f.writes.length,0);
+ }
+});
+
 console.log(JSON.stringify({passed,scope:'isolated onboarding functions; no production accounts, signatures, files or emails changed'}));
