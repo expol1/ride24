@@ -131,9 +131,41 @@
   }
 
   async function openPrivatePdf(doc) {
-    const { data, error } = await db.storage.from(BUCKET).createSignedUrl(doc.storage_path, 300);
-    if (error || !data?.signedUrl) throw error || new Error("Brak dostępu do pliku");
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    // Open synchronously when permitted. If a browser blocks the popup, provide
+    // a visible, user-clickable private link instead of silently doing nothing.
+    const popup = window.open("about:blank", "_blank");
+    try {
+      const { data, error } = await db.storage.from(BUCKET).createSignedUrl(doc.storage_path, 300);
+      if (error || !data?.signedUrl) throw error || new Error("Brak dostępu do pliku");
+      if (popup) {
+        popup.location.replace(data.signedUrl);
+        return;
+      }
+      let banner = el("r24-custom-pdf-open-link");
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "r24-custom-pdf-open-link";
+        banner.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:100020;background:white;border:2px solid #2563eb;padding:12px;border-radius:8px;text-align:center;";
+        document.body.appendChild(banner);
+      }
+      banner.replaceChildren();
+      const link = document.createElement("a");
+      link.href = data.signedUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "Otwórz indywidualną umowę PDF (link ważny 5 minut)";
+      link.style.fontWeight = "700";
+      banner.appendChild(link);
+      const close = document.createElement("button");
+      close.type = "button";
+      close.textContent = "  Zamknij";
+      close.style.marginLeft = "12px";
+      close.onclick = () => banner.remove();
+      banner.appendChild(close);
+    } catch (error) {
+      popup?.close();
+      throw error;
+    }
   }
 
   // Admin's existing "Umowa PDF" button respects the individual assignment
