@@ -2707,6 +2707,12 @@ if (!hasTerms || !hasRules) {
         </button>
     `;
 }
+// Optional custom partnership PDF; no file = default Ride24 agreement.
+actionBtn += `
+    <button type="button" class="btn-primary" style="margin-left:6px;"
+        title="Przypisz własny PDF lub pozostaw standardowy wzór"
+        onclick="openPartnerCustomAgreement('${p.id}')">Umowa własna</button>
+`;
 let providerBadge = "";
 
 if ((p.provider_type ?? "local") === "api") {
@@ -3051,7 +3057,11 @@ window.processAddPartner = async function() {
     const btn = document.getElementById("savePartnerBtn");
     const selectedTermsPdf = document.getElementById("new-p-terms-pdf").files[0] || null;
     const selectedRulesPdf = document.getElementById("new-p-rules-pdf").files[0] || null;
-    try { validateSelectedPartnerPdfs(selectedTermsPdf, selectedRulesPdf); }
+    const selectedCustomAgreementPdf = document.getElementById("new-p-agreement-pdf").files[0] || null;
+    try {
+        validateSelectedPartnerPdfs(selectedTermsPdf, selectedRulesPdf);
+        validateSelectedPartnerPdfs(selectedCustomAgreementPdf, null);
+    }
     catch (error) { showAdminPartnerCreateResult({ type: "error", message: error.message }); return; }
 
     const providerType = document.getElementById("new-p-provider-type").value;
@@ -3089,6 +3099,10 @@ const data = {
     discount_percent: Number.isFinite(Number(document.getElementById("new-p-discount").value))
         ? Number(document.getElementById("new-p-discount").value)
         : 15,
+
+    // Freeze the selected agreement mode on the server BEFORE sending the
+    // temporary password. If its PDF upload fails, standard signing stays blocked.
+    custom_agreement_pending: Boolean(selectedCustomAgreementPdf),
 
     // ===== NOWE POLA =====
 
@@ -3170,21 +3184,50 @@ const data = {
             throw new Error(result.error || "Błąd Edge Function. Kod: " + response.status);
         }
 
-        let pdfOutcome = "Nie dołączono PDF-ów (partner może je wgrać samodzielnie).";
-        if (selectedTermsPdf || selectedRulesPdf) {
+        const partnerCreationNotices = [];
+        let customPdfReady = !selectedCustomAgreementPdf;
+
+        // The individual agreement must be registered before rental documents.
+        // Otherwise the partner could accidentally sign the standard template.
+        if (selectedCustomAgreementPdf) {
             if (!result.partner_id) {
-                pdfOutcome = "UWAGA: Konto utworzone, ale brak ID do uploadu. Skorzystaj z przycisku Dokumenty PDF przy partnerze.";
+                partnerCreationNotices.push("UWAGA: Konto utworzone, ale brak ID. Indywidualna umowa oczekuje na wgranie; podpis standardowy jest zablokowany.");
+            } else {
+                try {
+                    const helper = window.Ride24AdminCustomAgreement;
+                    if (!helper?.uploadFileToPartner) {
+                        throw new Error("Moduł indywidualnych umów nie jest dostępny.");
+                    }
+                    await helper.uploadFileToPartner(result.partner_id, selectedCustomAgreementPdf);
+                    customPdfReady = true;
+                    partnerCreationNotices.push("Indywidualna umowa PDF została przypisana. Partner podpisze ten dokument.");
+                } catch (agreementError) {
+                    partnerCreationNotices.push("WAŻNE: Konto zostało utworzone, ale UMOWY nie wgrano: " +
+                        agreementError.message +
+                        ". Nie zakładaj konta ponownie. Uzupełnij PDF przez przycisk Umowa własna.");
+                }
+            }
+        } else {
+            partnerCreationNotices.push("Brak indywidualnej umowy: obowiązuje standardowy wzór Ride24.");
+        }
+
+        let pdfOutcome = "Nie dołączono Warunków ani Regulaminu (partner może je wgrać samodzielnie).";
+        if (!customPdfReady) {
+            pdfOutcome = "Warunki i Regulamin nie zostały automatycznie przesłane, aby nie umożliwić podpisania niewłaściwej umowy.";
+        } else if (selectedTermsPdf || selectedRulesPdf) {
+            if (!result.partner_id) {
+                pdfOutcome = "UWAGA: Konto utworzone, ale brak ID do uploadu. Użyj przycisku Dokumenty PDF przy partnerze.";
             } else {
                 try {
                     await uploadAdminPartnerPdfs(result.partner_id, selectedTermsPdf, selectedRulesPdf);
-                    pdfOutcome = "Załączone PDF-y wgrane i przypisane automatycznie.";
+                    pdfOutcome = "Warunki i Regulamin wgrane i przypisane automatycznie.";
                 } catch (pdfError) {
-                    pdfOutcome = "UWAGA: Konto zostało utworzone, ale upload PDF nie powiódł się: " +
+                    pdfOutcome = "UWAGA: Konto zostało utworzone, ale wgrywanie Warunków/Regulaminu nie powiodło się: " +
                         pdfError.message + ". Użyj przycisku Dokumenty PDF — nie zakładaj konta ponownie.";
                 }
             }
         }
-        const partnerCreationNotices = [pdfOutcome];
+        partnerCreationNotices.push(pdfOutcome);
         if (result.email_sent === false) {
             partnerCreationNotices.push("UWAGA: Nie udało się wysłać e-maila powitalnego.");
         }
@@ -3202,6 +3245,7 @@ const data = {
         document.getElementById("new-p-discount").value = "15";
         document.getElementById("new-p-terms-pdf").value = "";
         document.getElementById("new-p-rules-pdf").value = "";
+        document.getElementById("new-p-agreement-pdf").value = "";
         document.getElementById("new-p-api-provider").value = "";
         document.getElementById("new-p-api-url").value = "";
         document.getElementById("new-p-api-key").value = "";
@@ -5963,6 +6007,8 @@ hereinafter referred to as the “Partner”.
         printWin.print();
     }, 500);
 };async function generateAgreementForPartner(partnerId) {
+    // Never print the standard form when this partner has an individual PDF.
+    if (await window.Ride24AdminCustomAgreement.previewIfAssigned(partnerId)) return;
     // 1. Pobieramy pełne dane partnera wraz z adresem email z profilu
     const { data: partner, error } = await db
         .from("partners")
@@ -5991,6 +6037,7 @@ hereinafter referred to as the “Partner”.
 
 
     </script>
+<script src="../assets/js/admin-custom-agreements.js?v=20261104a"></script>
 <script src="../assets/js/admin-travel-guides.js?v=20261009a"></script>
 <script type="module" src="../assets/js/admin-seo.js?v=20261031queue1"></script>
     <!-- Wynik tworzenia konta B2B. Widoczny wyłącznie po próbie zapisu. -->
@@ -6142,6 +6189,14 @@ hereinafter referred to as the “Partner”.
     <div class="form-group"><label for="new-p-rules-pdf">Regulamin / Rental Rules (PDF)</label>
       <input type="file" accept=".pdf,application/pdf" id="new-p-rules-pdf" style="width:100%;"></div>
   </div>
+  <div class="form-group" style="margin-top:14px;padding-top:12px;border-top:1px solid #cbd5e1;">
+    <label for="new-p-agreement-pdf" style="font-weight:700;">Indywidualna umowa partnerska / Partnership Agreement (PDF)</label>
+    <input type="file" accept=".pdf,application/pdf" id="new-p-agreement-pdf" style="display:block;width:100%;margin-top:6px;">
+    <p style="font-size:12px;color:#475569;margin:7px 0 0;">
+      Opcjonalnie. Jeśli wybierzesz PDF, partner podpisze tę umowę zamiast standardowej Ride24.
+      Bez PDF system automatycznie użyje standardowego wzoru. Maksymalnie 5 MB.
+    </p>
+  </div>
 </div>
 <div class="form-group">
     <label style="display:block; font-size:12px; font-weight:700; margin-bottom:5px;">
@@ -6233,6 +6288,31 @@ hereinafter referred to as the “Partner”.
           <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
             <button type="button" onclick="closeAdminPartnerDocs()" class="btn-warn">Zamknij</button>
             <button type="button" id="admin-pdf-upload-btn" onclick="submitAdminPartnerDocs()" class="btn-primary">Wgraj wybrane PDF-y</button>
+          </div>
+        </div>
+      </div>
+      <div id="r24-custom-agreement-modal"
+        style="display:none;position:fixed;inset:0;z-index:100010;background:rgba(2,6,23,.82);align-items:center;justify-content:center;padding:20px;">
+        <div style="background:white;border-radius:14px;width:100%;max-width:610px;padding:24px;max-height:90vh;overflow-y:auto;">
+          <h2 style="font-size:19px;margin:0 0 8px;">Indywidualna umowa partnerska</h2>
+          <p id="r24-custom-agreement-partner" style="font-weight:700;margin:0 0 12px;"></p>
+          <p style="font-size:13px;color:#475569;margin:0 0 15px;">
+            Opcjonalnie wgraj zatwierdzoną umowę PDF partnera. Bez pliku system automatycznie użyje standardowej umowy Ride24.
+            Plik pozostaje prywatny; po elektronicznym podpisaniu jest zablokowany.
+          </p>
+          <p id="r24-custom-agreement-file" style="font-weight:600;"></p>
+          <p id="r24-custom-agreement-status" role="status" style="font-size:12px;color:#475569;margin:10px 0;"></p>
+          <label for="r24-custom-agreement-upload">Wybierz PDF (maks. 5 MB)</label>
+          <input type="file" id="r24-custom-agreement-upload" accept=".pdf,application/pdf"
+              style="display:block;width:100%;margin:8px 0 18px;">
+          <div style="display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;">
+            <button type="button" class="btn-warn" onclick="closePartnerCustomAgreement()">Zamknij</button>
+            <button type="button" class="btn-primary" id="r24-custom-agreement-view-btn"
+              onclick="previewPartnerCustomAgreement()">Podgląd PDF</button>
+            <button type="button" class="btn-danger" id="r24-custom-agreement-remove-btn"
+              onclick="removePartnerCustomAgreement()">Usuń przed podpisem</button>
+            <button type="button" class="btn-primary" id="r24-custom-agreement-upload-btn"
+              onclick="uploadPartnerCustomAgreement()">Przypisz PDF</button>
           </div>
         </div>
       </div>
