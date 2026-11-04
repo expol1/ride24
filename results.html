@@ -975,7 +975,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 
                     row.innerHTML = `
 <div class="car-img-box">
-    <img src="${safeCarImage}" ${responsiveSrcSet} loading="${imageLoading}" decoding="async" alt="${safeCarCode}" onerror="this.onerror=null;this.removeAttribute('srcset');this.src='auto.png';">
+    <img src="${safeCarImage}" ${responsiveSrcSet} loading="${imageLoading}" decoding="async" fetchpriority="${index === 0 ? "high" : "auto"}" alt="${safeCarCode}" data-full-image="${safeCarImage}" onerror="this.removeAttribute('srcset');this.onerror=function(){this.onerror=null;this.src='auto.png';};this.src=this.dataset.fullImage;">
 </div>
 
 <div class="car-details-box">
