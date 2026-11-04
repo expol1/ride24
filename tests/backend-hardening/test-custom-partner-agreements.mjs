@@ -33,6 +33,24 @@ test("dashboard routes to custom agreement and preserves existing standard gener
   assert.match(adminHtml, /previewIfAssigned\(partnerId\)/);
 });
 
+test("new B2B partner form exposes an optional private agreement PDF", () => {
+  assert.match(adminHtml, /id="new-p-agreement-pdf"/);
+  assert.match(adminHtml, /custom_agreement_pending: Boolean\(selectedCustomAgreementPdf\)/);
+  assert.match(adminHtml, /uploadFileToPartner\(result\.partner_id, selectedCustomAgreementPdf\)/);
+  assert.match(adminHtml, /if \(!customPdfReady\)/);
+  const apiCreate = read("supabase/functions/admin-create-partner/index.ts");
+  assert.match(apiCreate, /customAgreementPending: body\.custom_agreement_pending === true/);
+  assert.match(apiCreate, /custom_agreement_pending: input\.customAgreementPending/);
+});
+
+test("pending custom agreement always blocks accidental standard signing", () => {
+  const guard = read("supabase/migrations/20261104122500_custom_agreement_creation_intent.sql");
+  assert.match(guard, /v_partner\.custom_agreement_pending/);
+  assert.match(guard, /CUSTOM_AGREEMENT_ASSIGNED/);
+  assert.match(partnerHtml, /p\.custom_agreement_pending && !p\.custom_agreement_document/);
+  assert.match(backend, /custom_agreement_pending: false/);
+});
+
 function fixture(tampered = false) {
   const pdf = Buffer.from("%PDF-1.7\n" + ("% Test agreement fixture\n".repeat(7)) + "1 0 obj\n<<>>\nendobj\n%%EOF\n");
   const sha = createHash("sha256").update(pdf).digest("hex");
