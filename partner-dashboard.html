@@ -3368,8 +3368,7 @@ const updateData = {
                     const oldImagePaths = ownedVehicleImagePaths(previousVehicleImageUrl, partner.id);
                     if (oldImagePaths.length) {
                         try {
-                            const { error: oldImageError } = await db.storage.from("vehicle-images").remove(oldImagePaths);
-                            if (oldImageError) console.warn("Old vehicle image cleanup failed:", oldImageError);
+                            await removeVehicleImageFiles(oldImagePaths);
                         } catch (oldImageError) {
                             console.warn("Old vehicle image cleanup failed:", oldImageError);
                         }
@@ -3382,9 +3381,11 @@ const updateData = {
             } catch (err) {
                 // Do not leave unreferenced photos behind if the database save failed.
                 if (uploadedVehicleImagePaths.length) {
-                    const { error: cleanupError } = await db.storage.from("vehicle-images")
-                        .remove(uploadedVehicleImagePaths);
-                    if (cleanupError) console.warn("Vehicle image rollback failed:", cleanupError);
+                    try {
+                        await removeVehicleImageFiles(uploadedVehicleImagePaths);
+                    } catch (cleanupError) {
+                        console.warn("Vehicle image rollback failed:", cleanupError);
+                    }
                 }
                 console.error("Błąd zapisu:", err);
                 window.showToast((partnerText("Błąd: ", "Error: ")) + err.message, "error");
@@ -4831,8 +4832,7 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                     try {
                         const paths = ownedVehicleImagePaths(imageUrl, partner.id);
                         if (paths.length) {
-                            const { error: imageError } = await db.storage.from("vehicle-images").remove(paths);
-                            if (imageError) throw imageError;
+                            await removeVehicleImageFiles(paths);
                         }
                     } catch (imageError) {
                         console.warn("Vehicle removed, but image cleanup failed:", imageError);
@@ -5073,6 +5073,17 @@ async function uploadPartnerAvatar(file){
 
     showToast(partnerText("Awatar przesłany", "Avatar uploaded"), "success")
 }
+// Storage can return an empty result without an error when RLS hides the object.
+// Check the actual number of removed objects rather than assuming success.
+async function removeVehicleImageFiles(paths) {
+    if (!Array.isArray(paths) || !paths.length) return;
+    const { data, error } = await db.storage.from("vehicle-images").remove(paths);
+    if (error) throw error;
+    if (!Array.isArray(data) || data.length !== paths.length) {
+        throw new Error(`Vehicle image cleanup incomplete: removed ${Array.isArray(data) ? data.length : 0} of ${paths.length}`);
+    }
+}
+
 // Only clean up objects from the signed-in partner's own storage folder.
 function ownedVehicleImagePaths(imageUrl, partnerId) {
     if (!imageUrl || !partnerId) return [];
