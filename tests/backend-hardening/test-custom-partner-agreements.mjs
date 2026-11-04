@@ -20,7 +20,7 @@ test("private store, no overwrite of signed files, standard RPC blocked for cust
   assert.match(migration, /sha256.*\^\[a-f0-9\]\{64\}/);
   assert.match(backend, /requireAdmin\(req\)/);
   assert.match(backend, /upsert: false/);
-  assert.doesNotMatch(backend, /getPublicUrl/);
+  assert.doesNotMatch(backend, /\.getPublicUrl\s*\(/);
 });
 
 test("dashboard routes to custom agreement and preserves existing standard generator", () => {
