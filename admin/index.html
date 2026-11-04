@@ -734,6 +734,24 @@
             outline: 3px solid #1d4ed8;
             outline-offset: 2px;
         }
+            .r24-custom-agreement-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            color: #334155;
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .r24-custom-agreement-close:hover { background: #e2e8f0; color: #0f172a; }
+        .r24-custom-agreement-close:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
     </style>
 <link rel="stylesheet" href="../assets/css/admin-seo.css?v=20261014a">
 <link rel="stylesheet" href="../assets/css/brand-logo.css?v=20261019b">
@@ -2652,7 +2670,9 @@ async function loadPartnersData() {
         account_status,
         provider_type,
         rental_terms_url,
-        rental_rules_url
+        rental_rules_url,
+        agreement_accepted,
+        custom_agreement_pending
     `)
     .order("created_at", { ascending: false });
 
@@ -2663,6 +2683,21 @@ async function loadPartnersData() {
     if (error || !data) {
         tbody.innerHTML = "<tr><td colspan='4'>Błąd ładowania danych</td></tr>";
         return;
+    }
+
+    // Read-only: distinguish a signed individual PDF from a signed standard agreement.
+    // On read errors, keep signed agreements locked/hidden rather than guessing.
+    const signedCustomPartnerIds = new Set();
+    try {
+        const { data: assignedAgreements, error: assignedError } = await db
+            .from("partner_agreement_documents")
+            .select("partner_id");
+        if (assignedError) throw assignedError;
+        (assignedAgreements || []).forEach(doc => {
+            if (doc.partner_id) signedCustomPartnerIds.add(doc.partner_id);
+        });
+    } catch (agreementReadError) {
+        console.warn("Nie udało się pobrać listy umów indywidualnych.", agreementReadError);
     }
 
     data.forEach(p => {
@@ -2746,12 +2781,17 @@ if (!hasTerms || !hasRules) {
         </button>
     `;
 }
-// Optional custom partnership PDF; no file = default Ride24 agreement.
-actionBtn += `
-    <button type="button" class="r24-custom-agreement-btn"
-        title="Przypisz własny PDF lub pozostaw standardowy wzór"
-        onclick="openPartnerCustomAgreement('${p.id}')">UMOWA WŁASNA</button>
-`;
+// A signed standard agreement cannot be replaced. Show only before signing,
+// or as read-only access to an already assigned individual PDF.
+const hasSignedAgreement = p.agreement_accepted === true;
+const hasIndividualPdf = signedCustomPartnerIds.has(p.id);
+if (!hasSignedAgreement || hasIndividualPdf) {
+    actionBtn += `
+        <button type="button" class="r24-custom-agreement-btn"
+            title="${hasSignedAgreement ? "Podgląd podpisanej umowy indywidualnej" : "Przypisz indywidualny PDF przed podpisaniem"}"
+            onclick="openPartnerCustomAgreement('${p.id}')">${hasSignedAgreement ? "PODGLĄD UMOWY WŁASNEJ" : "UMOWA WŁASNA"}</button>
+    `;
+}
 let providerBadge = "";
 
 if ((p.provider_type ?? "local") === "api") {
@@ -6332,8 +6372,11 @@ hereinafter referred to as the “Partner”.
       </div>
       <div id="r24-custom-agreement-modal"
         style="display:none;position:fixed;inset:0;z-index:100010;background:rgba(2,6,23,.82);align-items:center;justify-content:center;padding:20px;">
-        <div style="background:white;border-radius:14px;width:100%;max-width:610px;padding:24px;max-height:90vh;overflow-y:auto;">
-          <h2 style="font-size:19px;margin:0 0 8px;">Indywidualna umowa partnerska</h2>
+        <div class="r24-custom-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="r24-custom-agreement-heading"
+           style="background:white;border-radius:14px;width:100%;max-width:610px;padding:24px;max-height:90vh;overflow-y:auto;position:relative;">
+          <button type="button" class="r24-custom-agreement-close" aria-label="Zamknij okno umowy"
+            title="Zamknij" onclick="closePartnerCustomAgreement()">&times;</button>
+          <h2 id="r24-custom-agreement-heading" style="font-size:19px;margin:0 42px 8px 0;">Indywidualna umowa partnerska</h2>
           <p id="r24-custom-agreement-partner" style="font-weight:700;margin:0 0 12px;"></p>
           <p style="font-size:13px;color:#475569;margin:0 0 15px;">
             Opcjonalnie wgraj zatwierdzoną umowę PDF partnera. Bez pliku system automatycznie użyje standardowej umowy Ride24.
@@ -6341,9 +6384,11 @@ hereinafter referred to as the “Partner”.
           </p>
           <p id="r24-custom-agreement-file" style="font-weight:600;"></p>
           <p id="r24-custom-agreement-status" role="status" style="font-size:12px;color:#475569;margin:10px 0;"></p>
-          <label for="r24-custom-agreement-upload">Wybierz PDF (maks. 5 MB)</label>
-          <input type="file" id="r24-custom-agreement-upload" accept=".pdf,application/pdf"
-              style="display:block;width:100%;margin:8px 0 18px;">
+          <div id="r24-custom-agreement-upload-area">
+            <label for="r24-custom-agreement-upload">Wybierz PDF (maks. 5 MB)</label>
+            <input type="file" id="r24-custom-agreement-upload" accept=".pdf,application/pdf"
+                style="display:block;width:100%;margin:8px 0 18px;">
+          </div>
           <div style="display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;">
             <button type="button" class="btn-warn" onclick="closePartnerCustomAgreement()">Zamknij</button>
             <button type="button" class="btn-primary" id="r24-custom-agreement-view-btn"
