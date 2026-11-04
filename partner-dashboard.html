@@ -2797,6 +2797,7 @@ async function executeDelete() {
         account_status,
         agreement_accepted,
         agreement_snapshot,
+        custom_agreement_pending,
         company_name,
         country,
         discount_percent,
@@ -5745,7 +5746,8 @@ function renderAgreement(lang) {
 
     // Admin-assigned PDF takes precedence over the standard generator.
     // If its metadata could not be read, prevent signing a wrong contract.
-    if (p.custom_agreement_load_failed) {
+    if (p.custom_agreement_load_failed ||
+        (p.custom_agreement_pending && !p.custom_agreement_document)) {
         document.getElementById("ag-content").textContent = (getPartnerLang() === "pl"
             ? "Nie udało się ustalić wersji umowy. Odśwież stronę lub skontaktuj się z Ride24."
             : "Could not verify the assigned agreement. Refresh or contact Ride24.");
@@ -5767,6 +5769,7 @@ function toggleSignButton() {
     const cb = document.getElementById("accept-cb");
     const btn = document.getElementById("sign-btn");
     if (partnerData?.custom_agreement_load_failed ||
+        (partnerData?.custom_agreement_pending && !partnerData?.custom_agreement_document) ||
         (partnerData?.custom_agreement_document &&
          !window.Ride24CustomAgreement?.isReady())) {
         btn.disabled = true;
@@ -5787,7 +5790,8 @@ function toggleSignButton() {
 
 async function signAgreement() {
     const btn = document.getElementById("sign-btn");
-    if (partnerData?.custom_agreement_load_failed) return;
+    if (partnerData?.custom_agreement_load_failed ||
+        (partnerData?.custom_agreement_pending && !partnerData?.custom_agreement_document)) return;
     if (partnerData?.custom_agreement_document) {
         return await window.Ride24CustomAgreement.sign(
             partnerData.custom_agreement_document, db, currentAgLang);
