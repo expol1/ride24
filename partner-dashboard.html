@@ -4012,7 +4012,7 @@ const { data, error } = await db
                 tr.innerHTML = `
                     <td>
                         <div class="fleet-thumb">
-                            ${safeImageUrl ? `<img src="${escapeHtmlValue(thumbImageUrl || safeImageUrl)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" onerror="this.onerror=null;this.src=\u0027${escapeHtmlValue(safeImageUrl)}\u0027;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
+                            ${safeImageUrl ? `<img src="${escapeHtmlValue(thumbImageUrl || safeImageUrl)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" data-fallback="${escapeHtmlValue(safeImageUrl)}" onerror="this.onerror=null;this.src=this.dataset.fallback;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
                         </div>
                     </td>
                     <td style="font-weight: 700;">${safeCarName}</td>
