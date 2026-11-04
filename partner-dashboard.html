@@ -3288,6 +3288,8 @@ const updateData = {
                 let file = fileInput?.files?.[0];
                 let imageUrl = null;
                 const imageTile = document.getElementById("vehicleImageUpload").closest(".file-tile");
+                const previousVehicleImageUrl = window.currentEditingVehicleId
+                    ? String(imageTile.dataset.existingImage || "") : "";
 
                 if(file){
                     // Build a 1024px JPEG for the vehicle and a lightweight 480px WebP thumbnail.
@@ -3359,8 +3361,20 @@ const updateData = {
                     window.showToast(partnerText("Pojazd dodany do floty!", "Vehicle added!"), "success");
                 }
 
-                // The DB write succeeded; uploaded files must now be kept.
+                // DB save succeeded. When a vehicle photo was replaced, clean up the
+                // old image variants without risking the newly stored photo.
                 uploadedVehicleImagePaths.length = 0;
+                if (file && previousVehicleImageUrl && previousVehicleImageUrl !== imageUrl) {
+                    const oldImagePaths = ownedVehicleImagePaths(previousVehicleImageUrl, partner.id);
+                    if (oldImagePaths.length) {
+                        try {
+                            const { error: oldImageError } = await db.storage.from("vehicle-images").remove(oldImagePaths);
+                            if (oldImageError) console.warn("Old vehicle image cleanup failed:", oldImageError);
+                        } catch (oldImageError) {
+                            console.warn("Old vehicle image cleanup failed:", oldImageError);
+                        }
+                    }
+                }
                 closeModal();
                 await loadFleet(); // Odśwież widok tabeli
                 await initPartnerAndroidPromo();
