@@ -3295,10 +3295,8 @@ const updateData = {
                     try {
                         preparedImage = await compressImage(file, 1024, 0.82);
                     } catch (imageError) {
-                        throw new Error(partnerText(
-                            "Nie można przetworzyć zdjęcia. Wybierz JPG, PNG lub WebP (HEIC tylko jeśli urządzenie obsługuje konwersję).",
-                            "Could not process the image. Choose JPG, PNG or WebP (HEIC only if your device supports conversion)."
-                        ));
+                        console.warn("Vehicle image conversion failed", imageError);
+                        throw new Error(partnerText("Błąd wgrywania zdjęcia", "Image upload failed."));
                     }
                     const imageId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
                     const thumbPath = `${partner.id}/r24v2-${imageId}.thumb.webp`;
