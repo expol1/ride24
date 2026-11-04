@@ -1,0 +1,35 @@
+name: Ride24 Custom Partner Agreements QA
+on:
+  pull_request:
+    paths:
+      - 'partner-dashboard.html'
+      - 'admin/index.html'
+      - 'assets/js/partner-custom-agreements.js'
+      - 'assets/js/admin-custom-agreements.js'
+      - 'supabase/functions/admin-partner-custom-agreement/**'
+      - 'supabase/migrations/*custom_partner_agreements.sql'
+      - 'tests/backend-hardening/test-custom-partner-agreements.mjs'
+      - '.github/workflows/custom-partner-agreements.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'partner-dashboard.html'
+      - 'admin/index.html'
+      - 'assets/js/partner-custom-agreements.js'
+      - 'assets/js/admin-custom-agreements.js'
+      - 'supabase/functions/admin-partner-custom-agreement/**'
+      - 'supabase/migrations/*custom_partner_agreements.sql'
+      - 'tests/backend-hardening/test-custom-partner-agreements.mjs'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify PDF checksum, signing guard and standard fallback
+        run: node --test tests/backend-hardening/test-custom-partner-agreements.mjs
