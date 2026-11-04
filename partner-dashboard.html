@@ -3289,10 +3289,37 @@ const updateData = {
                 const imageTile = document.getElementById("vehicleImageUpload").closest(".file-tile");
 
                 if(file){
-                    try { file = await compressImage(file, 1024, 0.8); } catch (err) {}
-                    const filePath = `${partner.id}/${Date.now()}-${file.name}`;
-                    const { error:uploadError } = await db.storage.from("vehicle-images").upload(filePath, file);
-                    if(uploadError) throw new Error(partnerText("Błąd wgrywania zdjęcia", "Image upload failed."));
+                    // Build a 1024px JPEG for the vehicle and a lightweight 480px WebP thumbnail.
+                    // Never upload the raw original on conversion errors (e.g. unsupported HEIC).
+                    let preparedImage;
+                    try {
+                        preparedImage = await compressImage(file, 1024, 0.82);
+                    } catch (imageError) {
+                        throw new Error(partnerText(
+                            "Nie można przetworzyć zdjęcia. Wybierz JPG, PNG lub WebP (HEIC tylko jeśli urządzenie obsługuje konwersję).",
+                            "Could not process the image. Choose JPG, PNG or WebP (HEIC only if your device supports conversion)."
+                        ));
+                    }
+                    const imageId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                    const thumbPath = `${partner.id}/r24v2-${imageId}.thumb.webp`;
+                    let thumbnailSaved = false;
+                    try {
+                        const thumbFile = await compressImage(file, 480, 0.75, "image/webp");
+                        const { error: thumbError } = await db.storage.from("vehicle-images")
+                            .upload(thumbPath, thumbFile, { contentType: "image/webp" });
+                        thumbnailSaved = !thumbError;
+                        if (thumbError) console.warn("Vehicle thumbnail upload failed:", thumbError);
+                    } catch (thumbnailError) {
+                        console.warn("Vehicle thumbnail generation failed:", thumbnailError);
+                    }
+                    const imageName = `r24v${thumbnailSaved ? "2" : "1"}-${imageId}.jpg`;
+                    const filePath = `${partner.id}/${imageName}`;
+                    const { error:uploadError } = await db.storage.from("vehicle-images")
+                        .upload(filePath, preparedImage, { contentType: "image/jpeg" });
+                    if (uploadError) {
+                        if (thumbnailSaved) await db.storage.from("vehicle-images").remove([thumbPath]);
+                        throw new Error(partnerText("Błąd wgrywania zdjęcia", "Image upload failed."));
+                    }
                     
                     const { data } = db.storage.from("vehicle-images").getPublicUrl(filePath);
                     imageUrl = data.publicUrl;
@@ -3978,13 +4005,14 @@ const { data, error } = await db
                 const safeCarName = escapeHtmlValue(car.model || car.description || "Auto");
                 const safeCarCode = escapeHtmlValue(car.class_code || "?");
                 const safeImageUrl = safePublicUrl(car.image, "");
+                const thumbImageUrl = vehicleThumbnailUrl(safeImageUrl);
                 const encodedCarName = encodeURIComponent(String(car.model || car.description || "Auto"));
                 const encodedImageUrl = encodeURIComponent(safeImageUrl);
 
                 tr.innerHTML = `
                     <td>
                         <div class="fleet-thumb">
-                            ${safeImageUrl ? `<img src="${escapeHtmlValue(safeImageUrl)}?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
+                            ${safeImageUrl ? `<img src="${escapeHtmlValue(thumbImageUrl || safeImageUrl)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;border-radius:6px;" onerror="this.onerror=null;this.src=\u0027${escapeHtmlValue(safeImageUrl)}\u0027;">` : `<div class="icon-mask" style="-webkit-mask-image: url('icons/icon-fleet.svg'); mask-image: url('icons/icon-fleet.svg'); background-color: var(--gray); width: 24px; height: 24px;"></div>`}
                         </div>
                     </td>
                     <td style="font-weight: 700;">${safeCarName}</td>
@@ -4770,9 +4798,13 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                     // Wyciągamy ścieżkę pliku z pełnego linku URL
                     const urlParts = imageUrl.split('/vehicle-images/');
                     if (urlParts.length > 1) {
-                        const filePath = urlParts[1];
-                        await db.storage.from("vehicle-images").remove([filePath]);
-                        console.log("Usunięto zdjęcie z serwera:", filePath);
+                        const filePath = decodeURIComponent(urlParts[1].split(/[?#]/)[0]);
+                        const paths = [filePath];
+                        if (/\/r24v2-[^/]+\.jpg$/i.test(filePath)) {
+                            paths.push(filePath.replace(/\.jpg$/i, ".thumb.webp"));
+                        }
+                        await db.storage.from("vehicle-images").remove(paths);
+                        console.log("Usunięto pliki zdjęć z serwera:", paths);
                     }
                 }
 
@@ -5014,8 +5046,19 @@ async function uploadPartnerAvatar(file){
 
     showToast(partnerText("Awatar przesłany", "Avatar uploaded"), "success")
 }
+// The thumbnail filename is deterministic; older photos keep using their existing URL.
+function vehicleThumbnailUrl(imageUrl) {
+    if (!imageUrl) return null;
+    try {
+        const url = new URL(imageUrl, window.location.origin);
+        if (!url.pathname.includes("/vehicle-images/") || !/\/r24v2-[^/]+\.jpg$/i.test(url.pathname)) return null;
+        url.pathname = url.pathname.replace(/\.jpg$/i, ".thumb.webp");
+        return url.href;
+    } catch (_) { return null; }
+}
+
 // --- FUNKCJA KOMPRESUJĄCA ZDJĘCIA (CANVAS) ---
-function compressImage(file, maxWidth = 1024, quality = 0.8) {
+function compressImage(file, maxWidth = 1024, quality = 0.8, outputType = "image/jpeg") {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -5027,10 +5070,12 @@ function compressImage(file, maxWidth = 1024, quality = 0.8) {
                 let width = img.width;
                 let height = img.height;
 
-                // Przeskalowanie, jeśli zdjęcie jest szersze niż maxWidth
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
+                // Keep both dimensions bounded, including portrait photos.
+                const longestSide = Math.max(width, height);
+                if (longestSide > maxWidth) {
+                    const scale = maxWidth / longestSide;
+                    width = Math.max(1, Math.round(width * scale));
+                    height = Math.max(1, Math.round(height * scale));
                 }
 
                 canvas.width = width;
@@ -5040,18 +5085,17 @@ function compressImage(file, maxWidth = 1024, quality = 0.8) {
 
                 // Konwersja na lżejszy JPG
                 canvas.toBlob(blob => {
-                    if (blob) {
-                        // Tworzymy nowy, odchudzony plik gotowy do wysłania
-                        const newFileName = file.name.replace(/\.[^/.]+$/, ".jpg");
-                        const compressedFile = new File([blob], newFileName, {
-                            type: 'image/jpeg',
+                    if (blob && blob.type === outputType) {
+                        const extension = outputType === "image/webp" ? "webp" : "jpg";
+                        const name = file.name.replace(/\.[^/.]+$/, "") + "." + extension;
+                        resolve(new File([blob], name, {
+                            type: outputType,
                             lastModified: Date.now()
-                        });
-                        resolve(compressedFile);
+                        }));
                     } else {
-                        reject(new Error('Błąd kompresji obrazu'));
+                        reject(new Error("Image format conversion unavailable"));
                     }
-                }, 'image/jpeg', quality);
+                }, outputType, quality);
             };
             img.onerror = error => reject(error);
         };
