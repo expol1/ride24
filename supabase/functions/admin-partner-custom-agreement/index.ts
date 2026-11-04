@@ -49,7 +49,15 @@ serve(async (req) => {
 
     if (operation === "remove") {
       if (form.get("agreement") !== null) invalid("plik przy usuwaniu");
-      if (!existing) return jsonResponse(req, { success: true, removed: false });
+      if (!existing) {
+        // Administrator explicitly abandons a pending custom contract, allowing
+        // the existing standard agreement to be displayed instead.
+        const { error: resetError } = await admin.from("partners")
+          .update({ custom_agreement_pending: false })
+          .eq("id", partnerId).eq("agreement_accepted", false);
+        if (resetError) throw resetError;
+        return jsonResponse(req, { success: true, removed: false });
+      }
       // The DB trigger serializes with signing and prevents changes after signature.
       const { data: deleted, error: deleteError } = await admin
         .from("partner_agreement_documents").delete()
@@ -58,6 +66,10 @@ serve(async (req) => {
       if (deleteError || !deleted) {
         return jsonResponse(req, { error: "Brak dostępu: umowa została już podpisana" }, 409);
       }
+      const { error: resetError } = await admin.from("partners")
+        .update({ custom_agreement_pending: false })
+        .eq("id", partnerId).eq("agreement_accepted", false);
+      if (resetError) throw resetError;
       const { error: removeError } = await admin.storage.from(BUCKET)
         .remove([deleted.storage_path]);
       return jsonResponse(req, {
