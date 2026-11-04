@@ -62,6 +62,11 @@
     upload.disabled = isSigned || Boolean(selectedDocument);
     remove.disabled = isSigned || (!selectedDocument && !customPending);
     view.disabled = !selectedDocument;
+    // Signed PDFs are immutable; the modal becomes a clean read-only preview.
+    el("r24-custom-agreement-upload-area").style.display = isSigned ? "none" : "";
+    upload.style.display = isSigned ? "none" : "";
+    remove.style.display = isSigned ? "none" : "";
+    view.style.display = selectedDocument ? "" : "none";
   }
 
   async function open(partnerId) {
