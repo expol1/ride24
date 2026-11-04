@@ -31,5 +31,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check custom agreement JavaScript syntax
+        run: |
+          node --check assets/js/admin-custom-agreements.js
+          node --check assets/js/partner-custom-agreements.js
       - name: Verify PDF checksum, signing guard and standard fallback
         run: node --test tests/backend-hardening/test-custom-partner-agreements.mjs
