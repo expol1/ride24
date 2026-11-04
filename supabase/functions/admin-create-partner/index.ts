@@ -35,6 +35,7 @@ type ParsedPartnerInput = {
   phone: string | null;
   currency: string;
   discountPercent: number;
+  customAgreementPending: boolean;
   providerType: "local" | "api";
   apiProvider: "ride24_standard_v1" | "custom" | "renteon" | "easy_web_rent" | null;
   apiSettings: {
@@ -395,6 +396,7 @@ function parseInput(body: Record<string, unknown>): ParsedPartnerInput {
     phone: cleanText(body.phone, 50, "Nieprawidłowy numer telefonu"),
     currency,
     discountPercent: cleanDiscount(body.discount_percent),
+    customAgreementPending: body.custom_agreement_pending === true,
     providerType,
     apiProvider,
     apiSettings,
@@ -569,6 +571,7 @@ serve(async (req) => {
       phone: input.phone,
       currency: input.currency,
       discount_percent: input.discountPercent,
+      custom_agreement_pending: input.customAgreementPending,
       representative_name: input.representativeName,
       representative_surname: input.representativeSurname,
       active: false,
