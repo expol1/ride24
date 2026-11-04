@@ -34,7 +34,7 @@ test("dashboard routes to custom agreement and preserves existing standard gener
 });
 
 function fixture(tampered = false) {
-  const pdf = Buffer.from("%PDF-1.7\n1 0 obj\n<<>>\nendobj\n%%EOF\n");
+  const pdf = Buffer.from("%PDF-1.7\n" + ("% Test agreement fixture\n".repeat(7)) + "1 0 obj\n<<>>\nendobj\n%%EOF\n");
   const sha = createHash("sha256").update(pdf).digest("hex");
   const doc = {
     storage_path: "11111111-1111-4111-8111-111111111111/22222222-2222-4222-8222-222222222222.pdf",
