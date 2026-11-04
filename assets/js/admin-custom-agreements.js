@@ -7,6 +7,7 @@
   let selectedPartnerId = null;
   let selectedDocument = null;
   let isSigned = false;
+  let customPending = false;
   const el = (id) => document.getElementById(id);
 
   async function getDocument(partnerId) {
@@ -30,6 +31,15 @@
     return data;
   }
 
+  async function uploadFileToPartner(partnerId, file) {
+    if (!partnerId || !file) throw new Error("Brak partnera lub umowy PDF.");
+    const body = new FormData();
+    body.append("partner_id", partnerId);
+    body.append("operation", "upload");
+    body.append("agreement", file, file.name);
+    return await apiRequest(body);
+  }
+
   function renderAdminDocument() {
     const status = el("r24-custom-agreement-status");
     const label = el("r24-custom-agreement-file");
@@ -39,14 +49,18 @@
     const view = el("r24-custom-agreement-view-btn");
     label.textContent = selectedDocument
       ? "Indywidualna umowa: " + selectedDocument.original_filename
-      : "Brak indywidualnej umowy — partner otrzyma standardową umowę Ride24.";
+      : customPending
+        ? "Indywidualna umowa oczekuje na wgranie — standardowy podpis jest zablokowany."
+        : "Brak indywidualnej umowy — partner otrzyma standardową umowę Ride24.";
     status.textContent = isSigned ? "Umowa została już podpisana. Dokumentu nie można zmienić."
       : selectedDocument ? "Własna umowa przypisana (PDF prywatny). Przed podpisaniem możesz ją usunąć i wgrać nową."
-      : "Możesz wgrać indywidualny PDF. Jeśli tego nie zrobisz, standardowy generator pozostanie bez zmian.";
+      : customPending
+        ? "Konto utworzono z własną umową. Wgraj ją lub anuluj ten wybór, aby przywrócić umowę standardową."
+        : "Możesz wgrać indywidualny PDF. Jeśli tego nie zrobisz, standardowy generator pozostanie bez zmian.";
     file.value = "";
     file.disabled = isSigned || Boolean(selectedDocument);
     upload.disabled = isSigned || Boolean(selectedDocument);
-    remove.disabled = isSigned || !selectedDocument;
+    remove.disabled = isSigned || (!selectedDocument && !customPending);
     view.disabled = !selectedDocument;
   }
 
@@ -55,12 +69,13 @@
     selectedDocument = null;
     try {
       const { data: partner, error } = await db.from("partners")
-        .select("id,company_name,agreement_accepted").eq("id", partnerId).single();
+        .select("id,company_name,agreement_accepted,custom_agreement_pending").eq("id", partnerId).single();
       if (error || !partner) throw error || new Error("Nie znaleziono partnera");
       const doc = await getDocument(partnerId);
       selectedPartnerId = partner.id;
       selectedDocument = doc;
       isSigned = partner.agreement_accepted === true;
+      customPending = partner.custom_agreement_pending === true;
       el("r24-custom-agreement-partner").textContent = partner.company_name || "Partner";
       renderAdminDocument();
       el("r24-custom-agreement-modal").style.display = "flex";
@@ -74,6 +89,7 @@
     selectedPartnerId = null;
     selectedDocument = null;
     isSigned = false;
+    customPending = false;
   }
 
   async function upload() {
@@ -89,11 +105,7 @@
     const button = el("r24-custom-agreement-upload-btn");
     button.disabled = true;
     try {
-      const body = new FormData();
-      body.append("partner_id", selectedPartnerId);
-      body.append("operation", "upload");
-      body.append("agreement", file, file.name);
-      await apiRequest(body);
+      await uploadFileToPartner(selectedPartnerId, file);
       const id = selectedPartnerId;
       close();
       await open(id);
@@ -105,7 +117,7 @@
   }
 
   async function remove() {
-    if (!selectedPartnerId || isSigned || !selectedDocument) return;
+    if (!selectedPartnerId || isSigned || (!selectedDocument && !customPending)) return;
     if (!confirm("Usunąć NIEPODPISANĄ umowę własną? Partner będzie wtedy podpisywał standardowy wzór Ride24.")) return;
     const button = el("r24-custom-agreement-remove-btn");
     button.disabled = true;
@@ -187,5 +199,5 @@
   window.uploadPartnerCustomAgreement = upload;
   window.removePartnerCustomAgreement = remove;
   window.previewPartnerCustomAgreement = () => preview().catch((e) => alert(e.message));
-  window.Ride24AdminCustomAgreement = { previewIfAssigned };
+  window.Ride24AdminCustomAgreement = { previewIfAssigned, uploadFileToPartner };
 })();
