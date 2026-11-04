@@ -695,6 +695,45 @@
         }
         /* RIDE24_PARTNER_CONTACT_DIALOG_END */
 
+    
+        /* Partner action toolbar — visual changes only, no agreement logic changes. */
+        .r24-partner-actions-cell { text-align: right; }
+        .r24-partner-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .r24-partner-actions > button {
+            margin: 0 !important;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+        .r24-partner-actions .r24-custom-agreement-btn {
+            appearance: none;
+            border: 1px solid #e2ad19;
+            border-radius: 8px;
+            background: #facc45;
+            color: #292524;
+            padding: 10px 13px;
+            min-height: 36px;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: .015em;
+            cursor: pointer;
+            transition: background-color .15s ease, box-shadow .15s ease;
+        }
+        .r24-partner-actions .r24-custom-agreement-btn:hover {
+            background: #f5bb29;
+        }
+        .r24-partner-actions .r24-custom-agreement-btn:focus-visible {
+            outline: 3px solid #1d4ed8;
+            outline-offset: 2px;
+        }
     </style>
 <link rel="stylesheet" href="../assets/css/admin-seo.css?v=20261014a">
 <link rel="stylesheet" href="../assets/css/brand-logo.css?v=20261019b">
@@ -2709,9 +2748,9 @@ if (!hasTerms || !hasRules) {
 }
 // Optional custom partnership PDF; no file = default Ride24 agreement.
 actionBtn += `
-    <button type="button" class="btn-primary" style="margin-left:6px;"
+    <button type="button" class="r24-custom-agreement-btn"
         title="Przypisz własny PDF lub pozostaw standardowy wzór"
-        onclick="openPartnerCustomAgreement('${p.id}')">Umowa własna</button>
+        onclick="openPartnerCustomAgreement('${p.id}')">UMOWA WŁASNA</button>
 `;
 let providerBadge = "";
 
@@ -2744,7 +2783,7 @@ if ((p.provider_type ?? "local") === "api") {
 </td>
             <td>${escapeHtml(p.country ?? "---")}</td>
             <td>${statusHtml}</td>
-            <td style="text-align: right;">${actionBtn}</td>
+            <td class="r24-partner-actions-cell"><div class="r24-partner-actions">${actionBtn}</div></td>
         </tr>
     `;
 });
