@@ -3254,7 +3254,8 @@ const updateData = {
                 cashDepositRefundable: amount > 0,
                 cashDepositMethod: amount > 0 ? "cash" : null,
                 cashDepositRefundOnReturn: amount > 0,
-                insuranceConfirmedAt: full ? (window.editingInsuranceConfirmedAt || null) : null
+                insuranceConfirmedAt: full ? (window.editingInsuranceConfirmedAt || null) : null,
+                ...(window.currentEditingVehicleId && window.editingRoadsideAssistance24h === true ? { roadsideAssistance24h: true } : {})
             };
         }
 
@@ -4875,6 +4876,7 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
     window.currentEditingVehicleId = null;
     window.editingInsuranceWasTrue = false;
     window.editingInsuranceConfirmedAt = null;
+    window.editingRoadsideAssistance24h = false;
     document.getElementById("vehicleForm").reset();
     // A previously opened vehicle must never leave its photo preview or file selected.
     const vehicleImageInput = document.getElementById("vehicleImageUpload");
@@ -4935,6 +4937,7 @@ try {
     console.error("Features parse error:", e);
     features = {};
 }
+window.editingRoadsideAssistance24h = features.roadsideAssistance24h === true;
 
 // 🔥 Odczyt znacznika VIP
 const driverCheckbox = document.getElementById('carDriverIncluded');
