@@ -957,6 +957,11 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Pełne ubezpieczenie' : 'Full insurance'}</div>` 
                         : '';
 
+                    // Only advertise roadside support when confirmed for this vehicle.
+                    const roadsideAssistanceHtml = parsedFeatures.roadsideAssistance24h === true
+                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bezpłatna pomoc drogowa 24/7' : 'Free 24/7 roadside assistance'}</div>`
+                        : '';
+
                     const row = document.createElement('div');
                     row.className = 'car-row';
                     row.style.position = "relative";
@@ -1012,6 +1017,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
         ${depositHtml}
         ${creditCardHtml}
         ${insuranceHtml}
+        ${roadsideAssistanceHtml}
 
       <div style="grid-column: 1 / span 2; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px;">
             <span style="
