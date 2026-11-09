@@ -4,7 +4,7 @@
 
   // Emergency switch: false restores the previous map without changing any data.
   const ENABLED = true;
-  const VERSION = '20261109-archipelagos2';
+  const VERSION = '20261109-azory3';
   const legacyRequested = new URLSearchParams(window.location.search).get('ride24Map') === 'legacy';
   if (!ENABLED || legacyRequested) return;
 
@@ -81,7 +81,7 @@
     'TZ-PEMBA': { pl:'Pemba', en:'Pemba', country:'834', box:[39.4,-5.55,40,-4.7] },
     'PT-MADEIRA-ISLAND': { pl:'Madera', en:'Madeira', region:'PT-MADEIRA', box:[-17.3,32.6,-16.6,32.92] },
     'PT-PORTO-SANTO': { pl:'Porto Santo', en:'Porto Santo', region:'PT-MADEIRA', box:[-16.65,32.4,-16.2,32.7] },
-    'PT-SAO-MIGUEL': { pl:'São Miguel', en:'São Miguel', region:'PT-AZORES', box:[-25.95,37.65,-25.05,38] },
+    'PT-SAO-MIGUEL': { pl:'Azory', en:'Azores', region:'PT-AZORES', box:[-25.95,37.65,-25.05,38] },
     'PT-TERCEIRA': { pl:'Terceira', en:'Terceira', region:'PT-AZORES', box:[-27.5,38.55,-26.9,38.9] },
     'PT-FAIAL': { pl:'Faial', en:'Faial', region:'PT-AZORES', box:[-28.9,38.5,-28.58,38.72] },
     'PT-PICO': { pl:'Pico', en:'Pico', region:'PT-AZORES', box:[-28.55,38.34,-28.03,38.60] },
