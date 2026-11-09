@@ -4,7 +4,7 @@
 
   // Emergency switch: false restores the previous map without changing any data.
   const ENABLED = true;
-  const VERSION = '20261109-islands1';
+  const VERSION = '20261109-archipelagos2';
   const legacyRequested = new URLSearchParams(window.location.search).get('ride24Map') === 'legacy';
   if (!ENABLED || legacyRequested) return;
 
@@ -79,13 +79,14 @@
     'GR-CORFU': { pl:'Korfu', en:'Corfu', country:'300', box:[19.6,39.3,20.3,39.9] },
     'TZ-ZANZIBAR': { pl:'Zanzibar', en:'Zanzibar', country:'834', box:[39.15,-6.55,39.75,-5.65] },
     'TZ-PEMBA': { pl:'Pemba', en:'Pemba', country:'834', box:[39.4,-5.55,40,-4.7] },
+    'PT-MADEIRA-ISLAND': { pl:'Madera', en:'Madeira', region:'PT-MADEIRA', box:[-17.3,32.6,-16.6,32.92] },
     'PT-PORTO-SANTO': { pl:'Porto Santo', en:'Porto Santo', region:'PT-MADEIRA', box:[-16.65,32.4,-16.2,32.7] },
     'PT-SAO-MIGUEL': { pl:'São Miguel', en:'São Miguel', region:'PT-AZORES', box:[-25.95,37.65,-25.05,38] },
     'PT-TERCEIRA': { pl:'Terceira', en:'Terceira', region:'PT-AZORES', box:[-27.5,38.55,-26.9,38.9] },
-    'PT-FAIAL': { pl:'Faial', en:'Faial', region:'PT-AZORES', box:[-28.95,38.45,-28.5,38.75] },
-    'PT-PICO': { pl:'Pico', en:'Pico', region:'PT-AZORES', box:[-28.6,38.3,-27.7,38.65] },
+    'PT-FAIAL': { pl:'Faial', en:'Faial', region:'PT-AZORES', box:[-28.9,38.5,-28.58,38.72] },
+    'PT-PICO': { pl:'Pico', en:'Pico', region:'PT-AZORES', box:[-28.55,38.34,-28.03,38.60] },
     'PT-SANTA-MARIA': { pl:'Santa Maria', en:'Santa Maria', region:'PT-AZORES', box:[-25.3,36.85,-24.95,37.1] },
-    'PT-SAO-JORGE': { pl:'São Jorge', en:'São Jorge', region:'PT-AZORES', box:[-28.2,38.5,-27.7,38.85] },
+    'PT-SAO-JORGE': { pl:'São Jorge', en:'São Jorge', region:'PT-AZORES', box:[-28.35,38.61,-27.75,38.84] },
     'PT-GRACIOSA': { pl:'Graciosa', en:'Graciosa', region:'PT-AZORES', box:[-28.2,38.95,-27.9,39.2] },
     'PT-FLORES': { pl:'Flores', en:'Flores', region:'PT-AZORES', box:[-31.35,39.25,-31.05,39.6] },
     'PT-CORVO': { pl:'Corvo', en:'Corvo', region:'PT-AZORES', box:[-31.25,39.55,-31.0,39.82] }
@@ -110,7 +111,8 @@
       if (has(/la_palma|santa_cruz_de_la_palma|(?:^|_)spc(?:_|$)/)) return 'ES-LA-PALMA';
       if (has(/la_gomera|san_sebastian_de_la_gomera|(?:^|_)gmz(?:_|$)/)) return 'ES-LA-GOMERA';
       if (has(/el_hierro|valverde|(?:^|_)vde(?:_|$)/)) return 'ES-EL-HIERRO';
-      if (has(/canarias|canary|balear|baleares|cabrera|la_graciosa/)) return 'ES-ISLAND-UNSPECIFIED';
+      if (has(/canarias|canary|la_graciosa/)) return 'ES-CANARIES-UNSPECIFIED';
+      if (has(/balear|baleares|cabrera/)) return 'ES-ISLAND-UNSPECIFIED';
       return 'ES';
     }
     if (country === 'Greece') {
@@ -137,7 +139,7 @@
       if (has(/corvo|vila_do_corvo|(?:^|_)cvu(?:_|$)/)) return 'PT-CORVO';
       if (has(/azores|azory|acores/)) return 'PT-AZORES-UNSPECIFIED';
       if (has(/porto_santo|(?:^|_)pxo(?:_|$)/)) return 'PT-PORTO-SANTO';
-      if (has(/madeira|madera|funchal|camara_de_lobos|(?:^|_)fnc(?:_|$)/)) return 'PT-MADEIRA';
+      if (has(/madeira|madera|funchal|camara_de_lobos|(?:^|_)fnc(?:_|$)/)) return 'PT-MADEIRA-ISLAND';
       return 'PT';
     }
     if (country === 'Italy') {
@@ -234,21 +236,68 @@
     return geometry.countries.find(x=>x.properties.code===id) || null;
   }
 
+  // Keep archipelago names while highlighting only covered islands.
+  const ARCHIPELAGO_LABELS = {
+    'PT-AZORES': { pl: 'Azory', en: 'Azores' },
+    'ES-CANARIES': { pl: 'Wyspy Kanaryjskie', en: 'Canary Islands' },
+    'PT-MADEIRA': { pl: 'Madera', en: 'Madeira' }
+  };
+  const CANARY_ISLAND_IDS = new Set([
+    'ES-TENERIFE', 'ES-GRAN-CANARIA', 'ES-LANZAROTE',
+    'ES-FUERTEVENTURA', 'ES-LA-PALMA', 'ES-LA-GOMERA', 'ES-EL-HIERRO'
+  ]);
+
+  function destinationForLocation(id) {
+    if (id === 'PT-AZORES-UNSPECIFIED' || ISLANDS[id]?.region === 'PT-AZORES') return 'PT-AZORES';
+    if (id === 'ES-CANARIES-UNSPECIFIED' || CANARY_ISLAND_IDS.has(id)) return 'ES-CANARIES';
+    if (id === 'PT-MADEIRA' || ISLANDS[id]?.region === 'PT-MADEIRA') return 'PT-MADEIRA';
+    return id;
+  }
+
   function makeAreas(rows) {
     const grouped = new Map();
     rows.filter(row => row.location_name).forEach(row => {
-      const id = areaForLocation(row);
-      if (!grouped.has(id)) {
+      const islandId = areaForLocation(row);
+      const id = destinationForLocation(islandId);
+      const archipelago = ARCHIPELAGO_LABELS[id];
+      let area = grouped.get(id);
+      if (!area) {
         const region = geometry.regions.find(item => item.id === id);
         const country = countryOf(row);
-        grouped.set(id, {
-          id, country, pl: ISLANDS[id]?.pl || region?.pl || (id.endsWith('-UNSPECIFIED') ? row.region || row.city || row.country : (id==='GR-MAINLAND' ? 'Grecja kontynentalna' : id==='TZ-MAINLAND' ? 'Tanzania kontynentalna' : undefined)), en: ISLANDS[id]?.en || region?.en || (id.endsWith('-UNSPECIFIED') ? row.region || row.city || row.country : (id==='GR-MAINLAND' ? 'Mainland Greece' : id==='TZ-MAINLAND' ? 'Mainland Tanzania' : undefined)),
-          feature: featureForArea(id),
-          locations: []
-        });
+        const fallback = id.endsWith('-UNSPECIFIED') ? (row.region || row.city || row.country) : undefined;
+        area = {
+          id, country,
+          pl: archipelago?.pl || ISLANDS[islandId]?.pl || region?.pl || fallback ||
+            (id === 'GR-MAINLAND' ? 'Grecja kontynentalna' : id === 'TZ-MAINLAND' ? 'Tanzania kontynentalna' : undefined),
+          en: archipelago?.en || ISLANDS[islandId]?.en || region?.en || fallback ||
+            (id === 'GR-MAINLAND' ? 'Mainland Greece' : id === 'TZ-MAINLAND' ? 'Mainland Tanzania' : undefined),
+          feature: archipelago ? null : featureForArea(islandId),
+          locations: [],
+          islandIds: archipelago ? new Set() : undefined,
+          islandPolygons: archipelago ? [] : undefined
+        };
+        grouped.set(id, area);
       }
-      grouped.get(id).locations.push(row);
+      area.locations.push(row);
+      if (archipelago && !area.islandIds.has(islandId)) {
+        area.islandIds.add(islandId);
+        const shape = featureForArea(islandId)?.geometry;
+        if (shape?.type === 'Polygon') area.islandPolygons.push(shape.coordinates);
+        if (shape?.type === 'MultiPolygon') area.islandPolygons.push(...shape.coordinates);
+      }
     });
+    for (const area of grouped.values()) {
+      if (!ARCHIPELAGO_LABELS[area.id]) continue;
+      // Unspecified islands stay listed but never colour entire archipelagos.
+      if (area.islandPolygons.length) {
+        area.feature = {
+          type: 'Feature', properties: { id: area.id },
+          geometry: { type: 'MultiPolygon', coordinates: area.islandPolygons }
+        };
+      }
+      delete area.islandIds;
+      delete area.islandPolygons;
+    }
     return [...grouped.values()];
   }
 
