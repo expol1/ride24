@@ -79,6 +79,7 @@
     'GR-CORFU': { pl:'Korfu', en:'Corfu', country:'300', box:[19.6,39.3,20.3,39.9] },
     'TZ-ZANZIBAR': { pl:'Zanzibar', en:'Zanzibar', country:'834', box:[39.15,-6.55,39.75,-5.65] },
     'TZ-PEMBA': { pl:'Pemba', en:'Pemba', country:'834', box:[39.4,-5.55,40,-4.7] },
+    'PT-PORTO-SANTO': { pl:'Porto Santo', en:'Porto Santo', region:'PT-MADEIRA', box:[-16.65,32.4,-16.2,32.7] },
     'PT-SAO-MIGUEL': { pl:'São Miguel', en:'São Miguel', region:'PT-AZORES', box:[-25.95,37.65,-25.05,38] },
     'PT-TERCEIRA': { pl:'Terceira', en:'Terceira', region:'PT-AZORES', box:[-27.5,38.55,-26.9,38.9] },
     'PT-FAIAL': { pl:'Faial', en:'Faial', region:'PT-AZORES', box:[-28.95,38.45,-28.5,38.75] },
@@ -109,17 +110,19 @@
       if (has(/la_palma|santa_cruz_de_la_palma|\bspc\b/)) return 'ES-LA-PALMA';
       if (has(/la_gomera|san_sebastian_de_la_gomera|\bgmz\b/)) return 'ES-LA-GOMERA';
       if (has(/el_hierro|valverde|\bvde\b/)) return 'ES-EL-HIERRO';
-      if (has(/canarias|canary|balear|baleares/)) return 'ES-ISLAND-UNSPECIFIED';
+      if (has(/canarias|canary|balear|baleares|cabrera|la_graciosa/)) return 'ES-ISLAND-UNSPECIFIED';
       return 'ES';
     }
     if (country === 'Greece') {
       if (has(/corfu|korfu|kerkyra|kerkira|\bcfu\b|paleokastritsa/)) return 'GR-CORFU';
       if (has(/creta|crete|kreta|heraklion|iraklio|chania|chani|rethym|agios_nikolaos|\bher\b|\bchq\b/)) return 'GR-CRETE';
+      if (has(/rhodes|rodos|santorini|thira|mykonos|mikonos|naxos|paros|zakynthos|zante|kefalonia|cephalonia|kos|lesbos|samos|skiathos|skopelos|lefkas|lefkada|kefalonia|aegina|andros|milos|ios|karpathos|patmos|chios|island|wyspa/)) return 'GR-ISLAND-UNSPECIFIED';
       return 'GR-MAINLAND';
     }
     if (country === 'Tanzania') {
       if (has(/pemba|chake_chake|\bpma\b/)) return 'TZ-PEMBA';
       if (has(/zanzibar|unguja|stone_town|nungwi|kendwa|\bznz\b/)) return 'TZ-ZANZIBAR';
+      if (has(/mafia_island|kilindoni|chole_island/)) return 'TZ-ISLAND-UNSPECIFIED';
       return 'TZ-MAINLAND';
     }
     if (country === 'Portugal') {
@@ -139,6 +142,7 @@
     if (country === 'Italy') {
       if (/sicil|sycyl/.test(region) || /^(palermo|catania|trapani|messina|siracusa|syracuse|ragusa|taormina|agrigento)$/.test(city) || /palermo|catania|trapani/.test(name)) return 'IT-SICILY';
       if (/sardini|sardegn|sardyni/.test(region) || /^(cagliari|olbia|alghero|sassari)$/.test(city) || /cagliari|olbia|alghero/.test(name)) return 'IT-SARDINIA';
+      if (has(/elba|capri|ischia|lampedusa|pantelleria|aeolian_islands|lipari|stromboli/)) return 'IT-ISLAND-UNSPECIFIED';
       return 'IT';
     }
     if (country === 'Cyprus') {
@@ -237,7 +241,7 @@
         const region = geometry.regions.find(item => item.id === id);
         const country = countryOf(row);
         grouped.set(id, {
-          id, country, pl: ISLANDS[id]?.pl || region?.pl || (id.endsWith('-UNSPECIFIED') ? row.region || row.city || row.country : undefined), en: ISLANDS[id]?.en || region?.en || (id.endsWith('-UNSPECIFIED') ? row.region || row.city || row.country : undefined),
+          id, country, pl: ISLANDS[id]?.pl || region?.pl || (id.endsWith('-UNSPECIFIED') ? row.region || row.city || row.country : (id==='GR-MAINLAND' ? 'Grecja kontynentalna' : id==='TZ-MAINLAND' ? 'Tanzania kontynentalna' : undefined)), en: ISLANDS[id]?.en || region?.en || (id.endsWith('-UNSPECIFIED') ? row.region || row.city || row.country : (id==='GR-MAINLAND' ? 'Mainland Greece' : id==='TZ-MAINLAND' ? 'Mainland Tanzania' : undefined)),
           feature: featureForArea(id),
           locations: []
         });
