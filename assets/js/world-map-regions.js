@@ -99,44 +99,45 @@
     const place = [region,city,name].join('_');
     const has = expression => expression.test(place);
     if (country === 'Spain') {
-      if (has(/mallorca|majorca|majorka|palma_de_mallorca|\bpmi\b|alcudia|calvia|manacor|porto_cristo|paguera/)) return 'ES-MALLORCA';
-      if (has(/menorca|minorca|minorka|mahon|mao|ciutadella|\bmah\b/)) return 'ES-MENORCA';
+      if (has(/mallorca|majorca|majorka|palma_de_mallorca|(?:^|_)pmi(?:_|$)|alcudia|calvia|manacor|porto_cristo|paguera/)) return 'ES-MALLORCA';
+      if (has(/menorca|minorca|minorka|mahon|mao|ciutadella|(?:^|_)mah(?:_|$)/)) return 'ES-MENORCA';
       if (has(/formentera/)) return 'ES-FORMENTERA';
-      if (has(/ibiza|eivissa|\bibz\b/)) return 'ES-IBIZA';
-      if (has(/tenerife|teneryfa|\btfs\b|\btfn\b|santa_cruz_de_tenerife|puerto_de_la_cruz/)) return 'ES-TENERIFE';
-      if (has(/gran_canaria|las_palmas|maspalomas|\blpa\b/)) return 'ES-GRAN-CANARIA';
-      if (has(/lanzarote|arrecife|\bace\b/)) return 'ES-LANZAROTE';
-      if (has(/fuerteventura|corralejo|puerto_del_rosario|\bfue\b/)) return 'ES-FUERTEVENTURA';
-      if (has(/la_palma|santa_cruz_de_la_palma|\bspc\b/)) return 'ES-LA-PALMA';
-      if (has(/la_gomera|san_sebastian_de_la_gomera|\bgmz\b/)) return 'ES-LA-GOMERA';
-      if (has(/el_hierro|valverde|\bvde\b/)) return 'ES-EL-HIERRO';
+      if (has(/ibiza|eivissa|(?:^|_)ibz(?:_|$)/)) return 'ES-IBIZA';
+      if (has(/tenerife|teneryfa|(?:^|_)tfs(?:_|$)|(?:^|_)tfn(?:_|$)|santa_cruz_de_tenerife|puerto_de_la_cruz/)) return 'ES-TENERIFE';
+      if (has(/gran_canaria|las_palmas|maspalomas|(?:^|_)lpa(?:_|$)/)) return 'ES-GRAN-CANARIA';
+      if (has(/lanzarote|arrecife|(?:^|_)ace(?:_|$)/)) return 'ES-LANZAROTE';
+      if (has(/fuerteventura|corralejo|puerto_del_rosario|(?:^|_)fue(?:_|$)/)) return 'ES-FUERTEVENTURA';
+      if (has(/la_palma|santa_cruz_de_la_palma|(?:^|_)spc(?:_|$)/)) return 'ES-LA-PALMA';
+      if (has(/la_gomera|san_sebastian_de_la_gomera|(?:^|_)gmz(?:_|$)/)) return 'ES-LA-GOMERA';
+      if (has(/el_hierro|valverde|(?:^|_)vde(?:_|$)/)) return 'ES-EL-HIERRO';
       if (has(/canarias|canary|balear|baleares|cabrera|la_graciosa/)) return 'ES-ISLAND-UNSPECIFIED';
       return 'ES';
     }
     if (country === 'Greece') {
-      if (has(/corfu|korfu|kerkyra|kerkira|\bcfu\b|paleokastritsa/)) return 'GR-CORFU';
-      if (has(/creta|crete|kreta|heraklion|iraklio|chania|chani|rethym|agios_nikolaos|\bher\b|\bchq\b/)) return 'GR-CRETE';
+      if (has(/corfu|korfu|kerkyra|kerkira|(?:^|_)cfu(?:_|$)|paleokastritsa/)) return 'GR-CORFU';
+      if (has(/creta|crete|kreta|heraklion|iraklio|chania|chani|rethym|agios_nikolaos|(?:^|_)her(?:_|$)|(?:^|_)chq(?:_|$)/)) return 'GR-CRETE';
       if (has(/rhodes|rodos|santorini|thira|mykonos|mikonos|naxos|paros|zakynthos|zante|kefalonia|cephalonia|kos|lesbos|samos|skiathos|skopelos|lefkas|lefkada|kefalonia|aegina|andros|milos|ios|karpathos|patmos|chios|island|wyspa/)) return 'GR-ISLAND-UNSPECIFIED';
       return 'GR-MAINLAND';
     }
     if (country === 'Tanzania') {
-      if (has(/pemba|chake_chake|\bpma\b/)) return 'TZ-PEMBA';
-      if (has(/zanzibar|unguja|stone_town|nungwi|kendwa|\bznz\b/)) return 'TZ-ZANZIBAR';
+      if (has(/pemba|chake_chake|(?:^|_)pma(?:_|$)/)) return 'TZ-PEMBA';
+      if (has(/zanzibar|unguja|stone_town|nungwi|kendwa|(?:^|_)znz(?:_|$)/)) return 'TZ-ZANZIBAR';
       if (has(/mafia_island|kilindoni|chole_island/)) return 'TZ-ISLAND-UNSPECIFIED';
       return 'TZ-MAINLAND';
     }
     if (country === 'Portugal') {
-      if (has(/sao_miguel|ponta_delgada|ribeira_grande|\bpdl\b/)) return 'PT-SAO-MIGUEL';
-      if (has(/terceira|angra_do_heroismo|praia_da_vitoria|\bter\b/)) return 'PT-TERCEIRA';
-      if (has(/faial|horta|\bhor\b/)) return 'PT-FAIAL';
-      if (has(/pico|madalena|lajes_do_pico|\bpix\b/)) return 'PT-PICO';
-      if (has(/santa_maria|vila_do_porto|\bsma\b/)) return 'PT-SANTA-MARIA';
-      if (has(/sao_jorge|velas|\bsjz\b/)) return 'PT-SAO-JORGE';
-      if (has(/graciosa|santa_cruz_da_graciosa|\bgru\b/)) return 'PT-GRACIOSA';
-      if (has(/flores|santa_cruz_das_flores|\bflw\b/)) return 'PT-FLORES';
-      if (has(/corvo|vila_do_corvo|\bcvu\b/)) return 'PT-CORVO';
+      if (has(/sao_miguel|ponta_delgada|ribeira_grande|(?:^|_)pdl(?:_|$)/)) return 'PT-SAO-MIGUEL';
+      if (has(/terceira|angra_do_heroismo|praia_da_vitoria|(?:^|_)ter(?:_|$)/)) return 'PT-TERCEIRA';
+      if (has(/faial|horta|(?:^|_)hor(?:_|$)/)) return 'PT-FAIAL';
+      if (has(/pico|madalena|lajes_do_pico|(?:^|_)pix(?:_|$)/)) return 'PT-PICO';
+      if (has(/santa_maria|vila_do_porto|(?:^|_)sma(?:_|$)/)) return 'PT-SANTA-MARIA';
+      if (has(/sao_jorge|velas|(?:^|_)sjz(?:_|$)/)) return 'PT-SAO-JORGE';
+      if (has(/graciosa|santa_cruz_da_graciosa|(?:^|_)gru(?:_|$)/)) return 'PT-GRACIOSA';
+      if (has(/flores|santa_cruz_das_flores|(?:^|_)flw(?:_|$)/)) return 'PT-FLORES';
+      if (has(/corvo|vila_do_corvo|(?:^|_)cvu(?:_|$)/)) return 'PT-CORVO';
       if (has(/azores|azory|acores/)) return 'PT-AZORES-UNSPECIFIED';
-      if (has(/madeira|madera|funchal|camara_de_lobos|\bfnc\b/)) return 'PT-MADEIRA';
+      if (has(/porto_santo|(?:^|_)pxo(?:_|$)/)) return 'PT-PORTO-SANTO';
+      if (has(/madeira|madera|funchal|camara_de_lobos|(?:^|_)fnc(?:_|$)/)) return 'PT-MADEIRA';
       return 'PT';
     }
     if (country === 'Italy') {
