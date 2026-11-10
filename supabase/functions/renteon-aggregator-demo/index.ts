@@ -119,8 +119,10 @@ serve(async (req) => {
           provider_total_eur: x.public_price_total,
           ride24_partner_discount_percent: 0,
           partner_total_eur: x.public_price_total,
-          insurance_excess: x.features?.excess_amount ?? null,
-          deposit_eur: x.deposit_amount ?? null,
+          insurance_excess_eur: x.features?.excess_amount ?? null,
+          // Security deposit under AVIA terms, not Renteon's POA DepositAmount.
+          refundable_security_deposit_eur: x.deposit_amount ?? null,
+          rental_due_at_pickup_eur: x.features?.pay_on_arrival_rental_total_eur ?? null,
         })),
       },
     });
