@@ -3010,6 +3010,11 @@ document.addEventListener("click", async function(e) {
                     throw new Error((isEn ? result?.error_en : result?.error) || result?.error || (isEn ? "Could not create booking." : "Nie udało się utworzyć rezerwacji."));
                 }
 
+                // Referral failure must never turn a successful booking into an error.
+                try {
+                    if (window.ride24Referral) await window.ride24Referral.attach(db, result?.booking?.id);
+                } catch { console.warn("Referral attachment unavailable"); }
+
                 document.getElementById("termsModal").style.display = "none";
                 window.showToast(isEn ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!", "success");
 
@@ -4866,5 +4871,6 @@ window.closeReviewModal = function() {
         </div>
     </div>
 </div>
+<script src="/assets/js/affiliate-referral.js?v=20261110a" defer></script>
 </body>
 </html>

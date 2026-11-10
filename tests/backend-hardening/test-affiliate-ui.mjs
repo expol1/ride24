@@ -1,0 +1,21 @@
+import {JSDOM} from 'jsdom';import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+const root=new URL('../../',import.meta.url),src=readFileSync(new URL('assets/js/affiliate-referral.js',root),'utf8');let checks=0;
+const check=(a,b)=>{assert.deepEqual(a,b);checks++};
+function client(url='https://ride24.pl/klient.html'){const dom=new JSDOM('<body><div><label><input id="acceptTerms"></label></div></body>',{url,runScripts:'outside-only'});dom.window.eval(src);dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));return dom;}
+let d=client('https://ride24.pl/klient.html?ref=HOTEL123');check(d.window.localStorage.getItem('ride24_referral_v1'),null);check(!!d.window.document.querySelector('#affiliate-code'),true);
+[...d.window.document.querySelectorAll('button')].find(x=>x.textContent==='Zapamiętaj').click();check(JSON.parse(d.window.localStorage.getItem('ride24_referral_v1')).code,'HOTEL123');check(d.window.document.querySelector('#affiliate-code').value,'HOTEL123');check(d.window.location.search,'');
+let calls=0;await d.window.ride24Referral.attach({rpc:(name,args)=>{calls++;check(name,'affiliate_attach');check(args.p_code,'HOTEL123');return {abortSignal:async()=>({data:{status:'attached'}})}}},'booking');check(calls,1);
+d.window.ride24Referral.forget();await d.window.ride24Referral.attach({rpc:()=>{throw Error('must not call')}},'b');check(d.window.document.querySelector('#affiliate-code').value,'');check(d.window.localStorage.getItem('ride24_referral_v1'),null);
+d.window.document.querySelector('#affiliate-code').value='WRONG';await d.window.ride24Referral.attach({},'b');check(!!d.window.document.querySelector('[role=alert]'),true);d.window.close();
+d=client('https://ride24.pl/?ref=HOTEL123');[...d.window.document.querySelectorAll('button')].find(x=>x.textContent==='Nie zapamiętuj').click();check(d.window.localStorage.getItem('ride24_referral_v1'),null);d.window.close();
+const html=readFileSync(new URL('admin/polecenia.html',root),'utf8');d=new JSDOM(html,{url:'https://ride24.pl/admin/polecenia.html',runScripts:'outside-only'});
+const state={enabled:false,partners:[{id:'p',name:'<img src=x onerror=alert(1)>',email:'x@y.pl',code:'HOTEL123',active:true}],referrals:[{id:'r',partner_id:'p',booking_code:'R24-123',state:'review',end_date:'2026-11-01',amount_pln:8}],payouts:[]};
+d.window.supabaseClient={auth:{getSession:async()=>({data:{session:{}}})},rpc:async()=>({data:state})};d.window.eval(readFileSync(new URL('assets/js/admin-affiliate.js',root),'utf8'));await new Promise(r=>setTimeout(r,20));check(d.window.document.querySelector('#app').hidden,false);check(d.window.document.querySelectorAll('#partners img').length,0);check(d.window.document.querySelector('#records').textContent.includes('8,00'),true);check(d.window.document.querySelector('#toggle').textContent,'Włącz program');check(d.window.document.querySelector('#partners').textContent.includes('Kod QR'),true);
+check(d.window.document.querySelector('#metric-review').textContent,'1');
+d.window.document.querySelector('#search').value='missing';d.window.document.querySelector('#search').dispatchEvent(new d.window.Event('input'));check(d.window.document.querySelector('#records-empty').hidden,false);
+d.window.document.querySelector('#search').value='';d.window.document.querySelector('#search').dispatchEvent(new d.window.Event('input'));check(d.window.document.querySelectorAll('#records tr').length,1);
+d.window.HTMLDialogElement.prototype.showModal=function(){this.open=true};d.window.HTMLDialogElement.prototype.close=function(){this.open=false};
+d.window.document.querySelector('#add-partner').click();check(d.window.document.querySelector('#action-dialog').open,true);check(d.window.document.querySelectorAll('#dialog-fields input').length,3);
+d.window.document.querySelector('#dialog-cancel').click();check(d.window.document.querySelector('#action-dialog').open,false);
+d.window.document.querySelector('[data-tab=partners]').click();check(d.window.document.querySelector('#pane-partners').hidden,false);check(d.window.document.querySelector('#pane-commissions').hidden,true);d.window.close();
+console.log(`${checks} UI checks passed`);
