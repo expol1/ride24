@@ -4,6 +4,32 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY"), {
   apiVersion: "2023-10-16"
 });
 const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+// Keep late payments for manual reconciliation; never reactivate or refund here.
+async function cancelledPayment(bookingId, session, eventId) {
+  const reviewStatus = `payment_after_cancellation:${session.id}`;
+  const { data: review, error: readError } = await supabase
+    .from("booking_review_queue").select("id")
+    .eq("booking_id", bookingId).eq("provider_key", "stripe")
+    .eq("provider_status", reviewStatus).limit(1).maybeSingle();
+  if (readError) return new Response("Review lookup failed", { status: 500 });
+  if (!review) {
+    const { error } = await supabase.from("booking_review_queue").insert({
+      booking_id: bookingId,
+      provider_key: "stripe",
+      provider_status: reviewStatus,
+      api_response: JSON.stringify({ event_id: eventId, session_id: session.id,
+        payment_intent: session.payment_intent, amount_total: session.amount_total,
+        currency: session.currency, payment_status: session.payment_status }),
+      resolved: false
+    });
+    if (error) return new Response("Review write failed", { status: 500 });
+  }
+  const { error } = await supabase.from("bookings")
+    .update({ manual_review: true }).eq("id", bookingId);
+  if (error) return new Response("Review flag failed", { status: 500 });
+  console.warn("PAYMENT_AFTER_CANCELLATION_MANUAL_REVIEW", bookingId, session.id);
+  return new Response("OK - Cancelled booking retained; manual review", { status: 200 });
+}
 Deno.serve(async (req)=>{
   const sig = req.headers.get("stripe-signature") || req.headers.get("Stripe-Signature");
   if (!sig) {
@@ -33,7 +59,12 @@ Deno.serve(async (req)=>{
     }
     console.log("💰 PAYMENT OK:", bookingId);
     // 🔒 IDEMPOTENCY
-    const { data: existing } = await supabase.from("bookings").select("status").eq("id", bookingId).maybeSingle();
+    const { data: existing, error: lookupError } = await supabase.from("bookings")
+      .select("status,cancelled_at").eq("id", bookingId).maybeSingle();
+    if (lookupError || !existing) return new Response("Booking lookup failed", { status: 500 });
+    if (existing.status === "cancelled" || existing.cancelled_at != null) {
+      return await cancelledPayment(bookingId, session, event.id);
+    }
     if (existing?.status === "paid") {
       const { data: voucher } = await supabase
         .from("vouchers")
@@ -70,14 +101,25 @@ Deno.serve(async (req)=>{
     // ==========================================
     // 🔥 1. UPDATE BOOKING
     // ==========================================
-    const { error: updateError } = await supabase.from("bookings").update({
+    const { data: updated, error: updateError } = await supabase.from("bookings").update({
       status: "paid"
-    }).eq("id", bookingId);
+    }).eq("id", bookingId).eq("status", existing.status)
+      .neq("status", "cancelled").is("cancelled_at", null).select("id");
     if (updateError) {
       console.error("❌ UPDATE ERROR:", updateError.message);
       return new Response("DB error", {
         status: 500
       });
+    }
+    // The UPDATE predicate is checked by Postgres, including concurrent cancellations.
+    if (!updated?.length) {
+      const { data: current, error } = await supabase.from("bookings")
+        .select("status,cancelled_at").eq("id", bookingId).maybeSingle();
+      if (!error && current && (current.status === "cancelled" || current.cancelled_at != null)) {
+        return await cancelledPayment(bookingId, session, event.id);
+      }
+      // Retry through the normal idempotency path if another request changed status.
+      return new Response("Booking changed; retry", { status: 500 });
     }
     // ==========================================
     // 🔥 2. INSERT PAYMENT
