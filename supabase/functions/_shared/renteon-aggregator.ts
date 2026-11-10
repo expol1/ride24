@@ -250,9 +250,8 @@ export async function aggregatorAvailability(
     const model = txt(item.ModelName, 200) || group;
     const bags = Number(item.BigBagsCapacity || 0) + Number(item.SmallBagsCapacity || 0);
     const priceDate = txt(item.PriceDate, 80);
-    const quoteExpiry = priceDate && Number.isFinite(Date.parse(priceDate))
-      ? new Date(Date.parse(priceDate) + 15 * 60_000).toISOString()
-      : new Date(Date.now() + 10 * 60_000).toISOString();
+    // API PriceDate may be older than the request; quote TTL starts when we fetch it.
+    const quoteExpiry = new Date(Date.now() + 10 * 60_000).toISOString();
     const offer = sanitizePartnerPayload(item, 70_000);
     output.push({
       external_id: group,
@@ -396,7 +395,10 @@ export async function aggregatorStatus(
     body: { Provider: code, Number: safeNumber },
   });
   const rows = Array.isArray(payload) ? payload.map(obj).filter((x): x is Obj => !!x) : [obj(payload)].filter((x): x is Obj => !!x);
-  const row = rows.find(x => txt(x.Number) === safeNumber && txt(x.Provider) === code);
+  // Renteon's real /search response can return Provider: null even for a
+  // provider-scoped query. The request itself included the scoped code.
+  const row = rows.find(x => txt(x.Number) === safeNumber &&
+    (!x.Provider || txt(x.Provider) === code));
   if (!row) throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_BOOKING_NOT_FOUND");
   return {
     booking_reference: safeNumber,
