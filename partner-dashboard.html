@@ -288,6 +288,11 @@
 
         .settings-card { background: #F6FCED; border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); max-width: 1000px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .settings-card button { grid-column: span 2; }
+        /* Keep both driver age limits in one desktop row. */
+        .r24-driver-age-row { grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; min-width:0; }
+        .r24-driver-age-row .form-group { margin-bottom:0; min-width:0; }
+        .r24-driver-age-row small { display:block; margin-top:5px; font-size:12px; line-height:1.4; color:var(--gray); }
+
         .r24-min-days-setting { grid-column: span 2; display:flex; flex-direction:column; gap:8px; padding:18px 20px; background:#F8FCEF; border:1px solid #DCEACB; border-radius:13px; margin-bottom:12px; }
         .r24-min-days-header { display:flex; align-items:center; gap:9px; color:#1D3E21; font-size:15px; font-weight:800; }
         .r24-min-days-control { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
@@ -921,6 +926,7 @@
         /* RIDE24 MOBILE: seasonal minimum & settings stay inside the viewport.
            Keep desktop layout and all booking logic untouched. */
         @media (max-width: 768px) {
+            #view-settings .r24-driver-age-row { grid-template-columns:minmax(0,1fr); gap:14px; }
             /* Single vertical scroller: the previous nested scrolling of
                .main-wrapper and .content-area caused a blank mint screen
                after expanding or collapsing the seasonal editor on Android. */
@@ -1757,12 +1763,17 @@ async>
         <input type="tel" id="partnerEmergency" placeholder="+48 000 000 000">
     </div>
     
-    <div class="form-group">
-        <label data-pl="Minimalny wiek kierowcy" data-en="Minimum driver age">Minimum driver age</label>
-        <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21" data-pl="Np. 21" data-en="e.g. 21">
+    <div class="r24-driver-age-row">
+        <div class="form-group">
+            <label for="partner-min-age" data-pl="Minimalny wiek kierowcy" data-en="Minimum driver age">Minimum driver age</label>
+            <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21" data-pl="Np. 21" data-en="e.g. 21">
+        </div>
+        <div class="form-group">
+            <label for="partner-max-age" data-pl="Maksymalny wiek kierowcy" data-en="Maximum driver age">Maximum driver age</label>
+            <input type="number" id="partner-max-age" min="18" max="120" step="1">
+            <small data-pl="Puste pole oznacza brak górnego limitu." data-en="Leave blank for no upper age limit.">Leave blank for no upper age limit.</small>
+        </div>
     </div>
-
-<div class="form-group"><label for="partner-max-age" data-pl="Maksymalny wiek kierowcy" data-en="Maximum driver age">Maximum driver age</label><input type="number" id="partner-max-age" min="18" max="120" step="1"><small data-pl="Puste pole oznacza brak górnego limitu." data-en="Leave blank for no upper age limit.">Leave blank for no upper age limit.</small></div>
     <div class="r24-min-days-setting">
         <div class="r24-min-days-header">
             <span aria-hidden="true">📅</span>
@@ -2102,9 +2113,10 @@ Dodaj opinię o Partnerze
                         <input type="text" id="carModel" placeholder="e.g. Toyota Yaris" data-pl="Np. Toyota Yaris" data-en="e.g. Toyota Yaris">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label data-pl="Klasa auta" data-en="Car class">Car class</label>
+                        <label data-pl="Grupa pojazdu" data-en="Vehicle group">Vehicle group</label>
                         <select id="carClass">
-                            <option value="" disabled selected data-pl="Wybierz klasę" data-en="Select class">Select class</option>
+                            <option value="" disabled selected data-pl="Wybierz grupę" data-en="Select group">Select group</option>
+                            <option value="0" data-pl="0 - Skutery / ATV" data-en="0 - Scooters / ATV">0 - Scooters / ATV</option>
                             <option value="A" data-pl="A - Ekonomiczna" data-en="A - Economy">A - Economy</option>
                             <option value="B" data-pl="B - Kompaktowa" data-en="B - Compact">B - Compact</option>
                             <option value="C" data-pl="C - Sedan" data-en="C - Sedan">C - Sedan</option>
@@ -2115,7 +2127,7 @@ Dodaj opinię o Partnerze
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Liczba miejsc" data-en="Seats">Seats</label>
-                        <input type="number" id="carSeats" placeholder="5" min="2" max="9">
+                        <input type="number" id="carSeats" placeholder="5" min="1" max="9">
                     </div>
                 </div>
 
@@ -2130,6 +2142,7 @@ Dodaj opinię o Partnerze
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Pojemność bagażnika" data-en="Luggage capacity">Luggage capacity</label>
                         <select id="carBags">
+                            <option value="0" data-pl="0 - bez bagażu" data-en="0 - No luggage">0 - No luggage</option>
                             <option value="1" data-pl="1 walizka (małe auto)" data-en="1 suitcase (small car)">1 suitcase</option>
                             <option value="2" data-pl="2 walizki (standard)" data-en="2 suitcases (standard)">2 suitcases</option>
                             <option value="3" data-pl="3 walizki (sedan)" data-en="3 suitcases (sedan)">3 suitcases</option>
@@ -3288,7 +3301,8 @@ const updateData = {
                 const class_code = document.getElementById("carClass").value;
                 const seats = parseInt(document.getElementById("carSeats").value) || 5;
                 const transmission = document.getElementById("carTransmission").value;
-                const bags = parseInt(document.getElementById("carBags").value) || 2;
+                const bagsInput = parseInt(document.getElementById("carBags").value, 10);
+                const bags = Number.isInteger(bagsInput) ? bagsInput : 2;
                 const driverIncluded = document.getElementById("carDriverIncluded").checked;
                 
                 const unlimited = document.getElementById("unlimitedMileage").checked;
@@ -4073,7 +4087,7 @@ const { data, error } = await db
                     <td class="class-name"><span class="class-code">${safeCarCode}</span><span class="class-label" data-pl="Klasa" data-en="Class">${partnerText("Klasa", "Class")}</span></td>
                     <td>${car.seats || 5}</td>
                     <td data-pl="${car.transmission === 'A' ? 'Automat' : 'Manualna'}" data-en="${car.transmission === 'A' ? 'Automatic' : 'Manual'}">${car.transmission === 'A' ? (partnerText('Automat', 'Automatic')) : (partnerText('Manualna', 'Manual'))}</td>
-                    <td>${car.bags || 2}</td>
+                    <td>${car.bags ?? 2}</td>
                     <td data-pl="${isUnlimited ? 'Bez limitu' : car.mileage_limit + ' km/dzień'}" data-en="${isUnlimited ? 'Unlimited' : car.mileage_limit + ' km/day'}">${mileageText}</td>
                     <td data-pl="${Number(car.deposit_amount) > 0 ? car.deposit_amount + (car.features?.cashDepositRefundable ? ' € zwrotna gotówką' : ' €') : 'Brak kaucji gotówkowej'}" data-en="${Number(car.deposit_amount) > 0 ? car.deposit_amount + (car.features?.cashDepositRefundable ? ' € refundable cash' : ' €') : 'No cash deposit'}">${depositText}</td>
                     <td style="color: var(--green); font-weight: 800; text-align: center; vertical-align: middle;">
@@ -4941,7 +4955,7 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                 document.getElementById("carClass").value = car.class_code || "";
                 document.getElementById("carSeats").value = car.seats || 5;
                 document.getElementById("carTransmission").value = car.transmission || "M";
-                document.getElementById("carBags").value = car.bags || 2;
+                document.getElementById("carBags").value = car.bags ?? 2;
                 document.getElementById("carDeposit").value = car.deposit_amount || 0;
                 document.getElementById("carFuel").value = car.fuel_type || "";
                 document.getElementById("carMinAge").value = car.min_driver_age ?? "";
