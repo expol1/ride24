@@ -8,6 +8,7 @@ import {
 } from "../_shared/ride24-security.ts";
 import {
   assertSafeApiUrl,
+  loadPartnerCredentials,
   type PartnerApiCredentials,
 } from "../_shared/partner-api.ts";
 import {
@@ -27,6 +28,7 @@ type RequestBody = {
   partner_id?: unknown;
   provider?: unknown;
   api_url?: unknown;
+  renteon_provider_code?: unknown;
   auth_type?: unknown;
   api_key?: unknown;
   api_secret?: unknown;
@@ -82,7 +84,7 @@ const ACTIONS = new Set<Action>([
   "activate",
   "deactivate",
 ]);
-const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "easy_web_rent"]);
+const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent"]);
 const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer", "renteon_oauth"]);
 const ENDPOINT_NAMES = new Set([
   "auth",
@@ -363,6 +365,7 @@ function safeMetadata(
     provider: partner.api_provider || "custom",
     api_url: credentials?.api_url || "",
     auth_type: credentials?.auth_type || "custom_headers",
+    renteon_provider_code: credentials?.renteon_provider_code || "",
     api_key_configured: masked(credentials?.api_key),
     api_secret_configured: masked(credentials?.api_secret),
     username_configured: masked(credentials?.username),
@@ -407,7 +410,7 @@ async function getCredentials(
   const { data, error } = await admin
     .from("partner_api_credentials")
     .select(
-      "partner_id, api_url, auth_type, api_key, api_secret, username, password, bearer_token, runtime_access_token, runtime_refresh_token, runtime_token_expires_at, extra_headers, endpoints, timeout_ms, last_test_at, last_test_ok, last_sync_at, last_error, updated_at",
+      "partner_id, api_url, renteon_provider_code, auth_type, api_key, api_secret, username, password, bearer_token, runtime_access_token, runtime_refresh_token, runtime_token_expires_at, extra_headers, endpoints, timeout_ms, last_test_at, last_test_ok, last_sync_at, last_error, updated_at",
     )
     .eq("partner_id", partnerId)
     .maybeSingle();
@@ -449,6 +452,7 @@ async function restoreCredentials(
   await admin.from("partner_api_credentials").upsert({
     partner_id: previous.partner_id,
     api_url: previous.api_url,
+    renteon_provider_code: previous.renteon_provider_code || null,
     auth_type: previous.auth_type,
     api_key: previous.api_key,
     api_secret: previous.api_secret,
@@ -491,6 +495,20 @@ async function saveConfiguration(
   const previousCurrency = cleanCurrency(partner.currency, "EUR");
   const timeoutMs = cleanTimeout(body.timeout_ms, previousCredentials?.timeout_ms);
   const now = new Date().toISOString();
+  const aggregatorCode = provider === "renteon_aggregator"
+    ? String(body.renteon_provider_code ?? previousCredentials?.renteon_provider_code ?? "").trim()
+    : null;
+  if (provider === "renteon_aggregator") {
+    if (apiUrl !== "https://aggregator.renteon.com") {
+      throw new Error("Renteon Aggregator wymaga adresu https://aggregator.renteon.com");
+    }
+    if (authType !== "basic") {
+      throw new Error("Renteon Aggregator wymaga logowania Basic");
+    }
+    if (!/^[A-Za-z0-9_-]{2,40}$/.test(aggregatorCode || "")) {
+      throw new Error("Renteon Aggregator wymaga poprawnego kodu dostawcy (np. Avia)");
+    }
+  }
 
   const incomingApiKey = cleanOptionalSecret(body.api_key);
   const incomingApiSecret = cleanOptionalSecret(body.api_secret);
@@ -508,12 +526,13 @@ async function saveConfiguration(
   const credentialsPayload = {
     partner_id: partner.id,
     api_url: apiUrl,
+    renteon_provider_code: aggregatorCode,
     auth_type: authType,
-    api_key: incomingApiKey ?? previousCredentials?.api_key ?? null,
-    api_secret: incomingApiSecret ?? previousCredentials?.api_secret ?? null,
-    username: incomingUsername ?? previousCredentials?.username ?? null,
-    password: incomingPassword ?? previousCredentials?.password ?? null,
-    bearer_token: incomingBearer ?? previousCredentials?.bearer_token ?? null,
+    api_key: provider === "renteon_aggregator" ? null : incomingApiKey ?? previousCredentials?.api_key ?? null,
+    api_secret: provider === "renteon_aggregator" ? null : incomingApiSecret ?? previousCredentials?.api_secret ?? null,
+    username: provider === "renteon_aggregator" ? null : incomingUsername ?? previousCredentials?.username ?? null,
+    password: provider === "renteon_aggregator" ? null : incomingPassword ?? previousCredentials?.password ?? null,
+    bearer_token: provider === "renteon_aggregator" ? null : incomingBearer ?? previousCredentials?.bearer_token ?? null,
     runtime_access_token: null,
     runtime_refresh_token: null,
     runtime_token_expires_at: null,
@@ -601,7 +620,7 @@ async function testConnection(
   const partnerId = partner.id;
   try {
     const snapshot = await getCredentials(admin, partnerId);
-    const credentials = credentialsForRequest(snapshot);
+    const credentials = await loadPartnerCredentials(admin, partnerId);
     const snapshotVersion = snapshot?.updated_at;
     if (!snapshotVersion) throw new Error("Nieprawidłowy stan konfiguracji API");
 
@@ -718,7 +737,7 @@ async function syncPartner(
   if (!snapshotVersion) throw new Error("Nieprawidłowy stan konfiguracji API");
 
   try {
-    const credentials = credentialsForRequest(credentialsRow);
+    const credentials = await loadPartnerCredentials(admin, partner.id);
     const locations = await fetchProviderLocations(
       partner.api_provider,
       credentials,
@@ -778,7 +797,7 @@ async function syncPartner(
         ...(group.features || {}),
         api_location_external_ids: group.location_external_ids || [],
         noCreditCard: true,
-        noCardHold: true,
+        noCardHold: partner.api_provider === "renteon_aggregator" ? false : true,
       },
       mileage_limit: group.mileage_limit ?? null,
       deposit_amount: group.deposit_amount ?? 0,
@@ -872,6 +891,11 @@ function ensureCommerciallyActive(partner: PartnerRow): void {
 }
 
 async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise<void> {
+  if (partner.api_provider === "renteon_aggregator") {
+    // No live sales before written provider rate confirmation, verified booking
+    // cancellation support and a successful live-price test.
+    throw new Error("Renteon Aggregator: aktywacja wymaga zatwierdzenia cen AVIA i procedury anulowania");
+  }
   const credentials = await getCredentials(admin, partner.id);
   if (!credentials?.api_url) throw new Error("Brak kompletnej konfiguracji API partnera");
   if (credentials.last_test_ok !== true || !credentials.last_sync_at) {
