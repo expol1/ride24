@@ -740,7 +740,8 @@ async function searchPartner(
       api_pickup_external_id: pickupLocation.external_id || null,
       api_dropoff_external_id: dropoffLocation.external_id || null,
       noCreditCard: true,
-      noCardHold: true,
+      // AVIA requires a EUR 1 debit-card pre-authorization; not "no card hold".
+      noCardHold: partner.api_provider === "renteon_aggregator" ? false : true,
     };
     // An upstream provider must not reintroduce contradictory card requirements.
     delete mergedFeatures.creditCardRequired;
