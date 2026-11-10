@@ -3,6 +3,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 export type PartnerApiCredentials = {
   partner_id: string;
   api_url: string;
+  renteon_provider_code?: string | null;
   auth_type?: string | null;
   api_key?: string | null;
   api_secret?: string | null;
@@ -343,7 +344,7 @@ export async function loadPartnerCredentials(
   const { data, error } = await admin
     .from("partner_api_credentials")
     .select(
-      "partner_id, api_url, auth_type, api_key, api_secret, username, password, bearer_token, runtime_access_token, runtime_refresh_token, runtime_token_expires_at, extra_headers, endpoints, timeout_ms",
+      "partner_id, api_url, renteon_provider_code, auth_type, api_key, api_secret, username, password, bearer_token, runtime_access_token, runtime_refresh_token, runtime_token_expires_at, extra_headers, endpoints, timeout_ms",
     )
     .eq("partner_id", normalizedPartnerId)
     .maybeSingle();
@@ -352,10 +353,30 @@ export async function loadPartnerCredentials(
     throw new Error("API_NOT_CONFIGURED");
   }
 
-  return {
-    ...data,
-    api_url: assertSafeApiUrl(data.api_url),
-  } as PartnerApiCredentials;
+  const safeUrl = assertSafeApiUrl(data.api_url);
+  const { data: partner, error: partnerError } = await admin
+    .from("partners").select("api_provider").eq("id", normalizedPartnerId).maybeSingle();
+  if (partnerError || !partner) throw new Error("API_NOT_CONFIGURED");
+  if (partner.api_provider === "renteon_aggregator") {
+    // NEVER send global aggregator credentials to the browser or partner account.
+    if (safeUrl !== "https://aggregator.renteon.com") {
+      throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_URL_NOT_ALLOWED");
+    }
+    const { data: secret, error: secretError } = await admin
+      .rpc("renteon_aggregator_server_credentials");
+    if (secretError || typeof secret?.username !== "string" ||
+      typeof secret?.password !== "string" || !secret.username || !secret.password) {
+      throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_VAULT_UNAVAILABLE");
+    }
+    return {
+      ...data, api_url: safeUrl,
+      auth_type: "basic",
+      username: secret.username,
+      password: secret.password,
+      extra_headers: {}, // Never forward user-defined headers with shared credentials.
+    } as PartnerApiCredentials;
+  }
+  return { ...data, api_url: safeUrl } as PartnerApiCredentials;
 }
 
 export function endpointFor(
