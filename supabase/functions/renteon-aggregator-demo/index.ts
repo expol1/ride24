@@ -1,165 +1,89 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { corsHeaders, jsonResponse, requireAdmin } from "../_shared/ride24-security.ts";
+import {
+  corsHeaders,
+  jsonResponse,
+  requireAdmin,
+} from "../_shared/ride24-security.ts";
+import type { PartnerApiCredentials } from "../_shared/partner-api.ts";
+import {
+  aggregatorTest,
+  aggregatorLocations,
+  aggregatorGroups,
+  aggregatorAvailability,
+} from "../_shared/renteon-aggregator.ts";
 
-// Read-only integration preflight. Only the Renteon demo provider is reachable.
-// No create/calculate/save/open/search booking action can be invoked here.
-const AGGREGATOR_ORIGIN = "https://aggregator.renteon.com";
-const DEMO_CODE = "demo";
-const MAX_RESPONSE_BYTES = 3_000_000;
-const TIMEOUT_MS = 12_000;
-
-type Row = Record<string, unknown>;
-function object(value: unknown): Row | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? value as Row
-    : null;
-}
-
-function inspectShape(value: unknown, depth = 0): unknown {
-  if (Array.isArray(value)) {
-    return {
-      type: "array",
-      length: value.length,
-      first: value.length > 0 ? inspectShape(value[0], depth + 1) : null,
-    };
-  }
-  const row = object(value);
-  if (row) {
-    const keys = Object.keys(row).slice(0, 60);
-    return depth >= 3
-      ? { type: "object", keys }
-      : {
-        type: "object",
-        keys,
-        fields: Object.fromEntries(keys.slice(0, 16).map((key) => [
-          key, inspectShape(row[key], depth + 1),
-        ])),
-      };
-  }
-  return { type: value === null ? "null" : typeof value };
-}
-
-async function readBoundedJson(response: Response): Promise<unknown> {
-  const sizeHeader = Number(response.headers.get("content-length") || "0");
-  if (sizeHeader > MAX_RESPONSE_BYTES) throw new Error("RENTEON_RESPONSE_TOO_LARGE");
-  if (!response.body) throw new Error("RENTEON_EMPTY_RESPONSE");
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const next = await reader.read();
-      if (next.done) break;
-      size += next.value.byteLength;
-      if (size > MAX_RESPONSE_BYTES) {
-        await reader.cancel();
-        throw new Error("RENTEON_RESPONSE_TOO_LARGE");
-      }
-      chunks.push(next.value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  const output = new Uint8Array(size);
-  let offset = 0;
-  for (const chunk of chunks) {
-    output.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  if (!size) throw new Error("RENTEON_EMPTY_RESPONSE");
-  try {
-    return JSON.parse(new TextDecoder().decode(output));
-  } catch {
-    throw new Error("RENTEON_NOT_JSON");
-  }
-}
-
-function dateAfter(days: number): string {
-  const d = new Date(Date.now() + days * 24 * 3600 * 1000);
-  return d.toISOString().slice(0, 10) + "T10:00";
-}
-
+// Admin-only, read-only Renteon Aggregator sandbox acceptance.
+// This function cannot create, save, modify or cancel bookings.
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
   if (req.method !== "POST") return jsonResponse(req, { error: "METHOD_NOT_ALLOWED" }, 405);
 
   try {
     const { admin } = await requireAdmin(req);
-    const len = Number(req.headers.get("content-length") || "0");
-    if (len > 1024) return jsonResponse(req, { error: "Nieprawidłowe żądanie" }, 400);
-    const request = await req.json().catch(() => ({}));
-    if (!object(request) || request.action !== "check_demo") {
-      return jsonResponse(req, { error: "Dostępna jest tylko operacja testowa demo" }, 400);
+    if (Number(req.headers.get("content-length") || 0) > 1024) {
+      return jsonResponse(req, { error: "REQUEST_TOO_LARGE" }, 400);
+    }
+    const body = await req.json().catch(() => ({}));
+    if (!body || typeof body !== "object" || Array.isArray(body)
+      || body.action !== "check_demo") {
+      return jsonResponse(req, { error: "ONLY_READ_ONLY_DEMO" }, 400);
     }
 
-    const { data: vault, error: vaultError } = await admin
-      .rpc("renteon_aggregator_server_credentials");
-    const creds = object(vault);
-    if (vaultError || typeof creds?.username !== "string" ||
-      typeof creds?.password !== "string" || !creds.username || !creds.password) {
-      console.error("renteon-aggregator-demo: vault setup incomplete");
-      return jsonResponse(req, { error: "Nie udało się odczytać sekretów Renteon z Vault" }, 503);
+    const { data: vault, error } = await admin.rpc("renteon_aggregator_server_credentials");
+    if (error || typeof vault?.username !== "string" || typeof vault?.password !== "string") {
+      return jsonResponse(req, { error: "RENTEON_VAULT_NOT_CONFIGURED" }, 503);
     }
 
-    // Basic credentials exist exclusively in this server-side function.
-    const authorization = "Basic " + btoa(creds.username + ":" + creds.password);
-    const headers: Record<string, string> = {
-      "Authorization": authorization,
-      "Accept": "application/json",
-      "Content-Type": "application/json",
+    const credentials: PartnerApiCredentials = {
+      partner_id: "91e04805-31da-4242-9e6f-b6075019d784",
+      api_url: "https://aggregator.renteon.com",
+      auth_type: "basic",
+      renteon_provider_code: "demo",
+      username: vault.username,
+      password: vault.password,
+      extra_headers: {},
+      endpoints: {},
+      timeout_ms: 15_000,
     };
+    const base = Date.now();
+    const date = (days: number) => new Date(base + days * 86_400_000).toISOString().slice(0, 10);
 
-    async function call(path: string, method: "GET" | "POST", body?: Row) {
-      const url = new URL(path, AGGREGATOR_ORIGIN);
-      if (url.origin !== AGGREGATOR_ORIGIN) throw new Error("RENTEON_BAD_HOST");
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      try {
-        const response = await fetch(url, {
-          method,
-          headers,
-          body: body ? JSON.stringify(body) : undefined,
-          redirect: "error",
-          signal: controller.signal,
-        });
-        // Do not forward raw server errors: some providers echo authorization.
-        if (!response.ok) return { http_status: response.status, success: false, shape: null };
-        const result = await readBoundedJson(response);
-        return { http_status: response.status, success: true, shape: inspectShape(result) };
-      } finally {
-        clearTimeout(timeout);
-      }
-    }
+    await aggregatorTest(credentials);
+    const [locations, groups, offers] = await Promise.all([
+      aggregatorLocations(credentials),
+      aggregatorGroups(credentials),
+      aggregatorAvailability(credentials, {
+        pickup_location_id: "GR-ATH-ATH",
+        dropoff_location_id: "GR-ATH-ATH",
+        pickup_date: date(10),
+        return_date: date(14),
+        pickup_time: "10:00",
+        return_time: "10:00",
+        currency: "EUR",
+      }),
+    ]);
 
-    const requestBody = {
-      currency: "EUR",
-      prepaid: false,
-      IncludeOnRequest: true,
-      providers: [{ Code: DEMO_CODE, PricelistCodes: [] as string[] }],
-      PickupLocation: "GR-ATH-ATH",
-      DropOffLocation: "GR-ATH-ATH",
-      PickupDate: dateAfter(10),
-      DropOffDate: dateAfter(14),
-    };
-    const setup = await call("/api/setup/provider/demo", "GET");
-    if (!setup.success) {
-      return jsonResponse(req, { success: false, stage: "setup", setup }, 502);
-    }
-    const availability = await call("/api/bookings/availability", "POST", requestBody);
     return jsonResponse(req, {
-      success: availability.success,
-      provider: DEMO_CODE,
+      success: locations.length > 0 && groups.length > 0,
+      provider: "demo",
+      live_provider: "Avia",
       production_booking_enabled: false,
-      request: { PickupLocation: requestBody.PickupLocation,
-        PickupDate: requestBody.PickupDate, DropOffDate: requestBody.DropOffDate },
-      setup,
-      availability,
-    }, availability.success ? 200 : 502);
+      booking_operations_performed: 0,
+      data: {
+        locations: locations.length,
+        categories: groups.length,
+        available_offers: offers.length,
+        examples: offers.slice(0, 3).map((x) => ({
+          code: x.external_id,
+          total_eur: x.public_price_total,
+          expires_at: x.quote_expires_at,
+          insurance_excess: x.features?.excess_amount ?? null,
+        })),
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN";
-    if (message === "AUTH_REQUIRED") return jsonResponse(req, { error: "Wymagane logowanie" }, 401);
-    if (message === "ADMIN_REQUIRED") return jsonResponse(req, { error: "Brak uprawnień administratora" }, 403);
-    console.error("renteon-aggregator-demo:", message.slice(0, 120));
-    return jsonResponse(req, { error: "Test DEMO nie powiódł się. Sprawdź log funkcji lub spróbuj ponownie." }, 502);
+    console.error("renteon-aggregator-demo", message.startsWith("PARTNER_API_ERROR:") ? message.slice(0, 120) : "TEST_FAILED");
+    return jsonResponse(req, { error: "RENTEON_DEMO_TEST_FAILED", detail: message.startsWith("PARTNER_API_ERROR:") ? message : undefined }, 502);
   }
 });
