@@ -3594,33 +3594,39 @@ window.saveApiConfiguration = async function(showAlert = true) {
 
 // Renteon Aggregator uses a DIFFERENT API from the older direct Renteon adapter.
 // This diagnostic only calls GET provider setup and POST demo availability.
-window.testRenteonAggregatorDemo = async function() {
-    const btn = document.getElementById("renteon-aggregator-demo-btn");
+window.testRenteonAggregatorDemo = async function(action = "check_demo") {
+    const isAvia = action === "check_avia";
+    const demoBtn = document.getElementById("renteon-aggregator-demo-btn");
+    const aviaBtn = document.getElementById("renteon-aggregator-avia-btn");
     const output = document.getElementById("renteon-aggregator-demo-result");
-    btn.disabled = true;
-    output.textContent = "Łączenie z Renteon DEMO przez serwer Ride24...";
+    if (demoBtn) demoBtn.disabled = true;
+    if (aviaBtn) aviaBtn.disabled = true;
+    output.textContent = isAvia
+        ? "Sprawdzanie połączenia produkcyjnego AVIA (tylko odczyt)..."
+        : "Łączenie z Renteon DEMO przez serwer Ride24...";
     try {
         const { data, error } = await db.functions.invoke("renteon-aggregator-demo", {
-            body: { action: "check_demo" }
+            body: { action: isAvia ? "check_avia" : "check_demo" }
         });
         if (error) {
             let message = error.message || "Błąd połączenia";
             try {
                 const detail = await error.context?.json?.();
-                if (detail?.error) message = detail.error;
+                if (detail?.detail) message = detail.detail;
+                else if (detail?.error) message = detail.error;
             } catch (_) {}
             throw new Error(message);
         }
-        if (!data?.success) {
-            output.textContent = "Test nie powiódł się:\n" + JSON.stringify(data, null, 2);
-            return;
-        }
-        output.textContent = "Odczyt DEMO zakończony pomyślnie. Nie utworzono rezerwacji.\n\n" +
-            JSON.stringify(data, null, 2);
+        output.textContent = (data?.success
+            ? (isAvia ? "Dostęp AVIA potwierdzony. " : "Dostęp DEMO potwierdzony. ")
+            : "Test zakończony niepowodzeniem. ")
+            + "Nie wykonano żadnej rezerwacji.\n\n"
+            + JSON.stringify(data || {}, null, 2);
     } catch (e) {
-        output.textContent = "Błąd testu DEMO: " + e.message;
+        output.textContent = "Błąd testu " + (isAvia ? "AVIA" : "DEMO") + ": " + e.message;
     } finally {
-        btn.disabled = false;
+        if (demoBtn) demoBtn.disabled = false;
+        if (aviaBtn) aviaBtn.disabled = false;
     }
 };
 
@@ -6570,8 +6576,9 @@ hereinafter referred to as the “Partner”.
                     <h3 style="margin-bottom:10px;">Status po&#322;&#261;czenia</h3>
                     <div id="renteon-aggregator-demo-panel" style="display:none; margin:12px 0 16px; padding:15px; border:1px solid #86EFAC; border-radius:12px; background:#F0FDF4;">
     <h4 style="margin:0 0 8px; color:#166534; font-size:15px;">Renteon Aggregator — Sandbox DEMO</h4>
-    <p style="font-size:12px; color:#365A40; margin:0 0 12px;">Bezpieczny test odczytu. Używa sekretów z Supabase Vault po stronie serwera. Sprawdza konfigurację dostawcy i dostępność w kodzie <strong>demo</strong>. Nie tworzy rezerwacji, nie dotyka AVIA ani nie aktywuje sprzedaży.</p>
+    <p style="font-size:12px; color:#365A40; margin:0 0 12px;">Bezpieczny test odczytu. Używa sekretów z Supabase Vault po stronie serwera. Sprawdza kod <strong>demo</strong> lub produkcyjny kod <strong>Avia</strong>. Nie tworzy rezerwacji, nie zmienia cen ani nie aktywuje sprzedaży. Wynik testu AVIA pozwoli zweryfikować także przykładowe ceny.</p>
     <button type="button" class="btn-primary" id="renteon-aggregator-demo-btn" onclick="testRenteonAggregatorDemo()">Sprawdź Renteon DEMO</button>
+    <button type="button" class="btn-warn" id="renteon-aggregator-avia-btn" onclick="testRenteonAggregatorDemo('check_avia')">Sprawdź AVIA (tylko odczyt)</button>
     <pre id="renteon-aggregator-demo-result" style="white-space:pre-wrap; overflow:auto; max-height:260px; font:12px/1.45 monospace; margin:12px 0 0; color:#0F172A;" role="status"></pre>
 </div>
 <div id="api-test-status" style="padding:12px; border-radius:8px; background:#F3F4F6; font-weight:700;">&#9679; Nie sprawdzono</div>
