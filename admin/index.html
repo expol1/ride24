@@ -3365,6 +3365,21 @@ window.togglePartnerType = function () {
 
 
 const API_PROVIDER_PRESETS = {
+    renteon_aggregator: {
+        auth_type: "basic",
+        api_url_placeholder: "https://aggregator.renteon.com",
+        endpoints: {
+            auth: "/api/setup/provider/Avia",
+            health: "/api/setup/provider/Avia",
+            locations: "/api/setup/provider/Avia",
+            groups: "/api/setup/provider/Avia",
+            search: "/api/bookings/availability",
+            booking_create: "/api/bookings/create",
+            booking_save: "/api/bookings/save",
+            booking_status: "/api/bookings/search",
+            booking_cancel: "/api/bookings/search"
+        }
+    },
     renteon: {
         auth_type: "renteon_oauth",
         api_url_placeholder: "https://provider-host.example/en",
@@ -3444,7 +3459,15 @@ window.applyApiProviderPreset = function() {
     const auth = document.getElementById("api-auth-type");
     const url = document.getElementById("api-url");
     if (auth) auth.value = preset.auth_type;
-    if (url) url.placeholder = preset.api_url_placeholder;
+    if (url) {
+        url.placeholder = preset.api_url_placeholder;
+        if (provider === "renteon_aggregator") url.value = "https://aggregator.renteon.com";
+    }
+    const aggregatorMode = provider === "renteon_aggregator";
+    const aggregatorCodeRow = document.getElementById("renteon-aggregator-code-row");
+    if (aggregatorCodeRow) aggregatorCodeRow.style.display = aggregatorMode ? "block" : "none";
+    const aggregatorDemoPanel = document.getElementById("renteon-aggregator-demo-panel");
+    if (aggregatorDemoPanel) aggregatorDemoPanel.style.display = aggregatorMode ? "block" : "none";
 
     const mapping = {
         auth: "api-endpoint-auth",
@@ -3489,7 +3512,10 @@ window.openApiConfiguration = async function(partnerId) {
         document.getElementById("api-company-name").value = result.partner?.company_name || "";
         document.getElementById("api-provider").value = config.provider || "custom";
         document.getElementById("renteon-aggregator-demo-panel").style.display =
-            config.provider === "renteon" ? "block" : "none";
+            config.provider === "renteon_aggregator" ? "block" : "none";
+        document.getElementById("renteon-aggregator-code-row").style.display =
+            config.provider === "renteon_aggregator" ? "block" : "none";
+        document.getElementById("api-renteon-provider-code").value = config.renteon_provider_code || "";
         document.getElementById("api-auth-type").value = config.auth_type || "custom_headers";
         document.getElementById("api-url").value = config.api_url || "";
         document.getElementById("api-discount").value = Number.isFinite(Number(config.discount_percent)) ? Number(config.discount_percent) : 15;
@@ -3540,6 +3566,7 @@ window.saveApiConfiguration = async function(showAlert = true) {
         provider: document.getElementById("api-provider").value,
         auth_type: document.getElementById("api-auth-type").value,
         api_url: document.getElementById("api-url").value.trim(),
+        renteon_provider_code: document.getElementById("api-renteon-provider-code").value.trim(),
         api_key: document.getElementById("api-key").value.trim(),
         api_secret: document.getElementById("api-secret").value.trim(),
         username: document.getElementById("api-user").value.trim(),
@@ -6464,7 +6491,8 @@ hereinafter referred to as the “Partner”.
                 <div class="form-group">
                     <label>Provider</label>
                     <select id="api-provider" onchange="applyApiProviderPreset()">
-                        <option value="renteon">Renteon</option>
+                        <option value="renteon_aggregator">Renteon Aggregator (AVIA)</option>
+                        <option value="renteon">Renteon Direct (OAuth)</option>
                         <option value="easy_web_rent">Easy Web Rent</option>
                         <option value="ride24_standard_v1">Ride24 Standard API v1</option>
                         <option value="custom">Custom API</option>
@@ -6474,6 +6502,11 @@ hereinafter referred to as the “Partner”.
                 <div class="form-group">
                     <label>API URL</label>
                     <input id="api-url" type="url" placeholder="https://api.partner.example">
+                </div>
+                <div class="form-group" id="renteon-aggregator-code-row" style="display:none;">
+                    <label>Kod wypożyczalni Renteon (wielkość liter ma znaczenie)</label>
+                    <input id="api-renteon-provider-code" type="text" maxlength="40" placeholder="Avia">
+                    <div style="font-size:11px;color:#64748B;margin-top:5px;">Na przykład: Avia — produkcja, demo — Sandbox. Login i hasło pobierane są wyłącznie z Supabase Vault.</div>
                 </div>
 
                 <div class="form-group">
