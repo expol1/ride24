@@ -516,10 +516,15 @@ async function saveConfiguration(
   const incomingPassword = cleanOptionalSecret(body.password);
   const incomingBearer = cleanOptionalSecret(body.bearer_token);
 
-  const endpoints = body.endpoints === undefined
+  // Aggregator has fixed, audited routes. Never trust UI endpoint or header overrides.
+  const endpoints = provider === "renteon_aggregator"
+    ? {}
+    : body.endpoints === undefined
     ? (isRecord(previousCredentials?.endpoints) ? previousCredentials.endpoints : {})
     : cleanEndpoints(body.endpoints, apiUrl);
-  const extraHeaders = body.extra_headers === undefined
+  const extraHeaders = provider === "renteon_aggregator"
+    ? {}
+    : body.extra_headers === undefined
     ? (isRecord(previousCredentials?.extra_headers) ? previousCredentials.extra_headers : {})
     : cleanExtraHeaders(body.extra_headers);
 
