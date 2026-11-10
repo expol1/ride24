@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
+import * as driverAge from '../../supabase/functions/_shared/driver-age.mjs';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
 import * as apiContract from '../../supabase/functions/_shared/api-quote-contract.mjs';
 import * as rentalDurationHelper from '../../supabase/functions/_shared/rental-duration.ts';
@@ -23,7 +24,7 @@ function setup({enabled=true,fees=true}={}){
  const admin={from:t=>new Query(t),rpc:async(name)=>({data:name==='calculate_booking_price'?[{...rental}]:10,error:null})};
  const security={authenticatedUser:async()=>({id:uid,email:'client@example.invalid'}),serviceClient:()=>admin,enforceRateLimit:async()=>{},isUuid:x=>typeof x==='string'&&/^[0-9a-f-]{36}$/.test(x),corsHeaders:()=>({}),jsonResponse:(_req,value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json'}}),publicErrorMessage:()=>({message:'Server error',status:500})};
  let handler;
- const sandbox={exports:{},require:name=>name.includes('api-quote-contract')?apiContract:name.includes('booking-options')?options:name.includes('ride24-security')?security:name.includes('rental-duration')?rentalDurationHelper:name.includes('server.ts')?{serve:f=>handler=f}:(()=>{throw new Error(name)})(),Request,Response,Headers,TextEncoder,TextDecoder,URL,AbortController,setTimeout,clearTimeout,console,Deno:{env:{get:key=>key==='SUPABASE_URL'?'https://example.invalid':'test-only'}},fetch:async url=>{if(String(url).startsWith('https://api.nbp.pl/'))return Response.json({rates:[{mid:4.3}]});assert.ok(String(url).startsWith('https://example.invalid/'));outgoing.push(String(url));return Response.json({});}};
+ const sandbox={exports:{},require:name=>name.includes('driver-age')?driverAge:name.includes('api-quote-contract')?apiContract:name.includes('booking-options')?options:name.includes('ride24-security')?security:name.includes('rental-duration')?rentalDurationHelper:name.includes('server.ts')?{serve:f=>handler=f}:(()=>{throw new Error(name)})(),Request,Response,Headers,TextEncoder,TextDecoder,URL,AbortController,setTimeout,clearTimeout,console,Deno:{env:{get:key=>key==='SUPABASE_URL'?'https://example.invalid':'test-only'}},fetch:async url=>{if(String(url).startsWith('https://api.nbp.pl/'))return Response.json({rates:[{mid:4.3}]});assert.ok(String(url).startsWith('https://example.invalid/'));outgoing.push(String(url));return Response.json({});}};
  vm.runInNewContext(code,sandbox);
  const request=body=>handler(new Request('https://example.invalid/create-booking-request',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));
  async function quoted(body=makeBody()){
@@ -42,3 +43,18 @@ test('emergency disable never silently discards selected extras',async()=>{const
 test('v16 owner protection remains active with extras disabled',async()=>{const s=setup({enabled:false});const b=makeBody();delete b.extras;b.return_location='Other partner office';const r=await s.request(b);assert.equal(r.status,409);assert.equal(s.saved.length+s.outgoing.length,0);});
 test('changed catalog invalidates acceptance before writing a booking',async()=>{const s=setup();const b=await s.quoted();s.tables.partner_extras[0].amount=4;const r=await s.request(b);assert.equal(r.status,409);assert.equal(s.saved.length,0);});
 test('legacy free booking remains compatible after charging is enabled',async()=>{const s=setup({enabled:true,fees:false});const b=makeBody();delete b.extras;const r=await s.request(b);assert.equal(r.status,200,await r.text());assert.equal(s.saved[0].online_payment_pln,193.5);assert.equal('pricing_items_snapshot' in s.saved[0],false);});
+
+test('vehicle minimum overrides company minimum; absent vehicle minimum inherits it',async()=>{
+ const s=setup({enabled:false,fees:false});const body={...makeBody(),extras:[]};
+ const car=s.tables.car_classes[0];car.partners.min_driver_age=40;car.min_driver_age=null;
+ assert.equal((await s.request(body)).status,400);assert.equal(s.saved.length,0);
+ car.min_driver_age=30;assert.equal((await s.request(body)).status,200);
+});
+test('company upper age is inclusive, null is unlimited, chauffeur is exempt',async()=>{
+ const s=setup({enabled:false,fees:false});const body={...makeBody(),extras:[]};const car=s.tables.car_classes[0];
+ car.min_driver_age=null;car.partners.min_driver_age=null;car.partners.max_driver_age=34;
+ const denied=await s.request(body);assert.equal(denied.status,400);assert.equal((await denied.json()).code,'DRIVER_AGE_NOT_ALLOWED');assert.equal(s.saved.length,0);
+ car.partners.max_driver_age=35;assert.equal((await s.request(body)).status,200);
+ car.partners.max_driver_age=null;assert.equal((await s.request(body)).status,200);
+ car.partners.max_driver_age=20;car.driver_included=true;assert.equal((await s.request(body)).status,200);
+});

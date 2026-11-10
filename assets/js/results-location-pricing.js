@@ -20,7 +20,7 @@
         return rows.length ? Math.min(...rows.map(amountOf)) : 0;
     }
 
-    function selectedLocationFees(car, pickupName, returnName, localReturnRows) {
+    function selectedLocationFees(car, pickupName, returnName, localReturnRows, billedDays) {
         const partner = car?.partners || {};
         const available = Array.isArray(partner.partner_locations) ? partner.partner_locations : [];
         const pickupRows = matchingLocations(available, pickupName);
@@ -30,9 +30,13 @@
         const returnRows = isApi
             ? matchingLocations(available, returnName)
             : (localReturnRows?.get(String(partner.id)) || []);
+        const charge = (row, amount) => {
+            const threshold = Number(row?.free_from_rental_days);
+            return !isApi && Number.isInteger(threshold) && threshold >= 1 && billedDays >= threshold ? 0 : amount;
+        };
         return {
-            pickup: minimum(pickupRows, row => row?.extra_fee === true ? safeAmount(row.extra_fee_amount) : 0),
-            return: minimum(returnRows, row => safeAmount(row?.return_fee_amount))
+            pickup: minimum(pickupRows, row => charge(row, row?.extra_fee === true ? safeAmount(row.extra_fee_amount) : 0)),
+            return: minimum(returnRows, row => charge(row, safeAmount(row?.return_fee_amount)))
         };
     }
 

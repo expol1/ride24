@@ -11,6 +11,12 @@
         if(!/^\d+(\.\d{1,2})?$/.test(raw) || Number(raw)>1000000) throw new Error(text('Wpisz poprawną kwotę, maksymalnie dwa miejsca po przecinku.','Enter a valid amount with up to two decimal places.'));
         return Number(raw);
     };
+    const freeDays = value => {
+        if (String(value).trim() === '') return null;
+        const days = Number(value);
+        if (!Number.isInteger(days) || days < 1 || days > 366) throw new Error(text('Podaj liczbę dni od 1 do 366.', 'Enter a whole number of days from 1 to 366.'));
+        return days;
+    };
     // The native dialog stays in the browser's top layer, including on mobile.
     // Unlike a fixed sidebar, it is centred and its validation is visible inside.
     function ensureStyles(){
@@ -52,7 +58,7 @@
         document.body.append(d);d.addEventListener('close',()=>d.remove());d.showModal();return {d,f,status};
     }
     function actions(f,d){const row=node('div');row.className='r24-extras-dialog__actions';const cancel=node('button','Anuluj','Cancel');cancel.type='button';cancel.className='btn-secondary';cancel.onclick=()=>d.close();const save=node('button','Zapisz','Save');save.type='submit';save.className='btn-primary';row.append(cancel,save);f.append(row);return save;}
-    window.ride24PartnerExtras = {amount,
+    window.ride24PartnerExtras = {amount,freeDays,
         async mount(db,partner,refreshLocations){
             ensureStyles();const host=document.getElementById('partnerExtrasCatalog');if(!host)return;
             host.replaceChildren();host.hidden=partner.provider_type==='api';if(host.hidden)return;
@@ -91,7 +97,9 @@
             const pickup=field(f,`Odbiór (${partner.currency||'EUR'})`,`Pickup (${partner.currency||'EUR'})`,input('text',location.extra_fee?location.extra_fee_amount??'':''));
             const dropoff=field(f,`Zwrot (${partner.currency||'EUR'})`,`Return (${partner.currency||'EUR'})`,input('text',location.return_fee_amount||''));pickup.inputMode=dropoff.inputMode='decimal';
             f.append(node('p','Tutaj ustalasz standardową opłatę za podstawienie samochodu do tej lokalizacji przy odbiorze oraz odebranie go od klienta przy zwrocie. Możesz podać różne kwoty. Opłaty są doliczane automatycznie. Puste pole oznacza bezpłatnie; zmiany dotyczą tylko nowych rezerwacji.','Set the standard fee for delivering the car to this pickup location and collecting it when returned. You can set different amounts. Fees are added automatically. Leave a field blank for no charge; changes apply only to new bookings.'));
-            const save=actions(f,d);f.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{const pick=amount(pickup.value),ret=amount(dropoff.value);const {data,error}=await db.from('partner_locations').update({extra_fee:pick>0,extra_fee_amount:pick,return_fee_amount:ret}).eq('id',location.id).eq('partner_id',partner.id).eq('is_api_managed',false).select('id').single();if(error||!data)throw new Error(text('Nie udało się zapisać opłat.','Could not save fees.'));d.close();await refresh();}catch(error){status.textContent=error.message;}finally{save.disabled=false;}};
+            const threshold=field(f,'Bezpłatny odbiór i zwrot od (dni)','Free pickup and return from (days)',input('number',location.free_from_rental_days ?? ''));threshold.min='1';threshold.max='366';threshold.step='1';
+            f.append(node('p','Puste pole: opłaty bez zmian. Próg według naliczonych dni wynajmu. Nie dotyczy dopłat nocnych.','Leave blank to keep fees. Based on billed rental days. Night fees are separate.'));
+            const save=actions(f,d);f.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{const pick=amount(pickup.value),ret=amount(dropoff.value),free=freeDays(threshold.value);const {data,error}=await db.from('partner_locations').update({extra_fee:pick>0,extra_fee_amount:pick,return_fee_amount:ret,free_from_rental_days:free}).eq('id',location.id).eq('partner_id',partner.id).eq('is_api_managed',false).select('id').single();if(error||!data)throw new Error(text('Nie udało się zapisać opłat.','Could not save fees.'));d.close();await refresh();}catch(error){status.textContent=error.message;}finally{save.disabled=false;}};
         }
     };
 })();

@@ -83,7 +83,7 @@ test('VIP is only a tie-breaker and currency conversion compares full totals', (
 
 test('search actually reads selected return fee and uses new helpers before slicing to 20 cars', () => {
     assert.match(html, /results-location-pricing\.js\?v=/);
-    assert.match(html, /\.select\('partner_id,return_fee_amount'\)/);
+    assert.match(html, /\.select\('partner_id,return_fee_amount,free_from_rental_days'\)/);
     assert.match(html, /resultPricing\.selectedLocationFees\(/);
     assert.match(html, /getSeasonPrice\(car\) \* days, locationFeesByCar\.get\(car\), rate/);
     assert.match(html, /cars\.sort\(\(a, b\) => resultPricing\.compareByTotalPrice\(a, b, rankingPrices\)\)/);

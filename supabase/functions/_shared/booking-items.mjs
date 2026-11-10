@@ -61,7 +61,9 @@ export function calculateBookingItems({ rental, pickup, dropoff, timeRules = [],
     ['return', dropoff, { pl: 'Zwrot', en: 'Return' }],
   ]) {
     if (!location?.id || !location.name) throw new Error('LOCATION_REQUIRED');
-    if (cents(location.amount ?? 0) > 0) {
+    const freeFrom = Number(location.free_from_rental_days);
+    const locationIsFree = Number.isInteger(freeFrom) && freeFrom >= 1 && days >= freeFrom;
+    if (!locationIsFree && cents(location.amount ?? 0) > 0) {
       add(kind, location.id, names, location.amount);
       items.at(-1).location_name = String(location.name).slice(0,250);
     }

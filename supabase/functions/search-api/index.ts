@@ -71,12 +71,14 @@ type PartnerRow = {
   discount_percent: number | string | null;
   currency: string | null;
   min_driver_age: number | string | null;
+  max_driver_age: number | string | null;
   min_rental_days: number | string | null;
   active: boolean | null;
   account_status: string | null;
 };
 
 type CarClassRow = {
+  min_driver_age: number | null;
   id: string;
   external_id: string;
   class_code: string | null;
@@ -287,6 +289,7 @@ function partnerFromRelation(value: unknown): PartnerRow | null {
       ? row.discount_percent
       : null,
     currency: typeof row.currency === "string" ? row.currency : null,
+    max_driver_age: typeof row.max_driver_age === "number" ? row.max_driver_age : null,
     min_driver_age: typeof row.min_driver_age === "number" || typeof row.min_driver_age === "string"
       ? row.min_driver_age
       : null,
@@ -469,7 +472,7 @@ async function loadCarClasses(
     const { data, error } = await admin
       .from("car_classes")
       .select(
-        "id, external_id, class_code, description, example_model, model, image, transmission, fuel_type, seats, bags, features, mileage_limit, deposit_amount, driver_included, active, platform_margin_percent",
+        "id, external_id, class_code, description, example_model, model, image, transmission, fuel_type, seats, bags, features, mileage_limit, deposit_amount, min_driver_age, driver_included, active, platform_margin_percent",
       )
       .eq("partner_id", partnerId)
       .eq("is_api_managed", true)
@@ -500,6 +503,7 @@ async function loadCarClasses(
         deposit_amount: typeof raw.deposit_amount === "number" || typeof raw.deposit_amount === "string"
           ? raw.deposit_amount
           : null,
+        min_driver_age: typeof raw.min_driver_age === "number" ? raw.min_driver_age : null,
         driver_included: raw.driver_included === true,
         active: raw.active === true,
         platform_margin_percent: typeof raw.platform_margin_percent === "number" || typeof raw.platform_margin_percent === "string"
@@ -763,6 +767,7 @@ async function searchPartner(
       features: mergedFeatures,
       mileage_limit: group.mileage_limit ?? carClass.mileage_limit,
       deposit_amount: group.deposit_amount ?? carClass.deposit_amount,
+      min_driver_age: carClass.min_driver_age,
       driver_included: group.driver_included ?? carClass.driver_included,
       seasonal_prices: [],
       api_quote_id: quote.id,
@@ -776,6 +781,7 @@ async function searchPartner(
         api_enabled: true,
         currency: partnerCurrency,
         min_driver_age: partner.min_driver_age,
+        max_driver_age: partner.max_driver_age,
         min_rental_days: partner.min_rental_days,
         partner_locations: returnedLocations.map((location) => ({
           country: location.country,
@@ -848,6 +854,7 @@ serve(async (req) => {
           discount_percent,
           currency,
           min_driver_age,
+          max_driver_age,
           min_rental_days,
           active,
           account_status

@@ -227,7 +227,7 @@
     <script src="assets/helper/supabaseConfig.js"></script>
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
 <script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
-<script src="assets/js/results-location-pricing.js?v=20261031a"></script>
+<script src="assets/js/results-location-pricing.js?v=20261110a"></script>
     <script src="assets/js/location-contact-notice.js?v=20261031a"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
@@ -524,6 +524,7 @@ let query = db
             account_status,
             currency,
             min_driver_age,
+            max_driver_age,
             min_rental_days,
             seasonal_min_rental_days,
             seasonal_min_rental_months,
@@ -538,7 +539,8 @@ let query = db
                 type,
                 contact_required,
                 extra_fee,
-                extra_fee_amount
+                extra_fee_amount,
+                free_from_rental_days
             )
         )
     `)
@@ -556,7 +558,7 @@ let query = db
                 if (returnLocationName) {
                     let returnQuery = db
                         .from('partner_locations')
-                        .select('partner_id,return_fee_amount')
+                        .select('partner_id,return_fee_amount,free_from_rental_days')
                         .eq('active', true)
                         .eq('location_name', returnLocationName);
                     if (selectedReturnLocation.country) {
@@ -723,7 +725,7 @@ let query = db
                 const selectedPickupName = String(loc.location_name || loc.name || "").trim();
                 const locationFeesByCar = new Map(cars.map(car => {
                     const fees = resultPricing.selectedLocationFees(
-                        car, selectedPickupName, returnLocationName, returnLocationRowsByPartner
+                        car, selectedPickupName, returnLocationName, returnLocationRowsByPartner, duration.billedDays
                     );
                     const margin = Number(car.platform_margin_percent ?? globalMarginPercent);
                     return [car, resultPricing.customerLocationFeeTotal(fees, margin)];
@@ -789,7 +791,8 @@ let query = db
                 cars.forEach((car, index) => {
                     console.log("CAR:", car);
                     const lang = localStorage.getItem("lang") || "pl";
-                    const minAge = car.partners?.min_driver_age || 21;
+                    const minAge = Number(car.min_driver_age ?? car.partners?.min_driver_age ?? 21);
+                    const maxAge = car.partners?.max_driver_age == null ? null : Number(car.partners.max_driver_age);
                     // Pickup contact guidance follows the selected location type, not the legacy partner toggle.
                     const contactBadgeHtml = window.Ride24LocationContact.showForPickup(car, loc)
                         ? '<span class="r24-contact-chip">'
@@ -1031,7 +1034,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                     <circle cx="12" cy="8" r="4"></circle>
                     <path d="M6 20c0-4 12-4 12 0"></path>
                 </svg>
-                ${lang === 'pl' ? `Min. wiek ${minAge}+` : `Min age ${minAge}+`}
+                ${car.driver_included ? (lang === 'pl' ? 'Kierowca w cenie' : 'Driver included') : maxAge ? (lang === 'pl' ? `Wiek kierowcy ${minAge}–${maxAge}` : `Driver age ${minAge}–${maxAge}`) : (lang === 'pl' ? `Min. wiek ${minAge}+` : `Min age ${minAge}+`)}
             </span>
             ${contactBadgeHtml}
         </div>

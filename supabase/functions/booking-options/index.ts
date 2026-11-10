@@ -1,3 +1,4 @@
+import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse, publicErrorMessage, serviceClient } from "../_shared/ride24-security.ts";
 import { readJsonObject } from "../_shared/booking-request.ts";
@@ -21,9 +22,23 @@ serve(async(req: Request)=>{
     await enforceRateLimit(admin,req,'booking-options',60,60);
     const body=await readJsonObject(req);
     if(!isUuid(body.car_class_id)) throw new Error('Nieprawidłowa grupa');
-    const {data:car,error}=await admin.from('car_classes').select('id,partner_id,active,partners(id,active,account_status,currency,provider_type,min_rental_days)').eq('id',body.car_class_id).single();
+    const {data:car,error}=await admin.from('car_classes').select('id,partner_id,active,min_driver_age,driver_included,partners(id,active,account_status,currency,provider_type,min_rental_days,min_driver_age,max_driver_age)').eq('id',body.car_class_id).single();
     const partner=Array.isArray(car?.partners) ? car.partners[0] : car?.partners;
     if(error || !car?.active || !partner?.active || partner.account_status!=='active') throw new Error('Wybrana grupa nie jest dostępna');
+    if (car.driver_included !== true) {
+      for (const id of [body.driver_id || null, ...(body.additional_driver_id ? [body.additional_driver_id] : [])]) {
+        if (id !== null && !isUuid(id)) throw new Error('Nieprawidłowy kierowca');
+        const result = id === null
+          ? await admin.from('profiles').select('age').eq('id',user.id).maybeSingle()
+          : await admin.from('drivers').select('age').eq('id',id).eq('user_id',user.id).maybeSingle();
+        if (result.error || !result.data) throw new Error('Nieprawidłowy kierowca');
+        if (!driverAgeAllowed(result.data.age,car,partner)) {
+          const limits=driverAgeLimits(car,partner);
+          const range=limits.max===null ? `${limits.min}+` : `${limits.min}–${limits.max}`;
+          throw new BookingOptionsError('DRIVER_AGE_NOT_ALLOWED',`Wymagany wiek każdego kierowcy: ${range} lat.`,`Each driver must meet the age requirement: ${range}.`,400);
+        }
+      }
+    }
     if(partner.provider_type==='api') {
       assertApiRequestedOptions(body);
       await assertApiPricingCompatible(admin, car.partner_id);

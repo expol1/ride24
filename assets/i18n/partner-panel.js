@@ -1,6 +1,16 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+      "Maximum driver age": "Maksymalny wiek kierowcy",
+      "Leave blank for no upper age limit.": "Puste pole oznacza brak górnego limitu.",
+      "Minimum driver age for this car": "Minimalny wiek kierowcy dla tego auta",
+      "Leave blank to use the company minimum age.": "Puste pole: minimum z ustawień głównych partnera.",
+      "Free pickup and return from (days)": "Bezpłatny odbiór i zwrot od (dni)",
+      "Leave blank to keep fees. Based on billed rental days. Night fees are separate.": "Puste pole: opłaty bez zmian. Próg według naliczonych dni wynajmu. Nie dotyczy dopłat nocnych.",
+      "Enter a whole number of days from 1 to 366.": "Podaj liczbę dni od 1 do 366.",
+      "Enter a valid age range (18–120).": "Podaj poprawny zakres wieku (18–120 lat).",
+      "Age must be a whole number from 18 to 120.": "Wiek musi być liczbą całkowitą od 18 do 120.",
+
     "Choose a city from the list": "Wybierz miasto z listy",
     "The list contains cities already set up under Locations.": "Lista zawiera miasta dodane wcześniej w zakładce Lokalizacje.",
     "First add pickup and return locations with city names under Locations.": "Najpierw dodaj lokalizacje odbioru i zwrotu z nazwami miast w zakładce Lokalizacje.",
@@ -612,6 +622,16 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+      "Maximum driver age": "Edad máxima del conductor",
+      "Leave blank for no upper age limit.": "Deja vacío si no hay límite máximo de edad.",
+      "Minimum driver age for this car": "Edad mínima del conductor para este coche",
+      "Leave blank to use the company minimum age.": "Deja vacío para usar la edad mínima de la empresa.",
+      "Free pickup and return from (days)": "Recogida y devolución gratuitas a partir de (días)",
+      "Leave blank to keep fees. Based on billed rental days. Night fees are separate.": "Deja vacío para mantener las tarifas. Se cuentan los días facturados. Los suplementos nocturnos son independientes.",
+      "Enter a whole number of days from 1 to 366.": "Introduce un número entero de días entre 1 y 366.",
+      "Enter a valid age range (18–120).": "Introduce un rango de edad válido (18–120).",
+      "Age must be a whole number from 18 to 120.": "La edad debe ser un número entero entre 18 y 120.",
+
       "Choose a city from the list": "Selecciona una ciudad de la lista",
       "The list contains cities already set up under Locations.": "La lista contiene las ciudades ya configuradas en Ubicaciones.",
       "First add pickup and return locations with city names under Locations.": "Primero añade lugares de recogida y devolución con nombres de ciudades en Ubicaciones.",
@@ -1222,6 +1242,16 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+      "Maximum driver age": "Μέγιστη ηλικία οδηγού",
+      "Leave blank for no upper age limit.": "Αφήστε κενό αν δεν υπάρχει ανώτατο όριο ηλικίας.",
+      "Minimum driver age for this car": "Ελάχιστη ηλικία οδηγού για αυτό το αυτοκίνητο",
+      "Leave blank to use the company minimum age.": "Αφήστε κενό για την ελάχιστη ηλικία της εταιρείας.",
+      "Free pickup and return from (days)": "Δωρεάν παραλαβή και επιστροφή από (ημέρες)",
+      "Leave blank to keep fees. Based on billed rental days. Night fees are separate.": "Αφήστε κενό για διατήρηση χρεώσεων. Με βάση τις χρεώσιμες ημέρες. Οι νυχτερινές χρεώσεις είναι ξεχωριστές.",
+      "Enter a whole number of days from 1 to 366.": "Εισαγάγετε ακέραιο αριθμό ημερών από 1 έως 366.",
+      "Enter a valid age range (18–120).": "Εισαγάγετε έγκυρο εύρος ηλικίας (18–120).",
+      "Age must be a whole number from 18 to 120.": "Η ηλικία πρέπει να είναι ακέραιος αριθμός από 18 έως 120.",
+
       "Choose a city from the list": "Επιλέξτε πόλη από τη λίστα",
       "The list contains cities already set up under Locations.": "Η λίστα περιλαμβάνει πόλεις που έχουν ήδη οριστεί στις Τοποθεσίες.",
       "First add pickup and return locations with city names under Locations.": "Πρώτα προσθέστε σημεία παραλαβής και επιστροφής με ονόματα πόλεων στις Τοποθεσίες.",
@@ -1832,6 +1862,16 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+      "Maximum driver age": "Età massima del conducente",
+      "Leave blank for no upper age limit.": "Lascia vuoto se non esiste un limite massimo di età.",
+      "Minimum driver age for this car": "Età minima del conducente per questa auto",
+      "Leave blank to use the company minimum age.": "Lascia vuoto per usare l’età minima aziendale.",
+      "Free pickup and return from (days)": "Ritiro e restituzione gratuiti da (giorni)",
+      "Leave blank to keep fees. Based on billed rental days. Night fees are separate.": "Lascia vuoto per mantenere le tariffe. Si considerano i giorni fatturati. I supplementi notturni sono separati.",
+      "Enter a whole number of days from 1 to 366.": "Inserisci un numero intero di giorni da 1 a 366.",
+      "Enter a valid age range (18–120).": "Inserisci un intervallo di età valido (18–120).",
+      "Age must be a whole number from 18 to 120.": "L’età deve essere un numero intero da 18 a 120.",
+
       "Choose a city from the list": "Seleziona una città dall'elenco",
       "The list contains cities already set up under Locations.": "L'elenco contiene le città già configurate nella sezione Località.",
       "First add pickup and return locations with city names under Locations.": "Aggiungi prima i punti di ritiro e riconsegna con i nomi delle città nella sezione Località.",
@@ -2442,6 +2482,16 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+      "Maximum driver age": "Höchstalter des Fahrers",
+      "Leave blank for no upper age limit.": "Leer lassen, wenn keine Altersobergrenze gilt.",
+      "Minimum driver age for this car": "Mindestalter des Fahrers für dieses Auto",
+      "Leave blank to use the company minimum age.": "Leer lassen, um das Mindestalter des Unternehmens zu verwenden.",
+      "Free pickup and return from (days)": "Kostenlose Abholung und Rückgabe ab (Tagen)",
+      "Leave blank to keep fees. Based on billed rental days. Night fees are separate.": "Leer lassen, um Gebühren beizubehalten. Es zählen berechnete Miettage. Nachtzuschläge gelten separat.",
+      "Enter a whole number of days from 1 to 366.": "Gib eine ganze Anzahl Tage von 1 bis 366 ein.",
+      "Enter a valid age range (18–120).": "Gib einen gültigen Altersbereich ein (18–120).",
+      "Age must be a whole number from 18 to 120.": "Das Alter muss eine ganze Zahl von 18 bis 120 sein.",
+
       "Choose a city from the list": "Stadt aus der Liste auswählen",
       "The list contains cities already set up under Locations.": "Die Liste enthält Städte, die bereits unter Standorte eingerichtet wurden.",
       "First add pickup and return locations with city names under Locations.": "Füge zuerst Abhol- und Rückgabeorte mit Städtenamen unter Standorte hinzu.",
@@ -3052,6 +3102,16 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+      "Maximum driver age": "Максимальный возраст водителя",
+      "Leave blank for no upper age limit.": "Оставьте пустым, если верхнего ограничения нет.",
+      "Minimum driver age for this car": "Минимальный возраст водителя для этого автомобиля",
+      "Leave blank to use the company minimum age.": "Оставьте пустым, чтобы использовать минимальный возраст компании.",
+      "Free pickup and return from (days)": "Бесплатная выдача и возврат от (дней)",
+      "Leave blank to keep fees. Based on billed rental days. Night fees are separate.": "Оставьте пустым для сохранения тарифов. Учитываются оплачиваемые дни аренды. Ночные доплаты отдельно.",
+      "Enter a whole number of days from 1 to 366.": "Введите целое число дней от 1 до 366.",
+      "Enter a valid age range (18–120).": "Укажите допустимый диапазон возраста (18–120).",
+      "Age must be a whole number from 18 to 120.": "Возраст должен быть целым числом от 18 до 120.",
+
       "Choose a city from the list": "Выберите город из списка",
       "The list contains cities already set up under Locations.": "Список содержит города, уже добавленные в разделе «Локации».",
       "First add pickup and return locations with city names under Locations.": "Сначала добавьте места получения и возврата с названиями городов в разделе «Локации».",
@@ -3662,6 +3722,16 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+      "Maximum driver age": "Âge maximum du conducteur",
+      "Leave blank for no upper age limit.": "Laissez vide si aucune limite supérieure ne s’applique.",
+      "Minimum driver age for this car": "Âge minimum du conducteur pour cette voiture",
+      "Leave blank to use the company minimum age.": "Laissez vide pour utiliser l’âge minimum de l’entreprise.",
+      "Free pickup and return from (days)": "Prise en charge et retour gratuits à partir de (jours)",
+      "Leave blank to keep fees. Based on billed rental days. Night fees are separate.": "Laissez vide pour conserver les frais. Selon les jours facturés. Les suppléments de nuit restent distincts.",
+      "Enter a whole number of days from 1 to 366.": "Saisissez un nombre entier de jours de 1 à 366.",
+      "Enter a valid age range (18–120).": "Saisissez une tranche d’âge valide (18–120).",
+      "Age must be a whole number from 18 to 120.": "L’âge doit être un nombre entier de 18 à 120.",
+
       "Choose a city from the list": "Choisissez une ville dans la liste",
       "The list contains cities already set up under Locations.": "La liste contient les villes déjà configurées dans Localisations.",
       "First add pickup and return locations with city names under Locations.": "Ajoutez d'abord des lieux de prise en charge et de restitution avec leurs villes dans Localisations.",

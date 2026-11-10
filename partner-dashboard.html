@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="assets/css/partner-languages.css?v=20261023a">
-    <script src="assets/i18n/partner-panel.js?v=20261031compact1"></script>
+    <script src="assets/i18n/partner-panel.js?v=20261110a"></script>
     <script src="assets/helper/partnerI18n.js?v=20261024fr1"></script>
 
     <title>Partner Panel - Ride24</title>
@@ -1762,6 +1762,7 @@ async>
         <input type="number" id="partner-min-age" min="18" placeholder="e.g. 21" data-pl="Np. 21" data-en="e.g. 21">
     </div>
 
+<div class="form-group"><label for="partner-max-age" data-pl="Maksymalny wiek kierowcy" data-en="Maximum driver age">Maximum driver age</label><input type="number" id="partner-max-age" min="18" max="120" step="1"><small data-pl="Puste pole oznacza brak górnego limitu." data-en="Leave blank for no upper age limit.">Leave blank for no upper age limit.</small></div>
     <div class="r24-min-days-setting">
         <div class="r24-min-days-header">
             <span aria-hidden="true">📅</span>
@@ -1818,7 +1819,8 @@ async>
         <p class="r24-min-save-note" data-pl="Zapisz oba ustawienia przyciskiem „Zapisz zmiany” poniżej." data-en="Save both settings with the “Save Changes” button below.">Save both settings with the “Save Changes” button below.</p>
     </div>
 
-    <div class="form-group">
+
+<div class="form-group">
         <label data-pl="Waluta (Zablokowana)" data-en="Currency (Locked)">Currency (Locked)</label>
         <div id="partnerCurrency" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 14px; background: #F1F5F9; color: var(--gray); font-weight: 700; cursor: not-allowed; height: 42px; display: flex; align-items: center;">
             EUR
@@ -2144,7 +2146,8 @@ Dodaj opinię o Partnerze
                     </div>
                 </div>
 
-                <div class="form-row-3" style="margin-bottom: 0;">
+                <div class="form-group"><label for="carMinAge" data-pl="Minimalny wiek kierowcy dla tego auta" data-en="Minimum driver age for this car">Minimum driver age for this car</label><input type="number" id="carMinAge" min="18" max="120" step="1"><small data-pl="Puste pole: minimum z ustawień głównych partnera." data-en="Leave blank to use the company minimum age.">Leave blank to use the company minimum age.</small></div>
+<div class="form-row-3" style="margin-bottom: 0;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Zwrotna kaucja gotówkowa (€) – opcjonalnie" data-en="Refundable cash deposit (€) – optional">Refundable cash deposit (€) – optional</label>
                         <input type="number" id="carDeposit" placeholder="e.g. 100" min="0" step="0.01" disabled oninput="syncCashDepositOption('amount')" data-pl="Np. 100" data-en="e.g. 100">
@@ -2467,6 +2470,7 @@ Dodaj opinię o Partnerze
                             <input type="number" id="locReturnFeeAmount" min="0" max="1000000" step="0.01" placeholder="0.00">
                         </label>
                     </div>
+<div class="form-group"><label for="locFreeFromDays" data-pl="Bezpłatny odbiór i zwrot od (dni)" data-en="Free pickup and return from (days)">Free pickup and return from (days)</label><input type="number" id="locFreeFromDays" min="1" max="366" step="1"><small data-pl="Puste pole: opłaty bez zmian. Próg według naliczonych dni wynajmu. Nie dotyczy dopłat nocnych." data-en="Leave blank to keep fees. Based on billed rental days. Night fees are separate.">Leave blank to keep fees. Based on billed rental days. Night fees are separate.</small></div>
                     <small data-pl="Kwoty w walucie partnera, należne partnerowi. Puste pole oznacza bezpłatną dostawę lub zwrot." data-en="Amounts in the partner currency, payable to the partner. Leave blank for free pickup or return.">Amounts in the partner currency, payable to the partner. Leave blank for free pickup or return.</small>
 
                 </div>
@@ -2535,7 +2539,7 @@ Dodaj opinię o Partnerze
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
     <script src="assets/helper/partnerEmailSettings.js?v=20261103a"></script>
-    <script src="assets/helper/partnerExtras.js?v=20261029a"></script>
+    <script src="assets/helper/partnerExtras.js?v=20261110a"></script>
     <script src="assets/helper/partnerTimeFees.js?v=20261029a"></script>
     <script src="assets/helper/partnerMandatoryRules.js?v=20261030cities2"></script>
     <script src="assets/helper/partnerGuide.js?v=20261023a"></script>
@@ -3002,6 +3006,7 @@ console.log("API status:", partnerData.api_status);
     rental_terms_url,
     rental_rules_url,
     min_driver_age,
+    max_driver_age,
     min_rental_days,
     seasonal_min_rental_days,
     seasonal_min_rental_months,
@@ -3045,6 +3050,7 @@ console.log("API status:", partnerData.api_status);
                     contactEmailField.value = data.email?.trim() || (await db.auth.getSession()).data?.session?.user?.email || "";
                 }
                 if(data.emergency_phone) document.getElementById("partnerEmergency").value = data.emergency_phone;
+                document.getElementById("partner-max-age").value = data.max_driver_age ?? "";
                 if(data.min_driver_age){
     document.getElementById("partner-min-age").value = data.min_driver_age;
 }
@@ -3136,7 +3142,13 @@ console.log("API status:", partnerData.api_status);
                 // KROK 8: ZBIERANIE DANYCH + ODBLOKOWANIE PANELU
                 const minAgeInput = document.getElementById("partner-min-age").value;
 
-console.log("🔥 MIN AGE INPUT:", minAgeInput);
+const maxAgeInput = document.getElementById("partner-max-age").value;
+const ageValid = value => value === '' || (Number.isInteger(Number(value)) && Number(value) >= 18 && Number(value) <= 120);
+if (!ageValid(minAgeInput) || !ageValid(maxAgeInput) || (maxAgeInput && Number(maxAgeInput) < Number(minAgeInput || 21))) {
+    window.showToast(partnerText("Podaj poprawny zakres wieku (18–120 lat).", "Enter a valid age range (18–120)."), "error");
+    if(btn) { btn.disabled=false; partnerLabel(btn,"Zapisz zmiany","Save Changes"); }
+    return;
+}
 
 const updateData = {
     company_name: company,
@@ -3145,7 +3157,8 @@ const updateData = {
     region: region,
     phone: phone,
     emergency_phone: emergency,
-    min_driver_age: minAgeInput ? parseInt(minAgeInput) : null,
+    min_driver_age: minAgeInput ? Number(minAgeInput) : null,
+    max_driver_age: maxAgeInput ? Number(maxAgeInput) : null,
     min_rental_days: minRentalDays,
     seasonal_min_rental_days: seasonalDays,
     seasonal_min_rental_months: seasonalMonths,
@@ -3288,6 +3301,9 @@ const updateData = {
                     throw new Error(partnerText("Podaj kwotę zwrotnej kaucji gotówkowej większą od zera.", "Enter a refundable cash deposit amount greater than zero."));
                 }
                 const deposit_amount = cashDepositSelected ? parsedCashDeposit : 0;
+                const carMinAgeInput = document.getElementById("carMinAge").value;
+                const carMinAge = carMinAgeInput === '' ? null : Number(carMinAgeInput);
+                if (carMinAge !== null && (!Number.isInteger(carMinAge) || carMinAge < 18 || carMinAge > 120)) throw new Error(partnerText("Wiek musi być liczbą całkowitą od 18 do 120.", "Age must be a whole number from 18 to 120."));
                 const fuel_type = document.getElementById("carFuel").value;
                 const base_price = parseFloat(document.getElementById("carPrice").value);
                 const commissionPercent = parseInt(document.getElementById("partnerDiscount").innerText) || 15;
@@ -3361,6 +3377,7 @@ const updateData = {
                     active: true,
                     features: collectFeatures(),
                     image: imageUrl,
+                    min_driver_age: carMinAge,
                     driver_included: driverIncluded
                 };
 
@@ -4132,8 +4149,10 @@ const { data, error } = await db
             data.forEach(loc => {
                 const tr = document.createElement("tr");
                 const isEn = getPartnerLang() !== "pl";
-                const feeTextPl = `Odbiór: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Zwrot: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}`;
-                const feeTextEn = `Pickup: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Return: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}`;
+                const freeDaysPl = loc.free_from_rental_days ? ` · Bezpłatnie od ${Number(loc.free_from_rental_days)} dni` : "";
+                const freeDaysEn = loc.free_from_rental_days ? ` · Free from ${Number(loc.free_from_rental_days)} days` : "";
+                const feeTextPl = `Odbiór: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Zwrot: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}${freeDaysPl}`;
+                const feeTextEn = `Pickup: ${Number(loc.extra_fee ? loc.extra_fee_amount || 0 : 0).toFixed(2)} ${partner.currency || "EUR"} · Return: ${Number(loc.return_fee_amount || 0).toFixed(2)} ${partner.currency || "EUR"}${freeDaysEn}`;
                 const statusClass = loc.active ? "active" : "inactive";
                 const statusTextPl = loc.active ? "Aktywna" : "Nieaktywna";
                 const statusTextEn = loc.active ? "Active" : "Inactive";
@@ -4206,6 +4225,7 @@ const { data, error } = await db
                     type: document.getElementById('locType').value,
                     extra_fee: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value) > 0,
                     extra_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locExtraFeeAmount').value),
+                    free_from_rental_days: window.ride24PartnerExtras.freeDays(document.getElementById('locFreeFromDays').value),
                     return_fee_amount: window.ride24PartnerExtras.amount(document.getElementById('locReturnFeeAmount').value),
                     active: document.getElementById('locActive').checked
                 };
@@ -4270,6 +4290,7 @@ const { data, error } = await db
                 document.getElementById('locCity').value = "";
                 document.getElementById('locExtraFee').checked = false;
                 document.getElementById('locExtraFeeAmount').value = "";
+                document.getElementById('locFreeFromDays').value = "";
                 document.getElementById('locReturnFeeAmount').value = "";
                 if (typeof toggleExtraFeeInput === "function") toggleExtraFeeInput();
 
@@ -4923,6 +4944,7 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                 document.getElementById("carBags").value = car.bags || 2;
                 document.getElementById("carDeposit").value = car.deposit_amount || 0;
                 document.getElementById("carFuel").value = car.fuel_type || "";
+                document.getElementById("carMinAge").value = car.min_driver_age ?? "";
                 document.getElementById("carPrice").value = car.public_price || "";
                 // 🔥 Odczyt znacznika VIP
                 

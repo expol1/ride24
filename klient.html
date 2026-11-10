@@ -2837,6 +2837,7 @@ document.addEventListener("click", async function(e) {
                pickup_time: localStorage.getItem("bookingPickupTime") || "10:00", return_time: localStorage.getItem("bookingDropTime") || "10:00",
                pickup_location: search.pickup_location?.name || "Do ustalenia",
                return_location: search.drop_location?.name || search.pickup_location?.name || "Do ustalenia",
+               driver_id: document.getElementById("driverSelect")?.value || null,
                additional_driver_id: additional?.length === 36 ? additional : null
            };
        }
@@ -2907,7 +2908,7 @@ document.addEventListener("click", async function(e) {
             bookingExtras.refresh();
         };
 
-        window.loadPartnerDocuments(carClassId);
+        await window.loadPartnerDocuments(carClassId);
         await bookingExtras.start();
 
     }, 0);
@@ -2916,11 +2917,21 @@ document.addEventListener("click", async function(e) {
         // 2. Pobieranie linków partnera do okna (Etap 6)
         window.loadPartnerDocuments = async function(carClassId) {
             try {
-                const { data: car } = await db.from("car_classes").select("partner_id").eq("id", carClassId).single();
+                const { data: car } = await db.from("car_classes").select("partner_id,min_driver_age,driver_included").eq("id", carClassId).single();
                 if (!car) return;
 
-                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url").eq("id", car.partner_id).single();
+                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age").eq("id", car.partner_id).single();
 
+                const ageInfo = document.getElementById("bookingDriverAgeInfo");
+                if (ageInfo) {
+                    const min = Number(car.min_driver_age ?? partner?.min_driver_age ?? 21);
+                    const max = partner?.max_driver_age == null ? null : Number(partner.max_driver_age);
+                    const range = max === null ? `${min}+` : `${min}–${max}`;
+                    ageInfo.hidden = car.driver_included === true;
+                    ageInfo.dataset.pl = `Wymagany wiek każdego kierowcy: ${range} lat.`;
+                    ageInfo.dataset.en = `Each driver must meet the age requirement: ${range}.`;
+                    ageInfo.textContent = localStorage.getItem("client_lang") === 'en' ? ageInfo.dataset.en : ageInfo.dataset.pl;
+                }
                 const tLink = document.getElementById("partnerTermsLink");
                 const rLink = document.getElementById("partnerRulesLink");
 
@@ -4690,6 +4701,7 @@ window.closeReviewModal = function() {
             <div style="margin-bottom: 20px; background: #F8FAFC; padding: 16px; border-radius: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 12px;">
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--blue-dark); margin-bottom: 6px; display: block;" data-pl="Główny kierowca" data-en="Main driver">Główny kierowca</label>
+                    <p id="bookingDriverAgeInfo" role="status" style="font-size:13px"></p>
                     <select id="driverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
                 </div>
                 <div>

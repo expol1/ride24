@@ -1,3 +1,4 @@
+import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -42,9 +43,12 @@ type PartnerRelation = {
   rental_terms_url: string | null;
   rental_rules_url: string | null;
   min_rental_days: number;
+  min_driver_age: number | null;
+  max_driver_age: number | null;
 };
 
 type CarRow = {
+  min_driver_age: number | null;
   id: string;
   partner_id: string;
   active: boolean;
@@ -244,6 +248,8 @@ function normalizePartner(value: unknown): PartnerRelation | null {
   }
 
   return {
+    min_driver_age: row.min_driver_age == null ? null : finiteNumber(row.min_driver_age),
+    max_driver_age: row.max_driver_age == null ? null : finiteNumber(row.max_driver_age),
     id: row.id,
     active: row.active === true,
     account_status: cleanText(row.account_status, 50),
@@ -271,6 +277,7 @@ function normalizeCar(value: unknown): CarRow | null {
   if (!partner || partner.id !== value.partner_id) return null;
 
   return {
+    min_driver_age: value.min_driver_age == null ? null : finiteNumber(value.min_driver_age),
     id: value.id,
     partner_id: value.partner_id,
     active: value.active === true,
@@ -912,6 +919,7 @@ serve(async (req) => {
         final_customer_price,
         deposit_amount,
         mileage_limit,
+        min_driver_age,
         driver_included,
         features,
         partners!inner(
@@ -924,7 +932,9 @@ serve(async (req) => {
           api_enabled,
           rental_terms_url,
           rental_rules_url,
-          min_rental_days
+          min_rental_days,
+          min_driver_age,
+          max_driver_age
         )
       `)
       .eq("id", body.car_class_id)
@@ -1024,6 +1034,12 @@ serve(async (req) => {
         additionalDriverName = name;
         additionalDriverAge = age;
       }
+    }
+
+    if (!driverAgeAllowed(mainDriverAge, car, car.partner) || (additionalDriverAge !== null && !driverAgeAllowed(additionalDriverAge, car, car.partner))) {
+      const limits = driverAgeLimits(car, car.partner);
+      const range = limits.max === null ? `${limits.min}+` : `${limits.min}–${limits.max}`;
+      return jsonResponse(req, {code:"DRIVER_AGE_NOT_ALLOWED", error:`Wymagany wiek każdego kierowcy: ${range} lat.`, error_en:`Each driver must meet the age requirement: ${range}.`}, 400);
     }
 
     let baseTotal: number;
