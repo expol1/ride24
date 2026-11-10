@@ -1,6 +1,7 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+      "Vehicle group": "Grupa pojazdu",
       "Maximum driver age": "Maksymalny wiek kierowcy",
       "Leave blank for no upper age limit.": "Puste pole oznacza brak górnego limitu.",
       "Minimum driver age for this car": "Minimalny wiek kierowcy dla tego auta",
@@ -622,6 +623,7 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+      "Vehicle group": "Grupo de vehículos",
       "Maximum driver age": "Edad máxima del conductor",
       "Leave blank for no upper age limit.": "Deja vacío si no hay límite máximo de edad.",
       "Minimum driver age for this car": "Edad mínima del conductor para este coche",
@@ -1242,6 +1244,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+      "Vehicle group": "Κατηγορία οχήματος",
       "Maximum driver age": "Μέγιστη ηλικία οδηγού",
       "Leave blank for no upper age limit.": "Αφήστε κενό αν δεν υπάρχει ανώτατο όριο ηλικίας.",
       "Minimum driver age for this car": "Ελάχιστη ηλικία οδηγού για αυτό το αυτοκίνητο",
@@ -1862,6 +1865,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+      "Vehicle group": "Gruppo veicolo",
       "Maximum driver age": "Età massima del conducente",
       "Leave blank for no upper age limit.": "Lascia vuoto se non esiste un limite massimo di età.",
       "Minimum driver age for this car": "Età minima del conducente per questa auto",
@@ -2482,6 +2486,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+      "Vehicle group": "Fahrzeuggruppe",
       "Maximum driver age": "Höchstalter des Fahrers",
       "Leave blank for no upper age limit.": "Leer lassen, wenn keine Altersobergrenze gilt.",
       "Minimum driver age for this car": "Mindestalter des Fahrers für dieses Auto",
@@ -3102,6 +3107,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+      "Vehicle group": "Группа транспортных средств",
       "Maximum driver age": "Максимальный возраст водителя",
       "Leave blank for no upper age limit.": "Оставьте пустым, если верхнего ограничения нет.",
       "Minimum driver age for this car": "Минимальный возраст водителя для этого автомобиля",
@@ -3722,6 +3728,7 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+      "Vehicle group": "Groupe de véhicules",
       "Maximum driver age": "Âge maximum du conducteur",
       "Leave blank for no upper age limit.": "Laissez vide si aucune limite supérieure ne s’applique.",
       "Minimum driver age for this car": "Âge minimum du conducteur pour cette voiture",
