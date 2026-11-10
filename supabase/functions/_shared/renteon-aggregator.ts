@@ -105,7 +105,7 @@ function agencyCode(credentials: PartnerApiCredentials): string {
 async function call<T>(
   credentials: PartnerApiCredentials,
   path: string,
-  options: { method?: "GET" | "POST"; body?: unknown } = {},
+  options: { method?: "GET" | "POST" | "DELETE"; body?: unknown } = {},
 ): Promise<T> {
   agencyCode(credentials);
   return await partnerApiRequest<T>(
@@ -409,8 +409,56 @@ export async function aggregatorStatus(
   };
 }
 
-export async function aggregatorCancel(): Promise<Obj> {
-  // The supplied Renteon Postman collection does not specify a cancellation endpoint.
-  // Do not make up an API request or tell Ride24 the booking was cancelled.
-  throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CANCEL_MANUAL_REQUIRED");
+export async function aggregatorCancel(
+  credentials: PartnerApiCredentials,
+  number: string,
+): Promise<Obj> {
+  const code = agencyCode(credentials);
+  const bookingNumber = txt(number, 120);
+  if (!bookingNumber) {
+    throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_BOOKING_NUMBER_REQUIRED");
+  }
+
+  // The Aggregator Swagger v1 documents DELETE /api/bookings/cancel with
+  // BookingCancelModel { Number, ConnectorId }. ConnectorId is obtained from
+  // provider-scoped booking search, never trusted from the client.
+  const search = await call<unknown>(credentials, searchPath, {
+    method: "POST",
+    body: { Provider: code, Number: bookingNumber },
+  });
+  const rows = Array.isArray(search) ? search.map(obj).filter((x): x is Obj => !!x)
+    : [obj(search)].filter((x): x is Obj => !!x);
+  const match = rows.find(x => txt(x.Number) === bookingNumber &&
+    (!x.Provider || txt(x.Provider) === code));
+  if (!match) throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CANCEL_BOOKING_NOT_FOUND");
+
+  if (match.IsCancelled === true) {
+    return {
+      booking_reference: bookingNumber,
+      reference: bookingNumber,
+      status: "cancelled",
+      provider_payload: sanitizePartnerPayload(match, 12_000),
+    };
+  }
+
+  const connectorId = finiteInt(match.ConnectorId);
+  if (!connectorId || connectorId > 2_147_483_647) {
+    throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CANCEL_CONNECTOR_MISSING");
+  }
+
+  const cancelled = obj(await call<unknown>(credentials, "/api/bookings/cancel", {
+    method: "DELETE",
+    body: { Number: bookingNumber, ConnectorId: connectorId },
+  }));
+  if (!cancelled || txt(cancelled.Number) !== bookingNumber ||
+    cancelled.IsCancelled !== true) {
+    throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CANCEL_UNVERIFIED");
+  }
+
+  return {
+    booking_reference: bookingNumber,
+    reference: bookingNumber,
+    status: "cancelled",
+    provider_payload: sanitizePartnerPayload(cancelled, 12_000),
+  };
 }
