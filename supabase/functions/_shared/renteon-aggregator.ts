@@ -241,12 +241,33 @@ export async function aggregatorAvailability(
     const rentalAmount = positive(item.CarRentalAmount);
     // Unexpected provider price components must be investigated before publication.
     if (rentalAmount !== null && !amountIsEqual(total, rentalAmount)) continue;
-    const deposit = nonNegative(item.DepositAmount);
+    // Renteon POA Availability.DepositAmount may represent the amount due
+    // at pickup, NOT a refundable vehicle security deposit. AVIA confirmed
+    // no traditional security deposit; they use a EUR 1 debit preauthorisation.
+    // The AVIA examples return DepositAmount == Amount for every offer.
+    // Do not mislabel the rental payment as a security hold or exclude offers
+    // merely because the rental price is above EUR 200.
+    const renteonDepositField = nonNegative(item.DepositAmount);
+    const isAgreedAviaTerms = code === "Avia";
+    const aviaFieldIsPaymentDue = renteonDepositField !== null
+      && amountIsEqual(renteonDepositField, total);
+    const aviaFieldIsSmallHold = renteonDepositField !== null
+      && renteonDepositField <= 1;
     const excess = nonNegative(item.ExcessAmount);
-    if (code !== "demo" && (deposit !== null && deposit > 200 || excess !== null && excess > 0)) {
-      // Do not display offers contradicting Ride24's mandatory deposit/insurance rules.
+    if (code !== "demo" && excess !== null && excess > 0) {
+      // No excess for covered events under AVIA's agreed Ride24 policy.
       continue;
     }
+    if (isAgreedAviaTerms && renteonDepositField !== null
+      && !aviaFieldIsPaymentDue && !aviaFieldIsSmallHold) {
+      // An unexplained amount is unsafe to show as a no-deposit offer.
+      continue;
+    }
+    if (!isAgreedAviaTerms && code !== "demo"
+      && renteonDepositField !== null && renteonDepositField > 200) {
+      continue;
+    }
+    const securityDeposit = isAgreedAviaTerms ? 0 : renteonDepositField;
     const model = txt(item.ModelName, 200) || group;
     const bags = Number(item.BigBagsCapacity || 0) + Number(item.SmallBagsCapacity || 0);
     const priceDate = txt(item.PriceDate, 80);
@@ -275,11 +296,13 @@ export async function aggregatorAvailability(
         maximum_driver_age: nonNegative(item.MaximumDriverAge),
         excess_amount: excess,
         is_on_request: item.IsOnRequest === true,
+        // Metadata for display/audit only; not a security deposit.
+        pay_on_arrival_rental_total_eur: isAgreedAviaTerms ? total : null,
         noCreditCard: true,
         noCardHold: false, // AVIA uses a small debit-card preauthorization.
       },
       mileage_limit: null,
-      deposit_amount: deposit,
+      deposit_amount: securityDeposit,
       active: true,
       driver_included: false,
       location_external_ids: [pickup, dropoff],
