@@ -389,6 +389,7 @@ async function getExchangeRate(currency) {
 }
 
         const classNames = { 
+            "0": "Scooters / ATV",
             A: "Economy", 
             B: "Compact", 
             C: "Sedan", 
@@ -398,6 +399,7 @@ async function getExchangeRate(currency) {
         };
 
         const badgeColors = {
+            "0": { bg: "#F0FDF4", border: "#86EFAC", color: "#166534" },
             A: { bg: '#FFFBEB', border: '#FDE68A', color: '#D97706' }, 
             B: { bg: '#EFF6FF', border: '#BFDBFE', color: '#2563EB' }, 
             C: { bg: '#FAF5FF', border: '#E9D5FF', color: '#7E22CE' }, 
@@ -409,6 +411,7 @@ async function getExchangeRate(currency) {
         function getFeaturesForClass(classCode) {
             const lang = localStorage.getItem("lang") || "pl";
             const f = {
+                '0': { seats: 1, bags: 0, trans: lang === 'pl' ? 'Manualna' : 'Manual' },
                 'A': { seats: 4, bags: 1, trans: lang === 'pl' ? 'Manualna' : 'Manual' },
                 'B': { seats: 5, bags: 2, trans: lang === 'pl' ? 'Manualna' : 'Manual' },
                 'C': { seats: 5, bags: 3, trans: lang === 'pl' ? 'Automatyczna' : 'Automatic' },
@@ -996,7 +999,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     <div class="class-badge-box" style="background-color: ${bc.bg}; border-color: ${bc.border};">
         <span class="class-letter" style="color: ${bc.color};">${classLetter}</span>
         <span class="class-name-small" style="color: ${bc.color}; opacity: 0.9;">
-            ${classNames[classLetter] || 'Auto'}
+            ${classLetter === '0' ? (lang === 'pl' ? 'Skutery / ATV' : 'Scooters / ATV') : (classNames[classLetter] || 'Auto')}
         </span>
     </div>
 
