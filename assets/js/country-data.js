@@ -1494,6 +1494,12 @@ window.RIDE24_COUNTRIES = Object.freeze({
     "pl": "Zambia",
     "flag": "🇿🇲"
   },
+  "Zanzibar": {
+    "code": "TZ",
+    "en": "Zanzibar",
+    "pl": "Zanzibar",
+    "flag": "🇹🇿"
+  },
   "Zimbabwe": {
     "code": "ZW",
     "en": "Zimbabwe",
@@ -2121,6 +2127,8 @@ window.RIDE24_COUNTRY_ALIASES = Object.freeze({
   "tadzykistan": "Tajikistan",
   "tz": "Tanzania",
   "tanzania": "Tanzania",
+  "zanzibar": "Zanzibar",
+  "tanzania_zanzibar": "Zanzibar",
   "th": "Thailand",
   "thailand": "Thailand",
   "tajlandia": "Thailand",
