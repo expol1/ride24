@@ -189,7 +189,10 @@ export async function aggregatorGroups(credentials: PartnerApiCredentials): Prom
         provider: "renteon_aggregator",
         sipp: code,
         noCreditCard: true,
-        noCardHold: false,
+        noCardHold: agencyCode(credentials) === "Avia",
+        requiresPersonalDebitCard: agencyCode(credentials) === "Avia",
+        requiresPersonalDebitCardEvenForCash: agencyCode(credentials) === "Avia",
+        prepaidCardsAccepted: agencyCode(credentials) === "Avia" ? false : null,
       },
       deposit_amount: 0,
       active: true,
@@ -243,7 +246,7 @@ export async function aggregatorAvailability(
     if (rentalAmount !== null && !amountIsEqual(total, rentalAmount)) continue;
     // Renteon POA Availability.DepositAmount may represent the amount due
     // at pickup, NOT a refundable vehicle security deposit. AVIA confirmed
-    // no traditional security deposit; they use a EUR 1 debit preauthorisation.
+    // no traditional deposit and no card preauthorization (AVIA written confirmation).
     // The AVIA examples return DepositAmount == Amount for every offer.
     // Do not mislabel the rental payment as a security hold or exclude offers
     // merely because the rental price is above EUR 200.
@@ -299,7 +302,10 @@ export async function aggregatorAvailability(
         // Metadata for display/audit only; not a security deposit.
         pay_on_arrival_rental_total_eur: isAgreedAviaTerms ? total : null,
         noCreditCard: true,
-        noCardHold: false, // AVIA uses a small debit-card preauthorization.
+        noCardHold: isAgreedAviaTerms, // AVIA confirmed no card preauthorization, even EUR 1.
+        requiresPersonalDebitCard: isAgreedAviaTerms,
+        requiresPersonalDebitCardEvenForCash: isAgreedAviaTerms,
+        prepaidCardsAccepted: isAgreedAviaTerms ? false : null,
       },
       mileage_limit: null,
       deposit_amount: securityDeposit,
