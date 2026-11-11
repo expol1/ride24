@@ -797,6 +797,11 @@ serve(async (req) => {
 
     const parsedResponse = parsePartnerResponse(responsePayload);
     const safeResponse = sanitizePartnerPayload(responsePayload, 12_000);
+    // A provider may save a booking whose final price no longer matches the
+    // Ride24 quote. Preserve its external reference for reconciliation, but
+    // never allow payment or auto-confirmation of this booking.
+    const providerPriceNeedsReview = isRecord(responsePayload)
+      && responsePayload.needs_manual_review === true;
 
     const { data: currentRaw, error: currentError } = await admin
       .from("bookings")
@@ -944,10 +949,12 @@ serve(async (req) => {
       api_booking_reference: parsedResponse.externalReference,
       api_status: parsedResponse.status,
       api_response: safeResponse,
-      manual_review: false,
+      manual_review: providerPriceNeedsReview,
     };
 
-    if (parsedResponse.status === "confirmed") {
+    if (providerPriceNeedsReview) {
+      updatePayload.api_status = "price_mismatch_manual_review";
+    } else if (parsedResponse.status === "confirmed") {
       const reportedAt = reportedConfirmationTime(
         parsedResponse.payload,
         booking.created_at,
