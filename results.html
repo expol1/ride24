@@ -867,9 +867,10 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 // Wyniki: pełne jednostki waluty bez miejsc dziesiętnych.
 // Kwoty rozliczeniowe (finalTotal i baseTotal) pozostają dokładne.
 const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-}).format(Math.round(finalTotal));
+    // API quote totals must match separate pickup and online amounts to the cent.
+    minimumFractionDigits: car.api_managed ? 2 : 0,
+    maximumFractionDigits: car.api_managed ? 2 : 0
+}).format(car.api_managed ? finalTotal : Math.round(finalTotal));
 
 // --- KONIEC LOGIKI ---
 
