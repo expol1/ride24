@@ -955,6 +955,9 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                     }
 
                     // 🔥 DODATKOWE ZNACZKI Z JSON
+                    const debitCardHtml = parsedFeatures.requiresPersonalDebitCardEvenForCash === true
+                        ? `<div class="feature-item" style="grid-column:1 / -1"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Wymagana imienna, fizyczna karta debetowa także przy płatności gotówką (bez prepaid i wirtualnych)' : 'Physical named debit card required even when paying cash (no prepaid or virtual cards)'}</div>`
+                        : '';
                     const creditCardHtml = parsedFeatures.noCreditCard 
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej i blokady karty' : 'No credit card or card hold'}</div>` 
                         : '';
@@ -971,6 +974,12 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                     const row = document.createElement('div');
                     row.className = 'car-row';
                     row.style.position = "relative";
+                    const sipp = car.api_managed ? String(parsedFeatures.sipp || "").toUpperCase() : "";
+                    const sippCategory = ({
+                        M: "Mini", E: "Economy", C: "Compact", I: "Intermediate",
+                        S: "Standard", F: "Full-size", P: "Premium", L: "Luxury",
+                        X: "Special"
+                    })[sipp.charAt(0)] || "";
                     const safeCarId = /^[0-9a-f-]{36}$/i.test(String(car.id || "")) ? String(car.id) : "";
                     const safeQuoteId = /^[0-9a-f-]{36}$/i.test(String(car.api_quote_id || "")) ? String(car.api_quote_id) : "";
                     const fullImageUrl = safeImageUrl(car.image);
@@ -983,6 +992,13 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                     const safeCarCode = escapeHtmlValue(car.class_code || classLetter);
                     const safeCarTitle = escapeHtmlValue(car.description || car.example_model || car.model || car.class_code || "Car");
                     const safeCurrency = escapeHtmlValue(carCurrency);
+                    const moneyFormatter = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
+                        minimumFractionDigits: 2, maximumFractionDigits: 2
+                    });
+                    const apiFeeSplit = car.api_managed && safeQuoteId ? `
+                      <div class="price-info">${lang === 'pl' ? 'AVIA przy odbiorze' : 'Rental company at pickup'}: ${moneyFormatter.format(baseTotal)} ${safeCurrency}</div>
+                      <div class="price-info">${lang === 'pl' ? 'Opłata Ride24 online (przed rabatem lojalnościowym)' : 'Ride24 fee online (before loyalty discount)'}: ${moneyFormatter.format(Math.max(0, finalTotal - baseTotal))} ${safeCurrency}</div>
+                    ` : "";
 
                     row.innerHTML = `
 <div class="car-img-box">
@@ -999,7 +1015,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     <div class="class-badge-box" style="background-color: ${bc.bg}; border-color: ${bc.border};">
         <span class="class-letter" style="color: ${bc.color};">${classLetter}</span>
         <span class="class-name-small" style="color: ${bc.color}; opacity: 0.9;">
-            ${classLetter === '0' ? (lang === 'pl' ? 'Skutery / ATV' : 'Scooters / ATV') : (classNames[classLetter] || 'Auto')}
+            ${sippCategory || (classLetter === '0' ? (lang === 'pl' ? 'Skutery / ATV' : 'Scooters / ATV') : (classNames[classLetter] || 'Auto'))}
         </span>
     </div>
 
@@ -1022,6 +1038,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
         ${mileageHtml}
         ${depositHtml}
         ${creditCardHtml}
+        ${debitCardHtml}
         ${insuranceHtml}
         ${roadsideAssistanceHtml}
 
@@ -1045,8 +1062,9 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 </div>
 
 <div class="car-price-box">
-    <div class="price-info">${lang === 'pl' ? 'Wynajem' : 'Rental'} ${labels.daysInfo}</div>
+    <div class="price-info">${car.api_managed ? (lang === 'pl' ? 'Łącznie: wynajem + opłata Ride24' : 'Total: rental + Ride24 fee') : (lang === 'pl' ? 'Wynajem' : 'Rental')} ${labels.daysInfo}</div>
     <div class="price-total">${displayTotal} <span>${safeCurrency}</span></div>
+    ${apiFeeSplit}
     ${locationFeesByCar.get(car) > 0
         ? `<div class="price-info">${lang === 'pl' ? 'Opłaty za odbiór i zwrot' : 'Pickup and return fees'}: ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(locationFeesByCar.get(car))} ${safeCurrency}</div>`
         : ''}
