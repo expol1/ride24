@@ -501,7 +501,7 @@ async function createVoucherPdf(
   );
 
   if (booking.api_booking_reference) {
-    page.drawText(fitText(font, `Supplier ref / Nr AVIA: ${booking.api_booking_reference}`, 9, 245), {
+    page.drawText(fitText(font, `Supplier ref / Nr wypożyczalni: ${booking.api_booking_reference}`, 9, 245), {
       x: 300, y: 714, size: 9, font, color: rgb(0.88, 0.92, 0.97),
     });
   }
@@ -631,14 +631,14 @@ async function createVoucherPdf(
       color: textGray,
     });
     y -= 18;
-    page.drawText("Paid online to Ride24 / Oplacono online:", {
+    page.drawText("Paid online to Ride24 / Opłacono online:", {
       x: 60, y, size: 10, font, color: textGray,
     });
     page.drawText(`${booking.online_payment_pln.toFixed(2)} PLN`, {
       x: 385, y, size: 11, font: bold, color: brandBlue,
     });
     y -= 22;
-    page.drawText("To pay at pickup / Do zaplaty na miejscu:", {
+    page.drawText("To pay at pickup / Do zapłaty na miejscu:", {
       x: 60, y, size: 10, font, color: textGray,
     });
     page.drawText(
