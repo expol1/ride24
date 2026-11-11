@@ -476,7 +476,43 @@ async function getExchangeRate(currency) {
                 }
 
                 const filters = JSON.parse(searchParamsStr);
-                const loc = filters.pickup_location; 
+                const loc = filters.pickup_location;
+                // Refresh saved selections: the display label is never the provider lookup key.
+                // Old browser sessions may contain Polish labels from before normalization.
+                async function refreshSelectedLocation(selected) {
+                    if (!selected) return selected;
+                    let q = db.from('partner_locations')
+                        .select('id,partner_id,location_name,display_name,country,region,city,type,external_id')
+                        .eq('active', true);
+                    if (selected.id) {
+                        q = q.eq('id', selected.id);
+                    } else if (selected.location_name) {
+                        q = q.eq('location_name', selected.location_name);
+                    } else if (selected.name) {
+                        const safe = String(selected.name).replace(/["%,]/g, '').trim();
+                        q = q.or(`display_name.eq."${safe}",location_name.eq."${safe}"`);
+                    } else {
+                        return selected;
+                    }
+                    const { data, error } = await q.limit(1);
+                    if (error) console.warn('Location refresh:', error.message);
+                    const current = data?.[0];
+                    return current ? {
+                        ...selected,
+                        id: current.id,
+                        partner_id: current.partner_id,
+                        name: current.display_name || current.location_name,
+                        location_name: current.location_name,
+                        country: current.country,
+                        region: current.region,
+                        city: current.city,
+                        type: current.type || selected.type
+                    } : selected;
+                }
+                filters.pickup_location = await refreshSelectedLocation(loc);
+                filters.drop_location = await refreshSelectedLocation(filters.drop_location || loc);
+                Object.assign(loc, filters.pickup_location);
+                localStorage.setItem('searchParams', JSON.stringify(filters));
 
                 // --- 🛡️ ZABEZPIECZENIE PRZED STARYMI DANYMI (EDGE CASE) ---
                 if (!loc || !loc.type || !loc.name) {
