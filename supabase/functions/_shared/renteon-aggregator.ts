@@ -131,6 +131,7 @@ export async function aggregatorTest(credentials: PartnerApiCredentials): Promis
 }
 
 export async function aggregatorLocations(credentials: PartnerApiCredentials): Promise<ApiLocation[]> {
+  const avia = agencyCode(credentials) === "Avia";
   const response = await setup(credentials);
   const offices = arr(response.Offices).map(obj).filter((o): o is Obj => !!o);
   const enabledCodes = new Set(
@@ -161,7 +162,9 @@ export async function aggregatorLocations(credentials: PartnerApiCredentials): P
       extra_fee_amount: null,
       return_fee_amount: null,
       contact_required: false,
-      active: true,
+      // AVIA contract / current Ride24 territory: Croatia only.
+      // Keep other aggregator locations as inactive metadata, even after resync.
+      active: !avia || country === "Croatia",
     });
   }
   return locations;
@@ -254,15 +257,14 @@ export async function aggregatorAvailability(
     const isAgreedAviaTerms = code === "Avia";
     const aviaFieldIsPaymentDue = renteonDepositField !== null
       && amountIsEqual(renteonDepositField, total);
-    const aviaFieldIsSmallHold = renteonDepositField !== null
-      && renteonDepositField <= 1;
+    const aviaFieldIsZero = renteonDepositField === 0;
     const excess = nonNegative(item.ExcessAmount);
     if (code !== "demo" && excess !== null && excess > 0) {
       // No excess for covered events under AVIA's agreed Ride24 policy.
       continue;
     }
     if (isAgreedAviaTerms && renteonDepositField !== null
-      && !aviaFieldIsPaymentDue && !aviaFieldIsSmallHold) {
+      && !aviaFieldIsPaymentDue && !aviaFieldIsZero) {
       // An unexplained amount is unsafe to show as a no-deposit offer.
       continue;
     }
