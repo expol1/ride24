@@ -130,6 +130,14 @@ export async function aggregatorTest(credentials: PartnerApiCredentials): Promis
   }
 }
 
+function transmissionFromSipp(sipp: string): string | null {
+  // ACRISS/SIPP position 3 is the transmission/drive code; do not guess fuel.
+  const transmissionCode = sipp[2]?.toUpperCase();
+  if (["A", "B", "D"].includes(transmissionCode)) return "automatic";
+  if (["M", "N", "C"].includes(transmissionCode)) return "manual";
+  return null;
+}
+
 export async function aggregatorLocations(credentials: PartnerApiCredentials): Promise<ApiLocation[]> {
   const avia = agencyCode(credentials) === "Avia";
   const response = await setup(credentials);
@@ -188,6 +196,7 @@ export async function aggregatorGroups(credentials: PartnerApiCredentials): Prom
       example_model: code,
       model: code,
       description: "Renteon " + code,
+      transmission: transmissionFromSipp(code),
       features: {
         provider: "renteon_aggregator",
         sipp: code,
@@ -289,8 +298,8 @@ export async function aggregatorAvailability(
       example_model: model,
       model,
       description: model + " (" + group + ")",
-      transmission: null,
-      fuel_type: null,
+      transmission: transmissionFromSipp(group),
+      fuel_type: null, // Provider quote does not verify fuel; never invent it.
       seats: finiteInt(item.PassengerCapacity),
       bags: Number.isFinite(bags) && bags >= 0 ? bags : null,
       image: null, // Images are on provider domains, not the aggregator origin.
@@ -300,6 +309,7 @@ export async function aggregatorAvailability(
         minimum_driver_age: nonNegative(item.MinimumDriverAge),
         maximum_driver_age: nonNegative(item.MaximumDriverAge),
         excess_amount: excess,
+        fullInsurance: isAgreedAviaTerms && excess === 0,
         is_on_request: item.IsOnRequest === true,
         // Metadata for display/audit only; not a security deposit.
         pay_on_arrival_rental_total_eur: isAgreedAviaTerms ? total : null,
