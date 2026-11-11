@@ -52,7 +52,7 @@
     const country = String(location?.country || "").trim().toLowerCase();
     const label = country === "turkey" ? turkishAirports[key]
       : country === "croatia" ? croatianAirports[key] : null;
-    if (label) return label.en; // Canonical airport labels; Polish aliases are search-only.
+    if (label) return key; // Temporary AVIA diagnostic: show the exact Renteon source name.
     if (country === "egypt" && language === "pl" && hurghadaPolish[key]) {
       return hurghadaPolish[key];
     }
