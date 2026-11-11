@@ -996,7 +996,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                         minimumFractionDigits: 2, maximumFractionDigits: 2
                     });
                     const apiFeeSplit = car.api_managed && safeQuoteId ? `
-                      <div class="price-info">${lang === 'pl' ? 'AVIA przy odbiorze' : 'Rental company at pickup'}: ${moneyFormatter.format(baseTotal)} ${safeCurrency}</div>
+                      <div class="price-info">${lang === 'pl' ? 'Wypożyczalnia przy odbiorze' : 'Rental company at pickup'}: ${moneyFormatter.format(baseTotal)} ${safeCurrency}</div>
                       <div class="price-info">${lang === 'pl' ? 'Opłata Ride24 online (przed rabatem lojalnościowym)' : 'Ride24 fee online (before loyalty discount)'}: ${moneyFormatter.format(Math.max(0, finalTotal - baseTotal))} ${safeCurrency}</div>
                     ` : "";
 
