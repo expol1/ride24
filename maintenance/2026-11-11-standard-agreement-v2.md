@@ -1,12 +1,12 @@
-# Standard partnership agreement v2.0 — prepared, not released
+# Standard partnership agreement v2.0 — release candidate
 
 Base production commit: `5ddd023d7da510a9c5e48c09d45d7bb5c1510842`.
 
 The existing generator in `partner-dashboard.html` now contains all 17 sections supplied by the owner. The full supplied source is retained in `docs/standard-partnership-agreement-v2.0.txt`. Standard contracts use the English text in every panel language, with an explicit English-document notice. Individual PDF language routing remains unchanged. Standard acceptance submits v2.0 through the existing RPC; the exact displayed HTML, currency and existing electronic evidence are captured. Partner fields are HTML-escaped. No schema, RLS, RPC, account, discount, price, rental-document, payment, API, notification or Android change is included.
 
-## Release hold: contracting-party identity
+## Contracting-party identity confirmed
 
-The supplied preamble names the brand/domain Ride24.pl and says Emilia Sowa represents it. Existing public policies identify only Ride24; they do not establish a separate legal entity or confirm whether Emilia Sowa personally operates the service. Earlier owner context described unregistered activity. Confirm the legal contracting party before publishing; do not invent a company registration or treat a domain as a separate legal person. If Emilia Sowa is the operator personally, identify her as operating under the Ride24.pl brand, and replace “Both Parties remain independent businesses” with wording appropriate to the confirmed status, preserving their independence. The supplied wording is retained in this review branch pending that clarification.
+The owner confirmed that Emilia Sowa personally operates Ride24.pl as unregistered activity in Poland. The preamble now identifies Emilia Sowa as the contracting party operating under that brand, and section 1.4 states that both parties act independently and on their own behalf. No separate legal entity or registration number is invented.
 
 ## Consistency review (not a formal legal opinion)
 
@@ -33,6 +33,10 @@ Sources consulted: https://api.sejm.gov.pl/eli/acts/DU/2026/795/text.html ; http
 
 ## Deployment and rollback
 
-After the identity clarification, update only the preamble/related status wording and source document, rerun affected tests, verify current main and production partner statuses, then use the existing GitHub/Cloudflare Pages pipeline. Check CI and the deployment check, retrieve the published dashboard and verify v2.0, then compare signed evidence hashes and individual-document checksums. Do not update pending database version fields: they record the accepted version only when acceptance succeeds.
+After successful tests, verify current main and production partner statuses, then use the existing GitHub/Cloudflare Pages pipeline. Check CI and the deployment check, retrieve the published dashboard and verify v2.0, then compare signed evidence hashes and individual-document checksums. Do not update pending database version fields: they record the accepted version only when acceptance succeeds.
 
 Rollback: revert this release's frontend commit through the normal pipeline, preserving subsequent unrelated commits. The base commit above retains the prior generator. Never restore an old database or overwrite any snapshot, even if a partner has accepted v2.0 after deployment; historical previews use saved content and remain readable independently of the current generator.
+
+## Existing unrelated CI failure
+
+API compatibility checks fail in two adapter tests because the test sandbox does not handle the existing `./renteon-aggregator.ts` import. Both failures were reproduced on untouched production commit `5ddd023d7da510a9c5e48c09d45d7bb5c1510842` in a detached worktree. API implementation and tests are outside this change and remain untouched. Agreement, custom-PDF, onboarding and language tests passed after operator identity correction.
