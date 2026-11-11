@@ -47,6 +47,8 @@ type PickupLocationRelation = {
 type BookingRow = {
   id: string;
   client_id: string;
+  partner_id: string | null;
+  main_driver_name: string | null;
   status: string;
   reservation_code: string;
   start_date: string;
@@ -253,6 +255,8 @@ function normalizeBooking(value: unknown): BookingRow | null {
   return {
     id: value.id,
     client_id: value.client_id,
+    partner_id: isUuid(value.partner_id) ? value.partner_id : null,
+    main_driver_name: cleanText(value.main_driver_name, 200) || null,
     status: value.status,
     reservation_code: reservationCode,
     start_date: startDate,
@@ -516,7 +520,7 @@ async function createVoucherPdf(
     color: textGray,
   });
   y -= 25;
-  drawValue(page, font, bold, "Name / Imię i nazwisko:", booking.client.name, y);
+  drawValue(page, font, bold, "Main driver / Główny kierowca:", booking.main_driver_name || booking.client.name, y);
   y -= 18;
   drawValue(page, font, bold, "Phone / Telefon:", booking.client.phone, y);
   y -= 18;
@@ -716,6 +720,22 @@ async function createVoucherPdf(
     height: 85,
   });
 
+  // AVIA requires a bank-issued physical debit card from the named main driver,
+  // even if the rental is paid in cash. No card details are collected by Ride24.
+  if (booking.partner_id === "91e04805-31da-4242-9e6f-b6075019d784") {
+    const notice = [
+      "AVIA: main driver must present a physical, named bank debit card.",
+      "Also for cash payments. No prepaid, virtual or anonymous cards.",
+      "AVIA: fizyczna, imienna karta debetowa także przy płatności gotówką.",
+      "Bez kaucji i blokady środków. Karty prepaid i wirtualne wykluczone.",
+    ];
+    notice.forEach((line, index) => {
+      page.drawText(fitText(font, line, 8, 390), {
+        x: 50, y: 98 - index * 11, size: 8, font, color: brandBlue,
+      });
+    });
+  }
+
   page.drawText(
     "Please present this voucher when picking up the vehicle.",
     {
@@ -760,6 +780,8 @@ async function loadBooking(
     .select(`
       id,
       client_id,
+      partner_id,
+      main_driver_name,
       status,
       reservation_code,
       start_date,
