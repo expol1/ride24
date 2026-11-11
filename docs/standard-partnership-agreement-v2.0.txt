@@ -1,0 +1,137 @@
+RIDE24.PL
+STANDARD PARTNERSHIP AGREEMENT
+Version 2.0 — Friendly & Fair Cooperation
+
+This Partnership Agreement ("Agreement") is entered into between:
+Ride24.pl, operating from Przyszłości 38/3, 70-893 Szczecin, Poland, represented by Emilia Sowa, email: kontakt@ride24.pl, hereinafter referred to as "Ride24",
+and
+[Partner Company Name], located at [Partner Address], represented by [Representative Name], email: [Partner Email], hereinafter referred to as the "Partner".
+Together referred to as the "Parties".
+
+§1. Our Partnership
+1. Ride24 and the Partner agree to cooperate in promoting and facilitating vehicle rental services through the Ride24.pl platform.
+2. Our cooperation is based on mutual trust, transparency, independence and a shared commitment to excellent customer service.
+3. Ride24 connects customers with independent local rental companies. The vehicle rental agreement is concluded directly between the Partner and the customer.
+4. Both Parties remain independent businesses. Nothing in this Agreement creates an employment relationship, joint venture or general agency relationship.
+
+§2. Free Partnership and Independence
+1. Joining Ride24 is completely free for the Partner.
+2. Ride24 does not charge the Partner any registration fees, subscriptions or commissions on rental transactions.
+3. The Partner retains full control over its fleet, rental prices, availability and business operations.
+4. The Partner may freely cooperate with other platforms and customers.
+5. Territorial exclusivity applies only when expressly agreed by both Parties in a separate written or electronically accepted arrangement.
+
+§3. Prices and Optional Partner Discount
+1. The Partner determines its own rental prices.
+2. The Parties may agree on an optional Partner Discount of [Discount %], including 0%.
+3. The agreed discount is applied only in accordance with the pricing model agreed between the Parties. Where specially negotiated net prices are provided through an API, no additional discount applies unless expressly agreed.
+4. Ride24 may independently determine its own booking fee, promotions and marketing offers, provided that the Partner receives the agreed rental amount.
+5. The Partner is not required to maintain price parity with its website or other distribution channels.
+6. The Partner agrees to honour the rental price and conditions confirmed in each accepted reservation.
+
+§4. Customer Payments
+1. Customers pay the vehicle rental amount directly to the Partner, using the payment methods accepted and disclosed by the Partner.
+2. Ride24 may collect its own separate booking fee from customers when they reserve through the platform.
+3. Ride24 does not collect or hold the Partner's rental payment.
+4. Each Party is responsible for its own applicable taxes, accounting and payment obligations.
+
+§5. Partner Dashboard
+1. Ride24 provides the Partner with free access to its online Partner Dashboard and supported partner tools.
+2. The Partner can manage vehicles, rental prices, availability, pickup and return locations, and relevant rental conditions.
+3. Both Parties agree to cooperate in maintaining accurate and reliable information.
+4. Ride24 will provide reasonable assistance with initial account setup and technical integration.
+5. Planned changes affecting the Partner's use of the platform should be communicated in advance whenever reasonably possible.
+
+§6. Reservations and Customer Care
+1. Ride24 forwards reservations and relevant booking information to the Partner through the agreed booking process.
+2. For manually managed reservations, the Partner should respond within the agreed confirmation period, normally 24 hours. For API integrations, the agreed automated confirmation process applies.
+3. Once a reservation is confirmed, the Partner agrees to honour the agreed vehicle category, rental price, pickup arrangements and rental conditions.
+4. If an unexpected problem occurs, both Parties will work together in good faith to find a reasonable solution for the customer.
+5. Any vehicle substitution should be of an equivalent or higher category without additional cost to the customer, unless the customer agrees otherwise.
+6. The Partner may communicate directly with customers to arrange collection, return and other matters related to the rental.
+
+§7. Rental Conditions and Insurance
+1. The Partner is responsible for providing accurate rental terms, insurance information and any applicable restrictions or additional charges.
+2. Rental offers published through Ride24 must comply with the rental conditions individually agreed for the Partner's account.
+3. The Partner shall clearly disclose any permitted deposit, deductible, exclusions, age restrictions, additional fees or special requirements before the customer confirms the reservation.
+4. Charges not properly disclosed before confirmation must not be imposed merely because the customer booked through Ride24.
+5. The Partner remains responsible for performing the rental service in accordance with its accepted rental terms and applicable law.
+
+§8. Respecting Our Customers and Bookings
+1. Both Parties agree to respect confirmed Ride24 reservations.
+2. Neither Party shall intentionally interfere with an existing confirmed reservation to avoid agreed obligations or payments.
+3. The Partner remains free to accept independent bookings through its own website, telephone, office or other platforms.
+4. Customers are also free to contact the Partner directly for future rentals.
+5. This Agreement does not restrict normal customer communication, assistance or long-term customer relationships.
+
+§9. Marketing and Brand Identity
+1. Ride24 may promote the Partner's rental offers through its website, advertising campaigns and other marketing channels.
+2. The Partner grants Ride24 a non-exclusive, royalty-free permission to use the vehicle photographs, company name, logo and offer descriptions supplied or authorised by the Partner for the purpose of promoting its services during the cooperation.
+3. The Partner retains ownership of its brand and materials and confirms it has the rights needed to authorise their use.
+4. Neither Party may falsely represent itself as the owner or operator of the other Party's business.
+5. Marketing materials must be presented accurately and professionally.
+
+§10. Confidentiality and Mutual Respect
+1. Both Parties agree to treat non-public commercial and technical information received during cooperation as confidential.
+2. Confidentiality does not prevent disclosures required by law, disclosures to professional advisers under appropriate confidentiality obligations, or the use of information already lawfully public.
+3. Both Parties agree to communicate respectfully and seek practical solutions when difficulties arise.
+4. Confidentiality obligations continue after termination for as long as the information remains legitimately confidential.
+
+§11. Responsibility and Fairness
+1. The Partner is responsible for the vehicles, their legal operation, rental service, insurance arrangements and customer handover.
+2. Ride24 is responsible for operating its platform, handling its own booking fees and transmitting reservation information within the agreed workflow.
+3. Each Party is responsible for losses arising from its own breach of this Agreement, negligence or unlawful conduct, to the extent provided by applicable law.
+4. Neither Party guarantees a specific number of reservations, sales volume or revenue.
+5. Neither Party shall be liable for indirect or consequential business losses, except where such exclusion is prohibited by applicable law.
+6. Nothing in this Agreement excludes liability that cannot legally be excluded, including liability for intentional misconduct where applicable.
+
+§12. Personal Data Protection
+1. Both Parties agree to comply with applicable personal data protection laws, including GDPR where applicable.
+2. Customer data may be used only for legitimate purposes connected with reservations, rental services, customer support, legal obligations and other purposes supported by a valid legal basis.
+3. Each Party must apply appropriate security measures and limit access to personal data to authorised persons.
+4. The Parties shall cooperate reasonably in responding to data protection incidents and lawful customer requests.
+5. Where the Parties' actual processing activities require a separate data processing or data-sharing agreement, they shall enter into one.
+
+§13. Duration and Ending Our Cooperation
+1. This Agreement is concluded for an indefinite period, with the intention of building a positive and lasting business relationship.
+2. Either Party may terminate the Agreement at any time, without giving a reason, by providing 30 days' notice by email or another agreed written communication method.
+3. No contractual penalty or termination fee applies to ordinary termination.
+4. The Parties may end their cooperation earlier by mutual agreement.
+5. Where a material breach occurs, the affected Party should normally provide written notice and a reasonable opportunity to resolve the issue, ordinarily 14 days.
+6. Immediate suspension or termination is permitted where reasonably necessary due to fraud, serious customer safety concerns, unlawful conduct or another serious risk that cannot reasonably wait for a remedy period.
+7. Confirmed reservations made before termination shall remain valid and shall be fulfilled under their agreed terms, unless lawful cancellation or an alternative arrangement is agreed with the affected customer.
+8. Both Parties shall cooperate reasonably to complete outstanding reservations and resolve any remaining customer matters.
+
+§14. Changes to Our Agreement
+1. Both Parties may suggest improvements to this Agreement at any time.
+2. Material amendments require the agreement of both Parties, confirmed in writing or electronically.
+3. Ride24 may update technical instructions or operational procedures where these do not materially alter the Partner's contractual rights or financial obligations.
+4. If a proposed material amendment is not accepted, the existing terms remain in effect unless the Agreement is terminated in accordance with §13.
+
+§15. Applicable Law and Friendly Dispute Resolution
+1. This Agreement is governed by Polish law, subject to applicable mandatory legal provisions.
+2. If a disagreement arises, both Parties agree to first attempt to resolve it through direct, good-faith discussions.
+3. If no solution is reached within 30 days of written notice of the dispute, either Party may refer the matter to the competent courts in accordance with applicable jurisdiction rules.
+4. Nothing prevents either Party from seeking urgent legal protection where necessary.
+
+§16. Electronic Acceptance
+1. The Agreement may be accepted electronically through the Ride24 Partner Dashboard.
+2. The Partner confirms that the person accepting the Agreement is authorised to act on behalf of the Partner.
+3. Ride24 may record the accepted version, acceptance date, time and relevant technical evidence for verification and recordkeeping.
+4. Electronic acceptance is intended to have the legal effect permitted by applicable law.
+
+§17. Final Provisions
+1. This Agreement constitutes the standard framework for cooperation between Ride24 and the Partner.
+2. Individually agreed commercial arrangements, API integration terms, territorial exclusivity or other special conditions may be documented separately and shall prevail over conflicting standard provisions to the extent expressly agreed.
+3. If any provision is held invalid or unenforceable, the remaining provisions shall remain effective.
+4. Neither Party may transfer its contractual obligations to another business without the other Party's prior consent, except where permitted by law or expressly agreed.
+5. Both Parties undertake to act in good faith and support a fair, reliable and mutually beneficial partnership.
+
+PARTNER ACCEPTANCE
+Partner Company: [Automatically populated]
+Representative: [Automatically populated]
+Agreed Partner Discount: [Automatically populated]
+Agreement Version: v2.0
+Date and Time: [Recorded upon acceptance]
+Electronic Acceptance: [Recorded by Ride24]
+Welcome to the Ride24 partner family. We look forward to growing together.

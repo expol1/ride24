@@ -9,6 +9,8 @@ on:
       - 'supabase/functions/admin-partner-custom-agreement/**'
       - 'supabase/migrations/*custom_partner_agreements.sql'
       - 'tests/backend-hardening/test-custom-partner-agreements.mjs'
+      - 'tests/backend-hardening/test-standard-agreement-*.mjs'
+      - 'docs/standard-partnership-agreement-v2.0.txt'
       - '.github/workflows/custom-partner-agreements.yml'
   push:
     branches: [main]
@@ -20,6 +22,8 @@ on:
       - 'supabase/functions/admin-partner-custom-agreement/**'
       - 'supabase/migrations/*custom_partner_agreements.sql'
       - 'tests/backend-hardening/test-custom-partner-agreements.mjs'
+      - 'tests/backend-hardening/test-standard-agreement-*.mjs'
+      - 'docs/standard-partnership-agreement-v2.0.txt'
   workflow_dispatch:
 jobs:
   verify:
@@ -37,3 +41,10 @@ jobs:
           node --check assets/js/partner-custom-agreements.js
       - name: Verify PDF checksum, signing guard and standard fallback
         run: node --test tests/backend-hardening/test-custom-partner-agreements.mjs
+      - name: Install pinned test dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: tests/backend-hardening
+      - name: Verify standard v2.0 rendering and isolated acceptance
+        run: |
+          node --test tests/backend-hardening/test-standard-agreement-v2.mjs
+          node tests/backend-hardening/test-standard-agreement-db.mjs

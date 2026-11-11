@@ -69,7 +69,7 @@ function setup({stored, preferred = ['en-GB'], storageBlocked = false} = {}) {
     w.eval(catalogCode); w.eval(runtimeCode); w.eval(read('assets/helper/partnerExtras.js')); w.eval(read('assets/js/location-names.js'));
     const functions = ['getPartnerLang','partnerText','partnerLabel','applyPartnerLanguage','setLang',
         'collectFeatures','saveVehicle','normalizeLocationInput','saveLocation','renderAgreement','toggleSignButton',
-        'showSignedAgreement','openPartnerBookingItems','deactivatePartnerAccount'];
+        'escapeHtmlValue','showSignedAgreement','openPartnerBookingItems','deactivatePartnerAccount'];
     w.eval(`const db=window.__testDB;let currentSeasonalCarId=null;let currentPartnerCurrency='EUR';
         let partnerData={id:'test-partner',company_name:'Airport Office',country:'Albania',address:'Test address',discount_percent:10};
         ${declaration('agreementTexts')}
@@ -278,7 +278,7 @@ test('French applies to panel, price templates, agreement controls and the illus
         assert.equal(s.i18n.text('Odbiór: 50.00 EUR · Zwrot: 0.00 EUR','Pickup: 50.00 EUR · Return: 0.00 EUR'),
             'Prise en charge : 50.00 EUR · Retour : 0.00 EUR');
         s.w.renderAgreement('fr');
-        assert.match(s.d.getElementById('ag-content').textContent,/PARTNER AGREEMENT/);
+        assert.match(s.d.getElementById('ag-content').textContent,/STANDARD PARTNERSHIP AGREEMENT/);
         assert.equal(s.d.getElementById('ag-title').textContent,'Acceptation du contrat');
         const manual=JSON.parse(read('assets/partner-guide/manual.json'));
         s.w.fetch=async()=>({ok:true,json:async()=>structuredClone(manual)});
@@ -399,17 +399,15 @@ test('guide follows the panel language unless its own language was explicitly ch
     } finally {s.dom.window.close();}
 });
 
-test('legal templates remain original PL/EN while agreement chrome follows panel language', () => {
+test('standard v2.0 stays English while panel labels localize and signed snapshots remain original', () => {
     const s=setup({stored:'el'});
     try {
-        const agreement=ast.statements.find(n=>ts.isVariableStatement(n)&&n.declarationList.declarations.some(x=>x.name.getText(ast)==='agreementTexts'))
-            .declarationList.declarations.find(x=>x.name.getText(ast)==='agreementTexts').initializer;
-        const hashes={en:'abef543247ebff9eb13509141351be08fdaa8347faf906b6431a78f53a7c77f7',pl:'b7a2160aba0e8c659d67e412cf0540a9cba6f1bbeb9c6f0b36e526cbbd2cb11d'};
-        for (const prop of agreement.properties) {
-            const content=prop.initializer.properties.find(x=>x.name.getText(ast)==='content');
-            assert.equal(createHash('sha256').update(content.initializer.getText(ast)).digest('hex'),hashes[prop.name.getText(ast)]);
-        }
-        s.w.renderAgreement('el');assert.match(s.d.getElementById('ag-content').textContent,/PARTNER AGREEMENT/);
+        s.w.renderAgreement('el');
+        assert.match(s.d.getElementById('ag-content').textContent,/STANDARD PARTNERSHIP AGREEMENT/);
+        assert.equal(s.d.getElementById('ag-content').querySelectorAll('h3').length,17);
+        const english=s.d.getElementById('ag-content').innerHTML;
+        s.w.renderAgreement('pl');
+        assert.equal(s.d.getElementById('ag-content').innerHTML,english);
         assert.match(s.d.getElementById('ag-title').textContent,/Αποδοχή/);
         const signedHTML='<h2>Original signed agreement</h2><p>Terms in English.</p>';
         s.w.__setPartnerData({agreement_snapshot:JSON.stringify({lang:'en',content:signedHTML})});s.w.showSignedAgreement();
