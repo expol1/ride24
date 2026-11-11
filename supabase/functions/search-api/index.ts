@@ -740,8 +740,11 @@ async function searchPartner(
       api_pickup_external_id: pickupLocation.external_id || null,
       api_dropoff_external_id: dropoffLocation.external_id || null,
       noCreditCard: true,
-      // AVIA requires a EUR 1 debit-card pre-authorization; not "no card hold".
-      noCardHold: partner.api_provider === "renteon_aggregator" ? false : true,
+      // AVIA has explicitly waived all holds; other aggregator providers must
+      // independently declare noCardHold before the UI may state this.
+      noCardHold: partner.api_provider === "renteon_aggregator"
+        ? group.features?.noCardHold === true
+        : true,
     };
     // An upstream provider must not reintroduce contradictory card requirements.
     delete mergedFeatures.creditCardRequired;
