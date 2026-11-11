@@ -1383,7 +1383,7 @@ export async function cancelProviderBooking(
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
   if (provider === "renteon_aggregator") {
-    return await aggregatorCancel();
+    return await aggregatorCancel(credentials, externalReference);
   }
 
   if (provider === "renteon") {
