@@ -26,6 +26,7 @@ type BookingBody = {
   pickup_location?: unknown;
   return_location?: unknown;
   terms_accepted?: unknown;
+  avia_personal_debit_card_acknowledged?: unknown;
   api_quote_id?: unknown;
   pricing_version?: unknown;
   pricing_fingerprint?: unknown;
@@ -955,6 +956,17 @@ serve(async (req) => {
       );
     }
 
+    // A physical, named bank debit card is mandatory for AVIA Ride24 rentals
+    // even when paying cash. Never collect/store actual card data here.
+    const isAvia = car.partner_id === "91e04805-31da-4242-9e6f-b6075019d784";
+    if (isAvia && body.avia_personal_debit_card_acknowledged !== true) {
+      return jsonResponse(req, {
+        code: "AVIA_PERSONAL_DEBIT_CARD_ACK_REQUIRED",
+        error: "AVIA: potwierdź posiadanie fizycznej, imiennej karty debetowej z normalnego konta bankowego. Karty prepaid, wirtualne i anonimowe są niedozwolone także przy płatności gotówką.",
+        error_en: "AVIA: confirm that the main driver will present a physical, named bank debit card linked to a regular bank account, even when paying cash. Prepaid, virtual and anonymous cards are prohibited."
+      }, 400);
+    }
+
     // Authoritative protection: old apps and direct API requests cannot bypass
     // the minimum even if they never saw the optional web notice.
     if (!meetsMinimumRental(duration, car.partner.min_rental_days)) {
@@ -1354,6 +1366,7 @@ serve(async (req) => {
       platform_terms_version: PLATFORM_TERMS_VERSION,
       terms_accepted: true,
       terms_accepted_at: nowIso,
+      avia_debit_card_acknowledged: isAvia && body.avia_personal_debit_card_acknowledged === true,
       pickup_location: pickupName,
       return_location: returnName,
       partner_public_price_snapshot: publicPriceSnapshot,
