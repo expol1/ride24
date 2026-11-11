@@ -41,6 +41,7 @@ type CarClassRelation = {
 
 type PickupLocationRelation = {
   location_name: string;
+  display_name: string | null;
 };
 
 type BookingRow = {
@@ -60,11 +61,14 @@ type BookingRow = {
   driver_hours_snapshot: string | null;
   pricing_items_snapshot: ReturnType<typeof validateVoucherPricing>;
   pickup_payment_partner_currency: number;
+  online_payment_pln: number;
   partner_currency: string;
+  api_booking_reference: string | null;
   client: ClientRelation;
   partner: PartnerRelation;
   carClass: CarClassRelation;
   pickupLocation: PickupLocationRelation | null;
+  dropoffLocation: PickupLocationRelation | null;
 };
 
 type VoucherRow = {
@@ -213,7 +217,10 @@ function normalizePickupLocation(
 ): PickupLocationRelation | null {
   const row = firstRecord(value);
   const locationName = cleanText(row?.location_name, 250);
-  return locationName ? { location_name: locationName } : null;
+  return locationName ? {
+    location_name: locationName,
+    display_name: cleanText(row?.display_name, 250) || null,
+  } : null;
 }
 
 function normalizeBooking(value: unknown): BookingRow | null {
@@ -261,11 +268,14 @@ function normalizeBooking(value: unknown): BookingRow | null {
       cleanText(value.driver_hours_snapshot, 100) || null,
     pricing_items_snapshot: validateVoucherPricing(value.pricing_items_snapshot),
     pickup_payment_partner_currency: pickupPayment,
+    online_payment_pln: finiteNonNegative(value.online_payment_pln) ?? 0,
     partner_currency: partnerCurrency,
+    api_booking_reference: cleanText(value.api_booking_reference, 120) || null,
     client: normalizeClient(value.profiles),
     partner,
     carClass: normalizeCarClass(value.car_classes),
     pickupLocation: normalizePickupLocation(value.pickup_location_join),
+    dropoffLocation: normalizePickupLocation(value.dropoff_location_join),
   };
 }
 
@@ -490,6 +500,12 @@ async function createVoucherPdf(
     },
   );
 
+  if (booking.api_booking_reference) {
+    page.drawText(fitText(font, `Supplier ref / Nr AVIA: ${booking.api_booking_reference}`, 9, 245), {
+      x: 300, y: 714, size: 9, font, color: rgb(0.88, 0.92, 0.97),
+    });
+  }
+
   let y = 640;
 
   page.drawText("CLIENT DETAILS / DANE KLIENTA", {
@@ -527,13 +543,17 @@ async function createVoucherPdf(
   y -= 18;
 
   const pickup =
-    booking.pickupLocation?.location_name
+    booking.pickupLocation?.display_name
+    || booking.pickupLocation?.location_name
     || booking.pickup_location
     || "-";
   drawValue(page, font, bold, "Pickup / Miejsce odbioru:", pickup, y);
   y -= 18;
 
-  const returnLocation = booking.return_location || "-";
+  const returnLocation =
+    booking.dropoffLocation?.display_name
+    || booking.dropoffLocation?.location_name
+    || booking.return_location || "-";
   drawValue(page, font, bold, "Return / Miejsce zwrotu:", returnLocation, y);
   y -= 18;
 
@@ -598,9 +618,9 @@ async function createVoucherPdf(
   if (booking.pickup_payment_partner_currency > 0) {
     page.drawRectangle({
       x: 40,
-      y: y - 55,
+      y: y - 62,
       width: 520,
-      height: 80,
+      height: 87,
       color: rgb(0.96, 0.97, 0.98),
     });
     page.drawText("PAYMENT SUMMARY / PODSUMOWANIE PŁATNOŚCI", {
@@ -610,28 +630,25 @@ async function createVoucherPdf(
       font: bold,
       color: textGray,
     });
-    y -= 25;
-    page.drawText("To pay at pickup / Do zapłaty na miejscu:", {
-      x: 60,
-      y,
-      size: 12,
-      font,
-      color: textGray,
+    y -= 18;
+    page.drawText("Paid online to Ride24 / Oplacono online:", {
+      x: 60, y, size: 10, font, color: textGray,
+    });
+    page.drawText(`${booking.online_payment_pln.toFixed(2)} PLN`, {
+      x: 385, y, size: 11, font: bold, color: brandBlue,
+    });
+    y -= 22;
+    page.drawText("To pay at pickup / Do zaplaty na miejscu:", {
+      x: 60, y, size: 10, font, color: textGray,
     });
     page.drawText(
-      `${booking.pickup_payment_partner_currency} ${booking.partner_currency}`,
-      {
-        x: 300,
-        y,
-        size: 14,
-        font: bold,
-        color: rgb(0.1, 0.6, 0.1),
-      },
+      `${booking.pickup_payment_partner_currency.toFixed(2)} ${booking.partner_currency}`,
+      { x: 385, y, size: 11, font: bold, color: rgb(0.1, 0.6, 0.1) },
     );
     if (booking.pricing_items_snapshot) {
       page.drawText("Price breakdown on following pages / Rozpiska ceny na kolejnych stronach", {x:60,y:y-17,size:8,font,color:textGray});
     }
-    y -= 45;
+    y -= 30;
   }
 
   page.drawText("RENTAL PARTNER / WYPOŻYCZALNIA", {
@@ -757,6 +774,8 @@ async function loadBooking(
       driver_hours_snapshot,
       pricing_items_snapshot,
       pickup_payment_partner_currency,
+      online_payment_pln,
+      api_booking_reference,
       partner_currency,
       profiles!fk_client(name, email, phone),
       partners!bookings_partner_id_fkey(
@@ -766,7 +785,10 @@ async function loadBooking(
         currency
       ),
       pickup_location_join:partner_locations!pickup_location_id(
-        location_name
+        location_name, display_name
+      ),
+      dropoff_location_join:partner_locations!dropoff_location_id(
+        location_name, display_name
       ),
       car_classes!bookings_car_class_id_fkey(class_code)
     `)
