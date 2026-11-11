@@ -297,7 +297,7 @@ export async function aggregatorAvailability(
       currency,
       example_model: model,
       model,
-      description: model + " (" + group + ")",
+      description: model, // Do not expose technical SIPP IDs on customer car cards.
       transmission: transmissionFromSipp(group),
       fuel_type: null, // Provider quote does not verify fuel; never invent it.
       seats: finiteInt(item.PassengerCapacity),
