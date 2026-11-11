@@ -10,12 +10,16 @@ export type Money = {amount: number; currency: string};
 export type Supplier = {supplier_id:string; name:string; currency:string; payment_models?:string[]};
 export type CaravelEnvelope<T> = {data:T; meta?:Json; request_id?:string};
 export class CaravelError extends Error {
-  constructor(public status:number, public code:string, public requestId:string|null) {
+  public status:number; public code:string; public requestId:string|null;
+  constructor(status:number, code:string, requestId:string|null) {
     super(`Caravel API: ${code} (HTTP ${status})`);
+    this.status=status; this.code=code; this.requestId=requestId;
   }
 }
 export class CaravelSandboxClient {
-  constructor(private readonly apiKey:string, private readonly baseUrl=SANDBOX) {
+  private readonly apiKey:string; private readonly baseUrl:string;
+  constructor(apiKey:string, baseUrl=SANDBOX) {
+    this.apiKey=apiKey; this.baseUrl=baseUrl;
     if (!apiKey || baseUrl !== SANDBOX) throw new Error("SANDBOX_ONLY");
   }
   private async request<T>(method:"GET"|"POST", path:string, body?:Json, idem?:string):Promise<CaravelEnvelope<T>> {
