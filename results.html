@@ -501,7 +501,7 @@ async function getExchangeRate(currency) {
                         ...selected,
                         id: current.id,
                         partner_id: current.partner_id,
-                        name: current.display_name || current.location_name,
+                        name: String(current.country || '').toLowerCase() === 'croatia' ? current.location_name : (current.display_name || current.location_name),
                         location_name: current.location_name,
                         country: current.country,
                         region: current.region,
