@@ -5423,7 +5423,7 @@ function collectSearchData() {
             .filter(Boolean))];
 
         const orFilters = uniqueTerms.flatMap(term =>
-            ['location_name', 'city', 'region', 'country'].map(field =>
+            ['location_name', 'display_name', 'city', 'region', 'country'].map(field =>
                 field + '.ilike.' + searchPattern(term)
             )
         ).join(',');
@@ -5518,6 +5518,7 @@ function collectSearchData() {
                 let score = 0;
 
                 const location = (item.location_name || '').toLowerCase();
+                const label = (item.name || '').toLowerCase();
                 const city = (item.city || '').toLowerCase();
                 const region = (item.region || '').toLowerCase();
                 const country = (item.country || '').toLowerCase();
@@ -5537,6 +5538,7 @@ function collectSearchData() {
 
                 // CONTAINS
                 if (location.includes(q)) score += 60;
+                if (label.includes(q)) score += 85; // Including IATA codes in display labels.
                 if (city.includes(q)) score += 55;
                 if (region.includes(q)) score += 50;
 
