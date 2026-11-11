@@ -36,6 +36,13 @@
     "Hurghada - Magawish": "Hurgada – Magawish",
     "Hurghada - El Ahyaa": "Hurgada – El Ahyaa"
   });
+  const croatianAirports = Object.freeze({
+    "Dubrovnik airport": { pl: "Lotnisko Dubrownik (DBV)", en: "Dubrovnik Airport (DBV)" },
+    "Pula airport": { pl: "Lotnisko Pula (PUY)", en: "Pula Airport (PUY)" },
+    "Split airport": { pl: "Lotnisko Split (SPU)", en: "Split Airport (SPU)" },
+    "Zadar airport": { pl: "Lotnisko Zadar (ZAD)", en: "Zadar Airport (ZAD)" },
+    "Zagreb airport": { pl: "Lotnisko Zagrzeb (ZAG)", en: "Zagreb Airport (ZAG)" }
+  });
   function currentLang() {
     try { return root.localStorage?.getItem("lang") === "en" ? "en" : "pl"; }
     catch (_) { return "pl"; }
@@ -43,7 +50,8 @@
   function displayName(location, language = currentLang()) {
     const key = String(location?.location_name || "").trim();
     const country = String(location?.country || "").trim().toLowerCase();
-    const label = country === "turkey" ? turkishAirports[key] : null;
+    const label = country === "turkey" ? turkishAirports[key]
+      : country === "croatia" ? croatianAirports[key] : null;
     if (label) return label[language === "en" ? "en" : "pl"];
     if (country === "egypt" && language === "pl" && hurghadaPolish[key]) {
       return hurghadaPolish[key];
