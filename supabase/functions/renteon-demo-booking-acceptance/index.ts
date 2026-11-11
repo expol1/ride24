@@ -3,8 +3,9 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { serviceClient } from "../_shared/ride24-security.ts";
 import { loadPartnerCredentials } from "../_shared/partner-api.ts";
 import {
-  aggregatorAvailability, aggregatorBook, aggregatorStatus, aggregatorCancel,
+  aggregatorAvailability, aggregatorBook, aggregatorStatus,
 } from "../_shared/renteon-aggregator.ts";
+import { cancelProviderBooking } from "../_shared/provider-adapters.ts";
 const PARTNER = "91e04805-31da-4242-9e6f-b6075019d784";
 const TABLE = "ride24_avia_bootstrap_jobs";
 const respond = (v: unknown, status = 200) => new Response(JSON.stringify(v),{
@@ -79,8 +80,12 @@ serve(async(req)=>{
     const opened=await aggregatorStatus(credentials,reference);
     diagnostic={...diagnostic,status_read:true,read_status:opened.status};
     try {
-      const cancelled=await aggregatorCancel(credentials,reference);
-      diagnostic={...diagnostic,cancelled:cancelled.status==="cancelled"};
+      // Exercise the same Ride24 shared adapter used by client-cancel-booking.
+      const cancelled=await cancelProviderBooking("renteon_aggregator",credentials,reference,{
+        reason:"ride24_demo_cancel_bridge_test",
+      });
+      diagnostic={...diagnostic,cancelled:cancelled.status==="cancelled",
+        cancel_via_ride_adapter:true};
     } catch(cancelErr) {
       diagnostic={...diagnostic,cancelled:false,cancel_error:code(cancelErr)};
     }
