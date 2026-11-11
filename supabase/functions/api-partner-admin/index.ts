@@ -802,7 +802,9 @@ async function syncPartner(
         ...(group.features || {}),
         api_location_external_ids: group.location_external_ids || [],
         noCreditCard: true,
-        noCardHold: partner.api_provider === "renteon_aggregator" ? false : true,
+        noCardHold: partner.api_provider === "renteon_aggregator"
+          ? group.features?.noCardHold === true
+          : true,
       },
       mileage_limit: group.mileage_limit ?? null,
       deposit_amount: group.deposit_amount ?? 0,
