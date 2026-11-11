@@ -30,7 +30,8 @@ function adapters() {
   const requests=[];
   const transport={endpointFor:()=>'/reservations',sanitizePartnerPayload:x=>x,
     partnerApiRequest:async(_credentials,path,request)=>{requests.push({path,...request});return {id:'external-1',status:'pending'};}};
-  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:(()=>{throw Error(name)})(),
+  const aggregator={aggregatorTest:async()=>({ok:true}),aggregatorLocations:async()=>[],aggregatorGroups:async()=>[],aggregatorAvailability:async()=>[],aggregatorBook:async()=>({}),aggregatorStatus:async()=>({}),aggregatorCancel:async()=>({})};
+  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?aggregator:(()=>{throw Error(name)})(),
     URL,URLSearchParams,TextEncoder,TextDecoder,crypto,console};
   vm.runInNewContext(adapterCode,sandbox);
   return {requests,...sandbox.exports};
