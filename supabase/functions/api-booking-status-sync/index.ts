@@ -504,6 +504,8 @@ async function processPending(
     .eq("partners.provider_type", "api")
     .eq("status", "pending")
     .not("api_booking_reference", "is", null)
+    // Do not auto-confirm bookings requiring manual price or cancellation review.
+    .not("manual_review", "is", true)
     .limit(STATUS_LIMIT);
 
   if (error) throw new Error("Nie udało się odczytać oczekujących rezerwacji API");
@@ -609,6 +611,7 @@ async function processPending(
         .eq("id", booking.id)
         .eq("status", "pending")
         .eq("api_booking_reference", booking.api_booking_reference)
+        .not("manual_review", "is", true)
         .select("id")
         .maybeSingle();
 
