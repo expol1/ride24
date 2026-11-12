@@ -40,3 +40,12 @@ test("rejects unsupported extra quantities and mismatched currency",()=>{
  const input=base();input.extras[1].selectedQuantity=2;input.extras[1].currency="USD";
  assert.ok(!validateCaravelSelection(input).ok);
 });
+
+test("rejects ambiguous rental-based extras with quantity greater than one",()=>{
+ const input=base();input.extras[0].maxQuantity=3;input.extras[0].selectedQuantity=2;
+ assert.ok(!validateCaravelSelection(input).ok);
+});
+test("allows explicitly quantity-priced extras",()=>{
+ const input=base();input.extras[0]={externalId:"seat",name:"Seat",unitAmountMinor:300,currency:"EUR",chargingUnit:"quantity",maxQuantity:3,selectedQuantity:2};
+ assert.equal(validateCaravelSelection(input).extrasAmountMinor,2100);
+});
