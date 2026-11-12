@@ -3368,7 +3368,7 @@ body .world-explorer.world-explorer-mobile::before {
     }
 }
 </style>
-<script src="assets/js/location-names.js?v=20261111avia3"></script>
+<script src="assets/js/location-names.js?v=20261112canonical1"></script>
     <!-- Mobile partner login: avoid full-screen backdrop blur during keyboard input. -->
     <style id="ride24-partner-login-mobile-performance">
         @media (max-width: 768px) {
@@ -6607,6 +6607,8 @@ setTimeout(() => {
 }, 300);
 
         const selectedLocation = {
+            id: location.id,
+            partner_id: location.partner_id,
             name: locationName,
             location_name: location.location_name,
             country: location.country,

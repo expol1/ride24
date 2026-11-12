@@ -18,12 +18,14 @@ import { apiPriceTotals, apiQuoteContext, assertApiPricingCompatible } from "../
 type AdminClient = ReturnType<typeof serviceClient>;
 
 type SearchBody = {
+  pickupLocationId?: unknown;
   pickupType?: unknown;
   pickupCountry?: unknown;
   pickupRegion?: unknown;
   pickupCity?: unknown;
   pickupLocationName?: unknown;
   pickupLocation?: unknown;
+  dropoffLocationId?: unknown;
   dropoffType?: unknown;
   dropoffCountry?: unknown;
   dropoffRegion?: unknown;
@@ -37,6 +39,7 @@ type SearchBody = {
 };
 
 type LocationCriteria = {
+  id: string;
   type: string;
   country: string;
   region: string;
@@ -221,7 +224,12 @@ function criteriaFromBody(
     body[`${prefix}Location` as keyof SearchBody],
   ) || locationName;
 
+  const id = cleanText(body[`${prefix}LocationId` as keyof SearchBody], 36);
+  if (id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    throw new Error("Nieprawidłowy identyfikator lokalizacji");
+  }
   return {
+    id,
     type: cleanText(body[`${prefix}Type` as keyof SearchBody], 30).toLowerCase(),
     country: cleanText(body[`${prefix}Country` as keyof SearchBody]),
     region: cleanText(body[`${prefix}Region` as keyof SearchBody]),
@@ -233,7 +241,8 @@ function criteriaFromBody(
 
 function hasLocationCriteria(criteria: LocationCriteria): boolean {
   return Boolean(
-    criteria.locationName
+    criteria.id
+      || criteria.locationName
       || criteria.city
       || criteria.region
       || criteria.country
@@ -242,8 +251,13 @@ function hasLocationCriteria(criteria: LocationCriteria): boolean {
 }
 
 function applyLocationFilter(query: any, criteria: LocationCriteria): any {
-  // Zachowuje ten sam priorytet intencji, którego używa results.html.
-  if (criteria.locationName) return query.eq("location_name", criteria.locationName);
+  // Stable Ride24 point IDs take precedence over display/legacy names.
+  if (criteria.id) return query.eq("id", criteria.id);
+  if (criteria.country) query = query.eq("country", criteria.country);
+  if (criteria.locationName) {
+    const name = criteria.locationName.replace(/["%,]/g, "").trim();
+    return query.or(`location_name.eq."${name}",display_name.eq."${name}"`);
+  }
   if ((criteria.type === "airport" || criteria.type === "city") && criteria.city) {
     return query.eq("city", criteria.city);
   }
@@ -262,6 +276,7 @@ function comparable(value: string): string {
 
 function sameLocation(a: LocationCriteria, b: LocationCriteria): boolean {
   if (!hasLocationCriteria(b)) return true;
+  if (a.id && b.id) return a.id === b.id;
   if (a.locationName && b.locationName) {
     return comparable(a.locationName) === comparable(b.locationName);
   }
@@ -754,7 +769,7 @@ async function searchPartner(
 
     output.push({
       ...carClass,
-      class_code: carClass.class_code,
+      class_code: /^[A-F]$/.test(group.class_code) ? group.class_code : carClass.class_code,
       public_price: publicPricePerDay,
       partner_discount_percent: discountPercent,
       partner_net_price: partnerNetPerDay,
@@ -898,6 +913,7 @@ serve(async (req) => {
       }
     }
     const quoteBudget: QuoteBudget = { remaining: MAX_RESULTS_PER_SEARCH };
+    const providerErrors: Array<{ partner_id: string; code: string }> = [];
     const partnerResults = await mapConcurrent(
       [...uniquePartners.values()],
       MAX_PROVIDER_CONCURRENCY,
@@ -917,6 +933,7 @@ serve(async (req) => {
             platformMarginPercent,
           );
         } catch (error) {
+          providerErrors.push({ partner_id: pickupLocation.partner_id, code: providerErrorCode(error) });
           console.error(
             "search-api provider failed",
             pickupLocation.partner_id,
@@ -935,6 +952,8 @@ serve(async (req) => {
       success: true,
       cars,
       count: cars.length,
+      partial: providerErrors.length > 0,
+      provider_errors: providerErrors,
     });
   } catch (error) {
     console.error(

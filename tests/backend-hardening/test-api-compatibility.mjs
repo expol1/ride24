@@ -1,3 +1,4 @@
+import * as normalization from '../../supabase/functions/_shared/provider-normalization.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -30,7 +31,7 @@ function adapters() {
   const requests=[];
   const transport={endpointFor:()=>'/reservations',sanitizePartnerPayload:x=>x,
     partnerApiRequest:async(_credentials,path,request)=>{requests.push({path,...request});return {id:'external-1',status:'pending'};}};
-  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:(()=>{throw Error(name)})(),
+  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?{}:(()=>{throw Error(name)})(),
     URL,URLSearchParams,TextEncoder,TextDecoder,crypto,console};
   vm.runInNewContext(adapterCode,sandbox);
   return {requests,...sandbox.exports};
@@ -62,6 +63,7 @@ function setup() {
     constructor(table){this.table=table;this.filters=[];this.one=false;this.max=Infinity;}
     select(){return this;}
     eq(k,v){this.filters.push(r=>k.includes('.')?true:r[k]===v);return this;}
+    or(expr){const terms=[...expr.matchAll(/(\w+)\.eq\."([^"]*)"/g)];this.filters.push(r=>terms.some(m=>r[m[1]]===m[2]));return this;}
     is(k,v){this.filters.push(r=>r[k]===v);return this;}
     gt(k,v){this.filters.push(r=>r[k]>v);return this;}
     in(k,v){this.filters.push(r=>v.includes(r[k]));return this;}
@@ -98,6 +100,7 @@ function setup() {
   function handler(name){
     let serve;
     const sandbox={exports:{},require:specifier=>{
+      if(specifier.includes('provider-normalization'))return normalization;
       if(specifier.includes('api-readiness'))return readiness;
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
@@ -279,4 +282,18 @@ test('partner API URL rejects private, metadata, credential and non-HTTPS destin
     'https://169.254.169.254','https://[::1]','https://[::ffff:127.0.0.1]','https://user:password@provider.example.com'])
     assert.throws(()=>assertSafeApiUrl(url));
   assert.equal(assertSafeApiUrl('https://provider.example.com/api/'),'https://provider.example.com/api');
+});
+
+test('search resolves stable UUIDs despite stale display labels and keeps separate route points',async()=>{
+  const s=setup();s.tables.api_quotes=[];
+  const response=await s.handler('search-api')({pickupLocationId:pickup,pickupLocationName:'stale Polish label',
+    dropoffLocationId:dropoff,dropoffLocationName:'another stale label',pickupDate:'2027-01-10',returnDate:'2027-01-13',pickupTime:'10:00',returnTime:'10:00'});
+  const value=await response.json();assert.equal(response.status,200);assert.equal(value.count,1);
+  assert.equal(s.tables.api_quotes[0].dropoff_location_external_id,'office-1');
+});
+test('provider failures are explicitly reported and never impersonate a successful empty search',async()=>{
+  const s=setup();s.failures.add('partner_extras');
+  const response=await s.handler('search-api')({pickupLocationId:pickup,pickupDate:'2027-01-10',returnDate:'2027-01-13',pickupTime:'10:00',returnTime:'10:00'});
+  const value=await response.json();assert.equal(response.status,200);assert.equal(value.count,0);
+  assert.equal(value.partial,true);assert.equal(value.provider_errors.length,1);
 });

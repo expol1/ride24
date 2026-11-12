@@ -1,3 +1,4 @@
+import { canonicalApiLocation, preserveKnownFields } from "../_shared/provider-normalization.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   corsHeaders,
@@ -766,7 +767,14 @@ async function syncPartner(
       throw new Error("API zwróciło zbyt dużo cen sezonowych");
     }
 
-    const locationRows = locations.map((location) => ({
+    const [oldLocations, oldGroups] = await Promise.all([
+      admin.from("partner_locations").select("*").eq("partner_id", partner.id),
+      admin.from("car_classes").select("*").eq("partner_id", partner.id),
+    ]);
+    if (oldLocations.error || oldGroups.error) throw new Error("Nie udało się odczytać danych przed synchronizacją");
+    const locationsById = new Map((oldLocations.data || []).map((row: any) => [row.external_id, row]));
+    const groupsById = new Map((oldGroups.data || []).map((row: any) => [row.external_id, row]));
+    const locationRows = locations.map(canonicalApiLocation).map((location) => ({
       partner_id: partner.id,
       external_id: location.external_id,
       is_api_managed: true,
@@ -774,12 +782,14 @@ async function syncPartner(
       region: location.region,
       city: location.city || null,
       location_name: location.location_name,
+      display_name: location.display_name,
+      ...(typeof location.return_only === "boolean" ? { return_only: location.return_only } : {}),
       type: LOCATION_TYPES.has(String(location.type || "").toLowerCase())
         ? String(location.type).toLowerCase()
         : "city",
       extra_fee: location.extra_fee === true,
       extra_fee_amount: location.extra_fee_amount ?? null,
-      return_fee_amount: location.return_fee_amount ?? 0,
+      return_fee_amount: location.return_fee_amount ?? null,
       contact_required: location.contact_required === true,
       active: location.active !== false,
     }));
@@ -794,10 +804,10 @@ async function syncPartner(
       model: group.model || group.example_model || null,
       transmission: group.transmission || null,
       fuel_type: group.fuel_type || null,
-      seats: group.seats ?? 5,
-      bags: group.bags ?? 2,
+      seats: group.seats ?? null,
+      bags: group.bags ?? null,
       image: group.image || null,
-      description: group.description || group.example_model || group.class_code,
+      description: group.description || group.example_model || null,
       features: {
         ...(group.features || {}),
         api_location_external_ids: group.location_external_ids || [],
@@ -807,20 +817,39 @@ async function syncPartner(
           : true,
       },
       mileage_limit: group.mileage_limit ?? null,
-      deposit_amount: group.deposit_amount ?? 0,
+      deposit_amount: group.deposit_amount ?? null,
       driver_included: group.driver_included === true,
       active: group.active !== false,
     }));
 
+    // Validate ownership of the entire batch before the first write.
+    for (const row of locationRows) {
+      const old: any = locationsById.get(row.external_id);
+      if (old && old.is_api_managed !== true) throw new Error("API_LOCATION_OWNERSHIP_CONFLICT");
+      if (row.extra_fee_amount == null && old) row.extra_fee = old.extra_fee;
+    }
+    for (const row of groupRows) {
+      const old: any = groupsById.get(row.external_id);
+      if (old && old.is_api_managed !== true) throw new Error("API_GROUP_OWNERSHIP_CONFLICT");
+      if (old?.features) row.features = { ...old.features, ...row.features };
+    }
     // Synchronizacja jest wyłącznie add/update. Brakujące rekordy nie są
     // automatycznie usuwane ani wyłączane po chwilowej awarii zewnętrznego API.
     await upsertBatches(
       admin,
       "partner_locations",
-      locationRows,
+      locationRows.map(row => {
+        const previous: any = locationsById.get(row.external_id);
+        if (previous && previous.is_api_managed !== true) throw new Error("API_LOCATION_OWNERSHIP_CONFLICT");
+        return preserveKnownFields(row, previous, ["city", "region", "extra_fee_amount", "return_fee_amount"]);
+      }),
       "partner_id,external_id",
     );
-    const carClassIds = await upsertCarClassBatches(admin, groupRows);
+    const carClassIds = await upsertCarClassBatches(admin, groupRows.map(row => {
+      const previous: any = groupsById.get(row.external_id);
+      if (previous && previous.is_api_managed !== true) throw new Error("API_GROUP_OWNERSHIP_CONFLICT");
+      return preserveKnownFields(row, previous, ["class_code", "model", "example_model", "description", "image", "transmission", "fuel_type", "seats", "bags", "deposit_amount", "mileage_limit"]);
+    }));
 
     let seasonalCount = 0;
     for (const group of groups) {

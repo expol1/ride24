@@ -19,6 +19,9 @@ export type PartnerApiCredentials = {
 };
 
 export type ApiLocation = {
+  display_name?: string | null;
+  iata_code?: string | null;
+  return_only?: boolean;
   external_id: string;
   country: string;
   region: string;

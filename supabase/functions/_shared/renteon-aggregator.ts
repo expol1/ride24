@@ -1,3 +1,4 @@
+import { ride24ClassFromAcriss, canonicalApiLocation } from "./provider-normalization.mjs";
 // Renteon AGGREGATOR API, not the older direct Renteon ExBooking API.
 // Based on "Aggregator API Ride24" Postman collection from Renteon support.
 // Each rental brand uses a case-sensitive provider code on a shared API host.
@@ -159,13 +160,16 @@ export async function aggregatorLocations(credentials: PartnerApiCredentials): P
     const path = txt(location.Path, 300);
     const city = path.includes(">") ? path.split(">")[0].trim() : name;
     const locationType = txt(location.Type, 30).toLowerCase();
-    locations.push({
+    const matchingOffices = offices.filter(o => txt(o.LocationCode) === code);
+    locations.push(canonicalApiLocation({
       external_id: code,
       country,
       region: city || country,
       city: city || null,
       location_name: name,
-      type: locationType.includes("airport") ? "airport" : "city",
+      iata_code: locationType.includes("airport") ? code.split("-").at(-1) : null,
+      type: locationType.includes("airport") ? "airport" : locationType.includes("port") ? "seaport" : "city",
+      return_only: !matchingOffices.some(o => o.IsPickupOffice === true),
       extra_fee: false,
       extra_fee_amount: null,
       return_fee_amount: null,
@@ -173,13 +177,28 @@ export async function aggregatorLocations(credentials: PartnerApiCredentials): P
       // AVIA contract / current Ride24 territory: Croatia only.
       // Keep other aggregator locations as inactive metadata, even after resync.
       active: !avia || country === "Croatia",
-    });
+    }));
   }
   return locations;
 }
 
 export async function aggregatorGroups(credentials: PartnerApiCredentials): Promise<ApiVehicleGroup[]> {
   const response = await setup(credentials);
+  const metadata = new Map<string, { row: Obj; origin: string }>();
+  for (const connectorValue of arr(response.Connectors)) {
+    const connector = obj(connectorValue);
+    if (!connector) continue;
+    let origin = "";
+    try {
+      const url = new URL(txt(connector.Url, 2000));
+      if (url.protocol === "https:" && url.hostname.endsWith(".renteon.com") && !url.username && !url.password) origin = url.origin;
+    } catch { /* Missing image origin stays unknown. */ }
+    for (const value of arr(connector.CarCategories)) {
+      const row = obj(value);
+      const sipp = groupCode(row?.SIPP);
+      if (row && sipp && !metadata.has(sipp)) metadata.set(sipp, { row, origin });
+    }
+  }
   const groups: ApiVehicleGroup[] = [];
   const seen = new Set<string>();
   for (const item of arr(response.CarCategories).slice(0, 2000)) {
@@ -188,18 +207,41 @@ export async function aggregatorGroups(credentials: PartnerApiCredentials): Prom
     const code = groupCode(row.Code);
     if (!code || seen.has(code)) continue;
     seen.add(code);
+    const source = metadata.get(code);
+    const details = source?.row || {};
+    const model = txt(details.CarModel, 250) || null;
+    let image: string | null = null;
+    if (source?.origin && txt(details.CarModelImageURL, 2000)) {
+      try {
+        const url = new URL(txt(details.CarModelImageURL, 2000), source.origin);
+        if (url.origin === source.origin && !url.username && !url.password) image = url.href;
+      } catch { /* A malformed URL must not replace a valid stored image. */ }
+    }
+    const large = nonNegative(details.BigBagsCapacity);
+    const small = nonNegative(details.SmallBagsCapacity);
+    const fuelNames = [...new Set(arr(details.FuelTypes).map(x => txt(obj(x)?.Name, 60)).filter(Boolean))];
+    const supported = !["Y", "K"].includes(code[1]);
     groups.push({
       external_id: code,
-      class_code: code[0],
+      class_code: ride24ClassFromAcriss(code, details.PassengerCapacity) || "",
       public_price: 0, // Live availability supplies prices per requested rental dates.
       currency: "EUR",
-      example_model: code,
-      model: code,
-      description: "Renteon " + code,
+      example_model: model,
+      model,
+      description: model,
+      image,
+      seats: finiteInt(details.PassengerCapacity),
+      bags: large !== null && small !== null ? large + small : null,
+      fuel_type: fuelNames.length === 1 ? fuelNames[0] : null,
       transmission: transmissionFromSipp(code),
       features: {
         provider: "renteon_aggregator",
         sipp: code,
+        air_conditioning: typeof details.AirConditioning === "boolean" ? details.AirConditioning : null,
+        number_of_doors: finiteInt(details.NumberOfDoors),
+        minimum_driver_age: finiteInt(details.MinimumDriverAge),
+        image_is_representative: details.IsModelGuaranteed !== true,
+        sync_review_required: !supported ? "unsupported_vehicle_type" : !image ? "missing_image" : null,
         noCreditCard: true,
         noCardHold: agencyCode(credentials) === "Avia",
         requiresPersonalDebitCard: agencyCode(credentials) === "Avia",
@@ -207,7 +249,7 @@ export async function aggregatorGroups(credentials: PartnerApiCredentials): Prom
         prepaidCardsAccepted: agencyCode(credentials) === "Avia" ? false : null,
       },
       deposit_amount: 0,
-      active: true,
+      active: supported && details.ShowInList !== false,
       seasonal_prices: null,
     });
   }
@@ -242,6 +284,7 @@ export async function aggregatorAvailability(
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_INVALID_AVAILABILITY");
   }
   const output: ApiVehicleGroup[] = [];
+  let unsupportedSurcharges = 0;
   for (const value of payload.slice(0, 1000)) {
     const item = obj(value);
     if (!item || txt(item.Provider) !== code || item.Prepaid !== false) continue;
@@ -255,7 +298,10 @@ export async function aggregatorAvailability(
     if (!equalDateTime(item.PickupDate, start) || !equalDateTime(item.DropOffDate, end)) continue;
     const rentalAmount = positive(item.CarRentalAmount);
     // Unexpected provider price components must be investigated before publication.
-    if (rentalAmount !== null && !amountIsEqual(total, rentalAmount)) continue;
+    if (rentalAmount !== null && !amountIsEqual(total, rentalAmount)) {
+      unsupportedSurcharges += 1;
+      continue;
+    }
     // Renteon POA Availability.DepositAmount may represent the amount due
     // at pickup, NOT a refundable vehicle security deposit. AVIA confirmed
     // no traditional deposit and no card preauthorization (AVIA written confirmation).
@@ -290,7 +336,7 @@ export async function aggregatorAvailability(
     const offer = sanitizePartnerPayload(item, 70_000);
     output.push({
       external_id: group,
-      class_code: group[0],
+      class_code: ride24ClassFromAcriss(group, item.PassengerCapacity) || "",
       public_price: Number((total / days).toFixed(6)),
       public_price_total: total,
       price_is_total: true,
@@ -336,6 +382,9 @@ export async function aggregatorAvailability(
         offer,
       },
     });
+  }
+  if (!output.length && unsupportedSurcharges > 0) {
+    throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_SURCHARGES_REQUIRE_QUOTE");
   }
   return output;
 }

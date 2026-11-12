@@ -225,6 +225,7 @@
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
+<script src="assets/js/location-names.js?v=20261112canonical1"></script>
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
 <script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
 <script src="assets/js/results-location-pricing.js?v=20261110a"></script>
@@ -448,6 +449,7 @@ async function getExchangeRate(currency) {
             }
 
             function safeImageUrl(value, fallback = "auto.png") {
+                if (!String(value || "").trim()) return fallback;
                 try {
                     const url = new URL(String(value || ""), window.location.origin);
                     if (!["https:", "http:"].includes(url.protocol)) return fallback;
@@ -476,7 +478,7 @@ async function getExchangeRate(currency) {
                 }
 
                 const filters = JSON.parse(searchParamsStr);
-                const loc = filters.pickup_location;
+                let loc = filters.pickup_location;
                 // Refresh saved selections: the display label is never the provider lookup key.
                 // Old browser sessions may contain Polish labels from before normalization.
                 async function refreshSelectedLocation(selected) {
@@ -501,7 +503,7 @@ async function getExchangeRate(currency) {
                         ...selected,
                         id: current.id,
                         partner_id: current.partner_id,
-                        name: String(current.country || '').toLowerCase() === 'croatia' ? current.location_name : (current.display_name || current.location_name),
+                        name: window.Ride24LocationNames.displayName(current),
                         location_name: current.location_name,
                         country: current.country,
                         region: current.region,
@@ -511,7 +513,7 @@ async function getExchangeRate(currency) {
                 }
                 filters.pickup_location = await refreshSelectedLocation(loc);
                 filters.drop_location = await refreshSelectedLocation(filters.drop_location || loc);
-                Object.assign(loc, filters.pickup_location);
+                loc = filters.pickup_location;
                 localStorage.setItem('searchParams', JSON.stringify(filters));
 
                 // --- 🛡️ ZABEZPIECZENIE PRZED STARYMI DANYMI (EDGE CASE) ---
@@ -707,6 +709,7 @@ let query = db
 
                 // Partnerzy API zwracają te same grupy pojazdów i przechodzą przez
                 // ten sam mechanizm rabatu partnera oraz globalnej marży Ride24.
+                let apiSearchIncomplete = false;
                 try {
                     const apiResponse = await fetch(supabaseUrl + "/functions/v1/search-api", {
                         method: "POST",
@@ -715,6 +718,8 @@ let query = db
                             "apikey": supabaseKey
                         },
                         body: JSON.stringify({
+                            pickupLocationId: loc.id || undefined,
+                            dropoffLocationId: filters.drop_location?.id || undefined,
                             pickupType: loc.type || "",
                             pickupCountry: loc.country || "",
                             pickupRegion: loc.region || "",
@@ -734,6 +739,8 @@ let query = db
                         })
                     });
                     const apiData = await apiResponse.json().catch(() => ({}));
+                    apiSearchIncomplete = !apiResponse.ok || apiData.success !== true
+                        || apiData.partial === true || (apiData.provider_errors?.length || 0) > 0;
                     if (apiResponse.ok && Array.isArray(apiData.cars)) {
                         cars.push(...apiData.cars.filter(car =>
                             window.Ride24RentalDuration.meetsMinimum(duration, car.partners?.min_rental_days ?? 1)
@@ -741,7 +748,20 @@ let query = db
                     }
                 } catch (apiError) {
                     // Awaria pojedynczej integracji API nie może wyłączyć ofert lokalnych.
+                    apiSearchIncomplete = true;
                     console.error("API SEARCH ERROR:", apiError);
+                }
+
+                document.getElementById("api-search-status")?.remove();
+                if (apiSearchIncomplete) {
+                    const notice = document.createElement("p");
+                    notice.id = "api-search-status";
+                    notice.setAttribute("role", "status");
+                    notice.style.cssText = "padding:16px;background:#fff4d6;color:#513c00;border-radius:12px";
+                    notice.textContent = initialLang === "en"
+                        ? "Some rental offers could not be checked. Results may be incomplete. Please try again."
+                        : "Nie udało się sprawdzić części ofert wypożyczalni. Wyniki mogą być niepełne. Spróbuj ponownie.";
+                    container.before(notice);
                 }
 
                 // --- 🚀 KROK 4: ANALITYKA ---
@@ -819,7 +839,7 @@ let query = db
 
                     container.innerHTML = `
                         <div style="text-align:center; color:white; padding:50px; background: rgba(0,0,0,0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
-                            <h3 style="font-size: 24px; margin-bottom: 10px;">Brak dostępnych aut w: ${escapeHtmlValue(loc.name)}</h3>
+                            <h3 style="font-size: 24px; margin-bottom: 10px;">${apiSearchIncomplete ? "Nie udało się potwierdzić dostępności w:" : "Brak dostępnych aut w:"} ${escapeHtmlValue(loc.name)}</h3>
                             <p style="color: #94A3B8; font-size: 16px; margin-bottom: 20px;">${suggestion}</p>
                             <a href="index.html" style="color: var(--blue); font-weight: 700; text-decoration: underline;">Wróć i zmień lokalizację</a>
                         </div>`;
@@ -1011,12 +1031,6 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                     const row = document.createElement('div');
                     row.className = 'car-row';
                     row.style.position = "relative";
-                    const sipp = car.api_managed ? String(parsedFeatures.sipp || "").toUpperCase() : "";
-                    const sippCategory = ({
-                        M: "Mini", E: "Economy", C: "Compact", I: "Intermediate",
-                        S: "Standard", F: "Full-size", P: "Premium", L: "Luxury",
-                        X: "Special"
-                    })[sipp.charAt(0)] || "";
                     const safeCarId = /^[0-9a-f-]{36}$/i.test(String(car.id || "")) ? String(car.id) : "";
                     const safeQuoteId = /^[0-9a-f-]{36}$/i.test(String(car.api_quote_id || "")) ? String(car.api_quote_id) : "";
                     const fullImageUrl = safeImageUrl(car.image);
@@ -1039,6 +1053,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 
                     row.innerHTML = `
 <div class="car-img-box">
+    ${!car.image || parsedFeatures.image_is_representative ? `<small>${lang === "pl" ? "Zdjęcie poglądowe" : "Representative image"}</small>` : ""}
     <img src="${safeCarImage}" ${responsiveSrcSet} loading="${imageLoading}" decoding="async" fetchpriority="${index === 0 ? "high" : "auto"}" alt="${safeCarCode}" data-full-image="${safeCarImage}" onerror="this.removeAttribute('srcset');this.onerror=function(){this.onerror=null;this.src='auto.png';};this.src=this.dataset.fullImage;">
 </div>
 
@@ -1052,7 +1067,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     <div class="class-badge-box" style="background-color: ${bc.bg}; border-color: ${bc.border};">
         <span class="class-letter" style="color: ${bc.color};">${classLetter}</span>
         <span class="class-name-small" style="color: ${bc.color}; opacity: 0.9;">
-            ${sippCategory || (classLetter === '0' ? (lang === 'pl' ? 'Skutery / ATV' : 'Scooters / ATV') : (classNames[classLetter] || 'Auto'))}
+            ${classLetter === '0' ? (lang === 'pl' ? 'Skutery / ATV' : 'Scooters / ATV') : (classNames[classLetter] || 'Auto')}
         </span>
     </div>
 
