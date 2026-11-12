@@ -6,14 +6,18 @@ on:
       - 'supabase/functions/_shared/caravel-sandbox-adapter.ts'
       - 'tests/caravel-sandbox-adapter.test.mjs'
       - 'tests/caravel-verified-rules.test.mjs'
+      - 'tests/caravel-quote-verification.test.mjs'
       - 'supabase/functions/_shared/caravel-verified-rules.ts'
+      - 'supabase/functions/_shared/caravel-quote-verification.ts'
       - '.github/workflows/caravel-sandbox-tests.yml'
   pull_request:
     paths:
       - 'supabase/functions/_shared/caravel-sandbox-adapter.ts'
       - 'tests/caravel-sandbox-adapter.test.mjs'
       - 'tests/caravel-verified-rules.test.mjs'
+      - 'tests/caravel-quote-verification.test.mjs'
       - 'supabase/functions/_shared/caravel-verified-rules.ts'
+      - 'supabase/functions/_shared/caravel-quote-verification.ts'
       - '.github/workflows/caravel-sandbox-tests.yml'
 permissions:
   contents: read
@@ -26,6 +30,6 @@ jobs:
         with:
           node-version: '22'
       - name: Unit tests without API secrets
-        run: node --experimental-strip-types --test tests/caravel-sandbox-adapter.test.mjs tests/caravel-verified-rules.test.mjs
+        run: node --experimental-strip-types --test tests/caravel-sandbox-adapter.test.mjs tests/caravel-verified-rules.test.mjs tests/caravel-quote-verification.test.mjs
       - name: TypeScript type check
-        run: npx --yes --package typescript@5.9.3 tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --lib es2022,dom supabase/functions/_shared/caravel-sandbox-adapter.ts supabase/functions/_shared/caravel-verified-rules.ts
+        run: npx --yes --package typescript@5.9.3 tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --lib es2022,dom supabase/functions/_shared/caravel-sandbox-adapter.ts supabase/functions/_shared/caravel-verified-rules.ts supabase/functions/_shared/caravel-quote-verification.ts
