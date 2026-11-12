@@ -47,7 +47,8 @@ export function validateCaravelSelection(input: {
     if (!extra.name.trim() || !integer(extra.unitAmountMinor) || extra.unitAmountMinor < 0 ||
         extra.currency !== rules.currency || !integer(extra.maxQuantity) || extra.maxQuantity < 0 ||
         !integer(extra.selectedQuantity) || extra.selectedQuantity < 0 || extra.selectedQuantity > extra.maxQuantity ||
-        !["rental", "day", "quantity"].includes(extra.chargingUnit)) {
+        !["rental", "day", "quantity"].includes(extra.chargingUnit) ||
+        (extra.chargingUnit !== "quantity" && extra.selectedQuantity > 1)) {
       errors.push("EXTRA_UNVERIFIED");
       continue;
     }
