@@ -22,14 +22,17 @@ export class CaravelSandboxClient {
     this.apiKey=apiKey; this.baseUrl=baseUrl;
     if (!apiKey || baseUrl !== SANDBOX) throw new Error("SANDBOX_ONLY");
   }
-  private async request<T>(method:"GET"|"POST", path:string, body?:Json, idem?:string):Promise<CaravelEnvelope<T>> {
+  private async request<T>(method:"GET"|"POST", path:string, body?:Json, idem?:string, supplierId?:string):Promise<CaravelEnvelope<T>> {
     if (!path.startsWith("/v1/") || path.includes("://")) throw new Error("INVALID_PATH");
     const headers:Record<string,string>={"X-API-Key":this.apiKey,"Accept":"application/json"};
     if(body){headers["Content-Type"]="application/json";}
     if(idem){headers["Idempotency-Key"]=idem;}
+    if(supplierId){if(!/^[a-zA-Z0-9_-]{1,128}$/.test(supplierId)) throw new Error("INVALID_SUPPLIER_ID");headers["X-Supplier-Id"]=supplierId;}
     const response=await fetch(this.baseUrl+path,{method,headers,body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(12000)});
-    const envelope=await response.json() as CaravelEnvelope<T> & {error?:{code?:string}};
+    const envelope=await response.json().catch(()=>({error:{code:"INVALID_JSON"}})) as CaravelEnvelope<T> & {error?:{code?:string}};
+    if(!response.ok && !envelope?.error) throw new CaravelError(response.status,"UPSTREAM_HTTP_ERROR",null);
     if(!response.ok) throw new CaravelError(response.status,envelope.error?.code??"UNKNOWN",envelope.request_id??null);
+    if(!envelope || typeof envelope!=="object" || !("data" in envelope)) throw new CaravelError(response.status,"INVALID_RESPONSE_ENVELOPE",null);
     return envelope;
   }
   async capabilities() {
@@ -45,10 +48,14 @@ export class CaravelSandboxClient {
     await this.capabilities();
     return this.request<Array<{location_id:string;supplier_id:string;code?:string;name:string;timezone?:string}>>("GET",`/v1/reference/locations?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`);
   }
-  async availability(params:{pickup_location_id:string;dropoff_location_id:string;pickup:string;dropoff:string}) {
+  async vehicleClasses(limit=200) {
+    await this.capabilities();
+    return this.request<Array<Json>>("GET",`/v1/reference/vehicle-classes?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`);
+  }
+  async availability(params:{pickup_location_id:string;dropoff_location_id:string;pickup:string;dropoff:string},supplierId?:string) {
     await this.capabilities();
     const qs=new URLSearchParams(params);
-    return this.request<Array<Json>>("GET",`/v1/availability?${qs.toString()}`);
+    return this.request<Array<Json>>("GET",`/v1/availability?${qs.toString()}`,undefined,undefined,supplierId);
   }
   /**
    * Fail closed: do not offer a plan until protection and zero excess/deposit
