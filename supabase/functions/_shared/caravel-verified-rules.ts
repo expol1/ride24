@@ -52,7 +52,7 @@ export function validateCaravelSelection(input: {
       continue;
     }
     // Day-based charging requires the provider-confirmed number of chargeable days.
-    const units = extra.chargingUnit === "day" ? input.rentalDaysForPricing :
+    const units = extra.chargingUnit === "day" ? (extra.selectedQuantity === 0 ? 0 : input.rentalDaysForPricing) :
       extra.chargingUnit === "rental" ? (extra.selectedQuantity > 0 ? 1 : 0) : extra.selectedQuantity;
     if (!integer(units) || units < 0 || (extra.chargingUnit === "day" && extra.selectedQuantity > 1)) {
       errors.push("EXTRA_CHARGE_UNVERIFIED");
