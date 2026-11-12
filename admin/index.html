@@ -2603,12 +2603,12 @@ async function adminClientAction(userId,action){
         body:{action:'preflight_delete',user_id:userId}
       });
       if(preflight.error||!preflight.data?.eligible){
-        alert('Nie można bezpiecznie usunąć konta:\\n'+
-          (preflight.data?.blockers||[]).join('\\n')+
-          '\\nJeśli klient ma historię rezerwacji, użyj zawieszenia.');
+        alert('Nie można bezpiecznie usunąć konta:\n'+
+          (preflight.data?.blockers||[]).join('\n')+
+          '\nJeśli klient ma historię rezerwacji, użyj zawieszenia.');
         return;
       }
-      const typed=prompt('Trwałe usunięcie konta jest nieodwracalne.\\nAby potwierdzić, wpisz dokładnie: '+who);
+      const typed=prompt('Trwałe usunięcie konta jest nieodwracalne.\nAby potwierdzić, wpisz dokładnie: '+who);
       if(typed===null||typed.trim()!==who)return;
       if(!confirm('Ostatecznie usunąć konto '+who+' z Supabase Authentication?'))return;
       const result=await db.functions.invoke('admin-client-controls',{
