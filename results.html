@@ -710,6 +710,7 @@ let query = db
                 // Partnerzy API zwracają te same grupy pojazdów i przechodzą przez
                 // ten sam mechanizm rabatu partnera oraz globalnej marży Ride24.
                 let apiSearchIncomplete = false;
+                let apiSurchargesUnconfirmed = false;
                 try {
                     const apiResponse = await fetch(supabaseUrl + "/functions/v1/search-api", {
                         method: "POST",
@@ -739,6 +740,8 @@ let query = db
                         })
                     });
                     const apiData = await apiResponse.json().catch(() => ({}));
+                    apiSurchargesUnconfirmed = Array.isArray(apiData.provider_errors)
+                        && apiData.provider_errors.some(error => String(error?.code || '').endsWith('SURCHARGES_REQUIRE_QUOTE'));
                     apiSearchIncomplete = !apiResponse.ok || apiData.success !== true
                         || apiData.partial === true || (apiData.provider_errors?.length || 0) > 0;
                     if (apiResponse.ok && Array.isArray(apiData.cars)) {
@@ -758,7 +761,11 @@ let query = db
                     notice.id = "api-search-status";
                     notice.setAttribute("role", "status");
                     notice.style.cssText = "padding:16px;background:#fff4d6;color:#513c00;border-radius:12px";
-                    notice.textContent = initialLang === "en"
+                    notice.textContent = apiSurchargesUnconfirmed
+                        ? (initialLang === "en"
+                            ? "The supplier returned offers with additional charges for the selected route or times. Their full price cannot yet be confirmed online. This does not mean there are no cars. Check different pickup/return times or contact Ride24."
+                            : "Dostawca zwrócił oferty z dopłatami dla wybranej trasy lub godzin. Ich pełnej ceny nie można jeszcze potwierdzić online. To nie oznacza braku samochodów. Sprawdź inne godziny odbioru i zwrotu lub skontaktuj się z Ride24.")
+                        : initialLang === "en"
                         ? "Some rental offers could not be checked. Results may be incomplete. Please try again."
                         : "Nie udało się sprawdzić części ofert wypożyczalni. Wyniki mogą być niepełne. Spróbuj ponownie.";
                     container.before(notice);
