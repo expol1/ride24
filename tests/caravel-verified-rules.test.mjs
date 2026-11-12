@@ -49,3 +49,12 @@ test("allows explicitly quantity-priced extras",()=>{
  const input=base();input.extras[0]={externalId:"seat",name:"Seat",unitAmountMinor:300,currency:"EUR",chargingUnit:"quantity",maxQuantity:3,selectedQuantity:2};
  assert.equal(validateCaravelSelection(input).extrasAmountMinor,2100);
 });
+
+test("missing optional-provider fields fail closed without throwing",()=>{
+ for(const patch of [{name:null},{externalId:null}]){
+  const input=base();Object.assign(input.extras[0],patch);
+  assert.equal(validateCaravelSelection(input).ok,false);
+ }
+ const input=base();input.rules.currency=null;
+ assert.equal(validateCaravelSelection(input).ok,false);
+});
