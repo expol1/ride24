@@ -1012,7 +1012,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 
                     // 🔥 DODATKOWE ZNACZKI Z JSON
                     const debitCardHtml = parsedFeatures.requiresPersonalDebitCardEvenForCash === true
-                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Imienna karta debetowa do okazania' : 'Present a debit card in your name'}</div>`
+                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Wymagana karta debetowa/płatnicza do okazania' : 'Present a debit card in your name'}</div>`
                         : '';
                     const creditCardHtml = parsedFeatures.noCreditCard 
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej i blokady karty' : 'No credit card or card hold'}</div>` 
