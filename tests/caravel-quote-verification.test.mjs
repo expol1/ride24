@@ -21,3 +21,10 @@ test("rejects fractional and unsafe monetary values",()=>{
  assert.equal(verifyCaravelQuote({...base(),extrasAmountMinor:0.5},1900000000000).ok,false);
  assert.equal(verifyCaravelQuote({...base(),rentalAmountMinor:Number.MAX_SAFE_INTEGER},1900000000000).ok,false);
 });
+
+test("missing provider quote fields return rejection rather than crash",()=>{
+ for(const patch of [{plan:null},{quoteId:null},{currency:null}]){
+  const result=verifyCaravelQuote({...base(),...patch},1900000000000);
+  assert.equal(result.ok,false);
+ }
+});
