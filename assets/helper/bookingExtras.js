@@ -1,5 +1,5 @@
 // Shared web presentation for server-authoritative v2 quotes. Never computes totals.
-export function createBookingExtras({ db, url, key, context, isEn }) {
+export function createBookingExtras({ db, url, key, context, isEn, isApiBooking = () => false }) {
     let quote = null, selections = [], revision = 0, ready = false, busy = false, quoteContext = '';
     const el = id => document.getElementById(id);
     const label = (pl, en) => isEn() ? en : pl;
@@ -24,6 +24,11 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         if (total) total.hidden = !enabled;
         el('equipmentLegacyInfo').hidden = enabled;
         if (!enabled) {
+            if (isApiBooking()) {
+                picker.hidden = false;
+                el("equipmentLegacyInfo").hidden = true;
+                picker.append(node("p", label("Dodatki tego dostawcy nie są jeszcze dostępne do potwierdzenia i rezerwacji online. Nie zostały dodane do rezerwacji ani ceny.", "This supplier’s extras cannot yet be confirmed and booked online. No extras have been added to your reservation or price.")));
+            }
             // Do not silently convert a previously selected v2 extra into a free v1 booking.
             if (selections.length) {
                 ready = false;

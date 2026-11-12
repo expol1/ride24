@@ -2157,7 +2157,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261112-status";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
     document.getElementById('deleteModal').style.display = 'flex';
@@ -2842,7 +2842,7 @@ document.addEventListener("click", async function(e) {
            };
        }
        const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
-           context:bookingQuoteContext, isEn:()=>localStorage.getItem("client_lang")==="en"});
+           context:bookingQuoteContext, isApiBooking:()=>!!localStorage.getItem("selectedApiQuoteId"), isEn:()=>localStorage.getItem("client_lang")==="en"});
        window.submitBooking = function() {
     const isEn = localStorage.getItem("client_lang") === "en";
 
@@ -4775,7 +4775,7 @@ window.closeReviewModal = function() {
             <section id="bookingPriceBreakdown" class="booking-price-breakdown" aria-live="polite" hidden></section>
             <div id="aviaCardRequirement" hidden style="margin:14px 0;padding:14px;border:1px solid #86EFAC;border-radius:10px;background:#F0FDF4;color:#14532D;font-size:13px;line-height:1.5">
                 <strong data-pl="AVIA — bez kaucji i blokady karty" data-en="AVIA — no deposit or card hold">AVIA — bez kaucji i blokady karty</strong>
-                <p style="margin:6px 0 10px" data-pl="Przy odbiorze główny kierowca musi okazać fizyczną, imienną kartę debetową wydaną przez uznany bank i powiązaną ze zwykłym rachunkiem osobistym, nawet przy płatności gotówką. Karty prepaid, wirtualne i anonimowe nie są akceptowane. Nie jest wymagana karta kredytowa, kaucja ani preautoryzacja." data-en="At pickup, the main driver must present a physical debit card in their name, issued by a recognised bank and linked to a regular personal bank account, even when paying cash. Prepaid, virtual and anonymous cards are not accepted. No credit card, deposit or preauthorisation is required.">Przy odbiorze główny kierowca musi okazać fizyczną, imienną kartę debetową wydaną przez uznany bank i powiązaną ze zwykłym rachunkiem osobistym, nawet przy płatności gotówką. Karty prepaid, wirtualne i anonimowe nie są akceptowane. Nie jest wymagana karta kredytowa, kaucja ani preautoryzacja.</p>
+                <p style="margin:6px 0 10px" data-pl="Przy odbiorze okaż fizyczną kartę debetową wydaną przez bank na nazwisko głównego kierowcy, także przy płatności gotówką. Bez karty kredytowej, kaucji i preautoryzacji. Karty wirtualne i prepaid nie są akceptowane." data-en="Present a physical bank-issued debit card in the main driver’s name at pickup, including when paying cash. No credit card, deposit or preauthorisation required. Virtual and prepaid cards are not accepted.">Przy odbiorze okaż fizyczną kartę debetową wydaną przez bank na nazwisko głównego kierowcy, także przy płatności gotówką. Bez karty kredytowej, kaucji i preautoryzacji. Karty wirtualne i prepaid nie są akceptowane.</p>
                 <label style="display:flex;align-items:flex-start;gap:9px;font-weight:650;cursor:pointer">
                     <input type="checkbox" id="aviaDebitCardConfirm" style="margin-top:4px" />
                     <span data-pl="Potwierdzam, że główny kierowca okaże wymaganą fizyczną kartę debetową przy odbiorze." data-en="I confirm that the main driver will present the required physical bank debit card at pickup.">Potwierdzam, że główny kierowca okaże wymaganą fizyczną kartę debetową przy odbiorze.</span>
@@ -4900,6 +4900,6 @@ window.closeReviewModal = function() {
         </div>
     </div>
 </div>
-<script src="/assets/js/affiliate-referral.js?v=20261110a" defer></script>
+<script src="/assets/js/affiliate-referral.js?v=20261112-pause" defer></script>
 </body>
 </html>

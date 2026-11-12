@@ -1,7 +1,7 @@
 import {JSDOM} from 'jsdom';import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
 const root=new URL('../../',import.meta.url),src=readFileSync(new URL('assets/js/affiliate-referral.js',root),'utf8');let checks=0;
 const check=(a,b)=>{assert.deepEqual(a,b);checks++};
-function client(url='https://ride24.pl/klient.html'){const dom=new JSDOM('<body><div><label><input id="acceptTerms"></label></div></body>',{url,runScripts:'outside-only'});dom.window.eval(src);dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));return dom;}
+function client(url='https://ride24.pl/klient.html'){const dom=new JSDOM('<body><div><label><input id="acceptTerms"></label></div></body>',{url,runScripts:'outside-only'});dom.window.eval(src.replace("CUSTOMER_REFERRALS_VISIBLE = false", "CUSTOMER_REFERRALS_VISIBLE = true"));dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));return dom;}
 let d=client('https://ride24.pl/klient.html?ref=HOTEL123');check(d.window.localStorage.getItem('ride24_referral_v1'),null);check(!!d.window.document.querySelector('#affiliate-code'),true);
 [...d.window.document.querySelectorAll('button')].find(x=>x.textContent==='Zapamiętaj').click();check(JSON.parse(d.window.localStorage.getItem('ride24_referral_v1')).code,'HOTEL123');check(d.window.document.querySelector('#affiliate-code').value,'HOTEL123');check(d.window.location.search,'');
 let calls=0;await d.window.ride24Referral.attach({rpc:(name,args)=>{calls++;check(name,'affiliate_attach');check(args.p_code,'HOTEL123');return {abortSignal:async()=>({data:{status:'attached'}})}}},'booking');check(calls,1);
@@ -19,3 +19,5 @@ d.window.document.querySelector('#add-partner').click();check(d.window.document.
 d.window.document.querySelector('#dialog-cancel').click();check(d.window.document.querySelector('#action-dialog').open,false);
 d.window.document.querySelector('[data-tab=partners]').click();check(d.window.document.querySelector('#pane-partners').hidden,false);check(d.window.document.querySelector('#pane-commissions').hidden,true);d.window.close();
 console.log(`${checks} UI checks passed`);
+
+const paused=new JSDOM('<body><label><input id="acceptTerms"></label></body>',{url:"https://ride24.pl/?ref=HOTEL123",runScripts:"outside-only"});paused.window.localStorage.setItem("ride24_referral_v1","preserved");paused.window.eval(src);paused.window.document.dispatchEvent(new paused.window.Event("DOMContentLoaded"));assert.equal(paused.window.document.querySelector("#affiliate-code"),null);await paused.window.ride24Referral.attach({rpc(){throw Error("paused referral must not attach")}},"booking");assert.equal(paused.window.localStorage.getItem("ride24_referral_v1"),"preserved");paused.window.close();

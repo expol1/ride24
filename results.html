@@ -1012,7 +1012,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 
                     // 🔥 DODATKOWE ZNACZKI Z JSON
                     const debitCardHtml = parsedFeatures.requiresPersonalDebitCardEvenForCash === true
-                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Wymagana imienna karta debetowa' : 'Named debit card required'}</div>`
+                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Imienna karta debetowa do okazania' : 'Present a debit card in your name'}</div>`
                         : '';
                     const creditCardHtml = parsedFeatures.noCreditCard 
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej i blokady karty' : 'No credit card or card hold'}</div>` 
@@ -1045,7 +1045,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 
                     row.innerHTML = `
 <div class="car-img-box">
-    ${!car.image || parsedFeatures.image_is_representative ? `<small>${lang === "pl" ? "Zdjęcie poglądowe" : "Representative image"}</small>` : ""}
+    ${!car.api_managed && (!car.image || parsedFeatures.image_is_representative) ? `<small>${lang === "pl" ? "Zdjęcie poglądowe" : "Representative image"}</small>` : ""}
     <img src="${safeCarImage}" ${responsiveSrcSet} loading="${imageLoading}" decoding="async" fetchpriority="${index === 0 ? "high" : "auto"}" alt="${safeCarCode}" data-full-image="${safeCarImage}" onerror="this.removeAttribute('srcset');this.onerror=function(){this.onerror=null;this.src='auto.png';};this.src=this.dataset.fullImage;">
 </div>
 
