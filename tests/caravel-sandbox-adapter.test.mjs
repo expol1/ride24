@@ -41,3 +41,20 @@ test("booking requires sandbox-prefixed external reference",async()=>{
 test("cancel requires immutable booking id and revision",async()=>{
   await assert.rejects(()=>new CaravelSandboxClient("fixture").cancelSandbox("",0,"key"),/INVALID_CANCEL/);
 });
+
+test("vehicle classes use documented reference endpoint",async()=>{
+ const calls=[];
+ mock((url)=>{calls.push(url);return url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:[]};});
+ await new CaravelSandboxClient("fixture").vehicleClasses(500);
+ assert.equal(calls[1],"https://sandbox-api.caravelway.com/v1/reference/vehicle-classes?limit=200");
+});
+test("supplier-scoped availability sends X-Supplier-Id",async()=>{
+ const calls=[];
+ mock((url,options)=>{calls.push({url,options});return url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:[]};});
+ await new CaravelSandboxClient("fixture").availability({pickup_location_id:"p",dropoff_location_id:"p",pickup:"2027-01-10T10:00:00+02:00",dropoff:"2027-01-12T10:00:00+02:00"},"supplier-1");
+ assert.equal(calls[1].options.headers["X-Supplier-Id"],"supplier-1");
+});
+test("rejects malformed successful API envelopes",async()=>{
+ mock((url)=>url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{unexpected:true});
+ await assert.rejects(()=>new CaravelSandboxClient("fixture").locations(),/INVALID_RESPONSE_ENVELOPE/);
+});
