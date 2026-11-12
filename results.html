@@ -488,21 +488,21 @@ async function getExchangeRate(currency) {
                         .eq('active', true);
                     if (selected.id) {
                         q = q.eq('id', selected.id);
-                    } else if (selected.location_name) {
-                        q = q.eq('location_name', selected.location_name);
-                    } else if (selected.name) {
-                        const safe = String(selected.name).replace(/["%,]/g, '').trim();
+                    } else if (selected.location_name || selected.name) {
+                        const safe = String(selected.location_name || selected.name).replace(/["%,]/g, '').trim();
                         q = q.or(`display_name.eq."${safe}",location_name.eq."${safe}"`);
                     } else {
                         return selected;
                     }
-                    const { data, error } = await q.limit(1);
+                    if (selected.country) q = q.eq('country', selected.country);
+                    const { data, error } = await q.limit(2);
                     if (error) console.warn('Location refresh:', error.message);
-                    const current = data?.[0];
+                    const current = data?.length === 1 ? data[0] : null;
                     return current ? {
                         ...selected,
                         id: current.id,
                         partner_id: current.partner_id,
+                        external_id: current.external_id,
                         name: window.Ride24LocationNames.displayName(current),
                         location_name: current.location_name,
                         country: current.country,
@@ -923,10 +923,9 @@ const finalTotal = Number((customerPricePerDay * days).toFixed(2));
 // Wyniki: pełne jednostki waluty bez miejsc dziesiętnych.
 // Kwoty rozliczeniowe (finalTotal i baseTotal) pozostają dokładne.
 const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
-    // API quote totals must match separate pickup and online amounts to the cent.
-    minimumFractionDigits: car.api_managed ? 2 : 0,
-    maximumFractionDigits: car.api_managed ? 2 : 0
-}).format(car.api_managed ? finalTotal : Math.round(finalTotal));
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+}).format(Math.round(finalTotal));
 
 // --- KONIEC LOGIKI ---
 
@@ -1013,7 +1012,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 
                     // 🔥 DODATKOWE ZNACZKI Z JSON
                     const debitCardHtml = parsedFeatures.requiresPersonalDebitCardEvenForCash === true
-                        ? `<div class="feature-item" style="grid-column:1 / -1"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Wymagana imienna, fizyczna karta debetowa także przy płatności gotówką (bez prepaid i wirtualnych)' : 'Physical named debit card required even when paying cash (no prepaid or virtual cards)'}</div>`
+                        ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Wymagana imienna karta debetowa' : 'Named debit card required'}</div>`
                         : '';
                     const creditCardHtml = parsedFeatures.noCreditCard 
                         ? `<div class="feature-item"><svg><use href="#icon-check"></use></svg> ${lang === 'pl' ? 'Bez karty kredytowej i blokady karty' : 'No credit card or card hold'}</div>` 
@@ -1043,13 +1042,6 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                     const safeCarCode = escapeHtmlValue(car.class_code || classLetter);
                     const safeCarTitle = escapeHtmlValue(car.description || car.example_model || car.model || car.class_code || "Car");
                     const safeCurrency = escapeHtmlValue(carCurrency);
-                    const moneyFormatter = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
-                        minimumFractionDigits: 2, maximumFractionDigits: 2
-                    });
-                    const apiFeeSplit = car.api_managed && safeQuoteId ? `
-                      <div class="price-info">${lang === 'pl' ? 'Wypożyczalnia przy odbiorze' : 'Rental company at pickup'}: ${moneyFormatter.format(baseTotal)} ${safeCurrency}</div>
-                      <div class="price-info">${lang === 'pl' ? 'Opłata Ride24 online (przed rabatem lojalnościowym)' : 'Ride24 fee online (before loyalty discount)'}: ${moneyFormatter.format(Math.max(0, finalTotal - baseTotal))} ${safeCurrency}</div>
-                    ` : "";
 
                     row.innerHTML = `
 <div class="car-img-box">
@@ -1114,9 +1106,8 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 </div>
 
 <div class="car-price-box">
-    <div class="price-info">${car.api_managed ? (lang === 'pl' ? 'Łącznie: wynajem + opłata Ride24' : 'Total: rental + Ride24 fee') : (lang === 'pl' ? 'Wynajem' : 'Rental')} ${labels.daysInfo}</div>
+    <div class="price-info">${lang === 'pl' ? 'Wynajem' : 'Rental'} ${labels.daysInfo}</div>
     <div class="price-total">${displayTotal} <span>${safeCurrency}</span></div>
-    ${apiFeeSplit}
     ${locationFeesByCar.get(car) > 0
         ? `<div class="price-info">${lang === 'pl' ? 'Opłaty za odbiór i zwrot' : 'Pickup and return fees'}: ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(locationFeesByCar.get(car))} ${safeCurrency}</div>`
         : ''}
