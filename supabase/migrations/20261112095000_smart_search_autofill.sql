@@ -140,7 +140,7 @@ begin
     ) v(category,name_en)
     where p.active is true and length(btrim(coalesce(v.name_en,''))) between 2 and 200
     order by 1,2,3,4
-    limit 300
+    limit 2000
   loop
     v_inspected := v_inspected + 1;
     if lower(rec.name_en) like 'test%' then continue; end if;
