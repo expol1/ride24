@@ -11,6 +11,24 @@
     if (box) { box.textContent = text; box.style.color = error ? "#b91c1c" : "var(--gray)"; }
   };
 
+  async function refreshAutomationStatus() {
+    const target = el("smart-auto-status");
+    if (!target) return;
+    try {
+      const response = await client().rpc("smart_search_automation_status");
+      if (response.error || !response.data) throw response.error || new Error("Brak statusu");
+      const state = response.data, last = state.latest;
+      const lastDate = last?.date ? new Date(last.date).toLocaleString("pl-PL") : "brak";
+      target.textContent = "Automatyzacja Smart Search: " + (state.enabled ? "AKTYWNA" : "WYŁĄCZONA")
+        + " · synchronizacja codziennie o 02:17 UTC"
+        + " · ostatni przebieg: " + lastDate
+        + " · nowych mapowań: " + Number(state.total_added || 0)
+        + " · ostatnio dodano: " + Number(last?.inserted || 0);
+    } catch (_) {
+      target.textContent = "Automatyzacja Smart Search: nie udało się odczytać statusu. Słownik pozostaje dostępny.";
+    }
+  }
+
   function findEntry(rows, name, category, context) {
     const candidates = rows.filter(row => row.category === category && normalize(row.name_en) === normalize(name));
     const country = normalize(context && context.country);
@@ -164,6 +182,7 @@
   }
 
   global.loadUnmappedLocations = async function () {
+    void refreshAutomationStatus();
     const tbody = el("unmapped-locations-tbody");
     if (!tbody) return;
     tableMessage(tbody, "Sprawdzam nazwy partnerów i polskie tłumaczenia…", 3);
