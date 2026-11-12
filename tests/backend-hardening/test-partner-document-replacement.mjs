@@ -16,7 +16,7 @@ test("replacement route requires admin and rejects signed agreements", () => {
 test("replacements are versioned uploads and never overwrite original PDFs", () => {
   assert.match(backend, /"\/versions\/" \+ crypto\.randomUUID\(\)/);
   assert.match(backend, /upsert: false/);
-  assert.doesNotMatch(backend, /\.update\(/); // no Storage update
+  assert.doesNotMatch(backend, /\.storage\.from\(BUCKET\)\.update\(/); // never replace existing Storage object
   assert.match(backend, /No delete\/upsert of any prior document/);
   assert.match(backend, /oldUrl === null \? update\.is\(column, null\) : update\.eq\(column, oldUrl\)/);
 });
