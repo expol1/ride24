@@ -925,8 +925,8 @@
         <div class="page-header"><h1 class="page-title">Zarejestrowani klienci</h1></div>
         <p id="admin-clients-count" class="dashboard-table-status" role="status">Ładowanie listy klientów...</p>
         <div class="table-container admin-table-scroll">
-            <table><thead><tr><th>Klient</th><th>E-mail</th><th>Data rejestracji</th><th>Status</th></tr></thead>
-                <tbody id="admin-clients-tbody"><tr><td colspan="4">Ładowanie...</td></tr></tbody>
+            <table><thead><tr><th>Klient</th><th>E-mail</th><th>Data rejestracji</th><th>Status</th><th>Akcje</th></tr></thead>
+                <tbody id="admin-clients-tbody"><tr><td colspan="5">Ładowanie...</td></tr></tbody>
             </table>
         </div>
         <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
@@ -2544,7 +2544,7 @@ async function loadClientsData(){
   if(!tbody||!label)return;
   const requestId=++clientsRequestId;
   label.textContent='Pobieranie klientów...';
-  tbody.innerHTML='<tr><td colspan="4">Ładowanie...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="5">Ładowanie...</td></tr>';
   const {data,count,error}=await db.from('profiles')
     .select('id,name,email,created_at,deletion_requested',{count:'exact'})
     .eq('role','client').order('created_at',{ascending:false})
@@ -2552,20 +2552,93 @@ async function loadClientsData(){
   if(requestId!==clientsRequestId)return;
   if(error){
     label.textContent='Błąd odczytu listy klientów.';
-    tbody.innerHTML='<tr><td colspan="4">Nie udało się pobrać klientów.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="5">Nie udało się pobrać klientów.</td></tr>';
     return;
   }
   const rows=data||[],start=rows.length?clientPage*ADMIN_RADAR_PAGE_SIZE+1:0,end=clientPage*ADMIN_RADAR_PAGE_SIZE+rows.length;
+  const ids=rows.map(u=>u.id).filter(Boolean);
+  const controls=new Map();
+  if(ids.length){
+    const result=await db.from('client_account_controls')
+      .select('client_id,suspended_at').in('client_id',ids);
+    if(requestId!==clientsRequestId)return;
+    if(result.error){
+      label.textContent='Błąd weryfikacji statusów klientów.';
+      tbody.innerHTML='<tr><td colspan="5">Nie można zweryfikować statusów kont. Akcje administracyjne są chwilowo niedostępne.</td></tr>';
+      return;
+    }
+    (result.data||[]).forEach(s=>controls.set(s.client_id,s.suspended_at));
+  }
   label.textContent='Zarejestrowani klienci: '+Number(count??0)+' • wyświetlono '+start+'–'+end;
   const prev=document.getElementById('admin-clients-prev'),next=document.getElementById('admin-clients-next');
   if(prev)prev.disabled=clientPage===0;
   if(next)next.disabled=end>=Number(count??0);
-  tbody.innerHTML=rows.length?rows.map(u=>'<tr>'
-   +'<td><strong>'+escapeHtml(u.name||'—')+'</strong><div class="client-info">'+escapeHtml(u.id)+'</div></td>'
-   +'<td>'+escapeHtml(u.email||'—')+'</td>'
-   +'<td>'+escapeHtml(radarDate(u.created_at))+'</td>'
-   +'<td>'+(u.deletion_requested?'Wniosek o usunięcie':'Zarejestrowany')+'</td>'
-   +'</tr>').join(''):'<tr><td colspan="4">Brak zarejestrowanych klientów.</td></tr>';
+  tbody.innerHTML=rows.length?rows.map(u=>{
+    const suspended=Boolean(controls.get(u.id));
+    const label=suspended?'Zawieszony':(u.deletion_requested?'Wniosek o usunięcie':'Aktywny');
+    const toggle=suspended?'Przywróć':'Zawieś';
+    const action=suspended?'restore':'suspend';
+    return '<tr>'
+     +'<td><strong>'+escapeHtml(u.name||'—')+'</strong><div class="client-info">'+escapeHtml(u.id)+'</div></td>'
+     +'<td>'+escapeHtml(u.email||'—')+'</td>'
+     +'<td>'+escapeHtml(radarDate(u.created_at))+'</td>'
+     +'<td><strong style="color:'+(suspended?'#b45309':'#166534')+'">'+label+'</strong></td>'
+     +'<td style="white-space:nowrap">'
+     +'<button type="button" class="btn-secondary" style="padding:5px 9px;margin-right:6px" onclick="adminClientAction(\''+u.id+'\',\''+action+'\')">'+toggle+'</button>'
+     +'<button type="button" class="btn-danger" style="padding:5px 9px" onclick="adminClientAction(\''+u.id+'\',\'delete\')">Usuń</button>'
+     +'</td></tr>';
+  }).join(''):'<tr><td colspan="5">Brak zarejestrowanych klientów.</td></tr>';
+}
+async function adminClientAction(userId,action){
+  if(!/^[0-9a-f-]{36}$/i.test(String(userId)))return;
+  if(!['suspend','restore','delete'].includes(action))return;
+  const profileResult=await db.from('profiles').select('email,name,role').eq('id',userId).maybeSingle();
+  if(profileResult.error||profileResult.data?.role!=='client'){
+    alert('Nie można potwierdzić tożsamości konta klienta.');return;
+  }
+  const who=profileResult.data.email||userId;
+  try{
+    if(action==='delete'){
+      const preflight=await db.functions.invoke('admin-client-controls',{
+        body:{action:'preflight_delete',user_id:userId}
+      });
+      if(preflight.error||!preflight.data?.eligible){
+        alert('Nie można bezpiecznie usunąć konta:\\n'+
+          (preflight.data?.blockers||[]).join('\\n')+
+          '\\nJeśli klient ma historię rezerwacji, użyj zawieszenia.');
+        return;
+      }
+      const typed=prompt('Trwałe usunięcie konta jest nieodwracalne.\\nAby potwierdzić, wpisz dokładnie: '+who);
+      if(typed===null||typed.trim()!==who)return;
+      if(!confirm('Ostatecznie usunąć konto '+who+' z Supabase Authentication?'))return;
+      const result=await db.functions.invoke('admin-client-controls',{
+        body:{action:'delete',user_id:userId,confirm_text:typed.trim()}
+      });
+      if(result.error||result.data?.auth_deleted!==true||!result.data?.success)
+        throw new Error((result.data?.blockers||[]).join('; ')||result.data?.error||'Nie potwierdzono usunięcia konta.');
+      alert(result.data?.cleanup_pending?.length
+        ? 'Konto usunięte. Sprawdź pozostałe dane: '+result.data.cleanup_pending.join(', ')
+        : 'Konto klienta zostało usunięte.');
+    }else{
+      const restoring=action==='restore';
+      if(!confirm((restoring?'Przywrócić dostęp klientowi ':'Zawiesić konto klienta ')+who+'?'))return;
+      let reason='';
+      if(!restoring){
+        const provided=prompt('Opcjonalny powód zawieszenia (widoczny tylko dla administracji):','');
+        if(provided===null)return;
+        reason=provided.trim().slice(0,500);
+      }
+      const result=await db.functions.invoke('admin-client-controls',{
+        body:{action,user_id:userId,reason}
+      });
+      if(result.error||!result.data?.success)
+        throw new Error(result.data?.error||'Nie udało się zmienić statusu.');
+      alert(restoring?'Dostęp klienta przywrócony.':'Klient zawieszony. Nowe rezerwacje są blokowane.');
+    }
+    await Promise.all([loadClientsData(),loadRadarData()]);
+  }catch(error){
+    alert('Operacja nie została potwierdzona: '+(error?.message||'Błąd serwera.')+' Odśwież listę klientów.');
+  }
 }
 async function loadBookingsData(){
   const tbody=document.getElementById('admin-bookings-tbody');
