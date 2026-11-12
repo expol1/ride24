@@ -38,13 +38,13 @@ export function validateCaravelSelection(input: {
   if (!integer(rules.minDriverAge) || !integer(rules.maxDriverAge) ||
       rules.minDriverAge < 16 || rules.maxDriverAge < rules.minDriverAge) errors.push("DRIVER_AGE_LIMITS_UNVERIFIED");
   else if (!integer(input.driverAge) || input.driverAge < rules.minDriverAge || input.driverAge > rules.maxDriverAge) errors.push("DRIVER_AGE_OUT_OF_RANGE");
-  if (!/^[A-Z]{3}$/.test(rules.currency)) errors.push("CURRENCY_UNVERIFIED");
+  if (typeof rules.currency !== "string" || !/^[A-Z]{3}$/.test(rules.currency)) errors.push("CURRENCY_UNVERIFIED");
   const ids = new Set<string>();
   let total = 0;
   for (const extra of extras) {
-    if (!extra.externalId || ids.has(extra.externalId)) errors.push("INVALID_EXTRA_ID");
+    if (typeof extra.externalId !== "string" || !extra.externalId.trim() || ids.has(extra.externalId)) errors.push("INVALID_EXTRA_ID");
     ids.add(extra.externalId);
-    if (!extra.name.trim() || !integer(extra.unitAmountMinor) || extra.unitAmountMinor < 0 ||
+    if (typeof extra.name !== "string" || !extra.name.trim() || !integer(extra.unitAmountMinor) || extra.unitAmountMinor < 0 ||
         extra.currency !== rules.currency || !integer(extra.maxQuantity) || extra.maxQuantity < 0 ||
         !integer(extra.selectedQuantity) || extra.selectedQuantity < 0 || extra.selectedQuantity > extra.maxQuantity ||
         !["rental", "day", "quantity"].includes(extra.chargingUnit) ||
