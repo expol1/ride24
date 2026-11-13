@@ -1,6 +1,6 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
-import { assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
+import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
@@ -1082,7 +1082,7 @@ serve(async (req) => {
         );
       }
 
-      assertApiRequestedOptions(body);
+      if(body.pricing_version!==2) assertApiRequestedOptions(body);
       await assertApiPricingCompatible(admin, car.partner_id);
       quoteClaim = await claimApiQuote(
         admin,
@@ -1289,7 +1289,16 @@ serve(async (req) => {
     if (!Array.isArray(selections) || selections.length > 20) throw quoteChanged();
     if (car.partner.provider_type === "api") {
       // API provider quotes remain authoritative, including their own services.
-      if (selections.length || body.pricing_version === 2) throw quoteChanged();
+      const raw=quoteClaim?.row.raw_response;
+      pricingItemsSnapshot=assertApiOptionsQuote(raw,body,user.id,
+        [mainDriverAge,...(additionalDriverAge!==null?[additionalDriverAge]:[])]);
+      if(pricingItemsSnapshot) {
+        const p=pricingItemsSnapshot;
+        if(p.currency!==currency || p.exchange_rate!==rate || p.partner_cents!==Math.round(baseTotal*100)
+          ||p.gross_cents!==Math.round(finalTotal*100)
+          ||p.loyalty_discount_cents!==Math.round(p.commission_cents*discountPercent/100))throw quoteChanged();
+        onlinePaymentPln=p.online_pln_cents/100;
+      }
     } else if (await pricedExtrasEnabled(admin)) {
       const options = await loadBookingOptions(admin, car.partner_id, pickupName, returnName);
       if (body.pricing_version !== 2) {

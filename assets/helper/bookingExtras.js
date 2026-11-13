@@ -56,6 +56,8 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             const r = node('label'); r.className = 'booking-extra-row';
             const copy = node('span'); copy.append(node('strong', isEn() ? extra.name_en : extra.name_pl));
             copy.append(node('small', money(extra.unit_customer_cents, p.currency) + ' / ' + (extra.billing === 'day' ? label('dzień', 'day') : label('wynajem', 'rental'))));
+            if (Number.isInteger(extra.max_billed_days) && extra.max_billed_days > 0)
+                copy.append(node('small', label('Limit naliczania: ', 'Billing cap: ') + extra.max_billed_days + label(' dni; uwzględniony w cenie.', ' days; included in the quoted price.')));
             r.append(copy);
             if (extra.code === 'additional_driver') {
                 r.append(node('small', label('Wybierz osobę w polu „Dodatkowy kierowca”.', 'Select a person in “Additional driver”.')));
@@ -72,6 +74,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             }
             picker.append(r);
         }
+        if (quote.unavailable_services?.length) picker.append(node('p', label('Pozostałe usługi dostawcy wymagają potwierdzenia i nie są dostępne do wyboru online.', 'Other supplier services require confirmation and cannot be selected online.')));
         picker.append(node('small', label('Kwoty obejmują wybraną liczbę sztuk i dni. Aktualizacja ceny pochodzi bezpośrednio z serwera Ride24.', 'Prices reflect quantity and days. The updated quote comes directly from Ride24.')));
         if (total) {
             const selected = p.items.filter(item => item.kind === 'extra');
@@ -124,7 +127,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         payload() {
             if (selections.length && !quote?.enabled) throw new Error(label('Płatne dodatki nie są obecnie dostępne. Nie można ich pominąć po cichu.', 'Paid extras are currently unavailable and cannot be silently removed.'));
             if (!ready || busy || quoteContext !== JSON.stringify(context())) throw new Error(label('Sprawdź aktualne podsumowanie ceny.', 'Review the current price summary.'));
-            return quote?.enabled ? { pricing_version: 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })) } : {};
+            return quote?.enabled ? { pricing_version: 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })), ...(quote.api_quote_id ? {api_quote_id:quote.api_quote_id} : {}) } : {};
         },
         canSubmit: () => ready && !busy,
     };

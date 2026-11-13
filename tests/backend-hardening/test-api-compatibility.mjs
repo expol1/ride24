@@ -101,6 +101,7 @@ function setup() {
     let serve;
     const sandbox={exports:{},require:specifier=>{
       if(specifier.includes('provider-normalization'))return normalization;
+      if(specifier.includes('api-booking-options.ts'))return {makeApiBookingOptions:()=>{throw Error('Unexpected provider options call');}};
       if(specifier.includes('api-readiness'))return readiness;
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;

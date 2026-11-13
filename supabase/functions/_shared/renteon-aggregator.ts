@@ -1,3 +1,4 @@
+import { reconcileAvailabilityServices, selectedServices, applyProviderSelections, verifySelectedServices, providerServiceCatalog } from "./provider-services.mjs";
 import { ride24ClassFromAcriss, canonicalApiLocation } from "./provider-normalization.mjs";
 // Renteon AGGREGATOR API, not the older direct Renteon ExBooking API.
 // Based on "Aggregator API Ride24" Postman collection from Renteon support.
@@ -296,9 +297,8 @@ export async function aggregatorAvailability(
     const officeIn = obj(item.DropOffOffice);
     if (txt(officeOut?.LocationCode) !== pickup || txt(officeIn?.LocationCode) !== dropoff) continue;
     if (!equalDateTime(item.PickupDate, start) || !equalDateTime(item.DropOffDate, end)) continue;
-    const rentalAmount = positive(item.CarRentalAmount);
-    // Unexpected provider price components must be investigated before publication.
-    if (rentalAmount !== null && !amountIsEqual(total, rentalAmount)) {
+    // Accept only a complete, reconciled supplier total; included fees are not added again.
+    try { reconcileAvailabilityServices(item); } catch {
       unsupportedSurcharges += 1;
       continue;
     }
@@ -389,6 +389,36 @@ export async function aggregatorAvailability(
   return output;
 }
 
+// /create returns an UNSAVED model (official Aggregator swagger). /save is never
+// called while quoting. Prices and limits always come from /calculate.
+export async function aggregatorQuoteOptions(credentials: PartnerApiCredentials, quoteData: unknown,
+  selections: unknown[], driverAges: number[]) {
+  const code=agencyCode(credentials), q=obj(quoteData), offered=obj(q?.offer);
+  if(!offered || q?.provider_code!==code || offered.Provider!==code || offered.Prepaid!==false)
+    throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_QUOTE_MISSING");
+  if(!driverAges.length || driverAges.length>2 || driverAges.some(x=>!Number.isSafeInteger(x)||x<18||x>99))
+    throw new Error("PARTNER_API_ERROR:RENTEON_DRIVER_AGE_REQUIRED");
+  // AVIA's confirmed 18–24 policy differs from the live supplier 18–23 rule.
+  // Do not invent or suppress the missing fee for a 24-year-old driver.
+  if(code==="Avia" && driverAges.includes(24) && Number(offered.YoungDriverAgeTo)<24)
+    throw new Error("PARTNER_API_ERROR:RENTEON_DRIVER_AGE_POLICY_REQUIRES_CONFIRMATION");
+  const created=obj(await call(credentials,createPath,{method:"POST",body:{...offered,
+    Drivers:driverAges.map(DriverAge=>({DriverAge}))}}));
+  if(!created || created.Provider!==code || created.Number || created.Prepaid!==false)
+    throw new Error("PARTNER_API_ERROR:RENTEON_UNSAVED_QUOTE_REQUIRED");
+  selectedServices(created);
+  const catalog=providerServiceCatalog(created);
+  const requested=applyProviderSelections(created,selections);
+  const calculated=obj(await call(credentials,calculatePath,{method:"POST",body:requested}));
+  if(!calculated || calculated.Provider!==code || calculated.Number || calculated.Prepaid!==false
+    || calculated.Currency!==offered.Currency || calculated.CarCategory!==offered.CarCategory
+    || !equalDateTime(calculated.PickupDate,String(offered.PickupDate))
+    || !equalDateTime(calculated.DropOffDate,String(offered.DropOffDate)))
+    throw new Error("PARTNER_API_ERROR:RENTEON_QUOTE_CHANGED");
+  verifySelectedServices(requested,calculated);
+  return {calculated,catalog,provider_quote_data:{...q,calculated,driver_ages:driverAges,total_amount:calculated.Total}};
+}
+
 export async function aggregatorBook(
   credentials: PartnerApiCredentials,
   input: ProviderBookingInput,
@@ -406,7 +436,8 @@ export async function aggregatorBook(
   if (offered.Prepaid !== false || txt(offered.CarCategory) !== input.vehicle_group_id) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_QUOTE_CHANGED");
   }
-  const amount = positive(offered.Amount);
+  const prepared = obj(quote?.calculated);
+  const amount = positive(prepared?.Total ?? offered.Amount);
   if (amount === null || !amountIsEqual(amount, input.partner_amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_PRICE_MISMATCH");
   }
@@ -422,17 +453,27 @@ export async function aggregatorBook(
   const email = txt(input.client_email, 250);
   if (!name || !email) throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CUSTOMER_REQUIRED");
 
-  const created = obj(await call<unknown>(credentials, createPath, {
+  const created = prepared || obj(await call<unknown>(credentials, createPath, {
     method: "POST",
     body: offered,
   }));
   if (!created || txt(created.Provider) !== code || !amountIsEqual(created.Total, amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CREATE_PRICE_CHANGED");
   }
+  if (prepared) {
+    const ages=[input.main_driver?.age,...(input.additional_driver ? [input.additional_driver.age] : [])];
+    if(JSON.stringify(ages)!==JSON.stringify(quote?.driver_ages))
+      throw new Error("PARTNER_API_ERROR:RENTEON_DRIVER_QUOTE_CHANGED");
+    selectedServices(prepared);
+  }
+  const drivers=[input.main_driver,...(input.additional_driver ? [input.additional_driver] : [])].map(d=>{
+    const parts=txt(d?.name,200).split(/\s+/);return {Name:parts.shift()||"",Surname:parts.join(" "),DriverAge:d?.age};
+  });
   const calculation = obj(await call<unknown>(credentials, calculatePath, {
     method: "POST",
     body: {
       ...created,
+      Drivers: drivers,
       ClientName: name,
       ClientEmail: email,
       ClientPhone: txt(input.client_phone, 60) || null,
@@ -441,6 +482,7 @@ export async function aggregatorBook(
   if (!calculation || txt(calculation.Provider) !== code || !amountIsEqual(calculation.Total, amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CALCULATE_PRICE_CHANGED");
   }
+  if (prepared) verifySelectedServices(prepared,calculation);
   // Save is the first durable booking. Renteon Postman does not define idempotency,
   // so transport failures are flagged for manual investigation, never auto-retried here.
   const saved = obj(await call<unknown>(credentials, savePath, {

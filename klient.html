@@ -2157,7 +2157,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261112-status";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-provider-options";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
     document.getElementById('deleteModal').style.display = 'flex';
@@ -2835,10 +2835,11 @@ document.addEventListener("click", async function(e) {
                car_class_id: localStorage.getItem("selectedCarId"),
                start_date: localStorage.getItem("bookingStartDate"), end_date: localStorage.getItem("bookingEndDate"),
                pickup_time: localStorage.getItem("bookingPickupTime") || "10:00", return_time: localStorage.getItem("bookingDropTime") || "10:00",
-               pickup_location: search.pickup_location?.name || "Do ustalenia",
-               return_location: search.drop_location?.name || search.pickup_location?.name || "Do ustalenia",
+               pickup_location: search.pickup_location?.location_name || search.pickup_location?.name || "Do ustalenia",
+               return_location: search.drop_location?.location_name || search.drop_location?.name || search.pickup_location?.location_name || search.pickup_location?.name || "Do ustalenia",
                driver_id: document.getElementById("driverSelect")?.value || null,
-               additional_driver_id: additional?.length === 36 ? additional : null
+               additional_driver_id: additional?.length === 36 ? additional : null,
+               api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
            };
        }
        const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
@@ -2983,8 +2984,8 @@ document.addEventListener("click", async function(e) {
                 }
 
                 const searchParams = JSON.parse(localStorage.getItem("searchParams") || "{}");
-                const pickupName = searchParams?.pickup_location?.name || "Do ustalenia";
-                const returnName = searchParams?.drop_location?.name || pickupName;
+                const pickupName = searchParams?.pickup_location?.location_name || searchParams?.pickup_location?.name || "Do ustalenia";
+                const returnName = searchParams?.drop_location?.location_name || searchParams?.drop_location?.name || pickupName;
 
                 const mainValue = document.getElementById("driverSelect")?.value || null;
                 const additionalValue = document.getElementById("additionalDriverSelect")?.value || null;
@@ -3020,8 +3021,8 @@ document.addEventListener("click", async function(e) {
                             !!(document.getElementById("aviaCardRequirement") &&
                                !document.getElementById("aviaCardRequirement").hidden &&
                                document.getElementById("aviaDebitCardConfirm")?.checked),
-                        ...pricingPayload,
-                        api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
+                        api_quote_id: localStorage.getItem("selectedApiQuoteId") || null,
+                        ...pricingPayload
                     })
                 });
 
