@@ -499,6 +499,9 @@ export function caravelSyncRows(
         },
         mileage_limit: g.mileage_limit ?? null,
         deposit_amount: g.deposit_amount ?? 0,
+        // search-api reads car_classes.min_driver_age for the card/booking check.
+        min_driver_age: Number.isSafeInteger((g.features as Json)?.minimum_driver_age)
+          ? (g.features as Json).minimum_driver_age : null,
         driver_included: g.driver_included === true,
         active: g.active !== false,
       };

@@ -19,6 +19,11 @@ Scope: `feature/caravel-sandbox-integration` / PR #81. Do not modify `search-api
 7. Only with validated sandbox contract, perform fake-customer quote, booking, status and cancellation; check idempotency, expiry and errors.
 8. Prepare a documented Caravel->Ride24 normalized contract for existing `normalizeGroups`, `normalizeLocations`, `car_classes`, `partner_locations` and `search-api`. **Do not wire production dispatch until Work confirms AVIA stabilization and a coordinated integration window.**
 
+## Stage A (isolated normalization) — done on `claude/caravel-finish`
+- `caravel-normalize.ts`, `caravel-booking.ts`, adapter capabilities cache and status lookup; tests run through the real shared `normalizeGroups()`, `normalizeLocations()` and `apiPriceTotals()`.
+- Inputs are verified values, not raw API JSON: the raw-JSON mapper waits for the OpenAPI contract (stage B).
+- Shared-code changes needed to wire it in: `caravel-shared-changes-proposal.md` (for Work, not applied).
+
 ## Release blockers
 - Real sandbox access and verified OpenAPI mapping.
 - Live sample offers, prices, fees, extras and rules.

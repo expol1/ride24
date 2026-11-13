@@ -159,9 +159,10 @@ test("class catalog row matches car_classes columns and keeps verified badges", 
   assert.equal(row.class_code, "C");
   assert.equal(row.is_api_managed, true);
   assert.equal(row.deposit_amount, 0);
+  assert.equal(row.min_driver_age, 21);
   assert.deepEqual(Object.keys(row).sort(), ["active", "bags", "class_code", "deposit_amount", "description", "driver_included",
-    "example_model", "external_id", "features", "fuel_type", "image", "is_api_managed", "mileage_limit", "model",
-    "partner_id", "public_price", "seats", "transmission"]);
+    "example_model", "external_id", "features", "fuel_type", "image", "is_api_managed", "mileage_limit", "min_driver_age",
+    "model", "partner_id", "public_price", "seats", "transmission"]);
 });
 
 test("extras map to Ride24 partner_extras shape, inactive until shared support", () => {
