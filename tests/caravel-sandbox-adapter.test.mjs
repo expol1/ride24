@@ -66,3 +66,17 @@ test("CaravelError exposes HTTP status and request identifiers under Node 22 str
  assert.equal(error.requestId,"req-test-1");
  assert.match(error.message,/RATE_LIMITED.*429/);
 });
+
+test("rejects null capabilities safely",async()=>{
+ mock(()=>({data:null}));
+ await assert.rejects(()=>new CaravelSandboxClient("fixture").suppliers(),/SANDBOX_ENVIRONMENT_REQUIRED/);
+});
+test("rejects premium without valid currency",()=>{
+ const check=CaravelSandboxClient.isPremiumZeroRisk;
+ for(const currency of ["","EU","eur"]){
+  assert.equal(check({plan:"Premium",protection:{excess:{amount:0,currency},deposit:{amount:0,currency}}}),false);
+ }
+});
+test("rejects missing sandbox booking reference safely",async()=>{
+ await assert.rejects(()=>new CaravelSandboxClient("fixture").bookSandbox({quote_id:"q",drivers:[],customer:{}},"key"),/SANDBOX_BOOKING_GUARD/);
+});
