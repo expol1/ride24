@@ -87,7 +87,8 @@
 }
 
 /* Let extras breathe. No alterations to the current select or quote handlers. */
-#equipmentInfoModal .equipment-info-box {
+#equipmentInfoModal .equipment-info-box,
+#equipmentInfoModal .equipment-info-box:has(#bookingExtrasPicker:not([hidden])) {
   width: min(640px, 100%);
   border-radius: 20px;
 }
@@ -185,7 +186,7 @@
   #termsModal .r24-extras-callout .r24-extras-copy strong { font-size: 14px; }
   #termsModal .r24-extras-callout .r24-extras-copy small { font-size: 11.5px; }
   #termsModal .r24-extras-callout .r24-extras-action { min-height: 36px; padding: 7px 9px; font-size: 12px; }
-  #equipmentInfoModal .equipment-info-overlay { padding: 10px; }
+  #equipmentInfoModal.equipment-info-overlay { padding: 10px; }
   #equipmentInfoModal .equipment-info-box { padding: 19px; width: 100%; max-height: calc(100dvh - 20px); }
   #equipmentInfoModal #bookingExtrasPicker .booking-extra-row { padding: 13px; gap: 10px; }
   #equipmentInfoModal #bookingExtrasPicker .booking-extra-row select { min-width: 72px; }
