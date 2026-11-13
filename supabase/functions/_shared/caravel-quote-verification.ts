@@ -65,12 +65,14 @@ export function verifyCaravelMandatoryCharges(input:{
   if(!/^[A-Z]{3}$/.test(input.quoteCurrency??"") ||
     !Number.isSafeInteger(input.quoteMandatoryFeesMinor) || input.quoteMandatoryFeesMinor<0)
     errors.push("MANDATORY_TOTAL_UNVERIFIED");
-  if(typeof input.pickupLocalTime!=="string" || typeof input.returnLocalTime!=="string" ||\n    !/^\d{2}:\d{2}$/.test(input.pickupLocalTime) ||
+  if(typeof input.pickupLocalTime!=="string" || typeof input.returnLocalTime!=="string" ||
+    !/^\d{2}:\d{2}$/.test(input.pickupLocalTime) ||
     !/^\d{2}:\d{2}$/.test(input.returnLocalTime) ||
     ![input.pickupLocalTime,input.returnLocalTime].every(t=>{
       const [h,m]=t.split(":").map(Number);return h<=23 && m<=59;
     }) ||
-    typeof input.pickupTimezone!=="string" || !input.pickupTimezone.trim() ||\n    typeof input.returnTimezone!=="string" || !input.returnTimezone.trim())
+    typeof input.pickupTimezone!=="string" || !input.pickupTimezone.trim() ||
+    typeof input.returnTimezone!=="string" || !input.returnTimezone.trim())
     errors.push("LOCAL_TIME_UNVERIFIED");
   if(typeof input.pickupOutsideHours!=="boolean" || typeof input.returnOutsideHours!=="boolean")
     errors.push("OPERATING_HOURS_UNVERIFIED");
@@ -85,7 +87,10 @@ export function verifyCaravelMandatoryCharges(input:{
     ids.add(fee.externalId);
     if(!Number.isSafeInteger(sum+fee.amountMinor)){errors.push("MANDATORY_AMOUNT_OVERFLOW");continue;}
     sum+=fee.amountMinor;
-    if(fee.category==="out_of_hours_pickup" || fee.category==="out_of_hours_return"){\n      if(!Number.isSafeInteger(night+fee.amountMinor)) errors.push("OUT_OF_HOURS_AMOUNT_OVERFLOW");\n      else night+=fee.amountMinor;\n    }
+    if(fee.category==="out_of_hours_pickup" || fee.category==="out_of_hours_return"){
+      if(!Number.isSafeInteger(night+fee.amountMinor)) errors.push("OUT_OF_HOURS_AMOUNT_OVERFLOW");
+      else night+=fee.amountMinor;
+    }
   }
   if(sum!==input.quoteMandatoryFeesMinor) errors.push("MANDATORY_FEE_MISMATCH");
   if(input.pickupOutsideHours===true && !input.charges.some(f=>f?.category==="out_of_hours_pickup"))
