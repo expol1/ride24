@@ -64,28 +64,43 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             if (extra.code === 'additional_driver') {
                 r.append(node('small', label('Wybierz osobę w polu „Dodatkowy kierowca”.', 'Select a person in “Additional driver”.')));
             } else {
-                const select = node('select'); select.setAttribute('aria-label', isEn() ? extra.name_en : extra.name_pl);
-                // UI-only choice: keep the supplier's original ServiceId, quantity and pricing calculation.
-                // One-per-booking services are easier to understand as Yes/No. Never change server limits.
+                // Single-use extras are genuine accessible on/off switches, not dropdowns.
+                // API contract stays unchanged: checked = 1, unchecked = no selected item.
                 const singleChoice = extra.max_quantity === 1
                     || /^(EQ-GPS|FEE-CB|FEE-FERRY|EQ-DIESEL|FEE-DIESEL|VEH-DIESEL)$/i.test(extra.code || '');
                 if (singleChoice) {
-                    for (const [qty, text] of [[0, label('Nie', 'No')], [1, label('Tak', 'Yes')]]) {
-                        const option = node('option', text); option.value = String(qty); select.append(option);
-                    }
-                    select.setAttribute('data-single-choice', 'true');
+                    const control = node('span'); control.className = 'r24-extra-switch';
+                    const toggle = node('input');
+                    toggle.type = 'checkbox';
+                    toggle.className = 'r24-extra-switch-input';
+                    toggle.setAttribute('role', 'switch');
+                    toggle.setAttribute('aria-label', (isEn() ? extra.name_en : extra.name_pl) + ': ' + label('Tak lub Nie', 'Yes or No'));
+                    toggle.checked = selections.some(x => x.id === extra.id && x.quantity > 0);
+                    const track = node('span'); track.className = 'r24-extra-switch-track'; track.setAttribute('aria-hidden', 'true');
+                    track.append(node('span')); // visual thumb
+                    const value = node('span', toggle.checked ? label('Tak', 'Yes') : label('Nie', 'No'));
+                    value.className = 'r24-extra-switch-value';
+                    toggle.onchange = () => {
+                        value.textContent = toggle.checked ? label('Tak', 'Yes') : label('Nie', 'No');
+                        selections = selections.filter(x => x.id !== extra.id);
+                        if (toggle.checked) selections.push({ id: extra.id, quantity: 1 });
+                        refresh();
+                    };
+                    control.append(toggle, track, value);
+                    r.append(control);
                 } else {
+                    const select = node('select'); select.setAttribute('aria-label', isEn() ? extra.name_en : extra.name_pl);
                     for (let i = 0; i <= extra.max_quantity; i++) {
                         const option = node('option', String(i)); option.value = String(i); select.append(option);
                     }
+                    select.value = String(selections.find(x => x.id === extra.id)?.quantity || 0);
+                    select.onchange = () => {
+                        selections = selections.filter(x => x.id !== extra.id);
+                        if (Number(select.value)) selections.push({ id: extra.id, quantity: Number(select.value) });
+                        refresh();
+                    };
+                    r.append(select);
                 }
-                select.value = String(selections.find(x => x.id === extra.id)?.quantity || 0);
-                select.onchange = () => {
-                    selections = selections.filter(x => x.id !== extra.id);
-                    if (Number(select.value)) selections.push({ id: extra.id, quantity: Number(select.value) });
-                    refresh();
-                };
-                r.append(select);
             }
             picker.append(r);
         }
