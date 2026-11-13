@@ -200,3 +200,85 @@
   #equipmentInfoModal #bookingExtrasPicker .booking-extra-row { transition: none; }
   #termsModal .r24-extras-callout .docs-extra-item:hover { transform: none; }
 }
+
+/* Accessible PL/EN toggle for one-per-booking services. Child seats keep quantity select. */
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 11px;
+  padding: 8px 4px;
+  min-width: 102px;
+  min-height: 44px;
+  user-select: none;
+  cursor: pointer;
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-input {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  z-index: 2;
+  cursor: pointer;
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-track {
+  box-sizing: border-box;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 54px;
+  width: 54px;
+  height: 32px;
+  border: 2px solid #aab9c9;
+  border-radius: 999px;
+  background: #dce5ef;
+  transition: background-color .18s ease, border-color .18s ease;
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-track > span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(15,23,42,.25);
+  transition: transform .18s ease;
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-input:checked + .r24-extra-switch-track {
+  background: #97d700;
+  border-color: #72aa08;
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-input:checked + .r24-extra-switch-track > span {
+  transform: translateX(22px);
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-value {
+  display: inline-block;
+  min-width: 28px;
+  color: #52637a;
+  font-size: 14px;
+  font-weight: 800;
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-input:checked ~ .r24-extra-switch-value {
+  color: #427b08;
+}
+#equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-input:focus-visible + .r24-extra-switch-track {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row:has(.r24-extra-switch-input:checked) {
+  border-color: #71ad1b;
+  background: #f8fff0;
+  box-shadow: inset 4px 0 0 #97d700, 0 3px 12px rgba(15,23,42,.04);
+}
+@media (max-width: 380px) {
+  #equipmentInfoModal #bookingExtrasPicker .r24-extra-switch { gap: 7px; min-width: 94px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-track,
+  #equipmentInfoModal #bookingExtrasPicker .r24-extra-switch-track > span { transition: none; }
+}
