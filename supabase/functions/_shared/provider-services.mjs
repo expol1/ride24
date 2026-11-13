@@ -49,10 +49,16 @@ export function selectedServices(model) {
  if(sum!==serviceCents(model.Total))throw Error('PROVIDER_SERVICES_UNRECONCILED');
  return selected;
 }
+export function unconfirmedServicePrice(s) {
+ const p=s.ServicePrice;
+ // A zero amount alone is not an explicit promise of a free optional service.
+ return !p || typeof p.Amount!=='number' || !Number.isFinite(p.Amount) || p.Amount<0
+  || (p.Amount===0 && p.FreeOfCharge!==true && p.IncludedInPriceUnlimited!==true && p.IncludedInPriceLimited!==true);
+}
 export function providerServiceCatalog(model,margin=0) {
  return model.Services.filter(s=>!s.IsRent&&!s.IsMandatory&&!s.IsSelected&&s.Code!=='UNSPECIFIED'&&!String(s.Code).startsWith('INS-')).flatMap(s=>{
   const p=s.ServicePrice;
-  if(s.Prepaid!==false||p?.Currency!==model.Currency||typeof p.Amount!=='number'||p.Amount<0)return [];
+  if(s.Prepaid!==false||p?.Currency!==model.Currency||unconfirmedServicePrice(s))return [];
   const n=serviceNames(s); const max=s.IsQuantityEditable===true&&Number.isSafeInteger(s.MaximumQuantity)&&s.MaximumQuantity>0?Math.min(s.MaximumQuantity,20):1;
   // Amount is for one unit for the entire quoted period, not a daily tariff.
   return [{id:String(s.ServiceId),code:s.Code==='ADD-DRIVER'?'additional_driver':s.Code,
@@ -75,6 +81,7 @@ export function verifySelectedServices(requested,calculated) {
  for(const s of requested.Services.filter(s=>s.IsSelected)){
   const actual=calculated.Services.find(x=>x.ServiceId===s.ServiceId&&x.IsSelected);
   if(!actual||actual.Quantity!==s.Quantity)throw Error('PROVIDER_SELECTION_NOT_CONFIRMED');
+  if(s.IsMandatory===false && !s.IsRent && unconfirmedServicePrice(actual))throw Error('PROVIDER_SERVICE_PRICE_UNCONFIRMED');
  }
 }
 export function providerPricingSnapshot(model,{marginPercent,loyaltyPercent,exchangeRate,days}) {

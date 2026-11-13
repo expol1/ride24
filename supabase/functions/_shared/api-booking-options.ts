@@ -2,7 +2,7 @@ import { BookingOptionsError, priceFingerprint, quoteChanged, pricedExtrasEnable
 import { assertApiQuoteContext } from './api-quote-contract.mjs';
 import { loadPartnerCredentials } from './partner-api.ts';
 import { aggregatorQuoteOptions } from './renteon-aggregator.ts';
-import { providerPricingSnapshot, providerServiceCatalog } from './provider-services.mjs';
+import { providerPricingSnapshot, providerServiceCatalog, unconfirmedServicePrice, serviceNames } from './provider-services.mjs';
 import { customerPricing } from './booking-items.mjs';
 import { exchangeRate } from './booking-exchange-rate.ts';
 import { rentalDuration } from './rental-duration.ts';
@@ -41,5 +41,5 @@ export async function makeApiBookingOptions(admin:any,user:any,car:any,partner:a
  if(saveError||!saved?.id)throw Error('PRICING_UNAVAILABLE');
  const catalog=result.catalog.map((x:any)=>({...x,unit_customer_cents:Math.round(x.unit_customer_cents*(1+Number(quote.platform_margin_percent)/100))}));
  return {enabled:true,api_quote_id:saved.id,pricing:customerPricing(snapshot),catalog,fingerprint,
-  unavailable_services:result.calculated.Services.filter((s:any)=>s.Code==='UNSPECIFIED'&&!s.IsSelected).map((s:any)=>({name_en:s.AdditionalName||s.Name,status:'mapping_requires_confirmation'}))};
+  unavailable_services:result.calculated.Services.filter((s:any)=>!s.IsSelected&&!s.IsMandatory&&!String(s.Code).startsWith('INS-')&&(s.Code==='UNSPECIFIED'||unconfirmedServicePrice(s))).map((s:any)=>({name_en:serviceNames(s).en,name_pl:serviceNames(s).pl,status:unconfirmedServicePrice(s)?'price_requires_confirmation':'mapping_requires_confirmation'}))};
 }

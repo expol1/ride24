@@ -32,3 +32,25 @@ test('quote bound to customer, drivers, selections and consent',()=>{
  const body={pricing_version:2,pricing_fingerprint:'abc',extras:[]};assert.equal(assertApiOptionsQuote(raw,body,'user1',[35]),snapshot);
  assert.throws(()=>assertApiOptionsQuote(raw,body,'user2',[35]));assert.throws(()=>assertApiOptionsQuote(raw,body,'user1',[18]));assert.throws(()=>assertApiOptionsQuote(raw,{...body,extras:[{id:'489',quantity:1}]},'user1',[35]));
 });
+
+test('zero optional price needs an explicit supplier free/included flag',()=>{
+ const m=model(); const seat=m.Services[3];seat.ServicePrice.Amount=0;
+ assert.equal(providerServiceCatalog(m).length,0);
+ assert.throws(()=>applyProviderSelections(m,[{id:'489',quantity:1}]));
+ seat.ServicePrice.FreeOfCharge=true;assert.equal(providerServiceCatalog(m)[0].unit_customer_cents,0);
+ seat.ServicePrice.Amount=null;assert.equal(providerServiceCatalog(m).length,0);
+ const selected=applyProviderSelections(model(),[{id:'489',quantity:1}]);
+ const bad=structuredClone(selected);bad.Services[3].ServicePrice.Amount=0;bad.Services[3].ServicePrice.AmountTotal=0;
+ assert.throws(()=>verifySelectedServices(selected,bad),/PRICE_UNCONFIRMED/);
+});
+test('recorded live AVIA period and quantity totals match supplied tariff caps',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const evidence=JSON.parse(await readFile(new URL('../../maintenance/2026-11-13-avia-extras-audit.json',import.meta.url),'utf8'));
+ const daily={'EQ-BABYSEAT':12.5,'EQ-CHILDSEAT':12.5,'EQ-BOOSTER':7,'EQ-GPS':8,'FEE-WINTERTIRE':12.5,'ADD-DRIVER':9};
+ assert.deepEqual(evidence.cases.map(x=>x.days),[1,3,7,10,11,14]);
+ for(const c of evidence.cases)for(const s of c.services){
+  if(daily[s.code]){assert.equal(s.unit_period,daily[s.code]*Math.min(c.days,10));assert.equal(s.total,s.unit_period*s.quantity);}
+  if(s.code==='FEE-FERRY')assert.equal(s.total,50);
+  if(s.code==='EQ-CHAINS')assert.equal(s.total,0); // Recorded conflict, not an accepted tariff.
+ }
+});

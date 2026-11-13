@@ -1,0 +1,382 @@
+{
+  "source": "T&C Avia 2027.xlsx / Avia aditionals rows 55-60,70",
+  "date": "2026-11-13",
+  "pickup": "HR-ZAD-ZAD",
+  "start": "2027-03-01",
+  "time": "10:00",
+  "quote_only": true,
+  "cases": [
+    {
+      "days": 1,
+      "offers": 25,
+      "services": [
+        {
+          "code": "EQ-BABYSEAT",
+          "quantity": 2,
+          "unit_period": 12.5,
+          "total": 25,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-BOOSTER",
+          "quantity": 1,
+          "unit_period": 7,
+          "total": 7,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHILDSEAT",
+          "quantity": 1,
+          "unit_period": 12.5,
+          "total": 12.5,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-GPS",
+          "quantity": 1,
+          "unit_period": 8,
+          "total": 8,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHAINS",
+          "quantity": 1,
+          "unit_period": 0,
+          "total": 0,
+          "max_days": 0
+        },
+        {
+          "code": "FEE-FERRY",
+          "quantity": 1,
+          "unit_period": 50,
+          "total": 50,
+          "max_days": null
+        },
+        {
+          "code": "FEE-WINTERTIRE",
+          "quantity": 1,
+          "unit_period": 12.5,
+          "total": 12.5,
+          "max_days": 10
+        },
+        {
+          "code": "ADD-DRIVER",
+          "quantity": 1,
+          "unit_period": 9,
+          "total": 9,
+          "max_days": 10
+        }
+      ]
+    },
+    {
+      "days": 3,
+      "offers": 25,
+      "services": [
+        {
+          "code": "EQ-BABYSEAT",
+          "quantity": 2,
+          "unit_period": 37.5,
+          "total": 75,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-BOOSTER",
+          "quantity": 1,
+          "unit_period": 21,
+          "total": 21,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHILDSEAT",
+          "quantity": 1,
+          "unit_period": 37.5,
+          "total": 37.5,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-GPS",
+          "quantity": 1,
+          "unit_period": 24,
+          "total": 24,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHAINS",
+          "quantity": 1,
+          "unit_period": 0,
+          "total": 0,
+          "max_days": 0
+        },
+        {
+          "code": "FEE-FERRY",
+          "quantity": 1,
+          "unit_period": 50,
+          "total": 50,
+          "max_days": null
+        },
+        {
+          "code": "FEE-WINTERTIRE",
+          "quantity": 1,
+          "unit_period": 37.5,
+          "total": 37.5,
+          "max_days": 10
+        },
+        {
+          "code": "ADD-DRIVER",
+          "quantity": 1,
+          "unit_period": 27,
+          "total": 27,
+          "max_days": 10
+        }
+      ]
+    },
+    {
+      "days": 7,
+      "offers": 25,
+      "services": [
+        {
+          "code": "EQ-BABYSEAT",
+          "quantity": 2,
+          "unit_period": 87.5,
+          "total": 175,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-BOOSTER",
+          "quantity": 1,
+          "unit_period": 49,
+          "total": 49,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHILDSEAT",
+          "quantity": 1,
+          "unit_period": 87.5,
+          "total": 87.5,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-GPS",
+          "quantity": 1,
+          "unit_period": 56,
+          "total": 56,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHAINS",
+          "quantity": 1,
+          "unit_period": 0,
+          "total": 0,
+          "max_days": 0
+        },
+        {
+          "code": "FEE-FERRY",
+          "quantity": 1,
+          "unit_period": 50,
+          "total": 50,
+          "max_days": null
+        },
+        {
+          "code": "FEE-WINTERTIRE",
+          "quantity": 1,
+          "unit_period": 87.5,
+          "total": 87.5,
+          "max_days": 10
+        },
+        {
+          "code": "ADD-DRIVER",
+          "quantity": 1,
+          "unit_period": 63,
+          "total": 63,
+          "max_days": 10
+        }
+      ]
+    },
+    {
+      "days": 10,
+      "offers": 25,
+      "services": [
+        {
+          "code": "EQ-BABYSEAT",
+          "quantity": 2,
+          "unit_period": 125,
+          "total": 250,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-BOOSTER",
+          "quantity": 1,
+          "unit_period": 70,
+          "total": 70,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHILDSEAT",
+          "quantity": 1,
+          "unit_period": 125,
+          "total": 125,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-GPS",
+          "quantity": 1,
+          "unit_period": 80,
+          "total": 80,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHAINS",
+          "quantity": 1,
+          "unit_period": 0,
+          "total": 0,
+          "max_days": 0
+        },
+        {
+          "code": "FEE-FERRY",
+          "quantity": 1,
+          "unit_period": 50,
+          "total": 50,
+          "max_days": null
+        },
+        {
+          "code": "FEE-WINTERTIRE",
+          "quantity": 1,
+          "unit_period": 125,
+          "total": 125,
+          "max_days": 10
+        },
+        {
+          "code": "ADD-DRIVER",
+          "quantity": 1,
+          "unit_period": 90,
+          "total": 90,
+          "max_days": 10
+        }
+      ]
+    },
+    {
+      "days": 11,
+      "offers": 25,
+      "services": [
+        {
+          "code": "EQ-BABYSEAT",
+          "quantity": 2,
+          "unit_period": 125,
+          "total": 250,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-BOOSTER",
+          "quantity": 1,
+          "unit_period": 70,
+          "total": 70,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHILDSEAT",
+          "quantity": 1,
+          "unit_period": 125,
+          "total": 125,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-GPS",
+          "quantity": 1,
+          "unit_period": 80,
+          "total": 80,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHAINS",
+          "quantity": 1,
+          "unit_period": 0,
+          "total": 0,
+          "max_days": 0
+        },
+        {
+          "code": "FEE-FERRY",
+          "quantity": 1,
+          "unit_period": 50,
+          "total": 50,
+          "max_days": null
+        },
+        {
+          "code": "FEE-WINTERTIRE",
+          "quantity": 1,
+          "unit_period": 125,
+          "total": 125,
+          "max_days": 10
+        },
+        {
+          "code": "ADD-DRIVER",
+          "quantity": 1,
+          "unit_period": 90,
+          "total": 90,
+          "max_days": 10
+        }
+      ]
+    },
+    {
+      "days": 14,
+      "offers": 25,
+      "services": [
+        {
+          "code": "EQ-BABYSEAT",
+          "quantity": 2,
+          "unit_period": 125,
+          "total": 250,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-BOOSTER",
+          "quantity": 1,
+          "unit_period": 70,
+          "total": 70,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHILDSEAT",
+          "quantity": 1,
+          "unit_period": 125,
+          "total": 125,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-GPS",
+          "quantity": 1,
+          "unit_period": 80,
+          "total": 80,
+          "max_days": 10
+        },
+        {
+          "code": "EQ-CHAINS",
+          "quantity": 1,
+          "unit_period": 0,
+          "total": 0,
+          "max_days": 0
+        },
+        {
+          "code": "FEE-FERRY",
+          "quantity": 1,
+          "unit_period": 50,
+          "total": 50,
+          "max_days": null
+        },
+        {
+          "code": "FEE-WINTERTIRE",
+          "quantity": 1,
+          "unit_period": 125,
+          "total": 125,
+          "max_days": 10
+        },
+        {
+          "code": "ADD-DRIVER",
+          "quantity": 1,
+          "unit_period": 90,
+          "total": 90,
+          "max_days": 10
+        }
+      ]
+    }
+  ]
+}

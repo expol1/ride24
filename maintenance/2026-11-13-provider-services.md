@@ -11,3 +11,17 @@ Deployed backend: booking-options v9, create-booking-request v27, api-booking-di
 Limits: Android source/runtime is not accessible; this does not certify native APK. An age-24 AVIA policy discrepancy (supplier 18–23 vs agreed 18–24) blocks options quote pending provider confirmation. Unmapped UNSPECIFIED optional services and insurance changes are not selectable. Seasonal/route restrictions remain provider-authoritative. Full payment, real-device push and customer email E2E are not certified. Caravel/Arvent live integration is not certified by these changes.
 
 Rollback: restore task-owned code from prior main 5f2946f and matching complete function bundles; preserve subsequent/concurrent edits and original verify_jwt modes. Local predeployment complete function backups are retained in sibling live-backup/options-*.json. No table restore is needed.
+
+## Supplier workbook audit (follow-up)
+
+Source: user-supplied `T&C Avia 2027.xlsx`, sheet `Avia aditionals`, rows 55–60 and 70; workbook itself retains 2025/2026 headings. No blanket replacement of individual Ride24 terms.
+
+Live unsaved AVIA quotes from Zadar Airport, starting 2027-03-01 at 10:00, for 1, 3, 7, 10, 11, 14 days: baby/child seats EUR 12.50/day cap125 each, booster7/day cap70, GPS8/day cap80, additional driver9/day cap90, winter tyres12.50/day cap125; all matched. Two baby seats at14days total250. Ferry50 per rental matched. API Amount is per unit for the entire period; AmountTotal includes quantity. Do not multiply either by rental days again. Evidence is in adjacent extras-audit JSON.
+
+Conflict: snow chains API0 and maxdays0, with FreeOfCharge=false and no included-price flag, versus workbook10/day cap100. Universal optional-service guard rejects an unexplained zero and exposes price_requires_confirmation, preserving explicit free/included services. UI describes the amount as per unit for the entire selected period and lists unavailable service names/status. No tariff is fabricated or overwritten.
+
+Live three-day time tests:06:59 pickup80+return80;07:00 pickup50+return50;08:00 zero;23:00 pickup80+return80. At exactly21:00 API returns no fee although workbook says21:00–22:59 EUR50: boundary requires supplier clarification.
+
+Age tests at3days:18,22,70 each return37.50. Workbook instead specifies18–21=62.50/rental,22–24=37.50/rental,70+=62.50/rental; earlier Ride24 agreement12.50/day cap125 matches observed18,22,70 pricing. Age24 remains blocked because API age range differs. Do not replace earlier negotiated rates from this generic workbook. Kosovo both prohibited(row46) and priced155(row47); confirmation required.
+
+No payment or production reservation was created by these quote-only tests. Temporary acceptance endpoint closed with HTTP410 and JWT. Native Android/full authenticated checkout remain unverified.

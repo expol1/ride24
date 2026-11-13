@@ -55,7 +55,9 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         for (const extra of quote.catalog) {
             const r = node('label'); r.className = 'booking-extra-row';
             const copy = node('span'); copy.append(node('strong', isEn() ? extra.name_en : extra.name_pl));
-            copy.append(node('small', money(extra.unit_customer_cents, p.currency) + ' / ' + (extra.billing === 'day' ? label('dzień', 'day') : label('wynajem', 'rental'))));
+            copy.append(node('small', money(extra.unit_customer_cents, p.currency) + ' / ' + (extra.billing === 'day' ? label('dzień', 'day') : label('szt. za cały wybrany okres', 'unit for the entire selected period'))));
+            if (extra.provider_billing === 'duration')
+                copy.append(node('small', label('Opłata zależna od długości najmu; pokazana kwota jest już sumą za wybrany okres.', 'Duration-based charge; the amount shown is already the total for the selected period.')));
             if (Number.isInteger(extra.max_billed_days) && extra.max_billed_days > 0)
                 copy.append(node('small', label('Limit naliczania: ', 'Billing cap: ') + extra.max_billed_days + label(' dni; uwzględniony w cenie.', ' days; included in the quoted price.')));
             r.append(copy);
@@ -74,7 +76,11 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             }
             picker.append(r);
         }
-        if (quote.unavailable_services?.length) picker.append(node('p', label('Pozostałe usługi dostawcy wymagają potwierdzenia i nie są dostępne do wyboru online.', 'Other supplier services require confirmation and cannot be selected online.')));
+        for (const service of quote.unavailable_services || []) picker.append(node('p',
+            (isEn() ? service.name_en : (service.name_pl || service.name_en)) + ' — ' +
+            (service.status === 'price_requires_confirmation'
+                ? label('cena wymaga potwierdzenia przez dostawcę; wybór online niedostępny.', 'price requires supplier confirmation; online selection unavailable.')
+                : label('usługa wymaga potwierdzenia; wybór online niedostępny.', 'service requires confirmation; online selection unavailable.'))));
         picker.append(node('small', label('Kwoty obejmują wybraną liczbę sztuk i dni. Aktualizacja ceny pochodzi bezpośrednio z serwera Ride24.', 'Prices reflect quantity and days. The updated quote comes directly from Ride24.')));
         if (total) {
             const selected = p.items.filter(item => item.kind === 'extra');
