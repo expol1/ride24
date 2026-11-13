@@ -91,7 +91,9 @@ export function providerPricingSnapshot(model,{marginPercent,loyaltyPercent,exch
  const partner=serviceCents(model.Total),gross=Math.round(partner*(1+marginPercent/100));
  const items=services.map(s=>{const n=serviceNames(s),net=serviceCents(s.ServicePrice.AmountTotal);return {
   kind:s.IsRent?'rental':s.IsMandatory?'time_fee':'extra',id:String(s.ServiceId),provider_service_id:String(s.ServiceId),
-  name_pl:n.pl,name_en:n.en,quantity:s.Quantity,days:s.IsRent?days:1,billing:'rental',partner_cents:net,customer_cents:Math.round(net*(1+marginPercent/100))};});
+  name_pl:n.pl,name_en:n.en,quantity:s.Quantity,days:s.IsRent?days:1,billing:'rental',
+  included_in_price:s.ServicePrice.IncludedInPriceUnlimited===true||s.ServicePrice.IncludedInPriceLimited===true,
+  partner_cents:net,customer_cents:Math.round(net*(1+marginPercent/100))};});
  const rounding=gross-items.reduce((n,s)=>n+s.customer_cents,0); if(items.length)items[0].customer_cents+=rounding;
  const commission=gross-partner,discount=Math.round(commission*loyaltyPercent/100);
  return {version:2,currency:model.Currency,items,partner_cents:partner,gross_cents:gross,commission_cents:commission,loyalty_discount_cents:discount,total_cents:gross-discount,online_pln_cents:Math.round((commission-discount)*exchangeRate),exchange_rate:exchangeRate};

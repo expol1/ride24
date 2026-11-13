@@ -298,3 +298,16 @@ test('provider failures are explicitly reported and never impersonate a successf
   const value=await response.json();assert.equal(response.status,200);assert.equal(value.count,0);
   assert.equal(value.partial,true);assert.equal(value.provider_errors.length,1);
 });
+
+test('accepted provider extras snapshot survives booking creation without losing services or payment split',async()=>{
+ const {providerPricingSnapshot}=await import('../../supabase/functions/_shared/provider-services.mjs');
+ const service=(id,code,amount,quantity=1)=>({ServiceId:id,Code:code,Name:code,Quantity:quantity,IsSelected:true,IsMandatory:code==='FEE-OOH',IsRent:code==='CAR-RENT',Prepaid:false,ServicePrice:{Currency:'EUR',Amount:amount/quantity,AmountTotal:amount}});
+ const snapshot=providerPricingSnapshot({Currency:'EUR',Total:335,Services:[service(361,'CAR-RENT',100),service(489,'EQ-BABYSEAT',75,2),service(119,'FEE-OOH',80),service(121,'FEE-OOH',80)]},{marginPercent:10,loyaltyPercent:10,exchangeRate:4.3,days:3});
+ const s=setup();const q=s.tables.api_quotes[0];Object.assign(q,{platform_margin_percent:10,partner_net_total:335,commission_total:33.5,final_total:368.5});
+ const requestBody={...body(),pricing_version:2,pricing_fingerprint:'confirmed',extras:[{id:'489',quantity:2}]};
+ q.raw_response.ride24_options={snapshot,fingerprint:'confirmed',binding:{user_id:uid,driver_id:null,additional_driver_id:null,ages:[35],selections:requestBody.extras}};
+ const response=await s.handler('create-booking-request')(requestBody);assert.equal(response.status,200,await response.text());
+ assert.equal(s.saved.length,1);assert.deepEqual(s.saved[0].pricing_items_snapshot,snapshot);
+ assert.equal(s.saved[0].partner_net_price_snapshot,335);assert.equal(s.saved[0].online_payment_pln,129.65);
+ assert.equal(s.tables.api_quotes[0].booking_id,booking);
+});

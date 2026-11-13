@@ -25,3 +25,15 @@ Live three-day time tests:06:59 pickup80+return80;07:00 pickup50+return50;08:00 
 Age tests at3days:18,22,70 each return37.50. Workbook instead specifies18–21=62.50/rental,22–24=37.50/rental,70+=62.50/rental; earlier Ride24 agreement12.50/day cap125 matches observed18,22,70 pricing. Age24 remains blocked because API age range differs. Do not replace earlier negotiated rates from this generic workbook. Kosovo both prohibited(row46) and priced155(row47); confirmation required.
 
 No payment or production reservation was created by these quote-only tests. Temporary acceptance endpoint closed with HTTP410 and JWT. Native Android/full authenticated checkout remain unverified.
+
+## Final persistence and checkout-contract verification
+
+User reports partner approval of the displayed screenshots/prices. No new rates are invented and this is not treated as permission for real bookings/payments.
+
+Live quote-only persistence test, AVIA Zadar 2027-03-01 to03-04 at23:00 both ways, two baby seats: rental150.56 + seats75 + pickup80 + return80 = supplier385.56 EUR; gross424.12 EUR. `makeApiBookingOptions` inserted a new quote and `assertApiOptionsQuote` verified its customer/driver/selection/fingerprint binding against the stored record. Test quotes were expired immediately; no production booking exists. Temporary one-use endpoint closed (version13, HTTP410, JWT required).
+
+Additional regression test executes the create-booking-request handler with a prepared extras quote and verifies exact pricing snapshot persistence, quote binding and the Ride24/partner split. Included supplier protection remains on the pricing summary but is excluded from the Your extras count. Unknown provider service names are represented by a general availability notice instead of presenting internal items such as No deposit as unconfirmed paid equipment. Confirmed mappings still show named unavailability.
+
+83 automated checks passed across provider services, API compatibility, web extras UI, local booking items, local booking handler, native API contract and voucher PDF layout (including20extras). These are not a native device test or a production-payment E2E test. Provider-services checks added to the existing API CI workflow.
+
+Remaining access limitation: Android client source/build and a connected Android runtime are absent. Authenticated browser checkout and payment/email/push E2E are not certified. Existing age24 guard remains because no specific age24 API quote was confirmed in the supplied evidence.

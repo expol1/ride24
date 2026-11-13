@@ -64,3 +64,11 @@ test('client details and partner extras use real catalogue instead of static cho
   assert.match(partnerExtras,/r24-extras-dialog__head/);
   assert.match(partnerExtras,/className='r24-extras-dialog'/);
 });
+
+test('included protection is not counted as customer-selected equipment',async()=>{
+ const {ui}=setup();globalThis.fetch=async()=>response({...baseQuote,pricing:{...baseQuote.pricing,items:[...baseQuote.pricing.items,
+ {kind:'extra',name_en:'Included protection',name_pl:'Ochrona',included_in_price:true,quantity:1,customer_cents:0}]},unavailable_services:[
+ {name_en:'No deposit',status:'mapping_requires_confirmation'},{name_en:'Snow chains',status:'price_requires_confirmation'}]});
+ await ui.start();assert.match(document.getElementById('bookingExtrasTotal').textContent,/Your extras: none/);
+ const picker=document.getElementById('bookingExtrasPicker').textContent;assert.doesNotMatch(picker,/No deposit/);assert.match(picker,/Snow chains/);
+});

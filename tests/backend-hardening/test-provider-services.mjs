@@ -54,3 +54,9 @@ test('recorded live AVIA period and quantity totals match supplied tariff caps',
   if(s.code==='EQ-CHAINS')assert.equal(s.total,0); // Recorded conflict, not an accepted tariff.
  }
 });
+
+test('included provider protection remains in totals but is marked separately from chosen equipment',()=>{
+ const m=model();m.Services.push(service(999,'UNSPECIFIED',0,true));m.Services.at(-1).ServicePrice.IncludedInPriceUnlimited=true;
+ const s=providerPricingSnapshot(m,{marginPercent:10,loyaltyPercent:0,exchangeRate:4.3,days:3});
+ assert.equal(s.items.at(-1).included_in_price,true);assert.equal(s.partner_cents,28472);validateVoucherPricing(s);
+});

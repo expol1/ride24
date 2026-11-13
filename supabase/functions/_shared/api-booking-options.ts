@@ -41,5 +41,5 @@ export async function makeApiBookingOptions(admin:any,user:any,car:any,partner:a
  if(saveError||!saved?.id)throw Error('PRICING_UNAVAILABLE');
  const catalog=result.catalog.map((x:any)=>({...x,unit_customer_cents:Math.round(x.unit_customer_cents*(1+Number(quote.platform_margin_percent)/100))}));
  return {enabled:true,api_quote_id:saved.id,pricing:customerPricing(snapshot),catalog,fingerprint,
-  unavailable_services:result.calculated.Services.filter((s:any)=>!s.IsSelected&&!s.IsMandatory&&!String(s.Code).startsWith('INS-')&&(s.Code==='UNSPECIFIED'||unconfirmedServicePrice(s))).map((s:any)=>({name_en:serviceNames(s).en,name_pl:serviceNames(s).pl,status:unconfirmedServicePrice(s)?'price_requires_confirmation':'mapping_requires_confirmation'}))};
+  unavailable_services:result.calculated.Services.filter((s:any)=>!s.IsSelected&&!s.IsMandatory&&!String(s.Code).startsWith('INS-')&&(s.Code==='UNSPECIFIED'||unconfirmedServicePrice(s))).map((s:any)=>({name_en:serviceNames(s).en,name_pl:serviceNames(s).pl,status:s.Code==='UNSPECIFIED'?'mapping_requires_confirmation':'price_requires_confirmation'}))};
 }

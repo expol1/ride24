@@ -76,14 +76,16 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             }
             picker.append(r);
         }
-        for (const service of quote.unavailable_services || []) picker.append(node('p',
+        for (const service of (quote.unavailable_services || []).filter(s => s.status !== 'mapping_requires_confirmation')) picker.append(node('p',
             (isEn() ? service.name_en : (service.name_pl || service.name_en)) + ' — ' +
             (service.status === 'price_requires_confirmation'
                 ? label('cena wymaga potwierdzenia przez dostawcę; wybór online niedostępny.', 'price requires supplier confirmation; online selection unavailable.')
                 : label('usługa wymaga potwierdzenia; wybór online niedostępny.', 'service requires confirmation; online selection unavailable.'))));
+        if (quote.unavailable_services?.some(s => s.status === 'mapping_requires_confirmation'))
+            picker.append(node('small', label('Pozostałe usługi wymagają indywidualnego potwierdzenia partnera.', 'Other services require individual confirmation by the partner.')));
         picker.append(node('small', label('Kwoty obejmują wybraną liczbę sztuk i dni. Aktualizacja ceny pochodzi bezpośrednio z serwera Ride24.', 'Prices reflect quantity and days. The updated quote comes directly from Ride24.')));
         if (total) {
-            const selected = p.items.filter(item => item.kind === 'extra');
+            const selected = p.items.filter(item => item.kind === 'extra' && !item.included_in_price);
             total.append(node('strong', label('Twoje dodatki', 'Your extras') + ': ' + (selected.length ? selected.length : label('brak', 'none'))));
             for (const item of selected) {
                 const name = (isEn() ? item.name_en : item.name_pl) + ' × ' + item.quantity + (item.billing === 'day' ? ' × ' + item.days + ' ' + label('dni', 'days') : '');
