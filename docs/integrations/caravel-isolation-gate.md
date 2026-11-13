@@ -15,7 +15,7 @@ Scope: `feature/caravel-sandbox-integration` / PR #81. Do not modify `search-api
 3. Read-only sandbox requests: capabilities, suppliers, locations, vehicle classes, availability for documented locations/dates.
 4. Validate Premium only, zero deposit/excess, payable-at-counter model, payment methods, mileage and exclusions from provider source; preserve unsupported/unknown values as blocked.
 5. Verify mandatory fees, night-hour fees, optional extras, rental minimum, age, currency and totals using provider's authoritative quote. No double counting and no guessed rental days.
-6. Run local `node --experimental-strip-types --test tests/caravel-sandbox-adapter.test.mjs tests/caravel-verified-rules.test.mjs tests/caravel-quote-verification.test.mjs` and TypeScript checks; record actual results.
+6. Run local `node --experimental-strip-types --test tests/caravel-sandbox-adapter.test.mjs tests/caravel-verified-rules.test.mjs tests/caravel-quote-verification.test.mjs` and TypeScript checks; record actual results. If Node loads the `.ts` sources as CommonJS locally (a `package.json` with `"type": "commonjs"` above the checkout), add `--import ./tests/local-ts-esm-loader.mjs` to the same command; the hook is test-only and changes no source or CI behaviour.
 7. Only with validated sandbox contract, perform fake-customer quote, booking, status and cancellation; check idempotency, expiry and errors.
 8. Prepare a documented Caravel->Ride24 normalized contract for existing `normalizeGroups`, `normalizeLocations`, `car_classes`, `partner_locations` and `search-api`. **Do not wire production dispatch until Work confirms AVIA stabilization and a coordinated integration window.**
 
