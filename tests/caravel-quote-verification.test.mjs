@@ -57,3 +57,20 @@ test("rejects duplicate charges and mixed currencies",()=>{
  const y=mandatory();y.charges[0].currency="USD";
  assert.equal(verifyCaravelMandatoryCharges(y).ok,false);
 });
+
+test("malformed local time values fail closed without throwing",()=>{
+ for(const patch of [{pickupLocalTime:null},{returnLocalTime:123},{pickupTimezone:null},{returnTimezone:5},{pickupLocalTime:"24:00"},{returnLocalTime:"10:60"}]){
+  const result=verifyCaravelMandatoryCharges({...mandatory(),...patch});
+  assert.equal(result.ok,false);
+ }
+});
+test("rejects overflow of out-of-hours fee subtotals",()=>{
+ const x=mandatory();
+ x.charges=[
+  {externalId:"a",label:"Late pickup",category:"out_of_hours_pickup",amountMinor:Number.MAX_SAFE_INTEGER,currency:"EUR"},
+  {externalId:"b",label:"Late return",category:"out_of_hours_return",amountMinor:1,currency:"EUR"}
+ ];
+ x.quoteMandatoryFeesMinor=Number.MAX_SAFE_INTEGER;
+ x.returnOutsideHours=true;
+ assert.equal(verifyCaravelMandatoryCharges(x).ok,false);
+});
