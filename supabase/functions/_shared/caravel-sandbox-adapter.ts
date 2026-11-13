@@ -76,13 +76,24 @@ export class CaravelSandboxClient {
     await this.capabilities();
     return this.request<Supplier[]>("GET","/v1/suppliers");
   }
-  async locations(limit=200) {
+  /** GET /v1/whoami — own account configuration (opt-ins, scopes, webhook state). */
+  async whoami() {
     await this.capabilities();
-    return this.request<Array<{location_id:string;supplier_id:string;code?:string;name:string;timezone?:string}>>("GET",`/v1/reference/locations?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`);
+    return this.request<Json>("GET","/v1/whoami");
   }
-  async vehicleClasses(limit=200) {
+  async locations(limit=200,supplierId?:string) {
     await this.capabilities();
-    return this.request<Array<Json>>("GET",`/v1/reference/vehicles?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`);
+    return this.request<Array<{location_id:string;supplier_id:string;code?:string;name:string;timezone?:string}>>("GET",`/v1/reference/locations?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`,undefined,undefined,supplierId);
+  }
+  async vehicleClasses(limit=200,supplierId?:string) {
+    await this.capabilities();
+    return this.request<Array<Json>>("GET",`/v1/reference/vehicles?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`,undefined,undefined,supplierId);
+  }
+  /** GET /v1/reference/{extras|protections|policies|fees} (scope read:reference). */
+  async reference(kind:"extras"|"protections"|"policies"|"fees",supplierId?:string) {
+    if(!["extras","protections","policies","fees"].includes(kind)) throw new Error("INVALID_REFERENCE");
+    await this.capabilities();
+    return this.request<Array<Json>>("GET",`/v1/reference/${kind}`,undefined,undefined,supplierId);
   }
   /** GET /v1/availability. `driver_age` prices age fees into the row (OpenAPI v1.67.0). There is no `plan` query parameter: rows carry `plan`; request params are strict (unknown = 422). */
   async availability(params:{pickup_location_id:string;dropoff_location_id:string;pickup:string;dropoff:string;driver_age?:number;currency?:string},supplierId?:string) {
@@ -113,7 +124,7 @@ export class CaravelSandboxClient {
       typeof excess.currency==="string" && /^[A-Z]{3}$/.test(excess.currency) && excess.currency===deposit.currency;
   }
   /** POST /v1/quote (QuoteRequest, OpenAPI v1.67.0). Request schemas are strict: send only documented fields. */
-  async quote(input:CaravelQuoteRequest,idempotencyKey:string) {
+  async quote(input:CaravelQuoteRequest,idempotencyKey:string,supplierId?:string) {
     if(!isUuid(idempotencyKey)) throw new Error("IDEMPOTENCY_REQUIRED");
     const drivers=Array.isArray(input?.drivers)?input.drivers:[];
     if(!input?.pickup?.location_id || !input?.dropoff?.location_id || !input.pickup.at || !input.dropoff.at ||
@@ -125,24 +136,24 @@ export class CaravelSandboxClient {
       (input.extras ?? []).some(e=>!e?.extra_id || !Number.isSafeInteger(e?.quantity) || e.quantity<1 || e.quantity>9))
       throw new Error("INVALID_QUOTE_REQUEST");
     await this.capabilities();
-    return this.request<Json>("POST","/v1/quote",input as unknown as Json,idempotencyKey);
+    return this.request<Json>("POST","/v1/quote",input as unknown as Json,idempotencyKey,supplierId);
   }
   /** POST /v1/bookings, quoted shape (CreateQuotedBookingRequest). Sandbox guard: external_ref must start with ride24-sandbox-. */
-  async bookSandbox(input:CaravelQuotedBookingRequest,idempotencyKey:string) {
+  async bookSandbox(input:CaravelQuotedBookingRequest,idempotencyKey:string,supplierId?:string) {
     if(!isUuid(idempotencyKey) || typeof input?.external_ref!=="string" || !input.external_ref.startsWith("ride24-sandbox-") ||
       !/^[A-Za-z0-9._-]{1,64}$/.test(input.external_ref) || !isUuid(input.quote_id)) throw new Error("SANDBOX_BOOKING_GUARD");
     await this.capabilities();
-    return this.request<Json>("POST","/v1/bookings",input as unknown as Json,idempotencyKey);
+    return this.request<Json>("POST","/v1/bookings",input as unknown as Json,idempotencyKey,supplierId);
   }
   /** GET /v1/bookings/{ref}?ref_type=booking_id (OpenAPI v1.67.0 getBooking). */
-  async bookingStatusSandbox(bookingId:string) {
+  async bookingStatusSandbox(bookingId:string,supplierId?:string) {
     if(!bookingId || !/^[A-Za-z0-9_-]{1,128}$/.test(bookingId)) throw new Error("INVALID_BOOKING_ID");
     await this.capabilities();
-    return this.request<Json>("GET",`/v1/bookings/${encodeURIComponent(bookingId)}?ref_type=booking_id`);
+    return this.request<Json>("GET",`/v1/bookings/${encodeURIComponent(bookingId)}?ref_type=booking_id`,undefined,undefined,supplierId);
   }
-  async cancelSandbox(bookingId:string,revision:number,idempotencyKey:string) {
+  async cancelSandbox(bookingId:string,revision:number,idempotencyKey:string,supplierId?:string) {
     if(!bookingId || !Number.isInteger(revision) || revision<1 || !isUuid(idempotencyKey)) throw new Error("INVALID_CANCEL");
     await this.capabilities();
-    return this.request<Json>("POST",`/v1/bookings/${encodeURIComponent(bookingId)}/cancel?ref_type=booking_id`,{expected_revision:revision,reason:"customer_request"},idempotencyKey);
+    return this.request<Json>("POST",`/v1/bookings/${encodeURIComponent(bookingId)}/cancel?ref_type=booking_id`,{expected_revision:revision,reason:"customer_request"},idempotencyKey,supplierId);
   }
 }
