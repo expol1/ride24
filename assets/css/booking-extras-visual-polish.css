@@ -1,0 +1,202 @@
+/*
+ * Ride24 — optional extras UX polish (PL/EN).
+ * Presentation only: no quote, catalog, booking, authentication or pricing logic.
+ * Scoped to customer booking confirmation and extras dialog.
+ */
+#termsModal .r24-extras-callout {
+  margin: 0 0 20px;
+}
+#termsModal .r24-extras-callout .docs-extra-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 19px 20px;
+  border: 1.5px solid #a7c7f3;
+  border-left: 5px solid #97d700;
+  border-radius: 16px;
+  background: linear-gradient(115deg, #eef6ff 0%, #f7fbff 75%, #f6ffe6 100%);
+  box-shadow: 0 8px 22px rgba(26, 70, 137, .09);
+  text-align: left;
+  color: #17365e;
+  font: inherit;
+  cursor: pointer;
+  transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease;
+}
+#termsModal .r24-extras-callout .docs-extra-item:hover {
+  border-color: #2563eb;
+  border-left-color: #97d700;
+  box-shadow: 0 12px 26px rgba(26, 70, 137, .15);
+  transform: translateY(-1px);
+}
+#termsModal .r24-extras-callout .docs-extra-item:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+#termsModal .r24-extras-callout .docs-extra-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+#termsModal .r24-extras-callout .docs-extra-icon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  border: 1px solid #cde4ff;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, .07);
+}
+#termsModal .r24-extras-callout .r24-extras-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+#termsModal .r24-extras-callout .r24-extras-copy strong {
+  display: block;
+  color: #113b75;
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+#termsModal .r24-extras-callout .r24-extras-copy small {
+  display: block;
+  font-size: 12.5px;
+  color: #47617c;
+  font-weight: 550;
+  line-height: 1.4;
+}
+#termsModal .r24-extras-callout .r24-extras-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  color: #fff;
+  background: #2563eb;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Let extras breathe. No alterations to the current select or quote handlers. */
+#equipmentInfoModal .equipment-info-box,
+#equipmentInfoModal .equipment-info-box:has(#bookingExtrasPicker:not([hidden])) {
+  width: min(640px, 100%);
+  border-radius: 20px;
+}
+#equipmentInfoModal .equipment-info-box > h3 {
+  margin-top: 10px;
+  font-size: clamp(20px, 3vw, 25px);
+  line-height: 1.2;
+}
+#equipmentInfoModal #bookingExtrasPicker:not([hidden]) {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #d6e4f5;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, .04);
+  transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 5px 15px rgba(37, 99, 235, .08);
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row:has(select option:checked:not([value="0"])) {
+  border-color: #71ad1b;
+  background: #f8fff0;
+  box-shadow: inset 4px 0 0 #97d700, 0 3px 12px rgba(15, 23, 42, .04);
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: #153253;
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row small {
+  color: #536982;
+  line-height: 1.55;
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row select {
+  box-sizing: border-box;
+  min-width: 82px;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1.5px solid #b5c8df;
+  border-radius: 10px;
+  color: #123354;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#equipmentInfoModal #bookingExtrasPicker .booking-extra-row select:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+  border-color: #2563eb;
+}
+#equipmentInfoModal #bookingExtrasTotal:not([hidden]) {
+  margin-top: 15px;
+  padding: 17px 18px;
+  border: 1px solid #a9cbf8;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #eff6ff, #f8fbff);
+  color: #163f76;
+}
+#equipmentInfoModal #bookingExtrasTotal .booking-price-row {
+  gap: 14px;
+  line-height: 1.4;
+}
+#equipmentInfoModal #bookingExtrasTotal .booking-price-row > :last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+#equipmentInfoModal .equipment-info-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: 12px;
+  padding: 14px 0 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, .94), #fff 28%);
+}
+#equipmentInfoModal .equipment-info-actions .btn-primary {
+  min-height: 44px;
+  padding: 11px 22px;
+}
+@media (max-width: 600px) {
+  #termsModal .r24-extras-callout .docs-extra-item { padding: 15px; gap: 10px; }
+  #termsModal .r24-extras-callout .docs-extra-icon { width: 42px; height: 42px; flex-basis: 42px; }
+  #termsModal .r24-extras-callout .r24-extras-copy strong { font-size: 14px; }
+  #termsModal .r24-extras-callout .r24-extras-copy small { font-size: 11.5px; }
+  #termsModal .r24-extras-callout .r24-extras-action { min-height: 36px; padding: 7px 9px; font-size: 12px; }
+  #equipmentInfoModal.equipment-info-overlay { padding: 10px; }
+  #equipmentInfoModal .equipment-info-box { padding: 19px; width: 100%; max-height: calc(100dvh - 20px); }
+  #equipmentInfoModal #bookingExtrasPicker .booking-extra-row { padding: 13px; gap: 10px; }
+  #equipmentInfoModal #bookingExtrasPicker .booking-extra-row select { min-width: 72px; }
+}
+@media (max-width: 360px) {
+  #termsModal .r24-extras-callout .docs-extra-item { flex-wrap: wrap; }
+  #termsModal .r24-extras-callout .r24-extras-action { margin-left: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #termsModal .r24-extras-callout .docs-extra-item,
+  #equipmentInfoModal #bookingExtrasPicker .booking-extra-row { transition: none; }
+  #termsModal .r24-extras-callout .docs-extra-item:hover { transform: none; }
+}
