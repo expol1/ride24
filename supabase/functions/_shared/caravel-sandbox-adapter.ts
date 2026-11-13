@@ -7,8 +7,30 @@
 const SANDBOX = "https://sandbox-api.caravelway.com";
 type Json = Record<string, unknown>;
 export type Money = {amount: number; currency: string};
-export type Supplier = {supplier_id:string; name:string; currency:string; payment_models?:string[]};
+/** OpenAPI v1.67.0 Supplier. payment_models absent = "not stated", never "nothing permitted". */
+export type Supplier = {supplier_id:string; name:string; status:string; currency:string; tax_inclusive:boolean; payment_models?:Array<"pay_on_arrival"|"partial"|"prepaid">};
 export type CaravelEnvelope<T> = {data:T; meta?:Json; request_id?:string};
+/** OpenAPI v1.67.0 StopInput, preferred instant form. */
+export type CaravelStopInput = {location_id:string; at:string};
+export type CaravelQuoteRequest = {
+  pickup:CaravelStopInput; dropoff:CaravelStopInput;
+  vehicle_id:string; protection_id:string;
+  plan?:"basic"|"medium"|"premium"|"no_deposit_with_excess";
+  currency?:string;
+  extras?:Array<{extra_id:string; quantity:number}>;
+  drivers:Array<{age:number; role:"main"|"additional"; country?:string}>;
+};
+export type CaravelQuotedBookingRequest = {
+  quote_id:string; external_ref:string;
+  drivers:Array<{first_name?:string; last_name?:string; age:number; role:"main"|"additional"; country?:string}>;
+  customer:{first_name:string; last_name:string; email:string; phone?:string; country?:string; locale?:string};
+  flight_number?:string|null; notes?:string|null; meta?:Json;
+  payment_model?:"pay_on_arrival"|"prepaid"|"partial";
+};
+/** OpenAPI v1.67.0: Idempotency-Key is a client-generated UUID (quote, booking create, cancel). */
+export function isUuid(value:unknown):value is string {
+  return typeof value==="string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
 export class CaravelError extends Error {
   public status:number; public code:string; public requestId:string|null;
   constructor(status:number, code:string, requestId:string|null) {
@@ -29,9 +51,10 @@ export class CaravelSandboxClient {
     if(idem){headers["Idempotency-Key"]=idem;}
     if(supplierId){if(!/^[a-zA-Z0-9_-]{1,128}$/.test(supplierId)) throw new Error("INVALID_SUPPLIER_ID");headers["X-Supplier-Id"]=supplierId;}
     const response=await fetch(this.baseUrl+path,{method,headers,body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(12000)});
-    const envelope=await response.json().catch(()=>({error:{code:"INVALID_JSON"}})) as CaravelEnvelope<T> & {error?:{code?:string}};
+    const envelope=await response.json().catch(()=>({error:{code:"INVALID_JSON"}})) as CaravelEnvelope<T> & {error?:{code?:string;request_id?:string}};
     if(!response.ok && !envelope?.error) throw new CaravelError(response.status,"UPSTREAM_HTTP_ERROR",null);
-    if(!response.ok) throw new CaravelError(response.status,envelope.error?.code??"UNKNOWN",envelope.request_id??null);
+    // OpenAPI v1.67.0 Error: {error:{code,message,request_id,doc_url}}.
+    if(!response.ok) throw new CaravelError(response.status,envelope.error?.code??"UNKNOWN",envelope.error?.request_id??envelope.request_id??null);
     if(!envelope || typeof envelope!=="object" || !("data" in envelope)) throw new CaravelError(response.status,"INVALID_RESPONSE_ENVELOPE",null);
     return envelope;
   }
@@ -59,17 +82,24 @@ export class CaravelSandboxClient {
   }
   async vehicleClasses(limit=200) {
     await this.capabilities();
-    return this.request<Array<Json>>("GET",`/v1/reference/vehicle-classes?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`);
+    return this.request<Array<Json>>("GET",`/v1/reference/vehicles?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`);
   }
-  async availability(params:{pickup_location_id:string;dropoff_location_id:string;pickup:string;dropoff:string},supplierId?:string) {
+  /** GET /v1/availability. `driver_age` prices age fees into the row (OpenAPI v1.67.0). There is no `plan` query parameter: rows carry `plan`; request params are strict (unknown = 422). */
+  async availability(params:{pickup_location_id:string;dropoff_location_id:string;pickup:string;dropoff:string;driver_age?:number;currency?:string},supplierId?:string) {
+    const {driver_age,currency,...required}=params;
+    if(driver_age!==undefined && (!Number.isSafeInteger(driver_age) || driver_age<16 || driver_age>120)) throw new Error("INVALID_DRIVER_AGE");
+    if(currency!==undefined && !/^[A-Z]{3}$/.test(currency)) throw new Error("INVALID_CURRENCY");
     await this.capabilities();
-    const qs=new URLSearchParams(params);
+    const qs=new URLSearchParams(required);
+    if(driver_age!==undefined) qs.set("driver_age",String(driver_age));
+    if(currency) qs.set("currency",currency);
     return this.request<Array<Json>>("GET",`/v1/availability?${qs.toString()}`,undefined,undefined,supplierId);
   }
   /**
-   * Fail closed: do not offer a plan until protection and zero excess/deposit
-   * are confirmed from the authoritative Caravel fields.
-   * Shape-specific mapping must be validated against the live OpenAPI schema.
+   * Fail closed: Ride24 sells only the `premium` plan, and only when the row's
+   * protection states zero `excess` and zero `deposit` (OpenAPI v1.67.0
+   * AvailabilityItem.plan / protection.excess / protection.deposit). Tier names
+   * are nominal per the spec, so the numbers decide, not the word.
    */
   static isPremiumZeroRisk(row:Json):boolean {
     const protection=row.protection;
@@ -82,24 +112,36 @@ export class CaravelSandboxClient {
     return !!excess && !!deposit && excess.amount===0 && deposit.amount===0 &&
       typeof excess.currency==="string" && /^[A-Z]{3}$/.test(excess.currency) && excess.currency===deposit.currency;
   }
-  async quote(input:{pickup:{location_id:string;at:string};dropoff:{location_id:string;at:string};vehicle_id:string;protection_id:string;plan?:string;drivers:Array<{age:number;role:"main"}>},idempotencyKey:string) {
-    if(!idempotencyKey) throw new Error("IDEMPOTENCY_REQUIRED");
+  /** POST /v1/quote (QuoteRequest, OpenAPI v1.67.0). Request schemas are strict: send only documented fields. */
+  async quote(input:CaravelQuoteRequest,idempotencyKey:string) {
+    if(!isUuid(idempotencyKey)) throw new Error("IDEMPOTENCY_REQUIRED");
+    const drivers=Array.isArray(input?.drivers)?input.drivers:[];
+    if(!input?.pickup?.location_id || !input?.dropoff?.location_id || !input.pickup.at || !input.dropoff.at ||
+      !input.vehicle_id || !input.protection_id || drivers.length<1 || drivers.length>9 ||
+      drivers.filter(d=>d?.role==="main").length!==1 ||
+      drivers.some(d=>!Number.isSafeInteger(d?.age) || !["main","additional"].includes(d?.role) || (d.country!==undefined && !/^[A-Z]{2}$/.test(d.country))) ||
+      (input.plan!==undefined && !["basic","medium","premium","no_deposit_with_excess"].includes(input.plan)) ||
+      (input.currency!==undefined && !/^[A-Z]{3}$/.test(input.currency)) ||
+      (input.extras ?? []).some(e=>!e?.extra_id || !Number.isSafeInteger(e?.quantity) || e.quantity<1 || e.quantity>9))
+      throw new Error("INVALID_QUOTE_REQUEST");
     await this.capabilities();
     return this.request<Json>("POST","/v1/quote",input as unknown as Json,idempotencyKey);
   }
-  async bookSandbox(input:{quote_id:string;external_ref:string;drivers:Json[];customer:Json},idempotencyKey:string) {
-    if(!idempotencyKey || typeof input.external_ref!=="string" || !input.external_ref.startsWith("ride24-sandbox-")) throw new Error("SANDBOX_BOOKING_GUARD");
+  /** POST /v1/bookings, quoted shape (CreateQuotedBookingRequest). Sandbox guard: external_ref must start with ride24-sandbox-. */
+  async bookSandbox(input:CaravelQuotedBookingRequest,idempotencyKey:string) {
+    if(!isUuid(idempotencyKey) || typeof input?.external_ref!=="string" || !input.external_ref.startsWith("ride24-sandbox-") ||
+      !/^[A-Za-z0-9._-]{1,64}$/.test(input.external_ref) || !isUuid(input.quote_id)) throw new Error("SANDBOX_BOOKING_GUARD");
     await this.capabilities();
     return this.request<Json>("POST","/v1/bookings",input as unknown as Json,idempotencyKey);
   }
-  /** Booking status lookup. Path mirrors cancel's ref_type form; confirm against OpenAPI (stage B). */
+  /** GET /v1/bookings/{ref}?ref_type=booking_id (OpenAPI v1.67.0 getBooking). */
   async bookingStatusSandbox(bookingId:string) {
     if(!bookingId || !/^[A-Za-z0-9_-]{1,128}$/.test(bookingId)) throw new Error("INVALID_BOOKING_ID");
     await this.capabilities();
     return this.request<Json>("GET",`/v1/bookings/${encodeURIComponent(bookingId)}?ref_type=booking_id`);
   }
   async cancelSandbox(bookingId:string,revision:number,idempotencyKey:string) {
-    if(!bookingId || !Number.isInteger(revision) || revision<1 || !idempotencyKey) throw new Error("INVALID_CANCEL");
+    if(!bookingId || !Number.isInteger(revision) || revision<1 || !isUuid(idempotencyKey)) throw new Error("INVALID_CANCEL");
     await this.capabilities();
     return this.request<Json>("POST",`/v1/bookings/${encodeURIComponent(bookingId)}/cancel?ref_type=booking_id`,{expected_revision:revision,reason:"customer_request"},idempotencyKey);
   }

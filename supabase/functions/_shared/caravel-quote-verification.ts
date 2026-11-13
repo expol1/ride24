@@ -45,7 +45,8 @@ export function verifyCaravelQuote(q:VerifiedCaravelQuote, nowEpochMs:number):Qu
 export type CaravelMandatoryCharge = {
   externalId:string;
   label:string;
-  category:"out_of_hours_pickup"|"out_of_hours_return"|"one_way"|"location"|"other";
+  /** OpenAPI v1.67.0 fee line `type` (open vocabulary, constants.fee_types): young_driver, senior_driver, one_way, out_of_hours, premium_location, cross_border, delivery, … */
+  category:string;
   amountMinor:number;
   currency:string;
 };
@@ -80,22 +81,22 @@ export function verifyCaravelMandatoryCharges(input:{
   for(const fee of input.charges){
     if(!fee || typeof fee.externalId!=="string" || !fee.externalId.trim() || ids.has(fee.externalId) ||
       typeof fee.label!=="string" || !fee.label.trim() ||
-      !["out_of_hours_pickup","out_of_hours_return","one_way","location","other"].includes(fee.category) ||
+      typeof fee.category!=="string" || !/^[a-z][a-z0-9_]{0,39}$/.test(fee.category) ||
       fee.currency!==input.quoteCurrency || !Number.isSafeInteger(fee.amountMinor) || fee.amountMinor<0){
       errors.push("MANDATORY_CHARGE_UNVERIFIED");continue;
     }
     ids.add(fee.externalId);
     if(!Number.isSafeInteger(sum+fee.amountMinor)){errors.push("MANDATORY_AMOUNT_OVERFLOW");continue;}
     sum+=fee.amountMinor;
-    if(fee.category==="out_of_hours_pickup" || fee.category==="out_of_hours_return"){
+    if(fee.category==="out_of_hours"){
       if(!Number.isSafeInteger(night+fee.amountMinor)) errors.push("OUT_OF_HOURS_AMOUNT_OVERFLOW");
       else night+=fee.amountMinor;
     }
   }
   if(sum!==input.quoteMandatoryFeesMinor) errors.push("MANDATORY_FEE_MISMATCH");
-  if(input.pickupOutsideHours===true && !input.charges.some(f=>f?.category==="out_of_hours_pickup"))
+  if(input.pickupOutsideHours===true && !input.charges.some(f=>f?.category==="out_of_hours"))
     errors.push("PICKUP_FEE_UNVERIFIED");
-  if(input.returnOutsideHours===true && !input.charges.some(f=>f?.category==="out_of_hours_return"))
+  if(input.returnOutsideHours===true && !input.charges.some(f=>f?.category==="out_of_hours"))
     errors.push("RETURN_FEE_UNVERIFIED");
   return errors.length?{ok:false,errors:[...new Set(errors)]}:{ok:true,outOfHoursAmountMinor:night};
 }

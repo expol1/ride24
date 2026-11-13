@@ -51,7 +51,12 @@ Other project sources checked: all branches and history of `expol1/ride24` (only
 | N15 | Booking statuses incl. on_request/declined/rejected | `confirmed`, `pending`, `cancelled`, `no_show`, `completed` (open list) | Remove invented values; decide `no_show`/`completed` mapping. |
 | N16 | — | Supplier has `currency`, `tax_inclusive`, `payment_models`; booking has a `payment` block (`amount_prepaid` / `amount_on_arrival`) | Needed for the Ride24 payable split. |
 
-No code was changed for these items: fixes wait for the sandbox key (live examples) and the commercial terms below.
+### Status after the spec alignment (follow-up commit on this branch)
+Fixed against OpenAPI v1.67.0 (Caravel files only):
+- **A1–A4, A9**: `/v1/reference/vehicles`; error `request_id` from `error.request_id`; UUID `Idempotency-Key` on quote/booking/cancel; availability sends documented `driver_age` / `currency` (there is **no** `plan` query parameter — request params are strict); typed `QuoteRequest` / `CreateQuotedBookingRequest`; quoted booking also checks `quote_id` UUID and the `external_ref` pattern; Premium check documented as "numbers, not the tier word".
+- **N1–N9, N12–N16**: new `*FromApi` readers (`caravelLocationFromApi`, `caravelVehicleFromApi`, `caravelMileageFromPolicies`, `caravelQuoteFromApi`, `caravelExtraFromApi`, `buildCaravelOfferFromApi`); no `active` on locations; type map airport/port/hotel as is, `office` → city, `address` refused; `display_name` used as is; bags = `large_bags + small_bags`; optional fields never defaulted; `plugin_hybrid`; first https image; mileage from `policies.mileage`; quote components summed from `line_items` by `kind` (discount folded into rental) and reconciled with `grand_total` and `pay_now + pay_at_pickup`; tax-inclusive suppliers only; fee lines keyed by spec `type`; extras from `pricing_type` / `requires_quantity` / `quantity.max` / `price_cap` / `payable`, capped daily extras refused; booking body exactly `CreateQuotedBookingRequest` with the quote's priced `{age, role}` set; statuses `confirmed` / `pending` / `cancelled` only (`no_show`, `completed`, unknown → manual review); cancellation fee read from `Booking.cancellation`.
+- **N10**: `noCardHold` only when the quote/protection deposit (a card pre-authorization per spec) is 0; `noCreditCard` stays false (not stated by the API).
+- Still open by design: N11 roadside assistance (no field); weekday encoding of `Location.hours` (not shown in spec examples), so out-of-hours flags remain caller input.
 
 ## 3. What actually blocks stage B
 1. **No Ride24 sandbox API key** in this environment (self-service `/portal/` or from Caravel).

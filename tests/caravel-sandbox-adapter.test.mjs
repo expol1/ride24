@@ -46,7 +46,7 @@ test("vehicle classes use documented reference endpoint",async()=>{
  const calls=[];
  mock((url)=>{calls.push(url);return url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:[]};});
  await new CaravelSandboxClient("fixture").vehicleClasses(500);
- assert.equal(calls[1],"https://sandbox-api.caravelway.com/v1/reference/vehicle-classes?limit=200");
+ assert.equal(calls[1],"https://sandbox-api.caravelway.com/v1/reference/vehicles?limit=200");
 });
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];

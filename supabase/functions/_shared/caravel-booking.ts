@@ -3,15 +3,13 @@
  *
  * Ride24 dispatch hands every API partner the same ProviderBookingInput
  * (shared provider-adapters.ts). This module turns that input plus the stored
- * api_quotes.provider_quote_data into a Caravel booking draft, and checks the
- * Ride24 partner amount against Caravel's authoritative quote total so that a
- * changed price is never booked silently.
- *
- * The final Caravel JSON field names for customer and drivers are NOT
- * assumed here; the draft is converted after the OpenAPI contract is
- * validated (isolation gate, stage B).
+ * api_quotes.provider_quote_data into the documented quoted-create body
+ * (OpenAPI v1.67.0 CreateQuotedBookingRequest) and checks the Ride24 partner
+ * amount against Caravel's authoritative quote total, so that a changed price
+ * is never booked silently.
  */
 import {CARAVEL_PROVIDER} from "./caravel-normalize.ts";
+import type {CaravelQuotedBookingRequest} from "./caravel-sandbox-adapter.ts";
 
 type Json = Record<string, unknown>;
 
@@ -35,9 +33,12 @@ export type Ride24BookingInput = {
 };
 
 export type CaravelBookingDraft = {
+  /** Spec quote_id: UUID. */
   quoteId: string;
   supplierId: string;
+  /** Spec external_ref: ^[A-Za-z0-9._-]{1,64}$, unique per supplier, immutable. */
   externalRef: string;
+  /** Spec Idempotency-Key: client UUID. */
   idempotencyKey: string;
   mainDriver: {firstName: string; lastName: string; age: number};
   contact: {email: string; phone: string | null};
@@ -45,6 +46,10 @@ export type CaravelBookingDraft = {
   currency: string;
 };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PHONE = /^\+?[0-9 ().-]{5,32}$/;
+const EXTERNAL_REF = /^[A-Za-z0-9._-]{1,64}$/;
 const isRecord = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
 const text = (v: unknown, max: number) =>
   typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null;
@@ -73,7 +78,7 @@ export function buildCaravelBookingDraft(
   const data = isRecord(input?.provider_quote_data) ? input.provider_quote_data : null;
   const amounts = data && isRecord(data.amounts) ? data.amounts : null;
   if (!data || data.provider !== CARAVEL_PROVIDER) errors.push("CARAVEL_QUOTE_REQUIRED");
-  const quoteId = text(data?.quote_id, 500);
+  const quoteId = typeof data?.quote_id === "string" && UUID.test(data.quote_id) ? data.quote_id : null;
   if (!quoteId || (input?.quote_reference && input.quote_reference !== quoteId)) errors.push("QUOTE_REFERENCE_MISMATCH");
   if (data?.plan !== "premium") errors.push("PREMIUM_REQUIRED");
   if (!text(data?.vehicle_id, 200) || data?.vehicle_id !== input?.vehicle_group_id) errors.push("VEHICLE_MISMATCH");
@@ -88,48 +93,80 @@ export function buildCaravelBookingDraft(
   if (expected === null) errors.push("QUOTE_TOTAL_UNVERIFIED");
   else if (typeof input?.partner_amount !== "number" || Math.abs(input.partner_amount - expected) > 0.009)
     errors.push("PARTNER_AMOUNT_MISMATCH");
-  const idem = text(input?.idempotency_key, 200);
-  const ride24Id = text(input?.ride24_booking_id, 100);
+  const idem = typeof input?.idempotency_key === "string" && UUID.test(input.idempotency_key) ? input.idempotency_key : null;
   if (!idem) errors.push("IDEMPOTENCY_REQUIRED");
-  if (!ride24Id || !/^[A-Za-z0-9-]+$/.test(ride24Id)) errors.push("BOOKING_ID_REQUIRED");
+  const ride24Id = text(input?.ride24_booking_id, 100);
+  const externalRef = ride24Id ? `ride24-sandbox-${ride24Id}` : "";
+  if (!ride24Id || !EXTERNAL_REF.test(externalRef)) errors.push("BOOKING_ID_REQUIRED");
   const name = splitName(input?.main_driver?.name);
   const age = input?.main_driver?.age;
   if (!name) errors.push("DRIVER_NAME_REQUIRED");
   if (typeof age !== "number" || !Number.isSafeInteger(age) || age < 16 || age > 120) errors.push("DRIVER_AGE_REQUIRED");
-  // Additional drivers are a priced extra; the shared API path rejects them.
+  // Spec: the booking's {age, role} multiset must equal the quote's priced drivers.
+  const priced = Array.isArray(data?.drivers) ? data.drivers : null;
+  if (!priced || priced.length !== 1 || !isRecord(priced[0]) || priced[0].role !== "main" || priced[0].age !== age)
+    errors.push("DRIVER_SET_CHANGED");
+  // Additional drivers are priced; the shared API path rejects them.
   if (input?.additional_driver) errors.push("ADDITIONAL_DRIVER_NOT_SUPPORTED");
   const email = text(input?.client_email, 254);
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push("CONTACT_EMAIL_REQUIRED");
+  if (!email || !EMAIL.test(email)) errors.push("CONTACT_EMAIL_REQUIRED");
   if (errors.length) return {ok: false, errors: [...new Set(errors)]};
+  const phone = text(input.client_phone, 32);
   return {ok: true, draft: {
     quoteId: quoteId!,
     supplierId: supplierId!,
-    // Matches the sandbox client guard; production prefix is decided at wiring time.
-    externalRef: `ride24-sandbox-${ride24Id}`,
+    externalRef,
     idempotencyKey: idem!,
     mainDriver: {...name!, age: age as number},
-    contact: {email: email!, phone: text(input.client_phone, 40)},
+    contact: {email: email!, phone: phone && PHONE.test(phone) ? phone : null},
     expectedPartnerAmount: expected!,
     currency,
   }};
 }
 
+/** Draft -> documented quoted-create body (strict request schema: documented fields only). */
+export function caravelQuotedBookingRequest(draft: CaravelBookingDraft): CaravelQuotedBookingRequest {
+  const customer: CaravelQuotedBookingRequest["customer"] = {
+    first_name: draft.mainDriver.firstName,
+    last_name: draft.mainDriver.lastName,
+    email: draft.contact.email,
+  };
+  if (draft.contact.phone) customer.phone = draft.contact.phone;
+  return {
+    quote_id: draft.quoteId,
+    external_ref: draft.externalRef,
+    drivers: [{first_name: draft.mainDriver.firstName, last_name: draft.mainDriver.lastName, age: draft.mainDriver.age, role: "main"}],
+    customer,
+  };
+}
+
 /**
- * Caravel booking status -> Ride24 canonical status. The value table must be
- * confirmed against the OpenAPI enum (stage B). Unknown values return null so
- * the caller keeps the booking for manual review instead of guessing.
+ * Caravel Booking.status (OpenAPI v1.67.0 §8.1: confirmed, pending, cancelled,
+ * no_show, completed; open list) -> Ride24 canonical status. Ride24 has no
+ * no_show/completed state, and unknown values are "unconfirmed" per the spec,
+ * so those return null and the booking goes to manual review.
  */
-const STATUS: Readonly<Record<string, "pending" | "confirmed" | "rejected" | "cancelled">> = Object.freeze({
+const STATUS: Readonly<Record<string, "pending" | "confirmed" | "cancelled">> = Object.freeze({
   pending: "pending",
-  on_request: "pending",
   confirmed: "confirmed",
-  rejected: "rejected",
-  declined: "rejected",
   cancelled: "cancelled",
-  canceled: "cancelled",
 });
 
-export function caravelCanonicalStatus(value: unknown): "pending" | "confirmed" | "rejected" | "cancelled" | null {
-  const key = typeof value === "string" ? value.trim().toLowerCase() : "";
+export function caravelCanonicalStatus(value: unknown): "pending" | "confirmed" | "cancelled" | null {
+  const key = typeof value === "string" ? value : "";
   return Object.hasOwn(STATUS, key) ? STATUS[key] : null;
+}
+
+/** Read cancellation outcome from a cancelled Booking (spec: cancellation.fee; refund is always zero). */
+export function caravelCancellationFromApi(booking: unknown): {ok: true; feeMinor: number; currency: string; revision: number} | {ok: false; errors: string[]} {
+  const b = isRecord(booking) ? booking : {};
+  const c = isRecord(b.cancellation) ? b.cancellation : null;
+  const fee = c && isRecord(c.fee) ? c.fee : null;
+  const errors: string[] = [];
+  if (b.status !== "cancelled") errors.push("NOT_CANCELLED");
+  if (!fee || !Number.isSafeInteger(fee.amount) || (fee.amount as number) < 0 || typeof fee.currency !== "string" || !/^[A-Z]{3}$/.test(fee.currency))
+    errors.push("CANCELLATION_FEE_UNVERIFIED");
+  if (!Number.isSafeInteger(b.revision) || (b.revision as number) < 1) errors.push("REVISION_UNVERIFIED");
+  if (errors.length) return {ok: false, errors};
+  return {ok: true, feeMinor: fee!.amount as number, currency: fee!.currency as string, revision: b.revision as number};
 }
