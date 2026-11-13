@@ -35,10 +35,19 @@ export class CaravelSandboxClient {
     if(!envelope || typeof envelope!=="object" || !("data" in envelope)) throw new CaravelError(response.status,"INVALID_RESPONSE_ENVELOPE",null);
     return envelope;
   }
+  private capabilitiesCache:{expiresAt:number;value:Promise<CaravelEnvelope<{environment:string;api_version:string;quote_ttl_seconds:number}>>}|null=null;
+  /** Sandbox environment check, cached per client for 5 minutes; failures are never cached. */
   async capabilities() {
-    const result=await this.request<{environment:string;api_version:string;quote_ttl_seconds:number}>("GET","/v1/capabilities");
-    if(!result.data || typeof result.data!=="object" || result.data.environment!=="sandbox") throw new Error("SANDBOX_ENVIRONMENT_REQUIRED");
-    return result;
+    const now=Date.now();
+    if(this.capabilitiesCache && this.capabilitiesCache.expiresAt>now) return this.capabilitiesCache.value;
+    const value=(async()=>{
+      const result=await this.request<{environment:string;api_version:string;quote_ttl_seconds:number}>("GET","/v1/capabilities");
+      if(!result.data || typeof result.data!=="object" || result.data.environment!=="sandbox") throw new Error("SANDBOX_ENVIRONMENT_REQUIRED");
+      return result;
+    })();
+    this.capabilitiesCache={expiresAt:now+300000,value};
+    try { return await value; }
+    catch(error) { this.capabilitiesCache=null; throw error; }
   }
   async suppliers() {
     await this.capabilities();
@@ -82,6 +91,12 @@ export class CaravelSandboxClient {
     if(!idempotencyKey || typeof input.external_ref!=="string" || !input.external_ref.startsWith("ride24-sandbox-")) throw new Error("SANDBOX_BOOKING_GUARD");
     await this.capabilities();
     return this.request<Json>("POST","/v1/bookings",input as unknown as Json,idempotencyKey);
+  }
+  /** Booking status lookup. Path mirrors cancel's ref_type form; confirm against OpenAPI (stage B). */
+  async bookingStatusSandbox(bookingId:string) {
+    if(!bookingId || !/^[A-Za-z0-9_-]{1,128}$/.test(bookingId)) throw new Error("INVALID_BOOKING_ID");
+    await this.capabilities();
+    return this.request<Json>("GET",`/v1/bookings/${encodeURIComponent(bookingId)}?ref_type=booking_id`);
   }
   async cancelSandbox(bookingId:string,revision:number,idempotencyKey:string) {
     if(!bookingId || !Number.isInteger(revision) || revision<1 || !idempotencyKey) throw new Error("INVALID_CANCEL");
