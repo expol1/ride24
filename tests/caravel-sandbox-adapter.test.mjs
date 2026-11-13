@@ -58,3 +58,11 @@ test("rejects malformed successful API envelopes",async()=>{
  mock((url)=>url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{unexpected:true});
  await assert.rejects(()=>new CaravelSandboxClient("fixture").locations(),/INVALID_RESPONSE_ENVELOPE/);
 });
+
+test("CaravelError exposes HTTP status and request identifiers under Node 22 strip-types",()=>{
+ const error=new CaravelError(429,"RATE_LIMITED","req-test-1");
+ assert.equal(error.status,429);
+ assert.equal(error.code,"RATE_LIMITED");
+ assert.equal(error.requestId,"req-test-1");
+ assert.match(error.message,/RATE_LIMITED.*429/);
+});
