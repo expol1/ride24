@@ -10,6 +10,31 @@ function setup(){globalThis.document=new JSDOM(html).window.document;const ctx={
 function response(value){return {ok:true,json:async()=>value};}
 test('latest quote required and context cannot change behind acceptance',async()=>{const {ui,ctx}=setup();globalThis.fetch=async()=>response(baseQuote);await ui.start();assert.equal(ui.payload().pricing_fingerprint,'current');ctx.car_class_id='changed';assert.throws(()=>ui.payload(),/Review/);});
 test('changing extras clears consent and waits for server quote',async()=>{const {ui}=setup();globalThis.fetch=async()=>response({...baseQuote,catalog:[{id:'seat',code:'child_seat',name_en:'Child seat',name_pl:'Fotelik',max_quantity:2,billing:'day',unit_customer_cents:300}]});await ui.start();document.getElementById('acceptTerms').checked=true;let resolve;globalThis.fetch=()=>new Promise(r=>resolve=r);const select=document.querySelector('#bookingExtrasPicker select');select.value='1';select.onchange();assert.equal(document.getElementById('acceptTerms').checked,false);assert.equal(document.getElementById('confirmBookingBtn').disabled,true);await Promise.resolve();await Promise.resolve();resolve(response(baseQuote));await new Promise(r=>setTimeout(r,0));assert.deepEqual(ui.payload().extras,[{id:'seat',quantity:1}]);});
+test('one-per-rental options use bilingual Yes/No without changing the API quantity contract',async()=>{
+  const {ui}=setup();
+  const catalog=[
+    {id:'gps',code:'EQ-GPS',name_en:'GPS',name_pl:'Nawigacja GPS',max_quantity:4,billing:'rental',unit_customer_cents:800},
+    {id:'ferry',code:'FEE-FERRY',name_en:'Ferry',name_pl:'Prom',max_quantity:1,billing:'rental',unit_customer_cents:5000},
+    {id:'seat',code:'EQ-BABYSEAT',name_en:'Baby seat',name_pl:'Fotelik',max_quantity:4,billing:'rental',unit_customer_cents:1250}
+  ];
+  globalThis.fetch=async()=>response({...baseQuote,catalog});
+  await ui.start();
+  const selects=[...document.querySelectorAll('#bookingExtrasPicker select')];
+  assert.deepEqual([...selects[0].options].map(x=>[x.value,x.textContent]),[['0','No'],['1','Yes']]);
+  assert.deepEqual([...selects[1].options].map(x=>[x.value,x.textContent]),[['0','No'],['1','Yes']]);
+  assert.deepEqual([...selects[2].options].map(x=>x.value),['0','1','2','3','4']);
+  selects[0].value='1'; selects[0].onchange();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.deepEqual(ui.payload().extras,[{id:'gps',quantity:1}]);
+});
+
+test('a single-unit partner option is also shown as Yes/No',async()=>{
+  const {ui}=setup();
+  globalThis.fetch=async()=>response({...baseQuote,catalog:[{id:'diesel',code:'CUSTOM-DIESEL',name_en:'Diesel car',name_pl:'Diesel',max_quantity:1,billing:'rental',unit_customer_cents:4500}]});
+  await ui.start();
+  assert.deepEqual([...document.querySelector('#bookingExtrasPicker select').options].map(x=>x.textContent),['No','Yes']);
+});
+
 test('late request does not overwrite a newer quote',async()=>{const {ui}=setup();const requests=[];globalThis.fetch=()=>new Promise(r=>requests.push(r));const first=ui.start();await Promise.resolve();await Promise.resolve();const second=ui.refresh();await Promise.resolve();await Promise.resolve();requests[1](response({...baseQuote,fingerprint:'new'}));await second;requests[0](response({...baseQuote,fingerprint:'old'}));await first;assert.equal(ui.payload().pricing_fingerprint,'new');});
 test('network error never unlocks booking or silently falls back',async()=>{const {ui}=setup();globalThis.fetch=async()=>{throw new Error('offline')};await ui.start();assert.equal(ui.canSubmit(),false);assert.throws(()=>ui.payload());assert.match(document.getElementById('bookingPriceBreakdown').textContent,/Try again/);});
 test('disabled flag retains legacy informational modal',async()=>{const {ui}=setup();globalThis.fetch=async()=>response({enabled:false});await ui.start();assert.deepEqual(ui.payload(),{});assert.equal(document.getElementById('equipmentLegacyInfo').hidden,false);});
