@@ -59,7 +59,9 @@ export async function runCaravelDiagnostics(
       return summary;
     } catch (error) {
       if (error instanceof CaravelError) {
-        steps.push({endpoint, outcome: "HTTP_ERROR", http_status: error.status, error_code: error.code, request_id: error.requestId});
+        // Upstream-controlled strings are scrubbed too.
+        steps.push({endpoint, outcome: "HTTP_ERROR", http_status: error.status, error_code: scrub(String(error.code)),
+          request_id: error.requestId === null ? null : scrub(String(error.requestId))});
       } else if (error instanceof TypeError || (error as {name?: string})?.name === "TimeoutError") {
         steps.push({endpoint, outcome: "NETWORK_ERROR", error_code: (error as {name?: string}).name || "TypeError"});
       } else {
@@ -78,7 +80,12 @@ export async function runCaravelDiagnostics(
     if (bad.error_code === "CONFIGURED_SUPPLIER_NOT_VISIBLE" || bad.error_code === "NO_SUPPLIERS") return "SUPPLIER";
     return "API_ERROR";
   };
-  const done = (): DiagnosticResult => ({secret_present: true, sandbox_only: true, blocker: classify(), steps});
+  // Final guard: the serialized result must not contain the key anywhere (summaries included).
+  const done = (): DiagnosticResult => {
+    const result: DiagnosticResult = {secret_present: true, sandbox_only: true, blocker: classify(), steps};
+    const text = JSON.stringify(result);
+    return text.includes(apiKey) ? JSON.parse(text.split(apiKey).join("***")) : result;
+  };
 
   // 1. Environment + authentication.
   const caps = await step("GET /v1/capabilities", async () => {

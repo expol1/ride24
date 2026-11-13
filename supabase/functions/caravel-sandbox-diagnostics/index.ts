@@ -38,12 +38,16 @@ serve(async (req) => {
   }
 
   try {
-    const result = await runCaravelDiagnostics(Deno.env.get("CARAVEL_SANDBOX_API_KEY"), {
+    const apiKey = Deno.env.get("CARAVEL_SANDBOX_API_KEY");
+    const result = await runCaravelDiagnostics(apiKey, {
       supplierId: body.supplier_id ?? Deno.env.get("CARAVEL_SUPPLIER_ID") ?? null,
       nowEpochMs: Date.now(),
       budgetMs: 90_000,
     });
-    return jsonResponse(req, { ok: result.blocker === null, expires_at: new Date(EXPIRES_AT).toISOString(), ...result });
+    const payload = { ok: result.blocker === null, expires_at: new Date(EXPIRES_AT).toISOString(), ...result };
+    // Last line of defence before anything leaves the function.
+    if (apiKey && JSON.stringify(payload).includes(apiKey)) return jsonResponse(req, { error: "DIAGNOSTICS_REDACTED" }, 500);
+    return jsonResponse(req, payload);
   } catch {
     // Generic only: no error text that could carry request data.
     return jsonResponse(req, { error: "DIAGNOSTICS_FAILED" }, 500);

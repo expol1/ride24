@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {runCaravelDiagnostics} from "../supabase/functions/_shared/caravel-diagnostics.ts";
 
-const KEY = "ck_test_SECRET_VALUE_should_never_leak_123";
+const KEY = "FAKE-KEY-FOR-UNIT-TESTS-not-a-real-secret-000";
 const NOW = 1900000000000;
 const eur = (amount) => ({amount, currency: "EUR"});
 const original = globalThis.fetch;
@@ -84,4 +84,11 @@ test("a key echoed back in an upstream error message is scrubbed", async () => {
   const r = await runCaravelDiagnostics(KEY, {nowEpochMs: NOW});
   assert.equal(JSON.stringify(r).includes(KEY), false);
   assert.match(r.steps[0].error_code, /\*\*\*/);
+});
+
+test("key echoed in an upstream error code or request_id is scrubbed", async () => {
+  mock({status: () => 401, body: () => ({error: {code: `bad ${KEY}`, request_id: `req ${KEY}`}})});
+  const r = await runCaravelDiagnostics(KEY, {nowEpochMs: NOW});
+  assert.equal(JSON.stringify(r).includes(KEY), false);
+  assert.equal(r.blocker, "INVALID_KEY");
 });
