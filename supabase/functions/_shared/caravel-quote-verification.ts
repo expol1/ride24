@@ -65,8 +65,8 @@ export function verifyCaravelMandatoryCharges(input:{
   if(!/^[A-Z]{3}$/.test(input.quoteCurrency??"") ||
     !Number.isSafeInteger(input.quoteMandatoryFeesMinor) || input.quoteMandatoryFeesMinor<0)
     errors.push("MANDATORY_TOTAL_UNVERIFIED");
-  if(!/^\\d{2}:\\d{2}$/.test(input.pickupLocalTime??"") ||
-    !/^\\d{2}:\\d{2}$/.test(input.returnLocalTime??"") ||
+  if(!/^\d{2}:\d{2}$/.test(input.pickupLocalTime??"") ||
+    !/^\d{2}:\d{2}$/.test(input.returnLocalTime??"") ||
     ![input.pickupLocalTime,input.returnLocalTime].every(t=>{
       const [h,m]=t.split(":").map(Number);return h<=23 && m<=59;
     }) ||
