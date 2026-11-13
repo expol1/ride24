@@ -6,7 +6,7 @@ Implemented: reconciled mandatory charges in availability; provider-priced servi
 
 Evidence: real sandbox reference 26-ATH-205, two baby seats, additional driver, EUR 148.80 supplier total, confirmed, status read, cancelled through shared Ride24 adapter. AVIA unsaved night quote: 25 offers; one baby seat, driver age 22, additional driver age 35, both out-of-hours fees. Supplier total EUR 456.65; selected services sum exactly to it. No production booking or payment created. 41 targeted tests passed before deployment (provider service reconciliation, selection limits, ownership, changed drivers, consent, common voucher validation, existing local/API contracts and web extras UI).
 
-Deployed backend: booking-options v9, create-booking-request v27, api-booking-dispatch v27, search-api v73. Original JWT modes preserved: true for first two, false with existing handler authentication/rate limiting for last two. Temporary sandbox acceptance function closed (v8, JWT required, HTTP 410).
+Current deployed backend: booking-options v11, create-booking-request v27, api-booking-dispatch v29, search-api v73. Original JWT modes preserved: true for first two, false with existing handler authentication/rate limiting for last two. Temporary sandbox acceptance function closed (v13, JWT required, HTTP 410).
 
 Limits: Android source/runtime is not accessible; this does not certify native APK. An age-24 AVIA policy discrepancy (supplier 18–23 vs agreed 18–24) blocks options quote pending provider confirmation. Unmapped UNSPECIFIED optional services and insurance changes are not selectable. Seasonal/route restrictions remain provider-authoritative. Full payment, real-device push and customer email E2E are not certified. Caravel/Arvent live integration is not certified by these changes.
 
@@ -24,7 +24,7 @@ Live three-day time tests:06:59 pickup80+return80;07:00 pickup50+return50;08:00 
 
 Age tests at3days:18,22,70 each return37.50. Workbook instead specifies18–21=62.50/rental,22–24=37.50/rental,70+=62.50/rental; earlier Ride24 agreement12.50/day cap125 matches observed18,22,70 pricing. Age24 remains blocked because API age range differs. Do not replace earlier negotiated rates from this generic workbook. Kosovo both prohibited(row46) and priced155(row47); confirmation required.
 
-No payment or production reservation was created by these quote-only tests. Temporary acceptance endpoint closed with HTTP410 and JWT. Native Android/full authenticated checkout remain unverified.
+No payment or production reservation was created by these quote-only tests. Temporary acceptance endpoint closed with HTTP410 and JWT. Native Android and full payment/notification E2E remain unverified; authenticated public-web quote selection was subsequently verified below.
 
 ## Final persistence and checkout-contract verification
 
@@ -36,4 +36,20 @@ Additional regression test executes the create-booking-request handler with a pr
 
 83 automated checks passed across provider services, API compatibility, web extras UI, local booking items, local booking handler, native API contract and voucher PDF layout (including20extras). These are not a native device test or a production-payment E2E test. Provider-services checks added to the existing API CI workflow.
 
-Remaining access limitation: Android client source/build and a connected Android runtime are absent. Authenticated browser checkout and payment/email/push E2E are not certified. Existing age24 guard remains because no specific age24 API quote was confirmed in the supplied evidence.
+Remaining access limitation: Android client source/build and a connected Android runtime are absent. Authenticated public-web extras selection is verified below; payment/email/push E2E remain uncertified. Existing age24 guard remains because no specific age24 API quote was confirmed in the supplied evidence.
+
+## Authenticated public WWW acceptance
+
+Verified the deployed public site through browser interaction, from ride24.pl/results to ride24.pl/klient after secure user sign-in. Zadar Airport (ZAD) returned 20 cards. Opened the first Fiat 500 offer and its real provider-priced extras catalogue. The three-day quote included both out-of-hours charges. Observed server recalculation after every quantity change:
+
+| Selection | Customer total EUR | Partner amount EUR | Ride24 online amount PLN |
+| --- | ---: | ---: | ---: |
+| No optional extras | 313.04 | 284.58 | 125.42 |
+| Two baby seats | 395.54 | 359.58 | 158.48 |
+| Two baby seats and one booster | 418.64 | 380.58 | 167.73 |
+| One booster after removing both baby seats | 336.14 | 305.58 | 134.68 |
+| All optional extras removed | 313.04 | 284.58 | 125.42 |
+
+The catalogue labels prices per unit for the entire selected period and displays maximum chargeable days. Snow chains are unavailable with price confirmation required. Included protection does not count as a selected optional extra. The physical named debit-card explanation states no credit-card, deposit or preauthorisation requirement; no referral-code field was visible.
+
+Closed the extras dialog and cancelled the unsent booking form. Final customer panel showed zero bookings and no new bookings requiring action. Terms were not accepted; no production booking or payment was submitted. This proves actual public-WWW selection and recalculation, not native Android or payment/notification E2E. Additional-driver provider pricing was verified separately; this browser account did not provide a second real driver for that UI case.
