@@ -36,3 +36,61 @@ export function verifyCaravelQuote(q:VerifiedCaravelQuote, nowEpochMs:number):Qu
   if(errors.length) return {ok:false,errors};
   return {ok:true,partnerPayableMinor:q.totalAmountMinor,quoteId:q.quoteId};
 }
+
+/**
+ * Supplier-confirmed mandatory charges, including out-of-hours pickup/return.
+ * The supplier quote remains authoritative: this function never invents a
+ * night-time window or adds a fee to the quoted total a second time.
+ */
+export type CaravelMandatoryCharge = {
+  externalId:string;
+  label:string;
+  category:"out_of_hours_pickup"|"out_of_hours_return"|"one_way"|"location"|"other";
+  amountMinor:number;
+  currency:string;
+};
+export function verifyCaravelMandatoryCharges(input:{
+  charges:CaravelMandatoryCharge[];
+  quoteCurrency:string;
+  quoteMandatoryFeesMinor:number;
+  pickupLocalTime:string;
+  returnLocalTime:string;
+  pickupTimezone:string;
+  returnTimezone:string;
+  pickupOutsideHours:boolean|null;
+  returnOutsideHours:boolean|null;
+}):{ok:true;outOfHoursAmountMinor:number}|{ok:false;errors:string[]} {
+  const errors:string[]=[];
+  if(!Array.isArray(input.charges)) return {ok:false,errors:["CHARGES_UNVERIFIED"]};
+  if(!/^[A-Z]{3}$/.test(input.quoteCurrency??"") ||
+    !Number.isSafeInteger(input.quoteMandatoryFeesMinor) || input.quoteMandatoryFeesMinor<0)
+    errors.push("MANDATORY_TOTAL_UNVERIFIED");
+  if(!/^\\d{2}:\\d{2}$/.test(input.pickupLocalTime??"") ||
+    !/^\\d{2}:\\d{2}$/.test(input.returnLocalTime??"") ||
+    ![input.pickupLocalTime,input.returnLocalTime].every(t=>{
+      const [h,m]=t.split(":").map(Number);return h<=23 && m<=59;
+    }) ||
+    !input.pickupTimezone || !input.returnTimezone)
+    errors.push("LOCAL_TIME_UNVERIFIED");
+  if(typeof input.pickupOutsideHours!=="boolean" || typeof input.returnOutsideHours!=="boolean")
+    errors.push("OPERATING_HOURS_UNVERIFIED");
+  const ids=new Set<string>();let sum=0,night=0;
+  for(const fee of input.charges){
+    if(!fee || typeof fee.externalId!=="string" || !fee.externalId.trim() || ids.has(fee.externalId) ||
+      typeof fee.label!=="string" || !fee.label.trim() ||
+      !["out_of_hours_pickup","out_of_hours_return","one_way","location","other"].includes(fee.category) ||
+      fee.currency!==input.quoteCurrency || !Number.isSafeInteger(fee.amountMinor) || fee.amountMinor<0){
+      errors.push("MANDATORY_CHARGE_UNVERIFIED");continue;
+    }
+    ids.add(fee.externalId);
+    if(!Number.isSafeInteger(sum+fee.amountMinor)){errors.push("MANDATORY_AMOUNT_OVERFLOW");continue;}
+    sum+=fee.amountMinor;
+    if(fee.category==="out_of_hours_pickup" || fee.category==="out_of_hours_return") night+=fee.amountMinor;
+  }
+  if(sum!==input.quoteMandatoryFeesMinor) errors.push("MANDATORY_FEE_MISMATCH");
+  if(input.pickupOutsideHours===true && !input.charges.some(f=>f?.category==="out_of_hours_pickup"))
+    errors.push("PICKUP_FEE_UNVERIFIED");
+  if(input.returnOutsideHours===true && !input.charges.some(f=>f?.category==="out_of_hours_return"))
+    errors.push("RETURN_FEE_UNVERIFIED");
+  return errors.length?{ok:false,errors:[...new Set(errors)]}:{ok:true,outOfHoursAmountMinor:night};
+}
