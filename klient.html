@@ -1652,6 +1652,7 @@ async>
 <link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261029a">
+<link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113">
 </head>
 <body> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -4737,6 +4738,22 @@ window.closeReviewModal = function() {
                 </div>
             </div>
 
+    <!-- Extras are a primary booking step, not another legal document. Presentation only. -->
+    <div class="r24-extras-callout">
+        <button type="button" class="docs-extra-item" onclick="openEquipmentInfoModal()"
+                aria-haspopup="dialog" aria-controls="equipmentInfoModal">
+            <span class="docs-extra-left">
+                <span class="docs-extra-icon" aria-hidden="true">🧸</span>
+                <span class="r24-extras-copy">
+                    <strong data-pl="Wybierz dodatki do wynajmu" data-en="Choose rental extras">Wybierz dodatki do wynajmu</strong>
+                    <small data-pl="Zobacz dostępne usługi i ich aktualną cenę."
+                           data-en="See available services and their current prices.">Zobacz dostępne usługi i ich aktualną cenę.</small>
+                </span>
+            </span>
+            <span class="r24-extras-action" data-pl="Sprawdź ›" data-en="Explore ›">Sprawdź ›</span>
+        </button>
+    </div>
+
             <div class="docs-container">
     <a href="/regulamin.html" target="_blank">
         <span style="font-size: 18px;">📄</span>
@@ -4759,18 +4776,7 @@ window.closeReviewModal = function() {
         </span>
     </a>
 
-    <button type="button"
-            class="docs-extra-item"
-            onclick="openEquipmentInfoModal()">
-        <span class="docs-extra-left">
-            <span class="docs-extra-icon">🧸</span>
-            <span data-pl="Potrzebujesz dodatków?" data-en="Need extras?">
-    Potrzebujesz dodatków?
-</span>
-        </span>
 
-        <span class="docs-extra-info">i</span>
-    </button>
 </div>
 
             <section id="bookingPriceBreakdown" class="booking-price-breakdown" aria-live="polite" hidden></section>
