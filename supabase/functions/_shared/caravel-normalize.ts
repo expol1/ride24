@@ -295,7 +295,7 @@ function vehicleCard(v: VerifiedCaravelVehicle, scopeSupplierId: string): Result
     transmission: v.transmission,
     fuel_type: v.fuelType,
     seats: v.seats,
-    bags: v.largeBags + v.smallBags,
+    bags: (v.largeBags as number) + (v.smallBags as number),
     image: v.imageUrl,
     description: name,
     mileage_limit: mileageLimit,
@@ -387,9 +387,9 @@ export function caravelQuoteFromApi(data: unknown, protection: unknown, supplier
     sums[kind as keyof typeof sums] += total.amount;
     if (kind === "fee") {
       charges.push({
-        externalId: String(l.fee_id ?? l.code ?? ""),
-        label: String(l.label ?? ""),
-        category: String(l.type ?? ""),
+        externalId: String((l as Json).fee_id ?? (l as Json).code ?? ""),
+        label: String((l as Json).label ?? ""),
+        category: String((l as Json).type ?? ""),
         amountMinor: total.amount,
         currency: total.currency,
       });

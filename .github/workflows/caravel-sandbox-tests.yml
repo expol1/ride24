@@ -28,6 +28,6 @@ jobs:
         with:
           node-version: '22'
       - name: Unit tests without API secrets
-        run: node --experimental-strip-types --test tests/caravel-sandbox-adapter.test.mjs tests/caravel-verified-rules.test.mjs tests/caravel-quote-verification.test.mjs tests/caravel-normalize.test.mjs tests/caravel-booking.test.mjs
+        run: node --experimental-strip-types --test tests/caravel-sandbox-adapter.test.mjs tests/caravel-verified-rules.test.mjs tests/caravel-quote-verification.test.mjs tests/caravel-normalize.test.mjs tests/caravel-booking.test.mjs tests/caravel-diagnostics.test.mjs
       - name: TypeScript type check
-        run: npx --yes --package typescript@5.9.3 tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --lib es2022,dom --allowImportingTsExtensions supabase/functions/_shared/caravel-sandbox-adapter.ts supabase/functions/_shared/caravel-verified-rules.ts supabase/functions/_shared/caravel-quote-verification.ts supabase/functions/_shared/caravel-normalize.ts supabase/functions/_shared/caravel-booking.ts
+        run: npx --yes --package typescript@5.9.3 tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --lib es2022,dom --allowImportingTsExtensions supabase/functions/_shared/caravel-sandbox-adapter.ts supabase/functions/_shared/caravel-verified-rules.ts supabase/functions/_shared/caravel-quote-verification.ts supabase/functions/_shared/caravel-normalize.ts supabase/functions/_shared/caravel-booking.ts supabase/functions/_shared/caravel-diagnostics.ts
