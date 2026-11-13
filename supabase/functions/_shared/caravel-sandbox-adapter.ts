@@ -37,7 +37,7 @@ export class CaravelSandboxClient {
   }
   async capabilities() {
     const result=await this.request<{environment:string;api_version:string;quote_ttl_seconds:number}>("GET","/v1/capabilities");
-    if(result.data.environment!=="sandbox") throw new Error("SANDBOX_ENVIRONMENT_REQUIRED");
+    if(!result.data || typeof result.data!=="object" || result.data.environment!=="sandbox") throw new Error("SANDBOX_ENVIRONMENT_REQUIRED");
     return result;
   }
   async suppliers() {
@@ -71,7 +71,7 @@ export class CaravelSandboxClient {
     const excess=p.excess as Json|undefined;
     const deposit=p.deposit as Json|undefined;
     return !!excess && !!deposit && excess.amount===0 && deposit.amount===0 &&
-      typeof excess.currency==="string" && excess.currency===deposit.currency;
+      typeof excess.currency==="string" && /^[A-Z]{3}$/.test(excess.currency) && excess.currency===deposit.currency;
   }
   async quote(input:{pickup:{location_id:string;at:string};dropoff:{location_id:string;at:string};vehicle_id:string;protection_id:string;plan?:string;drivers:Array<{age:number;role:"main"}>},idempotencyKey:string) {
     if(!idempotencyKey) throw new Error("IDEMPOTENCY_REQUIRED");
@@ -79,7 +79,7 @@ export class CaravelSandboxClient {
     return this.request<Json>("POST","/v1/quote",input as unknown as Json,idempotencyKey);
   }
   async bookSandbox(input:{quote_id:string;external_ref:string;drivers:Json[];customer:Json},idempotencyKey:string) {
-    if(!idempotencyKey || !input.external_ref.startsWith("ride24-sandbox-")) throw new Error("SANDBOX_BOOKING_GUARD");
+    if(!idempotencyKey || typeof input.external_ref!=="string" || !input.external_ref.startsWith("ride24-sandbox-")) throw new Error("SANDBOX_BOOKING_GUARD");
     await this.capabilities();
     return this.request<Json>("POST","/v1/bookings",input as unknown as Json,idempotencyKey);
   }
