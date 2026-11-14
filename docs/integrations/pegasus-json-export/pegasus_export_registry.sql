@@ -161,7 +161,7 @@ BEGIN
  SELECT exists(
    SELECT 1 FROM pegasus_private.export_state es
    WHERE es.partner_id=v_partner
-     AND (v_last IS NULL OR es.booking_id>v_last)
+     AND (v_last IS NOT NULL AND es.booking_id>v_last)
      AND coalesce((es.payload->'return'->>'date')::date,current_date)>=current_date-180
  ) INTO v_more;
  RETURN jsonb_build_object('schemaVersion','1.0','partnerId','B61DFC7B',
