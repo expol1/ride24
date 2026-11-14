@@ -130,7 +130,7 @@ test('included protection is not counted as customer-selected equipment',async()
 
 test('customer refund tiers match UTC database rules at 60, 59, 30, 29 days',async()=>{
   const html=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
-  const match=html.match(/function calculateRefundPercent\\(pickupDate\\) \\{[\\s\\S]*?\\n\\}/);
+  const match=html.match(/function calculateRefundPercent\(pickupDate\) \{[\s\S]*?\n\}/);
   assert.ok(match,'client refund calculator found');
   const FixedDate=class extends Date {
     constructor(...args){super(...(args.length?args:['2026-11-14T12:00:00.000Z']));}
