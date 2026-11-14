@@ -30,7 +30,8 @@ export async function runRenteonDemo({credentials,input,adapter,journal}) {
    const status=await adapter.aggregatorStatus(credentials,reference);
    if((status.booking_reference||status.reference)!==reference)throw Error('DEMO_STATUS_REFERENCE_MISMATCH');
    await journal.record(input.run_id,{phase:'status_read',reference,status:status.status});
-   return {reference,status:status.status,category:offer.external_id,partner_total:quote.calculated.Total};
+   // finally must verify cancellation before this return can complete.
+   return {reference,status:'cancelled',booking_status_before_cancellation:status.status,category:offer.external_id,partner_total:quote.calculated.Total};
  } catch(error) {
    await journal.record(input.run_id,{phase:reference?'failed_after_save':'failed_or_unknown',reference,
      error:error instanceof Error&&/^[A-Z0-9_:]+$/.test(error.message)?error.message:'DEMO_RUN_FAILED'});

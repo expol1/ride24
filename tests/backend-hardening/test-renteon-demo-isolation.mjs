@@ -15,7 +15,7 @@ function fixture(changes={}) {
  return {credentials,input,adapter,journal,calls,events};
 }
 test('demo quote/save/read/cancel stays on demo and retains category and supplier reference',async()=>{
- const f=fixture();await runRenteonDemo(f);assert.deepEqual(f.calls.map(x=>x.operation),['save','cancel']);
+ const f=fixture();const outcome=await runRenteonDemo(f);assert.equal(outcome.status,'cancelled');assert.equal(outcome.booking_status_before_cancellation,'confirmed');assert.deepEqual(f.calls.map(x=>x.operation),['save','cancel']);
  assert.ok(f.calls.every(x=>x.provider==='demo'));assert.equal(f.calls[0].category,'MBMV');assert.equal(f.events.at(-1).phase,'cancelled_verified');
  await assert.rejects(runRenteonDemo(f),/RUN_ALREADY_CLAIMED/);assert.equal(f.calls.length,2);
 });

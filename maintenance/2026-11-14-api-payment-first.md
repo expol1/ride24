@@ -72,3 +72,31 @@ Actual Stripe sandbox end-to-end including refund and webhook replay; provider d
 - Historical references 26-P2-8302 and 26-P2-8303 remain unchanged. Reconciliation plan only: read current supplier state and associated Stripe session/payment; if unpaid, expire any still-open checkout and cancel the exact supplier reference only after explicit approval, verify cancellation by read-back, then retain an audit tombstone instead of deleting financial/history links. If a payment exists or outcome is unknown, stop and reconcile; never auto-delete/refund.
 
 - Validation for this continuation: the current API compatibility command passed 245 tests, zero failures/skips. This includes eight isolation/cleanup tests and two new category-contract cases. These are automated doubles; no real demo save or Stripe test payment is counted as passed.
+
+
+## Authorized real Renteon demo acceptance — 2026-11-14
+
+Explicit user permission: temporary isolated endpoint and test journal only, maximum two hours, exact lowercase `demo`, Vault credentials server-side only, no production partner/payment changes. Deployed a NEW `ride24-demo-acceptance-20261114` function with a hard-coded two-hour expiry and exactly four allowlisted one-use jobs. No global secrets/settings were modified. Authentication replay returned HTTP 401 AUTH_REQUIRED.
+
+Actual supplier results:
+
+| Step | Observed result |
+| --- | --- |
+| Setup | 27 demo locations returned |
+| Availability | GR-ATH-ATH to GR-ATH-ATH, 2027-03-01 10:00 to 2027-03-04 10:00: 11 categories |
+| Base group quote | MDMR, EUR 29.76 |
+| Optional services | Baby seat ServiceId 619: quantity 2, EUR 33.48 each for period; booster ServiceId 622: quantity 1, EUR 63.24 for period |
+| Calculated amount | EUR 159.96; exact API calculation, no invented rate |
+| Supplier save | Reference **26-ATH-207**, status confirmed, needs_manual_review=false |
+| Status read | Same reference, confirmed |
+| Cancellation | Cancellation call followed by read-back verified cancelled |
+| Independent read | Separate final one-use job returned reference 26-ATH-207, status cancelled, zero active reservations created by this run |
+| Token replay | HTTP 401 AUTH_REQUIRED |
+
+No live AVIA reservation, Stripe payment/refund, ordinary booking record, customer email/push or PR migration was created. Historical references 26-P2-8302 and 26-P2-8303 were not touched. This is actual Renteon demo acceptance, **not** a combined Stripe payment-first E2E test.
+
+Cleanup: all four tokens were invalidated and their expiries set to now; temporary function v3 was replaced with only HTTP 410 closed response and JWT verification enabled. Thus no demo/AVIA code or credential-loading path remains in that deployed function. Physical deletion is still pending Dashboard authentication because the connected Supabase tool does not expose function deletion. The Dashboard login encountered OAuth state expiry; do not mark physical deletion as complete until verified.
+
+The runner's final result now explicitly reports cancelled, retaining the pre-cancellation status separately, so the terminal report cannot misleadingly say confirmed after successful cleanup. Existing cleanup tests assert both fields.
+
+Not performed: actual Stripe TEST MODE checkout, signed webhook delivery/replay, refund, end-to-end voucher/email/push, native Android acceptance. Previously confirmed test account has no registered webhook; production Stripe configuration remains unchanged.
