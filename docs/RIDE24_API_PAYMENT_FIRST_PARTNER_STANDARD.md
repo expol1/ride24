@@ -43,3 +43,24 @@ If the provider uses a different API (Arvent, Caravel, etc.), translate its meth
 - Security: provider credentials remain server-side Vault/Edge secrets; never expose through browser, APK, client log or Checkout metadata.
 
 **Operational decision:** New API partners inherit the **same customer and payment lifecycle** as AVIA, but they still require supplier-specific field mapping and acceptance. This is normal adapter work, not a new checkout or separate payment system. Never claim unsupported API methods are plug-and-play.
+
+
+## 5. Two protected business flows and controlled exceptions
+
+**Permanent default for all API partners (`partners.provider_type='api'`):**
+`Stripe Ride24 fee → Stripe signed/retrieved payment confirmation → fresh supplier quote and terms → exactly-one supplier booking for the chosen vehicle group → supplier-confirmed Ride24 voucher`.
+This is one central business workflow, never duplicated separately per API partner. A future supplier-specific adapter must implement the verified contract in section 2. Supplier rental payment remains payable directly to the provider on collection unless a separately approved exception exists.
+
+**Permanent default for ordinary Partner Account / manually managed partners (`partners.provider_type!='api'`):**
+Keep the existing partner request flow, notifications to partner via email and Android Partner App push, partner acceptance, subsequent Ride24 booking-fee collection and voucher according to existing rules. Do not alter their Stripe timing, partner status, cancellation/acceptance, vouchers or manual handling merely to integrate an API partner. The API-only paid-before-supplier-dispatch path must never intercept or modify these local reservations.
+
+**Exceptions:** Only the Ride24 owner can explicitly approve a partner-specific deviation. Document its business justification, provider scope, settlement rules, tax/payment implications, security, test cases, cancellation/refund path and rollback plan in a separate, reviewed change. Default is **no exception**. A partner asking for a prepayment, unusual voucher or alternative payout does not authorize silently bypassing the shared Stripe-to-provider sequence.
+
+**Production implementation evidence (2026-11-14):**
+- `create-booking-request`: API new booking starts `awaiting_payment`, ordinary Partner Account new booking starts `pending` and queues `partner_new_request` with partner push.
+- `create_checkout_session`: API checkout is guarded by `apiPaymentEnabled`, the paid adapter registry, payment deadline, accepted quote and server-side amount; ordinary Partner Account remains on the existing accepted-booking checkout.
+- `stripe-webhook`, `api-booking-dispatch`, `api-booking-status-sync`: require durable verified payment before API supplier dispatch and then share status/reconciliation.
+- AVIA `api_enabled=true`, `active=true`, `account_status=active`. A **production** `search-api` request for Zadar Airport, 2027-03-01 10:00 to 2027-03-04 10:00, returned HTTP 200, **25 AVIA offers**, `partial=false`, 0 provider errors. This confirms API publication and live availability for those search criteria; it does not represent a paid end-to-end booking.
+- Existing normal partner accounts remain active separately; no production checkout or local partner setting was changed during this documentation verification.
+
+**Acceptance disclaimer:** The shared production code and real AVIA search have been verified. The first genuine paid LIVE AVIA booking must still confirm final Ride24 payment state, supplier reference, voucher and notifications; if any check fails, investigate safely before treating that booking as finished.
