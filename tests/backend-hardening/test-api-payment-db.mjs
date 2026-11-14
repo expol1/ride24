@@ -145,3 +145,17 @@ test('manual refund completion requires a pending request and administrator auth
  await assert.rejects(p.query('select admin_mark_refund_done($1)',[b]),/Brak dostępu/);
  }finally{await p.close();}
 });
+
+test('legacy supplier reference with late paid Stripe checkout cannot dispatch again',async()=>{
+ const p=await db();try {
+  // The original supplier booking pre-dated the payment-first rollout.
+  await p.exec("update bookings set api_booking_reference='26-P2-8302',api_status='confirmed'");
+  await record(p);
+  const workflow=(await p.query('select state,provider_reference from api_booking_workflows')).rows[0];
+  assert.equal(workflow.state,'provider_pending');
+  assert.equal(workflow.provider_reference,'26-P2-8302');
+  const dispatch=await p.query("select api_claim_paid_dispatch($1,'{}'::jsonb) as result",[b]);
+  assert.equal(dispatch.rows[0].result,null);
+  assert.equal((await p.query('select count(*)::int as n from payments')).rows[0].n,1);
+ }finally{await p.close();}
+});
