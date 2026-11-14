@@ -56,3 +56,13 @@ const booking={id:'b',client_id:'u',online_payment_pln:123.45,stripe_session_id:
 const session={id:'cs_test',mode:'payment',payment_status:'paid',status:'complete',livemode:false,currency:'pln',amount_total:12345,metadata:{booking_id:'b',client_id:'u'},client_reference_id:'b',payment_intent:'pi_test'};
 test('Stripe fee is exact server PLN amount, not supplier rental',()=>assert.equal(verifyApiPayment(booking,session,false).event_amount,12345));
 for(const patch of [{amount_total:12344},{currency:'eur'},{payment_status:'unpaid'},{status:'open'},{id:'cs_other'},{metadata:{booking_id:'other',client_id:'u'}},{livemode:true},{payment_intent:null}])test('reject mismatched Stripe '+JSON.stringify(patch),()=>assert.throws(()=>verifyApiPayment(booking,{...session,...patch},false)));
+
+test('existing supplier reference is reconciled by status without re-saving',async()=>{
+ const s=setup({row:{state:'provider_pending',provider_reference:'26-P2-8302'},
+   status:{status:'confirmed',booking_reference:'26-P2-8302'}});
+ const result=await advanceApiPayment(s.deps,'b');
+ assert.equal(result.state,'confirmed');
+ assert.equal(s.row.provider_reference,'26-P2-8302');
+ assert.deepEqual(s.calls,['voucher-email-push']);
+ assert.ok(!s.calls.includes('create'));
+});
