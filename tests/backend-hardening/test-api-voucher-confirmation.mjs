@@ -30,3 +30,10 @@ test('completed Stripe refund remains in retry sweep until notification and acco
   assert.ok(runtime.includes("if(status!=='pending')"));
   assert.ok(runtime.includes("fulfilled_at:new Date().toISOString()"));
 });
+
+test('API voucher visibly reserves category rather than a guaranteed model, with free upgrade',async()=>{
+  const source=await readFile(new URL('../../supabase/functions/generate-voucher/index.ts',import.meta.url),'utf8');
+  assert.match(source,/if \(booking\.api_booking_reference\) \{/);
+  assert.match(source,/Category booking: same group or free upgrade/);
+  assert.match(source,/Rezerwacja kategorii: taka sama lub wyższa bez dopłaty/);
+});
