@@ -1,4 +1,5 @@
 import { advanceApiPayment } from './api-payment-flow.mjs';
+import { assertVoucherCompleted } from './api-voucher-confirmation.mjs';
 import { loadPartnerCredentials, sanitizePartnerPayload } from './partner-api.ts';
 import { revalidatePaidProvider,createPaidProvider,readPaidProviderStatus } from './api-provider-fulfillment.ts';
 
@@ -10,7 +11,10 @@ async function internalCall(name:string,id:string) {
  const response=await fetch(Deno.env.get('SUPABASE_URL')+'/functions/v1/'+name,{method:'POST',
    headers:{'Content-Type':'application/json',Authorization:'Bearer '+Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
    'x-internal-secret':Deno.env.get('RIDE24_INTERNAL_SECRET')||''},body:JSON.stringify({booking_id:id}),signal:AbortSignal.timeout(20000)});
- await response.body?.cancel();if(!response.ok)throw Error('API_CONFIRMATION_DELIVERY_FAILED');
+ const body=await response.json().catch(()=>null);
+ // 202 "generating", 200 "skipped" and malformed success responses must NOT
+ // mark the booking workflow as fulfilled. Cron retries once the voucher is ready.
+ assertVoucherCompleted(response.status,body);
 }
 export async function runApiPayment(admin:any,stripe:any,id:string) {
  let booking:any,credentials:any;
