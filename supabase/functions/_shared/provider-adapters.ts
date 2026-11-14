@@ -1393,10 +1393,15 @@ export async function cancelProviderBooking(
       providerEndpoint(provider, credentials, "booking_cancel", { id: externalReference }),
       { method: "DELETE" },
     );
+    // A successful HTTP DELETE is not necessarily an acknowledged cancellation.
+    // Only an explicit supplier state proves release of the vehicle.
+    const cancelledResponse = firstRecord(payload) || {};
+    const confirmedCancelled = cancelledResponse.IsCancelled === true
+      || canonicalGenericBooking(payload).status === "cancelled";
     return {
       booking_reference: externalReference,
       reference: externalReference,
-      status: "cancelled",
+      status: confirmedCancelled ? "cancelled" : "pending",
       provider_payload: sanitizePartnerPayload(payload, 12_000),
     };
   }
