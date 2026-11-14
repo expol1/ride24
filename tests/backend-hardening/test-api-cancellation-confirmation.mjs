@@ -22,4 +22,7 @@ test('both customer cancellation and cron-based cancellation must validate suppl
   assert.match(customer,/assertSupplierCancellation\(response, booking\.api_booking_reference\)/);
   assert.match(sync,/assertSupplierCancellation\(response, booking\.api_booking_reference\)/);
   assert.doesNotMatch(adapters,/canonical\.status === "pending" \? "cancelled"/);
+  assert.ok(adapters.includes('const confirmedCancelled = cancelledResponse.IsCancelled === true'));
+  assert.ok(adapters.includes('status: confirmedCancelled ? "cancelled" : "pending"'));
+
 });
