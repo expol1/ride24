@@ -1,46 +1,59 @@
 // Caravel Channel API v1.67.0 — LIVE sandbox acceptance run (not a unit test).
 //
-// Runs only server-side (GitHub Actions) with the key from the environment:
+// Server-side only (GitHub Actions via label, or another approved server):
 //   CARAVEL_SANDBOX_API_KEY  required; never printed (GitHub also masks it)
-//   CARAVEL_SUPPLIER_ID      optional supplier scope (X-Supplier-Id)
-//   CARAVEL_LIVE_BOOKING=1   also create ONE sandbox booking with invented data and cancel it at once
-// The client is hard-limited to https://sandbox-api.caravelway.com and refuses a
-// non-sandbox environment. Output: endpoint, HTTP outcome and mapped results only.
+//   CARAVEL_LIVE_BOOKING=1   also run the booking flow with invented data (pay_on_arrival),
+//                            and cancel every booking it creates
+// The client is fixed to environment "sandbox"; production cannot be reached.
+// Walks EVERY supplier the key holds (certification: suppliers.every_supplier_exercised):
+// capabilities -> reference sync -> availability -> quote -> [book -> replay -> cancel].
 import {randomUUID} from "node:crypto";
 import {appendFileSync} from "node:fs";
-import {CaravelSandboxClient, CaravelError} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
+import {CaravelClient, CaravelError} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
 import {
-  buildCaravelOfferFromApi, caravelExtraFromApi, caravelExtrasCatalog, caravelLocationFromApi, caravelQuoteFromApi,
-  caravelVehicleFromApi, minorToMajor, normalizeCaravelLocation, normalizeCaravelVehicleClass,
+  buildCaravelOfferFromApi, caravelExtraFromApi, caravelExtrasCatalog, caravelLocationFromApi, caravelProviderExtras,
+  caravelQuoteFromApi, caravelVehicleFromApi, minorToMajor, normalizeCaravelLocation, normalizeCaravelVehicleClass,
 } from "../supabase/functions/_shared/caravel-normalize.ts";
-import {buildCaravelBookingDraft, caravelCancellationFromApi, caravelCanonicalStatus, caravelQuotedBookingRequest, expectedPartnerAmount} from "../supabase/functions/_shared/caravel-booking.ts";
+import {evaluateCaravelPremium, caravelConditionsOfHire, reconcileCaravelTerms} from "../supabase/functions/_shared/caravel-premium.ts";
+import {caravelOutsideHours} from "../supabase/functions/_shared/caravel-hours.ts";
+import {mergeCaravelReference, REFERENCE_ID_KEYS} from "../supabase/functions/_shared/caravel-reference-sync.ts";
+import {
+  buildCaravelBookingDraft, caravelBookingStatus, caravelCancellationFromApi, caravelErrorAction, caravelQuotedBookingRequest,
+  expectedPartnerAmount, verifyCaravelBookingAgainstQuote,
+} from "../supabase/functions/_shared/caravel-booking.ts";
 
 const key = process.env.CARAVEL_SANDBOX_API_KEY || "";
-const scope = process.env.CARAVEL_SUPPLIER_ID || undefined;
 const doBooking = process.env.CARAVEL_LIVE_BOOKING === "1";
 const results = [];
 let failed = false;
+const created = []; // bookings to clean up
+const hist = (items) => items.reduce((h, e) => { const k = String(e ?? "not stated"); h[k] = (h[k] || 0) + 1; return h; }, {});
+const errOut = (error) => error instanceof CaravelError
+  ? `HTTP ${error.status} ${error.code}${error.details?.length ? ` [${error.details.map(d => `${d.field ?? ""}:${d.issue ?? ""}`).join(",")}]` : ""}${error.requestId ? ` (request_id ${error.requestId})` : ""}`
+  : `ERROR ${String(error?.message || error).split(key || "\u0000").join("***").slice(0, 200)}`;
 
-const histogram = (items) => items.reduce((h, e) => { h[e] = (h[e] || 0) + 1; return h; }, {});
-async function step(endpoint, fn) {
+async function step(endpoint, fn, {expectError, soft} = {}) {
   try {
     const summary = await fn();
+    if (expectError) { failed = true; results.push({endpoint, outcome: `UNEXPECTED OK (expected ${expectError})`, summary}); return null; }
     results.push({endpoint, outcome: "OK", summary});
     return summary;
   } catch (error) {
+    if (expectError && error instanceof CaravelError && (expectError === "*" || error.code === expectError)) {
+      results.push({endpoint, outcome: `OK (expected ${errOut(error)})`, summary: {action: caravelErrorAction(error).action}});
+      return {expected: true};
+    }
+    if (soft) { results.push({endpoint, outcome: `DEGRADED ${errOut(error)}`}); return null; }
     failed = true;
-    const outcome = error instanceof CaravelError
-      ? `HTTP ${error.status} ${error.code}${error.requestId ? ` (request_id ${error.requestId})` : ""}`
-      : `ERROR ${String(error?.message || error).replace(key || "\u0000", "***").slice(0, 200)}`;
-    results.push({endpoint, outcome});
+    results.push({endpoint, outcome: errOut(error)});
     return null;
   }
 }
 function report() {
-  const lines = ["# Caravel sandbox live run", "", `booking step: ${doBooking ? "enabled" : "disabled"}`, "",
-    "| Endpoint | Outcome | Summary |", "| --- | --- | --- |",
-    ...results.map(r => `| ${r.endpoint} | ${r.outcome} | ${r.summary ? JSON.stringify(r.summary).replace(/\|/g, "/").slice(0, 900) : ""} |`)];
-  const text = lines.join("\n");
+  const lines = ["# Caravel sandbox live run (REAL API)", "", `booking flow: ${doBooking ? "enabled (invented data, pay_on_arrival, cancelled)" : "disabled"}`, "",
+    "| Step | Outcome | Summary |", "| --- | --- | --- |",
+    ...results.map(r => `| ${r.endpoint} | ${r.outcome} | ${r.summary ? JSON.stringify(r.summary).replace(/\|/g, "/").slice(0, 1200) : ""} |`)];
+  const text = lines.join("\n").split(key || "\u0000").join("***");
   console.log(text);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, text + "\n");
 }
@@ -51,166 +64,215 @@ if (!key) {
   process.exit(0);
 }
 
-const client = new CaravelSandboxClient(key);
-const caps = await step("GET /v1/capabilities", async () => {
+const client = new CaravelClient({apiKey: key, environment: "sandbox"});
+const caps = await step("GET /v1/capabilities (with key)", async () => {
   const c = await client.capabilities();
-  return {environment: c.data.environment, api_version: c.data.api_version};
+  return {environment: c.data.environment, api_version: c.data.api_version, unknown_features_ignored: true};
 });
 if (!caps) { report(); process.exit(1); }
-
-const who = await step("GET /v1/whoami", async () => {
+await step("GET /v1/whoami", async () => {
   const w = (await client.whoami()).data;
-  // Account configuration only: scopes and opt-ins, no credentials.
-  return {scopes: w.scopes ?? w.key?.scopes ?? null, currency: w.currency ?? null, opt_ins: w.opt_ins ? Object.keys(w.opt_ins) : null};
+  return {scopes: w.scopes ?? null, opt_ins: w.opt_ins ? Object.keys(w.opt_ins) : null};
 });
-
-let supplier = null;
+let suppliers = [];
 await step("GET /v1/suppliers", async () => {
-  const list = (await client.suppliers()).data;
-  supplier = (scope ? list.find(s => s.supplier_id === scope) : list[0]) ?? null;
-  if (!supplier) throw new Error(scope ? "CONFIGURED_SUPPLIER_NOT_VISIBLE" : "NO_SUPPLIERS");
-  return {count: list.length, chosen: supplier.supplier_id, currency: supplier.currency, tax_inclusive: supplier.tax_inclusive, payment_models: supplier.payment_models ?? "not stated"};
+  suppliers = (await client.suppliers()).data;
+  return suppliers.map(s => ({supplier_id: s.supplier_id, currency: s.currency, tax_inclusive: s.tax_inclusive, payment_models: s.payment_models ?? "not stated"}));
 });
-if (!supplier) { report(); process.exit(1); }
-const sid = supplier.supplier_id;
-
-let goodLocations = [];
-await step("GET /v1/reference/locations", async () => {
-  const raw = (await client.locations(200, sid)).data;
-  const mapped = raw.map(r => ({raw: r, n: normalizeCaravelLocation(caravelLocationFromApi(r), sid)}));
-  goodLocations = mapped.filter(m => m.n.ok);
-  return {count: raw.length, normalized: goodLocations.length, rejected: histogram(mapped.filter(m => !m.n.ok).flatMap(m => m.n.errors)),
-    types: histogram(raw.map(r => r.type)), with_hours: raw.filter(r => Array.isArray(r.hours)).length,
-    out_of_hours_offered: raw.filter(r => r.out_of_hours?.available === true).length,
-    weekday_values: [...new Set(raw.flatMap(r => (r.hours || []).map(h => h.day)))].slice(0, 10)};
+await step("GET /v1/reference/constants", async () => {
+  const c = (await client.constants()).data;
+  return {booking_statuses: c.booking_statuses ?? null, fee_types: c.fee_types ?? null, extra_categories: c.extra_categories ?? null,
+    protection_coverage_codes: c.protection_coverage_codes ?? null, location_types: c.location_types ?? null};
 });
 
-let policies = null;
-await step("GET /v1/reference/policies", async () => {
-  const list = (await client.reference("policies", sid)).data;
-  policies = list[0] ?? null;
-  return {count: list.length, mileage: policies?.mileage ?? null, deposit_payment_methods: policies?.deposit_payment_methods ?? null,
-    min_rental_days: policies?.min_rental_days ?? null, max_rental_days: policies?.max_rental_days ?? null, tax_inclusive: policies?.tax_inclusive ?? null};
-});
+const day0 = new Date(Date.now() + 30 * 86400000); day0.setUTCHours(0, 0, 0, 0);
+const at = (d, h, m = 0) => new Date(day0.getTime() + d * 86400000 + (h * 60 + m) * 60000).toISOString().replace(/\.\d{3}Z$/, "Z");
 
-await step("GET /v1/reference/vehicles", async () => {
-  const raw = (await client.vehicleClasses(200, sid)).data;
-  const mapped = raw.map(r => normalizeCaravelVehicleClass(caravelVehicleFromApi(r, policies), sid));
-  return {count: raw.length, normalized: mapped.filter(m => m.ok).length, rejected: histogram(mapped.filter(m => !m.ok).flatMap(m => m.errors)),
-    fuels: histogram(raw.map(r => r.fuel ?? "not stated")), transmissions: histogram(raw.map(r => r.transmission ?? "not stated"))};
-});
+for (const supplier of suppliers) {
+  const sid = supplier.supplier_id, cur = supplier.currency, tag = `[${cur} ${sid.slice(0, 12)}…]`;
+  const stores = {locations: new Map(), vehicles: new Map(), protections: new Map(), extras: new Map()};
+  let locations = [], policies = null, extrasRaw = [];
 
-await step("GET /v1/reference/protections", async () => {
-  const raw = (await client.reference("protections", sid)).data;
-  const premium = raw.filter(p => p.tier === "premium");
-  return {count: raw.length, tiers: histogram(raw.map(p => p.tier)), premium: premium.length,
-    premium_zero_excess_and_deposit: premium.filter(p => p.excess?.amount === 0 && p.deposit?.amount === 0).length,
-    premium_theft_excess_stated: premium.filter(p => p.theft_excess).length};
-});
-
-await step("GET /v1/reference/extras", async () => {
-  const raw = (await client.reference("extras", sid)).data;
-  const {rows, rejected} = caravelExtrasCatalog(raw.map(caravelExtraFromApi), supplier.currency);
-  return {count: raw.length, mapped_to_ride24: rows.map(r => `${r.code}:${r.billing}:${r.amount}`), rejected: histogram(rejected.map(r => r.error)),
-    categories: histogram(raw.map(e => e.category)), pricing_types: histogram(raw.map(e => e.pricing_type))};
-});
-
-await step("GET /v1/reference/fees", async () => {
-  const raw = (await client.reference("fees", sid)).data;
-  return {count: raw.length, types: histogram(raw.map(f => f.type))};
-});
-
-// Availability: a daytime window and a night window at the first usable desk.
-const desk = goodLocations.find(m => m.raw.type === "airport") ?? goodLocations[0];
-const day = new Date(Date.now() + 30 * 86400000); day.setUTCHours(0, 0, 0, 0);
-const at = (offsetDays, hour, minute = 0) => new Date(day.getTime() + offsetDays * 86400000 + (hour * 60 + minute) * 60000).toISOString().replace(/\.\d{3}Z$/, "Z");
-let dayRows = [], dayMeta = null;
-if (desk) {
-  const id = desk.raw.location_id;
-  await step(`GET /v1/availability (day, ${desk.raw.type})`, async () => {
-    const r = await client.availability({pickup_location_id: id, dropoff_location_id: id, pickup: at(0, 10), dropoff: at(3, 10), driver_age: 30, currency: supplier.currency}, sid);
-    dayRows = r.data; dayMeta = r.meta;
-    const premium = dayRows.filter(x => x.plan === "premium");
-    return {rows: dayRows.length, plans: histogram(dayRows.map(x => x.plan ?? "none")), premium_rows: premium.length,
-      premium_zero_risk: premium.filter(x => CaravelSandboxClient.isPremiumZeroRisk(x)).length,
-      deposits_minor: [...new Set(dayRows.map(x => x.protection?.deposit?.amount))].slice(0, 8),
-      rental_days: r.meta?.rental_days ?? null, withheld: r.meta?.withheld ?? null, mileage: r.meta?.policies?.mileage ?? null};
+  // Reference sync (merge, never replace).
+  const syncLocations = async () => {
+    locations = (await client.locations(200, sid)).data;
+    const merged = mergeCaravelReference(stores.locations, locations, REFERENCE_ID_KEYS.locations, new Date().toISOString());
+    const n = locations.map(l => normalizeCaravelLocation(caravelLocationFromApi(l), sid));
+    return {count: locations.length, merge: merged, ride24_ok: n.filter(x => x.ok).length, rejected: hist(n.flatMap(x => x.errors ?? [])),
+      timezones: [...new Set(locations.map(l => l.timezone))], types: hist(locations.map(l => l.type))};
+  };
+  const firstSync = await step(`${tag} GET /v1/reference/locations`, syncLocations, {soft: true});
+  await step(`${tag} GET /v1/reference/policies`, async () => {
+    const list = (await client.reference("policies", sid)).data;
+    policies = list[0] ?? null;
+    const c = caravelConditionsOfHire(policies);
+    return {conditions: c, ride24_terms: reconcileCaravelTerms(c)};
   });
-  await step("GET /v1/availability (night, 23:30Z)", async () => {
-    const r = await client.availability({pickup_location_id: id, dropoff_location_id: id, pickup: at(0, 23, 30), dropoff: at(3, 23, 30), driver_age: 30, currency: supplier.currency}, sid);
-    const feeLines = r.data.flatMap(x => (x.line_items || []).filter(l => l.kind === "fee"));
-    return {rows: r.data.length, fee_types: histogram(feeLines.map(l => l.type ?? "untyped")),
-      out_of_hours_amounts_minor: [...new Set(feeLines.filter(l => l.type === "out_of_hours").map(l => l.total?.amount))],
+  await step(`${tag} GET /v1/reference/vehicles`, async () => {
+    const raw = (await client.vehicleClasses(200, sid)).data;
+    mergeCaravelReference(stores.vehicles, raw, REFERENCE_ID_KEYS.vehicles, new Date().toISOString());
+    const m = raw.map(r => normalizeCaravelVehicleClass(caravelVehicleFromApi(r, policies), sid));
+    return {count: raw.length, ride24_ok: m.filter(x => x.ok).length, rejected: hist(m.flatMap(x => x.errors ?? [])),
+      ages: raw.map(r => `${r.min_driver_age}-${r.max_driver_age}`)};
+  });
+  await step(`${tag} GET /v1/reference/protections`, async () => {
+    const raw = (await client.reference("protections", sid)).data;
+    mergeCaravelReference(stores.protections, raw, REFERENCE_ID_KEYS.protections, new Date().toISOString());
+    return raw.map(p => ({tier: p.tier, excess: p.excess, deposit: p.deposit, theft_excess: p.theft_excess ?? "not stated",
+      product_type: p.product_type ?? "not stated", covers: p.covers ?? "not stated", excludes: p.excludes ?? "not stated"}));
+  });
+  await step(`${tag} GET /v1/reference/extras`, async () => {
+    extrasRaw = (await client.reference("extras", sid)).data;
+    mergeCaravelReference(stores.extras, extrasRaw, REFERENCE_ID_KEYS.extras, new Date().toISOString());
+    const {rows, rejected} = caravelExtrasCatalog(extrasRaw.map(caravelExtraFromApi), cur);
+    return {count: extrasRaw.length, provider_extras: caravelProviderExtras(extrasRaw).map(e => `${e.name}:${e.category}:${e.pricing_type}:${e.unit_price}${e.price_cap !== null ? `/cap ${e.price_cap}` : ""}:${e.payable}`),
+      ride24_codes: rows.map(r => r.code), unmapped: hist(rejected.map(r => r.error))};
+  });
+  await step(`${tag} GET /v1/reference/fees`, async () => {
+    const raw = (await client.reference("fees", sid)).data;
+    return raw.map(f => ({type: f.type, applies_when: f.applies_when ?? null}));
+  });
+  // An unknown error on the first list read degrades generically: the next scheduled
+  // sync reads it again (certification phase unknown-error-code; a 422 is not retried in place).
+  if (!firstSync) { await step(`${tag} GET /v1/reference/locations (next sync)`, syncLocations); }
+
+  // Served plan, quoted from the freshly synced reference catalogue (certification phase
+  // opaque-id-tolerance): no plan named, a protection_id that GET /v1/reference/protections lists.
+  const vehicleIds = new Set([...stores.vehicles.values()].map(v => v.data.vehicle_id));
+  const refProtection = [...stores.protections.values()].map(r => r.data).find(p => typeof p.vehicle_id === "string" && vehicleIds.has(p.vehicle_id));
+  const refDesk = locations.find(l => normalizeCaravelLocation(caravelLocationFromApi(l), sid).ok);
+  if (refProtection && refDesk) {
+    await step(`${tag} POST /v1/quote (served plan, ids from reference sync)`, async () => {
+      const q = (await client.quote({pickup: {location_id: refDesk.location_id, at: at(1, 10)}, dropoff: {location_id: refDesk.location_id, at: at(4, 10)},
+        vehicle_id: refProtection.vehicle_id, protection_id: refProtection.protection_id, drivers: [{age: 30, role: "main"}]}, randomUUID(), sid)).data;
+      return {status: q.status, plan: q.plan ?? "served (not named)", grand_total: q.totals?.grand_total,
+        premium: evaluateCaravelPremium(q.plan ?? refProtection.tier, refProtection, q.deposit).ok ? "PUBLISHABLE" : "not Premium-publishable"};
+    });
+  }
+
+  const desk = locations.find(l => normalizeCaravelLocation(caravelLocationFromApi(l), sid).ok && l.type === "airport")
+    ?? locations.find(l => normalizeCaravelLocation(caravelLocationFromApi(l), sid).ok);
+  if (!desk) { results.push({endpoint: `${tag} availability`, outcome: "NOT RUN", summary: "no desk passed normalization"}); continue; }
+  const id = desk.location_id;
+  const window = {pickup: at(0, 10), dropoff: at(3, 10)};
+  let rows = [], meta = null;
+  await step(`${tag} GET /v1/availability (3 days, 10:00Z)`, async () => {
+    const r = await client.availability({pickup_location_id: id, dropoff_location_id: id, ...window, driver_age: 30, currency: cur}, sid);
+    rows = r.data; meta = r.meta;
+    const premiumRows = rows.filter(x => x.plan === "premium");
+    return {rows: rows.length, plans: hist(rows.map(x => x.plan)), outside_hours: {pickup: caravelOutsideHours(desk, window.pickup), dropoff: caravelOutsideHours(desk, window.dropoff)},
+      premium_evaluation: premiumRows.map(x => {const e = evaluateCaravelPremium(x.plan, x.protection); return e.ok ? "PUBLISHABLE" : e.errors;}),
+      fee_types: hist(rows.flatMap(x => (x.line_items || []).filter(l => l.kind === "fee").map(l => l.type)))};
+  });
+  await step(`${tag} GET /v1/availability (night 23:30Z)`, async () => {
+    const r = await client.availability({pickup_location_id: id, dropoff_location_id: id, pickup: at(0, 23, 30), dropoff: at(3, 23, 30), driver_age: 30, currency: cur}, sid);
+    return {rows: r.data.length, outside_hours: {pickup: caravelOutsideHours(desk, at(0, 23, 30))},
+      out_of_hours_minor: [...new Set(r.data.flatMap(x => (x.line_items || []).filter(l => l.type === "out_of_hours").map(l => l.total?.amount)))],
       unsellable_ends: r.meta?.unsellable_ends ?? null};
   });
-} else {
-  results.push({endpoint: "GET /v1/availability", outcome: "NOT RUN", summary: "no desk passed location normalization"});
-}
 
-// Quote one zero-risk Premium row and normalize it to the Ride24 standard offer.
-const row = dayRows.find(x => x.plan === "premium" && CaravelSandboxClient.isPremiumZeroRisk(x));
-let quoteRead = null, quoteData = null;
-if (row) {
-  await step("POST /v1/quote (premium)", async () => {
-    const q = await client.quote({pickup: {location_id: desk.raw.location_id, at: at(0, 10)}, dropoff: {location_id: desk.raw.location_id, at: at(3, 10)},
-      vehicle_id: row.vehicle_id, protection_id: row.protection.protection_id, plan: "premium", currency: supplier.currency,
-      drivers: [{age: 30, role: "main"}]}, randomUUID(), sid);
-    quoteData = q.data;
-    const read = caravelQuoteFromApi(quoteData, row.protection, supplier);
-    quoteRead = read.ok ? read.value : null;
-    const hasOoh = read.ok && read.value.mandatoryCharges.some(c => c.category === "out_of_hours");
-    const offer = buildCaravelOfferFromApi({availabilityRow: row, policies: dayMeta?.policies ?? policies, quoteData, supplier,
-      // Derived from the provider quote itself (not an independent hours check).
-      operatingHours: {pickupLocalTime: "10:00", returnLocalTime: "10:00", pickupTimezone: desk.raw.timezone, returnTimezone: desk.raw.timezone,
-        pickupOutsideHours: hasOoh, returnOutsideHours: false},
-      context: {scopeSupplierId: sid, partnerCurrency: supplier.currency, pickupLocationId: desk.raw.location_id, dropoffLocationId: desk.raw.location_id,
-        pickupEpochMs: Date.parse(at(0, 10)), dropoffEpochMs: Date.parse(at(3, 10)), rentalDays: 3, driverAge: 30, nowEpochMs: Date.now()}});
-    return {status: quoteData.status, rental_days: quoteData.rental_days, line_kinds: histogram((quoteData.line_items || []).map(l => l.kind)),
-      grand_total: quoteData.totals?.grand_total, pay_now: quoteData.totals?.pay_now, pay_at_pickup: quoteData.totals?.pay_at_pickup,
-      deposit: quoteData.deposit?.amount ?? null, reconciliation: read.ok ? "OK" : read.errors,
-      ride24_offer: offer.ok ? {class_code: offer.value.class_code, model: offer.value.model, public_price_total: offer.value.public_price_total, noCardHold: offer.value.features.noCardHold} : offer.errors};
+  // Unavailable / unknown vehicle must be refused safely.
+  await step(`${tag} POST /v1/quote unknown vehicle (expect 4xx)`, async () => {
+    await client.quote({pickup: {location_id: id, at: window.pickup}, dropoff: {location_id: id, at: window.dropoff},
+      vehicle_id: "ride24-nonexistent-vehicle", protection_id: "ride24-nonexistent-protection", drivers: [{age: 30, role: "main"}]}, randomUUID(), sid);
+    return {};
+  }, {expectError: "*"});
+
+  // Quote: a publishable Premium row if any; otherwise a mechanics-only row (never publishable).
+  const publishable = rows.find(x => x.plan === "premium" && evaluateCaravelPremium(x.plan, x.protection).ok);
+  const row = publishable ?? rows.find(x => x.plan === "premium") ?? rows[0];
+  if (!row) { results.push({endpoint: `${tag} POST /v1/quote`, outcome: "NOT RUN", summary: "no availability rows"}); continue; }
+  const quoteBody = {pickup: {location_id: id, at: window.pickup}, dropoff: {location_id: id, at: window.dropoff},
+    vehicle_id: row.vehicle_id, protection_id: row.protection.protection_id, plan: row.plan, currency: cur, drivers: [{age: 30, role: "main"}]};
+  const quoteKey = randomUUID();
+  let quoteData = null, read = null;
+  await step(`${tag} POST /v1/quote (${row.plan}${publishable ? ", publishable" : ", mechanics only"})`, async () => {
+    quoteData = (await client.quote(quoteBody, quoteKey, sid)).data;
+    read = caravelQuoteFromApi(quoteData, row.protection, supplier);
+    const offer = buildCaravelOfferFromApi({availabilityRow: row, policies: meta?.policies ?? policies, quoteData, supplier, pickupLocation: desk, dropoffLocation: desk,
+      context: {scopeSupplierId: sid, partnerCurrency: cur, pickupLocationId: id, dropoffLocationId: id,
+        pickupEpochMs: Date.parse(window.pickup), dropoffEpochMs: Date.parse(window.dropoff), rentalDays: 3, driverAge: 30, nowEpochMs: Date.now()}});
+    return {status: quoteData.status, rental_days: quoteData.rental_days, expires_at: quoteData.expires_at,
+      lines: (quoteData.line_items || []).map(l => `${l.kind}:${l.type ?? l.code}:${l.total?.amount}`),
+      totals: quoteData.totals, deposit: quoteData.deposit?.amount ?? null,
+      reconciliation: read.ok ? "OK" : read.errors,
+      ride24_offer: offer.ok ? {class: offer.value.class_code, model: offer.value.model, total: offer.value.public_price_total, noCreditCard: offer.value.features.noCreditCard} : offer.errors};
   });
-} else {
-  results.push({endpoint: "POST /v1/quote", outcome: "NOT RUN", summary: "no zero-excess, zero-deposit Premium row in the daytime search"});
-}
+  if (!quoteData) continue;
+  await step(`${tag} POST /v1/quote replay (same key + body)`, async () => {
+    const again = (await client.quote(quoteBody, quoteKey, sid)).data;
+    return {same_quote_id: again.quote_id === quoteData.quote_id};
+  });
+  await step(`${tag} POST /v1/quote same key, different body (expect 409)`, async () => {
+    await client.quote({...quoteBody, drivers: [{age: 31, role: "main"}]}, quoteKey, sid);
+    return {};
+  }, {expectError: "idempotency_key_reused"});
 
-// Optional: one sandbox booking with invented data, read back and cancelled immediately.
-if (doBooking && quoteRead) {
-  const ref = `ci-${process.env.GITHUB_RUN_ID || "local"}-${Date.now()}`;
-  const total = minorToMajor(quoteRead.quote.totalAmountMinor, quoteRead.quote.currency);
+  if (!doBooking || !read?.ok) {
+    if (doBooking) results.push({endpoint: `${tag} POST /v1/bookings`, outcome: "NOT RUN", summary: "quote did not reconcile"});
+    continue;
+  }
+  // Booking (invented data, pay_on_arrival). Mechanics-only rows are booked only to exercise the flow and cancelled at once.
+  const total = minorToMajor(read.value.quote.totalAmountMinor, cur);
+  const ref = `ci-${(process.env.GITHUB_RUN_ID || "local").slice(-10)}-${cur}-${Date.now().toString(36)}`;
   const draft = buildCaravelBookingDraft({
     idempotency_key: randomUUID(), ride24_booking_id: ref, vehicle_group_id: row.vehicle_id,
     main_driver: {name: "Sandbox Tester", age: 30}, client_email: "sandbox-ci@example.test", client_phone: null,
-    currency: quoteRead.quote.currency, partner_discount_percent: 0, partner_amount: expectedPartnerAmount(total, 0), quote_reference: quoteRead.quote.quoteId,
-    provider_quote_data: {provider: "caravel", quote_id: quoteRead.quote.quoteId, supplier_id: sid, vehicle_id: row.vehicle_id,
-      protection_id: row.protection.protection_id, plan: "premium", currency: quoteRead.quote.currency, amounts: {total},
-      drivers: [{age: 30, role: "main"}], expires_at: new Date(quoteRead.quote.expiresAtEpochMs).toISOString()},
+    currency: cur, partner_discount_percent: 0, partner_amount: expectedPartnerAmount(total, 0), quote_reference: read.value.quote.quoteId,
+    provider_quote_data: {provider: "caravel", quote_id: read.value.quote.quoteId, supplier_id: sid, vehicle_id: row.vehicle_id,
+      protection_id: row.protection.protection_id, plan: "premium", currency: cur, amounts: {total},
+      drivers: [{age: 30, role: "main"}], expires_at: new Date(read.value.quote.expiresAtEpochMs).toISOString()},
   }, Date.now());
-  if (!draft.ok) {
-    failed = true;
-    results.push({endpoint: "POST /v1/bookings", outcome: "NOT SENT", summary: draft.errors});
-  } else {
-    let booking = null;
-    await step("POST /v1/bookings (sandbox, invented data)", async () => {
-      booking = (await client.bookSandbox(caravelQuotedBookingRequest(draft.draft), draft.draft.idempotencyKey, sid)).data;
-      return {status: booking.status, ride24_status: caravelCanonicalStatus(booking.status), revision: booking.revision,
-        grand_total: booking.price?.totals?.grand_total, payment: booking.payment ?? null};
+  if (!draft.ok) { failed = true; results.push({endpoint: `${tag} POST /v1/bookings`, outcome: "NOT SENT", summary: draft.errors}); continue; }
+  const body = caravelQuotedBookingRequest(draft.draft);
+  let booking = null;
+  await step(`${tag} POST /v1/bookings (pay_on_arrival)`, async () => {
+    booking = (await client.bookSandbox(body, draft.draft.idempotencyKey, sid)).data;
+    created.push({id: booking.booking_id, sid});
+    const check = verifyCaravelBookingAgainstQuote(booking, read.value.quote);
+    return {status: caravelBookingStatus(booking.status), revision: booking.revision, payment: booking.payment ?? null,
+      matches_quote: check.ok ? true : check.errors};
+  });
+  if (!booking) continue;
+  await step(`${tag} POST /v1/bookings replay (same key + body)`, async () => {
+    const again = (await client.bookSandbox(body, draft.draft.idempotencyKey, sid)).data;
+    return {same_booking_id: again.booking_id === booking.booking_id, revision: again.revision};
+  });
+  await step(`${tag} POST /v1/bookings same quote, new key + ref (expect 409)`, async () => {
+    await client.bookSandbox({...body, external_ref: `${body.external_ref}-b`}, randomUUID(), sid);
+    return {};
+  }, {expectError: "*"});
+  let current = booking;
+  await step(`${tag} GET /v1/bookings/{ref}`, async () => {
+    current = (await client.bookingStatusSandbox(booking.booking_id, sid)).data;
+    return {status: current.status, revision: current.revision};
+  });
+  let cancelled = null;
+  await step(`${tag} POST /v1/bookings/{ref}/cancel`, async () => {
+    cancelled = (await client.cancelSandbox(booking.booking_id, current.revision, randomUUID(), sid)).data;
+    const c = caravelCancellationFromApi(cancelled);
+    return {status: caravelBookingStatus(cancelled.status), revision: cancelled.revision, cancellation: c.ok ? c : c.errors};
+  });
+  if (cancelled) {
+    created.splice(created.findIndex(x => x.id === booking.booking_id), 1);
+    await step(`${tag} POST cancel again (idempotent)`, async () => {
+      const c2 = (await client.cancelSandbox(booking.booking_id, cancelled.revision, randomUUID(), sid)).data;
+      return {status: c2.status, revision: c2.revision};
     });
-    if (booking) {
-      await step("GET /v1/bookings/{ref}?ref_type=booking_id", async () => {
-        const b = (await client.bookingStatusSandbox(booking.booking_id, sid)).data;
-        return {status: b.status, revision: b.revision};
-      });
-      await step("POST /v1/bookings/{ref}/cancel", async () => {
-        const c = (await client.cancelSandbox(booking.booking_id, booking.revision, randomUUID(), sid)).data;
-        const read = caravelCancellationFromApi(c);
-        return {status: c.status, ride24_status: caravelCanonicalStatus(c.status), cancellation: read.ok ? {fee_minor: read.feeMinor, currency: read.currency, revision: read.revision} : read.errors};
-      });
-    }
+    await step(`${tag} POST cancel with stale revision (expect 409)`, async () => {
+      await client.cancelSandbox(booking.booking_id, 1, randomUUID(), sid);
+      return {};
+    }, {expectError: "*"});
   }
-} else if (doBooking) {
-  results.push({endpoint: "POST /v1/bookings", outcome: "NOT RUN", summary: "no reconciled Premium quote"});
 }
 
+// Safety net: cancel anything the run created and did not cancel.
+for (const b of created) {
+  await step(`cleanup cancel ${b.id.slice(0, 8)}…`, async () => {
+    const cur = (await client.bookingStatusSandbox(b.id, b.sid)).data;
+    const c = (await client.cancelSandbox(b.id, cur.revision, randomUUID(), b.sid)).data;
+    return {status: c.status};
+  });
+}
 report();
 process.exit(failed ? 1 : 0);
