@@ -951,7 +951,7 @@ serve(async (req) => {
     const admin = serviceClient();
 
     const {data:workflows,error:workflowError}=await admin.from('api_booking_workflows').select('booking_id')
-      .in('state',['paid','revalidating','dispatching','unknown','provider_pending','confirmed','refund_pending','refunding','refund_failed'])
+      .in('state',['paid','revalidating','dispatching','unknown','provider_pending','confirmed','refund_pending','refunding','refunded','refund_failed'])
       .is('fulfilled_at',null)
       .order('updated_at',{ascending:true}).limit(25);
     if(workflowError)throw Error('API_PAYMENT_STATE_UNAVAILABLE');
