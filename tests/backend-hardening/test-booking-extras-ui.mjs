@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import vm from 'node:vm';
 import { createBookingExtras } from '../../assets/helper/bookingExtras.js';
 const {JSDOM}=await import(process.env.JSDOM_MODULE || 'jsdom');
 const html='<input id="acceptTerms" type="checkbox"><button id="confirmBookingBtn"></button><section id="bookingPriceBreakdown"></section><div id="bookingExtrasPicker"></div><div id="bookingExtrasTotal"></div><div id="equipmentLegacyInfo"></div>';
@@ -126,3 +127,19 @@ test('included protection is not counted as customer-selected equipment',async()
  await ui.start();assert.match(document.getElementById('bookingExtrasTotal').textContent,/Your extras: none/);
  const picker=document.getElementById('bookingExtrasPicker').textContent;assert.doesNotMatch(picker,/No deposit/);assert.match(picker,/Snow chains/);
 });
+
+test('customer refund tiers match UTC database rules at 60, 59, 30, 29 days',async()=>{
+  const html=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
+  const match=html.match(/function calculateRefundPercent\\(pickupDate\\) \\{[\\s\\S]*?\\n\\}/);
+  assert.ok(match,'client refund calculator found');
+  const FixedDate=class extends Date {
+    constructor(...args){super(...(args.length?args:['2026-11-14T12:00:00.000Z']));}
+  };
+  const calculate=vm.runInNewContext('('+match[0]+')',{Date:FixedDate});
+  assert.equal(calculate('2027-01-13'),90);
+  assert.equal(calculate('2027-01-12'),50);
+  assert.equal(calculate('2026-12-14'),50);
+  assert.equal(calculate('2026-12-13'),0);
+  assert.equal(calculate('invalid'),0);
+});
+
