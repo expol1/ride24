@@ -31,7 +31,7 @@ test("missing provider quote fields return rejection rather than crash",()=>{
 
 const mandatory=()=>({
  charges:[
-  {externalId:"night-p",label:"Late pickup",category:"out_of_hours_pickup",amountMinor:2500,currency:"EUR"},
+  {externalId:"night-p",label:"Late pickup",category:"out_of_hours",amountMinor:2500,currency:"EUR"},
   {externalId:"one-way",label:"One-way",category:"one_way",amountMinor:1000,currency:"EUR"}
  ],
  quoteCurrency:"EUR",quoteMandatoryFeesMinor:3500,
@@ -67,8 +67,8 @@ test("malformed local time values fail closed without throwing",()=>{
 test("rejects overflow of out-of-hours fee subtotals",()=>{
  const x=mandatory();
  x.charges=[
-  {externalId:"a",label:"Late pickup",category:"out_of_hours_pickup",amountMinor:Number.MAX_SAFE_INTEGER,currency:"EUR"},
-  {externalId:"b",label:"Late return",category:"out_of_hours_return",amountMinor:1,currency:"EUR"}
+  {externalId:"a",label:"Late pickup",category:"out_of_hours",amountMinor:Number.MAX_SAFE_INTEGER,currency:"EUR"},
+  {externalId:"b",label:"Late return",category:"out_of_hours",amountMinor:1,currency:"EUR"}
  ];
  x.quoteMandatoryFeesMinor=Number.MAX_SAFE_INTEGER;
  x.returnOutsideHours=true;

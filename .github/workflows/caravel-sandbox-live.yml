@@ -1,0 +1,33 @@
+name: Caravel sandbox live checks
+# Live acceptance run against https://sandbox-api.caravelway.com only.
+# Starts ONLY when a maintainer adds a label to a same-repository PR:
+#   caravel-sandbox-live     read-only reference, availability and one quote
+#   caravel-sandbox-booking  the above plus ONE sandbox booking with invented data, cancelled at once
+# Requires the repository secret CARAVEL_SANDBOX_API_KEY (and optional variable CARAVEL_SUPPLIER_ID).
+# No Supabase access, no deploy, no production endpoint.
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+concurrency:
+  group: caravel-sandbox-live
+  cancel-in-progress: false
+jobs:
+  live:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.label.name == 'caravel-sandbox-live' || github.event.label.name == 'caravel-sandbox-booking')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Live sandbox run
+        env:
+          CARAVEL_SANDBOX_API_KEY: ${{ secrets.CARAVEL_SANDBOX_API_KEY }}
+          CARAVEL_SUPPLIER_ID: ${{ vars.CARAVEL_SUPPLIER_ID }}
+          CARAVEL_LIVE_BOOKING: ${{ github.event.label.name == 'caravel-sandbox-booking' && '1' || '0' }}
+        run: node --experimental-strip-types tests/caravel-live-sandbox.mjs
