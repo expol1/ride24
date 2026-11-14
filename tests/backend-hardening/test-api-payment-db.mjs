@@ -92,3 +92,49 @@ test('expired checkout cannot dispatch, but a later verified payment is retained
  assert.equal((await p.query('select state from api_booking_workflows')).rows[0].state,'refund_pending');
  }finally{await p.close();}
 });
+
+const refundGuardMigration=await readFile(new URL('../../supabase/migrations/20261114100000_admin_api_refund_settlement_guard.sql',import.meta.url),'utf8');
+async function adminRefundDb(provider='api') {
+ const p=await db();
+ await p.exec(`
+ create schema if not exists auth;
+ create or replace function auth.uid() returns uuid language sql stable as
+   'select ''10000000-0000-4000-8000-000000000090''::uuid';
+ create table profiles (id uuid primary key,role text);
+ insert into profiles values('10000000-0000-4000-8000-000000000090','admin');
+ alter table bookings add column refund_status text;
+ alter table bookings add column refund_completed_at timestamptz;
+ update bookings set provider_type='${provider}',status='cancelled',refund_status='pending',
+ api_booking_reference='DEMO-BOOKING',api_status='cancel_error',manual_review=true;
+ `);
+ await p.exec(refundGuardMigration);
+ return p;
+}
+test('manual API refund cannot be marked completed while supplier cancellation is unresolved',async()=>{
+ const p=await adminRefundDb();try{
+ await assert.rejects(p.query('select admin_mark_refund_done($1)',[b]),/API_CANCELLATION_NOT_VERIFIED/);
+ const row=(await p.query('select refund_status from bookings')).rows[0];
+ assert.equal(row.refund_status,'pending');
+ }finally{await p.close();}
+});
+test('manual API refund may be marked completed after supplier cancellation is verified',async()=>{
+ const p=await adminRefundDb();try{
+ await p.exec("update bookings set api_status='cancelled',manual_review=false");
+ await p.query('select admin_mark_refund_done($1)',[b]);
+ assert.equal((await p.query('select refund_status from bookings')).rows[0].refund_status,'completed');
+ }finally{await p.close();}
+});
+test('ordinary local-partner manual refund remains available',async()=>{
+ const p=await adminRefundDb('local');try{
+ await p.query('select admin_mark_refund_done($1)',[b]);
+ assert.equal((await p.query('select refund_status from bookings')).rows[0].refund_status,'completed');
+ }finally{await p.close();}
+});
+test('manual refund completion requires a pending request and administrator authorization',async()=>{
+ const p=await adminRefundDb();try{
+ await p.exec("update bookings set api_status='cancelled',manual_review=false,refund_status=null");
+ await assert.rejects(p.query('select admin_mark_refund_done($1)',[b]),/REFUND_NOT_PENDING/);
+ await p.exec("update bookings set refund_status='pending';update profiles set role='client'");
+ await assert.rejects(p.query('select admin_mark_refund_done($1)',[b]),/Brak dostępu/);
+ }finally{await p.close();}
+});
