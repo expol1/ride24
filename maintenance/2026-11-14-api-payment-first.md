@@ -100,3 +100,16 @@ Cleanup: all four tokens were invalidated and their expiries set to now; tempora
 The runner's final result now explicitly reports cancelled, retaining the pre-cancellation status separately, so the terminal report cannot misleadingly say confirmed after successful cleanup. Existing cleanup tests assert both fields.
 
 Not performed: actual Stripe TEST MODE checkout, signed webhook delivery/replay, refund, end-to-end voucher/email/push, native Android acceptance. Previously confirmed test account has no registered webhook; production Stripe configuration remains unchanged.
+
+
+## 2026-11-14 independent read-only Stripe and legacy audit
+
+- Production database confirms two legacy AVIA API bookings awaiting payment with real supplier references:
+  - Ride24 `R24-7FE14B`, supplier `26-P2-8302`, stored Ride24 fee PLN 86.16;
+  - Ride24 `R24-912461`, supplier `26-P2-8303`, stored Ride24 fee PLN 163.90.
+- Both saved Stripe Checkout sessions use the `cs_live_` prefix, while the only connected Stripe account is `livemode=false`. Both have zero successful `payments` rows and no linked `payment_intent_id` in Ride24. **Missing database payments do not prove Stripe LIVE never collected funds.**
+- Before any cancellation, refund, modification of historical records, or cutover, reconcile the exact live Stripe Checkout session and PaymentIntent from the correct Stripe LIVE account (read-only), and verify the specific supplier booking reference against AVIA; preserve the audit trail. Do not access or modify other customers.
+- The two production records have not been changed, no Stripe LIVE APIs were invoked, and no new supplier saves were made.
+- Added regression tests that a verified late payment for a booking with a legacy supplier reference enters `provider_pending` status reconciliation and cannot claim a second supplier dispatch.
+- Test-mode Stripe account `acct_1TzZduCJpFkHpJqc` is separate and cannot validate `cs_live_` sessions. End-to-end payment/refund and webhook delivery still require a dedicated isolated test receiver and test-mode key; do not register a test webhook against the existing production handler.
+- Functional acceptance gates for activation remain: separate Stripe TEST sandbox checkout/refund and signed webhook replay; fresh Renteon demo booking under that specific paid workflow; voucher/mail/push validation; Android test; legacy reconciliation; explicit cutover approval.
