@@ -128,3 +128,14 @@ The owner confirmed that the two legacy supplier bookings were test cases and ex
 - The Android integration is deliberately a separate future workstream at the owner's request. This does not waive the obligation to verify current legacy Android compatibility when activating production API checkout.
 
 PR #88 remains unmerged and draft; the mandatory full Stripe TEST checkout / webhook / refund and end-to-end paid Renteon demo + voucher acceptance remain incomplete. Reactivation of `api_enabled` and production payment-first cutover both require a controlled release review.
+
+
+## 2026-11-14 Stripe TEST secret validation and isolated webhook staging
+
+- Owner saved `STRIPE_TEST_SECRET_KEY` into Supabase Ride24 Edge Function Secrets without sharing its value in chat.
+- A new isolated read-only function `ride24-stripe-test-preflight-20261114` authenticated via the existing server-side cron secret and performed `GET /v1/account` from the Edge runtime. Result was HTTP 200: `configured=true`, `test_mode=true`, and the Stripe account ID matched expected `acct_1TzZduCJpFkHpJqc`. No secret content, payment, refund, booking, or customer payload was read or logged.
+- Immediately after the successful preflight, this function was replaced by version 2: JWT required, closed stub returning only HTTP 410, with no code path to Stripe or any secret.
+- A new isolated `ride24-stripe-test-webhook-20261114` Edge Function was deployed. It verifies Stripe HMAC-SHA256 raw-body signatures with dedicated `STRIPE_TEST_WEBHOOK_SECRET`, enforces timestamp tolerance and `event.livemode===false`, and only logs the verified event type/id. It never modifies Ride24 bookings/payments or API partner state. Its test receiver closes automatically at `2026-11-14T14:00:00Z`. This is **not** the live `stripe-webhook` function.
+- Stripe TEST account `acct_1TzZduCJpFkHpJqc` registered test event destination `we_1UbeJACJpFkHpJqcnyLz9JkJ` for this isolated URL and only checkout/refund-related event types. Endpoint is currently **disabled**, awaiting separate configuration of its `whsec_` signing secret in Supabase as `STRIPE_TEST_WEBHOOK_SECRET`. Do not replace `STRIPE_WEBHOOK_SECRET` or `STRIPE_SECRET_KEY`.
+- Once the signing secret is entered, first verify non-empty valid test signature handling and account mode, then enable this one test-only destination; perform test-mode Checkout/refund validation. Remember to disable/delete the destination and close the function after tests. Never use production booking rows or production AVIA for the test.
+- No Checkout session has been created or paid in this step; no Stripe webhook delivery or refund has yet been accepted/verified. This staged receiver alone does not prove the PR #88 end-to-end flow.
