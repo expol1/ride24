@@ -17,6 +17,7 @@ import {
   cancelProviderBooking,
   getProviderBookingStatus,
 } from "../_shared/provider-adapters.ts";
+import { assertSupplierCancellation } from "../_shared/api-cancellation-confirmation.mjs";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -764,6 +765,7 @@ async function cancelFinalized(
         },
       );
 
+      assertSupplierCancellation(response, booking.api_booking_reference);
       const safeResponse = sanitizePartnerPayload(response, 12_000);
       const { data: updated, error: updateError } = await admin
         .from("bookings")
