@@ -1415,6 +1415,6 @@ export async function cancelProviderBooking(
   const canonical = canonicalGenericBooking(payload);
   return {
     ...canonical,
-    status: canonical.status === "pending" ? "cancelled" : canonical.status,
+    status: canonical.status,
   };
 }
