@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
-const migration=await readFile(new URL('../../supabase/migrations/20261113190701_api_payment_first_workflow.sql',import.meta.url),'utf8');
+const migration=await readFile(new URL('../../supabase/migrations/20261114110526_api_payment_first_workflow_20261113.sql',import.meta.url),'utf8');
 const b='10000000-0000-4000-8000-000000000001';
 async function db() {
  const p=new PGlite();await p.exec(`
@@ -93,7 +93,7 @@ test('expired checkout cannot dispatch, but a later verified payment is retained
  }finally{await p.close();}
 });
 
-const refundGuardMigration=await readFile(new URL('../../supabase/migrations/20261114100000_admin_api_refund_settlement_guard.sql',import.meta.url),'utf8');
+const refundGuardMigration=await readFile(new URL('../../supabase/migrations/20261114111238_admin_api_refund_settlement_guard_20261114.sql',import.meta.url),'utf8');
 async function adminRefundDb(provider='api') {
  const p=await db();
  await p.exec(`
