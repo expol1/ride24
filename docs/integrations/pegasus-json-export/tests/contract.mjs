@@ -10,7 +10,8 @@ export function validateBooking(item) {
   if (item.vehicleId !== null) errors.push('vehicle must remain unassigned');
   if (!['EUR','USD'].includes(item.rental?.currency)) errors.push('invalid currency');
   if (!Number.isFinite(item.rental?.amountPayableToPartner) || item.rental.amountPayableToPartner < 0) errors.push('invalid supplier amount');
-  if (typeof item.rental?.extrasIncludedInAmount !== 'boolean') errors.push('unknown extras inclusion');
+  if (item.rental?.extrasIncludedInAmount !== null && typeof item.rental?.extrasIncludedInAmount !== 'boolean') errors.push('invalid extras inclusion');
+  if (item.rental?.extrasIncludedInAmount === null && item.rental?.extrasMustNotBeAddedAgainToTotal !== true) errors.push('unknown extras inclusion without non-additive safeguard');
   if (item.status === 'cancelled' && !item.cancelledAt) errors.push('missing cancellation timestamp');
   return errors;
 }
@@ -26,3 +27,5 @@ export function applyVersioned(current, incoming) {
   }
   return {outcome:'updated',record:structuredClone(incoming)};
 }
+
+export const requiresPriceReview = (booking) => booking?.rental?.extrasIncludedInAmount === null;
