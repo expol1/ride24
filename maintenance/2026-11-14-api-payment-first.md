@@ -113,3 +113,18 @@ Not performed: actual Stripe TEST MODE checkout, signed webhook delivery/replay,
 - Added regression tests that a verified late payment for a booking with a legacy supplier reference enters `provider_pending` status reconciliation and cannot claim a second supplier dispatch.
 - Test-mode Stripe account `acct_1TzZduCJpFkHpJqc` is separate and cannot validate `cs_live_` sessions. End-to-end payment/refund and webhook delivery still require a dedicated isolated test receiver and test-mode key; do not register a test webhook against the existing production handler.
 - Functional acceptance gates for activation remain: separate Stripe TEST sandbox checkout/refund and signed webhook replay; fresh Renteon demo booking under that specific paid workflow; voucher/mail/push validation; Android test; legacy reconciliation; explicit cutover approval.
+
+
+## 2026-11-14 production AVIA pause and legacy test cleanup — user-authorized
+
+The owner confirmed that the two legacy supplier bookings were test cases and explicitly permitted removing them, while allowing AVIA offers to be hidden during final integration. The following safe production operations were completed, independently of PR #88:
+
+- Only AVIA partner `91e04805-31da-4242-9e6f-b6075019d784` was updated to `api_enabled=false`. The deployed `search-api` filters `partners.api_enabled=true`, and the deployed `create-booking-request` requires it for API quotes, so new AVIA offers/requests are blocked. The partner, vehicles and credentials remain preserved for reactivation.
+- Targeted two rows by both Ride24 reservation code and exact supplier reference, with `awaiting_payment` and no successful payment recorded: `R24-7FE14B` / `26-P2-8302`; `R24-912461` / `26-P2-8303`.
+- Both were soft-cancelled, with `cancelled_at` set and `payment_deadline`/expiry cleared. The existing `api-booking-status-sync` cancellation mechanism was invoked (same secret/Vault-backed mechanism as scheduled cron) and both returned `api_status=cancelled`, `manual_review=false` and one provider cancel log each.
+- Neither booking was hard-deleted. Their Checkout IDs have the `cs_live_` prefix; the connected Stripe account remains TEST MODE only. A missing database payment record does **not** establish Stripe LIVE settlement status. Hard deletion before resolving any open/late Checkout event would orphan webhooks or payment records. Preserve cancelled tombstones and original supplier references pending read-only Stripe LIVE session confirmation, session expiry and accounting reconciliation; then perform physical deletion only if safe and specifically desired.
+- No Stripe LIVE API call, payment, refund or charge was made. No changes were made to production Stripe credentials, other partners, payment/booking Edge Functions, PR migration or the AVIA API server credentials.
+- AVIA API supplier/provider cancellation was acknowledged via the verified aggregator cancel response; this is not an independent provider status read-back after cancellation.
+- The Android integration is deliberately a separate future workstream at the owner's request. This does not waive the obligation to verify current legacy Android compatibility when activating production API checkout.
+
+PR #88 remains unmerged and draft; the mandatory full Stripe TEST checkout / webhook / refund and end-to-end paid Renteon demo + voucher acceptance remain incomplete. Reactivation of `api_enabled` and production payment-first cutover both require a controlled release review.
