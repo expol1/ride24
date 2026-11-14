@@ -416,6 +416,10 @@ async function dispatchUndispatched(
     .eq("partners.provider_type", "api")
     .eq("status", "pending")
     .is("api_booking_reference", null)
+    // New payment-first API carts have their own durable worker.
+    // Do not use the legacy 24-hour response deadline to expire a paid cart.
+    // Include NULL for truly legacy API bookings.
+    .or("api_status.is.null,api_status.not.like.payment_%")
     .limit(DISPATCH_LIMIT);
 
   if (error) throw new Error("Nie udało się odczytać rezerwacji do wysłania");
