@@ -14,17 +14,19 @@ begin
   if not found then
     raise exception 'REFUND_BOOKING_NOT_FOUND';
   end if;
-  if b.status::text is distinct from 'cancelled' or b.refund_status is distinct from 'pending' then
-    raise exception 'REFUND_NOT_PENDING';
-  end if;
-  if b.provider_type='api' and (
-    b.manual_review is true
-    or (b.api_booking_reference is not null and b.api_status is distinct from 'cancelled')
-  ) then
-    raise exception 'API_CANCELLATION_NOT_VERIFIED';
+  -- Preserve the historical admin operation for LOCAL partners exactly.
+  -- A local manual payout may be reconciled without API-specific statuses.
+  if b.provider_type='api' then
+    if b.status::text is distinct from 'cancelled' or b.refund_status is distinct from 'pending' then
+      raise exception 'REFUND_NOT_PENDING';
+    end if;
+    if b.manual_review is true
+      or (b.api_booking_reference is not null and b.api_status is distinct from 'cancelled') then
+      raise exception 'API_CANCELLATION_NOT_VERIFIED';
+    end if;
   end if;
   update public.bookings
      set refund_status='completed', refund_completed_at=now()
-   where id=p_id and refund_status='pending';
+   where id=p_id;
 end;
 $$;
