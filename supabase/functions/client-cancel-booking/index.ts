@@ -14,6 +14,7 @@ import {
   sanitizePartnerPayload,
 } from "../_shared/partner-api.ts";
 import { cancelProviderBooking } from "../_shared/provider-adapters.ts";
+import { assertSupplierCancellation } from "../_shared/api-cancellation-confirmation.mjs";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -360,8 +361,9 @@ async function cancelAtApi(
       },
     );
 
+    assertSupplierCancellation(response, booking.api_booking_reference);
     const safeResponse = sanitizePartnerPayload(response, 12_000);
-    await admin.from("bookings").update({
+    const { error: cancellationWriteError } = await admin.from("bookings").update({
       api_status: "cancelled",
       api_response: safeResponse,
       manual_review: false,
@@ -369,6 +371,7 @@ async function cancelAtApi(
       .eq("id", booking.id)
       .eq("client_id", booking.client_id)
       .eq("api_booking_reference", booking.api_booking_reference);
+    if (cancellationWriteError) throw new Error("API_CANCELLATION_DB_WRITE_FAILED");
 
     // Przy statusie pending lokalny RPC usuwa booking. Nie tworzymy wcześniej
     // rekordu z FK, który mógłby zablokować usunięcie lokalnej rezerwacji.
@@ -513,11 +516,20 @@ serve(async (req) => {
       );
     }
     if (!CANCELLABLE_STATUSES.has(booking.status)) {
-      return jsonResponse(
-        req,
-        { error: "Rezerwacja nie może zostać anulowana w tym statusie" },
-        409,
-      );
+      return jsonResponse(req, { error: "Rezerwacja nie może zostać anulowana w tym statusie" }, 409);
+    }
+    if(booking.partner.provider_type==='api' && booking.status!=='paid') {
+      const {data:w,error:readError}=await admin.from('api_booking_workflows').select('paid_at,state').eq('booking_id',booking.id).maybeSingle();
+      if(readError)throw Error('API_CANCEL_STATE_UNAVAILABLE');
+      // A paid, unresolved supplier operation must be reconciled before ordinary cancellation.
+      // Do not delete its ledger or silently replace the existing manual refund policy.
+      if(w?.paid_at)return jsonResponse(req,{error:'Trwa ustalanie statusu rezerwacji u dostawcy. Skontaktuj się z Ride24.',code:'API_CONFIRMATION_IN_PROGRESS'},409);
+      if(!booking.api_booking_reference) {
+        const {data:cancelled,error}=await admin.rpc('api_cancel_unfulfilled',{p_booking_id:booking.id});
+        if(error)throw Error('API_CANCEL_STATE_UNAVAILABLE');
+        if(cancelled)return jsonResponse(req,{success:true,api_sync_pending:false,refund_mode:null});
+        return jsonResponse(req,{error:'Status rezerwacji uległ zmianie. Odśwież stronę.',code:'BOOKING_CHANGED'},409);
+      }
     }
     const pickupTimestamp = Date.parse(`${booking.start_date}T00:00:00.000Z`);
     const now = new Date();

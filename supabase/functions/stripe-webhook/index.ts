@@ -1,5 +1,7 @@
 import Stripe from "npm:stripe@14.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyApiPayment } from "../_shared/api-payment-flow.mjs";
+import { runApiPayment } from "../_shared/api-payment-runtime.ts";
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY"), {
   apiVersion: "2023-10-16"
 });
@@ -47,6 +49,35 @@ Deno.serve(async (req)=>{
     return new Response("Invalid signature", {
       status: 400
     });
+  }
+  if (['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed','checkout.session.expired'].includes(event.type)) {
+    const notified=event.data.object;
+    const id=notified.metadata?.booking_id||notified.client_reference_id;
+    if(id) {
+      const {data:b,error}=await supabase.from('bookings').select('id,client_id,provider_type,online_payment_pln,stripe_session_id,status,cancelled_at').eq('id',id).maybeSingle();
+      if(error||!b)return new Response('Booking lookup failed',{status:500});
+      if(b.provider_type==='api') {
+        try {
+          // Signed event plus server retrieval; browser redirect is never consulted.
+          const session=await stripe.checkout.sessions.retrieve(notified.id);
+          if(session.payment_status!=='paid') {
+            if(session.id!==b.stripe_session_id||session.metadata?.booking_id!==b.id||session.metadata?.client_id!==b.client_id)
+              return new Response('API payment binding mismatch',{status:400});
+            const {error:unpaidError}=await supabase.rpc('api_record_unpaid_session',{
+              p_booking_id:id,p_session_id:session.id,p_expired:session.status==='expired'});
+            return new Response(unpaidError?'Payment state write failed':'API payment not completed',{status:unpaidError?500:200});
+          }
+          const verified=verifyApiPayment(b,session,!!Deno.env.get('STRIPE_SECRET_KEY')?.startsWith('sk_live_'));
+          const {error:recordError}=await supabase.rpc('api_record_verified_payment',{
+            p_booking_id:id,p_session_id:verified.session_id,p_intent:verified.payment_intent,
+            p_event_id:event.id,p_amount:verified.event_amount,p_currency:verified.currency});
+          if(recordError)return new Response('Payment record failed',{status:500});
+          // Durable state is committed before contacting the provider. Cron can resume it.
+          try {await runApiPayment(supabase,stripe,id);}catch {console.error('API_PAYMENT_FULFILLMENT_RETRY',id);}
+          return new Response('API payment recorded',{status:200});
+        }catch {return new Response('API payment verification failed',{status:500});}
+      }
+    }
   }
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;

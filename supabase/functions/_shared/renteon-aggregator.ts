@@ -82,6 +82,16 @@ function amountIsEqual(a: unknown, b: unknown): boolean {
   return actual !== null && expected !== null
     && Math.abs(actual - expected) <= Math.max(0.02, expected * 0.0002);
 }
+function sameBookingContext(model: Obj, offer: Obj): boolean {
+  return model.Provider === offer.Provider && model.Prepaid === false
+    && model.Currency === offer.Currency && model.CarCategory === offer.CarCategory
+    && equalDateTime(model.PickupDate, String(offer.PickupDate))
+    && equalDateTime(model.DropOffDate, String(offer.DropOffDate))
+    && !!txt(obj(offer.PickupOffice)?.LocationCode)
+    && !!txt(obj(offer.DropOffOffice)?.LocationCode)
+    && txt(obj(model.PickupOffice)?.LocationCode) === txt(obj(offer.PickupOffice)?.LocationCode)
+    && txt(obj(model.DropOffOffice)?.LocationCode) === txt(obj(offer.DropOffOffice)?.LocationCode);
+}
 function groupCode(v: unknown): string {
   const raw = txt(v, 20).toUpperCase();
   return /^[A-Z0-9]{2,10}$/.test(raw) ? raw : "";
@@ -404,16 +414,13 @@ export async function aggregatorQuoteOptions(credentials: PartnerApiCredentials,
     throw new Error("PARTNER_API_ERROR:RENTEON_DRIVER_AGE_POLICY_REQUIRES_CONFIRMATION");
   const created=obj(await call(credentials,createPath,{method:"POST",body:{...offered,
     Drivers:driverAges.map(DriverAge=>({DriverAge}))}}));
-  if(!created || created.Provider!==code || created.Number || created.Prepaid!==false)
+  if(!created || created.Number || !sameBookingContext(created,offered))
     throw new Error("PARTNER_API_ERROR:RENTEON_UNSAVED_QUOTE_REQUIRED");
   selectedServices(created);
   const catalog=providerServiceCatalog(created);
   const requested=applyProviderSelections(created,selections);
   const calculated=obj(await call(credentials,calculatePath,{method:"POST",body:requested}));
-  if(!calculated || calculated.Provider!==code || calculated.Number || calculated.Prepaid!==false
-    || calculated.Currency!==offered.Currency || calculated.CarCategory!==offered.CarCategory
-    || !equalDateTime(calculated.PickupDate,String(offered.PickupDate))
-    || !equalDateTime(calculated.DropOffDate,String(offered.DropOffDate)))
+  if(!calculated || calculated.Number || !sameBookingContext(calculated,offered))
     throw new Error("PARTNER_API_ERROR:RENTEON_QUOTE_CHANGED");
   verifySelectedServices(requested,calculated);
   return {calculated,catalog,provider_quote_data:{...q,calculated,driver_ages:driverAges,total_amount:calculated.Total}};
@@ -457,7 +464,7 @@ export async function aggregatorBook(
     method: "POST",
     body: offered,
   }));
-  if (!created || txt(created.Provider) !== code || !amountIsEqual(created.Total, amount)) {
+  if (!created || created.Number || !sameBookingContext(created, offered) || !amountIsEqual(created.Total, amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CREATE_PRICE_CHANGED");
   }
   if (prepared) {
@@ -479,7 +486,7 @@ export async function aggregatorBook(
       ClientPhone: txt(input.client_phone, 60) || null,
     },
   }));
-  if (!calculation || txt(calculation.Provider) !== code || !amountIsEqual(calculation.Total, amount)) {
+  if (!calculation || calculation.Number || !sameBookingContext(calculation, offered) || !amountIsEqual(calculation.Total, amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CALCULATE_PRICE_CHANGED");
   }
   if (prepared) verifySelectedServices(prepared,calculation);
@@ -501,7 +508,11 @@ export async function aggregatorBook(
   if (!saved || !bookingNumber || txt(saved.Provider) !== code) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_SAVE_UNVERIFIED");
   }
-  const matched = amountIsEqual(saved.Total, amount);
+  // A persisted response needs reconciliation, never a retry that could duplicate it.
+  let matched = sameBookingContext(saved, offered) && amountIsEqual(saved.Total, amount);
+  if (prepared) {
+    try { verifySelectedServices(prepared, saved); } catch { matched = false; }
+  }
   const status = matched && saved.IsCancelled !== true
     ? saved.IsOnRequest === true ? "pending" : "confirmed"
     : "pending";

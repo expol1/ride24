@@ -544,6 +544,15 @@ async function createVoucherPdf(
   });
   y -= 25;
   drawValue(page, font, bold, "Class / Klasa:", booking.carClass.class_code, y);
+  // Supplier-backed API reservations guarantee the category, not the pictured model.
+  // An equivalent car or free upgrade is permitted; ordinary partner vouchers stay unchanged.
+  if (booking.api_booking_reference) {
+    y -= 12;
+    page.drawText(
+      fitText(font, "Category booking: same group or free upgrade / Rezerwacja kategorii: taka sama lub wyższa bez dopłaty", 8, 490),
+      { x: 50, y, size: 8, font, color: textGray },
+    );
+  }
   y -= 18;
 
   const pickup =
@@ -783,6 +792,8 @@ async function loadBooking(
       partner_id,
       main_driver_name,
       status,
+      provider_type,
+      api_status,
       reservation_code,
       start_date,
       end_date,
@@ -998,6 +1009,14 @@ serve(async (req) => {
         skipped: true,
         reason: "BOOKING_NOT_PAID",
       });
+    }
+    const {data:apiGuard,error:guardError}=await admin.from('bookings').select('provider_type,api_status,api_booking_reference,manual_review').eq('id',booking.id).maybeSingle();
+    if(guardError||!apiGuard)throw Error('VOUCHER_API_STATE_UNAVAILABLE');
+    if(apiGuard?.provider_type==='api') {
+      const {data:w,error}=await admin.from('api_booking_workflows').select('state,paid_at,provider_reference').eq('booking_id',booking.id).maybeSingle();
+      if(error||w?.state!=='confirmed'||!w.paid_at||apiGuard.manual_review||apiGuard.api_status!=='confirmed'
+        ||!apiGuard.api_booking_reference||apiGuard.api_booking_reference!==w.provider_reference)
+        return jsonResponse(req,{error:'API_CONFIRMATION_REQUIRED'},409);
     }
     if (!(await hasPaidPayment(admin, booking.id))) {
       return jsonResponse(
