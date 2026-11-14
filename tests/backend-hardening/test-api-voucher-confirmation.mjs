@@ -22,3 +22,11 @@ test('payment worker checks actual voucher delivery outcome before fulfilled_at 
  assert.match(runtime,/assertVoucherCompleted\(response\.status,body\)/);
  assert.match(runtime,/await internalCall\('generate-voucher',id\)/);
 });
+
+test('completed Stripe refund remains in retry sweep until notification and accounting are persisted',async()=>{
+  const cron=await readFile(new URL('../../supabase/functions/api-booking-status-sync/index.ts',import.meta.url),'utf8');
+  assert.ok(cron.includes("'refund_pending','refunding','refunded','refund_failed'"));
+  const runtime=await readFile(new URL('../../supabase/functions/_shared/api-payment-runtime.ts',import.meta.url),'utf8');
+  assert.ok(runtime.includes("if(status!=='pending')"));
+  assert.ok(runtime.includes("fulfilled_at:new Date().toISOString()"));
+});
