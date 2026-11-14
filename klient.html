@@ -3729,7 +3729,7 @@ window.showToast(
 };
 // 🔥 LICZENIE PROCENTU ZWROTU
 function calculateRefundPercent(pickupDate) {
-    if (typeof pickupDate !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(pickupDate)) return 0;
+    if (typeof pickupDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) return 0;
 
     // Match the UTC calendar-day difference used by the server's CURRENT_DATE.
     // Time-of-day, daylight-saving changes and the exact 60-day boundary must not change the displayed refund tier.
