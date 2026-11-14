@@ -14,6 +14,7 @@ import {
   sanitizePartnerPayload,
 } from "../_shared/partner-api.ts";
 import { cancelProviderBooking } from "../_shared/provider-adapters.ts";
+import { assertSupplierCancellation } from "../_shared/api-cancellation-confirmation.mjs";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -360,8 +361,9 @@ async function cancelAtApi(
       },
     );
 
+    assertSupplierCancellation(response, booking.api_booking_reference);
     const safeResponse = sanitizePartnerPayload(response, 12_000);
-    await admin.from("bookings").update({
+    const { error: cancellationWriteError } = await admin.from("bookings").update({
       api_status: "cancelled",
       api_response: safeResponse,
       manual_review: false,
@@ -369,6 +371,7 @@ async function cancelAtApi(
       .eq("id", booking.id)
       .eq("client_id", booking.client_id)
       .eq("api_booking_reference", booking.api_booking_reference);
+    if (cancellationWriteError) throw new Error("API_CANCELLATION_DB_WRITE_FAILED");
 
     // Przy statusie pending lokalny RPC usuwa booking. Nie tworzymy wcześniej
     // rekordu z FK, który mógłby zablokować usunięcie lokalnej rezerwacji.
