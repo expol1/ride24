@@ -124,6 +124,13 @@ test('manual API refund may be marked completed after supplier cancellation is v
  assert.equal((await p.query('select refund_status from bookings')).rows[0].refund_status,'completed');
  }finally{await p.close();}
 });
+test('local-partner manual refund follows unchanged historical admin procedure even without pending state',async()=>{
+ const p=await adminRefundDb('local');try{
+ await p.exec("update bookings set status='paid',refund_status=null");
+ await p.query('select admin_mark_refund_done($1)',[b]);
+ assert.equal((await p.query('select refund_status from bookings')).rows[0].refund_status,'completed');
+ }finally{await p.close();}
+});
 test('ordinary local-partner manual refund remains available',async()=>{
  const p=await adminRefundDb('local');try{
  await p.query('select admin_mark_refund_done($1)',[b]);
