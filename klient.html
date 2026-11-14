@@ -3729,18 +3729,19 @@ window.showToast(
 };
 // 🔥 LICZENIE PROCENTU ZWROTU
 function calculateRefundPercent(pickupDate) {
-    if (!pickupDate) return 0;
+    if (typeof pickupDate !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(pickupDate)) return 0;
 
-    const today = new Date();
-    const pickup = new Date(pickupDate);
+    // Match the UTC calendar-day difference used by the server's CURRENT_DATE.
+    // Time-of-day, daylight-saving changes and the exact 60-day boundary must not change the displayed refund tier.
+    const now = new Date();
+    const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const pickupUtc = Date.parse(pickupDate + 'T00:00:00Z');
+    if (!Number.isFinite(pickupUtc) || new Date(pickupUtc).toISOString().slice(0, 10) !== pickupDate) return 0;
+    const diffDays = Math.floor((pickupUtc - todayUtc) / 86400000);
 
-    // Obliczamy różnicę dni (zaokrąglamy w górę)
-    const diffTime = pickup - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 60) return 90;      // Powyżej 60 dni -> 90%
-    if (diffDays >= 30) return 50;    // Od 30 do 60 dni -> 50%
-    return 0;                         // Poniżej 30 dni -> Brak zwrotu
+    if (diffDays >= 60) return 90;     // 60+ days
+    if (diffDays >= 30) return 50;     // 30-59 days
+    return 0;                         // Under 30 days
 }
 
        async function loadUserProfile() {
