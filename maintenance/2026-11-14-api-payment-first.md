@@ -139,3 +139,29 @@ PR #88 remains unmerged and draft; the mandatory full Stripe TEST checkout / web
 - Stripe TEST account `acct_1TzZduCJpFkHpJqc` registered test event destination `we_1UbeJACJpFkHpJqcnyLz9JkJ` for this isolated URL and only checkout/refund-related event types. Endpoint is currently **disabled**, awaiting separate configuration of its `whsec_` signing secret in Supabase as `STRIPE_TEST_WEBHOOK_SECRET`. Do not replace `STRIPE_WEBHOOK_SECRET` or `STRIPE_SECRET_KEY`.
 - Once the signing secret is entered, first verify non-empty valid test signature handling and account mode, then enable this one test-only destination; perform test-mode Checkout/refund validation. Remember to disable/delete the destination and close the function after tests. Never use production booking rows or production AVIA for the test.
 - No Checkout session has been created or paid in this step; no Stripe webhook delivery or refund has yet been accepted/verified. This staged receiver alone does not prove the PR #88 end-to-end flow.
+
+
+## 2026-11-14 actual Stripe TEST acceptance and final cleanup
+
+The Stripe connector repeatedly requested reauthorization. Testing instead used temporary, strictly TEST-only Supabase Edge Function `ride24-stripe-test-acceptance-20261114`, authenticated with the existing server-side cron secret and `STRIPE_TEST_SECRET_KEY`; no Stripe connector API writes or live payments.
+
+Verified actual Stripe TEST results:
+
+| Check | Observed result |
+| --- | --- |
+| Isolated event delivery | `customer.created` delivered to `ride24-stripe-test-webhook-20261114` with a verified Stripe HMAC signature; event `evt_1Ubeb8CJpFkHpJqcCeF5JOcD` in Supabase `function_logs` |
+| Test PaymentIntent | PLN 12.34 (`1234` cents), `pi_3UbebdCJpFkHpJqc0mjXWzrF`, `succeeded`, `livemode=false` |
+| Full test refund | `re_3UbebdCJpFkHpJqc0vPZgJM3`, full PLN 12.34, `succeeded` |
+| Refund event delivery | Signed `refund.created`, `refund.updated` and `charge.refunded` verified in Supabase `function_logs` |
+| Isolated Checkout | `cs_test_a0Bn84IPkRf3bqZQaXLKrpqt47yPiIUs8F5a4Ao65455G94HqdC5wfs2O2` for PLN 12.34 created `open` and explicitly expired `expired/unpaid` via Stripe TEST API |
+| Checkout expiry delivery | Signed `checkout.session.expired` event `evt_1UbedBCJpFkHpJqcH7BE1gSu` verified in Supabase logs |
+
+Cleanup performed and verified:
+- Temporary Stripe test customer `cus_VcuPzCUZVI3iTh` deleted (API response `deleted=true`).
+- TEST webhook `we_1UbeJACJpFkHpJqcnyLz9JkJ` disabled and temporary `customer.created` subscription removed (eight checkout/refund event types remain for future controlled testing).
+- Temporary isolated Stripe acceptance function redeployed as JWT-protected, no-secret/no-Stripe-access HTTP 410-only stub (v3).
+- Temporary isolated test webhook receiver redeployed as JWT-protected, no-secret/no-Stripe-access HTTP 410-only stub (v4).
+- Test-mode key and signing secret remain in Supabase Secrets for a future isolated acceptance run; existing production `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` untouched.
+- No production booking/customer/partner state changes from this test, no real funds, no Renteon save, no voucher/email/push. AVIA still paused (`api_enabled=false`).
+
+**Scope and remaining blocker:** These are *real* Stripe TEST API/payment/refund/signature tests, **not** a paid Stripe Checkout session or a combined Checkout -> Ride24 database atomic payment -> Renteon demo save/status -> voucher/email end-to-end test. The staged PR #88 migration and payment-first Edge Functions are NOT deployed; a safely isolated integration acceptance environment and live-account settlement reconciliation are still required before a production cutover. Android changes are a separate user-requested workstream, but preserve backward compatibility.
