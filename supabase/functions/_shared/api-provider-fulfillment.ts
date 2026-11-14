@@ -8,8 +8,9 @@ export function hasPaidFulfillmentAdapter(provider:unknown) { return provider ==
 const fail=(code:string):never=>{throw new DefiniteApiFailure(code);};
 const stable=(v:any):string=>JSON.stringify(v==null?null:Array.isArray(v)?v.map(x=>JSON.parse(stable(x))):typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,JSON.parse(stable(v[k]))])):v);
 function terms(offer:any) {
- const omit=new Set(['Amount','CarRentalAmount','PriceDate']);
- // Conservatively compare every offered field except price/quote timestamp.
+ const omit=new Set(['Amount','CarRentalAmount','PriceDate','ModelName','CarModelImageURL','SortOrder','SortOrderWeb']);
+ // Book the category, never the representative model/photo or display order.
+ // Preserve equipment, seating, insurance and all other contractual constraints.
  return Object.fromEntries(Object.entries(offer).filter(([k])=>!omit.has(k)));
 }
 function servicesContract(model:any) {
