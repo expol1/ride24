@@ -159,3 +159,19 @@ test('legacy supplier reference with late paid Stripe checkout cannot dispatch a
   assert.equal((await p.query('select count(*)::int as n from payments')).rows[0].n,1);
  }finally{await p.close();}
 });
+
+test('late Stripe payment on cancelled legacy supplier reference is held for reconciliation, never dispatched',async()=>{
+ const p=await db();try {
+  await p.exec("update bookings set api_booking_reference='26-P2-8302',api_status='cancelled',status='cancelled',cancelled_at=now()");
+  await record(p);
+  const w=(await p.query('select state,provider_reference from api_booking_workflows')).rows[0];
+  assert.equal(w.state,'unknown');
+  assert.equal(w.provider_reference,'26-P2-8302');
+  const bRow=(await p.query('select status,api_booking_reference from bookings')).rows[0];
+  assert.equal(bRow.status,'cancelled');
+  assert.equal(bRow.api_booking_reference,'26-P2-8302');
+  const dispatch=await p.query("select api_claim_paid_dispatch($1,'{}'::jsonb) as result",[b]);
+  assert.equal(dispatch.rows[0].result,null);
+  assert.equal((await p.query('select count(*)::int as n from payments')).rows[0].n,1);
+ }finally {await p.close();}
+});
