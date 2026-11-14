@@ -1,6 +1,6 @@
 # API payment-first reservation audit and staged implementation
 
-Status: staged; not enabled in production. Base main ad114aafa5c9437cdb01fcdc24c3f99c4eb1f3c6 includes PR #85 and #87. No cosmetic changes.
+**CURRENT STATUS (2026-11-14): PRODUCTION API PAYMENT-FIRST ENABLED FOR AVIA.** PR #88 was merged to `main` (squash SHA `f05746e05042fdc4c9d3330ad75799159e8cc8a7`), migration and matching Edge Functions were deployed, `api_payment_settings.enabled=true`, and AVIA `api_enabled=true`. The remaining historical sections below reflect checkpoints *before* activation, not current state. A fully paid end-to-end AVIA reservation and voucher has NOT yet been exercised with a live payment.
 
 ## Confirmed production flow before this patch
 
@@ -165,3 +165,30 @@ Cleanup performed and verified:
 - No production booking/customer/partner state changes from this test, no real funds, no Renteon save, no voucher/email/push. AVIA still paused (`api_enabled=false`).
 
 **Scope and remaining blocker:** These are *real* Stripe TEST API/payment/refund/signature tests, **not** a paid Stripe Checkout session or a combined Checkout -> Ride24 database atomic payment -> Renteon demo save/status -> voucher/email end-to-end test. The staged PR #88 migration and payment-first Edge Functions are NOT deployed; a safely isolated integration acceptance environment and live-account settlement reconciliation are still required before a production cutover. Android changes are a separate user-requested workstream, but preserve backward compatibility.
+
+
+## FINAL LIVE CUTOVER — 2026-11-14 (current state)
+
+### Released
+- PR #88 merged to `main`, squash SHA `f05746e05042fdc4c9d3330ad75799159e8cc8a7`; all five pre-merge GitHub CI checks succeeded, including 248/248 automated API compatibility tests with 0 failures.
+- Production Supabase additive migrations recorded as `20261114110526_api_payment_first_workflow_20261113`, `20261114111238_admin_api_refund_settlement_guard_20261114`, and `20261114112855_admin_refund_rpc_execute_acl_20261114`. GitHub filenames were reconciled with those applied migration versions to avoid replay on later schema deployment.
+- Supabase function versions after aligned production deployment: `create-booking-request` v32, `create_checkout_session` v86, `create-checkout` v56, `stripe-webhook` v88, `api-booking-dispatch` v34, `api-booking-status-sync` v29, `client-cancel-booking` v28, `generate-voucher` v132, `email-worker` v90. `search-api` v77 unchanged.
+- `api_payment_settings.enabled=true`; AVIA partner `91e04805-31da-4242-9e6f-b6075019d784` (`Avia d.o.o.`) `api_enabled=true`, active and synced.
+- Live WWW canonical `https://ride24.pl/klient` served updated `klient.html` (209,692 bytes), including `payment_required` handoff to `goToPayment(...)`, verified by cache-busting Cloudflare HTTP 200 fetch. Older cached response was observed at first and resolved after cache-busted retrieval.
+- Production Stripe LIVE account `acct_1TEm7p67UAIA6d2h`: charges and payouts enabled, live secret and live webhook signature secret configured, signed event endpoint `we_1TIUq767UAIA6d2hyuhAYMkg` enabled for completed and expired Checkout sessions. A one-off PLN 12.34 **LIVE Checkout session was created and explicitly expired UNPAID** (`cs_live_ac6OPXUHPZcbFUPl0u0Re9uTLSv472f9OBhRv89VF6VwsHIqC1EZdWvkSl`), no money collected.
+- Actual production `search-api` supplier call for Zadar airport (`HR-ZAD-ZAD`), 2027-03-01 23:00 -> 2027-03-04 23:00, returned HTTP 200, 25 AVIA group offers, `partial=false` and zero supplier errors. Example group `MCMR`, period supplier total EUR 310.56. Search wrote only normal expiring quote records, no bookings.
+- Production `api-booking-status-sync` previously returned HTTP 200 with zero phase errors and no unexpected dispatch. Both historical AVIA test bookings `R24-912461` and `R24-7FE14B` have confirmed supplier cancellations and are retained as audit tombstones, not duplicated.
+- Manual-refund admin RPC anonymous EXECUTE revoked; authenticated caller remains subject to explicit `profiles.role='admin'` check, service role still allowed. Security advisor shows two INFO RLS-no-policy notices for workflow/settings tables intentionally service-only and one authenticated security-definer notice for the explicitly admin-protected refund function.
+- All temporary LIVE diagnostics, compilation, Checkout smoke and WWW fingerprint Edge Functions were replaced by JWT-protected HTTP 410 closed stubs; no secret-bearing test handler remains enabled.
+
+### Universal API partner architecture (mandatory)
+- The **same Ride24 payment-first workflow, Stripe LIVE checkout and signed webhook, group-based booking, supplier status, voucher, notification, definitive-failure full Ride24-fee refund, and ambiguous-save manual review** apply to all API partners.
+- Reusable formal standard is `docs/API_PARTNER_STANDARD.md` on `main`.
+- **ONLY** `renteon_aggregator` currently passes `hasPaidFulfillmentAdapter`; new suppliers (Caravel, Arvent, Pegasus, etc.) must implement and validate the documented five-method provider adapter before their API account may accept payments. This is supplier mapping, not a different business/payment model. No global Ride24 workflow rewrite or partner-by-partner Stripe changes permitted.
+- Ordinary non-API Partner Accounts retain their existing booking and payment workflow.
+
+### Residual acceptance caveat
+- **Not observed or proven:** one **completed actual paid live** Checkout tied to a Ride24 API cart, followed by supplier AVIA production save/status and generated client voucher/email. The real Renteon `demo` booking/save/cancel, Stripe TEST card payment/refund and signed events, LIVE Checkout opening/expiry and 248 regression tests succeeded separately.
+- Therefore this is a production **enabled release with an outstanding first-paid-transaction acceptance check**, not a fully witnessed real end-to-end paid booking. An operator should verify and monitor the first live paid API reservation before treating go-live acceptance as exhaustive. If dispatch result is ambiguous, put the booking in manual review without resending `save`.
+- First-response rollback for new AVIA offers: `update public.partners set api_enabled=false where id='91e04805-31da-4242-9e6f-b6075019d784';`. Emergency pause for **all new API reservations**: `update public.api_payment_settings set enabled=false where id=true;`. **Do not** revert the no-unpaid-dispatch guard, delete paid workflow rows, or roll back to the unsafe legacy function.
+- Android feature/UI changes remain a separate owner-requested workstream; existing native contract tests passed but actual APK compatibility should be validated prior to promoting Android API booking UX as verified.
