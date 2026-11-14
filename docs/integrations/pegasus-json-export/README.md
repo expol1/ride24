@@ -1,33 +1,45 @@
-# Pegasus Fleet — isolated JSON export (DRAFT / disabled)
+# Pegasus-only JSON Export — current implementation (14 November 2026)
 
-Status: design only. No production endpoint, secrets, scheduler, migrations, or modifications to booking/Stripe/API flows have been deployed.
+## Status
+- Dedicated database registry **installed** in Ride24 Supabase; no triggers or modifications to shared booking, Stripe or partner API logic.
+- Dedicated Edge Function `pegasus-booking-export` **deployed, operational access disabled**.
+- A credential and the explicit `PEGASUS_EXPORT_ENABLED=true` switch are required before any partner data can be exported. Neither has been configured or shared.
+- This feature branch/PR remains isolated from `main`; do **not** merge until the existing Ride24 compatibility checks complete and operational acceptance is documented.
+- No real Pegasus booking exists yet, so end-to-end Paid → modification → cancellation with real booking records is **not tested**. Fleet-side scheduled polling is not implemented by Ride24.
 
-## Isolation contract
-- Scope partner UUID `b61dfc7b-a4cd-4f27-b059-517cdf4f01cf` exclusively; reject other partner IDs, never accept a client-supplied partner filter.
-- Read-only access to bookings, car classes, locations and pricing snapshots. No writes to bookings, no use of API-provider booking dispatch, no Stripe changes.
-- No direct dependency from checkout, payment webhook, booking acceptance or cancellation into the exporter.
-- Separate authentication and rate limiting; no service-role token in Pegasus Fleet or client apps.
-- Fail closed if credentials missing; independent feature flag OFF by default.
-- Never publish customer PII in GitHub, logs, or sample fixtures.
+## Architecture
+- `public.pegasus_export_page(p_after_booking_id UUID, p_limit INTEGER)`: service_role-only invoker RPC.
+- `pegasus_private.export_state`, `export_control`, `location_codes`: RLS-protected private export state. Anonymous and ordinary authenticated roles have no schema/table/RPC access.
+- Each poll observes current `public.bookings` restricted to one hardcoded Pegasus UUID, status `paid` or `cancelled`.
+- On changes between polls, a monotonic **observed snapshot revision** increments. This is not an event for each intermediate database write; it transports latest confirmed state.
+- If a previously observed paid record disappears, a durable cancellation tombstone replaces it. Existing cancelled records remain in the registry.
+- Pagination by booking UUID, max 100 per page, 30 requests/min, cache refresh at most once per 30 seconds; bookings ending more than 180 days ago are omitted from the export window.
+- Partner receives only vehicle **category**, never a specific car.
+- Current paid/confirmed workflow for free Partner Accounts: `pending` → accepted in Partner App → `awaiting_payment` → Ride24 fee paid → `paid`. Pegasus must continue accepting requests manually.
+- Rental `amountPayableToPartner` from source `pickup_payment_partner_currency`. Extras are informational; `extrasIncludedInAmount=null` is intentional pending first real Pegasus booking pricing reconciliation. Fleet must not add extra line items to amount total.
 
-## API contract proposal
-`GET /pegasus-export/v1/bookings` over HTTPS. Authenticate with an independently scoped secret, server-side validation and secret rotation. Response `Cache-Control: no-store`.
+## Endpoint
+`GET https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/pegasus-booking-export?limit=100&after=<UUID>`
+- `x-pegasus-export-token: <secret>` (server-to-server ONLY).
+- `after` omitted on first page.
+- `nextCursor` returned only when `hasMore=true`.
+- `PEGASUS_EXPORT_TOKEN_CURRENT` (at least 32 URL-safe chars) must be set securely in Edge Function secrets.
+- `PEGASUS_EXPORT_TOKEN_PREVIOUS` optional for rotation.
+- `PEGASUS_EXPORT_ENABLED` must be explicitly set to `true` after readiness.
+- Per-function `verify_jwt=false` because authentication is enforced by the dedicated token in the handler.
+- Never send secrets in GitHub/email/chat/URLs. Never give Pegasus a Supabase service_role key.
 
-Return **full snapshots** of all relevant confirmed and cancelled Pegasus bookings, with pagination and a bounded date window; never only a short-lived delta. Stable `bookingId` = bookings.id. A cancelled booking remains visible as a tombstone throughout the agreed retention period, including after missed polls. No deletion of confirmed bookings without an auditable tombstone.
+## Acceptance performed
+- 27 local Node tests passed (12 contract + 15 HTTP security/validation).
+- Database role test confirmed `anon` and `authenticated` cannot call the RPC or read private state.
+- Service-role RPC returned valid empty export (Pegasus has 0 bookings).
+- Synthetic transaction tested pagination, cancellation tombstone and rollback; private registry empty after rollback and other partners' 6 booking records unchanged.
+- Edge Function deployed and code verified with Supabase connector.
+- Runtime HTTP invocation with real token, partner's Fleet import and real payment workflow **still pending**.
+- Supabase advisor's INFO `rls_enabled_no_policy` on private Pegasus tables is intentional deny-all for user roles; service_role bypass is explicit. Other pre-existing security/performance advisories not altered.
 
-Fields: schemaVersion, generatedAt, nextCursor, items[] with bookingId, reservationCode, status, revision, lastModifiedAt, category {id,code}, vehicleId:null, pickup {date,time,location}, return {date,time,location}, customer, rental {currency,amountPayableToPartner,extrasIncludedInAmount}, extras[].
+## Safety rule
+Do not modify shared bookings, triggers, Stripe, AVIA, Caravel or other provider APIs for Pegasus. Stop and review if any shared business-logic change is suggested. Disable exporter by setting `PEGASUS_EXPORT_ENABLED=false` without affecting Ride24 bookings.
 
-**BLOCKER**: public.bookings has no updated_at or monotonic booking_version. A content hash is not a monotonic revision and does not by itself solve out-of-order imports or A→B→A transitions. Implement a reliable separate version/event journal or a proven versioned snapshot registry **without touching shared booking lifecycle**, and verify all mutation paths. If this is impossible, stop before production deployment.
-
-**BLOCKER**: Verify exact paid/confirmed eligibility for local partner and what cancelled/expired/deleted rows survive. Validate extras semantics and amount payable to partner; never include Ride24 booking fee as partner revenue. No real Pegasus booking rows currently available for end-to-end validation.
-
-## Integration acceptance tests
-1. Only Pegasus partner rows visible; no other partners even if ID manipulated.
-2. Unauthorized, expired and incorrect credentials rejected; secrets never exposed in logs.
-3. Confirmed booking; modification; cancellation; duplicate import; missed polls; recovery after 24h; out-of-order import.
-4. Category-only booking imports without assigning a physical car.
-5. Verify rental total/extras no double count; EUR and location mappings.
-6. Failures/timeouts never change Ride24 bookings or block Stripe, AVIA, Caravel, Arvent.
-7. Load/rate tests and kill switch; compare booking/API baselines before activation.
-
-Do not send this as a live API spec to Pegasus until blockers are resolved and a test endpoint is verified.
+## Handoff
+Send the partner technical specification, three dummy JSON examples, import guide and test checklist *only* as technical implementation material until a live test is agreed. No credentials are included.
