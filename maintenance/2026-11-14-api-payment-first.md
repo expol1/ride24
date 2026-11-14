@@ -45,3 +45,16 @@ The historical `create-checkout` v50 independently accepted a caller-provided am
 ## Remaining acceptance gates
 
 Actual Stripe sandbox end-to-end including refund and webhook replay; provider demo save/status/cancellation using this new workflow; real Android acceptance; legacy booking reconciliation. Renteon unique OrderReference lookup semantics need confirmation for automatic recovery of an ambiguous save with no returned reference. The current implementation safely stops for manual review instead of risking a duplicate. Fixed minimum rentals/delivery rules still require provider-supplied terms, as Renteon explained.
+
+
+## 2026-11-14 continuation — Renteon demo confirmation and category contract
+
+- Veronika Čule confirmed the supplier code `demo` (lowercase), using the previously shared server-side credentials. Reservations for that code do not affect AVIA availability. The production partner remains configured as `Avia` and must not be modified to `demo`.
+- The adapter treats provider codes as case-sensitive. Added a regression to ensure lowercase `demo` cannot reuse a differently cased quote; the supplier save test also asserts `CarCategory` and no concrete vehicle ID/VIN.
+- API supplier-backed vouchers now explicitly explain the group-based booking, equivalent vehicle and complimentary higher-category upgrade. Non-API voucher wording is unchanged. These rules do not authorize changing the originally accepted booked group during post-payment revalidation.
+- Current connected Stripe **test-mode** account shows zero registered webhook endpoints and zero Checkout sessions. It is not verified as the configured Ride24 sandbox account. Do not infer that sandbox checkout or signature-verified webhook delivery is ready.
+- Read-only production inventory found two legacy AVIA API records with supplier references and status `awaiting_payment`, with no successful recorded payment. Preserve both for reconciliation; do not dispatch again, blindly delete or refund.
+- Important operational trap: the existing `api-partner-admin` `testConnection` action updates `api_enabled=false` for the partner. **Do not invoke it against production AVIA just to test `demo`**, and never swap the live provider code temporarily.
+- Do not route shared Renteon Basic credentials through ad-hoc `pg_net` SQL: the queued Authorization header may be visible to other database roles. Use a dedicated isolated server-side test harness with the existing Vault-backed secret, not a browser/client or SQL HTTP queue.
+- After this checkpoint, the five PR CI workflow suites, including API Compatibility QA, completed successfully for commit `d0a76373bb2b3dc66f6ef41fa50bfb15fd3e98da`.
+- No demo save/status/cancel was invoked from this session. No Stripe payment/refund was initiated; no migration, Edge Function deployment, partner setting or production booking was changed. PR remains draft until live sandbox acceptance, native APK test and historical booking reconciliation.
