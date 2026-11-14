@@ -19,8 +19,9 @@ const supplier = () => ({supplier_id: "sup-1", name: "Sandbox", status: "active"
 const policies = () => ({mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"},
   cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true});
 const protection = () => ({supplier_id: "sup-1", protection_id: "prot-premium", vehicle_id: "veh-cdmr", code: "PREM",
-  name: "Premium", tier: "premium", description: null, excess: eur(0), deposit: eur(0), price: eur(0),
-  pricing_type: "included", payable: "prepaid", active: true});
+  name: "Premium", tier: "premium", description: null, excess: eur(0), deposit: eur(0), theft_excess: eur(0), price: eur(0),
+  pricing_type: "included", payable: "prepaid", active: true, product_type: "waiver",
+  covers: ["glass", "undercarriage", "tyres_and_wheels", "theft", "fire"], excludes: []});
 const row = () => ({supplier_id: "sup-1", vehicle_id: "veh-cdmr", display_name: "VW Golf or similar", acriss: "CDMR",
   available_units: 3, price: eur(15000), price_type: "indicative", requires_quote: true, plan: "premium",
   protection: protection(), protection_options: [], line_items: [], tax_breakdown: [],
@@ -75,13 +76,15 @@ test("documented availability row + quote pass shared normalizeGroups unchanged"
   assert.deepEqual(group.provider_quote_data.drivers.map(d => ({...d})), [{age: 30, role: "main"}]);
 });
 
-test("Ride24 fee and partner payable come from shared apiPriceTotals on the provider total", () => {
+test("pay_on_arrival: partner payable is exactly grand_total; Ride24 fee is separate (shared apiPriceTotals)", () => {
   const [group] = normalizeGroups({groups: [buildCaravelOfferFromApi(apiOffer()).value]});
-  const totals = apiPriceTotals(group, 3, 10, 20);
-  assert.equal(totals.partnerNetTotal, 135); // 150 - 10 % partner discount
-  assert.equal(totals.finalTotal, 162); // + 20 % Ride24 margin
-  assert.equal(totals.commissionTotal, 27); // Ride24 fee
-  assert.equal(totals.finalPerDay, 54);
+  // Caravel partner discount must be 0: Caravel collects grand_total at the desk.
+  const totals = apiPriceTotals(group, 3, 0, 20);
+  assert.equal(totals.partnerNetTotal, 150); // = grand_total, collected by Caravel
+  assert.equal(totals.commissionTotal, 30); // Ride24 booking fee, charged separately via Stripe
+  assert.equal(totals.finalTotal, 180);
+  assert.equal(totals.finalTotal - totals.commissionTotal, 150); // fee is never added into grand_total
+  assert.equal(group.features.payment_model, "pay_on_arrival");
 });
 
 test("quote lines are reconciled by kind with grand_total and the payment split", () => {
@@ -132,7 +135,7 @@ test("fails closed on unverified or misleading card data", () => {
   const cases = [
     [o => { o.availabilityRow.plan = "basic"; }, "PREMIUM_REQUIRED"],
     [o => { o.availabilityRow.protection.excess = eur(150000); }, "ZERO_EXCESS_REQUIRED"],
-    [o => { o.quoteData.deposit.amount = eur(30000); }, "ZERO_DEPOSIT_REQUIRED"],
+    [o => { o.quoteData.deposit.amount = eur(30000); }, "QUOTE_DEPOSIT_NOT_ZERO"],
     [o => { o.policies = {}; }, "MILEAGE_UNVERIFIED"],
     [o => { o.availabilityRow.acriss = "QDMR"; }, "VEHICLE_CLASS_UNVERIFIED"],
     [o => { o.availabilityRow.supplier_id = "other"; }, "SUPPLIER_SCOPE_MISMATCH"],
@@ -179,7 +182,8 @@ test("plugin hybrids, limited mileage and card-hold badge follow the documented 
   assert.equal(group.fuel_type, "plugin_hybrid");
   assert.equal(group.mileage_limit, 300);
   assert.equal(built.value.features.noCardHold, true); // zero deposit = no pre-authorization
-  assert.equal(built.value.features.noCreditCard, false); // not stated by the API
+  // Derived: the deposit pre-authorization is the only card requirement the API states.
+  assert.equal(built.value.features.noCreditCard, true);
   assert.equal(caravelMileageFromPolicies({mileage: {type: "limited"}}), null);
 });
 

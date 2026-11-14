@@ -12,7 +12,7 @@ const input = () => ({
   idempotency_key: IDEM, ride24_booking_id: "b-123", vehicle_group_id: "veh-cdmr",
   main_driver: {name: "Jan Testowy", age: 30}, additional_driver: null,
   client_email: "sandbox@example.test", client_phone: "+48 000 000 000",
-  currency: "EUR", partner_discount_percent: 10, partner_amount: 135, quote_reference: QID,
+  currency: "EUR", partner_discount_percent: 0, partner_amount: 150, quote_reference: QID,
   provider_quote_data: {provider: "caravel", quote_id: QID, supplier_id: "sup-1", vehicle_id: "veh-cdmr",
     protection_id: "prot-premium", plan: "premium", currency: "EUR", amounts: {total: 150},
     drivers: [{age: 30, role: "main"}], expires_at: new Date(NOW + 600000).toISOString()},
@@ -26,8 +26,9 @@ test("builds the documented quoted-create body from the common Ride24 booking in
     external_ref: "ride24-sandbox-b-123",
     drivers: [{first_name: "Jan", last_name: "Testowy", age: 30, role: "main"}],
     customer: {first_name: "Jan", last_name: "Testowy", email: "sandbox@example.test", phone: "+48 000 000 000"},
+    payment_model: "pay_on_arrival",
   });
-  assert.equal(result.draft.expectedPartnerAmount, 135);
+  assert.equal(result.draft.expectedPartnerAmount, 150);
 });
 
 test("invalid phone is omitted, never sent", () => {
@@ -35,9 +36,10 @@ test("invalid phone is omitted, never sent", () => {
   assert.equal("phone" in caravelQuotedBookingRequest(r.draft).customer, false);
 });
 
-test("partner amount must equal quote total after partner discount", () => {
+test("partner amount must equal grand_total exactly; no partner discount for Caravel", () => {
   assert.equal(expectedPartnerAmount(150, 10), 135);
   assert.ok(buildCaravelBookingDraft({...input(), partner_amount: 140}, NOW).errors.includes("PARTNER_AMOUNT_MISMATCH"));
+  assert.ok(buildCaravelBookingDraft({...input(), partner_discount_percent: 10, partner_amount: 135}, NOW).errors.includes("PARTNER_DISCOUNT_NOT_ALLOWED"));
 });
 
 test("rejects changed, expired or foreign quotes and unsupported options", () => {

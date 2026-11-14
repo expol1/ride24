@@ -62,7 +62,11 @@ function splitName(value: unknown): {firstName: string; lastName: string} | null
   return {firstName: parts.slice(0, -1).join(" "), lastName: parts[parts.length - 1]};
 }
 
-/** Partner amount in Ride24 = provider total after the partner discount (apiPriceTotals). */
+/**
+ * Partner amount in Ride24 = provider total after the partner discount (apiPriceTotals).
+ * For Caravel the discount must be 0: under pay_on_arrival Caravel collects exactly
+ * grand_total at the desk, and Ride24 charges only its own booking fee via Stripe.
+ */
 export function expectedPartnerAmount(totalMajor: number, discountPercent: number): number | null {
   if (!Number.isFinite(totalMajor) || totalMajor <= 0 || !Number.isFinite(discountPercent) ||
       discountPercent < 0 || discountPercent > 50) return null;
@@ -89,7 +93,8 @@ export function buildCaravelBookingDraft(
   const currency = typeof data?.currency === "string" ? data.currency : "";
   if (!/^[A-Z]{3}$/.test(currency) || input?.currency !== currency) errors.push("CURRENCY_MISMATCH");
   const total = typeof amounts?.total === "number" ? amounts.total : NaN;
-  const expected = expectedPartnerAmount(total, Number(input?.partner_discount_percent ?? 0));
+  if (Number(input?.partner_discount_percent ?? 0) !== 0) errors.push("PARTNER_DISCOUNT_NOT_ALLOWED");
+  const expected = expectedPartnerAmount(total, 0);
   if (expected === null) errors.push("QUOTE_TOTAL_UNVERIFIED");
   else if (typeof input?.partner_amount !== "number" || Math.abs(input.partner_amount - expected) > 0.009)
     errors.push("PARTNER_AMOUNT_MISMATCH");
@@ -137,6 +142,8 @@ export function caravelQuotedBookingRequest(draft: CaravelBookingDraft): Caravel
     external_ref: draft.externalRef,
     drivers: [{first_name: draft.mainDriver.firstName, last_name: draft.mainDriver.lastName, age: draft.mainDriver.age, role: "main"}],
     customer,
+    // Ride24 sells Caravel only under pay_on_arrival (sandbox permits every model, so it is always sent).
+    payment_model: "pay_on_arrival",
   };
 }
 
@@ -169,4 +176,76 @@ export function caravelCancellationFromApi(booking: unknown): {ok: true; feeMino
   if (!Number.isSafeInteger(b.revision) || (b.revision as number) < 1) errors.push("REVISION_UNVERIFIED");
   if (errors.length) return {ok: false, errors};
   return {ok: true, feeMinor: fee!.amount as number, currency: fee!.currency as string, revision: b.revision as number};
+}
+
+export type CaravelStatusView = {
+  caravel: string;
+  /** Ride24 canonical status, or null when Ride24 has no equivalent / the value is unknown. */
+  ride24: "pending" | "confirmed" | "cancelled" | null;
+  terminal: boolean;
+  /** Needs a person: never auto-treated as confirmed or finished. */
+  review: boolean;
+  known: boolean;
+};
+
+/** Full lifecycle view; an unknown future status is never confirmed or terminal. */
+export function caravelBookingStatus(value: unknown): CaravelStatusView {
+  const v = typeof value === "string" ? value : "";
+  switch (v) {
+    case "pending": return {caravel: v, ride24: "pending", terminal: false, review: false, known: true};
+    case "confirmed": return {caravel: v, ride24: "confirmed", terminal: false, review: false, known: true};
+    case "cancelled": return {caravel: v, ride24: "cancelled", terminal: true, review: false, known: true};
+    case "no_show": return {caravel: v, ride24: null, terminal: true, review: true, known: true};
+    case "completed": return {caravel: v, ride24: null, terminal: true, review: true, known: true};
+    default: return {caravel: v || "missing", ride24: null, terminal: false, review: true, known: false};
+  }
+}
+
+/**
+ * Check a created booking against the quote it consumed: same quote_id, same
+ * grand_total and currency, confirmed, pay_on_arrival, zero deposit/excess.
+ */
+export function verifyCaravelBookingAgainstQuote(
+  booking: unknown,
+  quote: {quoteId: string; totalAmountMinor: number; currency: string},
+): {ok: true; bookingId: string; revision: number} | {ok: false; errors: string[]} {
+  const b = isRecord(booking) ? booking : {};
+  const errors: string[] = [];
+  const price = isRecord(b.price) ? b.price : null;
+  const totals = price && isRecord(price.totals) ? price.totals : null;
+  const grand = totals && isRecord(totals.grand_total) ? totals.grand_total : null;
+  const protection = isRecord(b.protection) ? b.protection : null;
+  const payment = isRecord(b.payment) ? b.payment : null;
+  const zero = (m: unknown) => isRecord(m) && m.amount === 0;
+  if (typeof b.booking_id !== "string" || !UUID.test(b.booking_id)) errors.push("BOOKING_ID_MISSING");
+  if (!Number.isSafeInteger(b.revision) || (b.revision as number) < 1) errors.push("REVISION_MISSING");
+  if (b.quote_id !== quote?.quoteId) errors.push("QUOTE_ID_MISMATCH");
+  if (b.status !== "confirmed") errors.push("NOT_CONFIRMED");
+  if (!grand || grand.amount !== quote?.totalAmountMinor || grand.currency !== quote?.currency) errors.push("BOOKED_PRICE_DIFFERS_FROM_QUOTE");
+  if (!protection || !zero(protection.excess) || !zero(protection.deposit)) errors.push("BOOKED_PROTECTION_NOT_ZERO_RISK");
+  if (payment) {
+    if (payment.model !== "pay_on_arrival") errors.push("PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL");
+    const onArrival = isRecord(payment.amount_on_arrival) ? payment.amount_on_arrival.amount : undefined;
+    if (onArrival !== undefined && onArrival !== quote?.totalAmountMinor) errors.push("AMOUNT_ON_ARRIVAL_DIFFERS");
+  }
+  if (errors.length) return {ok: false, errors};
+  return {ok: true, bookingId: b.booking_id as string, revision: b.revision as number};
+}
+
+export type CaravelErrorAction = "requote" | "refetch_then_retry" | "retry_same_key" | "stop";
+
+/**
+ * What the booking flow does on a Caravel error (documented codes, OpenAPI v1.67.0
+ * error catalogue). Unknown codes stop safely (certification: degrade generically).
+ */
+export function caravelErrorAction(error: unknown): {action: CaravelErrorAction; code: string; status: number | null} {
+  const e = isRecord(error) ? error : {};
+  const code = typeof e.code === "string" ? e.code : "UNKNOWN";
+  const status = typeof e.status === "number" ? e.status : null;
+  const requote = ["availability_changed", "price_changed", "quote_expired", "quote_consumed", "no_availability"];
+  const retry = ["idempotency_in_progress", "rate_limited", "service_unavailable"];
+  if (requote.includes(code)) return {action: "requote", code, status};
+  if (code === "revision_conflict") return {action: "refetch_then_retry", code, status};
+  if (retry.includes(code) || status === 429 || status === 503) return {action: "retry_same_key", code, status};
+  return {action: "stop", code, status};
 }

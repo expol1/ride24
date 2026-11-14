@@ -28,6 +28,8 @@ import {
   type VerifiedCaravelExtra,
   type VerifiedCaravelRules,
 } from "./caravel-verified-rules.ts";
+import {evaluateCaravelPremium} from "./caravel-premium.ts";
+import {caravelLocalTime, caravelOutsideHours} from "./caravel-hours.ts";
 
 export const CARAVEL_PROVIDER = "caravel";
 type Json = Record<string, unknown>;
@@ -340,6 +342,8 @@ export type CaravelQuoteRead = {
   payNowMinor: number;
   payAtPickupMinor: number;
   discountMinor: number;
+  /** kind "extra" lines as priced by Caravel (code, quantity, total). */
+  extraLines: Array<{code: string; quantity: number; totalMinor: number}>;
 };
 
 const LINE_KINDS = new Set(["base_rate", "protection", "extra", "fee", "discount"]);
@@ -374,6 +378,7 @@ export function caravelQuoteFromApi(data: unknown, protection: unknown, supplier
   if (p.protection_id === undefined) errors.push("PROTECTION_UNVERIFIED");
   const sums = {base_rate: 0, protection: 0, extra: 0, fee: 0, discount: 0};
   const charges: CaravelMandatoryCharge[] = [];
+  const extraLines: Array<{code: string; quantity: number; totalMinor: number}> = [];
   const lines = Array.isArray(d.line_items) ? d.line_items : null;
   if (!lines || !lines.length) errors.push("LINE_ITEMS_UNVERIFIED");
   for (const raw of lines ?? []) {
@@ -385,6 +390,7 @@ export function caravelQuoteFromApi(data: unknown, protection: unknown, supplier
       errors.push("LINE_AMOUNT_UNVERIFIED"); continue;
     }
     sums[kind as keyof typeof sums] += total.amount;
+    if (kind === "extra") extraLines.push({code: String((l as Json).code ?? ""), quantity: Number((l as Json).quantity), totalMinor: total.amount});
     if (kind === "fee") {
       charges.push({
         externalId: String((l as Json).fee_id ?? (l as Json).code ?? ""),
@@ -418,6 +424,7 @@ export function caravelQuoteFromApi(data: unknown, protection: unknown, supplier
     payNowMinor: payNow!.amount,
     payAtPickupMinor: payAt!.amount,
     discountMinor: sums.discount,
+    extraLines,
   });
 }
 
@@ -575,7 +582,10 @@ export function buildCaravelOfferFromApi(input: {
   policies: unknown;
   quoteData: unknown;
   supplier: unknown;
-  operatingHours: CaravelOfferInput["operatingHours"];
+  /** Either explicit flags, or the two desk records (Location) to compute them from their hours. */
+  operatingHours?: CaravelOfferInput["operatingHours"];
+  pickupLocation?: unknown;
+  dropoffLocation?: unknown;
   context: Omit<CaravelOfferInput["context"], "providerChargeableDays">;
 }): Result<Json> {
   const row = rec(input?.availabilityRow) ?? {};
@@ -584,23 +594,102 @@ export function buildCaravelOfferFromApi(input: {
   const protection = rec(row.protection);
   const read = caravelQuoteFromApi(input?.quoteData, protection, input?.supplier);
   if ("errors" in read) errors.push(...read.errors);
+  // Ride24 Premium guarantees, confirmed only from supplier data (fail closed).
+  const premium = evaluateCaravelPremium(row.plan, protection, rec(input?.quoteData)?.deposit);
+  if ("errors" in premium) errors.push(...premium.errors);
+  let hours = input?.operatingHours;
+  if (!hours && input?.pickupLocation && input?.dropoffLocation) {
+    const pl = rec(input.pickupLocation) ?? {}, dl = rec(input.dropoffLocation) ?? {};
+    const pAt = new Date(input.context?.pickupEpochMs).toISOString(), dAt = new Date(input.context?.dropoffEpochMs).toISOString();
+    hours = {
+      pickupLocalTime: caravelLocalTime(pAt, String(pl.timezone)) ?? "", returnLocalTime: caravelLocalTime(dAt, String(dl.timezone)) ?? "",
+      pickupTimezone: String(pl.timezone ?? ""), returnTimezone: String(dl.timezone ?? ""),
+      pickupOutsideHours: caravelOutsideHours(pl, pAt), returnOutsideHours: caravelOutsideHours(dl, dAt),
+    };
+  }
+  if (!hours) errors.push("OPERATING_HOURS_UNVERIFIED");
   if (errors.length) return fail(errors);
   const r = (read as {value: CaravelQuoteRead}).value;
+  const p = premium as Extract<typeof premium, {ok: true}>;
   const vehicle = caravelVehicleFromApi(row, input.policies);
-  return buildCaravelOffer({
+  const built = buildCaravelOffer({
     vehicle,
     quote: r.quote,
     protectionId: String(protection?.protection_id ?? ""),
     mandatoryCharges: r.mandatoryCharges,
     payment: {payNowMinor: r.payNowMinor, payAtPickupMinor: r.payAtPickupMinor},
-    operatingHours: input.operatingHours,
+    operatingHours: hours!,
     // Rental-length bounds are enforced by Caravel itself (unsellable_window /
     // quote 422), so only the age limits are re-checked here.
     rules: {minRentalMinutes: 1, minDriverAge: vehicle.minDriverAge, maxDriverAge: vehicle.maxDriverAge, currency: r.quote.currency},
     extras: [],
     context: {...input.context, providerChargeableDays: r.rentalDays},
   });
+  if ("errors" in built) return built;
+  const v = built.value as Json;
+  return okv({
+    ...v,
+    features: {...(v.features as Json), noCreditCard: p.noCreditCard, noCardHold: p.noCardHold,
+      protection_product_type: p.productType, covers: p.covers, excludes: p.excludes,
+      payment_model: "pay_on_arrival", supplier_collects_grand_total: true},
+    provider_quote_data: {...(v.provider_quote_data as Json), payment_model: "pay_on_arrival",
+      protection: {product_type: p.productType, covers: p.covers, excludes: p.excludes}},
+  });
 }
+
+/**
+ * Check the extra lines of a quote against what was selected and the catalogue:
+ * every selected extra priced once, quantity as selected, no unselected extra,
+ * and no charge above price_cap x quantity. Caravel's total stays authoritative.
+ */
+export function verifyCaravelQuotedExtras(
+  extraLines: Array<{code: string; quantity: number; totalMinor: number}>,
+  selection: Array<{extraId: string; quantity: number}>,
+  catalog: Array<{extra_id?: unknown; code?: unknown; price_cap?: unknown; quantity?: unknown}>,
+): {ok: true} | {ok: false; errors: string[]} {
+  const errors: string[] = [];
+  const byId = new Map(catalog.map((c) => [String(c.extra_id), c]));
+  const used = new Set<number>();
+  for (const sel of Array.isArray(selection) ? selection : []) {
+    const item = byId.get(sel?.extraId);
+    if (!item) { errors.push("EXTRA_NOT_IN_CATALOGUE"); continue; }
+    const max = rec(item.quantity)?.max;
+    if (!safeInt(sel.quantity) || sel.quantity < 1 || sel.quantity > 9 || (safeInt(max) && sel.quantity > (max as number))) errors.push("EXTRA_QUANTITY_INVALID");
+    const idx = extraLines.findIndex((l, i) => !used.has(i) && l.code === item.code);
+    if (idx < 0) { errors.push("SELECTED_EXTRA_NOT_PRICED"); continue; }
+    used.add(idx);
+    const line = extraLines[idx];
+    if (line.quantity !== sel.quantity) errors.push("EXTRA_QUANTITY_MISMATCH");
+    const cap = item.price_cap === null ? null : money(item.price_cap);
+    if (cap && line.totalMinor > cap.amount * sel.quantity) errors.push("EXTRA_ABOVE_PRICE_CAP");
+  }
+  if (extraLines.some((_, i) => !used.has(i))) errors.push("UNSELECTED_EXTRA_PRICED");
+  return errors.length ? {ok: false, errors: [...new Set(errors)]} : {ok: true};
+}
+
+/**
+ * Every extra the API offers, normalized for a provider-priced extras picker
+ * (future shared path). Names are the operator's; nothing is priced locally.
+ */
+export function caravelProviderExtras(raw: unknown[]): Array<Json> {
+  return (Array.isArray(raw) ? raw : []).flatMap((x) => {
+    const r = rec(x);
+    const unit = r ? money(r.unit_price) : null;
+    if (!r || typeof r.extra_id !== "string" || typeof r.name !== "string" || !unit ||
+        (r.pricing_type !== "per_day" && r.pricing_type !== "per_rental")) return [];
+    const cap = r.price_cap === null || r.price_cap === undefined ? null : money(r.price_cap);
+    const q = rec(r.quantity) ?? {};
+    return [{
+      extra_id: r.extra_id, code: r.code ?? null, name: r.name, category: r.category ?? null,
+      pricing_type: r.pricing_type, unit_price: minorToMajor(unit.amount, unit.currency), currency: unit.currency,
+      price_cap: cap ? minorToMajor(cap.amount, cap.currency) : null,
+      min_quantity: safeInt(q.min) ? q.min : 0, max_quantity: safeInt(q.max) ? Math.min(q.max as number, 9) : 1,
+      countable: r.requires_quantity === true, payable: r.payable ?? null,
+      mutually_exclusive_group: typeof r.mutually_exclusive_group === "string" ? r.mutually_exclusive_group : null,
+    }];
+  });
+}
+
 
 /** Wrap normalized items as the Ride24 standard payload the shared normalizers read. */
 export function ride24StandardPayload(
