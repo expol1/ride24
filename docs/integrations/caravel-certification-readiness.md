@@ -36,6 +36,12 @@ Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (C
 - **Not yet observed on the real API:** quote, booking, replay, 409s, cancel, second supplier walk, served-plan quote. These need a server-side run with the key (blocker 1).
 - **Simulated only (local mocks / fixtures):** everything in `tests/caravel-*.test.mjs`; the full two-supplier harness on `scripts/mock-caravel-two-suppliers.mjs` (scratchpad, not committed).
 
+## Stage 1b (14 Nov 2026) — ready for Caravel's answer
+- **protection_options:** a Premium row is checked with its included package and every bookable `protection_options` package (`caravelProtectionCandidates`, `selectCaravelPremiumProtection`). Only a package that passes the Premium policy on its own data is quoted, and it is published only when the final quote confirms it (zero quote deposit, the protection line priced in the quote, totals reconciled). The Premium-only rule is unchanged.
+- **Diagnostics:** every Premium row reports, per package, exact `excess` / `deposit` / `theft_excess` minor units, `product_type`, `covers` / `excludes`, `missing_fields` and the rejection codes (`describeCaravelProtection`). No personal data.
+- **Extras mapping:** `CARAVEL_CONFIRMED_EXTRAS_MAPPING` (empty) takes entries keyed `<supplier_id>:<extra_id>` / `:code:` / `:supplier_code:` only after Caravel confirms them; category `other` is never mapped by name.
+- **Rental bounds:** billed `rental_days` must sit inside the operator's `min_rental_days` / `max_rental_days`; availability reports `unsellable_window` / `unsellable_movement` / `unsellable_ends`.
+
 ## Blockers before starting the official run
 1. A server-side run with the key for quote/book/cancel at both suppliers: either add the GitHub secret `CARAVEL_SANDBOX_API_KEY` and label PR #84 `caravel-sandbox-booking`, or approve a separate sandbox test function. The existing diagnostics function is read-only by design.
 2. Premium publishability: on the sandbox, no Premium row had zero excess AND zero deposit (13 Nov diagnostics); Premium terms (`theft_excess`, `covers`, `product_type`) must be confirmed per supplier.

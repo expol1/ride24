@@ -11,6 +11,7 @@ import {CaravelError, CaravelSandboxClient} from "./caravel-sandbox-adapter.ts";
 import {
   caravelExtraFromApi, caravelExtrasCatalog, caravelLocationFromApi, caravelVehicleFromApi,
   normalizeCaravelLocation, normalizeCaravelVehicleClass,
+  caravelProtectionCandidates, describeCaravelProtection,
 } from "./caravel-normalize.ts";
 
 type Json = Record<string, unknown>;
@@ -150,7 +151,7 @@ export async function runCaravelDiagnostics(
   });
   await step("GET /v1/reference/extras", async () => {
     const raw = (await client.reference("extras", sid)).data as Json[];
-    const {rows, rejected} = caravelExtrasCatalog(raw.map(caravelExtraFromApi), currency);
+    const {rows, rejected} = caravelExtrasCatalog(raw.map((x) => caravelExtraFromApi(x)), currency);
     return {count: raw.length, ride24_mapped: rows.map(r => `${r.code}:${r.billing}:${r.amount}`),
       rejected: histogram(rejected.map(r => r.error)), categories: histogram(raw.map(e => e.category)),
       pricing_types: histogram(raw.map(e => e.pricing_type))};
@@ -178,6 +179,9 @@ export async function runCaravelDiagnostics(
       const meta = (r.meta ?? {}) as Json;
       return {rows: rows.length, plans: histogram(rows.map(x => x.plan)), premium_rows: premium.length,
         premium_zero_risk: premium.filter(x => CaravelSandboxClient.isPremiumZeroRisk(x)).length,
+        // Exact amounts, stated terms, missing fields and the Premium verdict per protection (included + protection_options).
+        premium_details: premium.map(x => ({vehicle_id: x.vehicle_id,
+          protections: caravelProtectionCandidates(x).map(c => describeCaravelProtection(x.plan, c.protection, c.source))})),
         deposits_minor: [...new Set(rows.map(x => ((x.protection as Json | undefined)?.deposit as Json | undefined)?.amount))].slice(0, 8),
         fee_types: histogram(fees.map(l => l.type)), rental_days: meta.rental_days ?? null,
         withheld: meta.withheld ?? null, unsellable_window: meta.unsellable_window ?? null};

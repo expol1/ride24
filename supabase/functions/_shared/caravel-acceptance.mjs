@@ -9,6 +9,7 @@ import {CaravelClient, CaravelError} from "./caravel-sandbox-adapter.ts";
 import {
   buildCaravelOfferFromApi, caravelExtraFromApi, caravelExtrasCatalog, caravelLocationFromApi, caravelProviderExtras,
   caravelQuoteFromApi, caravelVehicleFromApi, minorToMajor, normalizeCaravelLocation, normalizeCaravelVehicleClass,
+  caravelProtectionCandidates, describeCaravelProtection, selectCaravelPremiumProtection,
 } from "./caravel-normalize.ts";
 import {evaluateCaravelPremium, caravelConditionsOfHire, reconcileCaravelTerms} from "./caravel-premium.ts";
 import {caravelOutsideHours} from "./caravel-hours.ts";
@@ -124,7 +125,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     await step(`${tag} GET /v1/reference/extras`, async () => {
       extrasRaw = (await client.reference("extras", sid)).data;
       mergeCaravelReference(stores.extras, extrasRaw, REFERENCE_ID_KEYS.extras, new Date().toISOString());
-      const {rows, rejected} = caravelExtrasCatalog(extrasRaw.map(caravelExtraFromApi), cur);
+      const {rows, rejected} = caravelExtrasCatalog(extrasRaw.map((x) => caravelExtraFromApi(x)), cur);
       return {count: extrasRaw.length, provider_extras: caravelProviderExtras(extrasRaw).map(e => `${e.name}:${e.category}:${e.pricing_type}:${e.unit_price}${e.price_cap !== null ? `/cap ${e.price_cap}` : ""}:${e.payable}`),
         ride24_codes: rows.map(r => r.code), unmapped: hist(rejected.map(r => r.error))};
     });
@@ -161,8 +162,13 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       rows = r.data; meta = r.meta;
       const premiumRows = rows.filter(x => x.plan === "premium");
       return {rows: rows.length, plans: hist(rows.map(x => x.plan)), outside_hours: {pickup: caravelOutsideHours(desk, window.pickup), dropoff: caravelOutsideHours(desk, window.dropoff)},
-        premium_evaluation: premiumRows.map(x => {const e = evaluateCaravelPremium(x.plan, x.protection); return e.ok ? "PUBLISHABLE" : e.errors;}),
-        fee_types: hist(rows.flatMap(x => (x.line_items || []).filter(l => l.kind === "fee").map(l => l.type)))};
+        // Every protection a Premium row can be booked with: included package and protection_options, with exact amounts.
+        premium_rows: premiumRows.map(x => ({vehicle_id: x.vehicle_id,
+          protections: caravelProtectionCandidates(x).map(c => describeCaravelProtection(x.plan, c.protection, c.source))})),
+        fee_types: hist(rows.flatMap(x => (x.line_items || []).filter(l => l.kind === "fee").map(l => l.type))),
+        // Rental restrictions Caravel states for this search (duration bounds, movement, end terms).
+        unsellable: {window: r.meta?.unsellable_window ?? null, movement: r.meta?.unsellable_movement ?? null, ends: r.meta?.unsellable_ends ?? null},
+        rental_days: r.meta?.rental_days ?? null};
     });
     await step(`${tag} GET /v1/availability (night 23:30Z)`, async () => {
       const r = await client.availability({pickup_location_id: id, dropoff_location_id: id, pickup: at(0, 23, 30), dropoff: at(3, 23, 30), driver_age: 30, currency: cur}, sid);
@@ -179,17 +185,23 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     }, {expectError: "*"});
 
     // Quote: a publishable Premium row if any; otherwise a mechanics-only row (never publishable).
-    const publishable = rows.find(x => x.plan === "premium" && evaluateCaravelPremium(x.plan, x.protection).ok);
+    // Premium rows only; pick the first protection (included or option) passing the policy on its own data.
+    let publishable = null, chosenProtection = null;
+    for (const x of rows.filter(r => r.plan === "premium")) {
+      const sel = selectCaravelPremiumProtection(x);
+      if (sel) { publishable = x; chosenProtection = sel; break; }
+    }
     const row = publishable ?? rows.find(x => x.plan === "premium") ?? (premiumOnly ? undefined : rows[0]);
+    const quotedProtection = chosenProtection?.protection ?? row?.protection;
     if (!row) { results.push({endpoint: `${tag} POST /v1/quote`, outcome: "NOT RUN", summary: "no availability rows"}); continue; }
     const quoteBody = {pickup: {location_id: id, at: window.pickup}, dropoff: {location_id: id, at: window.dropoff},
-      vehicle_id: row.vehicle_id, protection_id: row.protection.protection_id, plan: row.plan, currency: cur, drivers: [{age: 30, role: "main"}]};
+      vehicle_id: row.vehicle_id, protection_id: quotedProtection.protection_id, plan: row.plan, currency: cur, drivers: [{age: 30, role: "main"}]};
     const quoteKey = crypto.randomUUID();
     let quoteData = null, read = null, offerOk = false;
-    await step(`${tag} POST /v1/quote (${row.plan}${publishable ? ", publishable" : ", mechanics only"})`, async () => {
+    await step(`${tag} POST /v1/quote (${row.plan}${publishable ? `, publishable ${chosenProtection.source} protection` : ", evidence only"})`, async () => {
       quoteData = (await client.quote(quoteBody, quoteKey, sid)).data;
-      read = caravelQuoteFromApi(quoteData, row.protection, supplier);
-      const offer = buildCaravelOfferFromApi({availabilityRow: row, policies: meta?.policies ?? policies, quoteData, supplier, pickupLocation: desk, dropoffLocation: desk,
+      read = caravelQuoteFromApi(quoteData, quotedProtection, supplier);
+      const offer = buildCaravelOfferFromApi({availabilityRow: row, protectionId: quotedProtection.protection_id, policies: meta?.policies ?? policies, quoteData, supplier, pickupLocation: desk, dropoffLocation: desk,
         context: {scopeSupplierId: sid, partnerCurrency: cur, pickupLocationId: id, dropoffLocationId: id,
           pickupEpochMs: Date.parse(window.pickup), dropoffEpochMs: Date.parse(window.dropoff), rentalDays: 3, driverAge: 30, nowEpochMs: Date.now()}});
       offerOk = offer.ok;
@@ -197,6 +209,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
         lines: (quoteData.line_items || []).map(l => `${l.kind}:${l.type ?? l.code}:${l.total?.amount}`),
         totals: quoteData.totals, deposit: quoteData.deposit?.amount ?? null,
         reconciliation: read.ok ? "OK" : read.errors,
+        quoted_protection: describeCaravelProtection(row.plan, quotedProtection, chosenProtection?.source ?? "included", quoteData.deposit),
         ride24_offer: offer.ok ? {class: offer.value.class_code, model: offer.value.model, total: offer.value.public_price_total, noCreditCard: offer.value.features.noCreditCard} : offer.errors};
     });
     if (!quoteData) continue;
@@ -222,7 +235,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       main_driver: {name: "Sandbox Tester", age: 30}, client_email: "sandbox-ci@example.test", client_phone: null,
       currency: cur, partner_discount_percent: 0, partner_amount: expectedPartnerAmount(total, 0), quote_reference: read.value.quote.quoteId,
       provider_quote_data: {provider: "caravel", quote_id: read.value.quote.quoteId, supplier_id: sid, vehicle_id: row.vehicle_id,
-        protection_id: row.protection.protection_id, plan: "premium", currency: cur, amounts: {total},
+        protection_id: quotedProtection.protection_id, plan: "premium", currency: cur, amounts: {total},
         drivers: [{age: 30, role: "main"}], expires_at: new Date(read.value.quote.expiresAtEpochMs).toISOString()},
     }, Date.now());
     if (!draft.ok) { failed = true; results.push({endpoint: `${tag} POST /v1/bookings`, outcome: "NOT SENT", summary: draft.errors}); continue; }

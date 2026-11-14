@@ -586,16 +586,35 @@ export function buildCaravelOfferFromApi(input: {
   operatingHours?: CaravelOfferInput["operatingHours"];
   pickupLocation?: unknown;
   dropoffLocation?: unknown;
+  /** The protection that was quoted: the plan's included one (default) or a protection_options package. */
+  protectionId?: string;
   context: Omit<CaravelOfferInput["context"], "providerChargeableDays">;
 }): Result<Json> {
-  const row = rec(input?.availabilityRow) ?? {};
+  const rowIn = rec(input?.availabilityRow) ?? {};
   const errors: string[] = [];
-  if (row.plan !== "premium") errors.push("PREMIUM_REQUIRED");
-  const protection = rec(row.protection);
+  if (rowIn.plan !== "premium") errors.push("PREMIUM_REQUIRED");
+  const candidates = caravelProtectionCandidates(rowIn);
+  const chosen = input?.protectionId === undefined
+    ? candidates.find((c) => c.source === "included") ?? null
+    : candidates.find((c) => c.protection.protection_id === input.protectionId) ?? null;
+  if (!chosen) errors.push("PROTECTION_NOT_OFFERED_ON_ROW");
+  const protection = chosen ? chosen.protection : null;
+  // The vehicle card and deposit follow the protection actually quoted.
+  const row: Json = chosen ? {...rowIn, protection} : rowIn;
+  const qd = rec(input?.quoteData) ?? {};
+  // The final quote must price exactly this protection product.
+  if (protection && Array.isArray(qd.line_items) && typeof protection.code === "string" &&
+      !(qd.line_items as Json[]).some((l) => rec(l)?.kind === "protection" && rec(l)?.code === protection.code))
+    errors.push("PROTECTION_NOT_IN_QUOTE");
+  // Rental-length bounds stated by the operator (policies), checked against the billed days.
+  const pol = rec(input?.policies) ?? {};
+  if (safeInt(qd.rental_days) && ((safeInt(pol.min_rental_days) && (qd.rental_days as number) < (pol.min_rental_days as number)) ||
+      (safeInt(pol.max_rental_days) && (qd.rental_days as number) > (pol.max_rental_days as number))))
+    errors.push("RENTAL_LENGTH_OUT_OF_BOUNDS");
   const read = caravelQuoteFromApi(input?.quoteData, protection, input?.supplier);
   if ("errors" in read) errors.push(...read.errors);
   // Ride24 Premium guarantees, confirmed only from supplier data (fail closed).
-  const premium = evaluateCaravelPremium(row.plan, protection, rec(input?.quoteData)?.deposit);
+  const premium = evaluateCaravelPremium(row.plan, protection, qd.deposit);
   if ("errors" in premium) errors.push(...premium.errors);
   let hours = input?.operatingHours;
   if (!hours && input?.pickupLocation && input?.dropoffLocation) {
@@ -705,16 +724,46 @@ export type VerifiedCaravelExtraDefinition = VerifiedCaravelExtra & {
   /** Extra.price_cap per unit per rental; null = uncapped. */
   priceCapMinor: number | null;
   payable: "prepaid" | "at_pickup";
+  /** Where ride24Code came from: an explicit confirmed entry, the documented category, or nothing. */
+  mappingSource: "confirmed" | "category" | "unmapped";
 };
 
-/** Extra.category -> Ride24 code. Boosters are inside `child_seat` in the spec. */
+/**
+ * Explicit extra mapping, filled only with assignments Caravel has CONFIRMED.
+ * Keys (first match wins): "<supplier_id>:<extra_id>", then "<supplier_id>:code:<code>",
+ * then "<supplier_id>:supplier_code:<supplier_code>". Value: a Ride24 code, or null to
+ * keep an extra deliberately unmapped. Empty by default: nothing is guessed.
+ */
+export type CaravelExtrasMapping = Readonly<Record<string, VerifiedCaravelExtraDefinition["ride24Code"]>>;
+export const CARAVEL_CONFIRMED_EXTRAS_MAPPING: CaravelExtrasMapping = Object.freeze({});
+const RIDE24_EXTRA_CODES = new Set(["child_seat", "booster_seat", "gps", "additional_driver"]);
+
+/** Validate a mapping before use: unknown Ride24 codes or malformed keys are refused. */
+export function validateCaravelExtrasMapping(mapping: unknown): {ok: true} | {ok: false; errors: string[]} {
+  const m = rec(mapping);
+  if (!m) return {ok: false, errors: ["MAPPING_NOT_OBJECT"]};
+  const errors: string[] = [];
+  for (const [k, v] of Object.entries(m)) {
+    if (!/^[A-Za-z0-9_-]{1,128}:((code|supplier_code):)?[^:s]{1,128}$/.test(k)) errors.push(`BAD_KEY:${k.slice(0, 40)}`);
+    if (v !== null && !RIDE24_EXTRA_CODES.has(String(v))) errors.push(`BAD_CODE:${String(v).slice(0, 20)}`);
+  }
+  return errors.length ? {ok: false, errors} : {ok: true};
+}
+
+/** Extra.category -> Ride24 code. Boosters are inside `child_seat` in the spec. `other` is never mapped by category. */
 const EXTRA_CATEGORY_MAP: Readonly<Record<string, VerifiedCaravelExtraDefinition["ride24Code"]>> = Object.freeze({
   child_seat: "child_seat", navigation: "gps", additional_driver: "additional_driver",
 });
 
 /** Read one `GET /v1/reference/extras` record (or availability meta.extras entry). */
-export function caravelExtraFromApi(raw: unknown): VerifiedCaravelExtraDefinition {
+export function caravelExtraFromApi(raw: unknown, mapping: CaravelExtrasMapping = CARAVEL_CONFIRMED_EXTRAS_MAPPING): VerifiedCaravelExtraDefinition {
   const r = rec(raw) ?? {};
+  const sid = typeof r.supplier_id === "string" ? r.supplier_id : "";
+  const keys = [`${sid}:${r.extra_id}`, `${sid}:code:${r.code}`, `${sid}:supplier_code:${r.supplier_code}`];
+  const confirmedKey = sid ? keys.find((k) => Object.hasOwn(mapping ?? {}, k)) : undefined;
+  const byCategory = typeof r.category === "string" && Object.hasOwn(EXTRA_CATEGORY_MAP, r.category) ? EXTRA_CATEGORY_MAP[r.category] : null;
+  const confirmed = confirmedKey !== undefined ? mapping[confirmedKey] : undefined;
+  const ride24Code = confirmed !== undefined ? (confirmed !== null && RIDE24_EXTRA_CODES.has(confirmed) ? confirmed : null) : byCategory;
   const unit = money(r.unit_price);
   const cap = r.price_cap === null ? null : money(r.price_cap);
   const qty = rec(r.quantity) ?? {};
@@ -728,7 +777,8 @@ export function caravelExtraFromApi(raw: unknown): VerifiedCaravelExtraDefinitio
     chargingUnit: r.pricing_type === "per_day" ? "day" : r.pricing_type === "per_rental" ? (countable ? "quantity" : "rental") : ("" as "day"),
     maxQuantity: countable ? max : 1,
     selectedQuantity: 0,
-    ride24Code: typeof r.category === "string" && Object.hasOwn(EXTRA_CATEGORY_MAP, r.category) ? EXTRA_CATEGORY_MAP[r.category] : null,
+    ride24Code,
+    mappingSource: confirmed !== undefined ? "confirmed" : byCategory ? "category" : "unmapped",
     priceCapMinor: r.price_cap === null ? null : cap ? cap.amount : NaN,
     payable: r.payable as "prepaid" | "at_pickup",
   };
@@ -848,5 +898,65 @@ export function caravelSyncRows(
         active: g.active !== false,
       };
     }),
+  };
+}
+
+// --------------------------------------------------- protection choice ----
+/**
+ * Every protection a Premium row can be booked with (OpenAPI v1.67.0):
+ * the plan's included package (`row.protection`) and the bookable ladder
+ * (`row.protection_options`, each a Protection + totals_for_window).
+ */
+export function caravelProtectionCandidates(row: unknown): Array<{source: "included" | "option"; protection: Json}> {
+  const r = rec(row) ?? {};
+  const out: Array<{source: "included" | "option"; protection: Json}> = [];
+  const included = rec(r.protection);
+  if (included) out.push({source: "included", protection: included});
+  for (const o of Array.isArray(r.protection_options) ? r.protection_options : []) {
+    const p = rec(o);
+    if (!p || typeof p.protection_id !== "string") continue;
+    if (included && p.protection_id === included.protection_id) continue;
+    out.push({source: "option", protection: p});
+  }
+  return out;
+}
+
+/**
+ * Pick the protection to quote on a Premium row: the first candidate (included
+ * first, then options) whose own data passes the Ride24 Premium policy. This is
+ * only a pre-selection — publication still requires the final quote to confirm
+ * it (zero quote deposit, protection line in the quote, totals reconciled).
+ */
+export function selectCaravelPremiumProtection(row: unknown): {source: "included" | "option"; protection: Json} | null {
+  const r = rec(row) ?? {};
+  if (r.plan !== "premium") return null;
+  return caravelProtectionCandidates(r).find((c) => evaluateCaravelPremium("premium", c.protection).ok) ?? null;
+}
+
+const minor = (v: unknown): number | null => { const m = money(v); return m ? m.amount : null; };
+
+/** Diagnostic view of one protection: exact amounts, stated terms, missing fields, Premium verdict. No personal data. */
+export function describeCaravelProtection(plan: unknown, protection: unknown, source: "included" | "option", quoteDeposit?: unknown): Json {
+  const p = rec(protection) ?? {};
+  const missing = ["excess", "deposit", "theft_excess", "product_type", "covers", "excludes"].filter((k) => p[k] === undefined || p[k] === null);
+  const verdict = evaluateCaravelPremium(plan, p, quoteDeposit);
+  return {
+    source,
+    protection_id: typeof p.protection_id === "string" ? p.protection_id : null,
+    code: typeof p.code === "string" ? p.code : null,
+    tier: typeof p.tier === "string" ? p.tier : null,
+    currency: money(p.excess)?.currency ?? money(p.deposit)?.currency ?? null,
+    excess_minor: minor(p.excess),
+    deposit_minor: minor(p.deposit),
+    theft_excess_minor: minor(p.theft_excess),
+    price_minor: minor(p.price),
+    pricing_type: typeof p.pricing_type === "string" ? p.pricing_type : null,
+    payable: typeof p.payable === "string" ? p.payable : null,
+    product_type: typeof p.product_type === "string" ? p.product_type : null,
+    covers: Array.isArray(p.covers) ? p.covers : null,
+    excludes: Array.isArray(p.excludes) ? p.excludes : null,
+    window_total_minor: minor(rec(rec(p.totals_for_window)?.grand_total) ?? rec(p.totals_for_window)?.grand_total),
+    missing_fields: missing,
+    premium: "errors" in verdict ? verdict.errors : "PUBLISHABLE",
   };
 }
