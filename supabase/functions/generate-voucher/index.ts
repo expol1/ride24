@@ -544,6 +544,15 @@ async function createVoucherPdf(
   });
   y -= 25;
   drawValue(page, font, bold, "Class / Klasa:", booking.carClass.class_code, y);
+  // Supplier-backed API reservations guarantee the category, not the pictured model.
+  // An equivalent car or free upgrade is permitted; ordinary partner vouchers stay unchanged.
+  if (booking.api_booking_reference) {
+    y -= 12;
+    page.drawText(
+      fitText(font, "Category booking: same group or free upgrade / Rezerwacja kategorii: taka sama lub wyższa bez dopłaty", 8, 490),
+      { x: 50, y, size: 8, font, color: textGray },
+    );
+  }
   y -= 18;
 
   const pickup =
