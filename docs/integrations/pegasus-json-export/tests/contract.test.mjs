@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateBooking,applyVersioned} from './contract.mjs';
+const base={bookingId:'11111111-1111-4111-8111-111111111111',status:'paid',revision:1,lastModifiedAt:'2026-11-14T08:00:00Z',category:{code:'ECONOMY'},vehicleId:null,rental:{currency:'EUR',amountPayableToPartner:120,extrasIncludedInAmount:false}};
+const change={...base,revision:2,lastModifiedAt:'2026-11-14T08:10:00Z',rental:{...base.rental,amountPayableToPartner:140}};
+const cancel={...change,revision:3,status:'cancelled',cancelledAt:'2026-11-14T08:20:00Z',lastModifiedAt:'2026-11-14T08:20:00Z'};
+test('confirmed booking valid',()=>assert.deepEqual(validateBooking(base),[]));
+test('modification increments revision',()=>assert.equal(applyVersioned(base,change).outcome,'updated'));
+test('cancellation applied',()=>assert.equal(applyVersioned(change,cancel).outcome,'updated'));
+test('old event cannot resurrect cancelled booking',()=>assert.equal(applyVersioned(cancel,base).outcome,'stale'));
+test('duplicate safe',()=>assert.equal(applyVersioned(base,base).outcome,'duplicate'));
+test('conflicting same revision rejected',()=>assert.equal(applyVersioned(base,{...base,rental:{...base.rental,amountPayableToPartner:1}}).outcome,'conflict'));
+test('missing revision rejected',()=>assert.ok(validateBooking({...base,revision:null}).length));
+test('category-only vehicle assignment required',()=>assert.deepEqual(validateBooking({...base,vehicleId:'some-car'}),['vehicle must remain unassigned']));
+test('unknown extras inclusion rejected',()=>assert.ok(validateBooking({...base,rental:{...base.rental,extrasIncludedInAmount:null}}).length));
+test('cancellation without timestamp rejected',()=>assert.ok(validateBooking({...cancel,cancelledAt:null}).length));
+test('missing category code rejected',()=>assert.ok(validateBooking({...base,category:{}}).length));
+test('negative supplier amount rejected',()=>assert.ok(validateBooking({...base,rental:{...base.rental,amountPayableToPartner:-1}}).length));
