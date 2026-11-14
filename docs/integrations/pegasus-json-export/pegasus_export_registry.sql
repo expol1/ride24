@@ -144,7 +144,7 @@ BEGIN
      WHERE singleton=true;
  END IF;
  SELECT coalesce(jsonb_agg(page.item ORDER BY page.booking_id),'[]'::jsonb),
-        max(page.booking_id)
+        (array_agg(page.booking_id ORDER BY page.booking_id DESC))[1]
  INTO v_items,v_last
  FROM (
    SELECT es.booking_id,
