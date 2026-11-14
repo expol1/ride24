@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateBooking,applyVersioned} from './contract.mjs';
+import {validateBooking,applyVersioned,requiresPriceReview} from './contract.mjs';
 const base={bookingId:'11111111-1111-4111-8111-111111111111',status:'paid',revision:1,lastModifiedAt:'2026-11-14T08:00:00Z',category:{code:'ECONOMY'},vehicleId:null,rental:{currency:'EUR',amountPayableToPartner:120,extrasIncludedInAmount:false}};
 const change={...base,revision:2,lastModifiedAt:'2026-11-14T08:10:00Z',rental:{...base.rental,amountPayableToPartner:140}};
 const cancel={...change,revision:3,status:'cancelled',cancelledAt:'2026-11-14T08:20:00Z',lastModifiedAt:'2026-11-14T08:20:00Z'};
@@ -16,3 +16,6 @@ test('unknown extras inclusion rejected',()=>assert.ok(validateBooking({...base,
 test('cancellation without timestamp rejected',()=>assert.ok(validateBooking({...cancel,cancelledAt:null}).length));
 test('missing category code rejected',()=>assert.ok(validateBooking({...base,category:{}}).length));
 test('negative supplier amount rejected',()=>assert.ok(validateBooking({...base,rental:{...base.rental,amountPayableToPartner:-1}}).length));
+
+test('unknown but safely non-additive extras is transport-valid',()=>{const x={...base,rental:{...base.rental,extrasIncludedInAmount:null,extrasMustNotBeAddedAgainToTotal:true}};assert.deepEqual(validateBooking(x),[]);assert.equal(requiresPriceReview(x),true)});
+test('verified extras do not need review',()=>assert.equal(requiresPriceReview(base),false));
