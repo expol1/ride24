@@ -26,3 +26,11 @@ test('both customer cancellation and cron-based cancellation must validate suppl
   assert.ok(adapters.includes('status: confirmedCancelled ? "cancelled" : "pending"'));
 
 });
+
+test('legacy dispatch explicitly excludes payment-first carts while retaining null-status legacy rows',async()=>{
+  const cron=await readFile(new URL('../../supabase/functions/api-booking-status-sync/index.ts',import.meta.url),'utf8');
+  const match=cron.match(/async function dispatchUndispatched\([\s\S]*?async function processPending/);
+  assert.ok(match,'legacy dispatcher found');
+  assert.match(match[0],/\.or\("api_status\.is\.null,api_status\.not\.like\.payment_%"\)/);
+  assert.ok(match[0].includes('.is("api_booking_reference", null)'));
+});
