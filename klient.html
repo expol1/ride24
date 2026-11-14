@@ -3039,7 +3039,9 @@ document.addEventListener("click", async function(e) {
                 } catch { console.warn("Referral attachment unavailable"); }
 
                 document.getElementById("termsModal").style.display = "none";
-                window.showToast(isEn ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!", "success");
+                window.showToast(result.payment_required
+                    ? (isEn ? "Pay the Ride24 fee to request confirmation from the supplier." : "Opłać usługę Ride24, aby przekazać rezerwację do potwierdzenia dostawcy.")
+                    : (isEn ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!"), "success");
 
                 [
                     "selectedCarId", "selectedApiQuoteId", "bookingStartDate", "bookingEndDate",
@@ -3048,6 +3050,7 @@ document.addEventListener("click", async function(e) {
                 ].forEach(key => localStorage.removeItem(key));
 
                 if (typeof loadClientBookings === "function") await loadClientBookings();
+                if (result.payment_required && result.booking?.id) await goToPayment(null, result.booking.id);
             } catch (err) {
                 console.error("BOOKING ERROR:", err);
                 window.showToast(err?.message || (isEn ? "Booking error." : "Błąd rezerwacji."), "error");

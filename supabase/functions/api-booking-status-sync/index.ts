@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import Stripe from "npm:stripe@14.0.0";
+import { runApiPayment } from "../_shared/api-payment-runtime.ts";
 import {
   corsHeaders,
   isUuid,
@@ -504,6 +506,7 @@ async function processPending(
     .eq("partners.provider_type", "api")
     .eq("status", "pending")
     .not("api_booking_reference", "is", null)
+    .not('api_status','like','payment_%')
     // Do not auto-confirm bookings requiring manual price or cancellation review.
     .not("manual_review", "is", true)
     .limit(STATUS_LIMIT);
@@ -940,6 +943,16 @@ serve(async (req) => {
   try {
     requireSecret(req, "x-cron-secret", "RIDE24_CRON_SECRET");
     const admin = serviceClient();
+
+    const {data:workflows,error:workflowError}=await admin.from('api_booking_workflows').select('booking_id')
+      .in('state',['paid','revalidating','dispatching','unknown','provider_pending','confirmed','refund_pending','refunding','refund_failed'])
+      .is('fulfilled_at',null)
+      .order('updated_at',{ascending:true}).limit(25);
+    if(workflowError)throw Error('API_PAYMENT_STATE_UNAVAILABLE');
+    const stripe=new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!,{apiVersion:'2023-10-16'});
+    for(const w of workflows||[]) {
+      try {await runApiPayment(admin,stripe,w.booking_id);}catch {console.error('API_PAYMENT_RETRY_PENDING',w.booking_id);}
+    }
 
     const dispatch = await runPhase(
       "dispatch",

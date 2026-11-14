@@ -16,6 +16,8 @@ import {
   createProviderBooking,
 } from "../_shared/provider-adapters.ts";
 import { assertApiPricingCompatible, assertApiQuoteContext } from "../_shared/api-quote-contract.mjs";
+import { runApiPayment } from "../_shared/api-payment-runtime.ts";
+import Stripe from "npm:stripe@14.0.0";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -663,6 +665,16 @@ serve(async (req) => {
     const booking = normalizeBooking(rawBooking);
     if (bookingError || !booking) {
       return jsonResponse(req, { error: "Rezerwacja nie istnieje" }, 404);
+    }
+
+    // All API providers use verified-payment fulfillment. Legacy pending rows
+    // without a recorded Stripe event must never reach any provider create call.
+    if (booking.partner.provider_type === "api") {
+      const {data:workflow,error}=await admin.from('api_booking_workflows').select('paid_at,payment_intent').eq('booking_id',booking.id).maybeSingle();
+      if(error)throw Error('API_PAYMENT_STATE_UNAVAILABLE');
+      if(!workflow?.paid_at||!workflow.payment_intent)return jsonResponse(req,{success:true,skipped:true,reason:'PAYMENT_REQUIRED'},202);
+      const stripe=new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!,{apiVersion:'2023-10-16'});
+      return jsonResponse(req,await runApiPayment(admin,stripe,booking.id));
     }
 
     if (booking.status !== "pending") {

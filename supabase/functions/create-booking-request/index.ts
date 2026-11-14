@@ -1,6 +1,7 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
+import { apiPaymentEnabled } from "../_shared/api-payment-runtime.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
@@ -1068,6 +1069,7 @@ serve(async (req) => {
     let apiQuoteCurrency: string | null = null;
 
     if (car.partner.provider_type === "api") {
+      if (!await apiPaymentEnabled(admin)) return jsonResponse(req, {error:"Rezerwacje API są chwilowo wstrzymane podczas weryfikacji płatności.",code:"API_PAYMENT_FLOW_PAUSED"},503);
       if (
         car.partner.api_enabled !== true
         || !isUuid(body.api_quote_id)
@@ -1353,7 +1355,8 @@ serve(async (req) => {
       end_date: endDate.text,
       pickup_time: pickupTime,
       return_time: returnTime,
-      status: "pending",
+      status: car.partner.provider_type === "api" ? "awaiting_payment" : "pending",
+      ...(car.partner.provider_type === "api" ? {api_status:"payment_awaiting_payment",payment_deadline:new Date(now.getTime()+45*60000).toISOString(),expires_at:new Date(now.getTime()+45*60000).toISOString()} : {}),
       partner_response_deadline: partnerResponseDeadline,
       client_phone: profilePhone,
       client_email: cleanText(user.email, 254),
@@ -1433,7 +1436,7 @@ serve(async (req) => {
         .delete()
         .eq("id", bookingId)
         .eq("client_id", user.id)
-        .eq("status", "pending");
+        .eq("status", insertPayload.status);
 
       await releaseQuoteClaim(admin, quoteClaim);
       quoteClaim = null;
@@ -1477,12 +1480,11 @@ serve(async (req) => {
       // Android Partner App: push o nowej rezerwacji.
       // Awaria push NIE blokuje utworzenia rezerwacji.
       await triggerPartnerPush(bookingId);
-    } else {
-      await dispatchApiBooking(bookingId);
     }
 
     return jsonResponse(req, {
       success: true,
+      payment_required: car.partner.provider_type === "api",
       booking: {
         id: bookingId,
         reservation_code: cleanText(

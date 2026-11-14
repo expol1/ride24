@@ -513,11 +513,20 @@ serve(async (req) => {
       );
     }
     if (!CANCELLABLE_STATUSES.has(booking.status)) {
-      return jsonResponse(
-        req,
-        { error: "Rezerwacja nie może zostać anulowana w tym statusie" },
-        409,
-      );
+      return jsonResponse(req, { error: "Rezerwacja nie może zostać anulowana w tym statusie" }, 409);
+    }
+    if(booking.partner.provider_type==='api' && booking.status!=='paid') {
+      const {data:w,error:readError}=await admin.from('api_booking_workflows').select('paid_at,state').eq('booking_id',booking.id).maybeSingle();
+      if(readError)throw Error('API_CANCEL_STATE_UNAVAILABLE');
+      // A paid, unresolved supplier operation must be reconciled before ordinary cancellation.
+      // Do not delete its ledger or silently replace the existing manual refund policy.
+      if(w?.paid_at)return jsonResponse(req,{error:'Trwa ustalanie statusu rezerwacji u dostawcy. Skontaktuj się z Ride24.',code:'API_CONFIRMATION_IN_PROGRESS'},409);
+      if(!booking.api_booking_reference) {
+        const {data:cancelled,error}=await admin.rpc('api_cancel_unfulfilled',{p_booking_id:booking.id});
+        if(error)throw Error('API_CANCEL_STATE_UNAVAILABLE');
+        if(cancelled)return jsonResponse(req,{success:true,api_sync_pending:false,refund_mode:null});
+        return jsonResponse(req,{error:'Status rezerwacji uległ zmianie. Odśwież stronę.',code:'BOOKING_CHANGED'},409);
+      }
     }
     const pickupTimestamp = Date.parse(`${booking.start_date}T00:00:00.000Z`);
     const now = new Date();

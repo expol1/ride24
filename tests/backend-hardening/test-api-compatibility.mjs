@@ -77,7 +77,7 @@ function setup() {
       if(this.updated){rows.forEach(r=>Object.assign(r,this.updated));operations.push({table:this.table,update:this.updated,count:rows.length});}
       if(this.inserted){
         const row={...this.inserted,id:this.table==='bookings'?booking:quoteId};
-        if(this.table==='bookings'){saved.push(this.inserted);row.reservation_code='R24-API-TEST';row.status='pending';}
+        if(this.table==='bookings'){saved.push(this.inserted);row.reservation_code='R24-API-TEST';row.status=this.inserted.status||'pending';}
         (tables[this.table]??=[]).push(row);rows=[row];
       }
       return Promise.resolve({data:this.one?(rows[0]||null):rows,error:null}).then(resolve,reject);
@@ -100,6 +100,8 @@ function setup() {
   function handler(name){
     let serve;
     const sandbox={exports:{},require:specifier=>{
+      if(specifier.includes('api-payment-runtime'))return {apiPaymentEnabled:async()=>true,runApiPayment:async()=>{throw Error('Unpaid booking must never run fulfillment');}};
+      if(specifier.startsWith('npm:stripe'))return {default:class Stripe {}};
       if(specifier.includes('provider-normalization'))return normalization;
       if(specifier.includes('api-booking-options.ts'))return {makeApiBookingOptions:()=>{throw Error('Unexpected provider options call');}};
       if(specifier.includes('api-readiness'))return readiness;
@@ -167,7 +169,7 @@ test('API creation retains server loyalty, exact partner amount and one-time quo
   const r=await request(body());assert.equal(r.status,200,await r.text());
   assert.equal(s.saved.length,1);assert.equal(s.saved[0].partner_net_price_snapshot,100);
   assert.equal(s.saved[0].online_payment_pln,96.75);assert.equal(s.saved[0].loyalty_discount_percent,10);
-  assert.equal(s.tables.api_quotes[0].booking_id,booking);assert.equal(s.outgoing.length,1);
+  assert.equal(s.tables.api_quotes[0].booking_id,booking);assert.equal(s.outgoing.length,0);assert.equal(s.saved[0].status,'awaiting_payment');
   const again=await request(body());assert.equal(again.status,409);assert.equal(s.saved.length,1);
 });
 test('an API time or route change rejects before claiming a quote, booking or contacting a partner',async()=>{
@@ -240,24 +242,13 @@ async function booked(s) {
   Object.assign(s.tables.bookings[0],{created_at:new Date().toISOString(),api_booking_reference:null,
     car_classes:{external_id:'group-1',class_code:'A'},partners:s.tables.partners[0]});
 }
-test('dispatch sends exactly the quoted route and partner amount, and repeat dispatch is skipped',async()=>{
+test('dispatch refuses unpaid API bookings, including repeated attempts',async()=>{
   const s=setup();await booked(s);const request=s.handler('api-booking-dispatch');
-  const first=await request({booking_id:booking});assert.equal(first.status,200,await first.text());
-  assert.equal(s.outgoing.filter(x=>x==='provider-create').length,1);
-  assert.equal(s.tables.bookings[0].api_booking_reference,'external-1');
-  const again=await request({booking_id:booking});assert.equal(again.status,200);
-  assert.equal((await again.json()).reason,'ALREADY_DISPATCHED');
-  assert.equal(s.outgoing.filter(x=>x==='provider-create').length,1);
-});
-test('dispatch detects a changed route or new fees before sending anything to the provider',async()=>{
-  for(const change of ['time','fees']){
-    const s=setup();await booked(s);
-    if(change==='time')s.tables.bookings[0].pickup_time='23:00';
-    else s.tables.partner_time_fees.push({id:'night',partner_id:partner,active:true});
-    const r=await s.handler('api-booking-dispatch')({booking_id:booking});assert.equal(r.status,409,await r.text());
-    assert.equal(s.outgoing.filter(x=>x==='provider-create').length,0);
-    assert.equal(s.tables.bookings[0].manual_review,true);
+  for(let attempt=0;attempt<2;attempt++) {
+    const result=await request({booking_id:booking});assert.equal(result.status,202,await result.text());
   }
+  assert.equal(s.outgoing.filter(x=>x==='provider-create').length,0);
+  assert.equal(s.tables.bookings[0].api_booking_reference,null);
 });
 test('custom/standard API sends only partner-payable accounting, never Ride24 totals or margin',async()=>{
   for(const name of ['ride24_standard_v1','custom']){

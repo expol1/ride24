@@ -783,6 +783,8 @@ async function loadBooking(
       partner_id,
       main_driver_name,
       status,
+      provider_type,
+      api_status,
       reservation_code,
       start_date,
       end_date,
@@ -998,6 +1000,14 @@ serve(async (req) => {
         skipped: true,
         reason: "BOOKING_NOT_PAID",
       });
+    }
+    const {data:apiGuard,error:guardError}=await admin.from('bookings').select('provider_type,api_status,api_booking_reference,manual_review').eq('id',booking.id).maybeSingle();
+    if(guardError||!apiGuard)throw Error('VOUCHER_API_STATE_UNAVAILABLE');
+    if(apiGuard?.provider_type==='api') {
+      const {data:w,error}=await admin.from('api_booking_workflows').select('state,paid_at,provider_reference').eq('booking_id',booking.id).maybeSingle();
+      if(error||w?.state!=='confirmed'||!w.paid_at||apiGuard.manual_review||apiGuard.api_status!=='confirmed'
+        ||!apiGuard.api_booking_reference||apiGuard.api_booking_reference!==w.provider_reference)
+        return jsonResponse(req,{error:'API_CONFIRMATION_REQUIRED'},409);
     }
     if (!(await hasPaidPayment(admin, booking.id))) {
       return jsonResponse(
