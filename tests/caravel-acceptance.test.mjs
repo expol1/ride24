@@ -8,13 +8,13 @@ const KEY = "FAKE-KEY-FOR-UNIT-TESTS-acceptance-000";
 const original = globalThis.fetch;
 test.afterEach(() => { globalThis.fetch = original; });
 
-function sandboxMock() {
+function sandboxMock({premiumDepositMinor = 0} = {}) {
   const calls = [];
   const m = (amount, currency) => ({amount, currency});
   const SUP = [{supplier_id: "acct_gbp", name: "G", status: "active", currency: "GBP", tax_inclusive: true, payment_models: ["pay_on_arrival", "partial", "prepaid"]},
     {supplier_id: "acct_eur", name: "E", status: "active", currency: "EUR", tax_inclusive: true, payment_models: ["pay_on_arrival", "partial", "prepaid"]}];
   const cur = (sid) => SUP.find(s => s.supplier_id === sid)?.currency ?? "EUR";
-  const prot = (sid) => ({protection_id: `prot-${sid}`, vehicle_id: `veh-${sid}`, tier: "premium", excess: m(0, cur(sid)), deposit: m(0, cur(sid)),
+  const prot = (sid) => ({protection_id: `prot-${sid}`, vehicle_id: `veh-${sid}`, tier: "premium", excess: m(0, cur(sid)), deposit: m(premiumDepositMinor, cur(sid)),
     theft_excess: m(0, cur(sid)), product_type: "waiver", covers: ["glass", "undercarriage", "tyres_and_wheels", "theft", "fire"], excludes: []});
   const row = (sid) => ({supplier_id: sid, vehicle_id: `veh-${sid}`, display_name: "Golf or similar", acriss: "CDMR", plan: "premium", protection: prot(sid),
     line_items: [], min_driver_age: 21, max_driver_age: 75, seats: 5, large_bags: 1, small_bags: 1, transmission: "manual", fuel: "petrol", images: []});
@@ -128,4 +128,31 @@ test("time budget stops new steps but never the cleanup", async () => {
   sandboxMock();
   const r = await runCaravelAcceptance(KEY, {booking: true, budgetMs: -1});
   assert.ok(r.results.every(x => x.outcome.startsWith("NOT RUN")));
+});
+
+test("supplier_id scope: only that supplier is walked and booked", async () => {
+  const {calls, bookings} = sandboxMock();
+  const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur"});
+  assert.equal(r.failed, false, JSON.stringify(r.results.filter(x => !x.outcome.startsWith("OK"))));
+  const scoped = calls.filter(c => c.path.startsWith("/v1/reference/locations") || c.path === "/v1/availability" || c.path === "/v1/quote" || c.path.startsWith("/v1/bookings"));
+  assert.ok(scoped.length > 0);
+  assert.equal(bookings.size, 1);
+  assert.ok(!r.results.some(x => x.endpoint.includes("acct_gbp")));
+});
+
+test("unknown supplier_id is refused before any supplier-scoped call", async () => {
+  const {calls} = sandboxMock();
+  const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_unknown"});
+  assert.equal(r.failed, true);
+  assert.ok(r.results.some(x => x.outcome === "ERROR SUPPLIER_NOT_VISIBLE"));
+  // constants are operator-wide; nothing supplier-scoped may follow an unknown supplier
+  assert.equal(calls.some(c => (c.path.startsWith("/v1/reference/") && c.path !== "/v1/reference/constants") || c.path.startsWith("/v1/bookings") || c.path === "/v1/availability"), false);
+});
+
+test("premiumOnly: an offer failing the Premium policy is quoted for evidence but never booked", async () => {
+  const {calls, bookings} = sandboxMock({premiumDepositMinor: 25000});
+  const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur", premiumOnly: true});
+  assert.equal(bookings.size, 0);
+  assert.equal(calls.some(c => c.method === "POST" && c.path === "/v1/bookings"), false);
+  assert.ok(r.results.some(x => x.outcome === "NOT RUN" && String(x.summary).includes("premiumOnly")));
 });
