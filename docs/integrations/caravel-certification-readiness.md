@@ -27,6 +27,11 @@ Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (C
 | version-format | no | Ride24 never sends `X-API-Version`, and does not parse `api_version` as major.minor.patch. |
 
 ## Evidence status
+- **Real API, 14 Nov 2026 (admin-only `caravel-sandbox-acceptance` v1, code pinned to commit f30c9ce), both suppliers:**
+  - EUR `acct_eaa0…` (Europe/Athens, 2 desks, 4 vehicles) and GBP `acct_a714…` (Europe/London, 3 desks, 2 vehicles): capabilities, whoami, suppliers, constants, reference locations / policies / vehicles / protections / extras / fees, served-plan quote from reference ids, day + night availability, unknown-vehicle refusal (422 `validation_error`, `vehicle_id:unknown_vehicle`), Premium-plan quote, idempotent quote replay (same `quote_id`), key reuse with a different body (**422** `idempotency_key_reused`, not 409) — all as expected, `failed: false`.
+  - Ride24 normalization on live data: every desk and vehicle normalized; quotes reconcile line items to `grand_total` (EUR 132.00 / GBP 114.00 for 3 days, tax inclusive); out-of-hours fee priced by Caravel at night (EUR 30.00 / GBP 18.00) and the desk-hours check flags the same ends.
+  - **Premium blocker:** every `premium` row fails the Ride24 policy — deposit EUR 300 / GBP 250, excess above zero, `theft_excess`, `product_type` and `covers` not stated. With `booking: true` the function therefore booked **nothing** at either supplier (by design).
+  - Extras: EUR "Child seat" (5.00/day) and "Additional driver" (0/day), GBP "Child seat" (4.00/day) and "Winter kit" (0/day) — all category `other`, so not mapped to Ride24 codes.
 - **Real API (13 Nov 2026, admin-only read-only diagnostics function):** capabilities, whoami, suppliers (2), reference locations / policies / vehicles / protections / extras / fees, availability day + night — all 2xx for the first supplier.
 - **Not yet observed on the real API:** quote, booking, replay, 409s, cancel, second supplier walk, served-plan quote. These need a server-side run with the key (blocker 1).
 - **Simulated only (local mocks / fixtures):** everything in `tests/caravel-*.test.mjs`; the full two-supplier harness on `scripts/mock-caravel-two-suppliers.mjs` (scratchpad, not committed).

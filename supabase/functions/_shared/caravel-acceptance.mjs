@@ -204,7 +204,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       const again = (await client.quote(quoteBody, quoteKey, sid)).data;
       return {same_quote_id: again.quote_id === quoteData.quote_id};
     });
-    await step(`${tag} POST /v1/quote same key, different body (expect 409)`, async () => {
+    await step(`${tag} POST /v1/quote same key, different body (expect idempotency_key_reused)`, async () => {
       await client.quote({...quoteBody, drivers: [{age: 31, role: "main"}]}, quoteKey, sid);
       return {};
     }, {expectError: "idempotency_key_reused"});
