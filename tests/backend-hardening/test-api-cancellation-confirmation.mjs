@@ -19,7 +19,7 @@ test('both customer cancellation and cron-based cancellation must validate suppl
   const customer=await readFile(new URL('../../supabase/functions/client-cancel-booking/index.ts',import.meta.url),'utf8');
   const sync=await readFile(new URL('../../supabase/functions/api-booking-status-sync/index.ts',import.meta.url),'utf8');
   const adapters=await readFile(new URL('../../supabase/functions/_shared/provider-adapters.ts',import.meta.url),'utf8');
-  assert.match(customer,/assertSupplierCancellation\\(response, booking\\.api_booking_reference\\)/);
-  assert.match(sync,/assertSupplierCancellation\\(response, booking\\.api_booking_reference\\)/);
-  assert.doesNotMatch(adapters,/canonical\\.status === "pending" \\? "cancelled"/);
+  assert.match(customer,/assertSupplierCancellation\(response, booking\.api_booking_reference\)/);
+  assert.match(sync,/assertSupplierCancellation\(response, booking\.api_booking_reference\)/);
+  assert.doesNotMatch(adapters,/canonical\.status === "pending" \? "cancelled"/);
 });
