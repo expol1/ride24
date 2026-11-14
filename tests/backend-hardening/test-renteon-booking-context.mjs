@@ -18,19 +18,19 @@ const input=()=>({provider_quote_data:{provider_code:'Demo',offer:offer(),calcul
   pickup_date:'2027-03-01',return_date:'2027-03-04',pickup_time:'10:00',return_time:'10:00',
   main_driver:{name:'Sandbox Driver',age:35},client_email:'test@example.invalid',ride24_booking_id:'test-only'});
 function adapter(change=()=>{},stage='calculate') {
-  const calls=[];
+  const calls=[],bodies=[];
   const sandbox={exports:{},URL,Intl,structuredClone,require:name=>{
     if(name.includes('provider-services'))return services;
     if(name.includes('provider-normalization'))return normalization;
     if(name.includes('partner-api'))return {sanitizePartnerPayload:x=>x,partnerApiRequest:async(_c,path,options)=>{
-      calls.push(path);const result=structuredClone(path.endsWith('/create')?model():options.body);
+      calls.push(path);if(options?.body)bodies.push({path,body:structuredClone(options.body)});const result=structuredClone(path.endsWith('/create')?model():options.body);
       if(path.endsWith('/save'))result.Number='DEMO-ONLY';
       if(path.endsWith('/'+stage))change(result);
       return result;
     }};
     throw Error(name);
   }};
-  vm.runInNewContext(source,sandbox);return {...sandbox.exports,calls};
+  vm.runInNewContext(source,sandbox);return {...sandbox.exports,calls,bodies};
 }
 const mutations={pickup:x=>x.PickupOffice.LocationCode='HR-ZAG-ZAG',dropoff:x=>x.DropOffOffice.LocationCode='HR-ZAD-ZAD',
   date:x=>x.PickupDate='2027-03-02T10:00:00',time:x=>x.DropOffDate='2027-03-04T11:00:00',
@@ -59,4 +59,23 @@ test('changed saved route retains reference for manual review and never retries 
 test('missing saved service is not reported as confirmed',async()=>{
   const a=adapter(x=>{x.Services=[];},'save');const booked=await a.aggregatorBook(credentials,input());
   assert.equal(booked.status,'pending');assert.equal(booked.needs_manual_review,true);
+});
+
+test('lowercase demo code never accepts a differently cased provider quote',async()=>{
+  const a=adapter(),sandboxCredentials={...credentials,renteon_provider_code:'demo'};
+  await assert.rejects(a.aggregatorQuoteOptions(sandboxCredentials,{provider_code:'Demo',offer:offer()},[],[35]),/QUOTE_MISSING/);
+  await assert.rejects(a.aggregatorBook(sandboxCredentials,input()),/QUOTE_MISSING/);
+  assert.equal(a.calls.length,0);
+});
+test('supplier save binds a vehicle category, not a particular car or VIN',async()=>{
+  const a=adapter();
+  const reservation=await a.aggregatorBook(credentials,input());
+  assert.equal(reservation.status,'confirmed');
+  const saves=a.bodies.filter(x=>x.path.endsWith('/save'));
+  assert.equal(saves.length,1);
+  assert.equal(saves[0].body.CarCategory,'MDMR');
+  assert.equal(saves[0].body.VehicleId,undefined);
+  assert.equal(saves[0].body.CarId,undefined);
+  assert.equal(saves[0].body.VIN,undefined);
+  assert.equal(saves[0].body.OrderReference,'test-only');
 });
