@@ -399,3 +399,52 @@ html:lang(en) #view-payments {
 :is(#view-dashboard,#view-bookings) .table-container td.actions .timer-urgent {
   background:#fee2e2 !important;border-color:#fca5a5 !important;color:#b91c1c !important;
 }
+
+/* Mobile client cards: status next to reservation number; no duplicate bottom row.
+   Pure CSS: preserves the existing status values, actions and desktop tables. */
+@media (max-width: 768px) {
+  :is(#view-dashboard,#view-bookings) .table-container tbody tr:has(>td:nth-child(8)) {
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    align-items:start;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody tr:has(>td:nth-child(8)) > td:nth-child(1) {
+    grid-column:1 !important;grid-row:1 !important;
+    border-bottom:1px solid #cadff4 !important;
+    padding-right:0 !important;
+    font-size:clamp(12px,3.4vw,15px) !important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody tr:has(>td:nth-child(8)) > td:nth-child(5) {
+    grid-column:2 !important;grid-row:1 !important;
+    align-self:center;justify-self:end;text-align:right;
+    padding:8px 0 12px 0 !important;
+    border-bottom:1px solid #cadff4 !important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5)::before {
+    display:none !important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile {
+    display:inline-flex !important;align-items:center;justify-content:center;
+    max-width:100%;padding:6px 8px !important;
+    font-size:clamp(10px,2.8vw,12px) !important;
+    line-height:1.2 !important;white-space:normal !important;
+    overflow-wrap:anywhere;text-align:center;font-weight:800;
+  }
+  .sidebar {
+    height:64px !important;min-height:0 !important;
+    padding-bottom:env(safe-area-inset-bottom, 0px) !important;
+    box-sizing:border-box;
+  }
+  .sidebar .nav-menu {height:100% !important;min-height:0 !important;}
+  .sidebar .nav-item {
+    min-width:0 !important;padding:4px 1px !important;
+    gap:2px !important;line-height:1.1 !important;
+  }
+  .sidebar .nav-item-inner {gap:2px !important;}
+  .sidebar .nav-icon {width:22px !important;height:22px !important;}
+  .sidebar .nav-text {
+    font-size:clamp(9px,2.45vw,11px) !important;
+    line-height:1.12 !important;overflow-wrap:anywhere;
+  }
+  body {padding-bottom:64px !important;}
+  .content-area {padding-bottom:78px !important;}
+}
