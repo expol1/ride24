@@ -3572,7 +3572,7 @@ document.getElementById("dashRevenue").innerText = revenue.toFixed(2) + " " + di
 
             // Czytamy z bezpiecznego widoku SQL
             const { data: allBookings, error } = await db.rpc("partner_get_bookings");
-            const data = (allBookings || []).filter(b => ["pending", "awaiting_payment", "paid", "cancelled"].includes(b.status));
+            const data = (allBookings || []).filter(b => ["pending", "awaiting_payment", "paid", "cancelled", "rejected"].includes(b.status));
 
             if(error) {
                 console.error(error);
