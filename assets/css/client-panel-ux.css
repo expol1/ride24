@@ -228,3 +228,96 @@ html:lang(en) #view-payments {
   #view-payments .table-container tbody td:nth-child(3)::before {content:var(--r24-p-status)}
   #view-payments .table-container tbody td:nth-child(4)::before {content:var(--r24-p-actions)}
 }
+
+/* Client booking tables UX demo: two original tables, no change to booking logic.
+   The existing 8-cell row is visually reordered on desktop; ID is repeated
+   beneath status and the redundant standalone ID cell is hidden there only. */
+.r24-client-status-id {display:none;}
+@media (min-width:981px) {
+  :is(#view-dashboard,#view-bookings) .table-container table {
+    display:block !important; min-width:1080px; width:100%;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container thead,
+  :is(#view-dashboard,#view-bookings) .table-container tbody {display:block !important;width:100%;}
+  :is(#view-dashboard,#view-bookings) .table-container thead tr,
+  :is(#view-dashboard,#view-bookings) .table-container tbody tr:not(:has(>td:only-child)) {
+    display:grid !important;
+    grid-template-columns:minmax(155px,1.25fr) minmax(125px,.95fr)
+      minmax(160px,1.25fr) minmax(175px,1.4fr)
+      minmax(115px,.95fr) minmax(115px,.95fr) minmax(170px,1.3fr) !important;
+    align-items:center; width:100%; box-sizing:border-box;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container thead th,
+  :is(#view-dashboard,#view-bookings) .table-container tbody tr:not(:has(>td:only-child)) > td {
+    display:block !important; min-width:0; width:auto !important; grid-row:1;
+    box-sizing:border-box; align-self:stretch;
+    padding:13px 10px !important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(1) {display:none !important;}
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(5) {grid-column:1 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(2) {grid-column:2 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(3) {grid-column:3 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(4) {grid-column:4 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(6) {grid-column:5 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(7) {grid-column:6 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container tr > :nth-child(8) {grid-column:7 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container thead th:nth-child(5) {font-size:0 !important;}
+  :is(#view-dashboard,#view-bookings) .table-container thead th:nth-child(5)::after {
+    content:"STATUS / ID";font-size:12px;font-weight:850;color:#345479;
+  }
+  :is(#view-dashboard,#view-bookings) .r24-client-status-id {
+    display:block;font-size:14px;font-weight:850;color:#1d4ed8;margin-top:10px;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile {
+    display:inline-flex;align-items:center;min-height:34px;padding:8px 11px;
+    border:1.5px solid currentColor;border-radius:12px;
+    box-shadow:0 2px 6px rgba(15,23,42,.08);font-weight:850;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(6) strong,
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(7) {
+    font-size:17px !important;font-weight:900 !important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(6) strong {color:#277c17;}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(8) .actions {
+    display:flex;flex-direction:column;gap:8px;align-items:stretch;
+  }
+}
+/* The status background is continuous across the row, fading to pale near
+   payment and action controls. Empty/loading rows are deliberately excluded. */
+:is(#view-dashboard,#view-bookings) .table-container tbody tr:has(>td:nth-child(8)) {
+  --r24-client-strong:#cbd5e1;--r24-client-soft:#f8fafc;--r24-client-edge:#64748b;
+  background:linear-gradient(100deg,var(--r24-client-strong),var(--r24-client-soft)) !important;
+  border-left:5px solid var(--r24-client-edge);
+}
+:is(#view-dashboard,#view-bookings) .table-container tbody tr:has(.status-tile.awaiting_payment) {
+  --r24-client-strong:#facc15;--r24-client-soft:#fffbeb;--r24-client-edge:#bd8d00;
+}
+:is(#view-dashboard,#view-bookings) .table-container tbody tr:has(.status-tile.paid) {
+  --r24-client-strong:#86d79b;--r24-client-soft:#f0fdf4;--r24-client-edge:#18833b;
+}
+:is(#view-dashboard,#view-bookings) .table-container tbody tr:has(.status-tile.cancelled),
+:is(#view-dashboard,#view-bookings) .table-container tbody tr:has(.status-tile.payment_expired) {
+  --r24-client-strong:#fca5a5;--r24-client-soft:#fff1f2;--r24-client-edge:#b91c1c;
+}
+:is(#view-dashboard,#view-bookings) .table-container tbody tr:has(>td:nth-child(8)) > td {
+  background:transparent !important;
+}
+@media (max-width:980px) {
+  /* Keep the existing mobile card order, ID cell, labels, buttons and layout. */
+  :is(#view-dashboard,#view-bookings) .r24-client-status-id {display:none !important;}
+}
+
+/* Partner acceptance is NOT payment: distinguish accepted (blue) from paid (green). */
+:is(#view-dashboard,#view-bookings) .table-container tbody tr:has(.status-tile.accepted) {
+  --r24-client-strong:#bfdbfe;--r24-client-soft:#eff6ff;--r24-client-edge:#2563eb;
+}
+@media (min-width:981px) {
+  html:lang(en) :is(#view-dashboard,#view-bookings) .table-container thead th:nth-child(5)::after {content:"STATUS / ID";}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(2) span[onclick^="window.openDetailsModal"] {
+    display:inline-flex !important;align-items:center;justify-content:center;
+    margin-top:6px;padding:7px 10px;border:2px solid #2563eb;border-radius:9px;
+    background:#eff6ff;color:#1d4ed8 !important;font-size:11px !important;
+    font-weight:850;line-height:1.3;text-decoration:none !important;
+    box-shadow:0 2px 7px rgba(37,99,235,.10);
+  }
+}
