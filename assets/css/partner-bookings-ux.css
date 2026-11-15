@@ -461,3 +461,67 @@
     box-shadow:0 4px 14px rgba(37,99,235,.15),inset 0 1px 0 #fff !important;
   }
 }
+
+/* Desktop-only polish: retain all original data/actions and mobile card layout. */
+.r24-desktop-status-id { display:none; }
+@media (min-width:1201px) {
+  #view-dashboard .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(5),
+  #view-bookings .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(5) {
+    display:flex !important; flex-direction:column; align-items:flex-start;
+    justify-content:center; gap:9px; min-width:0;
+  }
+  :is(#view-dashboard,#view-bookings) .r24-desktop-status-id {
+    display:block; font-size:14px; font-weight:800; color:#1d4ed8;
+    letter-spacing:.15px; white-space:nowrap;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container thead th:nth-child(5) {
+    font-size:0 !important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container thead th:nth-child(5)::after {
+    content:"STATUS / ID"; font-size:12px; font-weight:800; color:#475569;
+  }
+  /* Bookings: use the now-redundant standalone ID space for the status/ID cell. */
+  #view-bookings .table-container thead th:nth-child(1),
+  #view-bookings .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(1) {
+    display:none !important;
+  }
+  #view-bookings .table-container tr {
+    grid-template-columns:minmax(150px,1.3fr) minmax(80px,.7fr) minmax(130px,1.2fr)
+      minmax(85px,.7fr) minmax(165px,1.5fr) minmax(145px,1.3fr)
+      minmax(160px,1.2fr) minmax(155px,1.2fr) !important;
+  }
+  #view-bookings .table-container tr > :nth-child(5) {grid-column:1 / span 2 !important;}
+  #view-bookings .table-container tr > :nth-child(2) {grid-column:3 !important;}
+  #view-bookings .table-container tr > :nth-child(3) {grid-column:4 !important;}
+  #view-bookings .table-container tr > :nth-child(4) {grid-column:5 !important;}
+  #view-bookings .table-container tr > :nth-child(6) {grid-column:6 !important;}
+  #view-bookings .table-container tr > :nth-child(7) {grid-column:7 !important;}
+  #view-bookings .table-container tr > :nth-child(8) {grid-column:8 !important;}
+  /* Emphasize status without changing its underlying state. */
+  :is(#view-dashboard,#view-bookings) .table-container tbody .status-tile {
+    border-width:1.5px !important; border-style:solid !important;
+    padding:9px 12px !important; border-radius:12px !important;
+    box-shadow:0 2px 6px rgba(15,23,42,.08);
+    font-weight:800 !important;
+  }
+  /* More legible amount, with a small visual break before the details CTA. */
+  :is(#view-dashboard,#view-bookings) .table-container .r24-booking-amount-value {
+    font-size:20px !important; font-weight:900 !important; color:#277c17 !important;
+    letter-spacing:.1px; line-height:1.25;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container .r24-booking-amount-cell .r24-booking-details-cta {
+    margin-top:12px !important; min-height:38px;
+    padding:8px 12px !important; border-radius:10px !important;
+    background:#eff6ff !important; border:2px solid #2563eb !important;
+    box-shadow:0 3px 10px rgba(37,99,235,.10) !important;
+  }
+  /* Booking countdown is below the action buttons: center in the action cell. */
+  #view-bookings .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(8) .countdown-timer {
+    align-self:center !important; justify-self:center !important;
+    margin:12px auto 0 !important; justify-content:center !important;
+    text-align:center !important; font-size:14px !important;
+    font-weight:800 !important; font-variant-numeric:tabular-nums;
+    padding:6px 9px !important; border-radius:999px;
+    background:rgba(255,255,255,.75); border:1px solid #cbd5e1;
+  }
+}
