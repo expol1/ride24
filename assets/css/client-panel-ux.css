@@ -448,3 +448,19 @@ html:lang(en) #view-payments {
   body {padding-bottom:64px !important;}
   .content-area {padding-bottom:78px !important;}
 }
+
+/* High-contrast status chips in the mobile booking header (both client views). */
+@media(max-width:768px) {
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile {
+    min-height:38px;min-width:90px;box-sizing:border-box;
+    padding:9px 11px!important;font-size:13px!important;font-weight:900!important;
+    letter-spacing:.01em;border:2px solid transparent!important;
+    border-radius:12px!important;box-shadow:0 3px 9px rgba(15,23,42,.19)!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.awaiting_payment {background:#c2410c!important;color:#fff!important;border-color:#9a3412!important;}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.accepted,
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.paid {background:#15803d!important;color:#fff!important;border-color:#166534!important;}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.cancelled,
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.payment_expired {background:#b91c1c!important;color:#fff!important;border-color:#991b1b!important;}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.pending {background:#334155!important;color:#fff!important;border-color:#1e293b!important;}
+}
