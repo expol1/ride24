@@ -487,3 +487,38 @@ html:lang(en) #view-payments {
   :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.cancelled,
   :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.payment_expired {color:#b91c1c!important;}
 }
+
+/* Status readability correction: keep the original semantic backgrounds and
+   ensure long labels fit beside the booking ID on narrow phones. */
+@media(max-width:768px) {
+  :is(#view-dashboard,#view-bookings) .table-container tbody tr:has(>td:nth-child(8)) > td:nth-child(5) {
+    min-width:0!important;width:100%!important;justify-self:stretch!important;
+    text-align:right!important;overflow:visible!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile {
+    display:inline-flex!important;max-width:100%!important;min-width:0!important;
+    width:auto!important;box-sizing:border-box!important;
+    align-items:center!important;justify-content:center!important;
+    white-space:normal!important;overflow:visible!important;
+    overflow-wrap:break-word!important;word-break:normal!important;
+    font-size:clamp(12px,3.4vw,15px)!important;line-height:1.25!important;
+    font-weight:900!important;padding:8px 9px!important;
+    border:0!important;border-radius:9px!important;box-shadow:none!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.awaiting_payment {
+    background:#fde047!important;color:#713f12!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.cancelled,
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.payment_expired {
+    background:#b91c1c!important;color:#fff!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.paid {
+    background:#15803d!important;color:#fff!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.accepted {
+    background:#1d4ed8!important;color:#fff!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.pending {
+    background:#334155!important;color:#fff!important;
+  }
+}
