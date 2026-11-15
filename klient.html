@@ -1649,7 +1649,7 @@ async>
 .r24-client-price-deposit{background:#fffbeb;color:#92400e;padding:15px;margin-top:12px;border:1px solid #fde68a;border-radius:10px}
 </style>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
-<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261115clientstatus1">
+<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261115clientfix2">
 <link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113-switch">
@@ -3232,7 +3232,7 @@ else if (booking.status === 'accepted') {
     statusHtml = `<div class="status-tile accepted" data-pl="✅ Potwierdzona" data-en="✅ Accepted">✅ ${isEn ? 'Accepted' : 'Potwierdzona'}</div>`;
 }
 else if (booking.status === 'awaiting_payment') {
-    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Oczekuje płatności" data-en="💳 Awaiting payment">💳 ${isEn ? 'Awaiting payment' : 'Oczekuje płatności'}</div>`;
+    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Opłać" data-en="💳 Pay">💳 ${isEn ? 'Pay' : 'Opłać'}</div>`;
 
 }
 else if (booking.status === 'paid') {
@@ -3360,8 +3360,8 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     '${booking.partner_rules_snapshot ?? ""}',
     '${booking.id}'
 )"
-              style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;" data-pl="Zobacz szczegóły" data-en="View details">
-            ${isEn ? 'View details' : 'Zobacz szczegóły'}
+              style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;" data-pl="Szczegóły" data-en="Details">
+            ${isEn ? 'Details' : 'Szczegóły'}
         </span>
     </div>
 </td>
