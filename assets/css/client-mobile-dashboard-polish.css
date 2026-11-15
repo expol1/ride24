@@ -243,7 +243,7 @@ html:lang(en) #view-dashboard .r24-dash-promo-play-badge {
    Lock only the content pane, so finger scrolling never shifts the bar
    outside the visual viewport. Keep all six navigation destinations. */
 @media(max-width:768px) {
-  :root {--r24-client-fixed-nav-height:86px;}
+  :root {--r24-client-fixed-nav-height:62px;}
   html {height:100%;}
   body {
     width:100%;
@@ -365,4 +365,13 @@ html:lang(en) #view-dashboard .r24-dash-promo-play-badge {
 }
 @media(min-width:769px) {
   #view-profile .r24-mobile-account-action {display:none!important;}
+}
+
+/* Compact mobile nav: retain all six destinations and readable touch targets. */
+@media(max-width:768px) {
+  body > .sidebar .nav-menu {padding:1px 0!important;}
+  body > .sidebar .nav-menu > .nav-item {padding:3px 1px!important;gap:1px!important;}
+  body > .sidebar .nav-menu > .nav-item .nav-item-inner {gap:2px!important;}
+  body > .sidebar .nav-menu > .nav-item .nav-icon {width:21px!important;height:21px!important;font-size:19px!important;}
+  body > .sidebar .nav-menu > .nav-item .nav-text {font-size:10px!important;line-height:1.1!important;}
 }
