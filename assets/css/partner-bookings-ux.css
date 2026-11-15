@@ -430,3 +430,21 @@
     border-color:#fca5a5 !important;
   }
 }
+
+/* Mobile countdown placement: center even inside the existing actions flex/grid. */
+@media (max-width:1200px) {
+  #view-bookings .table-container tbody td:last-child .countdown-timer,
+  #view-dashboard .table-container tbody td:last-child .countdown-timer,
+  #view-bookings .table-container tbody td .timer-badge.countdown-timer,
+  #view-dashboard .table-container tbody td .timer-badge.countdown-timer {
+    justify-self:center !important;
+    align-self:center !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+    text-align:center !important;
+  }
+  #view-bookings .table-container tbody td:last-child > div > .countdown-timer,
+  #view-dashboard .table-container tbody td:last-child > div > .countdown-timer {
+    grid-column:1 / -1 !important;
+  }
+}
