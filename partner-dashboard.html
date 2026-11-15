@@ -1279,7 +1279,7 @@ async>
 </style>
 
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
-<link rel="stylesheet" href="assets/css/partner-bookings-ux.css?v=20261115desktop2">
+<link rel="stylesheet" href="assets/css/partner-bookings-ux.css?v=20261115dashclock3">
 <link rel="stylesheet" href="assets/css/partner-fleet-locations-ux.css?v=20261029b">
 <link rel="stylesheet" href="assets/css/partner-android-showcase.css?v=20261029a">
 </head>
@@ -3877,7 +3877,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
 
         <td>${statusHtml}<span class="r24-desktop-status-id">#R24-${booking.id.toString().slice(-4)}</span></td>
 
-        <td>${timerHtml}</td>
+        <td class="r24-dashboard-timer-old-slot"></td>
 
         <!-- 🔥 NOWA KOLUMNA -->
         <td class="r24-booking-amount-cell" style="font-weight:800; color:#73D700; white-space:nowrap;">
@@ -3888,7 +3888,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
 </button>` : ''}
         </td>
 
-        <td>${actions}</td>
+        <td class="r24-dashboard-actions-with-timer">${actions}${timerHtml}</td>
     </tr>
 `;
 
