@@ -752,7 +752,50 @@
         }
         .r24-custom-agreement-close:hover { background: #e2e8f0; color: #0f172a; }
         .r24-custom-agreement-close:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
-    </style>
+    
+/* RIDE24_ADMIN_MOBILE_NAV_V2_SAFE_ROLLBACK_20261115 */
+@media(max-width:768px){
+ html,body,.main-wrapper {max-width:100%;min-width:0;overflow-x:hidden}
+ body,.main-wrapper {width:100%}
+ .content-area{min-width:0;max-width:100%;overflow-x:hidden;padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+ .topbar,.admin-badge{min-width:0}
+ #admin-email{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mobile-nav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;justify-content:stretch;gap:0;width:100%;max-width:100vw;height:calc(64px + env(safe-area-inset-bottom,0px));padding:0 3px env(safe-area-inset-bottom,0px);overflow:hidden;box-sizing:border-box;z-index:1001}
+ .mobile-nav-item{appearance:none;background:transparent;border:0;border-top:3px solid transparent;border-radius:0;min-width:0;width:100%;height:64px;padding:6px 1px;display:flex;justify-content:center;align-items:center;font:600 10px/1.15 Inter,sans-serif;color:#CBD5E1;overflow:hidden;white-space:nowrap;touch-action:manipulation}
+ .mobile-nav-item>span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+ .mobile-nav-item>span:first-child{font-size:19px;line-height:1}
+ .mobile-nav-item.active{border-top-color:#86EFAC;background:#13253E;color:white}
+ .mobile-nav-item:focus-visible,.mobile-admin-more :focus-visible{outline:2px solid #86EFAC;outline-offset:-2px}
+ .mobile-admin-more-backdrop:not([hidden]){display:block;position:fixed;inset:0;background:rgba(2,6,23,.4);z-index:999}
+ .mobile-admin-more:not([hidden]){display:block;position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom,0px));max-height:min(68vh,540px);max-height:min(68dvh,540px);overflow-y:auto;overscroll-behavior:contain;padding:12px;border-radius:14px;background:#fff;border:1px solid #CBD5E1;box-shadow:0 15px 35px rgba(15,23,42,.25);z-index:1002}
+ .mobile-admin-more-header{display:flex;justify-content:space-between;align-items:center;padding:3px 2px 11px}
+ .mobile-admin-more-header button{border:0;border-radius:7px;background:#E2E8F0;font-size:24px;min-width:36px;min-height:36px}
+ .mobile-admin-more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .mobile-admin-more-grid button,.mobile-admin-more-grid a{display:block;min-width:0;min-height:44px;padding:12px 8px;border:1px solid #E2E8F0;border-radius:9px;background:#F8FAFC;color:#0F172A;text-decoration:none;text-align:left;font:600 12px/1.35 Inter,sans-serif;overflow-wrap:anywhere}
+ #view-refunds .table-container{max-width:100%;overflow-x:visible}
+ #view-refunds table,#view-refunds tbody{display:block;width:100%;min-width:0}
+ #view-refunds thead{display:none}
+ #view-refunds tbody tr{display:block;width:100%;margin-bottom:12px;border:1px solid #E2E8F0;border-radius:11px;background:#FFF;overflow:hidden}
+ #view-refunds tbody td{display:block;width:100%;max-width:100%!important;min-width:0;padding:10px 12px;font-size:12px;overflow-wrap:anywhere;white-space:normal}
+ #view-refunds tbody td::before{display:block;margin-bottom:4px;font-weight:800;font-size:10px;letter-spacing:.03em;text-transform:uppercase;color:#64748B}
+ #api-supplier-refunds-tbody td:nth-child(1)::before{content:"Wypożyczalnia / numery"}
+ #api-supplier-refunds-tbody td:nth-child(2)::before{content:"Klient"}
+ #api-supplier-refunds-tbody td:nth-child(3)::before{content:"Kontakt"}
+ #api-supplier-refunds-tbody td:nth-child(4)::before{content:"Zwrot Ride24"}
+ #api-supplier-refunds-tbody td:nth-child(5)::before{content:"Wynajem"}
+ #api-supplier-refunds-tbody td:nth-child(6)::before{content:"Status"}
+ #api-supplier-refunds-tbody td:nth-child(7)::before{content:"Działania"}
+ #refunds-tbody td:nth-child(1)::before{content:"Klient"}
+ #refunds-tbody td:nth-child(2)::before{content:"Data"}
+ #refunds-tbody td:nth-child(3)::before{content:"Kwota"}
+ #refunds-tbody td:nth-child(4)::before{content:"Procent"}
+ #refunds-tbody td:nth-child(5)::before{content:"Konto"}
+ #refunds-tbody td:nth-child(6)::before{content:"Powód"}
+ #refunds-tbody td:nth-child(7)::before{content:"Działania"}
+ #view-refunds tbody td[colspan]::before{display:none}
+ #view-refunds tbody button{min-height:42px;margin:2px 5px 2px 0}
+}
+</style>
 <link rel="stylesheet" href="../assets/css/admin-seo.css?v=20261014a">
 <link rel="stylesheet" href="../assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -807,41 +850,27 @@
     <a class="nav-item" href="/admin/polecenia.html">Polecenia · 10%</a>
 </nav>
     </aside>
-<nav class="mobile-nav">
-    <div class="mobile-nav-item active" onclick="switchTab('radar')" id="m-nav-radar">
-                <span>📡</span>
-                <span>Radar</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('partners')" id="m-nav-partners">
-                <span>🤝</span>
-                <span>Firmy</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('messages')" id="m-nav-messages">
-                <span>✉️</span>
-                <span>Wiadomości</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('search')" id="m-nav-search">
-                <span>🔍</span>
-                <span>Search</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('guides')" id="m-nav-guides">
-        <span>🗺️</span>
-        <span>Guides</span>
-    </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('seo')" id="m-nav-seo"><span>🔎</span><span>SEO</span></div>
-
-    <div class="mobile-nav-item" onclick="switchTab('marketing')" id="m-nav-marketing">
-                <span>🚀</span>
-                <span>Marketing</span>
-            </div>
-
-    <a class="mobile-nav-item" href="/admin/polecenia.html"><span>↗</span><span>Polecenia</span></a>
+<nav class="mobile-nav" aria-label="Nawigacja mobilna administratora">
+<button type="button" class="mobile-nav-item active" onclick="switchTab('radar')" id="m-nav-radar"><span>📡</span><span>Radar</span></button>
+<button type="button" class="mobile-nav-item" onclick="switchTab('partners')" id="m-nav-partners"><span>🤝</span><span>Firmy</span></button>
+<button type="button" class="mobile-nav-item" onclick="switchTab('bookings')" id="m-nav-bookings"><span>📅</span><span>Rezerwacje</span></button>
+<button type="button" class="mobile-nav-item" onclick="switchTab('refunds')" id="m-nav-refunds"><span>↩️</span><span>Zwroty</span></button>
+<button type="button" class="mobile-nav-item" onclick="toggleMobileMore()" id="m-nav-more" aria-controls="mobile-admin-more" aria-expanded="false"><span>☰</span><span>Więcej</span></button>
 </nav>
+<div id="mobile-admin-more-backdrop" class="mobile-admin-more-backdrop" onclick="closeMobileMore()" hidden></div>
+<div id="mobile-admin-more" class="mobile-admin-more" role="dialog" aria-label="Pozostałe sekcje" hidden>
+<div class="mobile-admin-more-header"><strong>Pozostałe sekcje</strong><button type="button" onclick="closeMobileMore()" aria-label="Zamknij">×</button></div>
+<div class="mobile-admin-more-grid">
+<button type="button" onclick="switchTab('clients')">👤 Klienci</button>
+<button type="button" onclick="switchTab('finances')">💳 Rozliczenia Stripe</button>
+<button type="button" onclick="switchTab('deletions')">🗑️ Usunięcia kont</button>
+<button type="button" onclick="switchTab('messages')">✉️ Wiadomości</button>
+<button type="button" onclick="switchTab('search')">🔍 Smart Search</button>
+<button type="button" onclick="switchTab('guides')">🗺️ Autoprzewodniki</button>
+<button type="button" onclick="switchTab('seo')">🔎 SEO</button>
+<button type="button" onclick="switchTab('marketing')">🚀 Marketing</button>
+<a href="/admin/polecenia.html">↗ Polecenia</a>
+</div></div>
     <div class="main-wrapper">
         <header class="topbar">
             <div class="admin-badge">
@@ -2460,7 +2489,23 @@ function closePromotionModal() {
         });
 
         // --- NAWIGACJA ---
-       window.switchTab = function(tabId) {
+              window.closeMobileMore=function(){
+ const box=document.getElementById('mobile-admin-more');
+ const shade=document.getElementById('mobile-admin-more-backdrop');
+ const btn=document.getElementById('m-nav-more');
+ if(box)box.hidden=true;if(shade)shade.hidden=true;if(btn)btn.setAttribute('aria-expanded','false');
+ };
+       window.toggleMobileMore=function(){
+ const box=document.getElementById('mobile-admin-more');
+ const shade=document.getElementById('mobile-admin-more-backdrop');
+ const btn=document.getElementById('m-nav-more');
+ if(!box||!shade||!btn)return;
+ const open=box.hidden;
+ box.hidden=!open;shade.hidden=!open;btn.setAttribute('aria-expanded',String(open));
+ };
+       document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMore()});
+window.switchTab = function(tabId) {
+            closeMobileMore();
             if (tabId === "radar") loadRadarData();
             if (tabId === "clients") loadClientsData();
             if (tabId === "bookings") loadBookingsData();
@@ -2503,6 +2548,7 @@ function closePromotionModal() {
             document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active'));
             const mobileNavBtn = document.getElementById('m-nav-' + tabId);
             if(mobileNavBtn) mobileNavBtn.classList.add('active');
+            else {const moreBtn=document.getElementById('m-nav-more');if(moreBtn)moreBtn.classList.add('active');}
         }
 
         window.logout = async function() {
