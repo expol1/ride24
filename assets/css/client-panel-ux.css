@@ -464,3 +464,26 @@ html:lang(en) #view-payments {
   :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.payment_expired {background:#b91c1c!important;color:#fff!important;border-color:#991b1b!important;}
   :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.pending {background:#334155!important;color:#fff!important;border-color:#1e293b!important;}
 }
+
+/* Mobile booking statuses: larger type without heavy borders or shadows.
+   Yellow remains reserved for payment; red only for cancellation/rejection/expiry. */
+@media(max-width:768px) {
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile {
+    min-width:0!important;min-height:0!important;
+    padding:5px 3px!important;
+    border:0!important;border-radius:0!important;
+    box-shadow:none!important;background:transparent!important;
+    font-size:16px!important;line-height:1.25!important;font-weight:900!important;
+    letter-spacing:.005em;text-shadow:none!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.awaiting_payment {
+    background:#fde047!important;color:#713f12!important;
+    padding:8px 12px!important;border-radius:9px!important;
+    box-shadow:none!important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.accepted {color:#1d4ed8!important;}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.paid {color:#166534!important;}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.pending {color:#334155!important;}
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.cancelled,
+  :is(#view-dashboard,#view-bookings) .table-container tbody td:nth-child(5) .status-tile.payment_expired {color:#b91c1c!important;}
+}
