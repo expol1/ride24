@@ -1003,7 +1003,32 @@
                 grid-template-columns:repeat(3,minmax(0,1fr)) !important;
             }
         }
-    </style>
+    
+/* Mobile readability only: partner booking status, locations, dates and contact notice.
+   Keep existing status colors, backgrounds, buttons and business logic intact. */
+@media (max-width:768px) {
+  #bookings-list-tbody .status-tile,
+  #dashboard-requests-tbody .status-tile {
+    font-size:16px!important;font-weight:900!important;line-height:1.25!important;
+    max-width:100%;white-space:normal;overflow-wrap:break-word;
+  }
+  #bookings-list-tbody .r24-partner-booking-locations,
+  #dashboard-requests-tbody .r24-partner-booking-locations {
+    font-size:16px!important;line-height:1.45!important;font-weight:750!important;
+    overflow-wrap:anywhere;
+  }
+  #bookings-list-tbody .r24-partner-booking-dates,
+  #dashboard-requests-tbody .r24-partner-booking-dates {
+    font-size:16px!important;line-height:1.4!important;font-weight:750!important;
+    overflow-wrap:anywhere;
+  }
+  #bookings-list-tbody .r24-partner-booking-contact,
+  #dashboard-requests-tbody .r24-partner-booking-contact {
+    font-size:14px!important;line-height:1.4!important;font-weight:700!important;
+    overflow-wrap:anywhere;
+  }
+}
+</style>
     <link rel="stylesheet" href="assets/css/partner-guide.css?v=20261017">
 <!-- TrustBox script -->
 <script type="text/javascript"
@@ -3777,7 +3802,7 @@ if (booking.status === "paid") {
 
     // 🔒 PRZED OPŁACENIEM – ukryte
     contactDisplay = `
-        <div style="font-size:11px; color:var(--gray); margin-top:4px; font-weight:600;">
+        <div class="r24-partner-booking-contact" style="font-size:11px; color:var(--gray); margin-top:4px; font-weight:600;">
             <span data-pl="🔒 Dane kontaktowe widoczne po potwierdzeniu" data-en="🔒 Contact details visible after confirmation">${partnerText("🔒 Dane kontaktowe widoczne po potwierdzeniu", "🔒 Contact details visible after confirmation")}</span>
         </div>
     `;
@@ -3789,7 +3814,7 @@ const pLoc = escapeHtmlValue(booking.pickup_location || "---");
 const dLoc = escapeHtmlValue(booking.return_location || booking.pickup_location || "---");
 
 const locationDisplay = `
-    <div style="font-size:12px; line-height:1.4;">
+    <div class="r24-partner-booking-locations" style="font-size:12px; line-height:1.4;">
         <span style="color:#73D700; font-weight:800;" data-pl="Odbiór:" data-en="Pickup:">${partnerText("Odbiór:", "Pickup:")}</span> ${pLoc}<br>
         <span style="color:#F97316; font-weight:800;" data-pl="Zwrot:" data-en="Return:">${partnerText("Zwrot:", "Return:")}</span> ${dLoc}
     </div>
@@ -3818,7 +3843,7 @@ const rowHtml = `
 
         <td>${statusHtml}<span class="r24-desktop-status-id">#R24-${booking.id.toString().slice(-4)}</span></td>
 
-        <td>${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
+        <td class="r24-partner-booking-dates">${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
 
         <!-- ✅ JEDYNA KOLUMNA Z KWOTĄ -->
         <td class="r24-booking-amount-cell" style="font-weight:800; color:#73D700; white-space:nowrap;">
@@ -3873,7 +3898,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
 
         <td>${locationDisplay}</td>
 
-        <td>${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
+        <td class="r24-partner-booking-dates">${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
 
         <td>${statusHtml}<span class="r24-desktop-status-id">#R24-${booking.id.toString().slice(-4)}</span></td>
 
