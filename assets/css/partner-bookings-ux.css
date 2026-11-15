@@ -398,3 +398,35 @@
 :is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-hint {
   color:#475569 !important; opacity:1 !important;
 }
+
+/* SAFE UX V2: centered countdown clock on mobile only.
+   Existing countdown JS, data-deadline and urgency state remain untouched. */
+@media (max-width:1200px) {
+  :is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:9px !important;
+    width:fit-content !important;
+    max-width:100% !important;
+    min-width:170px;
+    margin:12px auto 5px !important;
+    padding:10px 18px !important;
+    border:1px solid #bfdbfe !important;
+    border-radius:999px !important;
+    background:linear-gradient(135deg,#ffffff,#eff6ff) !important;
+    color:#1e40af !important;
+    box-shadow:0 3px 12px rgba(30,64,175,.10) !important;
+    font-size:20px !important;
+    font-weight:800 !important;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.8px;
+    line-height:1.3 !important;
+    text-align:center !important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer.timer-urgent {
+    color:#b91c1c !important;
+    background:linear-gradient(135deg,#fff7f7,#fee2e2) !important;
+    border-color:#fca5a5 !important;
+  }
+}
