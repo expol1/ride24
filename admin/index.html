@@ -2323,17 +2323,19 @@ async function loadDeletionRequests() {
          await loadApiSupplierRefunds();
        }
        async function markApiSupplierResolved(bookingId) {
-         const method=prompt("Wpisz UZGODNIONY i WYKONANY sposób rozliczenia: stripe, bank_transfer, voucher, other","");
-         if(method===null)return;
-         const selected=method.trim();
-         if(!["stripe","bank_transfer","voucher","other"].includes(selected)){
-           alert("Podaj: stripe, bank_transfer, voucher lub other.");return;
-         }
-         const note=prompt("Notatka o zwrocie lub zgodzie klienta na bon (przy bonie obowiązkowa):","");
-         if(note===null)return;
-         if(!confirm("Czy rozliczenie zostało już wykonane i uzgodnione poza panelem? Ten przycisk NICZEGO nie wypłaca i nie generuje bonu."))return;
+         const answer=prompt("Wpisz sposób zakończonego rozliczenia: bank, Stripe lub bon", "");
+         if(answer===null)return;
+         const selected=answer.trim().toLowerCase();
+         const options={bank:"bank_transfer",przelew:"bank_transfer",stripe:"stripe",bon:"voucher"};
+         const method=options[selected];
+         if(!method){alert("Wpisz tylko: bank, Stripe lub bon.");return;}
+         // Backend requires a note for voucher; add a neutral technical note without another question.
+         // This never issues a voucher or sends a Stripe refund.
+         const note=method==="voucher"
+           ?"Bon: metoda rozliczenia wskazana ręcznie w panelu; bon nie jest wystawiany automatycznie."
+           :null;
          const {error}=await db.rpc("admin_update_api_supplier_refund",
-           {p_booking_id:bookingId,p_action:"resolved",p_method:selected,p_note:note||null});
+           {p_booking_id:bookingId,p_action:"resolved",p_method:method,p_note:note});
          if(error){alert("Błąd: "+error.message);return;}
          await loadApiSupplierRefunds();
          loadRadarData();
