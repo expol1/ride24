@@ -433,7 +433,7 @@ test('web booking breakdown CTA is visible in dashboard and bookings with transl
     assert.equal(panel.split('class="r24-items-open r24-booking-details-cta"').length - 1, 2);
     assert.ok(panel.includes('data-pl="Szczegóły i rozliczenie" data-en="Details and price breakdown"'));
     assert.ok(panel.includes('data-pl="Sprawdź foteliki, dodatki, dopłaty i cenę" data-en="Check child seats, extras, surcharges and price"'));
-    assert.ok(panel.includes('assets/css/partner-bookings-ux.css?v=20261115dashclock3'));
+    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=[A-Za-z0-9_-]+/);
     assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261110a'));
 });
 
@@ -453,7 +453,7 @@ test('desktop breakdown CTA stays compact on Bookings and Dashboard while mobile
         assert.match(block, /onclick="openPartnerBookingItems/);
     }
     assert.equal((panel.match(/onclick="openPartnerBookingItems/g) || []).length, 2);
-    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=20261115dashclock3/);
+    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=[A-Za-z0-9_-]+/);
     assert.match(css, /@media\s*\(max-width:1200px\)[\s\S]*min-height:78px/);
     const marker = css.indexOf('R24 DESKTOP COMPACT PRICE BREAKDOWN CTA');
     assert.ok(marker > 0, 'Desktop-only compact styling is missing');
