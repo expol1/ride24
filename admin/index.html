@@ -973,6 +973,23 @@
         <h1 class="page-title">Zwroty do zatwierdzenia</h1>
     </div>
 
+
+    <div class="table-container" style="margin-bottom:22px;border:1px solid #93c5fd;">
+      <div style="padding:16px 18px 8px;">
+        <h2 style="font-size:18px;margin:0 0 8px;color:#123a66;">Zwroty API — anulowanie przez wypożyczalnię</h2>
+        <p style="font-size:13px;color:#475569;line-height:1.6;margin:0 0 8px;">
+          Oddzielna kolejka po potwierdzeniu anulowania w API. 100% opłaty rezerwacyjnej faktycznie pobranej przez Ride24, bez reguł 60/30 dni.
+          Kontakt i rozliczenie są ręczne. Przyciski nie wykonują zwrotu Stripe ani nie wydają bonu.
+        </p>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Partner i numery</th><th>Klient</th><th>Kontakt</th><th>Zwrot Ride24</th><th>Wynajem</th><th>Stan</th><th>Działania ręczne</th></tr></thead>
+          <tbody id="api-supplier-refunds-tbody"><tr><td colspan="7">Ładowanie...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <h2 style="font-size:17px;margin:16px 0 12px;">Pozostałe zwroty standardowe</h2>
     <div class="table-container">
         <table>
             <thead>
@@ -2234,7 +2251,66 @@ async function loadDeletionRequests() {
     const statDeletions = document.getElementById("stat-deletions");
     if (statDeletions) statDeletions.innerText = totalDeletions;
 }
+
+       async function loadApiSupplierRefunds() {
+         const tbody=document.getElementById("api-supplier-refunds-tbody");
+         if(!tbody)return;
+         tbody.innerHTML="<tr><td colspan='7'>Ładowanie...</td></tr>";
+         const {data,error}=await db.rpc("admin_get_api_supplier_refunds");
+         if(error){console.error("Zwroty API",error);tbody.innerHTML="<tr><td colspan='7'>Błąd pobierania zwrotów API</td></tr>";return;}
+         tbody.replaceChildren();
+         if(!data||!data.length){tbody.innerHTML="<tr><td colspan='7'>Brak anulowań API do rozliczenia</td></tr>";return;}
+         const safe=v=>escapeHtml(String(v==null?"":v));
+         const money=v=>new Intl.NumberFormat("pl-PL",{style:"currency",currency:"PLN"}).format(Number(v)||0);
+         data.forEach(r=>{
+           const open=!r.resolved_at&&r.refund_status==="pending";
+           const state=r.resolved_at?"Rozliczono ("+(r.resolution_method||"—")+")":
+             r.contacted_at?"Skontaktowano — sprawa otwarta":"Do kontaktu";
+           const tr=document.createElement("tr");
+           tr.innerHTML=
+             '<td><b>'+safe(r.partner_name)+'</b><div style="font-size:12px">Ride24: '+safe(r.ride24_ref)+
+             '</div><div style="font-size:12px">API: '+safe(r.supplier_ref)+'</div></td>'+
+             '<td>'+safe(r.client_name)+'</td>'+
+             '<td><div>'+safe(r.client_phone)+'</div><div style="font-size:12px">'+safe(r.client_email)+'</div></td>'+
+             '<td style="font-weight:700;white-space:nowrap">'+safe(money(r.amount_pln))+
+             '<div style="font-size:11px;font-weight:400">100% opłaty Ride24</div></td>'+
+             '<td>'+safe(r.start_date)+' – '+safe(r.end_date)+'</td>'+
+             '<td><b>'+safe(state)+'</b><div style="font-size:11px;max-width:210px;white-space:pre-wrap">'+safe(r.resolution_note)+'</div></td>'+
+             '<td>'+(open?'<button type="button" class="btn-secondary" data-api-contact>Skontaktowano</button> '+
+                    '<button type="button" class="btn-primary" data-api-resolve>Rozliczono</button>':'—')+'</td>';
+           const contact=tr.querySelector("[data-api-contact]");
+           const resolve=tr.querySelector("[data-api-resolve]");
+           if(contact)contact.addEventListener("click",()=>markApiSupplierContacted(r.booking_id));
+           if(resolve)resolve.addEventListener("click",()=>markApiSupplierResolved(r.booking_id));
+           tbody.appendChild(tr);
+         });
+       }
+       async function markApiSupplierContacted(bookingId) {
+         const note=prompt("Notatka z kontaktu z klientem (opcjonalna):","");
+         if(note===null)return;
+         const {error}=await db.rpc("admin_update_api_supplier_refund",
+           {p_booking_id:bookingId,p_action:"contacted",p_method:null,p_note:note||null});
+         if(error){alert("Błąd: "+error.message);return;}
+         await loadApiSupplierRefunds();
+       }
+       async function markApiSupplierResolved(bookingId) {
+         const method=prompt("Wpisz UZGODNIONY i WYKONANY sposób rozliczenia: stripe, bank_transfer, voucher, other","");
+         if(method===null)return;
+         const selected=method.trim();
+         if(!["stripe","bank_transfer","voucher","other"].includes(selected)){
+           alert("Podaj: stripe, bank_transfer, voucher lub other.");return;
+         }
+         const note=prompt("Notatka o zwrocie lub zgodzie klienta na bon (przy bonie obowiązkowa):","");
+         if(note===null)return;
+         if(!confirm("Czy rozliczenie zostało już wykonane i uzgodnione poza panelem? Ten przycisk NICZEGO nie wypłaca i nie generuje bonu."))return;
+         const {error}=await db.rpc("admin_update_api_supplier_refund",
+           {p_booking_id:bookingId,p_action:"resolved",p_method:selected,p_note:note||null});
+         if(error){alert("Błąd: "+error.message);return;}
+         await loadApiSupplierRefunds();
+         loadRadarData();
+       }
        async function loadRefunds() {
+  void loadApiSupplierRefunds();
 
   const { data, error } = await db.rpc("admin_get_refunds");
 
@@ -2247,12 +2323,13 @@ async function loadDeletionRequests() {
     return;
   }
 
-  if (!data.length) {
+  const regularRefunds=(data||[]).filter(r=>r.reason!=="API_SUPPLIER_CANCELLED_FULL_FEE");
+  if (!regularRefunds.length) {
     tbody.innerHTML = "<tr><td colspan='7'>Brak zwrotów</td></tr>";
     return;
   }
 
-  data.forEach(r => {
+  regularRefunds.forEach(r => {
     tbody.innerHTML += `
       <tr>
 
@@ -2510,8 +2587,10 @@ async function loadRadarData(){
     (async()=>{
       const el=document.getElementById('stat-pending-refunds');
       try{
-        const {data,error}=await db.rpc('admin_get_refunds');
-        if(el)el.textContent=error?'—':String((data||[]).length);
+        const [regular,api]=await Promise.all([db.rpc('admin_get_refunds'),db.rpc('admin_get_api_supplier_refunds')]);
+        const normalCount=(regular.data||[]).filter(r=>r.reason!=='API_SUPPLIER_CANCELLED_FULL_FEE').length;
+        const apiCount=(api.data||[]).filter(r=>!r.resolved_at&&r.refund_status==='pending').length;
+        if(el)el.textContent=(regular.error||api.error)?'—':String(normalCount+apiCount);
       }catch(error){if(el)el.textContent='—';console.error('Radar pending refunds',error);}
     })()
   ]);
