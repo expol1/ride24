@@ -243,7 +243,7 @@ html:lang(en) #view-dashboard .r24-dash-promo-play-badge {
    Lock only the content pane, so finger scrolling never shifts the bar
    outside the visual viewport. Keep all six navigation destinations. */
 @media(max-width:768px) {
-  :root {--r24-client-fixed-nav-height:62px;}
+  :root {--r24-client-fixed-nav-height:54px;}
   html {height:100%;}
   body {
     width:100%;
@@ -374,4 +374,21 @@ html:lang(en) #view-dashboard .r24-dash-promo-play-badge {
   body > .sidebar .nav-menu > .nav-item .nav-item-inner {gap:2px!important;}
   body > .sidebar .nav-menu > .nav-item .nav-icon {width:21px!important;height:21px!important;font-size:19px!important;}
   body > .sidebar .nav-menu > .nav-item .nav-text {font-size:10px!important;line-height:1.1!important;}
+}
+
+/* Keep bottom navigation visually compact, including the safe-area zone. */
+@media(max-width:768px) {
+  body > .sidebar {
+    height:54px!important;
+    max-height:54px!important;
+    padding:0 3px!important;
+    bottom:0!important;
+    overflow:visible!important;
+  }
+  body > .sidebar .nav-menu {height:54px!important;max-height:54px!important;padding:0!important;}
+  body > .sidebar .nav-menu > .nav-item {height:54px!important;padding:1px!important;gap:0!important;}
+  body > .sidebar .nav-menu > .nav-item .nav-item-inner {gap:1px!important;}
+  body > .sidebar .nav-menu > .nav-item .nav-icon {width:19px!important;height:19px!important;font-size:18px!important;}
+  body > .sidebar .nav-menu > .nav-item .nav-text {font-size:10px!important;line-height:1.05!important;}
+  body > .main-wrapper > .content-area {padding-bottom:calc(54px + env(safe-area-inset-bottom,0px) + 14px)!important;}
 }
