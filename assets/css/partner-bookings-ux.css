@@ -448,3 +448,16 @@
     grid-column:1 / -1 !important;
   }
 }
+
+/* Hourglass is already rendered by the existing countdown renderer (⌛).
+   Preserve the exact displayed countdown text and its update mechanism. */
+:is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer {
+  text-shadow:0 1px 0 rgba(255,255,255,.65);
+}
+@media (max-width:1200px) {
+  :is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer {
+    font-family:Inter,system-ui,"Segoe UI Emoji",sans-serif !important;
+    font-size:21px !important;
+    box-shadow:0 4px 14px rgba(37,99,235,.15),inset 0 1px 0 #fff !important;
+  }
+}
