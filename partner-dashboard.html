@@ -218,16 +218,21 @@
 
         /* DEMO ONLY: partner booking table visual status, no booking logic changes */
         #view-dashboard .r24-status-row > td,
-        #view-bookings .r24-status-row > td { background: var(--r24-row-bg, #f8fafc) !important; border-bottom: 2px solid rgba(15,23,42,.09); vertical-align: middle; }
+        #view-bookings .r24-status-row > td { background: linear-gradient(90deg, var(--r24-row-strong, #e2e8f0) 0%, var(--r24-row-soft, #f8fafc) 100%) !important; border-bottom: 2px solid rgba(15,23,42,.09); vertical-align: middle; }
+        /* The gradient spans the entire row, not each individual cell. */
+        #view-dashboard .r24-status-row,
+        #view-bookings .r24-status-row { background: linear-gradient(90deg, var(--r24-row-strong, #e2e8f0) 0%, var(--r24-row-soft, #f8fafc) 100%) !important; }
+        #view-dashboard .r24-status-row > td,
+        #view-bookings .r24-status-row > td { background: transparent !important; }
         #view-dashboard .r24-status-row > td:first-child,
         #view-bookings .r24-status-row > td:first-child { border-left: 6px solid var(--r24-row-accent, #64748b); font-weight: 800; }
-        .r24-status-row.r24-status-pending { --r24-row-bg:#e2e8f0; --r24-row-accent:#64748b; }
-        .r24-status-row.r24-status-awaiting_payment { --r24-row-bg:#ffe27a; --r24-row-accent:#bd8d00; }
-        .r24-status-row.r24-status-paid { --r24-row-bg:#a0e2af; --r24-row-accent:#18833b; }
+        .r24-status-row.r24-status-pending { --r24-row-strong:#cbd5e1; --r24-row-soft:#f8fafc; --r24-row-accent:#64748b; }
+        .r24-status-row.r24-status-awaiting_payment { --r24-row-strong:#facc15; --r24-row-soft:#fffbeb; --r24-row-accent:#bd8d00; }
+        .r24-status-row.r24-status-paid { --r24-row-strong:#86d79b; --r24-row-soft:#f0fdf4; --r24-row-accent:#18833b; }
         .r24-status-row.r24-status-cancelled,
         .r24-status-row.r24-status-rejected,
         .r24-status-row.r24-status-payment_expired,
-        .r24-status-row.r24-status-expired { --r24-row-bg:#fca5a5; --r24-row-accent:#b91c1c; }
+        .r24-status-row.r24-status-expired { --r24-row-strong:#fca5a5; --r24-row-soft:#fff1f2; --r24-row-accent:#b91c1c; }
         #view-dashboard .r24-status-row .r24-booking-details-cta,
         #view-bookings .r24-status-row .r24-booking-details-cta { background:#fff !important; border:2px solid #2563eb !important; border-radius:10px; padding:9px 11px !important; color:#1d4ed8 !important; text-decoration:none !important; box-shadow:0 2px 6px #0f172a1a; }
         #view-dashboard .r24-status-row .r24-booking-details-cta:focus-visible,
