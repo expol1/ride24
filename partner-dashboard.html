@@ -215,30 +215,6 @@
         .class-code { font-weight: 800; font-size: 16px; color: #0F172A; margin-right: 6px; }
         .class-label { color: #334155; font-weight: 600; }
         
-
-        /* DEMO ONLY: partner booking table visual status, no booking logic changes */
-        #view-dashboard .r24-status-row > td,
-        #view-bookings .r24-status-row > td { background: linear-gradient(90deg, var(--r24-row-strong, #e2e8f0) 0%, var(--r24-row-soft, #f8fafc) 100%) !important; border-bottom: 2px solid rgba(15,23,42,.09); vertical-align: middle; }
-        /* The gradient spans the entire row, not each individual cell. */
-        #view-dashboard .r24-status-row,
-        #view-bookings .r24-status-row { background: linear-gradient(90deg, var(--r24-row-strong, #e2e8f0) 0%, var(--r24-row-soft, #f8fafc) 100%) !important; }
-        #view-dashboard .r24-status-row > td,
-        #view-bookings .r24-status-row > td { background: transparent !important; }
-        #view-dashboard .r24-status-row > td:first-child,
-        #view-bookings .r24-status-row > td:first-child { border-left: 6px solid var(--r24-row-accent, #64748b); font-weight: 800; }
-        .r24-status-row.r24-status-pending { --r24-row-strong:#cbd5e1; --r24-row-soft:#f8fafc; --r24-row-accent:#64748b; }
-        .r24-status-row.r24-status-awaiting_payment { --r24-row-strong:#facc15; --r24-row-soft:#fffbeb; --r24-row-accent:#bd8d00; }
-        .r24-status-row.r24-status-paid { --r24-row-strong:#86d79b; --r24-row-soft:#f0fdf4; --r24-row-accent:#18833b; }
-        .r24-status-row.r24-status-cancelled,
-        .r24-status-row.r24-status-rejected,
-        .r24-status-row.r24-status-payment_expired,
-        .r24-status-row.r24-status-expired { --r24-row-strong:#fca5a5; --r24-row-soft:#fff1f2; --r24-row-accent:#b91c1c; }
-        #view-dashboard .r24-status-row .r24-booking-details-cta,
-        #view-bookings .r24-status-row .r24-booking-details-cta { background:#fff !important; border:2px solid #2563eb !important; border-radius:10px; padding:9px 11px !important; color:#1d4ed8 !important; text-decoration:none !important; box-shadow:0 2px 6px #0f172a1a; }
-        #view-dashboard .r24-status-row .r24-booking-details-cta:focus-visible,
-        #view-bookings .r24-status-row .r24-booking-details-cta:focus-visible { outline:3px solid #1d4ed8; outline-offset:3px; }
-        #view-dashboard .r24-status-row .r24-booking-amount-cell,
-        #view-bookings .r24-status-row .r24-booking-amount-cell { color:#14532d !important; }
         /* --- /* --- PREMIUM STATUS TILES (PARTNER) --- */
         .status-tile {
             display: inline-flex;
@@ -1558,11 +1534,11 @@ async>
                     <table>
                         <thead>
                             <tr>
-                                <th data-pl="Status" data-en="Status">Status</th>
-<th data-pl="Klient" data-en="Client">Client</th>
+                                <th data-pl="Klient" data-en="Client">Client</th>
 <th data-pl="Klasa" data-en="Class">Class</th>
 <th data-pl="Odbiór / Zwrot" data-en="Pickup / Return">Pickup / Return</th>
 <th data-pl="Daty" data-en="Dates">Dates</th>
+<th data-pl="Status" data-en="Status">Status</th>
 <th data-pl="Pozostały czas" data-en="Response time left">Response time left</th>
 
 <th data-pl="Kwota przy odbiorze" data-en="Amount at pickup">Amount at pickup</th>
@@ -1670,11 +1646,11 @@ async>
                     <table>
                         <thead>
                           <tr>
-                                <th data-pl="Status" data-en="Status">Status</th>
-<th>ID</th>
+                                <th>ID</th>
 <th data-pl="Klient" data-en="Client">Client</th>
 <th data-pl="Klasa" data-en="Class">Class</th>
 <th data-pl="Odbiór / Zwrot" data-en="Pickup / Return">Pickup / Return</th>
+<th data-pl="Status" data-en="Status">Status</th>
 <th data-pl="Daty" data-en="Dates">Dates</th>
 
 <th data-pl="Kwota przy odbiorze" data-en="Amount at pickup">Amount at pickup</th>
@@ -3824,8 +3800,7 @@ const locationDisplay = `
 const currency = getCurrencySymbol(booking.partner_currency || 'USD');
 
 const rowHtml = `
-    <tr class="clickable-row r24-status-row r24-status-${booking.status}">
-        <td>${statusHtml}</td>
+    <tr class="clickable-row">
         <td style="font-weight: 700;">#R24-${booking.id.toString().slice(-4)}</td>
 
        <td>
@@ -3840,6 +3815,8 @@ const rowHtml = `
 </td>
 
         <td>${locationDisplay}</td>
+
+        <td>${statusHtml}</td>
 
         <td>${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
 
@@ -3880,8 +3857,7 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
     `;
 
    const dashRowHtml = `
-    <tr class="clickable-row r24-status-row r24-status-${booking.status}">
-        <td>${statusHtml}</td>
+    <tr class="clickable-row">
         <td>
             <div style="font-weight: 700;">
             ${clientName} ${clientAge} ${booking.status === 'pending' ? `<span class="badge-new" data-pl="NOWE" data-en="NEW">${partnerText("NOWE", "NEW")}</span>` : ''}
@@ -3898,6 +3874,8 @@ if (["pending", "awaiting_payment"].includes(booking.status) && dashTbody) {
         <td>${locationDisplay}</td>
 
         <td>${escapeHtmlValue(startFull)} &rarr; ${escapeHtmlValue(endFull)}</td>
+
+        <td>${statusHtml}</td>
 
         <td>${timerHtml}</td>
 
