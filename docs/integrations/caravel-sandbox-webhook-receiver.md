@@ -44,3 +44,60 @@ Wcześniejszy `caravel-sandbox-webhook-probe` potrafi sprawdzić HMAC, ale nie z
 - Pomiary z prawdziwego ruchu 429/503, expired quote i direct `expected_price` guard — CI symuluje odpowiedzi, a nie wystawia Caravel certyfikatu.
 
 **Nigdy nie uruchamiać `POST /_certification/start` tylko dlatego, że testy CI są zielone.**
+
+## Bieżący stan środowiska po rzeczywistych testach — 16.11.2026
+
+> Powyższe historyczne fragmenty o niewdrożonych tabelach i workerach
+> pochodzą z wcześniejszej fazy. Poniżej opisano stan zweryfikowany
+> bezpośrednio w Supabase `zwyerdeuvyzgkgwglowr`.
+
+- Trzy tabele `caravel_sbx_webhook_*` już istnieją. RLS aktywne,
+  `anon` i `authenticated` nie mają uprawnień `SELECT`.
+- Trzy RPC `caravel_sbx_webhook_claim/finalize/release` już istnieją.
+  `SECURITY DEFINER=false`, brak `EXECUTE` dla klientów,
+  `service_role` ma dostęp.
+- `caravel-sandbox-reconcile-worker` v1 i
+  `caravel-sandbox-periodic-poll` v2 są wdrożone i mają sprawdzone
+  zabezpieczenia nagłówkiem `x-internal-secret`.
+- Jeden ręczny skan GBP i jeden EUR na rzeczywistym sandboxie zaliczone:
+  2 skany `idle`, 6 obserwacji (po 3 na dostawcę), wszystkie
+  `cancelled` w rewizji 2. Brak aktywnych blokad i Cron.
+- **Odbiornik `caravel-sandbox-webhook-receiver` nadal niewdrożony**.
+  `CARAVEL_SANDBOX_WEBHOOK_SECRET` i opcjonalny `_OLD` nie były
+  skonfigurowane w ostatnim administracyjnym preflight. Ich bieżący
+  stan wymaga ponownego sprawdzenia przed aktywacją.
+
+### Blokada: rzeczywisty sekret i potwierdzenie semantyki dostawy
+
+Przed wdrożeniem trzeba uzyskać od Caravel lub z ich portalu:
+
+1. Prawdziwy **sandboxowy sekret podpisu HMAC** dla rejestrowanego webhooka
+   i bezpieczny sposób jego uzyskania; nie tworzyć go lokalnie w zastępstwie
+   sekretu, którego używa nadawca.
+2. Potwierdzenie, że Caravel podpisuje dokładną ścieżkę
+   `/functions/v1/caravel-sandbox-webhook-receiver` razem z metodą POST,
+   timestampem i niezmienionym body, tak jak określa ich Webhook Receiver Guide.
+3. Potwierdzenie, czy `supplier_id` jest obecny we **wszystkich** webhookach;
+   parser dopuszcza jego brak, lecz odbiornik celowo odrzuca brakujące
+   `supplier_id` przed pobraniem rezerwacji z API.
+4. Sposób rejestracji adresu webhooka i wykonania rzeczywistej dostawy
+   sandboxowej oraz `/_certification/hmac-self-test`.
+5. Czy każda ponowiona dostawa otrzymuje **nowy podpis z aktualnym
+   timestampem** (odbiornik odrzuca podpis starszy niż 300 s).
+
+Docelowy adres **dopiero po konfiguracji i zatwierdzeniu**:
+`https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/caravel-sandbox-webhook-receiver`
+
+Nie przekazywać sekretu przez GitHub, e-mail z plaintextem lub czat.
+Wprowadzić go tylko w serwerowej konfiguracji Supabase Edge Secrets
+bez wypisywania jego wartości. Samo HTTP 503 bez HMAC nie jest certyfikacją.
+
+### Następna kolejność
+
+1. Weryfikacja preflight sekretów i dokładnego kontraktu podpisu.
+2. Po otrzymaniu sekretu, osobna decyzja o wdrożeniu receivera
+   `verify_jwt=false` ze sprawdzeniem odmowy 401/503 bez podpisu.
+3. Dostawa prawdziwie podpisanego webhooka i audyt w prywatnych tabelach:
+   deduplikacja, rewizja, 5-minutowe okno, retry, luka sekwencji.
+4. Dopiero później self-test i 24-godzinna certyfikacja po osobnej zgodzie.
+
