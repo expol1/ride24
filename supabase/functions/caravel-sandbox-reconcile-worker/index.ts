@@ -22,8 +22,12 @@ serve(async req=>{
     return json({error:"REQUEST_TOO_LARGE"},413);
   const body=await req.json().catch(()=>null);
   if(!body||typeof body!=="object"||Array.isArray(body)||
-     Object.keys(body).length!==1||body.action!=="tick")
+     Object.keys(body).length!==1||!["status","tick"].includes(body.action))
     return json({error:"BAD_REQUEST"},400);
+  // Smoke-test the internal secret without calling Caravel or modifying the DB.
+  // This is intentionally behind the same x-internal-secret gate as tick.
+  if(body.action==="status")return json({ok:true,mode:"SANDBOX_AUTH_ONLY",
+    worker:"gap-recovery",tick_executed:false},200);
   try{
     const apiKey=Deno.env.get("CARAVEL_SANDBOX_API_KEY");
     if(!apiKey)return json({error:"SANDBOX_SECRET_MISSING"},503);
