@@ -153,6 +153,7 @@ begin
         seen_tokens=case when j.page_token is null then j.seen_tokens
           else array_append(j.seen_tokens,j.page_token) end,
         processed_count=processed_count+applied_count,
+        attempts=0, -- count failures per page, not successful pages across the job
         completed_at=case when p_next_page is null then clock_timestamp() else null end,
         updated_at=clock_timestamp()
     where job_id=j.job_id;
