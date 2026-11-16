@@ -114,6 +114,54 @@ serve(async (req) => {
       all_verified: Object.values(checks).every(x => x.verified),
     });
   }
+  // Explicit, administrator-only ONE worker tick. Never forwards caller-supplied
+  // URLs, secrets, supplier IDs, or arbitrary worker payloads. No cron or
+  // certification changes. Each worker enforces its own one-page limits.
+  if (body && typeof body === "object" && !Array.isArray(body) &&
+      body.action === "worker-sandbox-tick" &&
+      (body.worker === "gap_worker" || body.worker === "periodic_worker") &&
+      body.confirm_sandbox_only === true &&
+      Object.keys(body).length === 3) {
+    const workers = {
+      gap_worker: ["caravel-sandbox-reconcile-worker", "CARAVEL_SANDBOX_RECONCILE_SECRET"],
+      periodic_worker: ["caravel-sandbox-periodic-poll", "CARAVEL_SANDBOX_PERIODIC_SECRET"],
+    } as const;
+    const [slug, envName] = workers[body.worker as keyof typeof workers];
+    const secret = Deno.env.get(envName);
+    if (!secret || !Deno.env.get("CARAVEL_SANDBOX_API_KEY"))
+      return jsonResponse(req, {error: "SANDBOX_WORKER_NOT_CONFIGURED"}, 503);
+    try {
+      const response = await fetch(
+        `https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/${slug}`, {
+          method: "POST",
+          headers: {"content-type": "application/json", "x-internal-secret": secret},
+          body: '{"action":"tick"}',
+          signal: AbortSignal.timeout(85_000),
+          redirect: "error",
+        },
+      );
+      const result = await response.json().catch(() => null);
+      const validState = ["idle", "complete", "more", "retry", "invalid_job"];
+      const state = validState.includes(result?.state) ? result.state : "unknown";
+      const count = (n: unknown) => Number.isSafeInteger(n) && n >= 0 && n <= 100 ? n : null;
+      const ok = response.status === 200 && result?.ok === true;
+      // Return allowlisted scalar diagnostics only. Never echo raw upstream
+      // JSON, record identifiers, customer fields or internal credentials.
+      return jsonResponse(req, {
+        mode: "SANDBOX_WORKER_SINGLE_TICK",
+        worker: body.worker,
+        tick_requested: true,
+        schedule_enabled: false,
+        upstream_http_status: response.status,
+        ok,
+        state,
+        pages: count(result?.pages),
+        bookings: count(result?.bookings),
+      }, ok ? 200 : 503);
+    } catch {
+      return jsonResponse(req, {error: "SANDBOX_WORKER_TICK_FAILED"}, 503);
+    }
+  }
   if (!body || typeof body !== "object" || Array.isArray(body) ||
       body.action !== "rehearse" || !PHASES.has(body.phase) ||
       typeof body.supplier_id !== "string" || !SID.test(body.supplier_id) ||
