@@ -8,8 +8,9 @@ const KEY = "FAKE-KEY-FOR-UNIT-TESTS-acceptance-000";
 const original = globalThis.fetch;
 test.afterEach(() => { globalThis.fetch = original; });
 
-function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabilityPlan = "premium", protectionPricingType = "included", bookingPayment = "present"} = {}) {
+function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabilityPlan = "premium", protectionPricingType = "included", bookingPayment = "present", twoVehicles = false, unknownLocation = false} = {}) {
   const calls = [];
+  let shrink = false;
   const m = (amount, currency) => ({amount, currency});
   const SUP = [{supplier_id: "acct_gbp", name: "G", status: "active", currency: "GBP", tax_inclusive: true, payment_models: ["pay_on_arrival", "partial", "prepaid"]},
     {supplier_id: "acct_eur", name: "E", status: "active", currency: "EUR", tax_inclusive: true, payment_models: ["pay_on_arrival", "partial", "prepaid"]}];
@@ -26,11 +27,19 @@ function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabil
     if (path === "/v1/whoami") return [200, {scopes: ["read:reference"], opt_ins: {}}];
     if (path === "/v1/suppliers") return [200, SUP];
     if (path === "/v1/reference/constants") return [200, {}];
-    if (path === "/v1/reference/locations") return [200, [{supplier_id: sid, location_id: `loc-${sid}`, type: "airport", name: "Airport", address: {country: "HR"},
-      timezone: "Europe/Zagreb", hours: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map(day => ({day, open: "08:00", close: "20:00"}))}]];
+    if (path === "/v1/reference/locations") return [200, [
+      {supplier_id: sid, location_id: `loc-${sid}`, type: "airport", name: "Airport", address: {country: "HR"},
+        timezone: "Europe/Zagreb", hours: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map(day => ({day, open: "08:00", close: "20:00"}))},
+      ...(unknownLocation ? [{supplier_id: sid, location_id: `loc-unknown-${sid}`, type: "future-unknown-location-type",
+        name: "Unnamed fixture", address: {country: "HR"}, timezone: "Europe/Zagreb"}] : []),
+    ]];
     if (path === "/v1/reference/policies") return [200, [{mileage: {type: "unlimited"}, deposit_payment_methods: []}]];
-    if (path === "/v1/reference/vehicles") return [200, [row(sid)]];
-    if (path === "/v1/reference/protections") return [200, [prot(sid)]];
+    if (path === "/v1/reference/vehicles") return [200, [row(sid),
+      ...(twoVehicles && !shrink ? [{...row(sid), vehicle_id: `veh-second-${sid}`, display_name: "Renamed test vehicle"}] : []),
+    ]];
+    if (path === "/v1/reference/protections") return [200, [prot(sid),
+      ...(twoVehicles && !shrink ? [{...prot(sid), vehicle_id: `veh-second-${sid}`, protection_id: `prot-second-${sid}`}] : []),
+    ]];
     if (path === "/v1/reference/extras" || path === "/v1/reference/fees") return [200, []];
     if (path === "/v1/availability") return [200, [row(sid)]];
     if (path === "/v1/quote") {
@@ -77,7 +86,7 @@ function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabil
     const [status, data, code] = route(options?.method ?? "GET", u.pathname, h["X-Supplier-Id"], h["Idempotency-Key"], body);
     return new Response(JSON.stringify(status < 400 ? {request_id: "mock", data, meta: {}} : {error: {code, request_id: "mock"}}), {status});
   };
-  return {calls, bookings};
+  return {calls, bookings, setShrink: (next) => {shrink = Boolean(next);}};
 }
 
 test("no key: skipped, no network", async () => {
@@ -294,4 +303,68 @@ test("a mismatched booked price is reported with the booking ID and amount befor
   assert.equal(booking.summary?.grand_total?.amount, 12100);
   assert.ok(booking.summary?.verification_errors.includes("BOOKED_PRICE_DIFFERS_FROM_QUOTE"));
   assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
+});
+
+test("opaque-id certification phase quotes BOTH first catalogue vehicles without plan", async () => {
+  const {calls} = sandboxMock({twoVehicles: true});
+  const result = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur",
+    certificationPhase: "opaque-id-tolerance"});
+  assert.equal(result.failed, false, JSON.stringify(result.results.filter(x => x.outcome.startsWith("ERROR"))));
+  const servedQuotes = calls.filter(c => c.path === "/v1/quote" &&
+    ["veh-acct_eur", "veh-second-acct_eur"].includes(c.body?.vehicle_id) && c.body?.plan === undefined);
+  assert.deepEqual(servedQuotes.map(x => x.body.vehicle_id), ["veh-acct_eur", "veh-second-acct_eur"]);
+  assert.deepEqual(servedQuotes.map(x => x.body.protection_id), ["prot-acct_eur", "prot-second-acct_eur"]);
+  assert.ok(servedQuotes.every(q => !Object.hasOwn(q.body, "plan")));
+});
+
+test("unknown-enum certification phase quotes from an unknown-type location without publishing it", async () => {
+  const {calls} = sandboxMock({unknownLocation: true});
+  const result = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur",
+    certificationPhase: "unknown-enum-value"});
+  assert.equal(result.failed, false, JSON.stringify(result.results.filter(x => x.outcome.startsWith("ERROR"))));
+  const quote = calls.find(c => c.path === "/v1/quote" && c.body?.pickup?.location_id === "loc-unknown-acct_eur");
+  assert.ok(quote, "unknown location must be quoted using its exact opaque ID");
+  assert.ok(result.results.some(x => x.endpoint.includes("quote at unknown-type location") && x.outcome === "OK"));
+  assert.equal(calls.filter(c => c.path === "/v1/bookings" && c.method === "POST").length, 0);
+});
+
+test("shrunk-reference-refresh:2 quotes vanished vehicle from repository persisted across runs", async () => {
+  const {calls, setShrink} = sandboxMock({twoVehicles: true});
+  const snapshots = new Map();
+  const referenceRepository = {
+    load: async sid => snapshots.get(sid) ?? null,
+    save: async (sid, snapshot) => { snapshots.set(sid, structuredClone(snapshot)); },
+  };
+  const first = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur",
+    certificationPhase: "shrunk-reference-refresh:1", referenceRepository});
+  assert.equal(first.failed, false, JSON.stringify(first.results.filter(x => x.outcome.startsWith("ERROR"))));
+  assert.ok(snapshots.get("acct_eur").vehicles.length === 2);
+  setShrink(true);
+  const before = calls.length;
+  const second = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur",
+    certificationPhase: "shrunk-reference-refresh:2", referenceRepository});
+  assert.equal(second.failed, false, JSON.stringify(second.results.filter(x => x.outcome.startsWith("ERROR"))));
+  const laterCalls = calls.slice(before);
+  assert.ok(laterCalls.some(c => c.path === "/v1/quote" && c.body?.vehicle_id === "veh-second-acct_eur"
+    && c.body?.protection_id === "prot-second-acct_eur" && !Object.hasOwn(c.body, "plan")));
+  const vanished = snapshots.get("acct_eur").vehicles.find(([_, rec]) => rec.id === "veh-second-acct_eur");
+  assert.ok(vanished?.[1]?.missing_since);
+});
+
+test("shrunk-reference-refresh fails closed without durable repository", async () => {
+  const {calls} = sandboxMock({twoVehicles: true});
+  const result = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur",
+    certificationPhase: "shrunk-reference-refresh:2"});
+  assert.equal(result.failed, true);
+  assert.ok(result.results.some(x => x.outcome === "ERROR PERSISTENT_REFERENCE_STORE_REQUIRED"));
+  assert.equal(calls.filter(c => c.path === "/v1/quote").length, 0);
+});
+
+test("certification unknown-response-field path reads cancelled booking after cancellation", async () => {
+  sandboxMock({premiumDepositMinor: 30000});
+  const result = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur",
+    sandboxPremiumMechanics: true, certificationPhase: "unknown-response-field"});
+  assert.equal(result.failed, false, JSON.stringify(result.results.filter(x => !x.outcome.startsWith("OK"))));
+  assert.ok(result.results.some(x => x.endpoint.includes("after cancellation") &&
+    x.outcome === "OK" && x.summary?.confirmed_cancelled));
 });
