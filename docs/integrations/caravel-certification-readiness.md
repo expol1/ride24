@@ -1,7 +1,18 @@
 # Caravel Channel API v1.67.0 — certification readiness (Ride24)
 
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
-**The official 24-hour run (`POST /_certification/start`) has NOT been started** and must not be started without Ride24's explicit approval.
+**The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
+
+## Current acceptance evidence — 16 Nov 2026
+- Isolated admin-only Supabase function was deployed for live tests, then replaced by `closed.ts` (HTTP 410 with valid admin JWT; 401 without auth); production integrations remained untouched.
+- Real sandbox EUR (`acct_eaa0…`) and GBP (`acct_a714…`): **23/23 steps OK for each supplier**, `failed: false`; Premium `INS_PREMIUM` quote + booking + idempotency replay + status read + cancel + idempotent second cancel. No active test bookings remain.
+- Quote/booking amounts reconciled: EUR 132.00 / GBP 114.00; `booking_id`, `quote_id`, currency, confirmed revision 1, cancelled revision 2 all verified.
+- Sandbox Premium intentionally has nonzero deposit/excess and absent optional coverage fields. Caravel confirmed these are fictional fixtures shared by all partners. Ride24's production publishability guard correctly refuses them. Production must independently confirm Premium plan, included protection, EUR and VAT inclusive, deposit/excess/theft excess zero, and populated covers/excludes.
+- `Booking.payment` is optional when payment model was defaulted; Ride24 sends `pay_on_arrival` explicitly and rejects contradictory present payment details.
+- Active-booking **revision_conflict 409** probe was added to the isolated acceptance harness on 16 Nov and mocked; a live run of that new step remains pending.
+- Local test suite and CI were green at `64770501e` (108/108 local Caravel tests). Never equate mocked tests with the official certification outcome.
+
+Older evidence below is retained as dated history; references to pending live booking tests or pending Premium sandbox fixtures describe the state on **14 Nov**, not the current state.
 
 ## Prerequisites (CERTIFICATION.md "What you need first")
 | Prerequisite | Ride24 status |
@@ -42,7 +53,8 @@ Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (C
 - **Extras mapping:** `CARAVEL_CONFIRMED_EXTRAS_MAPPING` (empty) takes entries keyed `<supplier_id>:<extra_id>` / `:code:` / `:supplier_code:` only after Caravel confirms them; category `other` is never mapped by name.
 - **Rental bounds:** billed `rental_days` must sit inside the operator's `min_rental_days` / `max_rental_days`; availability reports `unsellable_window` / `unsellable_movement` / `unsellable_ends`.
 
-## Blockers before starting the official run
-1. A server-side run with the key for quote/book/cancel at both suppliers: either add the GitHub secret `CARAVEL_SANDBOX_API_KEY` and label PR #84 `caravel-sandbox-booking`, or approve a separate sandbox test function. The existing diagnostics function is read-only by design.
-2. Premium publishability: on the sandbox, no Premium row had zero excess AND zero deposit (13 Nov diagnostics); Premium terms (`theft_excess`, `covers`, `product_type`) must be confirmed per supplier.
-3. Ride24 approval to start the 24-hour run.
+## Remaining gates before the official 24-hour run
+1. Confirm live active-booking `revision_conflict` behavior on both sandbox suppliers using a wrong positive `expected_revision` **before** the real cancellation; verify the booking remains confirmed, then cancel it and shut the test function (401/410).
+2. Recheck the official `CERTIFICATION.md` prerequisites and HMAC self-test interface with the partner pack; the `opaque-id-tolerance` certification phase MUST send **no plan** and use a fresh `protection_id` from `GET /v1/reference/protections` (served Medium in sandbox only). All bookings remain Premium.
+3. Obtain Ride24's explicit authorization to start `POST /_certification/start` and complete the subsequent run in the 24-hour limit. Do not start merely because CI passed.
+4. After passing certification, request production access in Caravel portal and verify EVERY production Premium availability/protection row before exposing offers; keep partner `api_enabled=false` until the AVIA shared-flow integration is safely complete.
