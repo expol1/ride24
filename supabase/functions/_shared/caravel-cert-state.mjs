@@ -1,19 +1,17 @@
 /**
  * Isolated Caravel SANDBOX certification reference snapshots.
- * This is a storage adapter, NOT a production integration.
- * Requires a pre-created private Supabase Storage bucket with no user policies.
- * serviceClient() may be supplied ONLY after requireAdmin() succeeds.
- * No API keys, customer details, bookings or payments may be stored here.
+ * Uses a private RLS-protected Postgres table via restricted RPCs, NOT Storage:
+ * the project's existing Storage policy admits authenticated uploads outside
+ * its target bucket. No API keys, customer details or bookings are persisted.
  */
-export const CARAVEL_CERT_BUCKET = "caravel-sandbox-cert-state";
+export const CARAVEL_CERT_TABLE = "caravel_sbx_reference_snapshots";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SUPPLIER = /^[a-zA-Z0-9_-]{1,128}$/;
 const KINDS = ["locations", "vehicles", "protections", "extras"];
 const MAX_BYTES = 1024 * 1024; // 1 MiB max, upper bound for sandbox reference-only fixtures
 
-function pathOf(sessionId, supplierId) {
+function validateScope(sessionId, supplierId) {
   if (!UUID.test(sessionId) || !SUPPLIER.test(supplierId)) throw new Error("CERT_STATE_BAD_SCOPE");
-  return `${sessionId}/${supplierId}.json`;
 }
 export function validateCaravelCertSnapshot(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("CERT_STATE_BAD_SNAPSHOT");
@@ -41,35 +39,33 @@ export function validateCaravelCertSnapshot(value) {
  * @param {string} sessionId random UUID, same for all certification phase calls
  */
 export function createCaravelSandboxReferenceRepository(admin, sessionId) {
-  if (!admin?.storage?.from || !UUID.test(sessionId)) throw new Error("CERT_STATE_BAD_CONFIGURATION");
-  const bucket = admin.storage.from(CARAVEL_CERT_BUCKET);
+  if (typeof admin?.rpc !== "function" || !UUID.test(sessionId))
+    throw new Error("CERT_STATE_BAD_CONFIGURATION");
+  const call = async (name, supplierId, snapshot) => {
+    validateScope(sessionId, supplierId);
+    const {data, error} = await admin.rpc(name, {
+      p_session_id: sessionId, p_supplier_id: supplierId,
+      ...(snapshot === undefined ? {} : {p_snapshot: snapshot}),
+    });
+    if (error) throw new Error("CERT_STATE_RPC_FAILED");
+    return data;
+  };
   return {
     async load(supplierId) {
-      const path = pathOf(sessionId, supplierId);
-      const {data, error} = await bucket.download(path);
-      if (error) {
-        // Supabase Storage returns 404 for an absent snapshot (first phase).
-        if (String(error.statusCode ?? error.status ?? "") === "404" || error.name === "StorageUnknownError" && /404/.test(String(error.message)))
-          return null;
-        throw new Error("CERT_STATE_READ_FAILED");
-      }
-      const raw = await data.text();
-      const value = JSON.parse(raw);
+      const value = await call("caravel_sbx_reference_load", supplierId);
+      if (value === null) return null;
       validateCaravelCertSnapshot(value);
       return value;
     },
     async save(supplierId, snapshot) {
-      const path = pathOf(sessionId, supplierId);
-      const contents = validateCaravelCertSnapshot(snapshot);
-      const {error} = await bucket.upload(path, new Blob([contents], {type: "application/json"}), {
-        upsert: true, contentType: "application/json", cacheControl: "0",
-      });
-      if (error) throw new Error("CERT_STATE_WRITE_FAILED");
+      validateScope(sessionId, supplierId);
+      const valid = JSON.parse(validateCaravelCertSnapshot(snapshot));
+      const result = await call("caravel_sbx_reference_save", supplierId, valid);
+      if (result !== true) throw new Error("CERT_STATE_SAVE_UNCONFIRMED");
     },
     async clear(supplierId) {
-      const path = pathOf(sessionId, supplierId);
-      const {error} = await bucket.remove([path]);
-      if (error) throw new Error("CERT_STATE_CLEAR_FAILED");
+      const result = await call("caravel_sbx_reference_clear", supplierId);
+      if (typeof result !== "boolean") throw new Error("CERT_STATE_CLEAR_UNCONFIRMED");
     },
   };
 }
