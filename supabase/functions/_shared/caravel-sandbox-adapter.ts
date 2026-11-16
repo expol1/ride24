@@ -167,19 +167,47 @@ export class CaravelClient {
     await this.capabilities();
     return this.request<Json>("GET","/v1/whoami");
   }
-  async locations(limit=200,supplierId?:string) {
+  /**
+   * Read the complete reference catalogue by following the *opaque* meta.next_page
+   * token returned by Caravel. Never reuse a token across endpoints or suppliers,
+   * never generate or parse it, and refuse cycles/overlong chains.
+   */
+  private async allReferencePages<T>(path:string,supplierId?:string,limit?:number):Promise<CaravelEnvelope<T[]>> {
     await this.capabilities();
-    return this.request<Array<{location_id:string;supplier_id:string;code?:string;name:string;timezone?:string}>>("GET",`/v1/reference/locations?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`,undefined,undefined,supplierId);
+    const base=limit===undefined ? path : `${path}?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`;
+    let nextPage:string|null=null;
+    const seen=new Set<string>();
+    const rows:T[]=[];
+    let pages=0;
+    let firstRequestId:string|undefined;
+    while(true){
+      if(pages>=30) throw new Error("CARAVEL_PAGINATION_LIMIT");
+      const endpoint=nextPage===null ? base : `${base}${base.includes("?") ? "&" : "?"}page_token=${encodeURIComponent(nextPage)}`;
+      const page=await this.request<T[]>("GET",endpoint,undefined,undefined,supplierId);
+      if(!Array.isArray(page.data)) throw new Error("CARAVEL_PAGINATION_INVALID_ROWS");
+      firstRequestId??=page.request_id;
+      rows.push(...page.data);
+      if(rows.length>6000) throw new Error("CARAVEL_PAGINATION_TOO_MANY_ROWS");
+      pages++;
+      const cursor=page.meta?.next_page;
+      if(cursor===undefined || cursor===null || cursor==="")
+        return {data:rows,meta:{page_count:pages,next_page:null},request_id:firstRequestId};
+      if(typeof cursor!=="string" || cursor.length>2048 || /[\u0000-\u001F\u007F]/.test(cursor) || seen.has(cursor))
+        throw new Error("CARAVEL_PAGINATION_BAD_OR_REPEATED_TOKEN");
+      seen.add(cursor);
+      nextPage=cursor;
+    }
+  }
+  async locations(limit=200,supplierId?:string) {
+    return this.allReferencePages<{location_id:string;supplier_id:string;code?:string;name:string;timezone?:string}>("/v1/reference/locations",supplierId,limit);
   }
   async vehicleClasses(limit=200,supplierId?:string) {
-    await this.capabilities();
-    return this.request<Array<Json>>("GET",`/v1/reference/vehicles?limit=${Math.max(1,Math.min(200,Math.floor(limit)))}`,undefined,undefined,supplierId);
+    return this.allReferencePages<Json>("/v1/reference/vehicles",supplierId,limit);
   }
   /** GET /v1/reference/{extras|protections|policies|fees} (scope read:reference). */
   async reference(kind:"extras"|"protections"|"policies"|"fees",supplierId?:string) {
     if(!["extras","protections","policies","fees"].includes(kind)) throw new Error("INVALID_REFERENCE");
-    await this.capabilities();
-    return this.request<Array<Json>>("GET",`/v1/reference/${kind}`,undefined,undefined,supplierId);
+    return this.allReferencePages<Json>(`/v1/reference/${kind}`,supplierId);
   }
   /** GET /v1/availability. `driver_age` prices age fees into the row (OpenAPI v1.67.0). There is no `plan` query parameter: rows carry `plan`; request params are strict (unknown = 422). */
   async availability(params:{pickup_location_id:string;dropoff_location_id:string;pickup:string;dropoff:string;driver_age?:number;currency?:string},supplierId?:string) {
