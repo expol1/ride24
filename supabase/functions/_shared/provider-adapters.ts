@@ -20,9 +20,15 @@ import {
   aggregatorCancel,
 } from "./renteon-aggregator.ts";
 
+import {
+  kayfleetLocations, kayfleetGroups, kayfleetSearch,
+  kayfleetBookingStatus, kayfleetCancel, kayfleetCreateBooking,
+} from "./kayfleet-adapter.ts";
+
 export type ProviderKey =
   | "ride24_standard_v1"
   | "custom"
+  | "kayfleet"
   | "renteon"
   | "renteon_aggregator"
   | "easy_web_rent";
@@ -230,7 +236,7 @@ function normalizeCurrency(value: unknown): string | null {
 
 function safeProvider(provider: unknown): ProviderKey {
   const key = String(provider || "custom").trim().toLowerCase();
-  if (["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent"].includes(key)) return key as ProviderKey;
+  if (["ride24_standard_v1", "custom", "kayfleet", "renteon", "renteon_aggregator", "easy_web_rent"].includes(key)) return key as ProviderKey;
   throw new Error('PARTNER_API_ERROR:UNSUPPORTED_PROVIDER');
 }
 
@@ -962,6 +968,10 @@ export async function testProviderConnection(
   credentials: PartnerApiCredentials,
 ): Promise<void> {
   const provider = safeProvider(providerValue);
+  if (provider === "kayfleet") {
+    await kayfleetLocations(credentials);
+    return;
+  }
   if (provider === "renteon_aggregator") {
     return await aggregatorTest(credentials);
   }
@@ -985,6 +995,7 @@ export async function fetchProviderLocations(
   credentials: PartnerApiCredentials,
 ): Promise<ApiLocation[]> {
   const provider = safeProvider(providerValue);
+  if (provider === "kayfleet") return await kayfleetLocations(credentials);
   if (provider === "renteon_aggregator") {
     return await aggregatorLocations(credentials);
   }
@@ -1015,6 +1026,7 @@ export async function fetchProviderGroups(
   credentials: PartnerApiCredentials,
 ): Promise<ApiVehicleGroup[]> {
   const provider = safeProvider(providerValue);
+  if (provider === "kayfleet") return await kayfleetGroups(credentials);
   if (provider === "renteon_aggregator") {
     return await aggregatorGroups(credentials);
   }
@@ -1045,6 +1057,7 @@ export async function searchProvider(
   input: ProviderSearchInput,
 ): Promise<ApiVehicleGroup[]> {
   const provider = safeProvider(providerValue);
+  if (provider === "kayfleet") return await kayfleetSearch(credentials, input);
   if (provider === "renteon_aggregator") {
     return await aggregatorAvailability(credentials, input);
   }
@@ -1140,6 +1153,7 @@ export async function createProviderBooking(
   input: ProviderBookingInput,
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
+  if (provider === "kayfleet") return await kayfleetCreateBooking();
   if (provider === "renteon_aggregator") {
     return await aggregatorBook(credentials, input);
   }
@@ -1344,6 +1358,7 @@ export async function getProviderBookingStatus(
   externalReference: string,
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
+  if (provider === "kayfleet") return await kayfleetBookingStatus(credentials, externalReference);
   if (provider === "renteon_aggregator") {
     return await aggregatorStatus(credentials, externalReference);
   }
@@ -1382,6 +1397,7 @@ export async function cancelProviderBooking(
   body: Record<string, unknown> = {},
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
+  if (provider === "kayfleet") return await kayfleetCancel(credentials, externalReference, typeof body.reason === "string" ? body.reason : undefined);
   if (provider === "renteon_aggregator") {
     return await aggregatorCancel(credentials, externalReference);
   }
