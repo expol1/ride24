@@ -129,6 +129,7 @@ declare
   brevision bigint;
   bstatus text;
   behind boolean;
+  highest_seen bigint;
   n integer:=0;
   changed integer:=0;
 begin
@@ -158,10 +159,17 @@ begin
 
     -- Gap detection against the independent webhook state is *advisory*.
     -- An event may still be in transit. Do not mutate webhook records here.
+    -- Preserve review warnings against the HIGHEST observed revision,
+    -- even if a temporary upstream response carries an older revision.
+    select greatest(brevision,coalesce(o.last_revision,brevision))
+      into highest_seen
+    from (select last_revision from public.caravel_sbx_periodic_observations
+          where supplier_id=p_supplier_id and booking_id=bid) o;
+    if highest_seen is null then highest_seen:=brevision; end if;
     select not exists (
       select 1 from public.caravel_sbx_webhook_bookings wb
       where wb.supplier_id=p_supplier_id and wb.booking_id=bid
-        and wb.last_revision>=brevision
+        and wb.last_revision>=highest_seen
     ) into behind;
 
     insert into public.caravel_sbx_periodic_observations(
