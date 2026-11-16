@@ -8,7 +8,7 @@ const KEY = "FAKE-KEY-FOR-UNIT-TESTS-acceptance-000";
 const original = globalThis.fetch;
 test.afterEach(() => { globalThis.fetch = original; });
 
-function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabilityPlan = "premium", protectionPricingType = "included"} = {}) {
+function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabilityPlan = "premium", protectionPricingType = "included", bookingPayment = "present"} = {}) {
   const calls = [];
   const m = (amount, currency) => ({amount, currency});
   const SUP = [{supplier_id: "acct_gbp", name: "G", status: "active", currency: "GBP", tax_inclusive: true, payment_models: ["pay_on_arrival", "partial", "prepaid"]},
@@ -49,6 +49,9 @@ function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabil
       consumed.add(body.quote_id);
       const b = {booking_id: uuid(), quote_id: body.quote_id, status: "confirmed", revision: 1, price: {totals: {grand_total: quotes.get(body.quote_id).totals.grand_total}},
         protection: {excess: m(premiumExcessMinor, cur(sid)), deposit: m(premiumDepositMinor, cur(sid))}, payment: {model: body.payment_model, amount_on_arrival: quotes.get(body.quote_id).totals.grand_total}};
+      if (bookingPayment === "absent") delete b.payment;
+      if (bookingPayment === "prepaid") b.payment.model = "prepaid";
+      if (bookingPayment === "wrong_amount") b.payment.amount_on_arrival = m(11999, cur(sid));
       bookings.set(b.booking_id, b); idem.set(key, {id: b.booking_id});
       return [201, b];
     }
@@ -57,7 +60,9 @@ function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabil
     const cancel = path.match(/^\/v1\/bookings\/([^/]+)\/cancel$/);
     if (cancel) {
       const b = bookings.get(decodeURIComponent(cancel[1]));
-      if (b.status === "cancelled") return body.expected_revision === b.revision ? [200, b] : [409, null, "invalid_transition"];
+      // Confirmed live Caravel behavior: second cancellation is HTTP 200 even
+      // if the request carries the pre-cancel revision.
+      if (b.status === "cancelled") return [200, b];
       Object.assign(b, {status: "cancelled", revision: b.revision + 1, cancellation: {fee: m(0, cur(sid)), refund: m(0, cur(sid))}});
       return [200, b];
     }
@@ -228,4 +233,60 @@ test("sandbox cleanup reports unresolved bookings if cancellation repeatedly fai
   assert.equal(unresolved.summary.length, 1);
   assert.equal(unresolved.summary[0].supplier_id, "acct_eur");
   assert.ok([...bookings.values()].some(b => b.status !== "cancelled"));
+});
+
+test("real API shape: Booking.payment can be absent when pay_on_arrival defaulted", async () => {
+  const {calls, bookings} = sandboxMock({premiumDepositMinor: 30000, premiumExcessMinor: 10000, bookingPayment: "absent"});
+  const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur", sandboxPremiumMechanics: true});
+  assert.equal(r.failed, false, JSON.stringify(r.results.filter(x => !x.outcome.startsWith("OK"))));
+  assert.equal(bookings.size, 1);
+  assert.ok([...bookings.values()].every(b => b.status === "cancelled" && b.payment === undefined));
+  const booking = r.results.find(x => x.endpoint.includes("POST /v1/bookings (pay_on_arrival)"));
+  assert.equal(booking.outcome, "OK");
+  assert.equal(booking.summary.requested_payment_model, "pay_on_arrival");
+  assert.equal(booking.summary.booking_payment_model, "not stated (optional)");
+  assert.equal(booking.summary.matches_quote, true);
+  assert.equal(booking.summary.grand_total.currency, "EUR");
+  assert.ok(booking.summary.booking_id);
+  const replay = r.results.find(x => x.endpoint.includes("cancel again (idempotent, prior revision)"));
+  assert.equal(replay.outcome, "OK");
+  assert.equal(replay.summary.revision, 2);
+  assert.equal(calls.filter(x => x.path.endsWith("/cancel") && x.method === "POST").length, 2);
+});
+
+test("present contradictory Booking.payment model remains a hard verification error with evidence", async () => {
+  for(const payment of ["prepaid", "wrong_amount"]){
+    const {bookings} = sandboxMock({premiumDepositMinor: 30000, bookingPayment: payment});
+    const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur", sandboxPremiumMechanics: true});
+    assert.equal(r.failed, true);
+    const booking = r.results.find(x => x.endpoint.includes("POST /v1/bookings (pay_on_arrival)"));
+    assert.ok(booking.summary?.booking_id);
+    assert.equal(booking.summary?.grand_total?.currency, "EUR");
+    assert.equal(booking.summary?.matches_quote, false);
+    assert.ok(booking.summary?.verification_errors.includes(payment === "prepaid"
+      ? "PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL" : "AMOUNT_ON_ARRIVAL_DIFFERS"));
+    assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
+  }
+});
+
+test("a mismatched booked price is reported with the booking ID and amount before cleanup", async () => {
+  const {bookings} = sandboxMock({premiumDepositMinor: 30000});
+  const fetchReal = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    const response = await fetchReal(url, options);
+    if (new URL(String(url)).pathname !== "/v1/bookings" || options?.method !== "POST") return response;
+    const payload = await response.clone().json();
+    if (payload?.data?.status === "confirmed") {
+      payload.data.price.totals.grand_total.amount += 100;
+      return new Response(JSON.stringify(payload), {status: response.status});
+    }
+    return response;
+  };
+  const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur", sandboxPremiumMechanics: true});
+  assert.equal(r.failed, true);
+  const booking = r.results.find(x => x.endpoint.includes("POST /v1/bookings (pay_on_arrival)"));
+  assert.ok(booking.summary?.booking_id);
+  assert.equal(booking.summary?.grand_total?.amount, 12100);
+  assert.ok(booking.summary?.verification_errors.includes("BOOKED_PRICE_DIFFERS_FROM_QUOTE"));
+  assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
 });
