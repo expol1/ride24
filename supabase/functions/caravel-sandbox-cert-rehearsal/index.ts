@@ -61,6 +61,59 @@ serve(async (req) => {
       workers_can_be_enabled: secrets.sandbox_api_key && secrets.gap_worker && secrets.periodic_worker && Object.values(db).every(Boolean),
     });
   }
+  if (body && typeof body === "object" && !Array.isArray(body) &&
+      body.action === "worker-auth-check" && Object.keys(body).length === 1) {
+    // No-op end-to-end HTTP security check: each worker receives ONLY status,
+    // never tick. Secrets stay server-side and are never returned to the caller.
+    // The target URL is fixed to this project's Supabase host (no user URL).
+    const endpoints = [
+      ["gap_worker", "caravel-sandbox-reconcile-worker", "CARAVEL_SANDBOX_RECONCILE_SECRET"],
+      ["periodic_worker", "caravel-sandbox-periodic-poll", "CARAVEL_SANDBOX_PERIODIC_SECRET"],
+    ] as const;
+    const checks: Record<string, {
+      configured: boolean; without_secret_401: boolean; with_secret_200: boolean;
+      no_tick_executed: boolean; verified: boolean;
+    }> = {};
+    for (const [label, slug, envName] of endpoints) {
+      const secret = Deno.env.get(envName);
+      const status = {configured: Boolean(secret), without_secret_401: false,
+        with_secret_200: false, no_tick_executed: false, verified: false};
+      if (secret) {
+        const url = `https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/${slug}`;
+        const request = (withSecret: boolean) => fetch(url, {
+          method: "POST",
+          headers: {"content-type": "application/json",
+            ...(withSecret ? {"x-internal-secret": secret} : {})},
+          body: '{"action":"status"}',
+          signal: AbortSignal.timeout(6000),
+          redirect: "error",
+        });
+        try {
+          const missing = await request(false);
+          status.without_secret_401 = missing.status === 401;
+          const authorized = await request(true);
+          const payload = await authorized.json().catch(() => null);
+          status.with_secret_200 = authorized.status === 200;
+          status.no_tick_executed = payload?.mode === "SANDBOX_AUTH_ONLY" &&
+            payload?.ok === true && payload?.tick_executed === false &&
+            payload?.worker === (label === "gap_worker" ? "gap-recovery" : "periodic");
+          status.verified = status.without_secret_401 &&
+            status.with_secret_200 && status.no_tick_executed;
+        } catch {
+          // No error details, internal headers, or keys leave this endpoint.
+        }
+      }
+      checks[label] = status;
+    }
+    return jsonResponse(req, {
+      mode: "SANDBOX_WORKER_AUTH_CHECK",
+      admin_authenticated: true,
+      run_sandbox_api_calls: false,
+      run_worker_tick: false,
+      workers: checks,
+      all_verified: Object.values(checks).every(x => x.verified),
+    });
+  }
   if (!body || typeof body !== "object" || Array.isArray(body) ||
       body.action !== "rehearse" || !PHASES.has(body.phase) ||
       typeof body.supplier_id !== "string" || !SID.test(body.supplier_id) ||
