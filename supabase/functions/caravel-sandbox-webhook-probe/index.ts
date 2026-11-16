@@ -7,7 +7,6 @@ import {serve} from "https://deno.land/std@0.224.0/http/server.ts";
 import {inspectCaravelSandboxWebhook} from "../_shared/caravel-webhook-probe.ts";
 
 const MAX_BODY_BYTES=32768;
-const MAX_AGE_SECS=300;
 const UNTIL=Date.parse("2026-11-20T20:00:00Z"); // expires automatically unless explicitly reviewed
 
 serve(async(req)=>{
@@ -16,7 +15,25 @@ serve(async(req)=>{
   const advertised=Number(req.headers.get("content-length")||0);
   if(Number.isFinite(advertised)&&advertised>MAX_BODY_BYTES)return new Response(JSON.stringify({error:"BODY_TOO_LARGE"}),{status:413});
   try {
-    const raw=await req.text();
+    // Bound memory even when a caller uses chunked transfer without Content-Length.
+    const reader=req.body?.getReader();
+    if(!reader)return new Response(JSON.stringify({error:"BODY_REQUIRED"}),{status:400});
+    const chunks:Uint8Array[]=[];
+    let total=0;
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      total+=value.byteLength;
+      if(total>MAX_BODY_BYTES){
+        await reader.cancel().catch(()=>{});
+        return new Response(JSON.stringify({error:"BODY_TOO_LARGE"}),{status:413});
+      }
+      chunks.push(value);
+    }
+    const bytes=new Uint8Array(total);
+    let offset=0;
+    for(const part of chunks){bytes.set(part,offset);offset+=part.byteLength;}
+    const raw=new TextDecoder("utf-8",{fatal:true}).decode(bytes);
     const secrets=[
       Deno.env.get("CARAVEL_SANDBOX_WEBHOOK_SECRET"),
       Deno.env.get("CARAVEL_SANDBOX_WEBHOOK_SECRET_OLD"),
