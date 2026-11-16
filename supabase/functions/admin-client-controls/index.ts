@@ -68,9 +68,9 @@ Deno.serve(async (req:Request)=>{
         if(cleanupError||checkError||count!==0)pending.add(table);
       }
       if(user.user.email){
-        const {error:cleanupError}=await db.from("email_logs").delete().ilike("email",user.user.email);
+        const {error:cleanupError}=await db.from("email_logs").delete().eq("email",user.user.email);
         const {count,error:checkError}=await db.from("email_logs")
-          .select("*",{count:"exact",head:true}).ilike("email",user.user.email);
+          .select("*",{count:"exact",head:true}).eq("email",user.user.email);
         if(cleanupError||checkError||count!==0)pending.add("email_logs");
       }
       const {data:remainingProfile,error:profileError}=await db.from("profiles")
