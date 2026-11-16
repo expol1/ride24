@@ -34,6 +34,24 @@ export function validateCaravelCertSnapshot(value) {
   return serialized;
 }
 
+// Postgres jsonb rejects U+0000. The in-memory catalogue keys use
+// `supplier_id + "\\u0000" + opaque_id`. Encode only the *map keys* at the
+// RPC boundary; the merge logic keeps original opaque IDs without guessing.
+function toDatabaseSnapshot(value) {
+  const normalized = JSON.parse(validateCaravelCertSnapshot(value));
+  const stored = Object.fromEntries(KINDS.map(kind =>
+    [kind, normalized[kind].map(([key,record]) => [encodeURIComponent(key), record])]));
+  validateCaravelCertSnapshot(stored);
+  return stored;
+}
+function fromDatabaseSnapshot(value) {
+  validateCaravelCertSnapshot(value);
+  const decoded = Object.fromEntries(KINDS.map(kind =>
+    [kind, value[kind].map(([key,record]) => [decodeURIComponent(key), record])]));
+  validateCaravelCertSnapshot(decoded);
+  return decoded;
+}
+
 /**
  * @param {object} admin Supabase service-role client returned by requireAdmin()
  * @param {string} sessionId random UUID, same for all certification phase calls
@@ -54,12 +72,11 @@ export function createCaravelSandboxReferenceRepository(admin, sessionId) {
     async load(supplierId) {
       const value = await call("caravel_sbx_reference_load", supplierId);
       if (value === null) return null;
-      validateCaravelCertSnapshot(value);
-      return value;
+      return fromDatabaseSnapshot(value);
     },
     async save(supplierId, snapshot) {
       validateScope(sessionId, supplierId);
-      const valid = JSON.parse(validateCaravelCertSnapshot(snapshot));
+      const valid = toDatabaseSnapshot(snapshot);
       const result = await call("caravel_sbx_reference_save", supplierId, valid);
       if (result !== true) throw new Error("CERT_STATE_SAVE_UNCONFIRMED");
     },
