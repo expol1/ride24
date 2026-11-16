@@ -2444,17 +2444,24 @@ window.processAccountDeletion = async function() {
     const isEn = localStorage.getItem("client_lang") === "en";
 
     try {
-        const { data: { user } } = await db.auth.getUser();
+        const { data: { user }, error: authError } = await db.auth.getUser();
+        if (authError || !user?.id) {
+            throw new Error(isEn ? "Sign in again to submit the request." : "Zaloguj się ponownie, aby wysłać wniosek.");
+        }
 
-        const { error } = await db
+        const requestedAt = new Date().toISOString();
+        const { data: savedRequest, error } = await db
             .from("profiles")
-            .update({
-                deletion_requested: true,
-                deletion_requested_at: new Date().toISOString()
-            })
-            .eq("id", user.id);
+            .update({ deletion_requested: true, deletion_requested_at: requestedAt })
+            .eq("id", user.id)
+            .select("id,deletion_requested,deletion_requested_at")
+            .maybeSingle();
 
+        // PostgREST UPDATE can succeed with zero changed rows under RLS.
         if (error) throw error;
+        if (savedRequest?.id !== user.id || savedRequest.deletion_requested !== true || !savedRequest.deletion_requested_at) {
+            throw new Error(isEn ? "The request was not saved. Please contact Ride24." : "Wniosek nie został zapisany. Skontaktuj się z Ride24.");
+        }
 
         alert(isEn ? "Request submitted. You will be logged out." : "Zgłoszenie wysłane. Zostaniesz wylogowany.");
 
@@ -3254,15 +3261,16 @@ let actionsHtml = `<div style="display:flex;flex-direction:column;gap:8px; align
 const s = booking.status;
 
 if (s === 'pending') {
+    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
+        ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
+    </button>`;
     actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;" data-pl="Decyzja partnera:" data-en="Partner decision:">
         ${isEn ? 'Partner decision:' : 'Decyzja partnera:'}
     </span>`;
     actionsHtml += `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="font-size:13px; margin-top:0; color:var(--orange);">
         ⌛ --:--:--
     </span>`;
-    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
-        ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
-    </button>`;
+
 }
 else if (s === 'accepted') {
     actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" data-pl="Anuluj rezerwację" data-en="Cancel booking">
@@ -3290,10 +3298,24 @@ actionsHtml += `
         💳 ${isEn ? 'Pay now' : 'Opłać teraz'}
     </button>
 
+    <button type="button" class="action-btn-premium btn-cancel-soft"
+        onclick="window.cancelBooking('${booking.id}', '${booking.status}')"
+        data-pl="Anuluj rezerwację" data-en="Cancel booking">
+        ${isEn ? 'Cancel booking' : 'Anuluj rezerwację'}
+    </button>
+
     ${timerHtml}
 `;
 }
 else if (s === 'paid') {
+    // Paid bookings use the existing refund/no-refund flow instead of an unpaid cancellation.
+    if (booking.refund_status === 'pending') {
+        actionsHtml += `<span class="status-tile awaiting_payment" data-pl="Zwrot w toku" data-en="Refund pending">${isEn ? 'Refund pending' : 'Zwrot w toku'}</span>`;
+    } else if (booking.refund_status !== 'completed') {
+        actionsHtml += `<button type="button" class="action-btn-premium btn-cancel-soft"
+            onclick="window.cancelBooking('${booking.id}', '${booking.status}')"
+            data-pl="Anuluj rezerwację" data-en="Cancel booking">${isEn ? 'Cancel booking' : 'Anuluj rezerwację'}</button>`;
+    }
     actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')" data-pl="📄 Voucher PDF" data-en="📄 Voucher PDF">
         📄 Voucher PDF
     </button>`;
@@ -4090,10 +4112,29 @@ function calculateRefundPercent(pickupDate) {
        // --- NOWOCZESNE ANULOWANIE (SaaS Version) ---
 window.cancelBooking = async function(id, currentStatus) {
     const isEn = localStorage.getItem("client_lang") === "en";
-
-    // 🔒 Zabezpieczenie przed zwykłym anulowaniem dla opłaconych (wymuszamy zwrot)
-    if (currentStatus === 'paid') {
-        window.showToast(isEn ? "Please use the refund option in the Payments tab." : "Użyj opcji zwrotu w zakładce Płatności.", "error");
+    const booking = window.ride24BookingsById?.[id];
+    // Always rely on the latest displayed booking, never just an inline status parameter.
+    if (!booking || booking.status !== currentStatus) {
+        window.showToast(isEn ? "Booking changed. Refresh the list." : "Status rezerwacji się zmienił. Odśwież listę.", "info");
+        await loadClientBookings();
+        return;
+    }
+    if (!['pending', 'accepted', 'awaiting_payment', 'paid'].includes(booking.status)) {
+        window.showToast(isEn ? "This booking cannot be cancelled." : "Tej rezerwacji nie można już anulować.", "info");
+        return;
+    }
+    if (booking.status === 'paid') {
+        if (booking.refund_status === 'pending' || booking.refund_status === 'completed') {
+            window.showToast(isEn ? "This refund is already being handled." : "Zwrot jest już obsługiwany.", "info");
+            return;
+        }
+        // The backend is authoritative; this UI only selects the existing refund path.
+        const refundPercent = calculateRefundPercent(booking.start_date);
+        if (refundPercent > 0) {
+            window.handleRefundClick(id, booking.start_date, Number(booking.online_payment_pln || 0));
+        } else {
+            window.cancelWithoutRefund(id);
+        }
         return;
     }
 
@@ -4846,8 +4887,8 @@ window.closeReviewModal = function() {
 <div id="deleteModal" class="custom-modal">
     <div class="modal-content">
         <h3 data-pl="Usuń konto" data-en="Delete Account" data-premium="Usuń konto Premium">Usuń konto</h3>
-        <p data-pl="Ta operacja jest nieodwracalna. Wszystkie Twoje dane zostaną usunięte. Wpisz poniżej słowo USUŃ, aby potwierdzić."
-           data-en="This action is irreversible. All your data will be deleted. Type DELETE below to confirm.">
+        <p data-pl="Złożysz wniosek o usunięcie konta. Po weryfikacji administrator usunie konto, z zachowaniem danych wymaganych przepisami. Wpisz USUŃ, aby potwierdzić."
+           data-en="This submits an account deletion request. After review, Ride24 will delete your account except for legally required records. Type DELETE to confirm.">
            Ta operacja jest nieodwracalna...
         </p>
 
