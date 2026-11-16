@@ -12,8 +12,9 @@ const EXPIRES_AT = Date.parse("2026-11-20T20:00:00Z"); // update only by a delib
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SID = /^[A-Za-z0-9_-]{1,128}$/;
 const PHASES = new Set([
-  "baseline", "unknown-enum-value", "unknown-response-field",
-  "opaque-id-tolerance", "shrunk-reference-refresh:1", "shrunk-reference-refresh:2",
+  "baseline", "unknown-enum-value", "unknown-error-code", "unknown-response-field",
+  "unknown-feature-code", "opaque-id-tolerance", "shrunk-reference-refresh:1",
+  "shrunk-reference-refresh:2", "deprecation-notice", "version-format",
 ]);
 let running = false;
 
@@ -41,8 +42,10 @@ serve(async (req) => {
     if (!apiKey) return jsonResponse(req, {error: "SANDBOX_SECRET_UNAVAILABLE"}, 503);
     // Supabase Storage contains *only* public supplier reference records, scoped
     // to a random phase-session UUID. It never holds keys or customer information.
-    const referenceRepository = body.phase.startsWith("shrunk-reference-refresh:")
-      ? createCaravelSandboxReferenceRepository(admin, body.session_id) : null;
+    // Baseline seeds the durable catalogue. EVERY phase re-syncs via MERGE into
+    // the same persisted namespace so :1 can quote missing ids and :2 can
+    // identify returned records without assuming a warm Edge instance.
+    const referenceRepository = createCaravelSandboxReferenceRepository(admin, body.session_id);
     const booking = body.phase === "baseline" || body.phase === "unknown-response-field";
     const run = await runCaravelAcceptance(apiKey, {
       booking, supplierId: body.supplier_id, certificationPhase: body.phase === "baseline" ? null : body.phase,
