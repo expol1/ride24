@@ -9,8 +9,9 @@
 //  - Hard expiry about 24 h after preparation: after EXPIRES_AT it answers 410 without reading the secret.
 //  - POST only, body <= 1 KiB, exactly {"action":"run","booking":true|false,"supplier_id":"…"}:
 //    one supplier per run.
-//  - Premium only: a booking is made only for an offer that passes the Ride24 Premium
-//    policy (zero deposit/excess, theft_excess 0, waiver, required covers). No other plan is booked.
+//  - SANDBOX MECHANICS ONLY: can book the included Premium plan despite intentionally
+//    nonzero fictional deposits/excesses. The Ride24 publishability checks stay strict.
+//    Never books Medium/Basic or optional protection upgrades.
 //  - The Caravel client is fixed to environment "sandbox": production cannot be reached,
 //    and production booking writes are separately disabled in the client.
 //  - Bookings use invented data only (Sandbox Tester / sandbox-ci@example.test),
@@ -24,7 +25,7 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { corsHeaders, jsonResponse, requireAdmin } from "../_shared/ride24-security.ts";
 import { runCaravelAcceptance } from "../_shared/caravel-acceptance.mjs";
 
-const EXPIRES_AT = Date.parse("2026-11-15T08:00:00Z"); // about 24 h after preparation
+const EXPIRES_AT = Date.parse("2026-11-17T20:00:00Z"); // short, fixed expiry for the 16 Nov test window
 let running = false; // one run at a time per instance
 
 serve(async (req) => {
@@ -56,7 +57,8 @@ serve(async (req) => {
     const run = await runCaravelAcceptance(apiKey, {
       booking: body.booking,
       supplierId: body.supplier_id, // one supplier per run
-      premiumOnly: true, // never book an offer that fails the Ride24 Premium policy
+      premiumOnly: true, // all bookings stay within the Premium plan
+       sandboxPremiumMechanics: true, // fictional sandbox values only, never production
       runId: crypto.randomUUID().slice(0, 8),
       budgetMs: 100_000,
     });
