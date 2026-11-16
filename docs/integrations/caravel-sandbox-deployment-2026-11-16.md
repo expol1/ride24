@@ -92,6 +92,16 @@ nie była modyfikowana.
   workflow `Caravel sandbox adapter checks` i
   `Ride24 API Compatibility QA` zakończyły się sukcesem.
 
+## Aktualizacja po kontroli dostępów — 16.11.2026
+
+- `caravel-sandbox-cert-rehearsal` zaktualizowana do **wersji 3**, nadal `verify_jwt=true`; repozytorium PR #84 zawiera bezpieczną akcję administracyjną `POST {"action":"preflight"}`.
+- Preflight **nie tworzy rezerwacji, nie kontaktuje się z Caravel i nie wypisuje sekretów**. Po `requireAdmin()` sprawdza wyłącznie występowanie pięciu zmiennych środowiskowych oraz serwerowy dostęp do czterech prywatnych tabel, zwracając wartości logiczne.
+- Metadane wdrożenia potwierdziły wersję 3, aktywne JWT i obecność `requireAdmin`. W tabelach `caravel_sbx_webhook_events`, `caravel_sbx_reconcile_jobs`, `caravel_sbx_periodic_scans` i `caravel_sbx_reference_snapshots` nadal 0 rekordów.
+- **Rzeczywistego wywołania HTTP nie wykonano:** narzędzia w tej sesji nie mają uwierzytelnionej sesji użytkownika i nie zapewniają żądań POST do Edge. Wymagana jest istniejąca, uprawniona sesja administratora (nie przekazywać JWT przez czat).
+- Następna próba: bez JWT 401, z kontem nieadministracyjnym 403, z administratorem POST `{"action":"preflight"}` 200 oraz odpowiedź logiczna `secrets_configured` i `private_tables_accessible`. Nie wysyłać `{"action":"rehearse"}` do zakończenia gotowości.
+- **Nie** wdrożono `caravel-sandbox-webhook-receiver`, `caravel-sandbox-reconcile-worker` ani `caravel-sandbox-periodic-poll`; nie ustawiono sekretów tymi narzędziami, nie uruchomiono `/_certification/start`.
+- Wymagane do konfiguracji: Caravel-supplied `CARAVEL_SANDBOX_WEBHOOK_SECRET` (nie wolno go wymyślić) i oddzielne wysokolosowe `CARAVEL_SANDBOX_RECONCILE_SECRET`, `CARAVEL_SANDBOX_PERIODIC_SECRET` (zachować tylko w Edge Secrets). Nie zmieniać już działającego `CARAVEL_SANDBOX_API_KEY`.
+
 ## Następne niezbędne kroki
 1. W sesji administratora sprawdzić rzeczywiste HTTP 401/403
    dla `caravel-sandbox-cert-rehearsal`; wykonać sekwencyjną
