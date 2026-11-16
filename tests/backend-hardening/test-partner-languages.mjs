@@ -116,20 +116,15 @@ test('static panel labels, placeholders and helper messages have catalogue entri
     const s=setup();
     try {
         const keys=new Set(Object.keys(s.w.Ride24PartnerLocales.source));
+        const bilingualLocationHints = new Map([
+            ['Select a suggested location when available', 'Wybierz lokalizację z podpowiedzi, jeśli jest dostępna'],
+            ['Search in Polish or English. We save the standard English name and show the verified Polish translation when available.', 'Możesz szukać po polsku lub angielsku. Zapisujemy standardową nazwę angielską, a obok pokażemy zatwierdzone tłumaczenie polskie.'],
+            ['Choose a location to see its Polish name.', 'Wybierz lokalizację, aby sprawdzić polską nazwę.']
+        ]);
         for (const node of parsed.window.document.querySelectorAll('[data-pl][data-en]')) {
             if (!node.closest('#guideModal')) {
-                // The location autocomplete safety hint is explicitly bilingual in markup;
-                // it does not use the shared eight-language catalogue.
-                if (node.dataset.en === 'Select a suggested location when available') {
-                    assert.equal(node.dataset.pl, 'Wybierz lokalizację z podpowiedzi, jeśli jest dostępna');
-                    continue;
-                }
-                if (node.dataset.en === 'Search in Polish or English. We save the standard English name and show the verified Polish translation when available.') {
-                    assert.equal(node.dataset.pl, 'Możesz szukać po polsku lub angielsku. Zapisujemy standardową nazwę angielską, a obok pokażemy zatwierdzone tłumaczenie polskie.');
-                    continue;
-                }
-                if (node.dataset.en === 'Choose a location to see its Polish name.') {
-                    assert.equal(node.dataset.pl, 'Wybierz lokalizację, aby sprawdzić polską nazwę.');
+                if (bilingualLocationHints.has(node.dataset.en)) {
+                    assert.equal(node.dataset.pl, bilingualLocationHints.get(node.dataset.en));
                     continue;
                 }
                 assert.ok(keys.has(node.dataset.en),'Missing HTML label: '+node.dataset.en);
@@ -147,7 +142,13 @@ test('static panel labels, placeholders and helper messages have catalogue entri
                         ['partnerLabel','node','el','field','fld','setLabel'].includes(name)?[1,2]:null;
                     if (pair) {
                         const pl=string(node.arguments[pair[0]]),en=string(node.arguments[pair[1]]);
-                        if (pl&&en) assert.ok(keys.has(en),file+': missing '+en);
+                        if (pl&&en) {
+                            if (file==='panel' && bilingualLocationHints.has(en)) {
+                                assert.equal(pl,bilingualLocationHints.get(en),file+': bilingual hint mismatch '+en);
+                            } else {
+                                assert.ok(keys.has(en),file+': missing '+en);
+                            }
+                        }
                     }
                 }
                 ts.forEachChild(node,walk);
