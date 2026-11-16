@@ -120,6 +120,7 @@ test("a booking left open by a failure is cancelled by the cleanup pass", async 
     const r = await runCaravelAcceptance(KEY, {booking: true});
     assert.equal(r.failed, true); // the failed cancel is reported
     assert.ok(r.results.some(x => x.endpoint.startsWith("cleanup cancel")));
+    assert.equal(r.results.some(x => x.outcome === "ERROR UNCANCELLED_BOOKINGS"), false);
     assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
   } finally { delete globalThis.__failedOnce; }
 });
@@ -212,4 +213,19 @@ test("sandbox mechanics never waives quote-price integrity or confirmation", asy
   assert.equal(r.failed, true);
   assert.ok(r.results.some(x => String(x.outcome).includes("BOOKED_PRICE_DIFFERS_FROM_QUOTE")));
   assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
+});
+
+test("sandbox cleanup reports unresolved bookings if cancellation repeatedly fails", async () => {
+  const {bookings} = sandboxMock();
+  const normal = globalThis.fetch;
+  globalThis.fetch = (url, options) => String(url).includes("/cancel")
+    ? Promise.resolve(new Response(JSON.stringify({error: {code: "service_unavailable"}}), {status: 503}))
+    : normal(url, options);
+  const result = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur"});
+  assert.equal(result.failed, true);
+  const unresolved = result.results.find(x => x.outcome === "ERROR UNCANCELLED_BOOKINGS");
+  assert.ok(unresolved);
+  assert.equal(unresolved.summary.length, 1);
+  assert.equal(unresolved.summary[0].supplier_id, "acct_eur");
+  assert.ok([...bookings.values()].some(b => b.status !== "cancelled"));
 });
