@@ -49,7 +49,8 @@ test("private RPC snapshot persists between runs and preserves opaque vehicle ID
   assert.deepEqual(admin.calls.map(x=>x.name),[
     "caravel_sbx_reference_load","caravel_sbx_reference_save","caravel_sbx_reference_load",
   ]);
-  assert.equal(admin.calls[1].args.p_snapshot.vehicles[0][0],SUP+"\u0000opaque-vehicle-id");
+  assert.equal(admin.calls[1].args.p_snapshot.vehicles[0][0],encodeURIComponent(SUP+"\u0000opaque-vehicle-id"));
+  assert.equal(JSON.stringify(admin.calls[1].args.p_snapshot).includes("\\u0000"),false);
   await repoB.clear(SUP);
   assert.equal(await repoA.load(SUP),null);
 });
@@ -91,4 +92,16 @@ test("an invalid or failed SQL RPC never returns a supposedly saved snapshot",as
   const repo=createCaravelSandboxReferenceRepository(bad,SESSION);
   await assert.rejects(()=>repo.load(SUP),/CERT_STATE_BAD_SNAPSHOT/);
   await assert.rejects(()=>repo.save(SUP,sample()),/CERT_STATE_RPC_FAILED/);
+});
+
+test("opaque vehicle IDs with percent signs and non-ASCII roundtrip without Postgres NUL",async()=>{
+  const admin=fakeAdmin(),repo=createCaravelSandboxReferenceRepository(admin,SESSION);
+  const snapshot=sample();
+  snapshot.vehicles.push([SUP+"\u0000"+"id/%+łódź",{
+    ...structuredClone(record),id:"id/%+łódź",data:{vehicle_id:"id/%+łódź",name:"Reference"},
+  }]);
+  await repo.save(SUP,snapshot);
+  const saved=admin.rows.get(SESSION+":"+SUP);
+  assert.ok(saved.vehicles.every(([key])=>!key.includes("\u0000")));
+  assert.deepEqual(await repo.load(SUP),snapshot);
 });
