@@ -119,7 +119,8 @@ test('static panel labels, placeholders and helper messages have catalogue entri
         const bilingualLocationHints = new Map([
             ['Select a suggested location when available', 'Wybierz lokalizację z podpowiedzi, jeśli jest dostępna'],
             ['Search in Polish or English. We save the standard English name and show the verified Polish translation when available.', 'Możesz szukać po polsku lub angielsku. Zapisujemy standardową nazwę angielską, a obok pokażemy zatwierdzone tłumaczenie polskie.'],
-            ['Choose a location to see its Polish name.', 'Wybierz lokalizację, aby sprawdzić polską nazwę.']
+            ['Choose a location to see its Polish name.', 'Wybierz lokalizację, aby sprawdzić polską nazwę.'],
+            ['Polish translation is not yet verified. The Android app will display the English name.', 'Polskie tłumaczenie nie jest jeszcze zatwierdzone w słowniku. W APK wyświetli się poprawna nazwa angielska.']
         ]);
         for (const node of parsed.window.document.querySelectorAll('[data-pl][data-en]')) {
             if (!node.closest('#guideModal')) {
