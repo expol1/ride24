@@ -63,6 +63,7 @@ function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabil
       // Confirmed live Caravel behavior: second cancellation is HTTP 200 even
       // if the request carries the pre-cancel revision.
       if (b.status === "cancelled") return [200, b];
+      if (body.expected_revision !== b.revision) return [409, null, "revision_conflict"];
       Object.assign(b, {status: "cancelled", revision: b.revision + 1, cancellation: {fee: m(0, cur(sid)), refund: m(0, cur(sid))}});
       return [200, b];
     }
@@ -99,6 +100,8 @@ test("full flow at both suppliers: sandbox host only, pay_on_arrival, invented d
     assert.equal(c.body.customer.email, "sandbox-ci@example.test");
   }
   assert.equal(bookings.size, 2); // one per supplier (replays and the 409 probe create nothing)
+  assert.equal(r.results.filter(x => x.endpoint.includes("wrong revision (expect revision_conflict)") && x.outcome.includes("revision_conflict")).length, 2);
+  assert.equal(r.results.filter(x => x.endpoint.includes("after revision conflict") && x.summary?.state_preserved === true).length, 2);
   assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
   for (const sid of ["acct_gbp", "acct_eur"]) {
     assert.ok(r.results.some(x => x.endpoint.includes("POST /v1/bookings (pay_on_arrival)") && x.endpoint.includes(sid.slice(0, 8))), sid);
