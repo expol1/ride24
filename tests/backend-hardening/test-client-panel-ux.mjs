@@ -185,3 +185,40 @@ test('client web sign-out stays local and does not revoke Android sessions',()=>
     assert.ok(html.includes('await db.auth.signOut();'),
         'Account deletion flow must retain global session revocation');
 });
+
+test('cancel actions are visible before payment timer and route paid bookings through refund handling',()=>{
+    const actions=part('// --- DYNAMICZNE AKCJE (PREMIUM BUTTONS) ---','actionsHtml += `</div>`;');
+    const pending=actions.slice(actions.indexOf("if (s === 'pending') {"),actions.indexOf("else if (s === 'accepted') {"));
+    const awaiting=actions.slice(actions.indexOf("else if (s === 'awaiting_payment') {"),actions.indexOf("else if (s === 'paid') {"));
+    const paid=actions.slice(actions.indexOf("else if (s === 'paid') {"),actions.indexOf("else if (s === 'cancelled'"));
+    assert.ok(pending.indexOf('window.cancelBooking(')<pending.indexOf('countdown-timer'),'Pending cancellation must appear before timer');
+    assert.ok(awaiting.indexOf('btn-pay-now')<awaiting.indexOf('btn-cancel-soft'),'Payment action precedes cancel action');
+    assert.ok(awaiting.indexOf('btn-cancel-soft')<awaiting.indexOf('${timerHtml}'),'Cancellation precedes payment countdown');
+    assert.match(awaiting,/window\.cancelBooking\(/);
+    assert.match(paid,/window\.cancelBooking\(/);
+    assert.match(paid,/booking\.refund_status === 'pending'/);
+    const cancel=part('window.cancelBooking = async function(id, currentStatus) {','// --- REALNA PŁATNOŚĆ');
+    assert.match(cancel,/window\.handleRefundClick\(/,'Paid cancellation must select refund flow');
+    assert.match(cancel,/window\.cancelWithoutRefund\(/,'No-refund cancellation must use existing endpoint');
+    assert.match(cancel,/calculateRefundPercent\(booking\.start_date\)/);
+    assert.match(cancel,/\['pending', 'accepted', 'awaiting_payment', 'paid'\]/);
+    assert.match(cancel,/booking\.status !== currentStatus/);
+});
+test('account deletion request checks persisted update and admin verifies Auth plus auxiliary records',()=>{
+    const request=part('window.processAccountDeletion = async function() {','window._rateCache');
+    assert.match(request,/\.select\("id,deletion_requested,deletion_requested_at"\)/);
+    assert.match(request,/savedRequest\?\.id !== user\.id/);
+    assert.match(request,/savedRequest\.deletion_requested !== true/);
+    assert.match(request,/await db\.auth\.signOut\(\)/);
+    for(const path of ['supabase/functions/admin-account-delete/index.ts','supabase/functions/admin-client-controls/index.ts']){
+        const backend=read(path);
+        assert.match(backend,/auth\.admin\.deleteUser\(uid,false\)/,'Must use Supabase Auth admin deletion');
+        assert.match(backend,/verifyError\.status\s*!==\s*404/,'Must verify Auth absence');
+        assert.match(backend,/remainingProfile/,'Must verify profile absence');
+        assert.match(backend,/client_app_devices/,'Must clean device tokens');
+        assert.match(backend,/client_account_moderation_log/,'Must remove personally linked moderation records');
+        assert.match(backend,/cleanup_pending:/,'Must surface partial failures');
+    }
+    const controls=read('supabase/functions/admin-client-controls/index.ts');
+    assert.doesNotMatch(controls,/action:"delete",reason:"Administrator deleted eligible client"/,'Must not create orphan audit row after user removal');
+});
