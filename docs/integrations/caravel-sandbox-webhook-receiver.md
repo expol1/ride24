@@ -39,7 +39,7 @@ Wcześniejszy `caravel-sandbox-webhook-probe` potrafi sprawdzić HMAC, ale nie z
 
 - `webhook.live_delivery_certified`: brak rzeczywistego wywołania Caravel.
 - `webhook.hmac_self_test`: nie został wysłany.
-- Kompletnej synchronizacji po `sequence_gap`: brakuje osobnego procesu, który pobiera wszystkie strony `GET /v1/bookings?updated_since`, utrzymuje własny watermark i rozstrzyga luki.
+- Synchronizacja po wykrytym `sequence_gap` jest już przygotowana w PR (worker + kolejka SQL + paginacja i checkpoint), ale **nie jest wdrożona ani uruchomiona**. Brak także okresowego odpytywania w razie całkowitej ciszy webhooków. Szczegóły: `caravel-sandbox-webhook-reconcile.md`.
 - Pełnego adaptera produkcyjnego do Ride24 — wymagane odrębne wdrożenie po zakończeniu AVIA.
 - Pomiary z prawdziwego ruchu 429/503, expired quote i direct `expected_price` guard — CI symuluje odpowiedzi, a nie wystawia Caravel certyfikatu.
 
