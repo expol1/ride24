@@ -53,7 +53,7 @@ test('normalization never alters stored API/Android location_name columns or pri
  assert.match(results,/\.eq\('location_name',\s*returnLocationName\)/);
  assert.doesNotMatch(results,/\.eq\(\s*'partners\.partner_locations\.display_name'/);
  assert.match(panel,/window\.Ride24LocationNames\.normalizeForSave\(locationData\)/);
- assert.match(panel,/window\.Ride24LocationNames\.displayName\(loc\)/);
+ assert.match(panel,/window\.Ride24LocationNames\.localizedNames\(loc\)/);
  const api=read('supabase/functions/search-api/index.ts');
  assert.match(api,/if \(criteria\.id\) return query\.eq\("id", criteria\.id\)/);
 });
