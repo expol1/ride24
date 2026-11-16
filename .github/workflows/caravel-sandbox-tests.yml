@@ -47,7 +47,7 @@ jobs:
           deno-version: v2.x
       - name: Deno check (no secrets, no deployments)
         run: |
-          deno check \
+          deno check --config supabase/functions/caravel-audit-deno.json \
             supabase/functions/caravel-sandbox-acceptance/index.ts \
             supabase/functions/caravel-sandbox-cert-rehearsal/index.ts \
             supabase/functions/caravel-sandbox-webhook-receiver/index.ts \
