@@ -60,7 +60,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
   }
   const client = new CaravelClient({apiKey: key, environment: "sandbox"});
   // Never let this certification-only exception reach the production API.
-  if (sandboxPremiumMechanics && (client.environment !== "sandbox" || premiumOnly !== true || !withBooking))
+  if (sandboxPremiumMechanics && (client.environment !== "sandbox" || premiumOnly !== true))
     throw new Error("INVALID_SANDBOX_MECHANICS_CONFIG");
   const caps = await step("GET /v1/capabilities (with key)", async () => {
     const c = await client.capabilities();
