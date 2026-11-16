@@ -128,18 +128,27 @@ test("booking=false never calls booking endpoints", async () => {
 test("a booking left open by a failure is cancelled by the cleanup pass", async () => {
   const {bookings} = sandboxMock();
   const inner = globalThis.fetch;
+  let failedCancelKey = null, failures = 0;
   globalThis.fetch = async (url, options) => {
-    // Fail the first regular cancel once: the cleanup pass must still cancel the booking.
-    if (String(url).includes("/cancel") && !globalThis.__failedOnce) { globalThis.__failedOnce = true; return new Response(JSON.stringify({error: {code: "service_unavailable"}}), {status: 503}); }
+    // Wrong revision must still get its expected 409 first. Exhaust all three
+    // safe retries for the FIRST *valid* cancel idempotency key. The cleanup
+    // pass uses a NEW UUID and must eventually cancel the booking.
+    if (String(url).includes("/cancel") && JSON.parse(options?.body ?? "{}").expected_revision === 1) {
+      failedCancelKey ??= options.headers["Idempotency-Key"];
+      if (options.headers["Idempotency-Key"] === failedCancelKey) {
+        failures++;
+        return new Response(JSON.stringify({error: {code: "service_unavailable"}}),
+          {status: 503, headers: {"Retry-After": "0"}});
+      }
+    }
     return inner(url, options);
   };
-  try {
-    const r = await runCaravelAcceptance(KEY, {booking: true});
-    assert.equal(r.failed, true); // the failed cancel is reported
-    assert.ok(r.results.some(x => x.endpoint.startsWith("cleanup cancel")));
-    assert.equal(r.results.some(x => x.outcome === "ERROR UNCANCELLED_BOOKINGS"), false);
-    assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
-  } finally { delete globalThis.__failedOnce; }
+  const r = await runCaravelAcceptance(KEY, {booking: true});
+  assert.equal(failures, 3); // bounded retry; no hot loop
+  assert.equal(r.failed, true); // valid cancellation exhausted retries
+  assert.ok(r.results.some(x => x.endpoint.startsWith("cleanup cancel")));
+  assert.equal(r.results.some(x => x.outcome === "ERROR UNCANCELLED_BOOKINGS"), false);
+  assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
 });
 
 test("time budget stops new steps but never the cleanup", async () => {
