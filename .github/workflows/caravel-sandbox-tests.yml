@@ -1,9 +1,11 @@
 name: Caravel sandbox adapter checks
 on:
   push:
-    branches: [feature/caravel-sandbox-integration]
+    branches: [feature/caravel-sandbox-integration, claude/caravel-finish]
     paths:
-      - 'supabase/functions/_shared/caravel-*.ts'
+      - 'supabase/functions/_shared/caravel-*'
+      - 'supabase/functions/caravel-sandbox-*/**'
+      - 'docs/integrations/caravel-*.sql'
       - 'supabase/functions/_shared/partner-api.ts'
       - 'supabase/functions/_shared/api-quote-contract.mjs'
       - 'tests/caravel-*.test.mjs'
@@ -11,7 +13,9 @@ on:
       - '.github/workflows/caravel-sandbox-tests.yml'
   pull_request:
     paths:
-      - 'supabase/functions/_shared/caravel-*.ts'
+      - 'supabase/functions/_shared/caravel-*'
+      - 'supabase/functions/caravel-sandbox-*/**'
+      - 'docs/integrations/caravel-*.sql'
       - 'supabase/functions/_shared/partner-api.ts'
       - 'supabase/functions/_shared/api-quote-contract.mjs'
       - 'tests/caravel-*.test.mjs'
@@ -31,3 +35,21 @@ jobs:
         run: node --experimental-strip-types --test tests/caravel-sandbox-adapter.test.mjs tests/caravel-verified-rules.test.mjs tests/caravel-quote-verification.test.mjs tests/caravel-normalize.test.mjs tests/caravel-booking.test.mjs tests/caravel-diagnostics.test.mjs tests/caravel-stage1.test.mjs tests/caravel-acceptance.test.mjs tests/caravel-stage1b.test.mjs tests/caravel-cert-state.test.mjs tests/caravel-reliability.test.mjs tests/caravel-webhook-probe.test.mjs tests/caravel-certification-edge.test.mjs tests/caravel-webhook-delivery.test.mjs tests/caravel-sandbox-reconcile.test.mjs tests/caravel-sandbox-periodic.test.mjs
       - name: TypeScript type check
         run: npx --yes --package typescript@5.9.3 tsc --noEmit --target es2022 --module esnext --moduleResolution bundler --lib es2022,dom --allowImportingTsExtensions supabase/functions/_shared/caravel-sandbox-adapter.ts supabase/functions/_shared/caravel-verified-rules.ts supabase/functions/_shared/caravel-quote-verification.ts supabase/functions/_shared/caravel-normalize.ts supabase/functions/_shared/caravel-booking.ts supabase/functions/_shared/caravel-diagnostics.ts supabase/functions/_shared/caravel-premium.ts supabase/functions/_shared/caravel-hours.ts supabase/functions/_shared/caravel-reference-sync.ts supabase/functions/_shared/caravel-webhooks.ts supabase/functions/_shared/caravel-webhook-probe.ts
+
+  edge-deno-check:
+    name: Deno type-check isolated Caravel Edge entrypoints
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Deno check (no secrets, no deployments)
+        run: |
+          deno check \
+            supabase/functions/caravel-sandbox-acceptance/index.ts \
+            supabase/functions/caravel-sandbox-cert-rehearsal/index.ts \
+            supabase/functions/caravel-sandbox-webhook-receiver/index.ts \
+            supabase/functions/caravel-sandbox-reconcile-worker/index.ts \
+            supabase/functions/caravel-sandbox-periodic-poll/index.ts
