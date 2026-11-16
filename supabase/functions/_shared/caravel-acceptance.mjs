@@ -315,6 +315,32 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       current = (await client.bookingStatusSandbox(booking.booking_id, sid)).data;
       return {status: current.status, revision: current.revision};
     });
+    // Concurrency probe while this booking is STILL ACTIVE. A mismatched positive
+    // expected_revision must return 409 revision_conflict and must not cancel it.
+    // Use current.revision + 1 (revision zero is rejected by the adapter).
+    if (current?.status === "confirmed" && Number.isSafeInteger(current.revision) && current.revision >= 1) {
+      const conflict = await step(`${tag} POST cancel active booking, wrong revision (expect revision_conflict)`, async () => {
+        await client.cancelSandbox(booking.booking_id, current.revision + 1, crypto.randomUUID(), sid);
+        return {unexpected: "cancel accepted with incorrect revision"};
+      }, {expectError: "revision_conflict"});
+      if (!conflict) {
+        // Do not assume the booking is still confirmed if the upstream behaved
+        // unexpectedly. The unconditional final cleanup will reconcile it.
+        results.push({endpoint: `${tag} cancel concurrency`, outcome: "NOT RUN", summary: "active-state verification failed; cleanup required"});
+        continue;
+      }
+      const afterConflict = await step(`${tag} GET /v1/bookings/{ref} after revision conflict`, async () => {
+        const latest = (await client.bookingStatusSandbox(booking.booking_id, sid)).data;
+        if (latest.status !== "confirmed" || latest.revision !== current.revision)
+          throw new Error("REVISION_CONFLICT_CHANGED_ACTIVE_BOOKING");
+        return {status: latest.status, revision: latest.revision, state_preserved: true};
+      });
+      if (!afterConflict) continue;
+    } else {
+      failed = true;
+      results.push({endpoint: `${tag} cancel concurrency`, outcome: "NOT RUN", summary: "booking not active or revision invalid; cleanup required"});
+      continue;
+    }
     let cancelled = null;
     await step(`${tag} POST /v1/bookings/{ref}/cancel`, async () => {
       cancelled = (await client.cancelSandbox(booking.booking_id, current.revision, crypto.randomUUID(), sid)).data;
