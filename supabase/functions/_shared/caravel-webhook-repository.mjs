@@ -40,5 +40,26 @@ export function createCaravelSandboxWebhookRepository(admin){
       if(result!==true&&result!==false)throw new Error("CARAVEL_WEBHOOK_BAD_RELEASE");
       return result;
     },
+    // GAP-RECOVERY QUEUE (separate invoker, never called by a public client).
+    async claimJob(lease){
+      const result=await rpc("caravel_sbx_reconcile_claim",{p_lease:lease});
+      if(result===null)return null;
+      if(typeof result!=="object" || typeof result.job_id!=="string")
+        throw new Error("CARAVEL_RECONCILE_BAD_CLAIM");
+      return result;
+    },
+    async commitPage(jobId,lease,items,nextPage){
+      if(!Array.isArray(items) || items.length>100)
+        throw new Error("CARAVEL_RECONCILE_TOO_MANY_ROWS");
+      const result=await rpc("caravel_sbx_reconcile_apply_page",{
+        p_job_id:jobId,p_lease:lease,p_items:items,p_next_page:nextPage,
+      });
+      if(!result || result.accepted!==true || typeof result.complete!=="boolean")
+        throw new Error("CARAVEL_RECONCILE_BAD_COMMIT");
+      return result;
+    },
+    async releaseJob(jobId,lease){
+      return rpc("caravel_sbx_reconcile_release",{p_job_id:jobId,p_lease:lease});
+    },
   };
 }
