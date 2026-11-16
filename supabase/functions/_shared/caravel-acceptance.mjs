@@ -28,7 +28,7 @@ import {
  * @param options.referenceRepository optional trusted server-side {load(supplierId), save(supplierId, snapshot)} for persistence across calls; never passed from HTTP body
  */
 /** @param {any} options Server-side isolated invocation; runtime validates each required capability before API/DB calls. */
-export async function runCaravelAcceptance(key, {booking: withBooking = false, runId = "local", budgetMs = 120000, supplierId = null, premiumOnly = true, sandboxPremiumMechanics = false, certificationPhase = null, referenceRepository = null} = {}) {
+export async function runCaravelAcceptance(key, {booking: withBooking = false, runId = "local", budgetMs = 120000, supplierId = null, premiumOnly = true, sandboxPremiumMechanics = false, certificationPhase = null, referenceRepository = /** @type {any} */ (null)} = {}) {
   if (!key) return {failed: false, booking: withBooking, results: [{endpoint: "-", outcome: "SKIPPED", summary: "CARAVEL_SANDBOX_API_KEY is not configured"}]};
   const started = Date.now();
   const results = [];
