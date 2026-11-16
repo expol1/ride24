@@ -143,7 +143,7 @@ serve(async (req) => {
       const result = await response.json().catch(() => null);
       const validState = ["idle", "complete", "more", "retry", "invalid_job"];
       const state = validState.includes(result?.state) ? result.state : "unknown";
-      const count = (n: unknown) => Number.isSafeInteger(n) && n >= 0 && n <= 100 ? n : null;
+      const count = (n: unknown) => typeof n === "number" && Number.isSafeInteger(n) && n >= 0 && n <= 100 ? n : null;
       const ok = response.status === 200 && result?.ok === true;
       // Return allowlisted scalar diagnostics only. Never echo raw upstream
       // JSON, record identifiers, customer fields or internal credentials.
