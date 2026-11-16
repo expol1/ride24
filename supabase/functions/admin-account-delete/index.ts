@@ -36,17 +36,31 @@ Deno.serve(async (req: Request) => {
     // A 404 is the only acceptable verification outcome. Timeouts/403/5xx are NOT proof of deletion.
     if (!verifyError || verifyError.status !== 404 || stillThere?.user)
       return respond(502,{error:"Nie uzyskano jednoznacznego potwierdzenia usunięcia z Auth. Sprawdź stan przed ponowieniem."});
-    const remaining: string[]=[];
+    const remaining = new Set<string>();
     const related = [
       ["client_app_devices","user_id"],["client_app_notifications","client_id"],
-      ["user_invoice_profiles","user_id"],["seo_oauth_states","user_id"]
+      ["user_invoice_profiles","user_id"],["seo_oauth_states","user_id"],
+      ["client_account_moderation_log","client_id"],["client_account_controls","client_id"],
+      ["partner_app_devices","user_id"],["partner_app_hidden_bookings","user_id"]
     ] as const;
     for (const [table,col] of related) {
-      const {error}=await admin.from(table).delete().eq(col,uid);
-      if (error) remaining.push(table);
+      const {error:deleteRelatedError}=await admin.from(table).delete().eq(col,uid);
+      const {count,error:checkError}=await admin.from(table)
+        .select("*",{count:"exact",head:true}).eq(col,uid);
+      if (deleteRelatedError || checkError || count !== 0) remaining.add(table);
     }
-    return respond(200,{success:true,auth_deleted:true,cleanup_pending:remaining,
-      message:remaining.length?"Konto usunięte z Auth. Część danych pomocniczych wymaga sprawdzenia.":"Konto i Auth usunięte."});
+    if (userData.user.email) {
+      const {error:emailDeleteError}=await admin.from("email_logs").delete().ilike("email",userData.user.email);
+      const {count:emailCount,error:emailCheckError}=await admin.from("email_logs")
+        .select("*",{count:"exact",head:true}).ilike("email",userData.user.email);
+      if (emailDeleteError || emailCheckError || emailCount !== 0) remaining.add("email_logs");
+    }
+    // Authentication success alone is not proof that the admin profile disappeared.
+    const {data:remainingProfile,error:profileCheckError}=await admin.from("profiles")
+      .select("id").eq("id",uid).maybeSingle();
+    if (profileCheckError || remainingProfile) remaining.add("profiles");
+    return respond(200,{success:true,auth_deleted:true,cleanup_pending:[...remaining],
+      message:remaining.size?"Konto usunięte z Auth. Część danych pomocniczych wymaga sprawdzenia.":"Konto i Auth usunięte."});
   } catch {
     return respond(500,{error:"Operacja nie została zakończona. Odśwież panel i sprawdź status konta."});
   }
