@@ -3,6 +3,20 @@
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
 **The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
 
+## Readiness update after source-document review (16 Nov 2026)
+- Current specification checked against the partner's bundled v1.67.0 documentation (HTML export). The official run has not started.
+- Live tests on 16 Nov: EUR and GBP **25/25** steps each, `failed: false`. The conflict on an **active** booking returned 409 `revision_conflict`; the booking stayed confirmed at revision 1, then cancelled correctly at revision 2, fee 0, and the function was returned to HTTP 410.
+- New isolated rehearsal code supports the six gating scenarios as described, plus non-gating phases. Mock tests cover unknown location types, two freshly catalogued vehicle IDs, a GET after cancellation and the reference shrink/return sequence.
+- **Important correction:** in `shrunk-reference-refresh:1` the vehicle is removed from refreshed catalogue and search results, yet must be quoted using a **baseline-persisted** record; in `:2` it returns and must remain the same record under the original ID. This is now how the code and tests behave.
+- A private Supabase Storage reference-state adapter and an independent admin-only rehearsal endpoint were added to PR #84. **Neither the bucket nor the endpoint has been deployed**, and no production tables were touched. See `caravel-cert-sandbox-store.md`.
+- Code-only CI success does not prove the 24-hour hosted run will pass. The true gating changes are injected only during a real active run; some rehearsals need saved mutated responses.
+
+## Important remaining evidence and setup before certification
+- Private reference bucket and rehearsal endpoint require separate explicit activation and JWT/admin checks. The old acceptance function must remain closed.
+- Verify the full ten-phase flow against an actual injected run before pressing `/_certification/start` (no skipping or inventing evidence). A phase without observed follow-up traffic is inconclusive.
+- Additional registry checks still pending: status families, pagination and token binding, expired quote, direct-price guard, 429 and Retry-After with a stable idempotency key, and live webhook delivery. HMAC fixture verification was local only; `/_certification/hmac-self-test` was not invoked.
+- The sandbox-only medium served plan in `opaque-id-tolerance` must be QUOTED, never booked or published to Ride24 customers.
+
 ## Current acceptance evidence — 16 Nov 2026
 - Isolated admin-only Supabase function was deployed for live tests, then replaced by `closed.ts` (HTTP 410 with valid admin JWT; 401 without auth); production integrations remained untouched.
 - Real sandbox EUR (`acct_eaa0…`) and GBP (`acct_a714…`): **23/23 steps OK for each supplier**, `failed: false`; Premium `INS_PREMIUM` quote + booking + idempotency replay + status read + cancel + idempotent second cancel. No active test bookings remain.
