@@ -89,6 +89,35 @@ test("invalid HMAC/path/replay age rejected before touching DB or fetching booki
   assert.equal(fetched,false);
 });
 
+test("missing HMAC configuration rejects delivery without accessing the database or Caravel",async()=>{
+  const repository=memoryRepository();
+  let fetched=false;
+  const payload=await signed(event());
+  const result=await handleCaravelSandboxDelivery({
+    ...payload,secrets:[],repository,fetchBooking:async()=>{fetched=true;return booking();}
+  });
+  assert.deepEqual([result.status,result.accepted,result.reason],
+    [503,false,"WEBHOOK_SECRET_UNAVAILABLE"]);
+  assert.equal(repository.events.size,0);
+  assert.equal(fetched,false);
+});
+
+test("HMAC secret rotation accepts the signed previous secret and rejects unrelated keys",async()=>{
+  const repository=memoryRepository();
+  const payload=await signed(event(14));
+  const fetchBooking=async()=>booking(2);
+  const ok=await handleCaravelSandboxDelivery({
+    ...payload,secrets:["new-secret-not-matching",key],repository,fetchBooking
+  });
+  assert.equal(ok.status,202);
+  const unrelated=await handleCaravelSandboxDelivery({
+    ...await signed(event(15)),secrets:["new-secret-not-matching"],
+    repository,fetchBooking
+  });
+  assert.equal(unrelated.status,401);
+  assert.equal(repository.events.size,1);
+});
+
 test("HMAC-signed event lacking supplier and malformed event are rejected before writes",async()=>{
   const repository=memoryRepository();
   const x=event();delete x.supplier_id;
