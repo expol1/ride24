@@ -264,6 +264,11 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     let booking = null;
     await step(`${tag} POST /v1/bookings (pay_on_arrival)`, async () => {
       booking = (await client.bookSandbox(body, draft.draft.idempotencyKey, sid)).data;
+      // Keep every returned booking in the cleanup queue BEFORE verification.
+      // A malformed ID must fail explicitly rather than silently passing checks.
+      if (typeof booking?.booking_id !== "string" || !booking.booking_id) {
+        throw new Error("BOOKING_ID_MISSING_CANNOT_CLEANUP");
+      }
       created.push({id: booking.booking_id, sid});
       const check = verifyCaravelBookingAgainstQuote(booking, read.value.quote);
       const problems = check.ok ? [] : check.errors;
@@ -313,11 +318,17 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
   }
 
   // Safety net: cancel anything the run created and did not cancel.
-  for (const b of created) {
-    await step(`cleanup cancel ${b.id.slice(0, 8)}…`, async () => {
+  for (const b of [...created]) {
+    await step(`cleanup cancel ${String(b.id).slice(0, 8)}…`, async () => {
       const cur = (await client.bookingStatusSandbox(b.id, b.sid)).data;
+      if (cur.status === "cancelled") {
+        created.splice(created.indexOf(b), 1);
+        return {status: "cancelled", already_cancelled: true};
+      }
       const c = (await client.cancelSandbox(b.id, cur.revision, crypto.randomUUID(), b.sid)).data;
-      return {status: c.status};
+      if (c.status !== "cancelled") throw new Error("CLEANUP_NOT_CANCELLED");
+      created.splice(created.indexOf(b), 1);
+      return {status: "cancelled"};
     }, {force: true});
   }
   if (created.length) {
