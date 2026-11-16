@@ -38,10 +38,15 @@ export async function runCaravelSandboxPeriodicPoll({
   const lease=crypto.randomUUID();
   const job=await repository.claimPeriodic(lease);
   if(job===null)return {ok:true,state:"idle",pages:0,bookings:0};
+  // The claim RPC obtains scan_to using the database clock AFTER supplier
+  // discovery and registration. Comparing it with the invocation start time
+  // incorrectly rejects valid jobs when either network call takes >1 second.
+  // Validate against the clock AFTER the claim, with bounded DB/Edge skew.
+  const claimedAt=now();
   const validJob=typeof job?.supplier_id==="string"&&ids.includes(job.supplier_id)&&
     validIso(job.scan_from)&&validIso(job.scan_to)&&
     Date.parse(job.scan_from)<=Date.parse(job.scan_to)&&
-    Date.parse(job.scan_to)<=started+1000&&
+    Date.parse(job.scan_to)<=claimedAt+30_000&&
     validToken(job.page_token??null);
   if(!validJob){
     try{await repository.releasePeriodic(job?.supplier_id,lease);}catch{}
