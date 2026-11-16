@@ -13,6 +13,7 @@ const validToken=v=>v===null||(typeof v==="string"&&v.length>0&&v.length<=2048&&
 const validIso=v=>typeof v==="string"&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(v)&&
   Number.isFinite(Date.parse(v));
 
+/** @param {any} options Server-side isolated invocation; runtime validates each required capability before API/DB calls. */
 export async function runCaravelSandboxPeriodicPoll({
   client,repository,now=()=>Date.now(),maxRows=PAGE_MAX,budgetMs=75000,
 }={}){
