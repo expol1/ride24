@@ -3,6 +3,12 @@
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
 **The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
 
+## Durable sandbox webhook receiver preparation — 16 Nov 2026
+- New **UNDEPLOYED** `caravel-sandbox-webhook-receiver` and `caravel-webhook-delivery.mjs` validate the raw-body HMAC, reject invalid signed events, atomically dedupe via a restricted DB repository, then re-fetch the booking from Caravel sandbox and store only the latest revision/status in separate sandbox tables.
+- SQL proposal is documented in `caravel-sandbox-webhook-state.sql` and **has NOT been executed**. Without the RPC functions, the receiver fails closed (503); `verify_jwt=false` is only safe when HMAC is configured and verified.
+- `tests/caravel-webhook-delivery.test.mjs` covers duplicate events, stale revisions, sequence gap reporting, invalid signatures and supplier IDs, refetch failure/redelivery, and RPC invocation. These are mocked tests, not live Caravel delivery or completed certification.
+- A sequence gap is flagged but **automatic reconciliation is still pending**. See `caravel-sandbox-webhook-receiver.md` for the explicit deployment/security checklist.
+
 ## Sandbox webhook receipt preparation — 16 Nov 2026
 - `caravel-webhook-probe.ts` verifies the signature (raw body, exact method/path, HMAC and timestamp) and validates the event envelope; its test fixtures cover tampering, changed path, stale timestamps and malformed bodies.
 - `caravel-sandbox-webhook-probe/index.ts` is an **UNDEPLOYED** sandbox-only Edge entrypoint, designed for `verify_jwt=false` with mandatory HMAC authentication and a strict 32 KiB request-body limit. Returns only accepted/rejected status; logs no payload, stores no personal data and never updates Ride24 reservations.
