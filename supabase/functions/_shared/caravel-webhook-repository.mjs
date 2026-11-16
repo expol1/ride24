@@ -61,5 +61,41 @@ export function createCaravelSandboxWebhookRepository(admin){
     async releaseJob(jobId,lease){
       return rpc("caravel_sbx_reconcile_release",{p_job_id:jobId,p_lease:lease});
     },
+    // Independent PERIODIC POLLING: detects supplier changes even with zero
+    // webhook deliveries. These are sandbox-only, private RPCs.
+    async registerSuppliers(ids){
+      if(!Array.isArray(ids)||ids.length<1||ids.length>10||
+        ids.some(x=>typeof x!=="string"||!/^[A-Za-z0-9_-]{1,128}$/.test(x)))
+        throw new Error("CARAVEL_PERIODIC_INVALID_SUPPLIERS");
+      const added=await rpc("caravel_sbx_periodic_register",{p_suppliers:ids});
+      if(!Number.isSafeInteger(added)||added<0||added>ids.length)
+        throw new Error("CARAVEL_PERIODIC_BAD_REGISTER");
+      return added;
+    },
+    async claimPeriodic(lease){
+      const job=await rpc("caravel_sbx_periodic_claim",{p_lease:lease});
+      if(job===null)return null;
+      if(!job||typeof job.supplier_id!=="string"||typeof job.scan_from!=="string"||
+        typeof job.scan_to!=="string")
+        throw new Error("CARAVEL_PERIODIC_BAD_CLAIM");
+      return job;
+    },
+    async commitPeriodicPage(supplierId,lease,items,nextPage){
+      if(!Array.isArray(items)||items.length>100)
+        throw new Error("CARAVEL_PERIODIC_BAD_PAGE");
+      const result=await rpc("caravel_sbx_periodic_commit",{
+        p_supplier_id:supplierId,p_lease:lease,p_items:items,p_next_page:nextPage,
+      });
+      if(result?.accepted!==true||typeof result.complete!=="boolean")
+        throw new Error("CARAVEL_PERIODIC_BAD_CHECKPOINT");
+      return result;
+    },
+    async releasePeriodic(supplierId,lease){
+      const result=await rpc("caravel_sbx_periodic_release",{
+        p_supplier_id:supplierId,p_lease:lease,
+      });
+      if(typeof result!=="boolean")throw new Error("CARAVEL_PERIODIC_BAD_RELEASE");
+      return result;
+    },
   };
 }
