@@ -53,15 +53,30 @@ Deno.serve(async (req:Request)=>{
       const {data:verification,error:verifyError}=await db.auth.admin.getUserById(uid);
       if(!verifyError||verifyError.status!==404||verification?.user)
         return respond(502,{error:"AUTH_DELETE_NOT_CONFIRMED"});
-      const pending:string[]=[];
-      for(const [table,col] of [["client_app_devices","user_id"],["client_app_notifications","client_id"],["user_invoice_profiles","user_id"]] as const){
-        const {error:e}=await db.from(table).delete().eq(col,uid);
-        if(e)pending.push(table);
+      const pending=new Set<string>();
+      // Do not create a new orphaned moderation record after deleting the profile.
+      // Remove any existing per-user moderation records together with device data.
+      const related=[
+        ["client_app_devices","user_id"],["client_app_notifications","client_id"],
+        ["user_invoice_profiles","user_id"],["seo_oauth_states","user_id"],
+        ["client_account_moderation_log","client_id"],["client_account_controls","client_id"]
+      ] as const;
+      for(const [table,col] of related){
+        const {error:cleanupError}=await db.from(table).delete().eq(col,uid);
+        const {count,error:checkError}=await db.from(table)
+          .select("*",{count:"exact",head:true}).eq(col,uid);
+        if(cleanupError||checkError||count!==0)pending.add(table);
       }
-      const {error:logError}=await db.from("client_account_moderation_log")
-        .insert({client_id:uid,admin_id:adminId,action:"delete",reason:"Administrator deleted eligible client"});
-      if(logError)pending.push("moderation_log");
-      return respond(200,{success:true,auth_deleted:true,cleanup_pending:pending});
+      if(user.user.email){
+        const {error:cleanupError}=await db.from("email_logs").delete().ilike("email",user.user.email);
+        const {count,error:checkError}=await db.from("email_logs")
+          .select("*",{count:"exact",head:true}).ilike("email",user.user.email);
+        if(cleanupError||checkError||count!==0)pending.add("email_logs");
+      }
+      const {data:remainingProfile,error:profileError}=await db.from("profiles")
+        .select("id").eq("id",uid).maybeSingle();
+      if(profileError||remainingProfile)pending.add("profiles");
+      return respond(200,{success:true,auth_deleted:true,cleanup_pending:[...pending]});
     }
 
     const {data:existing,error:stateError}=await db.from("client_account_controls")
