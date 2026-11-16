@@ -63,7 +63,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       return null;
     }
   }
-  const phaseNames = new Set(["unknown-enum-value", "opaque-id-tolerance", "shrunk-reference-refresh:1", "shrunk-reference-refresh:2", "unknown-response-field"]);
+  const phaseNames = new Set(["unknown-enum-value", "unknown-error-code", "unknown-response-field", "unknown-feature-code", "opaque-id-tolerance", "shrunk-reference-refresh:1", "shrunk-reference-refresh:2", "deprecation-notice", "version-format"]);
   if (certificationPhase !== null && !phaseNames.has(certificationPhase))
     throw new Error("INVALID_CERTIFICATION_PHASE");
   const client = new CaravelClient({apiKey: key, environment: "sandbox"});
