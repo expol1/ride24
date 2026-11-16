@@ -3,6 +3,12 @@
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
 **The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
 
+## Webhook gap-recovery preparation — 16 Nov 2026
+- Added sandbox-only `caravel-sandbox-reconcile.mjs`, RPC methods, and `caravel-sandbox-reconcile-worker` for one-page-at-a-time booking recovery after sequence gaps, using `GET /v1/bookings?updated_since` and authoritative `GET /v1/bookings/{booking_id}`.
+- Proposed extra SQL in `caravel-sandbox-webhook-reconcile.sql` adds an after-finalize sequence-gap queue trigger, leased jobs and atomic page checkpoints. **Both SQL files are unexecuted; neither the worker nor receiver has been deployed or scheduled.**
+- New mock tests `tests/caravel-sandbox-reconcile.test.mjs` prove cursor continuation, no partial checkpoint after failure, idempotent replay and monotonic revisions. They do not prove real API recovery.
+- Only observed sequence gaps are queued. Silent loss with no later webhook still requires periodic catch-up; cron, monitoring and live delivery remain unavailable. Full details in `caravel-sandbox-webhook-reconcile.md`.
+
 ## Durable sandbox webhook receiver preparation — 16 Nov 2026
 - New **UNDEPLOYED** `caravel-sandbox-webhook-receiver` and `caravel-webhook-delivery.mjs` validate the raw-body HMAC, reject invalid signed events, atomically dedupe via a restricted DB repository, then re-fetch the booking from Caravel sandbox and store only the latest revision/status in separate sandbox tables.
 - SQL proposal is documented in `caravel-sandbox-webhook-state.sql` and **has NOT been executed**. Without the RPC functions, the receiver fails closed (503); `verify_jwt=false` is only safe when HMAC is configured and verified.
