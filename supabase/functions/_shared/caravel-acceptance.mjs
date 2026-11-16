@@ -23,8 +23,9 @@ import {
 /**
  * @param options.supplierId  run only this supplier (must be visible to the key); omitted = every supplier
  * @param options.premiumOnly book only an offer that passes the Ride24 Premium policy (default true)
+ * @param options.sandboxPremiumMechanics sandbox-only: test included Premium protection with fictional nonzero excess/deposit without publishing the offer.
  */
-export async function runCaravelAcceptance(key, {booking: withBooking = false, runId = "local", budgetMs = 120000, supplierId = null, premiumOnly = true} = {}) {
+export async function runCaravelAcceptance(key, {booking: withBooking = false, runId = "local", budgetMs = 120000, supplierId = null, premiumOnly = true, sandboxPremiumMechanics = false} = {}) {
   if (!key) return {failed: false, booking: withBooking, results: [{endpoint: "-", outcome: "SKIPPED", summary: "CARAVEL_SANDBOX_API_KEY is not configured"}]};
   const started = Date.now();
   const results = [];
@@ -58,6 +59,9 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     }
   }
   const client = new CaravelClient({apiKey: key, environment: "sandbox"});
+  // Never let this certification-only exception reach the production API.
+  if (sandboxPremiumMechanics && (client.environment !== "sandbox" || premiumOnly !== true || !withBooking))
+    throw new Error("INVALID_SANDBOX_MECHANICS_CONFIG");
   const caps = await step("GET /v1/capabilities (with key)", async () => {
     const c = await client.capabilities();
     return {environment: c.data.environment, api_version: c.data.api_version, unknown_features_ignored: true};
@@ -191,9 +195,18 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       const sel = selectCaravelPremiumProtection(x);
       if (sel) { publishable = x; chosenProtection = sel; break; }
     }
-    const row = publishable ?? rows.find(x => x.plan === "premium") ?? (premiumOnly ? undefined : rows[0]);
-    const quotedProtection = chosenProtection?.protection ?? row?.protection;
-    if (!row) { results.push({endpoint: `${tag} POST /v1/quote`, outcome: "NOT RUN", summary: "no availability rows"}); continue; }
+    // Caravel confirmed 2026-11-16: the fictional sandbox Premium figures are intentionally nonzero.
+    // This path is exclusively for testing API mechanics. It MUST quote the package INCLUDED
+    // in the Premium plan (never an upgrade or Medium) and never mark it publishable.
+    const mechanicsRow = sandboxPremiumMechanics ? rows.find(x => x.plan === "premium" &&
+      x.protection?.pricing_type === "included" && typeof x.protection.protection_id === "string" &&
+      x.protection.protection_id.length > 0) : null;
+    const row = sandboxPremiumMechanics ? mechanicsRow :
+      (publishable ?? rows.find(x => x.plan === "premium") ?? (premiumOnly ? undefined : rows[0]));
+    const quotedProtection = sandboxPremiumMechanics ? mechanicsRow?.protection :
+      (chosenProtection?.protection ?? row?.protection);
+    if (!row || !quotedProtection) { results.push({endpoint: `${tag} POST /v1/quote`, outcome: "NOT RUN",
+      summary: sandboxPremiumMechanics ? "no Premium row with included protection" : "no availability rows"}); continue; }
     const quoteBody = {pickup: {location_id: id, at: window.pickup}, dropoff: {location_id: id, at: window.dropoff},
       vehicle_id: row.vehicle_id, protection_id: quotedProtection.protection_id, plan: row.plan, currency: cur, drivers: [{age: 30, role: "main"}]};
     const quoteKey = crypto.randomUUID();
@@ -222,9 +235,17 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       return {};
     }, {expectError: "idempotency_key_reused"});
 
-    if (!withBooking || !read?.ok || (premiumOnly && !offerOk)) {
+    // In the exceptional sandbox mechanics run, a nonzero protection is *never* treated
+    // as Ride24-publishable. Quote ID, plan, included protection and reconciliation
+    // still gate booking. Production pricing/insurance validators are unchanged.
+    const mechanicsQuoteOk = sandboxPremiumMechanics && row.plan === "premium" &&
+      quoteData.plan === "premium" && quotedProtection.pricing_type === "included" &&
+      Array.isArray(quoteData.line_items) && typeof quotedProtection.code === "string" &&
+      quoteData.line_items.some(l => l?.kind === "protection" && l?.code === quotedProtection.code) &&
+      read?.ok === true;
+    if (!withBooking || !read?.ok || (premiumOnly && !offerOk && !mechanicsQuoteOk)) {
       if (withBooking) results.push({endpoint: `${tag} POST /v1/bookings`, outcome: "NOT RUN",
-        summary: !read?.ok ? "quote did not reconcile" : "no Premium-publishable offer (premiumOnly): nothing booked"});
+        summary: !read?.ok ? "quote did not reconcile" : "no Premium-publishable or eligible sandbox mechanics offer: nothing booked"});
       continue;
     }
     // Booking (invented data, pay_on_arrival). Mechanics-only rows are booked only to exercise the flow and cancelled at once.
@@ -245,8 +266,17 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       booking = (await client.bookSandbox(body, draft.draft.idempotencyKey, sid)).data;
       created.push({id: booking.booking_id, sid});
       const check = verifyCaravelBookingAgainstQuote(booking, read.value.quote);
-      return {status: caravelBookingStatus(booking.status), revision: booking.revision, payment: booking.payment ?? null,
-        matches_quote: check.ok ? true : check.errors};
+      const problems = check.ok ? [] : check.errors;
+      // ONLY the sandbox insurance zero-risk check is advisory, never the quoted
+      // amount, currency, quote ID, booking state, revision or payment model.
+      const advisory = mechanicsQuoteOk && client.environment === "sandbox"
+        ? problems.filter(x => x === "BOOKED_PROTECTION_NOT_ZERO_RISK") : [];
+      const hard = problems.filter(x => !advisory.includes(x));
+      if (booking.payment?.model !== "pay_on_arrival") hard.push("PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL");
+      if (hard.length) throw new Error(`BOOKING_VERIFICATION_FAILED: ${[...new Set(hard)].join(",")}`);
+      return {status: caravelBookingStatus(booking.status), revision: booking.revision,
+        payment: booking.payment?.model, matches_quote: true,
+        publishable: offerOk, sandbox_only_advisories: advisory};
     });
     if (!booking) continue;
     await step(`${tag} POST /v1/bookings replay (same key + body)`, async () => {
@@ -269,7 +299,8 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       return {status: caravelBookingStatus(cancelled.status), revision: cancelled.revision, cancellation: c.ok ? c : c.errors};
     });
     if (cancelled) {
-      created.splice(created.findIndex(x => x.id === booking.booking_id), 1);
+      const index = created.findIndex(x => x.id === booking.booking_id);
+      if (index !== -1 && cancelled.status === "cancelled") created.splice(index, 1);
       await step(`${tag} POST cancel again (idempotent)`, async () => {
         const c2 = (await client.cancelSandbox(booking.booking_id, cancelled.revision, crypto.randomUUID(), sid)).data;
         return {status: c2.status, revision: c2.revision};
@@ -288,6 +319,11 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       const c = (await client.cancelSandbox(b.id, cur.revision, crypto.randomUUID(), b.sid)).data;
       return {status: c.status};
     }, {force: true});
+  }
+  if (created.length) {
+    failed = true;
+    results.push({endpoint: "sandbox cleanup", outcome: "ERROR UNCANCELLED_BOOKINGS",
+      summary: created.map(b => ({booking_id: b.id, supplier_id: b.sid}))});
   }
   return finish();
 }
