@@ -54,7 +54,10 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       }
       if (soft) { results.push({endpoint, outcome: `DEGRADED ${errOut(error)}`}); return null; }
       failed = true;
-      results.push({endpoint, outcome: errOut(error)});
+      // Preserve non-sensitive booking evidence even when verification rejects
+      // the response. The caller attaches only whitelisted identifiers/amounts.
+      results.push({endpoint, outcome: errOut(error),
+        ...(error?.bookingEvidence ? {summary: error.bookingEvidence} : {})});
       return null;
     }
   }
@@ -277,11 +280,26 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       const advisory = mechanicsQuoteOk && client.environment === "sandbox"
         ? problems.filter(x => x === "BOOKED_PROTECTION_NOT_ZERO_RISK") : [];
       const hard = problems.filter(x => !advisory.includes(x));
-      if (booking.payment?.model !== "pay_on_arrival") hard.push("PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL");
-      if (hard.length) throw new Error(`BOOKING_VERIFICATION_FAILED: ${[...new Set(hard)].join(",")}`);
-      return {status: caravelBookingStatus(booking.status), revision: booking.revision,
-        payment: booking.payment?.model, matches_quote: true,
-        publishable: offerOk, sandbox_only_advisories: advisory};
+      // OpenAPI 1.67.0: Booking.payment is optional if the model was defaulted.
+      // We explicitly sent pay_on_arrival in CreateQuotedBookingRequest.
+      // verifyCaravelBookingAgainstQuote() already rejects a contradictory
+      // *present* payment model or a differing amount_on_arrival.
+      const evidence = {
+        booking_id: booking.booking_id, quote_id: booking.quote_id,
+        status: caravelBookingStatus(booking.status), revision: booking.revision,
+        grand_total: booking.price?.totals?.grand_total ?? null,
+        requested_payment_model: body.payment_model,
+        booking_payment_model: booking.payment?.model ?? "not stated (optional)",
+        booking_amount_on_arrival: booking.payment?.amount_on_arrival ?? null,
+        matches_quote: hard.length === 0, verification_errors: [...new Set(hard)],
+        publishable: offerOk, sandbox_only_advisories: advisory,
+      };
+      if (hard.length) {
+        const error = new Error(`BOOKING_VERIFICATION_FAILED: ${evidence.verification_errors.join(",")}`);
+        error.bookingEvidence = evidence;
+        throw error;
+      }
+      return evidence;
     });
     if (!booking) continue;
     await step(`${tag} POST /v1/bookings replay (same key + body)`, async () => {
@@ -306,14 +324,16 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     if (cancelled) {
       const index = created.findIndex(x => x.id === booking.booking_id);
       if (index !== -1 && cancelled.status === "cancelled") created.splice(index, 1);
-      await step(`${tag} POST cancel again (idempotent)`, async () => {
-        const c2 = (await client.cancelSandbox(booking.booking_id, cancelled.revision, crypto.randomUUID(), sid)).data;
-        return {status: c2.status, revision: c2.revision};
+      // Caravel 1.67.0: a second cancel on an already-cancelled booking is
+      // idempotent (HTTP 200), even when sent with its old active revision.
+      // A revision_conflict/409 test requires a *still active* booking whose
+      // revision has changed; do not mislabel this terminal-state replay as 409.
+      await step(`${tag} POST cancel again (idempotent, prior revision)`, async () => {
+        const c2 = (await client.cancelSandbox(booking.booking_id, current.revision, crypto.randomUUID(), sid)).data;
+        if (c2.status !== "cancelled" || c2.revision !== cancelled.revision)
+          throw new Error("CANCEL_REPLAY_CHANGED_STATE");
+        return {status: c2.status, revision: c2.revision, idempotent: true};
       });
-      await step(`${tag} POST cancel with stale revision (expect 409)`, async () => {
-        await client.cancelSandbox(booking.booking_id, 1, crypto.randomUUID(), sid);
-        return {};
-      }, {expectError: "*"});
     }
   }
 
