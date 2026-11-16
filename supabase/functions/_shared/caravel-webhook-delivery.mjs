@@ -13,6 +13,7 @@ const MAX_BYTES=32768;
 const ID=/^[A-Za-z0-9_-]{1,128}$/;
 const enc=new TextEncoder();
 
+/** @param {any} options Server-side isolated invocation; runtime validates each required capability before API/DB calls. */
 export async function handleCaravelSandboxDelivery({
   method="POST", path, rawBody, signature, secrets, repository, fetchBooking, nowSecs,
 }={}){
