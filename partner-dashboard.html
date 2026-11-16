@@ -2416,19 +2416,21 @@ Dodaj opinię o Partnerze
 
                 <div style="background: #FEE2E2; border: 2px solid #DC2626; padding: 16px; margin-bottom: 20px; border-radius: 8px; box-shadow: inset 0 0 10px rgba(220, 38, 38, 0.05);">
 
-                    <strong style="color: #991B1B; display: block; font-size: 14px; margin-bottom: 6px; text-transform: uppercase;" data-pl="⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!" data-en="⚠️ IMPORTANT: Enter names in English ONLY!">⚠️ WAŻNE: Wpisuj nazwy TYLKO po angielsku!</strong>
+                    <strong style="color: #991B1B; display: block; font-size: 14px; margin-bottom: 6px; text-transform: uppercase;" data-pl="Wybierz lokalizację z podpowiedzi, jeśli jest dostępna" data-en="Select a suggested location when available">Select a suggested location when available</strong>
 
-                    <span style="font-size: 13px; color: #991B1B; font-weight: 500;" data-pl="Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'." data-en="For the system to link locations with the search engine, type e.g., 'Greece' instead of 'Grecja', 'Rhodes' instead of 'Rodos'.">Aby system mógł łączyć lokalizacje z wyszukiwarką, wpisz np. 'Greece' zamiast 'Grecja', 'Rhodes' zamiast 'Rodos'.</span>
+                    <span style="font-size: 13px; color: #991B1B; font-weight: 500;" data-pl="Możesz szukać po polsku lub angielsku. Zapisujemy standardową nazwę angielską, a obok pokażemy zatwierdzone tłumaczenie polskie." data-en="Search in Polish or English. We save the standard English name and show the verified Polish translation when available.">Search in Polish or English. We save the standard English name and show the verified Polish translation when available.</span>
 
                 </div>
 
                 <div class="form-row">
 
-                    <div class="form-group">
+                    <div class="form-group" style="position:relative;">
 
                         <label data-pl="Nazwa lokalizacji" data-en="Location name">Location name</label>
 
                         <input type="text" id="locName" placeholder="e.g. Bari Airport (BRI), Bari - Hotel, Bari - Office" data-pl="Np. Bari Airport (BRI), Bari - Hotel, Bari - Office" data-en="e.g. Bari Airport (BRI), Bari - Hotel, Bari - Office">
+                        <div id="locationDropdown" class="autocomplete-dropdown"></div>
+                        <small id="locNameTranslationPreview" role="status" style="display:block;margin-top:6px;color:#475569;font-size:12px" data-pl="Wybierz lokalizację, aby sprawdzić polską nazwę." data-en="Choose a location to see its Polish name.">Choose a location to see its Polish name.</small>
 
                     </div>
 
@@ -2579,7 +2581,8 @@ Dodaj opinię o Partnerze
     <script src="assets/helper/partnerTimeFees.js?v=20261029a"></script>
     <script src="assets/helper/partnerMandatoryRules.js?v=20261030cities2"></script>
     <script src="assets/helper/partnerGuide.js?v=20261023a"></script>
-    <script src="assets/js/location-names.js?v=20261025"></script>
+    <script src="assets/js/country-data.js?v=20261116"></script>
+    <script src="assets/js/location-names.js?v=20261116"></script>
     <script src="assets/js/seasonal-minimum-info.js?v=20261025"></script>
     
     <script>
@@ -4174,6 +4177,8 @@ const { data, error } = await db
                 return;
             }
 
+            try { await window.Ride24LocationNames.loadDictionary(db); }
+            catch (translationError) { console.warn("Location translations temporarily unavailable:", translationError); }
             tbody.innerHTML = "";
             await window.ride24PartnerExtras.mount(db, partner, loadLocations);
             await window.ride24PartnerTimeFees.mount(db, partner);
@@ -4206,9 +4211,10 @@ const { data, error } = await db
                 const locationTypeLabel = typeLabels[loc.type]
                     ? partnerText(typeLabels[loc.type][0], typeLabels[loc.type][1])
                     : loc.type;
+                const nameLabels = window.Ride24LocationNames.localizedNames(loc);
 
                 tr.innerHTML = `
-                    <td>${escapeHtmlValue(window.Ride24LocationNames.displayName(loc))}</td>
+                    <td data-pl="${escapeHtmlValue(nameLabels.pl)}" data-en="${escapeHtmlValue(nameLabels.en)}">${escapeHtmlValue(isEn ? nameLabels.en : nameLabels.pl)}</td>
                     <td>${escapeHtmlValue(loc.country)}</td>
                     <td>${escapeHtmlValue(loc.region)}</td>
                     <td data-pl="${escapeHtmlValue(typeLabels[loc.type]?.[0] || loc.type)}" data-en="${escapeHtmlValue(typeLabels[loc.type]?.[1] || loc.type)}">${escapeHtmlValue(locationTypeLabel)}</td>
@@ -4252,12 +4258,14 @@ const { data, error } = await db
                     .single();
 
                 if (!partner) throw new Error(partnerText("Nie znaleziono profilu partnera.", "Partner profile not found."));
+                try { await window.Ride24LocationNames.loadDictionary(db); }
+                catch (translationError) { console.warn("Verified location translations not available:", translationError); }
 
                 // 1. Zbieranie i normalizacja danych
                 const locationData = {
                     partner_id: partner.id,
                     location_name: document.getElementById('locName').value.trim(),
-                    country: normalizeLocationInput(document.getElementById('locCountry').value),
+                    country: window.Ride24LocationNames.canonicalCountry(document.getElementById('locCountry').value),
                     region: normalizeLocationInput(document.getElementById('locRegion').value),
                     city: normalizeLocationInput(document.getElementById('locCity').value),
                     type: document.getElementById('locType').value,
@@ -4268,6 +4276,9 @@ const { data, error } = await db
                     active: document.getElementById('locActive').checked
                 };
 
+                locationData.location_name = window.Ride24LocationNames.canonicalLocationName(
+                    locationData.location_name, locationData.country
+                );
                 if (!locationData.location_name || !locationData.country) {
                     throw new Error(partnerText("Wypełnij nazwę lokalizacji i kraj.", "Fill in the location name and country."));
                 }
@@ -4284,6 +4295,9 @@ const { data, error } = await db
                     }
                     throw normalizationError;
                 }
+
+                // Android-safe public heading; canonical English location_name remains the search/booking key.
+                locationData.display_name = String(locationData.display_name || locationData.location_name || locationData.city || "").trim();
 
                 // 2. TWARDA BLOKADA PL NAZW (Ultimate Gatekeeper)
                 const forbiddenWords = [
@@ -4504,6 +4518,26 @@ function updateGuideForPartnerType() {
         function closeModal() { document.getElementById('addCarModal').classList.remove('active'); }
 
         // --- LOCATIONS UI ---
+function refreshLocationNameTranslation() {
+    const preview = document.getElementById("locNameTranslationPreview");
+    const input = document.getElementById("locName");
+    const countryInput = document.getElementById("locCountry");
+    if (!preview || !input || !countryInput) return;
+    const name = input.value.trim();
+    if (!name) {
+        preview.textContent = partnerText("Wybierz lokalizację, aby sprawdzić polską nazwę.", "Choose a location to see its Polish name.");
+        return;
+    }
+    const country = window.Ride24LocationNames.canonicalCountry(countryInput.value);
+    const canonicalName = window.Ride24LocationNames.canonicalLocationName(name, country);
+    const names = window.Ride24LocationNames.localizedNames({ country, location_name: canonicalName });
+    preview.textContent = names.verified
+      ? `🇵🇱 ${names.pl}  ·  🇬🇧 ${names.en}`
+      : partnerText(
+          "Polskie tłumaczenie nie jest jeszcze zatwierdzone w słowniku. W APK wyświetli się poprawna nazwa angielska.",
+          "Polish translation is not yet verified. The Android app will display the English name."
+        );
+}
 function openLocationModal(event) {
     if (event) {
         event.stopPropagation();
@@ -4516,10 +4550,21 @@ function openLocationModal(event) {
 
     modal.classList.add("active");
 
+    setupAutocomplete("locName", "locationDropdown", "location");
     setupAutocomplete("locCountry", "countryDropdown", "country");
     setupAutocomplete("locRegion", "regionDropdown", "region");
     setupAutocomplete("locCity", "cityDropdown", "city");
 
+    for (const inputId of ["locName", "locCountry"]) {
+        const element = document.getElementById(inputId);
+        if (element && element.dataset.previewReady !== "true") {
+            element.dataset.previewReady = "true";
+            element.addEventListener("input", refreshLocationNameTranslation);
+        }
+    }
+    window.Ride24LocationNames.loadDictionary(db)
+        .then(refreshLocationNameTranslation)
+        .catch(error => console.warn("Location preview unavailable:", error));
     console.log("🔥 Autocomplete INIT after modal open");
 }
 
@@ -5253,14 +5298,19 @@ async function setupAutocomplete(inputId, dropdownId, category) {
             dropdown.style.display = "none";
             return;
         }
+        const safeQuery = query.replace(/[,()%_*]/g, " ").trim().slice(0, 70);
+        if (safeQuery.length < 2) {
+            dropdown.style.display = "none";
+            return;
+        }
 
         try {
             const { data, error } = await db
                 .from("locations_dictionary")
-                .select("name_en")
+                .select("name_en,name_pl")
                 .eq("category", category)
-                .ilike("name_en", `%${query}%`)
-                .limit(5);
+                .or(`name_en.ilike.%${safeQuery}%,name_pl.ilike.%${safeQuery}%`)
+                .limit(8);
 
             if (error) throw error;
 
@@ -5269,11 +5319,14 @@ async function setupAutocomplete(inputId, dropdownId, category) {
             data.forEach(item => {
                 const div = document.createElement("div");
                 div.className = "autocomplete-item";
-                div.textContent = item.name_en;
+                div.textContent = item.name_pl && item.name_pl !== item.name_en
+                  ? `${item.name_en} · ${item.name_pl}`
+                  : item.name_en;
 
                 div.onclick = () => {
                     input.value = item.name_en;
                     dropdown.style.display = "none";
+                    if (inputId === "locName" || inputId === "locCountry") refreshLocationNameTranslation();
                 };
 
                 dropdown.appendChild(div);
