@@ -24,8 +24,10 @@ import {
  * @param options.supplierId  run only this supplier (must be visible to the key); omitted = every supplier
  * @param options.premiumOnly book only an offer that passes the Ride24 Premium policy (default true)
  * @param options.sandboxPremiumMechanics sandbox-only: test included Premium protection with fictional nonzero excess/deposit without publishing the offer.
+ * @param options.certificationPhase optional explicit certification phase for injected fixtures, never inferred from ordinary data
+ * @param options.referenceRepository optional trusted server-side {load(supplierId), save(supplierId, snapshot)} for persistence across calls; never passed from HTTP body
  */
-export async function runCaravelAcceptance(key, {booking: withBooking = false, runId = "local", budgetMs = 120000, supplierId = null, premiumOnly = true, sandboxPremiumMechanics = false} = {}) {
+export async function runCaravelAcceptance(key, {booking: withBooking = false, runId = "local", budgetMs = 120000, supplierId = null, premiumOnly = true, sandboxPremiumMechanics = false, certificationPhase = null, referenceRepository = null} = {}) {
   if (!key) return {failed: false, booking: withBooking, results: [{endpoint: "-", outcome: "SKIPPED", summary: "CARAVEL_SANDBOX_API_KEY is not configured"}]};
   const started = Date.now();
   const results = [];
@@ -61,6 +63,9 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       return null;
     }
   }
+  const phaseNames = new Set(["unknown-enum-value", "opaque-id-tolerance", "shrunk-reference-refresh:1", "shrunk-reference-refresh:2", "unknown-response-field"]);
+  if (certificationPhase !== null && !phaseNames.has(certificationPhase))
+    throw new Error("INVALID_CERTIFICATION_PHASE");
   const client = new CaravelClient({apiKey: key, environment: "sandbox"});
   // Never let this certification-only exception reach the production API.
   if (sandboxPremiumMechanics && (client.environment !== "sandbox" || premiumOnly !== true))
@@ -99,7 +104,32 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
   for (const supplier of suppliers) {
     const sid = supplier.supplier_id, cur = supplier.currency, tag = `[${cur} ${sid.slice(0, 12)}…]`;
     const stores = {locations: new Map(), vehicles: new Map(), protections: new Map(), extras: new Map()};
-    let locations = [], policies = null, extrasRaw = [];
+    // The edge function's JS memory is NOT durable. In the shrink phases, load a
+    // trusted persistent snapshot before merging the fresh supplier references.
+    if (certificationPhase?.startsWith("shrunk-reference-refresh:")) {
+      if (!referenceRepository?.load || !referenceRepository?.save) {
+        failed = true;
+        results.push({endpoint: `${tag} certification reference state`, outcome: "ERROR PERSISTENT_REFERENCE_STORE_REQUIRED"});
+        continue;
+      }
+      const saved = await step(`${tag} load persisted reference catalogue`, async () => {
+        const snapshot = await referenceRepository.load(sid);
+        if (certificationPhase.endsWith(":2") && !snapshot)
+          throw new Error("PERSISTENT_REFERENCE_SNAPSHOT_MISSING");
+        for (const kind of Object.keys(stores)) {
+          const entries = snapshot?.[kind];
+          if (entries !== undefined && !Array.isArray(entries)) throw new Error("INVALID_REFERENCE_SNAPSHOT");
+          for (const entry of entries ?? []) {
+            if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== "string")
+              throw new Error("INVALID_REFERENCE_ENTRY");
+            stores[kind].set(entry[0], entry[1]);
+          }
+        }
+        return {recovered: snapshot !== null, counts: Object.fromEntries(Object.entries(stores).map(([k,v]) => [k,v.size]))};
+      });
+      if (!saved) continue;
+    }
+    let locations = [], policies = null, extrasRaw = [], lastVehicleIds = new Set(), vehicleOrder = [];
 
     // Reference sync (merge, never replace).
     const syncLocations = async () => {
@@ -118,6 +148,8 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     });
     await step(`${tag} GET /v1/reference/vehicles`, async () => {
       const raw = (await client.vehicleClasses(200, sid)).data;
+      lastVehicleIds = new Set(raw.map(x => x.vehicle_id));
+      vehicleOrder = raw.map(x => x.vehicle_id).filter(x => typeof x === "string");
       mergeCaravelReference(stores.vehicles, raw, REFERENCE_ID_KEYS.vehicles, new Date().toISOString());
       const m = raw.map(r => normalizeCaravelVehicleClass(caravelVehicleFromApi(r, policies), sid));
       return {count: raw.length, ride24_ok: m.filter(x => x.ok).length, rejected: hist(m.flatMap(x => x.errors ?? [])),
@@ -143,17 +175,48 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     // An unknown error on the first list read degrades generically: the next scheduled
     // sync reads it again (certification phase unknown-error-code; a 422 is not retried in place).
     if (!firstSync) { await step(`${tag} GET /v1/reference/locations (next sync)`, syncLocations); }
+    if (certificationPhase?.startsWith("shrunk-reference-refresh:")) {
+      const saved = await step(`${tag} persist merged reference catalogue`, async () => {
+        const snapshot = Object.fromEntries(Object.entries(stores).map(([kind, store]) => [kind, [...store.entries()]]));
+        await referenceRepository.save(sid, snapshot);
+        return {counts: Object.fromEntries(Object.entries(stores).map(([k,v]) => [k,v.size]))};
+      });
+      if (!saved) continue;
+    }
 
     // Served plan, quoted from the freshly synced reference catalogue (certification phase
     // opaque-id-tolerance): no plan named, a protection_id that GET /v1/reference/protections lists.
     const vehicleIds = new Set([...stores.vehicles.values()].map(v => v.data.vehicle_id));
-    const refProtection = [...stores.protections.values()].map(r => r.data).find(p => typeof p.vehicle_id === "string" && vehicleIds.has(p.vehicle_id));
-    const refDesk = locations.find(l => normalizeCaravelLocation(caravelLocationFromApi(l), sid).ok);
-    if (refProtection && refDesk) {
-      await step(`${tag} POST /v1/quote (served plan, ids from reference sync)`, async () => {
+    const refProtections = [...stores.protections.values()].map(r => r.data);
+    const refDesk = locations.find(l => normalizeCaravelLocation(caravelLocationFromApi(l), sid).ok)
+      ?? [...stores.locations.values()].map(r => r.data).find(l => l.location_id);
+    // For opaque-id-tolerance, quote BOTH first vehicles from the freshly served
+    // catalogue by their exact opaque IDs. No plan is sent: the sandbox's served
+    // default Medium plan and a fresh protection_id are required in this phase.
+    const targets = certificationPhase === "opaque-id-tolerance"
+      ? vehicleOrder.slice(0, 2)
+      : certificationPhase === "shrunk-reference-refresh:2"
+        ? [...stores.vehicles.values()].filter(r => r.missing_since && !lastVehicleIds.has(r.id)).map(r => r.id).slice(0, 1)
+        : vehicleOrder.slice(0, 1);
+    if (certificationPhase === "opaque-id-tolerance" && targets.length < 2) {
+      failed = true; results.push({endpoint: `${tag} opaque-id-tolerance`, outcome: "ERROR TWO_VEHICLES_REQUIRED"});
+    }
+    if (certificationPhase === "shrunk-reference-refresh:2" && targets.length < 1) {
+      failed = true; results.push({endpoint: `${tag} shrunk-reference-refresh:2`, outcome: "ERROR MISSING_VEHICLE_NOT_RETAINED"});
+    }
+    for (const vehicleId of targets) {
+      const refProtection = refProtections.find(p => p.vehicle_id === vehicleId);
+      if (!refProtection || !refDesk) {
+        if (certificationPhase) {
+          failed = true; results.push({endpoint: `${tag} served-plan quote`, outcome: "ERROR REFERENCE_IDS_UNAVAILABLE", summary: {vehicle_id: vehicleId}});
+        }
+        continue;
+      }
+      await step(`${tag} POST /v1/quote (served plan, catalog vehicle ${vehicleId})`, async () => {
         const q = (await client.quote({pickup: {location_id: refDesk.location_id, at: at(1, 10)}, dropoff: {location_id: refDesk.location_id, at: at(4, 10)},
-          vehicle_id: refProtection.vehicle_id, protection_id: refProtection.protection_id, drivers: [{age: 30, role: "main"}]}, crypto.randomUUID(), sid)).data;
-        return {status: q.status, plan: q.plan ?? "served (not named)", grand_total: q.totals?.grand_total,
+          vehicle_id: vehicleId, protection_id: refProtection.protection_id, drivers: [{age: 30, role: "main"}]}, crypto.randomUUID(), sid)).data;
+        return {vehicle_id: vehicleId, protection_id: refProtection.protection_id, status: q.status,
+          plan: q.plan ?? "served (not named)", grand_total: q.totals?.grand_total,
           premium: evaluateCaravelPremium(q.plan ?? refProtection.tier, refProtection, q.deposit).ok ? "PUBLISHABLE" : "not Premium-publishable"};
       });
     }
@@ -183,6 +246,28 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
         out_of_hours_minor: [...new Set(r.data.flatMap(x => (x.line_items || []).filter(l => l.type === "out_of_hours").map(l => l.total?.amount)))],
         unsellable_ends: r.meta?.unsellable_ends ?? null};
     });
+    if (certificationPhase === "unknown-enum-value") {
+      // Never require a test-only unknown location type to pass Ride24 publication
+      // normalization. Preserve its server-issued ID exactly as received.
+      const knownTypes = new Set(["airport", "port", "office", "city", "hotel", "address"]);
+      const unfamiliar = locations.find(l => typeof l.type === "string" && !knownTypes.has(l.type));
+      if (unfamiliar) {
+        await step(`${tag} POST quote at unknown-type location`, async () => {
+          const result = await client.availability({pickup_location_id: unfamiliar.location_id, dropoff_location_id: unfamiliar.location_id,
+            pickup: window.pickup, dropoff: window.dropoff, driver_age: 30, currency: cur}, sid);
+          const option = result.data.find(r => r.plan === "premium" && r.protection?.protection_id)
+            ?? result.data.find(r => r.protection?.protection_id);
+          if (!option) throw new Error("UNKNOWN_LOCATION_NO_QUOTABLE_VEHICLE");
+          const q = (await client.quote({pickup: {location_id: unfamiliar.location_id, at: window.pickup},
+            dropoff: {location_id: unfamiliar.location_id, at: window.dropoff}, vehicle_id: option.vehicle_id,
+            protection_id: option.protection.protection_id, plan: option.plan,
+            drivers: [{age: 30, role: "main"}]}, crypto.randomUUID(), sid)).data;
+          return {location_id: unfamiliar.location_id, unknown_type: unfamiliar.type, quote_id: q.quote_id, status: q.status};
+        });
+      } else {
+        results.push({endpoint: `${tag} unknown-enum-value`, outcome: "NOT RUN", summary: "No unknown type supplied in this supplier's current fixture"});
+      }
+    }
 
     // Unavailable / unknown vehicle must be refused safely.
     await step(`${tag} POST /v1/quote unknown vehicle (expect 4xx)`, async () => {
@@ -359,6 +444,14 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
         if (c2.status !== "cancelled" || c2.revision !== cancelled.revision)
           throw new Error("CANCEL_REPLAY_CHANGED_STATE");
         return {status: c2.status, revision: c2.revision, idempotent: true};
+      });
+      // Certification unknown-response-field phase requires a GET after cancel,
+      // not merely a repeated POST. Always check it for the normal test too.
+      await step(`${tag} GET /v1/bookings/{ref} after cancellation`, async () => {
+        const finalBooking = (await client.bookingStatusSandbox(booking.booking_id, sid)).data;
+        if (finalBooking.status !== "cancelled" || finalBooking.revision !== cancelled.revision)
+          throw new Error("CANCELLED_STATE_NOT_PRESERVED");
+        return {status: finalBooking.status, revision: finalBooking.revision, confirmed_cancelled: true};
       });
     }
   }
