@@ -50,9 +50,9 @@ Deno.serve(async (req: Request) => {
       if (deleteRelatedError || checkError || count !== 0) remaining.add(table);
     }
     if (userData.user.email) {
-      const {error:emailDeleteError}=await admin.from("email_logs").delete().ilike("email",userData.user.email);
+      const {error:emailDeleteError}=await admin.from("email_logs").delete().eq("email",userData.user.email);
       const {count:emailCount,error:emailCheckError}=await admin.from("email_logs")
-        .select("*",{count:"exact",head:true}).ilike("email",userData.user.email);
+        .select("*",{count:"exact",head:true}).eq("email",userData.user.email);
       if (emailDeleteError || emailCheckError || emailCount !== 0) remaining.add("email_logs");
     }
     // Authentication success alone is not proof that the admin profile disappeared.
