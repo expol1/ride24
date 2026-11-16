@@ -28,6 +28,39 @@ serve(async (req) => {
   if (Number(req.headers.get("content-length") || 0) > 1024)
     return jsonResponse(req, {error: "REQUEST_TOO_LARGE"}, 400);
   const body = await req.json().catch(() => null);
+  // Read-only administrative readiness endpoint. Never returns a key or
+  // its length, never contacts Caravel, and never creates bookings.
+  if (body && typeof body === "object" && !Array.isArray(body) &&
+      body.action === "preflight" && Object.keys(body).length === 1) {
+    const secrets = {
+      sandbox_api_key: Boolean(Deno.env.get("CARAVEL_SANDBOX_API_KEY")),
+      webhook_hmac: Boolean(Deno.env.get("CARAVEL_SANDBOX_WEBHOOK_SECRET")),
+      webhook_hmac_old: Boolean(Deno.env.get("CARAVEL_SANDBOX_WEBHOOK_SECRET_OLD")),
+      gap_worker: Boolean(Deno.env.get("CARAVEL_SANDBOX_RECONCILE_SECRET")),
+      periodic_worker: Boolean(Deno.env.get("CARAVEL_SANDBOX_PERIODIC_SECRET")),
+    };
+    const probes = [
+      ["reference_cache", "caravel_sbx_reference_snapshots", "session_id"],
+      ["webhook_events", "caravel_sbx_webhook_events", "event_id"],
+      ["gap_queue", "caravel_sbx_reconcile_jobs", "job_id"],
+      ["periodic_scans", "caravel_sbx_periodic_scans", "supplier_id"],
+    ] as const;
+    const db: Record<string, boolean> = {};
+    for (const [label, table, field] of probes) {
+      const {error} = await admin.from(table).select(field, {head: true, count: "exact"});
+      db[label] = !error;
+    }
+    return jsonResponse(req, {
+      mode: "SANDBOX_READ_ONLY_PREFLIGHT",
+      admin_authenticated: true,
+      sandbox_enabled: false,
+      secrets_configured: secrets,
+      private_tables_accessible: db,
+      ready_for_rehearsal: secrets.sandbox_api_key && Object.values(db).every(Boolean),
+      ready_for_webhook_delivery: secrets.sandbox_api_key && secrets.webhook_hmac && Object.values(db).every(Boolean),
+      workers_can_be_enabled: secrets.sandbox_api_key && secrets.gap_worker && secrets.periodic_worker && Object.values(db).every(Boolean),
+    });
+  }
   if (!body || typeof body !== "object" || Array.isArray(body) ||
       body.action !== "rehearse" || !PHASES.has(body.phase) ||
       typeof body.supplier_id !== "string" || !SID.test(body.supplier_id) ||
