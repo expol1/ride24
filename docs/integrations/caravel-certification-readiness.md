@@ -3,6 +3,12 @@
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
 **The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
 
+## Silent-webhook periodic catch-up — 16 Nov 2026
+- Independent **UNDEPLOYED** sandbox poller and SQL draft now check `GET /v1/bookings?updated_since` even without any webhook; it obtains suppliers from Caravel, refetches booking details, handles one page/supplier per tick and stores an atomic per-supplier watermark ONLY after finishing the entire scan.
+- This is an **audit-only** state table. It flags provider revisions not yet seen in sandbox webhook bookkeeping without mutating Ride24 reservations. First scan = last 24 hours, later scans overlap the prior watermark by five minutes; longer provider delays or outages require manual backfill.
+- New mock suite `tests/caravel-sandbox-periodic.test.mjs` exercises EUR/GBP-like suppliers, multi-page cursors, fail/retry and stale revision protection. **No SQL applied, no Supabase function deployed and no cron configured.**
+- See `caravel-sandbox-periodic-reconcile.md`. Live certification measurements remain pending.
+
 ## Webhook gap-recovery preparation — 16 Nov 2026
 - Added sandbox-only `caravel-sandbox-reconcile.mjs`, RPC methods, and `caravel-sandbox-reconcile-worker` for one-page-at-a-time booking recovery after sequence gaps, using `GET /v1/bookings?updated_since` and authoritative `GET /v1/bookings/{booking_id}`.
 - Proposed extra SQL in `caravel-sandbox-webhook-reconcile.sql` adds an after-finalize sequence-gap queue trigger, leased jobs and atomic page checkpoints. **Both SQL files are unexecuted; neither the worker nor receiver has been deployed or scheduled.**
