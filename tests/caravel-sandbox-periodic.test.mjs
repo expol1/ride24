@@ -157,6 +157,39 @@ test("cannot poll production client or accept invalid supplier catalogue",async(
   assert.equal(r.jobs.size,0);
 });
 
+test("DB scan time after slow supplier discovery is valid even when >1s past worker start",async()=>{
+  const r=repo(),p=provider({suppliers:["acct_eur"],
+    pages:new Map([["acct_eur",new Map([[null,page(["x"],null)]])]])});
+  let clock=NOW;
+  const claim=r.claimPeriodic.bind(r);
+  r.claimPeriodic=async lease=>{
+    // A real RPC uses clock_timestamp() after the earlier supplier API + DB calls.
+    clock=NOW+2500;
+    r.jobs.get("acct_eur").scan_to=new Date(clock).toISOString().replace(".000Z","Z");
+    return claim(lease);
+  };
+  const out=await runCaravelSandboxPeriodicPoll({client:p,repository:r,now:()=>clock});
+  assert.equal(out.state,"complete");
+  assert.equal(out.bookings,1);
+  assert.equal(r.log.filter(x=>x[0]==="release").length,0);
+});
+
+test("far-future DB scan time still fails closed without reading bookings",async()=>{
+  const r=repo(),p=provider({suppliers:["acct_eur"]});
+  let clock=NOW;
+  const claim=r.claimPeriodic.bind(r);
+  r.claimPeriodic=async lease=>{
+    clock=NOW+2500;
+    r.jobs.get("acct_eur").scan_to=new Date(clock+120000).toISOString().replace(".000Z","Z");
+    return claim(lease);
+  };
+  const out=await runCaravelSandboxPeriodicPoll({client:p,repository:r,now:()=>clock});
+  assert.equal(out.state,"invalid_job");
+  assert.equal(out.ok,false);
+  assert.equal(r.log.filter(x=>x[0]==="release").length,1);
+  assert.equal(p.calls.some(x=>x[0]==="list"),false);
+});
+
 test("repository adapter uses only four restricted periodic RPCs",async()=>{
   const calls=[];
   const admin={rpc:async(name,args)=>{
