@@ -17,7 +17,7 @@ const SIGNATURES = [
 
 function redactSegment(segment) {
   if (!segment) return segment;
-  if (segment.length > 32 && !segment.startsWith("{{")) return "[REDACTED]";
+  if (segment.length > 24 && !segment.startsWith("{{")) return "[REDACTED]";
   if (/^(eyJ[A-Za-z0-9_-]{16,}|[A-Fa-f0-9]{32,})$/.test(segment)) return "[REDACTED]";
   return segment;
 }
@@ -32,7 +32,11 @@ export function sanitizedPath(url) {
   const match = beforeQuery.match(/^https?:\/\/[^/]+(\/.*)?$/i);
   if (match) pathname = match[1] || "/";
   else pathname = pathname.replace(/^\{\{[^}]+\}\}(?=\/|$)/, "") || "/";
-  const normalized = pathname.split("/").map(redactSegment).join("/");
+  const chunks = pathname.split("/");
+  const normalized = chunks.map((segment, index) => (
+    index > 0 && /^(token|password|secret|api[-_]?key|username)$/i.test(chunks[index - 1])
+      ? "[REDACTED]" : redactSegment(segment)
+  )).join("/");
   return (normalized.startsWith("/") ? normalized : "/" + normalized).slice(0, 500);
 }
 
@@ -111,7 +115,9 @@ export function auditCollection(collection) {
     operation_hints_unverified: [...present].sort(),
     missing_required_operations: unresolved,
     requests_requiring_host_review: unsafeHostCount,
-    ready_for_implementation: unresolved.length === 0 && unsafeHostCount === 0,
+    all_required_operation_hints_found: unresolved.length === 0,
+    ready_for_implementation: false,
+    requires_manual_contract_verification: true,
     // A clean inventory is NOT permission to call booking or cancellation endpoints.
     live_booking_tests_allowed: false,
     endpoints,
@@ -128,7 +134,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       const json = JSON.parse(await readFile(filename, "utf8"));
       const report = auditCollection(json);
       console.log(JSON.stringify(report, null, 2));
-      if (!report.ready_for_implementation) process.exitCode = 2;
+      if (!report.all_required_operation_hints_found || report.requests_requiring_host_review > 0) process.exitCode = 2;
     } catch (error) {
       console.error("Postman collection audit failed: " + (error instanceof Error ? error.message : "unknown error"));
       process.exitCode = 2;
