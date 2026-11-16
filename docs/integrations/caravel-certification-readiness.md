@@ -3,6 +3,13 @@
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
 **The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
 
+## Reliability and pagination readiness — 16 Nov 2026 (isolated branch only)
+- `caravel-sandbox-adapter.ts` now retries **only** GET or POST with the same UUID idempotency key on HTTP 429/503 and transient network failures. Maximum three attempts, honors `Retry-After` seconds/HTTP-date, and stops rather than waiting indefinitely when the advised delay exceeds the configured bound. POST payload and UUID are identical on every attempt. 422 is never retried.
+- Reference endpoints follow every opaque `meta.next_page` token with supplier scope preserved; repeated or malformed tokens, malformed page arrays and excessive page chains fail closed. `listAllBookings()` now walks all pages of the status reconciliation list while retaining `updated_since`.
+- New mock-only tests in `tests/caravel-reliability.test.mjs` cover 429, 503, unchanged idempotency keys, long `Retry-After`, 422, opaque token characters, reference paging and booking paging. The tests are run by the PR's Caravel CI workflow.
+- **Not yet confirmed on live Caravel certification:** actual pagination token responses, 429/backoff trace and registry metrics. No deliberate rate-limit bombardment has been attempted.
+- **Still missing before certification:** evidence for 401/403/404 families, rejected expired quote, direct-booking expected-price guard, webhook live delivery and HMAC self-test. The actual 24-hour certification has not been started.
+
 ## Readiness update after source-document review (16 Nov 2026)
 - Current specification checked against the partner's bundled v1.67.0 documentation (HTML export). The official run has not started.
 - Live tests on 16 Nov: EUR and GBP **25/25** steps each, `failed: false`. The conflict on an **active** booking returned 409 `revision_conflict`; the booking stayed confirmed at revision 1, then cancelled correctly at revision 2, fee 0, and the function was returned to HTTP 410.
