@@ -72,7 +72,9 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     throw new Error("INVALID_SANDBOX_MECHANICS_CONFIG");
   const caps = await step("GET /v1/capabilities (with key)", async () => {
     const c = await client.capabilities();
-    return {environment: c.data.environment, api_version: c.data.api_version, unknown_features_ignored: true};
+    return {environment: c.data.environment, api_version: c.data.api_version, unknown_features_ignored: true,
+      deprecations: Array.isArray(c.data.deprecations) ? c.data.deprecations : [],
+      action: "continue using supported endpoints; review published deprecation notices"};
   });
   if (!caps) return finish();
   await step("GET /v1/whoami", async () => {
