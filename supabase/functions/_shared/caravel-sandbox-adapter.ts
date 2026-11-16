@@ -180,18 +180,20 @@ export class CaravelClient {
     const rows:T[]=[];
     let pages=0;
     let firstRequestId:string|undefined;
+    let lastMeta:Json|undefined;
     while(true){
       if(pages>=30) throw new Error("CARAVEL_PAGINATION_LIMIT");
       const endpoint=nextPage===null ? base : `${base}${base.includes("?") ? "&" : "?"}page_token=${encodeURIComponent(nextPage)}`;
       const page=await this.request<T[]>("GET",endpoint,undefined,undefined,supplierId);
       if(!Array.isArray(page.data)) throw new Error("CARAVEL_PAGINATION_INVALID_ROWS");
       firstRequestId??=page.request_id;
+      lastMeta=page.meta;
       rows.push(...page.data);
       if(rows.length>6000) throw new Error("CARAVEL_PAGINATION_TOO_MANY_ROWS");
       pages++;
       const cursor=page.meta?.next_page;
       if(cursor===undefined || cursor===null || cursor==="")
-        return {data:rows,meta:{page_count:pages,next_page:null},request_id:firstRequestId};
+        return {data:rows,meta:{...lastMeta,page_count:pages,next_page:null},request_id:firstRequestId};
       if(typeof cursor!=="string" || cursor.length>2048 || /[\u0000-\u001F\u007F]/.test(cursor) || seen.has(cursor))
         throw new Error("CARAVEL_PAGINATION_BAD_OR_REPEATED_TOKEN");
       seen.add(cursor);
@@ -277,10 +279,34 @@ export class CaravelClient {
   async listBookings(params:{updated_since?:string; page_token?:string},supplierId?:string) {
     const qs=new URLSearchParams();
     if(params?.updated_since!==undefined){ if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/.test(params.updated_since)) throw new Error("INVALID_UPDATED_SINCE"); qs.set("updated_since",params.updated_since); }
-    if(params?.page_token!==undefined){ if(!/^[A-Za-z0-9._~=-]{1,2048}$/.test(params.page_token)) throw new Error("INVALID_PAGE_TOKEN"); qs.set("page_token",params.page_token); }
+    if(params?.page_token!==undefined){ if(typeof params.page_token!=="string" || !params.page_token || params.page_token.length>2048 || /[\u0000-\u001F\u007F]/.test(params.page_token)) throw new Error("INVALID_PAGE_TOKEN"); qs.set("page_token",params.page_token); }
     await this.capabilities();
     const q=qs.toString();
     return this.request<Array<Json>>("GET",`/v1/bookings${q?"?"+q:""}`,undefined,undefined,supplierId);
+  }
+  /** Recovery after missed webhooks: consume every page without discarding a booking. */
+  async listAllBookings(params:{updated_since?:string;page_token?:string}={},supplierId?:string):Promise<CaravelEnvelope<Json[]>> {
+    let token=params.page_token;
+    const seen=new Set<string>();
+    const bookings:Json[]=[];
+    let pages=0;
+    let lastMeta:Json|undefined;
+    while(true){
+      if(pages>=30) throw new Error("CARAVEL_PAGINATION_LIMIT");
+      const page=await this.listBookings({...params,...(token===undefined?{}:{page_token:token})},supplierId);
+      if(!Array.isArray(page.data)) throw new Error("CARAVEL_PAGINATION_INVALID_ROWS");
+      bookings.push(...page.data);
+      if(bookings.length>6000) throw new Error("CARAVEL_PAGINATION_TOO_MANY_ROWS");
+      pages++;
+      lastMeta=page.meta;
+      const next=page.meta?.next_page;
+      if(next===null || next===undefined || next==="")
+        return {data:bookings,meta:{...lastMeta,page_count:pages,next_page:null}};
+      if(typeof next!=="string" || next.length>2048 || /[\u0000-\u001F\u007F]/.test(next) || seen.has(next))
+        throw new Error("CARAVEL_PAGINATION_BAD_OR_REPEATED_TOKEN");
+      seen.add(next);
+      token=next;
+    }
   }
   /** GET /v1/reference/constants — the enum and code lists (scope read:reference). */
   async constants() {
