@@ -254,7 +254,9 @@ test("real API shape: Booking.payment can be absent when pay_on_arrival defaulte
   const replay = r.results.find(x => x.endpoint.includes("cancel again (idempotent, prior revision)"));
   assert.equal(replay.outcome, "OK");
   assert.equal(replay.summary.revision, 2);
-  assert.equal(calls.filter(x => x.path.endsWith("/cancel") && x.method === "POST").length, 2);
+  assert.equal(calls.filter(x => x.path.endsWith("/cancel") && x.method === "POST").length, 3); // wrong active revision + valid cancel + idempotent replay
+  assert.ok(r.results.some(x => x.endpoint.includes("wrong revision (expect revision_conflict)") && x.outcome.includes("revision_conflict")));
+  assert.ok(r.results.some(x => x.endpoint.includes("after revision conflict") && x.summary?.state_preserved));
 });
 
 test("present contradictory Booking.payment model remains a hard verification error with evidence", async () => {
