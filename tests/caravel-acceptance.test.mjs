@@ -328,27 +328,41 @@ test("unknown-enum certification phase quotes from an unknown-type location with
   assert.equal(calls.filter(c => c.path === "/v1/bookings" && c.method === "POST").length, 0);
 });
 
-test("shrunk-reference-refresh:2 quotes vanished vehicle from repository persisted across runs", async () => {
+test("shrunk reference phases keep vanished vehicle quotable, then restore the same original ID", async () => {
   const {calls, setShrink} = sandboxMock({twoVehicles: true});
   const snapshots = new Map();
   const referenceRepository = {
     load: async sid => snapshots.get(sid) ?? null,
     save: async (sid, snapshot) => { snapshots.set(sid, structuredClone(snapshot)); },
   };
+  // Certification baseline MUST seed the cache before Caravel removes any row.
+  const baseline = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur", referenceRepository});
+  assert.equal(baseline.failed, false, JSON.stringify(baseline.results.filter(x => x.outcome.startsWith("ERROR"))));
+  assert.equal(snapshots.get("acct_eur").vehicles.length, 2);
+  setShrink(true);
+  const beforeShrink = calls.length;
   const first = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur",
     certificationPhase: "shrunk-reference-refresh:1", referenceRepository});
   assert.equal(first.failed, false, JSON.stringify(first.results.filter(x => x.outcome.startsWith("ERROR"))));
-  assert.ok(snapshots.get("acct_eur").vehicles.length === 2);
-  setShrink(true);
-  const before = calls.length;
+  const missingCalls = calls.slice(beforeShrink).filter(c => c.path === "/v1/quote" && !Object.hasOwn(c.body, "plan"));
+  assert.ok(missingCalls.some(c => c.body.vehicle_id === "veh-second-acct_eur" && c.body.protection_id === "prot-second-acct_eur"));
+  assert.ok(missingCalls.some(c => c.body.vehicle_id === "veh-acct_eur"));
+  const missingSnapshot = snapshots.get("acct_eur").vehicles.find(([_, rec]) => rec.id === "veh-second-acct_eur")[1];
+  assert.ok(missingSnapshot.missing_since);
+
+  // Caravel :2 returns the missing item; it MUST match the cached identity.
+  setShrink(false);
+  const beforeReturn = calls.length;
   const second = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur",
     certificationPhase: "shrunk-reference-refresh:2", referenceRepository});
   assert.equal(second.failed, false, JSON.stringify(second.results.filter(x => x.outcome.startsWith("ERROR"))));
-  const laterCalls = calls.slice(before);
-  assert.ok(laterCalls.some(c => c.path === "/v1/quote" && c.body?.vehicle_id === "veh-second-acct_eur"
+  const returningCalls = calls.slice(beforeReturn);
+  assert.ok(returningCalls.some(c => c.path === "/v1/quote" && c.body?.vehicle_id === "veh-second-acct_eur"
     && c.body?.protection_id === "prot-second-acct_eur" && !Object.hasOwn(c.body, "plan")));
-  const vanished = snapshots.get("acct_eur").vehicles.find(([_, rec]) => rec.id === "veh-second-acct_eur");
-  assert.ok(vanished?.[1]?.missing_since);
+  const restored = snapshots.get("acct_eur").vehicles.filter(([_, rec]) => rec.id === "veh-second-acct_eur");
+  assert.equal(restored.length, 1);
+  assert.equal(restored[0][1].missing_since, null);
+  assert.equal(restored[0][1].first_seen, missingSnapshot.first_seen);
 });
 
 test("shrunk-reference-refresh fails closed without durable repository", async () => {
