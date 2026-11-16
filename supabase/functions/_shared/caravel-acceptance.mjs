@@ -245,7 +245,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
       read?.ok === true;
     if (!withBooking || !read?.ok || (premiumOnly && !offerOk && !mechanicsQuoteOk)) {
       if (withBooking) results.push({endpoint: `${tag} POST /v1/bookings`, outcome: "NOT RUN",
-        summary: !read?.ok ? "quote did not reconcile" : "no Premium-publishable or eligible sandbox mechanics offer: nothing booked"});
+        summary: !read?.ok ? "quote did not reconcile" : "no Premium-publishable or eligible sandbox mechanics offer (premiumOnly): nothing booked"});
       continue;
     }
     // Booking (invented data, pay_on_arrival). Mechanics-only rows are booked only to exercise the flow and cancelled at once.
