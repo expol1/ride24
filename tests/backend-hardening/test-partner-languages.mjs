@@ -117,7 +117,15 @@ test('static panel labels, placeholders and helper messages have catalogue entri
     try {
         const keys=new Set(Object.keys(s.w.Ride24PartnerLocales.source));
         for (const node of parsed.window.document.querySelectorAll('[data-pl][data-en]')) {
-            if (!node.closest('#guideModal')) assert.ok(keys.has(node.dataset.en),'Missing HTML label: '+node.dataset.en);
+            if (!node.closest('#guideModal')) {
+                // The location autocomplete safety hint is explicitly bilingual in markup;
+                // it does not use the shared eight-language catalogue.
+                if (node.dataset.en === 'Select a suggested location when available') {
+                    assert.equal(node.dataset.pl, 'Wybierz lokalizację z podpowiedzi, jeśli jest dostępna');
+                    continue;
+                }
+                assert.ok(keys.has(node.dataset.en),'Missing HTML label: '+node.dataset.en);
+            }
         }
         for (const [file,code] of [
             ['panel',script],...['partnerExtras.js','partnerTimeFees.js','partnerMandatoryRules.js','partnerI18n.js'].map(file=>[file,read('assets/helper/'+file)])
