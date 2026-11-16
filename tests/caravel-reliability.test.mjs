@@ -90,3 +90,31 @@ test("repeated tokens and malformed page data fail closed",async()=>{
   };
   await assert.rejects(()=>client().locations(),/CARAVEL_PAGINATION_INVALID_ROWS/);
 });
+
+test("booking recovery follows all pages with same updated_since and supplier",async()=>{
+  const calls=[];
+  globalThis.fetch=async(url,opts)=>{
+    const u=new URL(url);
+    if(u.pathname==="/v1/capabilities")return success(caps.data);
+    assert.equal(u.pathname,"/v1/bookings");
+    calls.push({token:u.searchParams.get("page_token"),since:u.searchParams.get("updated_since"),supplier:opts.headers["X-Supplier-Id"]});
+    if(!u.searchParams.has("page_token"))return success([{booking_id:"b1"}],{next_page:"book+2=="});
+    return success([{booking_id:"b2"}],{next_page:null});
+  };
+  const result=await client().listAllBookings({updated_since:"2026-11-16T00:00:00Z"},"sup-1");
+  assert.deepEqual(result.data.map(x=>x.booking_id),["b1","b2"]);
+  assert.equal(result.meta.page_count,2);
+  assert.deepEqual(calls.map(x=>x.token),[null,"book+2=="]);
+  assert.ok(calls.every(x=>x.supplier==="sup-1" && x.since==="2026-11-16T00:00:00Z"));
+});
+
+test("booking recovery refuses looping cursor and fails closed",async()=>{
+  let attempts=0;
+  globalThis.fetch=async(url)=>{
+    if(new URL(url).pathname==="/v1/capabilities")return success(caps.data);
+    attempts++;
+    return success([{booking_id:"b1"}],{next_page:"repeated"});
+  };
+  await assert.rejects(()=>client().listAllBookings({},"sup-1"),/CARAVEL_PAGINATION_BAD_OR_REPEATED_TOKEN/);
+  assert.equal(attempts,2);
+});
