@@ -1,7 +1,7 @@
 // Caravel CERTIFICATION REHEARSAL — isolated admin-only, sandbox-only.
 // This is deliberately NOT a certification controller:
 // no /_certification/start, /advance or production calls are made.
-// Deploy only after the private bucket caravel-sandbox-cert-state is provisioned.
+// Deploy only after the private RLS-only caravel_sbx_reference_snapshots table/RPCs exist.
 // Supabase gateway verify_jwt MUST stay true.
 import {serve} from "https://deno.land/std@0.224.0/http/server.ts";
 import {corsHeaders, jsonResponse, requireAdmin} from "../_shared/ride24-security.ts";
@@ -40,7 +40,7 @@ serve(async (req) => {
   try {
     const apiKey = Deno.env.get("CARAVEL_SANDBOX_API_KEY");
     if (!apiKey) return jsonResponse(req, {error: "SANDBOX_SECRET_UNAVAILABLE"}, 503);
-    // Supabase Storage contains *only* public supplier reference records, scoped
+    // Private PostgreSQL RPC cache contains only reference records, scoped
     // to a random phase-session UUID. It never holds keys or customer information.
     // Baseline seeds the durable catalogue. EVERY phase re-syncs via MERGE into
     // the same persisted namespace so :1 can quote missing ids and :2 can
