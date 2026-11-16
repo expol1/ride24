@@ -17,6 +17,10 @@ export type CaravelClientOptions = {
   /** Required for booking create/cancel against production. Never set by tests or sandbox runs. */
   allowProductionBookingWrites?: boolean;
   timeoutMs?: number;
+  /** Maximum attempts for 429/503 and transient network failures (1–3). */
+  retryMaxAttempts?: number;
+  /** Maximum acceptable server Retry-After in ms; longer waits are delegated to a later job. */
+  retryMaxWaitMs?: number;
 };
 type Json = Record<string, unknown>;
 export type Money = {amount: number; currency: string};
@@ -44,6 +48,17 @@ export type CaravelQuotedBookingRequest = {
 export function isUuid(value:unknown):value is string {
   return typeof value==="string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
+/** Retry-After may be seconds or an HTTP-date. Invalid/negative values do not override backoff. */
+export function parseCaravelRetryAfter(value: string | null | undefined, nowMs = Date.now()): number | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const v = value.trim();
+  if (/^\d{1,6}$/.test(v)) return Number(v) * 1000;
+  if (!/^(Mon|Tue|Wed|Thu|Fri|Sat), /.test(v)) return null;
+  const epoch = Date.parse(v);
+  if (!Number.isFinite(epoch)) return null;
+  return Math.max(0, epoch - nowMs);
+}
+const waitCaravel = (milliseconds:number) => new Promise<void>(resolve => setTimeout(resolve, milliseconds));
 export class CaravelError extends Error {
   public status:number; public code:string; public requestId:string|null;
   /** Error.details[] {field, issue} — branch on issue, never on message. */
@@ -64,6 +79,8 @@ export class CaravelClient {
   readonly environment:CaravelEnvironment;
   private readonly productionBookingWrites:boolean;
   private readonly timeoutMs:number;
+  private readonly retryMaxAttempts:number;
+  private readonly retryMaxWaitMs:number;
   constructor(options:CaravelClientOptions) {
     const env=options?.environment;
     if(!options?.apiKey || (env!=="sandbox" && env!=="production")) throw new Error("INVALID_CARAVEL_CONFIG");
@@ -71,6 +88,10 @@ export class CaravelClient {
     this.apiKey=options.apiKey; this.environment=env; this.baseUrl=CARAVEL_BASE_URLS[env];
     this.productionBookingWrites=env==="production" && options.allowProductionBookingWrites===true;
     this.timeoutMs=Number.isSafeInteger(options.timeoutMs) && (options.timeoutMs as number)>0 ? options.timeoutMs as number : 12000;
+    this.retryMaxAttempts=Number.isSafeInteger(options.retryMaxAttempts) && (options.retryMaxAttempts as number)>=1 &&
+      (options.retryMaxAttempts as number)<=3 ? options.retryMaxAttempts as number : 3;
+    this.retryMaxWaitMs=Number.isSafeInteger(options.retryMaxWaitMs) && (options.retryMaxWaitMs as number)>=0 &&
+      (options.retryMaxWaitMs as number)<=10000 ? options.retryMaxWaitMs as number : 10000;
   }
   /** Booking create/cancel/modify guard. */
   protected assertBookingWrites() {
@@ -82,7 +103,36 @@ export class CaravelClient {
     if(body){headers["Content-Type"]="application/json";}
     if(idem){headers["Idempotency-Key"]=idem;}
     if(supplierId){if(!/^[a-zA-Z0-9_-]{1,128}$/.test(supplierId)) throw new Error("INVALID_SUPPLIER_ID");headers["X-Supplier-Id"]=supplierId;}
-    const response=await fetch(this.baseUrl+path,{method,headers,body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(this.timeoutMs)});
+    // GET is safe to replay; POST is safe ONLY with the same client UUID idempotency key.
+    // Never generate a fresh key in this loop. A retry after a lost POST response
+    // must replay the identical body and key, not create a duplicate booking.
+    const retrySafe=method==="GET" || (method==="POST" && isUuid(idem));
+    const attempts=retrySafe ? this.retryMaxAttempts : 1;
+    const payload=body ? JSON.stringify(body) : undefined;
+    let response:Response | undefined;
+    for(let attempt=1;attempt<=attempts;attempt++){
+      try {
+        response=await fetch(this.baseUrl+path,{method,headers,body:payload,signal:AbortSignal.timeout(this.timeoutMs)});
+      } catch(error) {
+        const name=error && typeof error==="object" && "name" in error ? String(error.name) : "";
+        if(attempt>=attempts || !["TypeError","AbortError","TimeoutError"].includes(name)) throw error;
+        const delayMs=Math.min(this.retryMaxWaitMs,250*2**(attempt-1));
+        await waitCaravel(delayMs);
+        continue;
+      }
+      if((response.status===429 || response.status===503) && attempt<attempts){
+        const retryAfter=parseCaravelRetryAfter(response.headers.get("Retry-After"));
+        const delayMs=retryAfter ?? 250*2**(attempt-1);
+        // No uncontrolled sleeping or aggressive retries when the server has
+        // requested a longer wait. Let the scheduler retry at a later time.
+        if(delayMs<=this.retryMaxWaitMs){
+          await waitCaravel(delayMs);
+          continue;
+        }
+      }
+      break;
+    }
+    if(!response) throw new Error("CARAVEL_TRANSIENT_NETWORK_FAILURE");
     const envelope=await response.json().catch(()=>({error:{code:"INVALID_JSON"}})) as CaravelEnvelope<T> & {error?:{code?:string;request_id?:string;details?:unknown}};
     if(!response.ok && !envelope?.error) throw new CaravelError(response.status,"UPSTREAM_HTTP_ERROR",null);
     // OpenAPI v1.67.0 Error: {error:{code,message,request_id,doc_url,details[]}}.
