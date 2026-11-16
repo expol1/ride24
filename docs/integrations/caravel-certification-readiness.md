@@ -3,6 +3,11 @@
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
 **The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
 
+## Sandbox webhook receipt preparation — 16 Nov 2026
+- `caravel-webhook-probe.ts` verifies the signature (raw body, exact method/path, HMAC and timestamp) and validates the event envelope; its test fixtures cover tampering, changed path, stale timestamps and malformed bodies.
+- `caravel-sandbox-webhook-probe/index.ts` is an **UNDEPLOYED** sandbox-only Edge entrypoint, designed for `verify_jwt=false` with mandatory HMAC authentication and a strict 32 KiB request-body limit. Returns only accepted/rejected status; logs no payload, stores no personal data and never updates Ride24 reservations.
+- This is only a signature/connectivity probe. It **does not** implement durable `event_id` deduplication, per-booking revision persistence or real production webhook dispatch. The hosted Caravel webhook delivery and HMAC self-test have NOT been run. Additional security review and separate authorization are required before deployment.
+
 ## Reliability and pagination readiness — 16 Nov 2026 (isolated branch only)
 - `caravel-sandbox-adapter.ts` now retries **only** GET or POST with the same UUID idempotency key on HTTP 429/503 and transient network failures. Maximum three attempts, honors `Retry-After` seconds/HTTP-date, and stops rather than waiting indefinitely when the advised delay exceeds the configured bound. POST payload and UUID are identical on every attempt. 422 is never retried.
 - Reference endpoints follow every opaque `meta.next_page` token with supplier scope preserved; repeated or malformed tokens, malformed page arrays and excessive page chains fail closed. `listAllBookings()` now walks all pages of the status reconciliation list while retaining `updated_since`.
