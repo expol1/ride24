@@ -104,18 +104,21 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
   for (const supplier of suppliers) {
     const sid = supplier.supplier_id, cur = supplier.currency, tag = `[${cur} ${sid.slice(0, 12)}…]`;
     const stores = {locations: new Map(), vehicles: new Map(), protections: new Map(), extras: new Map()};
-    // The edge function's JS memory is NOT durable. In the shrink phases, load a
-    // trusted persistent snapshot before merging the fresh supplier references.
-    if (certificationPhase?.startsWith("shrunk-reference-refresh:")) {
-      if (!referenceRepository?.load || !referenceRepository?.save) {
-        failed = true;
-        results.push({endpoint: `${tag} certification reference state`, outcome: "ERROR PERSISTENT_REFERENCE_STORE_REQUIRED"});
-        continue;
-      }
+    // The Edge runtime does not preserve memory between certification phase calls.
+    // Seed the reference cache during BASELINE and persist it after every phase.
+    // Both shrink stages require data that exists BEFORE their own fresh reads.
+    const shrinkPhase = certificationPhase?.startsWith("shrunk-reference-refresh:");
+    if (shrinkPhase && (!referenceRepository?.load || !referenceRepository?.save)) {
+      failed = true;
+      results.push({endpoint: `${tag} certification reference state`, outcome: "ERROR PERSISTENT_REFERENCE_STORE_REQUIRED"});
+      continue;
+    }
+    let previouslyMissingVehicleIds = new Set();
+    if (referenceRepository) {
       const saved = await step(`${tag} load persisted reference catalogue`, async () => {
         const snapshot = await referenceRepository.load(sid);
-        if (certificationPhase.endsWith(":2") && !snapshot)
-          throw new Error("PERSISTENT_REFERENCE_SNAPSHOT_MISSING");
+        if (shrinkPhase && !snapshot)
+          throw new Error("PERSISTENT_REFERENCE_SNAPSHOT_MISSING: seed during baseline first");
         for (const kind of Object.keys(stores)) {
           const entries = snapshot?.[kind];
           if (entries !== undefined && !Array.isArray(entries)) throw new Error("INVALID_REFERENCE_SNAPSHOT");
@@ -125,6 +128,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
             stores[kind].set(entry[0], entry[1]);
           }
         }
+        previouslyMissingVehicleIds = new Set([...stores.vehicles.values()].filter(r => r.missing_since).map(r => r.id));
         return {recovered: snapshot !== null, counts: Object.fromEntries(Object.entries(stores).map(([k,v]) => [k,v.size]))};
       });
       if (!saved) continue;
@@ -175,7 +179,7 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     // An unknown error on the first list read degrades generically: the next scheduled
     // sync reads it again (certification phase unknown-error-code; a 422 is not retried in place).
     if (!firstSync) { await step(`${tag} GET /v1/reference/locations (next sync)`, syncLocations); }
-    if (certificationPhase?.startsWith("shrunk-reference-refresh:")) {
+    if (referenceRepository) {
       const saved = await step(`${tag} persist merged reference catalogue`, async () => {
         const snapshot = Object.fromEntries(Object.entries(stores).map(([kind, store]) => [kind, [...store.entries()]]));
         await referenceRepository.save(sid, snapshot);
@@ -193,16 +197,24 @@ export async function runCaravelAcceptance(key, {booking: withBooking = false, r
     // For opaque-id-tolerance, quote BOTH first vehicles from the freshly served
     // catalogue by their exact opaque IDs. No plan is sent: the sandbox's served
     // default Medium plan and a fresh protection_id are required in this phase.
+    const missingNow = [...stores.vehicles.values()].filter(r => r.missing_since && !lastVehicleIds.has(r.id)).map(r => r.id);
+    const returnedNow = [...stores.vehicles.values()].filter(r => previouslyMissingVehicleIds.has(r.id) &&
+      !r.missing_since && lastVehicleIds.has(r.id)).map(r => r.id);
     const targets = certificationPhase === "opaque-id-tolerance"
       ? vehicleOrder.slice(0, 2)
-      : certificationPhase === "shrunk-reference-refresh:2"
-        ? [...stores.vehicles.values()].filter(r => r.missing_since && !lastVehicleIds.has(r.id)).map(r => r.id).slice(0, 1)
-        : vehicleOrder.slice(0, 1);
+      : certificationPhase === "shrunk-reference-refresh:1"
+        ? [...missingNow.slice(0, 1), ...vehicleOrder.slice(0, 1)] // vanished AND still listed
+        : certificationPhase === "shrunk-reference-refresh:2"
+          ? returnedNow.slice(0, 1) // returned under its ORIGINAL ID
+          : vehicleOrder.slice(0, referenceRepository ? 3 : 1); // baseline: quote first few catalogue items
     if (certificationPhase === "opaque-id-tolerance" && targets.length < 2) {
       failed = true; results.push({endpoint: `${tag} opaque-id-tolerance`, outcome: "ERROR TWO_VEHICLES_REQUIRED"});
     }
+    if (certificationPhase === "shrunk-reference-refresh:1" && (missingNow.length < 1 || vehicleOrder.length < 1)) {
+      failed = true; results.push({endpoint: `${tag} shrunk-reference-refresh:1`, outcome: "ERROR SHRUNK_VEHICLE_OR_CONTROL_MISSING"});
+    }
     if (certificationPhase === "shrunk-reference-refresh:2" && targets.length < 1) {
-      failed = true; results.push({endpoint: `${tag} shrunk-reference-refresh:2`, outcome: "ERROR MISSING_VEHICLE_NOT_RETAINED"});
+      failed = true; results.push({endpoint: `${tag} shrunk-reference-refresh:2`, outcome: "ERROR RETURNED_VEHICLE_NOT_PRESERVED"});
     }
     for (const vehicleId of targets) {
       const refProtection = refProtections.find(p => p.vehicle_id === vehicleId);
