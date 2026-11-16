@@ -1,40 +1,50 @@
-# Caravel — izolowany magazyn dla prób generalnych certyfikacji
+# Caravel — prywatny katalog między fazami certyfikacji
 
-**NIE wykonano SQL ani wdrożenia.** Ten plik jest instrukcją przygotowania *prywatnego* bucketu w Supabase projektu Ride24. Nie dotyka tabel rezerwacji, partnerów, Stripe, AVIA ani WWW.
+**Wybór infrastruktury:** prywatna tabela PostgreSQL, NIE Supabase Storage.
 
-## Jednorazowe przygotowanie — dopiero po zatwierdzeniu wdrożenia
+## Dlaczego zmieniliśmy plan
 
-Poniższa instrukcja SQL jest przeznaczona do uruchomienia przez administratora (Supabase SQL Editor / migracja) po odrębnej zgodzie:
+Podczas audytu 16.11.2026 wykryto istniejącą politykę `storage.objects`,
+która dopuszcza `INSERT` użytkowników `authenticated` do bucketów innych
+niż `marketing-images` (warunek z alternatywą `bucket_id <> 'marketing-images'`).
+Zatem stworzenie nowego bucketu `caravel-sandbox-cert-state` jako
+`public=false` **nie zapewniłoby wyłącznego dostępu do zapisu przez service_role**.
+Nie tworzymy tego bucketu i nie zmieniamy istniejących polityk Storage.
 
-```sql
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'caravel-sandbox-cert-state',
-  'caravel-sandbox-cert-state',
-  false,
-  1048576,
-  array['application/json']::text[]
-)
-on conflict (id) do nothing;
-```
+Zamiast tego przygotowano:
+- `public.caravel_sbx_reference_snapshots`, RLS=ON, bez polityk `anon/authenticated`,
+  z prawami tabeli tylko dla `service_role`.
+- `caravel_sbx_reference_load/save/clear` — funkcje `SECURITY INVOKER`
+  z `search_path=''`, wykonanie tylko dla `service_role`.
+- `supabase/functions/_shared/caravel-cert-state.mjs` — adapter
+  wyłącznie RPC; żadnego `storage.from` ani ścieżek plików.
+- SQL: `docs/integrations/caravel-sandbox-reference-db.sql`.
 
-Następnie należy **sprawdzić**, czy istniejący bucket o tej nazwie jest na pewno prywatny i ma limit 1 MiB. Nie wolno dodawać żadnej publicznej polityki Storage ani udostępniać plików klientom `anon`/`authenticated`.
+## Przeznaczenie
 
-## Zasady izolacji
+Tylko katalog Caravel `locations/vehicles/protections/extras` między fazami
+`baseline`, `shrunk-reference-refresh:1` oraz `:2`. Klucz złożony
+`(session_id uuid, supplier_id text)` oddziela przebiegi. Nie przechowuje
+kluczy API, danych klienta, płatności ani rezerwacji.
 
-- Testowy magazyn: prywatny bucket `caravel-sandbox-cert-state`; tylko `service_role`, wywoływany z funkcji zabezpieczonej jednocześnie `verify_jwt=true` oraz `requireAdmin()`.
-- Klucz obiektu: `<certification_session_uuid>/<sandbox_supplier_id>.json`, walidowany przed zapisem i odczytem.
-- W środku **wyłącznie** katalogi operatora (locations / vehicles / protections / extras). Żadnych kluczy API, danych klienta, historii płatności, voucherów ani identyfikatorów osób.
-- Mechanizm `mergeCaravelReference()` nie kasuje identyfikatorów, których nie ma w kolejnym katalogu; do certyfikacji wymagany jest *ten sam* session UUID w obu fazach `shrunk-reference-refresh:1/2`.
-- Warunek do usunięcia po zakończeniu próby: skasować pliki testowej sesji z bucketu. Zwykłe wygaśnięcie funkcji Edge nie czyści Storage.
-- **Nie wdrażać** `caravel-sandbox-cert-rehearsal` ani nie uruchamiać `/_certification/start` bez odrębnego upoważnienia. Obecnie aktywne `caravel-sandbox-acceptance` powinno pozostać zastąpione wersją zamykającą 410.
+Bezpieczniki: walidacja UUID i dostawcy, whitelist czterech katalogów,
+maksymalnie 300 elementów w każdej grupie i 1 MiB JSON na rekord.
+Stanu nie odczytują publiczne konta.
 
-## Rozdzielenie procesu
+## Warunki wdrożenia
 
-`caravel-sandbox-cert-rehearsal` służy tylko do sprawdzania faz, z fikcyjnymi danymi w sandboxie. To nie jest kontroler pełnej certyfikacji. Nie wywołuje `/_certification/start`, `/advance`, `/hmac-self-test` ani żadnego endpointu produkcyjnego. Rzeczywisty 24-godzinny run oraz jego dashboard wymagają osobnej decyzji i weryfikacji aktualnego CERTIFICATION.md.
+1. SQL najpierw przetestować w transakcji `BEGIN ... ROLLBACK`, wraz z wywołaniami
+   `service_role`, blokadą `anon/authenticated` i zapisem/usuwaniem JSON.
+2. Zmianę utrwalić wyłącznie po zaliczeniu testu i przeglądu.
+3. `caravel-sandbox-cert-rehearsal` deploy z `verify_jwt=true`,
+   obowiązkowym `requireAdmin`, krótkim terminem wygaśnięcia i importami
+   z przypiętym SHA. Nie jest to kontroler oficjalnej certyfikacji.
+4. Po zakończeniu usunąć testowe sesje katalogu; 410 w Edge nie czyści PostgreSQL.
+5. Stara `caravel-sandbox-acceptance` musi pozostać zamknięta (410).
 
-## Nadal niezweryfikowane
+## Nie jest zaliczone
 
-Pozostają do przygotowania i sprawdzenia (nie wolno ich oznaczać jako zaliczone): pomiary z rzeczywistego ruchu 401/403/404/409/422/429, paginacja i niepoprawne page tokeny, wygasła wycena, strażnik `expected_price` przy direct booking, bezpieczne ponawianie po 429/503 z `Retry-After`, HMAC self-test i rzeczywisty odbiornik webhooków. Nie wolno celowo przeciążać API, żeby wymusić 429.
-
-Wszystkie scenariusze specjalne dodane do adaptera wymagają próby na **prawdziwym** sandboxie z aktualną fazą (CI sprawdza wyłącznie mocki).
+Oficjalna certyfikacja, rzeczywista dostawa webhooków, `hmac-self-test`,
+`price_changed` direct-booking i wymagania kodów błędów w ruchu
+nadal wymagają osobnych testów. Nie uruchamiaj `/_certification/start`
+automatycznie ani nie włączaj ofert dla klientów.
