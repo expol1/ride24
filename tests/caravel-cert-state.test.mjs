@@ -1,9 +1,9 @@
-// Tests for the PRIVATE sandbox reference snapshots used across certification phases.
-// No live Supabase, API key, production booking or HTTP request.
+// Tests for the private Postgres RPC sandbox reference snapshots.
+// No real DB, provider API, credentials, customer PII or Ride24 bookings.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  CARAVEL_CERT_BUCKET, createCaravelSandboxReferenceRepository, validateCaravelCertSnapshot,
+  CARAVEL_CERT_TABLE, createCaravelSandboxReferenceRepository, validateCaravelCertSnapshot,
 } from "../supabase/functions/_shared/caravel-cert-state.mjs";
 
 const SESSION = "00000000-0000-4000-8000-000000000001";
@@ -17,49 +17,78 @@ const sample = () => ({
   locations: [], vehicles: [[SUP + "\u0000opaque-vehicle-id", structuredClone(record)]],
   protections: [], extras: [],
 });
+
 function fakeAdmin() {
-  const files = new Map();
-  let openedBucket;
-  const bucket = {
-    async download(path) {
-      if (!files.has(path)) return {data: null, error: {statusCode: 404}};
-      return {data: new Blob([files.get(path)], {type: "application/json"}), error: null};
+  const rows = new Map(), calls = [];
+  return {rows,calls,
+    async rpc(name, args) {
+      calls.push({name,args});
+      const k=args.p_session_id+":"+args.p_supplier_id;
+      if(name==="caravel_sbx_reference_load")
+        return {data:rows.has(k)?structuredClone(rows.get(k)):null,error:null};
+      if(name==="caravel_sbx_reference_save"){
+        rows.set(k,structuredClone(args.p_snapshot));return {data:true,error:null};
+      }
+      if(name==="caravel_sbx_reference_clear"){
+        const existing=rows.delete(k);return {data:existing,error:null};
+      }
+      return {data:null,error:{message:"UNKNOWN_RPC"}};
     },
-    async upload(path, blob) { files.set(path, await blob.text()); return {error: null}; },
-    async remove(paths) { for(const p of paths) files.delete(p); return {error: null}; },
   };
-  return {files, getBucket: () => openedBucket, storage: {from(name) {openedBucket = name; return bucket;}}};
 }
 
-test("sandbox snapshot persists between calls, preserves exact opaque ID and can be erased", async () => {
-  const admin = fakeAdmin();
-  const repoA = createCaravelSandboxReferenceRepository(admin, SESSION);
-  assert.equal(admin.getBucket(), CARAVEL_CERT_BUCKET);
-  assert.equal(await repoA.load(SUP), null);
-  await repoA.save(SUP, sample());
-  const repoB = createCaravelSandboxReferenceRepository(admin, SESSION);
-  const restored = await repoB.load(SUP);
-  assert.deepEqual(restored, sample());
-  assert.deepEqual([...admin.files.keys()], [SESSION + "/" + SUP + ".json"]);
+test("private RPC snapshot persists between runs and preserves opaque vehicle ID", async () => {
+  assert.equal(CARAVEL_CERT_TABLE, "caravel_sbx_reference_snapshots");
+  const admin=fakeAdmin();
+  const repoA=createCaravelSandboxReferenceRepository(admin,SESSION);
+  assert.equal(await repoA.load(SUP),null);
+  await repoA.save(SUP,sample());
+  const repoB=createCaravelSandboxReferenceRepository(admin,SESSION);
+  assert.deepEqual(await repoB.load(SUP),sample());
+  assert.deepEqual([...admin.rows.keys()],[SESSION+":"+SUP]);
+  assert.deepEqual(admin.calls.map(x=>x.name),[
+    "caravel_sbx_reference_load","caravel_sbx_reference_save","caravel_sbx_reference_load",
+  ]);
+  assert.equal(admin.calls[1].args.p_snapshot.vehicles[0][0],SUP+"\u0000opaque-vehicle-id");
   await repoB.clear(SUP);
-  assert.equal(await repoB.load(SUP), null);
+  assert.equal(await repoA.load(SUP),null);
 });
 
-test("snapshot scope is a UUID and a supplier id; paths cannot escape private bucket", async () => {
-  const admin = fakeAdmin();
-  assert.throws(() => createCaravelSandboxReferenceRepository(admin, "../../"), /CERT_STATE_BAD_CONFIGURATION/);
-  const repo = createCaravelSandboxReferenceRepository(admin, SESSION);
-  await assert.rejects(() => repo.save("../admin", sample()), /CERT_STATE_BAD_SCOPE/);
-  await assert.rejects(() => repo.load(""), /CERT_STATE_BAD_SCOPE/);
-  assert.equal(admin.files.size, 0);
+test("different certification session UUIDs cannot read each other's snapshot", async () => {
+  const admin=fakeAdmin(),a=createCaravelSandboxReferenceRepository(admin,SESSION);
+  const b=createCaravelSandboxReferenceRepository(admin,"00000000-0000-4000-8000-000000000002");
+  await a.save(SUP,sample());
+  assert.equal(await b.load(SUP),null);
+  assert.deepEqual(await a.load(SUP),sample());
 });
 
-test("malformed, oversized or extra-key snapshots are rejected without any upload", async () => {
-  const admin = fakeAdmin();
-  const repo = createCaravelSandboxReferenceRepository(admin, SESSION);
-  assert.throws(() => validateCaravelCertSnapshot({...sample(), booking: {customer_email: "secret"}}), /CERT_STATE_BAD_SNAPSHOT/);
-  assert.throws(() => validateCaravelCertSnapshot({...sample(), vehicles: [["bad"]]}), /CERT_STATE_BAD_ENTRY/);
-  assert.throws(() => validateCaravelCertSnapshot({...sample(), vehicles: Array(301).fill(["x", record])}), /CERT_STATE_TOO_LARGE/);
-  await assert.rejects(() => repo.save(SUP, {...sample(), extras: null}), /CERT_STATE_BAD_SNAPSHOT/);
-  assert.equal(admin.files.size, 0);
+test("scope checks reject non-UUID session and supplier path traversal before RPC",async()=>{
+  const admin=fakeAdmin();
+  assert.throws(()=>createCaravelSandboxReferenceRepository(admin,"../../"),/CERT_STATE_BAD_CONFIGURATION/);
+  assert.throws(()=>createCaravelSandboxReferenceRepository({},SESSION),/CERT_STATE_BAD_CONFIGURATION/);
+  const repo=createCaravelSandboxReferenceRepository(admin,SESSION);
+  await assert.rejects(()=>repo.save("../admin",sample()),/CERT_STATE_BAD_SCOPE/);
+  await assert.rejects(()=>repo.load(""),/CERT_STATE_BAD_SCOPE/);
+  assert.equal(admin.calls.length,0);
+});
+
+test("malformed, excessive or PII-style extra-key snapshots are rejected locally",async()=>{
+  const admin=fakeAdmin(),repo=createCaravelSandboxReferenceRepository(admin,SESSION);
+  assert.throws(()=>validateCaravelCertSnapshot({...sample(),booking:{customer_email:"secret"}}),/CERT_STATE_BAD_SNAPSHOT/);
+  assert.throws(()=>validateCaravelCertSnapshot({...sample(),vehicles:[["bad"]]}),/CERT_STATE_BAD_ENTRY/);
+  assert.throws(()=>validateCaravelCertSnapshot({...sample(),vehicles:Array(301).fill(["x",record])}),/CERT_STATE_TOO_LARGE/);
+  await assert.rejects(()=>repo.save(SUP,{...sample(),extras:null}),/CERT_STATE_BAD_SNAPSHOT/);
+  assert.equal(admin.rows.size,0);
+  assert.equal(admin.calls.length,0);
+});
+
+test("an invalid or failed SQL RPC never returns a supposedly saved snapshot",async()=>{
+  const bad={
+    rpc:async name=> name==="caravel_sbx_reference_load"
+      ? {data:{locations:[]},error:null}
+      : {data:null,error:{message:"simulated DB error"}},
+  };
+  const repo=createCaravelSandboxReferenceRepository(bad,SESSION);
+  await assert.rejects(()=>repo.load(SUP),/CERT_STATE_BAD_SNAPSHOT/);
+  await assert.rejects(()=>repo.save(SUP,sample()),/CERT_STATE_RPC_FAILED/);
 });
