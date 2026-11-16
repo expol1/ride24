@@ -182,7 +182,7 @@ function ladderMock({optionZero = true} = {}) {
     }
     const g = p.match(/^\/v1\/bookings\/([^/]+)$/); if (g) return ok(bookings.get(g[1]));
     const c = p.match(/^\/v1\/bookings\/([^/]+)\/cancel$/);
-    if (c) { const b = bookings.get(c[1]); if (b.status === "cancelled") return body.expected_revision === b.revision ? ok(b) : err("invalid_transition", 409);
+    if (c) { const b = bookings.get(c[1]); if (b.status === "cancelled") return ok(b); // real Caravel: repeated cancel is 200 even with prior revision
       Object.assign(b, {status: "cancelled", revision: b.revision + 1, cancellation: {fee: mny(0), refund: mny(0)}}); return ok(b); }
     return err("not_found", 404);
   };
