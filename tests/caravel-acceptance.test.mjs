@@ -8,15 +8,15 @@ const KEY = "FAKE-KEY-FOR-UNIT-TESTS-acceptance-000";
 const original = globalThis.fetch;
 test.afterEach(() => { globalThis.fetch = original; });
 
-function sandboxMock({premiumDepositMinor = 0} = {}) {
+function sandboxMock({premiumDepositMinor = 0, premiumExcessMinor = 0, availabilityPlan = "premium", protectionPricingType = "included"} = {}) {
   const calls = [];
   const m = (amount, currency) => ({amount, currency});
   const SUP = [{supplier_id: "acct_gbp", name: "G", status: "active", currency: "GBP", tax_inclusive: true, payment_models: ["pay_on_arrival", "partial", "prepaid"]},
     {supplier_id: "acct_eur", name: "E", status: "active", currency: "EUR", tax_inclusive: true, payment_models: ["pay_on_arrival", "partial", "prepaid"]}];
   const cur = (sid) => SUP.find(s => s.supplier_id === sid)?.currency ?? "EUR";
-  const prot = (sid) => ({protection_id: `prot-${sid}`, vehicle_id: `veh-${sid}`, tier: "premium", excess: m(0, cur(sid)), deposit: m(premiumDepositMinor, cur(sid)),
+  const prot = (sid) => ({protection_id: `prot-${sid}`, vehicle_id: `veh-${sid}`, tier: "premium", pricing_type: protectionPricingType, code: "INS_PREMIUM", excess: m(premiumExcessMinor, cur(sid)), deposit: m(premiumDepositMinor, cur(sid)),
     theft_excess: m(0, cur(sid)), product_type: "waiver", covers: ["glass", "undercarriage", "tyres_and_wheels", "theft", "fire"], excludes: []});
-  const row = (sid) => ({supplier_id: sid, vehicle_id: `veh-${sid}`, display_name: "Golf or similar", acriss: "CDMR", plan: "premium", protection: prot(sid),
+  const row = (sid) => ({supplier_id: sid, vehicle_id: `veh-${sid}`, display_name: "Golf or similar", acriss: "CDMR", plan: availabilityPlan, protection: prot(sid),
     line_items: [], min_driver_age: 21, max_driver_age: 75, seats: 5, large_bags: 1, small_bags: 1, transmission: "manual", fuel: "petrol", images: []});
   const quotes = new Map(), bookings = new Map(), idem = new Map(), consumed = new Set();
   let n = 0;
@@ -38,8 +38,8 @@ function sandboxMock({premiumDepositMinor = 0} = {}) {
       if (idem.has(key)) return idem.get(key).sig === sig ? [200, quotes.get(idem.get(key).id)] : [409, null, "idempotency_key_reused"];
       if (body.vehicle_id.startsWith("ride24-nonexistent")) return [422, null, "validation_error"];
       const q = {currency: cur(sid), rental_days: 3, quote_id: uuid(), plan: body.plan ?? "premium", status: "active", expires_at: new Date(Date.now() + 600000).toISOString(),
-        line_items: [{kind: "base_rate", code: "T", total: m(12000, cur(sid))}], totals: {grand_total: m(12000, cur(sid)), pay_now: m(0, cur(sid)), pay_at_pickup: m(12000, cur(sid))},
-        deposit: {amount: m(0, cur(sid)), type: "pre_authorization"}};
+        line_items: [{kind: "base_rate", code: "T", total: m(12000, cur(sid))}, {kind: "protection", code: "INS_PREMIUM", total: m(0, cur(sid))}], totals: {grand_total: m(12000, cur(sid)), pay_now: m(0, cur(sid)), pay_at_pickup: m(12000, cur(sid))},
+        deposit: {amount: m(premiumDepositMinor, cur(sid)), type: "pre_authorization"}};
       quotes.set(q.quote_id, q); idem.set(key, {sig, id: q.quote_id});
       return [201, q];
     }
@@ -48,7 +48,7 @@ function sandboxMock({premiumDepositMinor = 0} = {}) {
       if (consumed.has(body.quote_id)) return [409, null, "quote_consumed"];
       consumed.add(body.quote_id);
       const b = {booking_id: uuid(), quote_id: body.quote_id, status: "confirmed", revision: 1, price: {totals: {grand_total: quotes.get(body.quote_id).totals.grand_total}},
-        protection: {excess: m(0, cur(sid)), deposit: m(0, cur(sid))}, payment: {model: body.payment_model, amount_on_arrival: quotes.get(body.quote_id).totals.grand_total}};
+        protection: {excess: m(premiumExcessMinor, cur(sid)), deposit: m(premiumDepositMinor, cur(sid))}, payment: {model: body.payment_model, amount_on_arrival: quotes.get(body.quote_id).totals.grand_total}};
       bookings.set(b.booking_id, b); idem.set(key, {id: b.booking_id});
       return [201, b];
     }
@@ -155,4 +155,61 @@ test("premiumOnly: an offer failing the Premium policy is quoted for evidence bu
   assert.equal(bookings.size, 0);
   assert.equal(calls.some(c => c.method === "POST" && c.path === "/v1/bookings"), false);
   assert.ok(r.results.some(x => x.outcome === "NOT RUN" && String(x.summary).includes("premiumOnly")));
+});
+
+test("sandbox mechanics books fictional nonzero Premium and cancels, without marking it publishable", async () => {
+  const {calls, bookings} = sandboxMock({premiumDepositMinor: 30000, premiumExcessMinor: 45000});
+  const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur", sandboxPremiumMechanics: true});
+  assert.equal(r.failed, false, JSON.stringify(r.results.filter(x => !x.outcome.startsWith("OK"))));
+  assert.equal(bookings.size, 1);
+  assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
+  assert.ok(calls.every(c => c.host === "sandbox-api.caravelway.com"));
+  const premiumQuote = calls.find(c => c.path === "/v1/quote" && c.body?.plan === "premium");
+  assert.ok(premiumQuote);
+  assert.equal(premiumQuote.body.protection_id, "prot-acct_eur");
+  const bookingResult = r.results.find(x => x.endpoint.includes("POST /v1/bookings (pay_on_arrival)"));
+  assert.equal(bookingResult.outcome, "OK");
+  assert.equal(bookingResult.summary.publishable, false);
+  assert.deepEqual(bookingResult.summary.sandbox_only_advisories, ["BOOKED_PROTECTION_NOT_ZERO_RISK"]);
+  assert.equal(bookingResult.summary.matches_quote, true);
+});
+
+test("sandbox mechanics refuses Medium and non-included protection", async () => {
+  for (const patch of [{availabilityPlan: "medium"}, {protectionPricingType: "optional"}]) {
+    const {calls, bookings} = sandboxMock({...patch, premiumDepositMinor: 30000});
+    const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur", sandboxPremiumMechanics: true});
+    assert.equal(bookings.size, 0);
+    assert.equal(calls.some(c => c.path === "/v1/bookings" && c.method === "POST"), false);
+    assert.ok(r.results.some(x => x.outcome === "NOT RUN" && String(x.summary).includes("included protection")));
+  }
+});
+
+test("sandbox mechanics cannot bypass premiumOnly and cannot book when booking=false", async () => {
+  const {calls} = sandboxMock({premiumDepositMinor: 30000});
+  await assert.rejects(
+    () => runCaravelAcceptance(KEY, {booking: true, premiumOnly: false, sandboxPremiumMechanics: true}),
+    /INVALID_SANDBOX_MECHANICS_CONFIG/,
+  );
+  const r = await runCaravelAcceptance(KEY, {booking: false, supplierId: "acct_eur", sandboxPremiumMechanics: true});
+  assert.equal(calls.some(c => c.path === "/v1/bookings" && c.method === "POST"), false);
+  assert.equal(r.failed, false);
+});
+
+test("sandbox mechanics never waives quote-price integrity or confirmation", async () => {
+  const {calls, bookings} = sandboxMock({premiumDepositMinor: 30000, premiumExcessMinor: 45000});
+  const normal = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    const res = await normal(url, options);
+    if (new URL(String(url)).pathname !== "/v1/bookings" || options?.method !== "POST") return res;
+    const clone = await res.clone().json();
+    if (clone?.data?.status === "confirmed") {
+      clone.data.price.totals.grand_total.amount += 1;
+      return new Response(JSON.stringify(clone), {status: res.status});
+    }
+    return res;
+  };
+  const r = await runCaravelAcceptance(KEY, {booking: true, supplierId: "acct_eur", sandboxPremiumMechanics: true});
+  assert.equal(r.failed, true);
+  assert.ok(r.results.some(x => String(x.outcome).includes("BOOKED_PRICE_DIFFERS_FROM_QUOTE")));
+  assert.ok([...bookings.values()].every(b => b.status === "cancelled"));
 });
