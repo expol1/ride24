@@ -13,6 +13,7 @@ function validCursor(x){
   return x===null || (typeof x==="string" && x.length>0 && x.length<=2048 && !CURSOR_CONTROL.test(x));
 }
 
+/** @param {any} options Server-side isolated invocation; runtime validates each required capability before API/DB calls. */
 export async function runCaravelSandboxReconcile({repository,client,maxRows=100,budgetMs=80000}={}){
   const started=Date.now();
   if(!repository?.claimJob || !repository?.commitPage || !repository?.releaseJob ||
