@@ -15,6 +15,13 @@ Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (C
 - **Not yet confirmed on live Caravel certification:** actual pagination token responses, 429/backoff trace and registry metrics. No deliberate rate-limit bombardment has been attempted.
 - **Still missing before certification:** evidence for 401/403/404 families, rejected expired quote, direct-booking expected-price guard, webhook live delivery and HMAC self-test. The actual 24-hour certification has not been started.
 
+## Negative-case test coverage update (16 Nov 2026)
+- Added `tests/caravel-certification-edge.test.mjs`, included in GitHub Actions. This suite mocks upstream 401/403/404/409/422 envelopes and verifies error-code/status preservation and no retry; unknown error codes stay unknown instead of being guessed.
+- A mismatched opaque `page_token` gets a mocked `422 malformed_page_token` response without retry or supplier-scope changes. This is **not** a live cross-endpoint pagination test.
+- The Caravel booking draft rejects an expired quote including the exact expiry instant **before** any provider write. This is local application-side protection, **not** the Caravel upstream `quote.expired_rejected` metric.
+- Existing `caravel-reliability.test.mjs` covers HTTP 429/503 backoff, bounded `Retry-After`, same idempotency key on retried POST, and all-page reads. Live measurement still required; never force a 429 by excessive traffic.
+- Do not implement the `expected_price` direct-booking endpoint or claim its guard until the exact Caravel OpenAPI request schema is accessible and verified. The quoted-create flow remains Ride24's default.
+
 ## Readiness update after source-document review (16 Nov 2026)
 - Current specification checked against the partner's bundled v1.67.0 documentation (HTML export). The official run has not started.
 - Live tests on 16 Nov: EUR and GBP **25/25** steps each, `failed: false`. The conflict on an **active** booking returned 409 `revision_conflict`; the booking stayed confirmed at revision 1, then cancelled correctly at revision 2, fee 0, and the function was returned to HTTP 410.
