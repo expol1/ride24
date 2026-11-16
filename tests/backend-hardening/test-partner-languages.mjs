@@ -124,6 +124,10 @@ test('static panel labels, placeholders and helper messages have catalogue entri
                     assert.equal(node.dataset.pl, 'Wybierz lokalizację z podpowiedzi, jeśli jest dostępna');
                     continue;
                 }
+                if (node.dataset.en === 'Search in Polish or English. We save the standard English name and show the verified Polish translation when available.') {
+                    assert.equal(node.dataset.pl, 'Możesz szukać po polsku lub angielsku. Zapisujemy standardową nazwę angielską, a obok pokażemy zatwierdzone tłumaczenie polskie.');
+                    continue;
+                }
                 assert.ok(keys.has(node.dataset.en),'Missing HTML label: '+node.dataset.en);
             }
         }
