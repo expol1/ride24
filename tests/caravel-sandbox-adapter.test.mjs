@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {CaravelSandboxClient,CaravelError} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
+import {CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
 const original=globalThis.fetch;
 const mock=(handler)=>{globalThis.fetch=async (url,options)=>new Response(JSON.stringify(handler(String(url),options)),{status:200,headers:{"content-type":"application/json"}});};
 test.afterEach(()=>{globalThis.fetch=original;});
@@ -48,29 +48,44 @@ test("vehicle classes use documented reference endpoint",async()=>{
  await new CaravelSandboxClient("fixture").vehicleClasses(500);
  assert.equal(calls[1],"https://sandbox-api.caravelway.com/v1/reference/vehicles?limit=200");
 });
-test("fetches authoritative supplier-specific terms without rewriting PDFs",async()=>{
- const requests=[];
+const termsMeta=(id="doc-en-v4",patch={})=>({document_id:id,language:"en",version:4,
+ title:"Caravel Rental Terms",format:"clauses/v1",content_hash:"a".repeat(64),
+ published_at:"2026-11-17T10:00:00Z",withdrawn_at:null,...patch});
+test("supplier-scoped terms list is metadata only and detail has immutable clauses body",async()=>{
+ const calls=[];
  mock((url,options)=>{
-  requests.push({url,headers:options.headers,method:options.method});
+  calls.push({url,method:options.method,supplier:options.headers["X-Supplier-Id"]});
   if(url.endsWith("/v1/capabilities"))return {data:{environment:"sandbox"}};
-  return {data:{supplier_id:options.headers["X-Supplier-Id"],clauses:[{id:"6.1",text:"Damage administration fee EUR 100"}]},request_id:"terms-read"};
+  if(url.endsWith("/v1/reference/terms"))return {data:[
+    termsMeta("old-en-v3",{version:3,withdrawn_at:"2026-11-17T09:00:00Z"}),
+    termsMeta()]};
+  return {data:{...termsMeta(),body:{clauses:[{number:"6.1",text:"A 100 EUR fee applies after damage"}]}}};
  });
  const client=new CaravelSandboxClient("fixture");
- const eur=await client.referenceTerms("acct_eur");
- const gbp=await client.referenceTerms("acct_gbp");
- assert.equal(eur.data.supplier_id,"acct_eur");
- assert.equal(gbp.data.supplier_id,"acct_gbp");
- assert.equal(eur.data.clauses[0].id,"6.1");
- assert.deepEqual(requests.slice(1).map(r=>[r.url,r.method,r.headers["X-Supplier-Id"]]),[
-  ["https://sandbox-api.caravelway.com/v1/reference/terms","GET","acct_eur"],
-  ["https://sandbox-api.caravelway.com/v1/reference/terms","GET","acct_gbp"],
+ const list=await client.referenceTerms("acct_eur");
+ const active=selectCurrentCaravelTerms(list.data,"en");
+ assert.equal(active.document_id,"doc-en-v4");
+ assert.equal(active.version,4);
+ assert.equal("body" in active,false,"list is metadata only, not terms text");
+ const doc=await client.referenceTermsDocument(active.document_id,"acct_eur");
+ assert.equal(doc.data.document_id,active.document_id);
+ assert.equal(doc.data.body.clauses[0].number,"6.1");
+ assert.deepEqual(calls.slice(1),[
+  {url:"https://sandbox-api.caravelway.com/v1/reference/terms",method:"GET",supplier:"acct_eur"},
+  {url:"https://sandbox-api.caravelway.com/v1/reference/terms/doc-en-v4",method:"GET",supplier:"acct_eur"}
  ]);
- assert.ok(requests.every(r=>r.headers["X-API-Key"]==="fixture"));
 });
-test("empty or malformed supplier terms fail closed rather than assuming a compliant PDF",async()=>{
+test("Caravel refuses no active terms, ambiguous active terms and bad document IDs",async()=>{
+ assert.throws(()=>selectCurrentCaravelTerms([],"en"),/CURRENT_AMBIGUOUS_OR_MISSING/);
+ assert.throws(()=>selectCurrentCaravelTerms([termsMeta(),termsMeta("doc-en-v5",{version:5})],"en"),/CURRENT_AMBIGUOUS_OR_MISSING/);
  for(const invalid of [null,{},[],"  "]){
   mock((url)=>url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:invalid});
-  await assert.rejects(()=>new CaravelSandboxClient("fixture").referenceTerms("acct_eur"),/CARAVEL_TERMS_RESPONSE_EMPTY/);
+  await assert.rejects(()=>new CaravelSandboxClient("fixture").referenceTerms("acct_eur"),/CARAVEL_TERMS_LIST_INVALID/);
+ }
+ mock((url)=>url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:{...termsMeta(),body:null}});
+ await assert.rejects(()=>new CaravelSandboxClient("fixture").referenceTermsDocument("doc-en-v4","acct_eur"),/CARAVEL_TERMS_DOCUMENT_INVALID/);
+ for(const id of ["../abc","abc/def","x?y",""]){
+  await assert.rejects(()=>new CaravelSandboxClient("fixture").referenceTermsDocument(id),/CARAVEL_TERMS_ID_INVALID/);
  }
 });
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
