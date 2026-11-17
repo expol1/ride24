@@ -34,22 +34,10 @@ import {caravelLocalTime, caravelOutsideHours} from "./caravel-hours.ts";
 export const CARAVEL_PROVIDER = "caravel";
 
 /**
- * Caravel's 17-Nov-2026 partner statement excludes group L2A from Premium.
- * Only match exact supplier identifiers/codes, never customer-facing names
- * or ACRISS category prefixes. The production API field that carries "L2A"
- * still needs a real-response contract check before enabling offers.
+ * Caravel confirmed 17 Nov 2026 that L2A will not be exposed to Ride24's
+ * production account. vehicle_id is opaque (NOT a named car-group code).
+ * Do NOT infer supplier group identity from vehicle_id or display names.
  */
-export function caravelExcludedPremiumGroup(raw: unknown): boolean {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
-  const row = raw as Record<string, unknown>;
-  const group = row.group && typeof row.group === "object" && !Array.isArray(row.group)
-    ? row.group as Record<string, unknown> : null;
-  const codes = [
-    row.vehicle_id, row.group_id, row.group_code, row.vehicle_group_code,
-    row.code, group?.code, group?.group_code,
-  ];
-  return codes.some((value) => typeof value === "string" && value.trim().toUpperCase() === "L2A");
-}
 type Json = Record<string, unknown>;
 export type Result<T> = {ok: true; value: T} | {ok: false; errors: string[]};
 const fail = <T>(errors: string[]): Result<T> => ({ok: false, errors: [...new Set(errors)]});
@@ -216,8 +204,6 @@ export type CaravelFuel = "petrol" | "diesel" | "hybrid" | "plugin_hybrid" | "el
 export type VerifiedCaravelVehicle = {
   vehicleId: string;
   supplierId: string;
-  /** Explicitly excluded L2A, inferred only from exact provider group identifiers. */
-  excludedPremiumGroup: boolean;
   /** ACRISS code; first letter is the Ride24 class letter. Nullable on reference vehicles. */
   acrissCode: string | null;
   /** Customer-facing name, already in "model or similar" form (spec display_name). */
@@ -260,7 +246,6 @@ export function caravelVehicleFromApi(raw: unknown, policies: unknown): Verified
   return {
     vehicleId: r.vehicle_id as string,
     supplierId: r.supplier_id as string,
-    excludedPremiumGroup: caravelExcludedPremiumGroup(r),
     acrissCode: typeof r.acriss === "string" ? r.acriss : null,
     displayName: r.display_name as string,
     transmission: opt(r.transmission, (x) => x === "manual" || x === "automatic"),
@@ -286,7 +271,6 @@ function vehicleCard(v: VerifiedCaravelVehicle, scopeSupplierId: string): Result
   const acriss = typeof v?.acrissCode === "string" ? v.acrissCode.trim().toUpperCase() : "";
   const name = text(v?.displayName, 250);
   if (!id) errors.push("VEHICLE_ID_UNVERIFIED");
-  if (v?.excludedPremiumGroup === true) errors.push("CARAVEL_GROUP_L2A_EXCLUDED");
   if (!text(scopeSupplierId, 128) || v?.supplierId !== scopeSupplierId) errors.push("SUPPLIER_SCOPE_MISMATCH");
   if (!/^[A-Z]{4}$/.test(acriss) || !ACRISS_CATEGORY.test(acriss[0])) errors.push("VEHICLE_CLASS_UNVERIFIED");
   if (!name) errors.push("VEHICLE_NAME_UNVERIFIED");
@@ -615,7 +599,6 @@ export function buildCaravelOfferFromApi(input: {
   const rowIn = rec(input?.availabilityRow) ?? {};
   const errors: string[] = [];
   if (rowIn.plan !== "premium") errors.push("PREMIUM_REQUIRED");
-  if (caravelExcludedPremiumGroup(rowIn)) errors.push("CARAVEL_GROUP_L2A_EXCLUDED");
   // The split of quote totals does NOT prove who collects the money. Ride24
   // requires its agreement with Caravel to permit the pay_on_arrival model.
   // Supplier.payment_models is optional in the API: absent = unverified,
@@ -960,7 +943,7 @@ export function caravelProtectionCandidates(row: unknown): Array<{source: "inclu
  */
 export function selectCaravelPremiumProtection(row: unknown): {source: "included" | "option"; protection: Json} | null {
   const r = rec(row) ?? {};
-  if (r.plan !== "premium" || caravelExcludedPremiumGroup(r)) return null;
+  if (r.plan !== "premium") return null;
   return caravelProtectionCandidates(r).find((c) => evaluateCaravelPremium("premium", c.protection).ok) ?? null;
 }
 
