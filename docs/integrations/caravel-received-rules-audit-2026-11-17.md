@@ -71,3 +71,22 @@ ich dokumentacji API) — jego treści nie zweryfikowano.
 **Wniosek**: wykonany audyt wyłącznie na podstawie przekazanego PDF,
 danych profilu Supabase i treści e-maila Caravel. Nie stanowi aprobaty
 prawnej ani potwierdzenia warunków aktualnego endpointu terms API.
+
+## Adapter: źródło prawnie wiążących warunków (17.11.2026)
+
+- W izolowanej gałęzi dodano `CaravelClient.referenceTerms(supplierId)`:
+  `GET /v1/reference/terms` z `X-Supplier-Id` i bezpieczną kontrolą
+  pustej odpowiedzi. Nie zgaduje formatu odpowiedzi, nie modyfikuje dokumentów,
+  nie uruchamia rezerwacji ani certyfikacji.
+- Testy mock dla oddzielnych dostawców EUR/GBP i pustych odpowiedzi przeszły
+  w `Caravel sandbox adapter checks` oraz `Ride24 API Compatibility QA`
+  (commit `b4de6d1684310f5b959c9314de188381c06a1461`).
+- Nie twierdzimy, że **prawdziwe terms API** zostało odczytane. Publiczny adres
+  Stored PDF `terms.pdf` był niedostępny z użytych narzędzi.
+- Przed ofertą produkcyjną: porównać treść z `GET /v1/reference/terms`
+  (osobno per supplier) z podlinkowanym PDF w Supabase; zapisać rewizję i datę
+  audytu. Jeśli niezgodne: **brak publikacji**, ustalić aktualny dokument z
+  Caravel, zaktualizować go w istniejącym procesie Ride24 i przetestować
+  link przed akceptacją regulaminu, bez dodatkowego mechanizmu dokumentowego.
+- Nowy odczyt nie zastępuje odpowiedzialności za warunki `rules.pdf`,
+  zwłaszcza opłaty 100 EUR i wyłączone szkody.
