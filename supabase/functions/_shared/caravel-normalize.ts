@@ -616,6 +616,14 @@ export function buildCaravelOfferFromApi(input: {
   const errors: string[] = [];
   if (rowIn.plan !== "premium") errors.push("PREMIUM_REQUIRED");
   if (caravelExcludedPremiumGroup(rowIn)) errors.push("CARAVEL_GROUP_L2A_EXCLUDED");
+  // The split of quote totals does NOT prove who collects the money. Ride24
+  // requires its agreement with Caravel to permit the pay_on_arrival model.
+  // Supplier.payment_models is optional in the API: absent = unverified,
+  // never silently default to pay-on-arrival.
+  const supplierRecord = rec(input?.supplier);
+  if (!Array.isArray(supplierRecord?.payment_models) ||
+      !supplierRecord.payment_models.includes("pay_on_arrival"))
+    errors.push("PAY_ON_ARRIVAL_NOT_CONFIRMED");
   const candidates = caravelProtectionCandidates(rowIn);
   const chosen = input?.protectionId === undefined
     ? candidates.find((c) => c.source === "included") ?? null
