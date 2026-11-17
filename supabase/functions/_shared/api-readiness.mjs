@@ -4,14 +4,14 @@ import { assertApiPricingCompatible } from "./api-quote-contract.mjs";
 // acceptance. Connection/metadata tests do not exercise a priced reservation.
 export function apiProviderCapabilities(providerValue) {
   const provider = String(providerValue || "").trim().toLowerCase();
-  const supported = ["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent"].includes(provider);
+  const supported = ["ride24_standard_v1", "custom", "kayfleet", "renteon", "renteon_aggregator", "easy_web_rent"].includes(provider);
   const aggregatorNeedsAcceptance = provider === "renteon_aggregator";
   const features = [
     ["availability", "Dostępność, terminy i lokalizacje", "Availability, dates and locations", supported ? "requires_provider_test" : "unsupported"],
     ["pricing", "Kwota za cały okres i rabat partnera", "Period total and partner discount", supported ? "requires_provider_test" : "unsupported"],
     ["booking_lifecycle", "Rezerwacja, status i anulowanie", "Booking, status and cancellation", supported ? "requires_provider_test" : "unsupported"],
     ["location_fee_metadata", "Oddzielna opłata odbioru i zwrotu", "Separate pickup and return fee metadata",
-      ["ride24_standard_v1", "custom", "easy_web_rent"].includes(provider) ? "metadata_only" : "requires_adapter"],
+      ["ride24_standard_v1", "custom", "kayfleet", "easy_web_rent"].includes(provider) ? "metadata_only" : "requires_adapter"],
     ["mandatory_fee_quote", "Pełna wycena opłat lotniskowych, nocnych i za inną lokalizację", "Complete airport, out-of-hours and one-way fee quote", "requires_adapter"],
     ["optional_extras", "Wybór dodatków, ilości i przeliczenie ceny", "Extra selection, quantities and repricing", "requires_adapter"],
     ["snapshot", "Pozycje API w rozliczeniu, aplikacjach i voucherze", "API line items in breakdown, apps and voucher", "requires_adapter"]
