@@ -4,7 +4,7 @@
 
   // Emergency switch: false restores the previous map without changing any data.
   const ENABLED = true;
-  const VERSION = '20261109-azory3';
+  const VERSION = '20261117-islands1';
   const legacyRequested = new URLSearchParams(window.location.search).get('ride24Map') === 'legacy';
   if (!ENABLED || legacyRequested) return;
 
@@ -100,7 +100,8 @@
     const place = [region,city,name].join('_');
     const has = expression => expression.test(place);
     if (country === 'Spain') {
-      if (has(/mallorca|majorca|majorka|palma_de_mallorca|(?:^|_)pmi(?:_|$)|alcudia|calvia|manacor|porto_cristo|paguera/)) return 'ES-MALLORCA';
+      // Include common Mallorca pick-up names even when partners omit the island from the label.
+      if (has(/mallorca|majorca|majorka|palma_de_mallorca|(?:^|_)palma(?:_|$)|son_sant_joan|(?:^|_)pmi(?:_|$)|alcudia|calvia|manacor|porto_cristo|paguera|magaluf|santa_pon(?:c|s)a/)) return 'ES-MALLORCA';
       if (has(/menorca|minorca|minorka|mahon|mao|ciutadella|(?:^|_)mah(?:_|$)/)) return 'ES-MENORCA';
       if (has(/formentera/)) return 'ES-FORMENTERA';
       if (has(/ibiza|eivissa|(?:^|_)ibz(?:_|$)/)) return 'ES-IBIZA';
@@ -123,7 +124,8 @@
     }
     if (country === 'Tanzania') {
       if (has(/pemba|chake_chake|(?:^|_)pma(?:_|$)/)) return 'TZ-PEMBA';
-      if (has(/zanzibar|unguja|stone_town|nungwi|kendwa|(?:^|_)znz(?:_|$)/)) return 'TZ-ZANZIBAR';
+      // Zanzibar / Unguja is a destination of its own; do not shade mainland Tanzania.
+      if (has(/zanzibar|zanzibaar|unguja|abeid_amani_karume|kisauni|stone_town|nungwi|kendwa|paje|jambiani|matemwe|(?:^|_)znz(?:_|$)/)) return 'TZ-ZANZIBAR';
       if (has(/mafia_island|kilindoni|chole_island/)) return 'TZ-ISLAND-UNSPECIFIED';
       return 'TZ-MAINLAND';
     }
