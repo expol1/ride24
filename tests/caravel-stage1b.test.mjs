@@ -9,6 +9,7 @@ import {
 } from "../supabase/functions/_shared/caravel-normalize.ts";
 import {normalizeGroups} from "../supabase/functions/_shared/partner-api.ts";
 import {runCaravelAcceptance} from "../supabase/functions/_shared/caravel-acceptance.mjs";
+import {evaluateCaravelPremium,CARAVEL_PREMIUM_TERMS,caravelConditionsOfHire,reconcileCaravelTerms} from "../supabase/functions/_shared/caravel-premium.ts";
 
 const NOW = 1900000000000;
 const pickup = Date.UTC(2027, 0, 11, 10, 0); // Monday 11:00 Zagreb, inside desk hours
@@ -32,6 +33,43 @@ const offer = (patch = {}, c = "EUR") => ({availabilityRow: row(c), protectionId
   pickupLocation: desk, dropoffLocation: desk,
   context: {scopeSupplierId: "sup-1", partnerCurrency: c, pickupLocationId: "loc", dropoffLocationId: "loc", pickupEpochMs: pickup, dropoffEpochMs: pickup + 3 * 86400000,
     rentalDays: 3, driverAge: 30, nowEpochMs: NOW}, ...patch});
+
+test("Caravel corrected production Premium is not publishable under Ride24 full-insurance policy", () => {
+  // Partner confirmation 17 Nov: zero deposit/excess but glass, wheels and undercarriage excluded.
+  const p = zeroRisk("EUR", {
+    covers: ["bodywork", "theft", "fire", "third_party_liability", "roadside_assistance", "towing_and_recovery"],
+    excludes: ["tyres_and_wheels", "glass", "mirrors", "undercarriage", "interior", "roof", "keys", "wrong_fuel", "administration_fee"]
+  });
+  const verdict = evaluateCaravelPremium("premium", p, {amount:mny(0)});
+  assert.equal(verdict.ok, false);
+  for (const code of ["COVER_MISSING_GLASS", "COVER_MISSING_TYRES_AND_WHEELS", "COVER_MISSING_UNDERCARRIAGE"]) {
+    assert.ok(verdict.errors.includes(code), code);
+  }
+  assert.equal(selectCaravelPremiumProtection(row("EUR", [p])), null);
+});
+
+test("corrected Caravel public text warns of uncovered damage and EUR 100 fee", () => {
+  const t = CARAVEL_PREMIUM_TERMS;
+  assert.equal(t.included.some(i => i.code === "glass_tyres_undercarriage"), false);
+  assert.ok(t.exclusions.some(i => i.code === "glass_tyres_undercarriage" && i.en.includes("NOT covered")));
+  assert.ok(t.other.some(i => i.code === "damage_administration_fee" && i.amountMinor === 10000));
+  assert.ok(t.other.some(i => i.code === "idp_non_eu_eea" && i.en.includes("EU/EEA")));
+});
+
+test("supplier-specific licence policies are read separately and contradictions surfaced", () => {
+  const first=caravelConditionsOfHire({
+    licence_rules:{min_years_held:1,international_permit_required_for:["non_eu_eea"]},
+    restrictions:["paved_roads_only"],deposit_card_rules:{required:false}
+  });
+  const second=caravelConditionsOfHire({
+    licence_rules:{min_years_held:2,international_permit_required_for:["non_eu_eea"]},
+    restrictions:["paved_roads_only"],deposit_card_rules:{required:false}
+  });
+  assert.equal(first.minLicenceYears,1);
+  assert.equal(second.minLicenceYears,2);
+  assert.equal(reconcileCaravelTerms(first).conflicts.length,0);
+  assert.ok(reconcileCaravelTerms(second).conflicts.includes("LICENCE_YEARS_2_VS_RIDE24_1"));
+});
 
 test("candidates: included package plus protection_options, de-duplicated", () => {
   const c = caravelProtectionCandidates({...row(), protection_options: [zeroRisk(), included(), {no_id: true}]});
