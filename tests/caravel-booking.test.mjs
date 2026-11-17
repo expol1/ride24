@@ -42,6 +42,25 @@ test("partner amount must equal grand_total exactly; no partner discount for Car
   assert.ok(buildCaravelBookingDraft({...input(), partner_discount_percent: 10, partner_amount: 135}, NOW).errors.includes("PARTNER_DISCOUNT_NOT_ALLOWED"));
 });
 
+test("L2A booking cannot bypass Premium catalog filters via an old or direct quote", () => {
+  const vehicleIdOnly=input();
+  vehicleIdOnly.vehicle_group_id="L2A";
+  vehicleIdOnly.provider_quote_data.vehicle_id="L2A";
+  assert.ok(buildCaravelBookingDraft(vehicleIdOnly,NOW).errors.includes("CARAVEL_GROUP_L2A_EXCLUDED"));
+
+  const explicitGroupCode=input();
+  explicitGroupCode.provider_quote_data.group_code="L2A";
+  assert.ok(buildCaravelBookingDraft(explicitGroupCode,NOW).errors.includes("CARAVEL_GROUP_L2A_EXCLUDED"));
+
+  const alternativeGroupId=input();
+  alternativeGroupId.provider_quote_data.group_id="L2A";
+  assert.ok(buildCaravelBookingDraft(alternativeGroupId,NOW).errors.includes("CARAVEL_GROUP_L2A_EXCLUDED"));
+
+  const safeGroup=input();
+  safeGroup.provider_quote_data.group_code="L2B";
+  assert.equal(buildCaravelBookingDraft(safeGroup,NOW).ok,true);
+});
+
 test("rejects changed, expired or foreign quotes and unsupported options", () => {
   const cases = [
     [i => { i.quote_reference = "q-2"; }, "QUOTE_REFERENCE_MISMATCH"],
