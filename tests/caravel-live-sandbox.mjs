@@ -32,7 +32,7 @@ if(key){
     termsFailed=true;
     termsSummary.push(["TERMS_AUDIT_FAILED",String(error instanceof Error?error.message:error).slice(0,80)]);
   }
-}else{termsFailed=true;termsSummary.push(["SANDBOX_KEY_UNCONFIGURED"])}
+}else{termsFailed=true;termsSummary.push(["SANDBOX_KEY_UNCONFIGURED","GitHub Actions secret CARAVEL_SANDBOX_API_KEY missing"])}
 const lines = ["# Caravel sandbox live run", "", `booking flow: ${booking ? "enabled (invented data, pay_on_arrival, cancelled)" : "disabled"}`, "",
   "| Step | Outcome | Summary |", "| --- | --- | --- |",
   ...run.results.map(r => `| ${r.endpoint} | ${r.outcome} | ${r.summary ? JSON.stringify(r.summary).replace(/\|/g, "/").slice(0, 1200) : ""} |`),
