@@ -85,7 +85,7 @@ const ACTIONS = new Set<Action>([
   "activate",
   "deactivate",
 ]);
-const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent"]);
+const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar"]);
 const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer", "renteon_oauth"]);
 const ENDPOINT_NAMES = new Set([
   "auth",
@@ -927,6 +927,7 @@ function ensureCommerciallyActive(partner: PartnerRow): void {
 }
 
 async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise<void> {
+  if (partner.api_provider === "arvent_kolaycar") throw new Error("Arvent kolayCAR: aktywacja zablokowana do certyfikacji przepływu Stripe, warunków wynajmu i anulowania");
   if (partner.api_provider === "renteon_aggregator") {
     // No live sales before written provider rate confirmation, verified booking
     // cancellation support and a successful live-price test.
