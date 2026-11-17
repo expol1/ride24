@@ -29,6 +29,7 @@ test("builds the documented quoted-create body from the common Ride24 booking in
     payment_model: "pay_on_arrival",
   });
   assert.equal(result.draft.expectedPartnerAmount, 150);
+  assert.equal(result.draft.termsDocumentId, null);
 });
 
 test("Ride24 dispatcher idempotency key is normalized only for Caravel", () => {
@@ -52,9 +53,11 @@ test("production booking draft is fail-closed until certified terms, protection 
     product_type:"waiver",covers:["theft","fire","glass","tyres_and_wheels","undercarriage"],excludes:["mirrors"]};
   const compliant={certificationPassed:true,termsVerifiedAndShownBeforePayment:true,
     protection,quoteDeposit:{amount:zero()},
+    currentTermsDocumentId:"en-caravel-v4",termsDocumentIdShown:"en-caravel-v4",
     licencePolicy:{licence_rules:{min_years_held:1,international_permit_required_for:["non_eu_eea"]}},
     licenceEvidence:{firstIssuedOn:"2025-02-01",pickupOn:"2027-01-10",
       issuedInEuEea:true,hasInternationalDrivingPermit:false}};
+  i.provider_quote_data.terms_document_id="en-caravel-v4";
   const noGate=buildCaravelBookingDraft(i,NOW,{environment:"production"});
   assert.equal(noGate.ok,false);
   assert.ok(noGate.errors.includes("CARAVEL_CERTIFICATION_REQUIRED"));
@@ -63,6 +66,13 @@ test("production booking draft is fail-closed until certified terms, protection 
   assert.equal(ok.ok,true,JSON.stringify(ok.errors));
   assert.equal(ok.draft.externalRef,`ride24-${bookingId}`);
   assert.equal(ok.draft.idempotencyKey,bookingId);
+  assert.equal(ok.draft.termsDocumentId,"en-caravel-v4");
+  const changedTerms=buildCaravelBookingDraft(i,NOW,{environment:"production",
+    production:{...compliant,currentTermsDocumentId:"en-caravel-v5"}});
+  assert.ok(changedTerms.errors.includes("CARAVEL_TERMS_DOCUMENT_CHANGED_REQUOTE_REQUIRED"));
+  const missingQuoteTerms=buildCaravelBookingDraft({...i,provider_quote_data:{...i.provider_quote_data,terms_document_id:undefined}},NOW,
+    {environment:"production",production:compliant});
+  assert.ok(missingQuoteTerms.errors.includes("CARAVEL_TERMS_DOCUMENT_ID_REQUIRED"));
   const correctedCaravel={...compliant,protection:{
     ...protection,covers:["bodywork","theft","fire","third_party_liability","roadside_assistance","towing_and_recovery"],
     excludes:["glass","tyres_and_wheels","undercarriage","administration_fee"]}};
