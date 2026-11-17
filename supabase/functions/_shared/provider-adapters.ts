@@ -19,13 +19,15 @@ import {
   aggregatorStatus,
   aggregatorCancel,
 } from "./renteon-aggregator.ts";
+import {arventTestConnection, arventFetchLocations, arventFetchGroups, arventSearch, arventCreateBooking, arventBookingStatus, arventCancelBooking} from "./arvent-kolaycar.ts";
 
 export type ProviderKey =
   | "ride24_standard_v1"
   | "custom"
   | "renteon"
   | "renteon_aggregator"
-  | "easy_web_rent";
+  | "easy_web_rent"
+  | "arvent_kolaycar";
 
 export type ProviderSearchInput = {
   pickup_location_id: string;
@@ -230,7 +232,7 @@ function normalizeCurrency(value: unknown): string | null {
 
 function safeProvider(provider: unknown): ProviderKey {
   const key = String(provider || "custom").trim().toLowerCase();
-  if (["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent"].includes(key)) return key as ProviderKey;
+  if (["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar"].includes(key)) return key as ProviderKey;
   throw new Error('PARTNER_API_ERROR:UNSUPPORTED_PROVIDER');
 }
 
@@ -962,6 +964,7 @@ export async function testProviderConnection(
   credentials: PartnerApiCredentials,
 ): Promise<void> {
   const provider = safeProvider(providerValue);
+  if (provider === "arvent_kolaycar") return await arventTestConnection(credentials);
   if (provider === "renteon_aggregator") {
     return await aggregatorTest(credentials);
   }
@@ -985,6 +988,7 @@ export async function fetchProviderLocations(
   credentials: PartnerApiCredentials,
 ): Promise<ApiLocation[]> {
   const provider = safeProvider(providerValue);
+  if (provider === "arvent_kolaycar") return await arventFetchLocations(credentials);
   if (provider === "renteon_aggregator") {
     return await aggregatorLocations(credentials);
   }
@@ -1015,6 +1019,7 @@ export async function fetchProviderGroups(
   credentials: PartnerApiCredentials,
 ): Promise<ApiVehicleGroup[]> {
   const provider = safeProvider(providerValue);
+  if (provider === "arvent_kolaycar") return await arventFetchGroups(credentials);
   if (provider === "renteon_aggregator") {
     return await aggregatorGroups(credentials);
   }
@@ -1045,6 +1050,7 @@ export async function searchProvider(
   input: ProviderSearchInput,
 ): Promise<ApiVehicleGroup[]> {
   const provider = safeProvider(providerValue);
+  if (provider === "arvent_kolaycar") return await arventSearch(credentials, input);
   if (provider === "renteon_aggregator") {
     return await aggregatorAvailability(credentials, input);
   }
@@ -1140,6 +1146,7 @@ export async function createProviderBooking(
   input: ProviderBookingInput,
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
+  if (provider === "arvent_kolaycar") return await arventCreateBooking(credentials, input);
   if (provider === "renteon_aggregator") {
     return await aggregatorBook(credentials, input);
   }
@@ -1344,6 +1351,7 @@ export async function getProviderBookingStatus(
   externalReference: string,
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
+  if (provider === "arvent_kolaycar") return await arventBookingStatus(credentials, externalReference);
   if (provider === "renteon_aggregator") {
     return await aggregatorStatus(credentials, externalReference);
   }
@@ -1382,6 +1390,7 @@ export async function cancelProviderBooking(
   body: Record<string, unknown> = {},
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
+  if (provider === "arvent_kolaycar") return await arventCancelBooking(credentials, externalReference, body);
   if (provider === "renteon_aggregator") {
     return await aggregatorCancel(credentials, externalReference);
   }
