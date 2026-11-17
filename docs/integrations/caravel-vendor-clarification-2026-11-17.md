@@ -102,11 +102,15 @@ weryfikację.
 - Testy mockowane oraz Ride24 API Compatibility QA potrafią działać
   bez klucza Caravel; nie oznaczają certyfikacji.
 - 17.11.2026 uruchomiono przez etykietę PR test LIVE SANDBOX
-  w GitHub Actions. **Wynik: SKIPPED / FAILURE bez wywołań API**,
+  w GitHub Actions. **Pierwszy wynik: FAILURE bez wywołań API**,
   ponieważ repozytorium nie ma `CARAVEL_SANDBOX_API_KEY`
-  w Actions Secrets. Nie twierdzić, że był to błąd API Caravel.
-  Istniejący klucz w Supabase Edge Secrets nie jest możliwy do
-  wyświetlenia i nie został przeniesiony do GitHub.
+  w Actions Secrets. To nie był błąd API Caravel.
+  Po naprawie workflow, kolejny przebieg
+  [44184521369](https://github.com/expol1/ride24/actions/runs/44184521369)
+  wykazał **SUCCESS ze wszystkimi etapami API SKIPPED**.
+  Powód jest zapisany jawnie w raporcie; test zewnętrzny NIE odbył się.
+  Istniejący klucz w Supabase Edge Secrets nie został przeniesiony
+  do GitHub i nie wolno go tam ujawniać w logach.
 - Nie robić `webhooks/test` ani `secret/rotate` w pośpiechu:
   sekret pojawia się jeden raz i wymaga bezpiecznego zapisu.
   Certyfikacyjny HMAC fixture używa **własnego testowego sekretu**,
