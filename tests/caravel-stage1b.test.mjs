@@ -53,6 +53,11 @@ test("corrected Caravel public text warns of uncovered damage and EUR 100 fee", 
   assert.equal(t.included.some(i => i.code === "glass_tyres_undercarriage"), false);
   assert.ok(t.exclusions.some(i => i.code === "glass_tyres_undercarriage" && i.en.includes("NOT covered")));
   assert.ok(t.other.some(i => i.code === "damage_administration_fee" && i.amountMinor === 10000));
+  assert.ok(t.included.some(i => i.code === "premium_waiver" && i.en.includes("exclusions apply")));
+  assert.equal(t.included.some(i => i.code === "cdw_scdw"), false);
+  const downtime=t.other.find(i => i.code === "repair_downtime");
+  assert.ok(downtime && downtime.en.includes("No downtime charge") && downtime.en.includes("excluded or uninsured"));
+  assert.ok(t.exclusions.find(i => i.code === "keys")?.en.includes("delivery cost"));
   assert.ok(t.other.some(i => i.code === "idp_non_eu_eea" && i.en.includes("EU/EEA")));
 });
 
