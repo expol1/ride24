@@ -65,6 +65,42 @@ export async function verifyCaravelSignature(
   return ok;
 }
 
+/**
+ * Prepare the CERTIFICATION RECORD from the published fixture ONLY.
+ * This has no dependency on (and must never log) the account's one-time
+ * webhook signing secret. Its timestamp must be evaluated as fixture "now".
+ * Does not call /_certification/hmac-self-test or start the 24-hour run.
+ */
+export async function buildCaravelHmacSelfTestSubmission(fixture:unknown):Promise<{
+  signature_hex:string; tampered_rejected:true;
+}> {
+  if(!fixture || typeof fixture!=="object" || Array.isArray(fixture))
+    throw new Error("CERT_HMAC_FIXTURE_INVALID");
+  const f=fixture as Record<string,unknown>;
+  const test=f.tamper_test;
+  const tampered=test && typeof test==="object" && !Array.isArray(test)
+    ? (test as Record<string,unknown>).tampered_body : null;
+  if(typeof f.secret!=="string" || !f.secret ||
+     !Number.isSafeInteger(f.t) || (f.t as number)<=0 ||
+     typeof f.method!=="string" || f.method!=="POST" ||
+     typeof f.path!=="string" || !f.path.startsWith("/") ||
+     typeof f.body!=="string" ||
+     typeof tampered!=="string" || tampered===f.body ||
+     typeof f.expected_signature_hex!=="string" ||
+     !/^[0-9a-f]{64}$/.test(f.expected_signature_hex))
+    throw new Error("CERT_HMAC_FIXTURE_INVALID");
+  const expected=f.expected_signature_hex as string;
+  const actual=await caravelSignatureFor(f.secret,f.t as number,f.method,f.path,f.body);
+  if(actual!==expected) throw new Error("CERT_HMAC_EXPECTED_SIGNATURE_MISMATCH");
+  const header=`t=${f.t},v1=${actual}`;
+  const req={method:f.method,path:f.path,body:f.body};
+  if(!await verifyCaravelSignature(header,[f.secret],req,{nowSecs:f.t as number}))
+    throw new Error("CERT_HMAC_GENUINE_REJECTED");
+  if(await verifyCaravelSignature(header,[f.secret],{...req,body:tampered},{nowSecs:f.t as number}))
+    throw new Error("CERT_HMAC_TAMPER_ACCEPTED");
+  return {signature_hex:actual,tampered_rejected:true};
+}
+
 export type CaravelWebhookEvent = {
   event_id: string; type: string; occurred_at: string; api_version: string; operator_id: string;
   booking_id: string; external_ref: string; revision: number; sequence: number | null; supplier_id: string | null; data: Json;
