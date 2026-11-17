@@ -8,7 +8,7 @@
  * amount against Caravel's authoritative quote total, so that a changed price
  * is never booked silently.
  */
-import {CARAVEL_PROVIDER, caravelExcludedPremiumGroup} from "./caravel-normalize.ts";
+import {CARAVEL_PROVIDER} from "./caravel-normalize.ts";
 import {evaluateCaravelPremium, checkCaravelLicenceEligibility} from "./caravel-premium.ts";
 import type {CaravelQuotedBookingRequest} from "./caravel-sandbox-adapter.ts";
 
@@ -118,10 +118,8 @@ export function buildCaravelBookingDraft(
   const quoteId = typeof data?.quote_id === "string" && UUID.test(data.quote_id) ? data.quote_id : null;
   if (!quoteId || (input?.quote_reference && input.quote_reference !== quoteId)) errors.push("QUOTE_REFERENCE_MISMATCH");
   if (data?.plan !== "premium") errors.push("PREMIUM_REQUIRED");
-  // Defense-in-depth: reject an explicitly identified L2A group even if a
-  // stale/hand-crafted quote bypassed the availability and catalog filters.
-  if (caravelExcludedPremiumGroup(data) || caravelExcludedPremiumGroup({vehicle_id: input?.vehicle_group_id}))
-    errors.push("CARAVEL_GROUP_L2A_EXCLUDED");
+  // vehicle_id is opaque. Caravel excludes the L2A group at our account scope;
+  // compare only exact opaque IDs against the quote, never an inferred code.
   if (!text(data?.vehicle_id, 200) || data?.vehicle_id !== input?.vehicle_group_id) errors.push("VEHICLE_MISMATCH");
   const supplierId = text(data?.supplier_id, 128);
   if (!supplierId) errors.push("SUPPLIER_REQUIRED");
