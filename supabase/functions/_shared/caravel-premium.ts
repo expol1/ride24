@@ -106,16 +106,16 @@ export const CARAVEL_PREMIUM_TERMS = Object.freeze({
   included: [
     {code: "deposit_zero", pl: "Depozyt 0", en: "Zero deposit"},
     {code: "excess_zero", pl: "Udział własny 0 dla szkód objętych ochroną", en: "Zero excess for covered damage"},
-    {code: "cdw_scdw", pl: "Ochrona CDW/SCDW", en: "CDW/SCDW protection"},
+    {code: "premium_waiver", pl: "Ochrona szkód objętych Premium (z wyłączeniami)", en: "Premium damage waiver for covered incidents (exclusions apply)"},
     {code: "theft_fire_zero", pl: "Zerowy udział własny przy kradzieży i pożarze", en: "Zero excess for theft and fire"},
     {code: "no_credit_card", pl: "Brak wymogu karty kredytowej", en: "No credit card required"},
   ],
   exclusions: [
     {code: "glass_tyres_undercarriage", pl: "Szyby, koła, opony i podwozie NIE są objęte ochroną Premium", en: "Glass, wheels, tyres and undercarriage are NOT covered by Premium"},
-    {code: "off_road", pl: "Jazda poza drogami asfaltowymi", en: "Driving off paved roads"},
+    {code: "off_road", pl: "Jazda poza drogami utwardzonymi", en: "Driving off paved roads"},
     {code: "exterior_mirrors", pl: "Lusterka zewnętrzne", en: "Exterior mirrors"},
     {code: "interior_roof_engine_locks", pl: "Wnętrze, dach, silnik i zamki", en: "Interior, roof, engine and locks"},
-    {code: "keys", pl: "Zgubione lub uszkodzone klucze — 200 EUR", en: "Lost or damaged keys — EUR 200", amountMinor: 20000, currency: "EUR"},
+    {code: "keys", pl: "Zgubione lub uszkodzone klucze: 200 EUR plus koszt dostarczenia", en: "Lost or damaged keys: EUR 200 plus replacement delivery cost", amountMinor: 20000, currency: "EUR"},
     {code: "accessories", pl: "Akcesoria, np. foteliki i GPS", en: "Accessories such as child seats and GPS"},
   ],
   voids: [
@@ -129,7 +129,7 @@ export const CARAVEL_PREMIUM_TERMS = Object.freeze({
   other: [
     {code: "damage_administration_fee", pl: "Opłata administracyjna 100 EUR za wynajem, w którym wystąpi szkoda lub kradzież, także w Premium", en: "EUR 100 administration fee per rental with damage or theft, including Premium", amountMinor: 10000, currency: "EUR"},
     {code: "traffic_fines_handling", pl: "Mandaty drogowe i parkingowe obciążają najemcę, dodatkowo naliczana jest opłata manipulacyjna (sprawdź regulamin)", en: "Traffic and parking fines remain the renter's responsibility, plus a handling fee (see rental terms)"},
-    {code: "repair_downtime", pl: "Przestój naprawczy może być naliczany do 20 dni", en: "Repair downtime may be charged for up to 20 days", maxDays: 20},
+    {code: "repair_downtime", pl: "Brak opłaty za przestój przy szkodach objętych Premium; przy wyłączeniu lub utracie ochrony do 20 dni stawki Premium", en: "No downtime charge for Premium-covered incidents; excluded or uninsured incidents may incur up to 20 days at the Premium daily rate", maxDays: 20},
     {code: "police_report", pl: "Wypadek lub kradzież wymaga raportu policyjnego", en: "An accident or theft requires a police report"},
     {code: "licence_one_year", pl: "Prawo jazdy posiadane co najmniej rok", en: "Driving licence held for at least one year", minYears: 1},
     {code: "id_document", pl: "Wymagany dokument tożsamości", en: "An identity document is required"},
