@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
+import {CaravelClient,CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
 const original=globalThis.fetch;
 const mock=(handler)=>{globalThis.fetch=async (url,options)=>new Response(JSON.stringify(handler(String(url),options)),{status:200,headers:{"content-type":"application/json"}});};
 test.afterEach(()=>{globalThis.fetch=original;});
@@ -87,6 +87,29 @@ test("Caravel refuses no active terms, ambiguous active terms and bad document I
  for(const id of ["../abc","abc/def","x?y",""]){
   await assert.rejects(()=>new CaravelSandboxClient("fixture").referenceTermsDocument(id),/CARAVEL_TERMS_ID_INVALID/);
  }
+});
+test("sandbox certification HMAC submission is explicit, scoped and never rotates secrets",async()=>{
+ const calls=[];
+ mock((url,options)=>{
+  calls.push({url,options});
+  return url.endsWith("/v1/capabilities")
+    ? {data:{environment:"sandbox"}}
+    : {recorded:true,check:"hmac-self-test"};
+ });
+ const client=new CaravelSandboxClient("fixture");
+ const payload={signature_hex:"a".repeat(64),tampered_rejected:true};
+ const result=await client.submitSandboxHmacSelfTest(payload);
+ assert.equal(result.httpStatus,200);
+ assert.equal(result.recordedResponse.recorded,true);
+ assert.equal(calls.length,2);
+ assert.equal(calls[1].url,"https://sandbox-api.caravelway.com/_certification/hmac-self-test");
+ assert.equal(calls[1].options.method,"POST");
+ assert.equal(calls[1].options.headers["X-API-Key"],"fixture");
+ assert.deepEqual(JSON.parse(calls[1].options.body),payload);
+ assert.ok(!calls[1].url.includes("secret/rotate"));
+ await assert.rejects(()=>client.submitSandboxHmacSelfTest({...payload,tampered_rejected:false}),/CARAVEL_HMAC_SELF_TEST_INVALID/);
+ const prod=new CaravelClient({apiKey:"fixture",environment:"production",allowProduction:true});
+ await assert.rejects(()=>prod.submitSandboxHmacSelfTest(payload),/SANDBOX_CERTIFICATION_ONLY/);
 });
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];
