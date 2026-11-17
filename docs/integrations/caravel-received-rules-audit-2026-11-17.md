@@ -25,8 +25,12 @@ W Supabase `public.partners` istnieje profil Caravel Rent a Car
 `api_enabled=false`. Kolumny `rental_terms_url` i `rental_rules_url` mają
 odnośniki do istniejących plików `terms.pdf` i `rules.pdf` w buckecie
 `partner-documents`. Ostatnia aktualizacja obiektów: 11.11.2026.
-Przesłany `rules.pdf` ma taki sam rozmiar jak obiekt z bazy (676825 bajtów),
-lecz **nie wykonano porównania hashy ani bajtów**. Zawartość `terms.pdf`
+**Potwierdzono tożsamość przesłanego `rules.pdf` z wersją zapisaną w Storage:**
+oba mają 676825 bajtów, lokalne MD5 `3b945c1a96f4473af18795ebe469415c`
+zgadza się z ETag obiektu `storage.objects.metadata.eTag` o tej samej wartości.
+Lokalne SHA-256: `d2824b9867161d362c8f0d31a51580c22756414bbb10ef078f55947317d8ea2b`.
+Nie odczytywano osobno bajtów obiektu z Storage, lecz zgodny ETag MD5
+pozwala uznać przesłaną wersję regulaminu za tę samą. Zawartość `terms.pdf`
 nie została bezpośrednio zweryfikowana.
 
 Aktualny mechanizm Ride24 w `klient.html` pobiera oba linki, wyświetla
