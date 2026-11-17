@@ -20,14 +20,24 @@ jobs:
       (github.event.label.name == 'caravel-sandbox-live' || github.event.label.name == 'caravel-sandbox-booking')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      CARAVEL_SANDBOX_API_KEY: ${{ secrets.CARAVEL_SANDBOX_API_KEY }}
+      CARAVEL_SUPPLIER_ID: ${{ vars.CARAVEL_SUPPLIER_ID }}
+      CARAVEL_LIVE_BOOKING: ${{ github.event.label.name == 'caravel-sandbox-booking' && '1' || '0' }}
     steps:
+      # Missing GitHub secret is a configuration SKIP, not a Caravel API failure.
+      # Never print the secret. The public log distinguishes this from real runs.
+      - name: Explain missing sandbox credential
+        if: ${{ env.CARAVEL_SANDBOX_API_KEY == '' }}
+        run: |
+          echo "### Caravel live sandbox — SKIPPED" >> "$GITHUB_STEP_SUMMARY"
+          echo "GitHub Actions secret CARAVEL_SANDBOX_API_KEY is not configured. No request was sent to Caravel. This is not a certification result." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
+        if: ${{ env.CARAVEL_SANDBOX_API_KEY != '' }}
       - uses: actions/setup-node@v4
+        if: ${{ env.CARAVEL_SANDBOX_API_KEY != '' }}
         with:
           node-version: '22'
       - name: Live sandbox run
-        env:
-          CARAVEL_SANDBOX_API_KEY: ${{ secrets.CARAVEL_SANDBOX_API_KEY }}
-          CARAVEL_SUPPLIER_ID: ${{ vars.CARAVEL_SUPPLIER_ID }}
-          CARAVEL_LIVE_BOOKING: ${{ github.event.label.name == 'caravel-sandbox-booking' && '1' || '0' }}
+        if: ${{ env.CARAVEL_SANDBOX_API_KEY != '' }}
         run: node --experimental-strip-types tests/caravel-live-sandbox.mjs
