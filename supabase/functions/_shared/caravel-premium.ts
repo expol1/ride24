@@ -90,6 +90,67 @@ export function caravelConditionsOfHire(policy: unknown): CaravelConditionsOfHir
   };
 }
 
+// -------------------------- licence eligibility (isolated, not yet wired) ----
+/**
+ * Caravel checks first issue of the driving licence, not the driver's age or
+ * profile.country. Per-supplier licence_rules must be used: the Ride24 drivers
+ * table does not currently store first-issue dates or issuing countries.
+ * This helper is deliberately NOT wired into the shared booking UI/dispatch.
+ */
+export type CaravelLicenceEvidence = {
+  /** Original first issue date (local YYYY-MM-DD), not current card renewal. */
+  firstIssuedOn: string;
+  /** Local pickup date YYYY-MM-DD. */
+  pickupOn: string;
+  /** Derived from the LICENCE ISSUING COUNTRY, not nationality or home address. */
+  issuedInEuEea: boolean;
+  /** Original International Driving Permit will be shown at the desk. */
+  hasInternationalDrivingPermit: boolean;
+};
+const ymd = (value: unknown): {year: number; month: number; day: number; epoch: number} | null => {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year,month,day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year,month-1,day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month-1 || date.getUTCDate() !== day)
+    return null;
+  return {year,month,day,epoch:date.getTime()};
+};
+
+/** Strict pre-booking eligibility; unknown policy or missing evidence = no booking. */
+export function checkCaravelLicenceEligibility(
+  policy: unknown, evidence: unknown,
+): {ok: true; minLicenceYears: number} | {ok: false; errors: string[]} {
+  const e = rec(evidence) ?? {};
+  const rules = caravelConditionsOfHire(policy);
+  const errors: string[] = [];
+  const min = rules.minLicenceYears;
+  const first = ymd(e.firstIssuedOn), pickup = ymd(e.pickupOn);
+  if (min === null || min < 1 || min > 100) errors.push("LICENCE_MIN_YEARS_UNVERIFIED");
+  if (!first || !pickup || first.epoch > pickup.epoch) errors.push("LICENCE_DATES_INVALID");
+  else if (min !== null && min >= 1 && min <= 100) {
+    const anniversary = Date.UTC(first.year + min,first.month-1,first.day);
+    if (pickup.epoch < anniversary) errors.push("LICENCE_NOT_HELD_LONG_ENOUGH");
+  }
+  if (typeof e.issuedInEuEea !== "boolean") errors.push("LICENCE_ISSUING_REGION_REQUIRED");
+  if (!Array.isArray(rules.internationalPermitRequiredFor)) {
+    errors.push("IDP_POLICY_UNVERIFIED");
+  } else {
+    // The confirmed 17-Nov contract uses non_eu_eea; never silently interpret
+    // unknown future provider rule codes as "no IDP required".
+    const known = new Set(["non_eu_eea"]);
+    if (rules.internationalPermitRequiredFor.some(code => !known.has(code)))
+      errors.push("IDP_POLICY_CODE_UNRECOGNIZED");
+    if (e.issuedInEuEea === false) {
+      if (!rules.internationalPermitRequiredFor.includes("non_eu_eea"))
+        errors.push("NON_EU_EEA_IDP_RULE_UNCONFIRMED");
+      else if (e.hasInternationalDrivingPermit !== true)
+        errors.push("IDP_REQUIRED_FOR_NON_EU_EEA_LICENCE");
+    }
+  }
+  if (errors.length) return {ok: false, errors: [...new Set(errors)]};
+  return {ok: true, minLicenceYears: min!};
+}
+
 // ------------------------------------------- Ride24 Premium display copy ----
 /**
  * Ride24's customer-facing Premium terms for Caravel (partner correction
