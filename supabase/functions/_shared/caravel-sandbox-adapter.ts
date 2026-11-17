@@ -206,6 +206,24 @@ export class CaravelClient {
   async vehicleClasses(limit=200,supplierId?:string) {
     return this.allReferencePages<Json>("/v1/reference/vehicles",supplierId,limit);
   }
+  /**
+   * Retrieve Caravel's authoritative rental terms exactly as returned by the
+   * supplier. Caravel confirmed GET /v1/reference/terms on 17 Nov 2026.
+   * This is a read-only audit input, NOT a replacement for Ride24's existing
+   * partner PDF URLs, and must not silently overwrite documents/acceptances.
+   * The endpoint's response schema has not been verified against the live API,
+   * so preserve the full JSON value rather than guessing a `text` property.
+   */
+  async referenceTerms(supplierId?:string):Promise<CaravelEnvelope<unknown>> {
+    await this.capabilities();
+    const result=await this.request<unknown>("GET","/v1/reference/terms",undefined,undefined,supplierId);
+    const data=result.data;
+    if(data===null || data===undefined || (typeof data==="string" && !data.trim()) ||
+       (typeof data!=="string" && !Array.isArray(data) && (typeof data!=="object" || Object.keys(data as Json).length===0)) ||
+       (Array.isArray(data) && data.length===0))
+      throw new Error("CARAVEL_TERMS_RESPONSE_EMPTY");
+    return result;
+  }
   /** GET /v1/reference/{extras|protections|policies|fees} (scope read:reference). */
   async reference(kind:"extras"|"protections"|"policies"|"fees",supplierId?:string) {
     if(!["extras","protections","policies","fees"].includes(kind)) throw new Error("INVALID_REFERENCE");
