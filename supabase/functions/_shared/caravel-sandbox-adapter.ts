@@ -269,6 +269,37 @@ export class CaravelClient {
       throw new Error("CARAVEL_TERMS_DOCUMENT_INVALID");
     return {...result,data:result.data};
   }
+  /**
+   * Explicit sandbox certification milestone, NEVER part of ordinary reads.
+   * Does not use/generate/rotate an account webhook secret: this endpoint
+   * accepts the PUBLIC FIXTURE signature and a true tamper-rejection result.
+   * Calling this records a certification result on the partner's account.
+   * It does NOT start /_certification/start or grant production credentials.
+   */
+  async submitSandboxHmacSelfTest(payload:{
+    signature_hex:string; tampered_rejected:true;
+  }):Promise<{httpStatus:number; recordedResponse:unknown}> {
+    if(this.environment!=="sandbox")throw new Error("SANDBOX_CERTIFICATION_ONLY");
+    if(!payload || typeof payload.signature_hex!=="string" ||
+       !/^[0-9a-f]{64}$/.test(payload.signature_hex) ||
+       payload.tampered_rejected!==true ||
+       Object.keys(payload).sort().join(",")!=="signature_hex,tampered_rejected")
+      throw new Error("CARAVEL_HMAC_SELF_TEST_INVALID");
+    await this.capabilities();
+    // The normal request helper deliberately accepts only /v1/*; the
+    // certification endpoint is an allowlisted fixed sandbox URL instead.
+    const result=await fetch(SANDBOX+"/_certification/hmac-self-test",{
+      method:"POST",
+      headers:{"X-API-Key":this.apiKey,"Accept":"application/json","Content-Type":"application/json"},
+      body:JSON.stringify({signature_hex:payload.signature_hex,tampered_rejected:true}),
+      redirect:"error",
+      signal:AbortSignal.timeout(this.timeoutMs),
+    });
+    // Only a provider's actual response/portal report can prove a pass.
+    const response=await result.json().catch(()=>null);
+    if(!result.ok)throw new Error(`CARAVEL_CERT_HMAC_HTTP_${result.status}`);
+    return {httpStatus:result.status,recordedResponse:response};
+  }
   /** GET /v1/reference/{extras|protections|policies|fees} (scope read:reference). */
   async reference(kind:"extras"|"protections"|"policies"|"fees",supplierId?:string) {
     if(!["extras","protections","policies","fees"].includes(kind)) throw new Error("INVALID_REFERENCE");
