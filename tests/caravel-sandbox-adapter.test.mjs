@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {CaravelClient,CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
+import {compareCaravelTermsVersion} from "../supabase/functions/_shared/caravel-terms-version.ts";
 const original=globalThis.fetch;
 const mock=(handler)=>{globalThis.fetch=async (url,options)=>new Response(JSON.stringify(handler(String(url),options)),{status:200,headers:{"content-type":"application/json"}});};
 test.afterEach(()=>{globalThis.fetch=original;});
@@ -110,6 +111,32 @@ test("sandbox certification HMAC submission is explicit, scoped and never rotate
  await assert.rejects(()=>client.submitSandboxHmacSelfTest({...payload,tampered_rejected:false}),/CARAVEL_HMAC_SELF_TEST_INVALID/);
  const prod=new CaravelClient({apiKey:"fixture",environment:"production",allowProduction:true});
  await assert.rejects(()=>prod.submitSandboxHmacSelfTest(payload),/SANDBOX_CERTIFICATION_ONLY/);
+});
+test("immutable Caravel terms per supplier sync require review of any new document_id",()=>{
+ const initial=compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
+   currentMetadataList:[termsMeta()]});
+ assert.equal(initial.action,"initial_review_required");
+ assert.equal(initial.snapshot.documentId,"doc-en-v4");
+ const same=compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
+   currentMetadataList:[termsMeta()],previousReviewed:initial.snapshot});
+ assert.equal(same.action,"unchanged");
+ const newer=compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
+   currentMetadataList:[termsMeta("doc-en-v5",{version:5,content_hash:"b".repeat(64),
+      published_at:"2026-11-18T10:00:00Z"})],previousReviewed:initial.snapshot});
+ assert.equal(newer.action,"new_version_requires_review");
+ assert.equal(newer.replacedDocumentId,"doc-en-v4");
+ assert.equal(newer.snapshot.documentId,"doc-en-v5");
+ assert.throws(()=>compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
+   currentMetadataList:[termsMeta("doc-en-v4",{content_hash:"b".repeat(64)})],
+   previousReviewed:initial.snapshot}),/CARAVEL_TERMS_IMMUTABILITY_VIOLATION/);
+ assert.throws(()=>compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
+   currentMetadataList:[termsMeta("doc-en-v3",{version:3})],previousReviewed:initial.snapshot}),
+   /CARAVEL_TERMS_VERSION_ROLLBACK/);
+ assert.throws(()=>compareCaravelTermsVersion({supplierId:"acct_gbp",language:"en",
+   currentMetadataList:[termsMeta()],previousReviewed:initial.snapshot}),
+   /CARAVEL_TERMS_PREVIOUS_SNAPSHOT_INVALID/);
+ assert.throws(()=>compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
+   currentMetadataList:[termsMeta(),termsMeta("second")] }),/CARAVEL_TERMS_CURRENT_AMBIGUOUS_OR_MISSING/);
 });
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];
