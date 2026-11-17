@@ -1,5 +1,53 @@
 # Caravel Channel API v1.67.0 — certification readiness (Ride24)
 
+## UPDATE 17.11.2026 (Caravel response; supersedes earlier assumptions)
+
+See `docs/integrations/caravel-vendor-clarification-2026-11-17.md` for complete supplier instructions and evidence.
+
+- **Sandbox webhook delivery to a public URL is NOT a certification prerequisite.**
+  The self-serve account records signed events in its inspector. Delivery
+  before production is optional, enabled by Caravel after URL ownership challenge.
+  An unconfigured LIVE receiver is therefore not by itself a reason to
+  delay sandbox HMAC certification.
+- **HMAC self-test** uses `fixtures/webhook-hmac-self-test.json`,
+  its OWN fixture secret and t as "now"; negative tamper case required.
+  Submit `{"signature_hex":"...","tampered_rejected":true}` to
+  `POST /_certification/hmac-self-test` with sandbox API key. This is
+  an independent milestone, NOT `/_certification/start`.
+  Local helper and mock submission tests implemented. No live submission
+  has occurred yet.
+- **Account webhook signing secret** is created only once, with first
+  `POST /v1/webhooks/test` (write:webhooks) or newly minted by
+  `POST /v1/webhooks/secret/rotate`, and shown once. Store securely;
+  do not invoke unprepared. Verification of multiple `v1=` and
+  new/old secret overlap is implemented.
+- **No L2A filter**: Caravel itself excludes L2A from our production
+  account. `vehicle_id` is opaque; codes/names cannot identify it.
+  Previous guessed L2A filter was REMOVED from isolated code.
+- **Terms are API-derived**: list `GET /v1/reference/terms` metadata
+  (not text); fetch document body at `/v1/reference/terms/{document_id}`,
+  format `clauses/v1`. Current EN document is v4 dated 17 Nov 2026,
+  with immutable document_id and content_hash. Server must show actual
+  authoritative text before Stripe and persist document_id per booking.
+  Current PDFs from outside API must not be treated as legal authority.
+  Full canonical SHA-256 requires rules from Caravel pack §3.9.
+  Nullable DB migration is PROPOSED, NOT APPLIED.
+- **Live test attempted 17 Nov via PR label**. GitHub Actions did not
+  have the `CARAVEL_SANDBOX_API_KEY` secret: job skipped the API calls
+  and failed. This does not indicate a Caravel API error.
+- **Business blocker remains**: all Premium groups exclude glass,
+  tyres/wheels and undercarriage; the Ride24 full coverage guard
+  correctly refuses them. Separate owner decision or enhanced Caravel
+  package required before production. `api_enabled=false`.
+
+**Accurate status:** isolated code/tests green; HMAC cert endpoint NOT
+submitted; official 24h certification NOT started; Caravel production
+access NOT requested; no Caravel offers active.
+
+---
+
+
+
 ## AKTUALNY stan: 17 listopada 2026 (zaktualizowane po emailu Caravel)
 
 **Werdykt: NIE URUCHAMIAĆ PRODUKCJI. Oficjalna 24-godzinna
