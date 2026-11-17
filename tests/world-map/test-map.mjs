@@ -236,6 +236,23 @@ try {
   assert.equal(await island.page.locator('.r24-map-coverage[data-area="CY"]').count(), 0);
   await island.context.close();
 
+  // Island-only partners appear under their own flag + island destination;
+  // the parent country must not become a selectable/green mainland area.
+  const islandDestinations = await pageFor({ width: 1280, height: 800 }, { rows: [
+    { id: 'mallorca-fixture', country: 'Spain', region: 'Balearic Islands', city: 'Palma', location_name: 'Son Sant Joan Airport', type: 'airport', active: true },
+    { id: 'zanzibar-fixture', country: 'Tanzania', region: '', city: 'Kisauni', location_name: 'Abeid Amani Karume International Airport', type: 'airport', active: true }
+  ] });
+  await islandDestinations.page.evaluate(() => openWorldMap());
+  assert.equal(await islandDestinations.page.locator('.r24-area-choice[data-area="ES-MALLORCA"]').count(), 1);
+  assert.equal(await islandDestinations.page.locator('.r24-area-choice[data-area="TZ-ZANZIBAR"]').count(), 1);
+  assert.equal(await islandDestinations.page.locator('.r24-area-choice[data-area="ES"]').count(), 0);
+  assert.equal(await islandDestinations.page.locator('.r24-area-choice[data-area="TZ-MAINLAND"]').count(), 0);
+  assert.equal(await islandDestinations.page.locator('.r24-map-coverage[data-area="ES"]').count(), 0);
+  assert.equal(await islandDestinations.page.locator('.r24-map-coverage[data-area="TZ-MAINLAND"]').count(), 0);
+  assert.match(await islandDestinations.page.locator('.r24-area-choice[data-area="ES-MALLORCA"]').textContent(), /Majorka/);
+  assert.match(await islandDestinations.page.locator('.r24-area-choice[data-area="TZ-ZANZIBAR"]').textContent(), /Zanzibar/);
+  await islandDestinations.context.close();
+
   const empty = await pageFor({ width: 320, height: 568 }, { rows: [] });
   await empty.page.evaluate(() => openWorldMap());
   assert.equal(await empty.page.locator('.r24-map-coverage').count(), 0);
