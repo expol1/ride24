@@ -1,3 +1,17 @@
+## Przygotowania po ostatnim audycie — 17.11.2026
+
+### Ostateczne sprawdzenie regulaminu
+- Przesłany `rules.pdf` (676825 bajtów) ma MD5 `3b945c1a96f4473af18795ebe469415c`, identyczne z Supabase Storage `metadata.eTag` dla aktualnie podłączonego do profilu Caravel pliku. Potwierdzamy, że jest to ten sam dokument.
+- PDF ujawnia 100 EUR opłaty za szkodę lub kradzież (§6.1), brak ochrony szyb/kół/podwozia (§3.1), wyjątek braku opłat za przestój dla szkód objętych Premium (§4.4), kary (§6.3) i klauzulę obciążania przedstawionej karty (§5.1). Numeracja różni się od e-maila Caravel; drugi PDF `terms.pdf` oraz API `GET /v1/reference/terms` nadal nieodczytane.
+- Nie podmieniać istniejących dokumentów ani nie tworzyć drugiego mechanizmu dokumentów, zanim nie porównamy wersji.
+
+### Dodatkowe izolowane zabezpieczenia
+- Wykluczenie L2A na poziomie katalogu, wyboru Premium, budowy oferty i **tworzenia draftu rezerwacji** (ochrona przed starszą/spreparowaną wyceną). Pola wykorzystywane do oznaczenia L2A są warunkowe; trzeba potwierdzić właściwe pole identyfikatora na żywej odpowiedzi.
+- Publiczne opisy Premium ograniczone do zweryfikowanego zakresu: bez obietnicy ochrony szyb/kół/podwozia; przestój tylko przy szkodach wyłączonych lub utracie ochrony; klucze 200 EUR plus dostawa; opłata administracyjna 100 EUR za zdarzenie.
+- Nowy izolowany `checkCaravelLicenceEligibility()` sprawdza datę pierwszego uzyskania prawa jazdy względem początku najmu, minimalne lata dla **konkretnego dostawcy** i IDP dla uprawnień spoza UE/EOG. Nie jest jeszcze podłączony do formularza/booking flow.
+- Aktualna tabela `public.drivers` ma `name`, `age`, `phone`, lecz **nie przechowuje** daty pierwszego wydania ani kraju wystawienia prawa jazdy. Na etapie produkcyjnego wdrożenia potrzebne będzie skierowane wyłącznie do Caravel potwierdzenie tych informacji; nie używać `profiles.country` jako kraju wydania prawa jazdy. Nie wprowadzać zmian w tabeli `drivers` bez osobnego przeglądu.
+- Dotychczasowe bramki pełnej ochrony Ride24 pozostają niezmienione, a `api_enabled=false`.
+
 ## Aktualizacja warunków Caravel, 17.11.2026 — HARD BLOCKER dla produkcji
 
 **Źródło: bezpośredni e-mail zespołu Caravel do Ride24 (17 listopada 2026), weryfikacja warunków produkcyjnych przez API nadal oczekuje na dostęp produkcyjny.** Poniższe dotyczy ich deklarowanego stanu, nie potwierdza wykonania testu API.
