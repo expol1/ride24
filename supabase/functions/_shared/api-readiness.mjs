@@ -4,7 +4,7 @@ import { assertApiPricingCompatible } from "./api-quote-contract.mjs";
 // acceptance. Connection/metadata tests do not exercise a priced reservation.
 export function apiProviderCapabilities(providerValue) {
   const provider = String(providerValue || "").trim().toLowerCase();
-  const supported = ["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent"].includes(provider);
+  const supported = ["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar"].includes(provider);
   const aggregatorNeedsAcceptance = provider === "renteon_aggregator";
   const features = [
     ["availability", "Dostępność, terminy i lokalizacje", "Availability, dates and locations", supported ? "requires_provider_test" : "unsupported"],
