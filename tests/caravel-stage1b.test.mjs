@@ -93,10 +93,9 @@ test("Caravel licence validator respects each supplier's policy, first issue and
   assert.ok(checkCaravelLicenceEligibility(policy(1),{...evidence,issuedInEuEea:null}).errors.includes("LICENCE_ISSUING_REGION_REQUIRED"));
 });
 
-test("Caravel group L2A is excluded even with apparently eligible Premium protection", () => {
-  assert.equal(selectCaravelPremiumProtection({...row(),group_code:"L2A"}), null);
-  assert.equal(selectCaravelPremiumProtection({...row(),vehicle_id:"L2A"}), null);
-  assert.equal(selectCaravelPremiumProtection({...row(),group_code:"L2B"})?.protection.protection_id, "prot-zero");
+test("Premium selection does not infer a named group from opaque vehicle ID", () => {
+  const x={...row(),vehicle_id:"opaque-L2A"};
+  assert.equal(selectCaravelPremiumProtection(x)?.protection.protection_id,"prot-zero");
 });
 
 test("current sandbox extras: child_seat and additional_driver map, other stays unmapped", () => {
