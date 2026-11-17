@@ -9,7 +9,7 @@ import {
 } from "../supabase/functions/_shared/caravel-normalize.ts";
 import {normalizeGroups} from "../supabase/functions/_shared/partner-api.ts";
 import {runCaravelAcceptance} from "../supabase/functions/_shared/caravel-acceptance.mjs";
-import {evaluateCaravelPremium,CARAVEL_PREMIUM_TERMS,caravelConditionsOfHire,reconcileCaravelTerms} from "../supabase/functions/_shared/caravel-premium.ts";
+import {evaluateCaravelPremium,CARAVEL_PREMIUM_TERMS,caravelConditionsOfHire,reconcileCaravelTerms,checkCaravelLicenceEligibility} from "../supabase/functions/_shared/caravel-premium.ts";
 
 const NOW = 1900000000000;
 const pickup = Date.UTC(2027, 0, 11, 10, 0); // Monday 11:00 Zagreb, inside desk hours
@@ -74,6 +74,23 @@ test("supplier-specific licence policies are read separately and contradictions 
   assert.equal(second.minLicenceYears,2);
   assert.equal(reconcileCaravelTerms(first).conflicts.length,0);
   assert.ok(reconcileCaravelTerms(second).conflicts.includes("LICENCE_YEARS_2_VS_RIDE24_1"));
+});
+
+test("Caravel licence validator respects each supplier's policy, first issue and IDP", () => {
+  const policy=(years,permit=["non_eu_eea"])=>({licence_rules:{
+    min_years_held:years,international_permit_required_for:permit
+  }});
+  const evidence={firstIssuedOn:"2025-12-01",pickupOn:"2027-01-05",
+    issuedInEuEea:true,hasInternationalDrivingPermit:false};
+  assert.deepEqual(checkCaravelLicenceEligibility(policy(1),evidence),{ok:true,minLicenceYears:1});
+  assert.ok(checkCaravelLicenceEligibility(policy(2),evidence).errors.includes("LICENCE_NOT_HELD_LONG_ENOUGH"));
+  assert.ok(checkCaravelLicenceEligibility(policy(1),{...evidence,issuedInEuEea:false}).errors.includes("IDP_REQUIRED_FOR_NON_EU_EEA_LICENCE"));
+  assert.equal(checkCaravelLicenceEligibility(policy(1),{...evidence,issuedInEuEea:false,hasInternationalDrivingPermit:true}).ok,true);
+  assert.ok(checkCaravelLicenceEligibility(policy(1),{...evidence,firstIssuedOn:"2026-02-29"}).errors.includes("LICENCE_DATES_INVALID"));
+  assert.ok(checkCaravelLicenceEligibility(policy(1),{...evidence,firstIssuedOn:"2026-02-01",pickupOn:"2027-01-31"}).errors.includes("LICENCE_NOT_HELD_LONG_ENOUGH"));
+  assert.ok(checkCaravelLicenceEligibility(policy(1,["unknown_future_scope"]),evidence).errors.includes("IDP_POLICY_CODE_UNRECOGNIZED"));
+  assert.ok(checkCaravelLicenceEligibility({licence_rules:{}},evidence).errors.includes("LICENCE_MIN_YEARS_UNVERIFIED"));
+  assert.ok(checkCaravelLicenceEligibility(policy(1),{...evidence,issuedInEuEea:null}).errors.includes("LICENCE_ISSUING_REGION_REQUIRED"));
 });
 
 test("Caravel group L2A is excluded even with apparently eligible Premium protection", () => {
