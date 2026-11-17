@@ -71,6 +71,24 @@ test("supplier-specific licence policies are read separately and contradictions 
   assert.ok(reconcileCaravelTerms(second).conflicts.includes("LICENCE_YEARS_2_VS_RIDE24_1"));
 });
 
+test("Caravel group L2A is excluded even with apparently eligible Premium protection", () => {
+  assert.equal(selectCaravelPremiumProtection({...row(),group_code:"L2A"}), null);
+  assert.equal(selectCaravelPremiumProtection({...row(),vehicle_id:"L2A"}), null);
+  assert.equal(selectCaravelPremiumProtection({...row(),group_code:"L2B"})?.protection.protection_id, "prot-zero");
+});
+
+test("current sandbox extras: child_seat and additional_driver map, other stays unmapped", () => {
+  const base={supplier_id:"sup-1",extra_id:"test-ex",code:"TEST",name:"Extra",
+    pricing_type:"per_day",unit_price:mny(500),price_cap:null,
+    quantity:{min:0,max:1,default:0},requires_quantity:false,payable:"at_pickup"};
+  const seat=caravelExtraFromApi({...base,category:"child_seat"});
+  const driver=caravelExtraFromApi({...base,category:"additional_driver",extra_id:"driver"});
+  const other=caravelExtraFromApi({...base,category:"other",extra_id:"other",name:"Child seat"});
+  assert.deepEqual([seat.ride24Code,seat.mappingSource],["child_seat","category"]);
+  assert.deepEqual([driver.ride24Code,driver.mappingSource],["additional_driver","category"]);
+  assert.deepEqual([other.ride24Code,other.mappingSource],[null,"unmapped"]);
+});
+
 test("candidates: included package plus protection_options, de-duplicated", () => {
   const c = caravelProtectionCandidates({...row(), protection_options: [zeroRisk(), included(), {no_id: true}]});
   assert.deepEqual(c.map(x => [x.source, x.protection.protection_id]), [["included", "prot-incl"], ["option", "prot-zero"]]);
