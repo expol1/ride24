@@ -31,6 +31,55 @@ test("builds the documented quoted-create body from the common Ride24 booking in
   assert.equal(result.draft.expectedPartnerAmount, 150);
 });
 
+test("Ride24 dispatcher idempotency key is normalized only for Caravel", () => {
+  const bookingId="d9bb87e8-71cc-43a2-bd09-a487639acd14";
+  const i=input();
+  i.ride24_booking_id=bookingId;
+  i.idempotency_key=`ride24:${bookingId}`;
+  const result=buildCaravelBookingDraft(i,NOW);
+  assert.equal(result.ok,true,JSON.stringify(result.errors));
+  assert.equal(result.draft.idempotencyKey,bookingId);
+  assert.equal(result.draft.externalRef,`ride24-sandbox-${bookingId}`);
+  const unsafe=buildCaravelBookingDraft({...i,idempotency_key:"ride24:not-a-uuid"},NOW);
+  assert.ok(unsafe.errors.includes("IDEMPOTENCY_REQUIRED"));
+});
+
+test("production booking draft is fail-closed until certified terms, protection and licence are verified", () => {
+  const bookingId="d9bb87e8-71cc-43a2-bd09-a487639acd14";
+  const i=input(); i.ride24_booking_id=bookingId; i.idempotency_key=`ride24:${bookingId}`;
+  const zero=(amount=0)=>({amount,currency:"EUR"});
+  const protection={tier:"premium",deposit:zero(),excess:zero(),theft_excess:zero(),
+    product_type:"waiver",covers:["theft","fire","glass","tyres_and_wheels","undercarriage"],excludes:["mirrors"]};
+  const compliant={certificationPassed:true,termsVerifiedAndShownBeforePayment:true,
+    protection,quoteDeposit:{amount:zero()},
+    licencePolicy:{licence_rules:{min_years_held:1,international_permit_required_for:["non_eu_eea"]}},
+    licenceEvidence:{firstIssuedOn:"2025-02-01",pickupOn:"2027-01-10",
+      issuedInEuEea:true,hasInternationalDrivingPermit:false}};
+  const noGate=buildCaravelBookingDraft(i,NOW,{environment:"production"});
+  assert.equal(noGate.ok,false);
+  assert.ok(noGate.errors.includes("CARAVEL_CERTIFICATION_REQUIRED"));
+  assert.ok(noGate.errors.includes("CARAVEL_TERMS_REQUIRED_BEFORE_PAYMENT"));
+  const ok=buildCaravelBookingDraft(i,NOW,{environment:"production",production:compliant});
+  assert.equal(ok.ok,true,JSON.stringify(ok.errors));
+  assert.equal(ok.draft.externalRef,`ride24-${bookingId}`);
+  assert.equal(ok.draft.idempotencyKey,bookingId);
+  const correctedCaravel={...compliant,protection:{
+    ...protection,covers:["bodywork","theft","fire","third_party_liability","roadside_assistance","towing_and_recovery"],
+    excludes:["glass","tyres_and_wheels","undercarriage","administration_fee"]}};
+  const refused=buildCaravelBookingDraft(i,NOW,{environment:"production",production:correctedCaravel});
+  assert.equal(refused.ok,false);
+  for(const code of ["COVER_MISSING_GLASS","COVER_MISSING_TYRES_AND_WHEELS","COVER_MISSING_UNDERCARRIAGE"])
+    assert.ok(refused.errors.includes(code),code);
+  const noIdp=buildCaravelBookingDraft(i,NOW,{environment:"production",
+    production:{...compliant,licenceEvidence:{...compliant.licenceEvidence,issuedInEuEea:false}}});
+  assert.ok(noIdp.errors.includes("IDP_REQUIRED_FOR_NON_EU_EEA_LICENCE"));
+  const noTerms=buildCaravelBookingDraft(i,NOW,{environment:"production",
+    production:{...compliant,termsVerifiedAndShownBeforePayment:false}});
+  assert.ok(noTerms.errors.includes("CARAVEL_TERMS_REQUIRED_BEFORE_PAYMENT"));
+  const nonUuid=buildCaravelBookingDraft(input(),NOW,{environment:"production",production:compliant});
+  assert.ok(nonUuid.errors.includes("PRODUCTION_BOOKING_UUID_REQUIRED"));
+});
+
 test("invalid phone is omitted, never sent", () => {
   const r = buildCaravelBookingDraft({...input(), client_phone: "call me"}, NOW);
   assert.equal("phone" in caravelQuotedBookingRequest(r.draft).customer, false);
