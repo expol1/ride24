@@ -1,3 +1,30 @@
+## Aktualizacja warunków Caravel, 17.11.2026 — HARD BLOCKER dla produkcji
+
+**Źródło: bezpośredni e-mail zespołu Caravel do Ride24 (17 listopada 2026), weryfikacja warunków produkcyjnych przez API nadal oczekuje na dostęp produkcyjny.** Poniższe dotyczy ich deklarowanego stanu, nie potwierdza wykonania testu API.
+
+### Dane katalogowe i certyfikacja
+- Sandbox `GET /v1/reference/extras`: `category=child_seat` i `additional_driver`; `other` nadal jest prawidłowym kodem i musi pozostać obsługiwany (bez zgadywania typu po nazwie).
+- `GET /v1/reference/protections`: obaj dostawcy mają już podawać `product_type`, `covers`, `excludes` i `theft_excess`. W `GET /v1/reference/policies` mają być `conditions_of_hire` i `licence_rules`. Różnice między dostawcami są zamierzone — nie ujednolicać ich na stałe.
+- W sandboxie kwoty depozytu i udziału własnego Premium nadal są **fikcyjne i dodatnie**. Nie oznacza to warunków produkcyjnych. Dla certyfikacji w fazie `opaque-id-tolerance` należy nadal wycenić **domyślny serwowany plan bez jawnego `plan`** — nie zamieniać go na Premium.
+
+### Oferta produkcyjna od Caravel — niezgodna z bieżącym progiem Ride24
+- Premium: `product_type=waiver`, `theft_excess=0`, depozyt 0, udział własny 0 dla szkód objętych ochroną, bez obowiązkowej karty kredytowej; płatność gotówką / Visa / Mastercard (debit/credit).
+- Ochrona obejmuje: nadwozie, kradzież, pożar, TPL, pomoc drogową, holowanie/odzyskanie auta.
+- **Nie obejmuje szyb, lusterek, opon i kół, podwozia, wnętrza, dachu, kluczy, niewłaściwego paliwa ani opłaty administracyjnej**. Pełny wykaz należy odczytać na bieżąco z API. Odrębne ubezpieczenie szyb/podwozia jest oferowane dopiero przy stanowisku.
+- **100 EUR opłaty administracyjnej za wynajem, gdy wystąpi szkoda lub kradzież, także Premium**. Mandaty/opłaty parkingowe oraz opłata manipulacyjna pozostają po stronie najemcy. Sprawdzić pełne warunki pod kątem kosztów przestoju.
+- Prawko min. 1 rok; przy prawach jazdy wydanych **poza UE/EOG** wymagane IDP. Ograniczenia i wymagania odczytać dla każdego dostawcy z policy API.
+- **Caravel `GET /v1/reference/terms` ma pierwszeństwo przed skróconymi kodami ochrony, zgodnie z §2.4 partner pack. Pełne warunki muszą być pokazane i udostępnione klientowi przed płatnością Stripe.**
+- **Grupa L2A wyłączona z Premium dla Ride24**. Pozostałe grupy kwalifikują się do oferty Caravel, lecz niekoniecznie do rygorystycznego warunku Ride24.
+- Po certyfikacji oficjalny dostęp produkcyjny przez przycisk `Request production` w portalu partnera.
+
+### Co wolno zrobić już teraz
+1. Utrzymać `REQUIRED_PREMIUM_COVERS` i fail-closed **bez osłabiania warunków**. Nowo zadeklarowane Caravel Premium należy odrzucić jako `COVER_MISSING_GLASS`, `COVER_MISSING_TYRES_AND_WHEELS`, `COVER_MISSING_UNDERCARRIAGE` (oraz inne błędy z faktycznych API danych).
+2. Nie wyświetlać tekstu, że Premium obejmuje szyby, koła i podwozie; zaznaczyć wyłączenia oraz 100 EUR opłaty administracyjnej. Teksty to wyłącznie kopie pomocnicze — nie zastępują bieżącego `GET /v1/reference/terms`.
+3. Dopisać testy dla `category=other` oraz jawnych kategorii dodatków, różnic polityk per dostawca, wyłączenia L2A i widoczności prawdziwych warunków przed Stripe.
+4. Przed produkcją rozstrzygnąć z właścicielem Ride24: czy Caravel ma zapewnić szerszą ochronę bez dopłaty na miejscu, czy może wystąpić jawnie odrębna, zmodyfikowana polityka dla tego partnera. **Bez tej decyzji żadnych ofert.**
+5. Nie podłączać aktywnego Caravel do wspólnego `provider-adapters.ts`, `search-api`, Stripe/booking flow ani APK do chwili pełnego zatwierdzenia wymagań; dopuszczalne są tylko izolowane przygotowania testowe.
+
+
 # Caravel — propozycja zmian we wspólnym kodzie Ride24 (dla ChatGPT Work)
 
 Status: **propozycja, nic z tego nie jest wdrożone.** Gałąź `claude/caravel-finish`.
