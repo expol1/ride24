@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildCaravelOffer, buildCaravelOfferFromApi, caravelExcludedPremiumGroup, caravelExtraFromApi, caravelExtrasCatalog, caravelLocationFromApi,
+  buildCaravelOffer, buildCaravelOfferFromApi, caravelExtraFromApi, caravelExtrasCatalog, caravelLocationFromApi,
   caravelMileageFromPolicies, caravelQuoteFromApi, caravelSyncRows, caravelVehicleFromApi, minorToMajor,
   normalizeCaravelLocation, normalizeCaravelVehicleClass, ride24StandardPayload,
 } from "../supabase/functions/_shared/caravel-normalize.ts";
@@ -46,24 +46,13 @@ const location = () => ({supplier_id: "sup-1", location_id: "loc-spu", code: "SP
   iata: "SPU", address: {city: "Split", region: "Dalmatia", country: "HR"}, geo: null, timezone: "Europe/Zagreb",
   hours: null, out_of_hours: null, updated_at: "2026-11-13T10:00:00Z"});
 
-test("Caravel L2A exact group identifiers are excluded from catalogue and Premium booking", () => {
-  for (const patch of [
-    {vehicle_id: "L2A"}, {group_code: "L2A"}, {vehicle_group_code: "l2a"},
-    {group_id: " L2A "}, {code: "L2A"}, {group: {code: "L2A"}},
-  ]) {
-    assert.equal(caravelExcludedPremiumGroup(patch), true, JSON.stringify(patch));
-    const r = apiOffer();
-    r.availabilityRow = {...r.availabilityRow, ...patch};
-    assert.ok(buildCaravelOfferFromApi(r).errors.includes("CARAVEL_GROUP_L2A_EXCLUDED"));
-    const cls = normalizeCaravelVehicleClass(
-      caravelVehicleFromApi({...row(), ...patch}, policies()), "sup-1"
-    );
-    assert.ok(cls.errors.includes("CARAVEL_GROUP_L2A_EXCLUDED"));
-  }
-  assert.equal(caravelExcludedPremiumGroup({display_name: "L2A", group_code: "L2B"}), false);
-  assert.equal(caravelExcludedPremiumGroup({vehicle_id: "abc-L2A", group_code: "L2B"}), false);
-  assert.equal(caravelExcludedPremiumGroup({vehicle_id: "VEH-1", group_code: "L2B"}), false);
-  assert.equal(caravelExcludedPremiumGroup(null), false);
+test("opaque vehicle IDs are used exactly as supplied, never parsed as group names", () => {
+  const ref={supplier_id:"sup-1",vehicle_id:"opaque~L2A~X",acriss:"CDMR",
+    display_name:"Supplier reference label",seats:5,transmission:"manual",
+    fuel:"petrol",min_driver_age:21,max_driver_age:75,images:[]};
+  const cls=normalizeCaravelVehicleClass(caravelVehicleFromApi(ref,policies()),"sup-1");
+  assert.equal(cls.ok,true,JSON.stringify(cls.errors));
+  assert.equal(cls.value.external_id,"opaque~L2A~X");
 });
 
 test("documented availability row + quote pass shared normalizeGroups unchanged", () => {
