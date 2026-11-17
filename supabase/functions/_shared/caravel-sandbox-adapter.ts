@@ -27,6 +27,46 @@ export type Money = {amount: number; currency: string};
 /** OpenAPI v1.67.0 Supplier. payment_models absent = "not stated", never "nothing permitted". */
 export type Supplier = {supplier_id:string; name:string; status:string; currency:string; tax_inclusive:boolean; payment_models?:Array<"pay_on_arrival"|"partial"|"prepaid">};
 export type CaravelEnvelope<T> = {data:T; meta?:Json; request_id?:string};
+export type CaravelTermsMetadata = {
+  document_id:string;
+  language:string;
+  version:number | string;
+  title:string;
+  format:"clauses/v1";
+  content_hash:string;
+  published_at:string;
+  withdrawn_at:string | null;
+};
+export type CaravelTermsDocument = CaravelTermsMetadata & {body: Json | unknown[]};
+const validTermsDocumentId=(v:unknown):v is string =>
+  typeof v==="string" && v.length>0 && v.length<=200 &&
+  /^[A-Za-z0-9._~-]+$/.test(v) && v!=="." && v!==".." ;
+const isJsonObject=(v:unknown):v is Json=>!!v&&typeof v==="object"&&!Array.isArray(v);
+export function isCaravelTermsMetadata(v:unknown):v is CaravelTermsMetadata {
+  if(!isJsonObject(v))return false;
+  return validTermsDocumentId(v.document_id) &&
+    typeof v.language==="string" && /^[a-z]{2}(?:-[A-Z]{2})?$/.test(v.language) &&
+    ((Number.isSafeInteger(v.version) && (v.version as number)>0) ||
+      (typeof v.version==="string" && /^[1-9][0-9]{0,8}$/.test(v.version))) &&
+    typeof v.title==="string" && v.title.trim().length>0 && v.title.length<=500 &&
+    v.format==="clauses/v1" &&
+    typeof v.content_hash==="string" && /^[a-fA-F0-9]{64}$/.test(v.content_hash) &&
+    typeof v.published_at==="string" && Number.isFinite(Date.parse(v.published_at)) &&
+    (v.withdrawn_at===null || (typeof v.withdrawn_at==="string" && Number.isFinite(Date.parse(v.withdrawn_at))));
+}
+export function isCaravelTermsDocument(v:unknown):v is CaravelTermsDocument {
+  if(!isCaravelTermsMetadata(v))return false;
+  const b=(v as unknown as Record<string,unknown>).body;
+  return (Array.isArray(b) && b.length>0) || (isJsonObject(b) && Object.keys(b).length>0);
+}
+/** Exactly one CURRENT document per language; fail closed on ambiguity. */
+export function selectCurrentCaravelTerms(list:unknown,language:string):CaravelTermsMetadata {
+  if(!Array.isArray(list) || !list.every(isCaravelTermsMetadata))throw new Error("CARAVEL_TERMS_LIST_INVALID");
+  const active=list.filter(x=>x.language===language && x.withdrawn_at===null);
+  if(active.length!==1)throw new Error("CARAVEL_TERMS_CURRENT_AMBIGUOUS_OR_MISSING");
+  return active[0];
+}
+
 /** OpenAPI v1.67.0 StopInput, preferred instant form. */
 export type CaravelStopInput = {location_id:string; at:string};
 export type CaravelQuoteRequest = {
@@ -207,22 +247,27 @@ export class CaravelClient {
     return this.allReferencePages<Json>("/v1/reference/vehicles",supplierId,limit);
   }
   /**
-   * Retrieve Caravel's authoritative rental terms exactly as returned by the
-   * supplier. Caravel confirmed GET /v1/reference/terms on 17 Nov 2026.
-   * This is a read-only audit input, NOT a replacement for Ride24's existing
-   * partner PDF URLs, and must not silently overwrite documents/acceptances.
-   * The endpoint's response schema has not been verified against the live API,
-   * so preserve the full JSON value rather than guessing a `text` property.
+   * Caravel confirmation 17 Nov 2026:
+   * GET /v1/reference/terms returns metadata PER LANGUAGE, NOT DOCUMENT TEXT.
+   * GET /v1/reference/terms/{document_id} returns the same metadata + body.
+   * Never treat a metadata-only list as proof that the customer saw the terms.
    */
-  async referenceTerms(supplierId?:string):Promise<CaravelEnvelope<unknown>> {
+  async referenceTerms(supplierId?:string):Promise<CaravelEnvelope<CaravelTermsMetadata[]>> {
     await this.capabilities();
     const result=await this.request<unknown>("GET","/v1/reference/terms",undefined,undefined,supplierId);
-    const data=result.data;
-    if(data===null || data===undefined || (typeof data==="string" && !data.trim()) ||
-       (typeof data!=="string" && !Array.isArray(data) && (typeof data!=="object" || Object.keys(data as Json).length===0)) ||
-       (Array.isArray(data) && data.length===0))
-      throw new Error("CARAVEL_TERMS_RESPONSE_EMPTY");
-    return result;
+    if(!Array.isArray(result.data) || result.data.length===0)
+      throw new Error("CARAVEL_TERMS_LIST_INVALID");
+    if(!result.data.every(isCaravelTermsMetadata))
+      throw new Error("CARAVEL_TERMS_METADATA_INVALID");
+    return {...result,data:result.data as CaravelTermsMetadata[]};
+  }
+  async referenceTermsDocument(documentId:string,supplierId?:string):Promise<CaravelEnvelope<CaravelTermsDocument>> {
+    if(!validTermsDocumentId(documentId)) throw new Error("CARAVEL_TERMS_ID_INVALID");
+    await this.capabilities();
+    const result=await this.request<unknown>("GET",`/v1/reference/terms/${encodeURIComponent(documentId)}`,undefined,undefined,supplierId);
+    if(!isCaravelTermsDocument(result.data) || result.data.document_id!==documentId)
+      throw new Error("CARAVEL_TERMS_DOCUMENT_INVALID");
+    return {...result,data:result.data};
   }
   /** GET /v1/reference/{extras|protections|policies|fees} (scope read:reference). */
   async reference(kind:"extras"|"protections"|"policies"|"fees",supplierId?:string) {
