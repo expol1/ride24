@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import {evaluateCaravelPremium, caravelConditionsOfHire, reconcileCaravelTerms, CARAVEL_PREMIUM_TERMS} from "../supabase/functions/_shared/caravel-premium.ts";
 import {caravelOutsideHours, caravelLocalTime} from "../supabase/functions/_shared/caravel-hours.ts";
 import {mergeCaravelReference, findCaravelReference} from "../supabase/functions/_shared/caravel-reference-sync.ts";
-import {verifyCaravelSignature, parseCaravelSignatureHeader, parseCaravelWebhookEvent, decideCaravelWebhookEvent, shouldApplyFetchedBooking, caravelSignatureFor} from "../supabase/functions/_shared/caravel-webhooks.ts";
+import {verifyCaravelSignature, parseCaravelSignatureHeader, parseCaravelWebhookEvent, decideCaravelWebhookEvent, shouldApplyFetchedBooking, caravelSignatureFor, buildCaravelHmacSelfTestSubmission} from "../supabase/functions/_shared/caravel-webhooks.ts";
 import {caravelBookingStatus, verifyCaravelBookingAgainstQuote, caravelErrorAction} from "../supabase/functions/_shared/caravel-booking.ts";
 import {verifyCaravelQuotedExtras, caravelProviderExtras} from "../supabase/functions/_shared/caravel-normalize.ts";
 import {CaravelClient, CaravelError} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
@@ -118,6 +118,20 @@ test("HMAC verifier reproduces Caravel's published fixture signature", async () 
   assert.equal(await caravelSignatureFor(FIXTURE.secret, FIXTURE.t, FIXTURE.method, FIXTURE.path, FIXTURE.body), FIXTURE.expected);
   const req = {method: FIXTURE.method, path: FIXTURE.path, body: FIXTURE.body};
   assert.equal(await verifyCaravelSignature(FIXTURE.header, [FIXTURE.secret], req, {nowSecs: FIXTURE.t}), true);
+});
+test("builds the exact certification submission from published fixture without live secret",async()=>{
+  const certFixture={secret:FIXTURE.secret,t:FIXTURE.t,method:FIXTURE.method,
+    path:FIXTURE.path,body:FIXTURE.body,expected_signature_hex:FIXTURE.expected,
+    tamper_test:{tampered_body:FIXTURE.tampered}};
+  const payload=await buildCaravelHmacSelfTestSubmission(certFixture);
+  assert.deepEqual(payload,{signature_hex:FIXTURE.expected,tampered_rejected:true});
+  assert.ok(!JSON.stringify(payload).includes(FIXTURE.secret));
+  await assert.rejects(
+    ()=>buildCaravelHmacSelfTestSubmission({...certFixture,expected_signature_hex:"0".repeat(64)}),
+    /CERT_HMAC_EXPECTED_SIGNATURE_MISMATCH/);
+  await assert.rejects(
+    ()=>buildCaravelHmacSelfTestSubmission({...certFixture,tamper_test:{tampered_body:FIXTURE.body}}),
+    /CERT_HMAC_FIXTURE_INVALID/);
 });
 test("HMAC verifier rejects tamper, replay, wrong secret; accepts during rotation; ignores unknown schemes", async () => {
   const req = {method: FIXTURE.method, path: FIXTURE.path, body: FIXTURE.body};
