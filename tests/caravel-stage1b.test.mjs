@@ -27,7 +27,7 @@ const quote = (c = "EUR", patch = {}) => ({currency: c, rental_days: 3, quote_id
   line_items: [{kind: "base_rate", code: "TIME_MILEAGE", total: mny(13200, c)}, {kind: "protection", code: "SCDW_ZERO", total: mny(4500, c)}],
   totals: {grand_total: mny(17700, c), pay_now: mny(13200, c), pay_at_pickup: mny(4500, c)}, deposit: {amount: mny(0, c), type: "pre_authorization"}, ...patch});
 const desk = {timezone: "Europe/Zagreb", hours: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map(day => ({day, open: "08:00", close: "20:00"}))};
-const supplier = (c = "EUR") => ({supplier_id: "sup-1", currency: c, tax_inclusive: true});
+const supplier = (c = "EUR") => ({supplier_id: "sup-1", currency: c, tax_inclusive: true, payment_models: ["pay_on_arrival"]});
 const policies = {mileage: {type: "unlimited"}, min_rental_days: 1, max_rental_days: 30};
 const offer = (patch = {}, c = "EUR") => ({availabilityRow: row(c), protectionId: "prot-zero", policies, quoteData: quote(c), supplier: supplier(c),
   pickupLocation: desk, dropoffLocation: desk,
@@ -147,6 +147,18 @@ test("an option is published only when the final quote confirms it", () => {
     assert.equal(r.ok, false, code);
     assert.ok(r.errors.includes(code), `${code} not in ${r.errors}`);
   }
+});
+
+test("supplier must explicitly support Ride24's pay-on-arrival model", () => {
+  for (const models of [undefined,[],["prepaid"],["partial"]]){
+    const s=supplier();
+    if(models===undefined) delete s.payment_models;
+    else s.payment_models=models;
+    const result=buildCaravelOfferFromApi(offer({supplier:s}));
+    assert.equal(result.ok,false);
+    assert.ok(result.errors.includes("PAY_ON_ARRIVAL_NOT_CONFIRMED"));
+  }
+  assert.equal(buildCaravelOfferFromApi(offer()).ok,true);
 });
 
 test("GBP supplier: same rules, GBP amounts, currency must match the partner", () => {
