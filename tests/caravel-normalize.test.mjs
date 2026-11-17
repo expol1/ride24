@@ -47,9 +47,8 @@ const location = () => ({supplier_id: "sup-1", location_id: "loc-spu", code: "SP
   hours: null, out_of_hours: null, updated_at: "2026-11-13T10:00:00Z"});
 
 test("opaque vehicle IDs are used exactly as supplied, never parsed as group names", () => {
-  const ref={supplier_id:"sup-1",vehicle_id:"opaque~L2A~X",acriss:"CDMR",
-    display_name:"Supplier reference label",seats:5,transmission:"manual",
-    fuel:"petrol",min_driver_age:21,max_driver_age:75,images:[]};
+  const ref={...row(),vehicle_id:"opaque~L2A~X",
+    display_name:"Supplier reference label"};
   const cls=normalizeCaravelVehicleClass(caravelVehicleFromApi(ref,policies()),"sup-1");
   assert.equal(cls.ok,true,JSON.stringify(cls.errors));
   assert.equal(cls.value.external_id,"opaque~L2A~X");
