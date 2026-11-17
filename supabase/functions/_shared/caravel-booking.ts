@@ -45,6 +45,8 @@ export type CaravelBookingDraft = {
   contact: {email: string; phone: string | null};
   expectedPartnerAmount: number;
   currency: string;
+  /** Immutable Caravel API document id presented and accepted before Stripe. */
+  termsDocumentId: string | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,6 +60,10 @@ export type CaravelDraftOptions = {
   production?: {
     certificationPassed: boolean;
     termsVerifiedAndShownBeforePayment: boolean;
+    /** Backend-verified current document returned from reference/terms. */
+    currentTermsDocumentId: string;
+    /** Exact document shown and accepted by this customer before Stripe. */
+    termsDocumentIdShown: string;
     /** Current protection and final quoted deposit; must pass Ride24 policy. */
     protection: unknown;
     quoteDeposit: unknown;
@@ -113,6 +119,20 @@ export function buildCaravelBookingDraft(
     if (!licence.ok && "errors" in licence) errors.push(...licence.errors);
   }
   const data = isRecord(input?.provider_quote_data) ? input.provider_quote_data : null;
+  const rawQuoteTermsId = typeof data?.terms_document_id === "string" ? data.terms_document_id : null;
+  const docId = options?.production?.termsDocumentIdShown ?? null;
+  if (environment === "production") {
+    // Source of truth is server-fetched Caravel metadata, never browser-selected
+    // free text. The quote already stored before Stripe must carry exactly the
+    // document version that was shown to the customer and is still current.
+    const current = options?.production?.currentTermsDocumentId;
+    const validId = (v:unknown):v is string=>typeof v==="string" &&
+      /^[A-Za-z0-9._~-]{1,200}$/.test(v) && v!=="." && v!=="..";
+    if(!validId(current) || !validId(docId) || !validId(rawQuoteTermsId))
+      errors.push("CARAVEL_TERMS_DOCUMENT_ID_REQUIRED");
+    else if(current!==docId || rawQuoteTermsId!==docId)
+      errors.push("CARAVEL_TERMS_DOCUMENT_CHANGED_REQUOTE_REQUIRED");
+  }
   const amounts = data && isRecord(data.amounts) ? data.amounts : null;
   if (!data || data.provider !== CARAVEL_PROVIDER) errors.push("CARAVEL_QUOTE_REQUIRED");
   const quoteId = typeof data?.quote_id === "string" && UUID.test(data.quote_id) ? data.quote_id : null;
@@ -172,6 +192,7 @@ export function buildCaravelBookingDraft(
     contact: {email: email!, phone: phone && PHONE.test(phone) ? phone : null},
     expectedPartnerAmount: expected!,
     currency,
+    termsDocumentId: environment === "production" ? docId : null,
   }};
 }
 
