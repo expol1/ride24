@@ -70,6 +70,12 @@ test("production booking draft is fail-closed until certified terms, protection 
   assert.equal(refused.ok,false);
   for(const code of ["COVER_MISSING_GLASS","COVER_MISSING_TYRES_AND_WHEELS","COVER_MISSING_UNDERCARRIAGE"])
     assert.ok(refused.errors.includes(code),code);
+  const absentExclusions=buildCaravelBookingDraft(i,NOW,{environment:"production",
+    production:{...compliant,protection:{...protection,excludes:undefined}}});
+  assert.ok(absentExclusions.errors.includes("PROTECTION_EXCLUSIONS_UNVERIFIED"));
+  const differentIdempotency=buildCaravelBookingDraft({...i,idempotency_key:"11111111-2222-4333-8444-555555555555"},NOW,
+    {environment:"production",production:compliant});
+  assert.ok(differentIdempotency.errors.includes("PRODUCTION_IDEMPOTENCY_MISMATCH"));
   const noIdp=buildCaravelBookingDraft(i,NOW,{environment:"production",
     production:{...compliant,licenceEvidence:{...compliant.licenceEvidence,issuedInEuEea:false}}});
   assert.ok(noIdp.errors.includes("IDP_REQUIRED_FOR_NON_EU_EEA_LICENCE"));
