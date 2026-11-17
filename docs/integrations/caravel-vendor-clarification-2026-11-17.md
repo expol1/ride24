@@ -135,3 +135,29 @@ Projekt migracji (NIE WYKONANO):
 Przed użyciem trzeba zintegrować z `create-booking-request` i
 `api_quotes`, zabezpieczyć zapisy wyłącznie po stronie serwera,
 zweryfikować RLS oraz testy wyświetlenia przed Stripe i na voucherze.
+
+
+## 7. Powiadomienia GitHub, czytelne skipy i wykrywanie zmian wersji — 17.11.2026
+
+- W podłączonym Gmailu Ride24 po przejrzeniu alertów przeniesiono do Kosza
+  15 starych powiadomień o nieudanych testach z gałęzi `claude/caravel-finish`.
+  Historia GitHub Actions i ich logi pozostały dostępne w repozytorium.
+  Zapisane wiadomości biznesowe Ride24 zachowano.
+- `.github/workflows/caravel-sandbox-live.yml` zmodyfikowano: przy braku
+  `CARAVEL_SANDBOX_API_KEY` test API jest **SKIPPED**, a nie FAILED.
+  Potwierdzony rzeczywisty run
+  [44184521369](https://github.com/expol1/ride24/actions/runs/44184521369):
+  job SUCCESS, krok `Explain missing sandbox credential` SUCCESS,
+  checkout, Node i `Live sandbox run` wszystkie SKIPPED. **Nie było
+  żadnego żądania do Caravel.** Etykieta wywołująca test została usunięta.
+- Nowy izolowany moduł `caravel-terms-version.ts` porównuje
+  bieżącą metadane `document_id` / `version` / `content_hash`
+  i `published_at` z ostatnio zweryfikowanym dokumentem osobno dla
+  `supplierId + language`. Nowy identyfikator z wyższą wersją oznacza
+  `new_version_requires_review`, a nie automatyczne zatwierdzenie.
+  Ten sam dokument ze zmienionym hashem/wersją powoduje twardy błąd.
+  Niedozwolony rollback wersji i pomieszanie supplierów jest blokowane.
+  Moduł jest **przygotowany i testowany, lecz nie jest jeszcze
+  podłączony do cyklicznej synchronizacji ani produkcyjnej bazy.**
+- Stały biznesowy blocker pozostaje: obecne Caravel Premium bez ochrony
+  szyb, kół i podwozia nie spełnia polityki Ride24. Nie aktywować.
