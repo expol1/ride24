@@ -48,6 +48,31 @@ test("vehicle classes use documented reference endpoint",async()=>{
  await new CaravelSandboxClient("fixture").vehicleClasses(500);
  assert.equal(calls[1],"https://sandbox-api.caravelway.com/v1/reference/vehicles?limit=200");
 });
+test("fetches authoritative supplier-specific terms without rewriting PDFs",async()=>{
+ const requests=[];
+ mock((url,options)=>{
+  requests.push({url,headers:options.headers,method:options.method});
+  if(url.endsWith("/v1/capabilities"))return {data:{environment:"sandbox"}};
+  return {data:{supplier_id:options.headers["X-Supplier-Id"],clauses:[{id:"6.1",text:"Damage administration fee EUR 100"}]},request_id:"terms-read"};
+ });
+ const client=new CaravelSandboxClient("fixture");
+ const eur=await client.referenceTerms("acct_eur");
+ const gbp=await client.referenceTerms("acct_gbp");
+ assert.equal(eur.data.supplier_id,"acct_eur");
+ assert.equal(gbp.data.supplier_id,"acct_gbp");
+ assert.equal(eur.data.clauses[0].id,"6.1");
+ assert.deepEqual(requests.slice(1).map(r=>[r.url,r.method,r.headers["X-Supplier-Id"]]),[
+  ["https://sandbox-api.caravelway.com/v1/reference/terms","GET","acct_eur"],
+  ["https://sandbox-api.caravelway.com/v1/reference/terms","GET","acct_gbp"],
+ ]);
+ assert.ok(requests.every(r=>r.headers["X-API-Key"]==="fixture"));
+});
+test("empty or malformed supplier terms fail closed rather than assuming a compliant PDF",async()=>{
+ for(const invalid of [null,{},[],"  "]){
+  mock((url)=>url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:invalid});
+  await assert.rejects(()=>new CaravelSandboxClient("fixture").referenceTerms("acct_eur"),/CARAVEL_TERMS_RESPONSE_EMPTY/);
+ }
+});
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];
  mock((url,options)=>{calls.push({url,options});return url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:[]};});
