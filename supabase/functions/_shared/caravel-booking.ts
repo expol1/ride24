@@ -104,6 +104,11 @@ export function buildCaravelBookingDraft(
     if (gate?.termsVerifiedAndShownBeforePayment !== true) errors.push("CARAVEL_TERMS_REQUIRED_BEFORE_PAYMENT");
     const coverage = evaluateCaravelPremium("premium", gate?.protection, gate?.quoteDeposit);
     if (!coverage.ok && "errors" in coverage) errors.push(...coverage.errors);
+    // Production must receive an explicit full exclusions list; an omitted
+    // list is not equivalent to an empty list of exclusions.
+    if (!isRecord(gate?.protection) || !Array.isArray(gate.protection.excludes) ||
+        gate.protection.excludes.some(code => typeof code !== "string"))
+      errors.push("PROTECTION_EXCLUSIONS_UNVERIFIED");
     const licence = checkCaravelLicenceEligibility(gate?.licencePolicy, gate?.licenceEvidence);
     if (!licence.ok && "errors" in licence) errors.push(...licence.errors);
   }
@@ -139,6 +144,8 @@ export function buildCaravelBookingDraft(
     ? ride24Id : originalIdem;
   const idem = normalizedIdem && UUID.test(normalizedIdem) ? normalizedIdem : null;
   if (!idem) errors.push("IDEMPOTENCY_REQUIRED");
+  if (environment === "production" && idem && idem !== ride24Id)
+    errors.push("PRODUCTION_IDEMPOTENCY_MISMATCH");
   if (environment === "production" && (!ride24Id || !UUID.test(ride24Id)))
     errors.push("PRODUCTION_BOOKING_UUID_REQUIRED");
   const prefix = environment === "production" ? "ride24-" : "ride24-sandbox-";
