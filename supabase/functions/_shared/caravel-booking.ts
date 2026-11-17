@@ -9,6 +9,7 @@
  * is never booked silently.
  */
 import {CARAVEL_PROVIDER, caravelExcludedPremiumGroup} from "./caravel-normalize.ts";
+import {evaluateCaravelPremium, checkCaravelLicenceEligibility} from "./caravel-premium.ts";
 import type {CaravelQuotedBookingRequest} from "./caravel-sandbox-adapter.ts";
 
 type Json = Record<string, unknown>;
@@ -50,6 +51,21 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PHONE = /^\+?[0-9 ().-]{5,32}$/;
 const EXTERNAL_REF = /^[A-Za-z0-9._-]{1,64}$/;
+
+/** Strict production-only preflight data, supplied from verified supplier records. */
+export type CaravelDraftOptions = {
+  environment?: "sandbox" | "production";
+  production?: {
+    certificationPassed: boolean;
+    termsVerifiedAndShownBeforePayment: boolean;
+    /** Current protection and final quoted deposit; must pass Ride24 policy. */
+    protection: unknown;
+    quoteDeposit: unknown;
+    /** Licence rules and user evidence verified for this booking/supplier. */
+    licencePolicy: unknown;
+    licenceEvidence: unknown;
+  };
+};
 const isRecord = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
 const text = (v: unknown, max: number) =>
   typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null;
@@ -77,8 +93,20 @@ export function expectedPartnerAmount(totalMajor: number, discountPercent: numbe
 export function buildCaravelBookingDraft(
   input: Ride24BookingInput,
   nowEpochMs: number,
+  options: CaravelDraftOptions = {},
 ): {ok: true; draft: CaravelBookingDraft} | {ok: false; errors: string[]} {
   const errors: string[] = [];
+  const environment = options?.environment ?? "sandbox";
+  if (environment !== "sandbox" && environment !== "production") errors.push("CARAVEL_ENVIRONMENT_INVALID");
+  if (environment === "production") {
+    const gate = options?.production;
+    if (gate?.certificationPassed !== true) errors.push("CARAVEL_CERTIFICATION_REQUIRED");
+    if (gate?.termsVerifiedAndShownBeforePayment !== true) errors.push("CARAVEL_TERMS_REQUIRED_BEFORE_PAYMENT");
+    const coverage = evaluateCaravelPremium("premium", gate?.protection, gate?.quoteDeposit);
+    if (!coverage.ok && "errors" in coverage) errors.push(...coverage.errors);
+    const licence = checkCaravelLicenceEligibility(gate?.licencePolicy, gate?.licenceEvidence);
+    if (!licence.ok && "errors" in licence) errors.push(...licence.errors);
+  }
   const data = isRecord(input?.provider_quote_data) ? input.provider_quote_data : null;
   const amounts = data && isRecord(data.amounts) ? data.amounts : null;
   if (!data || data.provider !== CARAVEL_PROVIDER) errors.push("CARAVEL_QUOTE_REQUIRED");
@@ -102,10 +130,19 @@ export function buildCaravelBookingDraft(
   if (expected === null) errors.push("QUOTE_TOTAL_UNVERIFIED");
   else if (typeof input?.partner_amount !== "number" || Math.abs(input.partner_amount - expected) > 0.009)
     errors.push("PARTNER_AMOUNT_MISMATCH");
-  const idem = typeof input?.idempotency_key === "string" && UUID.test(input.idempotency_key) ? input.idempotency_key : null;
-  if (!idem) errors.push("IDEMPOTENCY_REQUIRED");
   const ride24Id = text(input?.ride24_booking_id, 100);
-  const externalRef = ride24Id ? `ride24-sandbox-${ride24Id}` : "";
+  // Only Caravel needs a UUID. Ride24's existing dispatcher supplies
+  // "ride24:<booking UUID>" to other providers; normalize here, never
+  // change shared provider adapters or their idempotency contracts.
+  const originalIdem = text(input?.idempotency_key, 100);
+  const normalizedIdem = ride24Id && UUID.test(ride24Id) && originalIdem === `ride24:${ride24Id}`
+    ? ride24Id : originalIdem;
+  const idem = normalizedIdem && UUID.test(normalizedIdem) ? normalizedIdem : null;
+  if (!idem) errors.push("IDEMPOTENCY_REQUIRED");
+  if (environment === "production" && (!ride24Id || !UUID.test(ride24Id)))
+    errors.push("PRODUCTION_BOOKING_UUID_REQUIRED");
+  const prefix = environment === "production" ? "ride24-" : "ride24-sandbox-";
+  const externalRef = ride24Id ? `${prefix}${ride24Id}` : "";
   if (!ride24Id || !EXTERNAL_REF.test(externalRef)) errors.push("BOOKING_ID_REQUIRED");
   const name = splitName(input?.main_driver?.name);
   const age = input?.main_driver?.age;
