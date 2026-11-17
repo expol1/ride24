@@ -75,3 +75,59 @@ in GitHub, logs, frontend, Android or test fixtures. The
 `public.partner_api_credentials` table has RLS and `service_role` access.
 Use the existing server-side credential-loader after exact auth type is confirmed.
 The supplied credentials were shared by email; rotate when practical.
+
+
+## Update 2026-11-17 — real Postman collection supplied
+
+Received **Arvent - Ride24 Partner API** Postman Collection v2.1, 13 requests, synthetic examples (not production rates). Now verified:
+
+- POST \`/users/authenticate\` JSON {username, password} -> \`data.token\` for Bearer authentication.
+- GET \`/locations\`, GET \`/locations/cities\`, GET \`/vehicles/list\`.
+- GET \`/vehicles\`: pickup/return IDs, dd.MM.yyyy dates, HH:mm times, currency and language; each current quote has a \`reservationToken\`.
+- GET \`/extras\` with token returns the specific offer and \`extras[].code\`/\`isRequired\`.
+- POST \`/reservations/save\` JSON is the chosen mutation method; the two other booking methods are alternatives and must never be called in parallel.
+- GET \`/reservations\` requires supplier reservation number AND original customer email.
+- POST \`/reservations/cancel\` returns a business response; require status evidence, not merely HTTP 200.
+
+**Implemented only on the feature branch:** separate Arvent pure contract and HTTP adapter,
+strict supplier-host allowlist, noauth token login + short token cache, business-response
+validation, location/car metadata, EUR availability and quote mapping, booking payload,
+status and cancellation handlers.
+
+**Hard safety gates:**
+1. Production remains \`api_enabled=false\`. Admin activation of \`arvent_kolaycar\`
+   is explicitly blocked pending certification.
+2. All provider mutations require the **unset** server-only
+   \`ARVENT_KOLAYCAR_WRITE_ALLOWED=true\` flag; never enable it during read-only tests.
+3. Arvent is *not* yet in the paid-provider fulfillment whitelist.
+   Stripe money flow is unchanged and must not accept Arvent pending the full
+   revalidation/options/booking/voucher test suite.
+4. Only real EUR offers with explicitly zero deposit, no required credit card,
+   and explicitly zero km cap are eligible. Any missing, positive or conflicting
+   field causes an offer to be omitted, never silently overwritten.
+5. Supplier status \`reservationStatusType=0\` is "received" (pending), **not**
+   confirmation. \`-4\` is cancellation. Unknown status enums remain pending.
+6. The file's example shows TRY, deposit=2000, card required, km limit=300.
+   These are synthetic, not evidence Arvent actually violates its agreed terms.
+7. Do not store supplier \`reservationToken\` in \`api_quotes\`: refresh it for
+   price revalidation before booking. Don't put raw customer data in diagnostics.
+
+**Confirmation needed from Mustafa or Ziya, not established by synthetic examples:**
+- Is the supplied host production or sandbox? Is non-mutating auth/GET safe?
+- Live returned EUR prices: are these Arvent's net prices to be paid on pickup,
+  and can PayOnDelivery paymentType=3 and paidAmount=0 be used?
+- Does vehicleId represent a booking category, or a specific vehicle? Ride24
+  sells categories only and accepts equivalent-category substitutions.
+- How are unlimited mileage, zero deposit, no card hold and full coverage
+  represented for the agreed Ride24 tariff? What if a field is null?
+- Exact status enum for confirmed/rejected/cancelled bookings; are received
+  bookings automatically confirmed or approved later?
+- Is customer.birthDay optional on /reservations/save? Ride24 currently
+  stores driver age; supplying a fabricated DOB is forbidden.
+- Does agencyReservationReference provide server-side duplicate prevention?
+  How long is reservationToken valid? Is there a lookup by agency reference?
+- How do mandatory and optional extras affect the grand total when selected?
+  Can supplier provide a sandbox for safe end-to-end cancellation tests?
+
+No live Arvent reservation, cancellation, catalog sync, API-auth test or payment
+has been performed or claimed on the basis of these synthetic Postman examples.
