@@ -10,7 +10,7 @@
  *  - excess 0 for covered damage       -> protection.excess.amount === 0
  *  - CDW/SCDW                          -> protection.product_type === "waiver" (damage waiver) with excess 0
  *  - theft and fire with zero excess   -> covers includes "theft" and "fire"; theft_excess stated and 0
- *  - glass, tyres, undercarriage       -> covers includes "glass", "tyres_and_wheels", "undercarriage"
+ *  - glass, tyres, undercarriage       -> required by Ride24; explicitly excluded in production by Caravel (17 Nov 2026): keep fail-closed
  *  - no credit card required           -> zero deposit: the deposit is the only card requirement the API
  *                                         states (deposit.type "pre_authorization" = a hold on a card)
  */
@@ -92,9 +92,11 @@ export function caravelConditionsOfHire(policy: unknown): CaravelConditionsOfHir
 
 // ------------------------------------------- Ride24 Premium display copy ----
 /**
- * Ride24's customer-facing Premium terms for Caravel (supplied by Ride24,
- * 13 Nov 2026), prepared for later display. Not wired into WWW/APK. The binding
- * words remain the supplier's rental terms (GET /v1/reference/terms).
+ * Ride24's customer-facing Premium terms for Caravel (partner correction
+ * 17 Nov 2026), prepared for later display. Not wired into WWW/APK.
+ * These summaries never supersede GET /v1/reference/terms: Caravel rental
+ * terms take precedence and must be shown before Stripe payment. Current
+ * Caravel exclusions still fail Ride24's full-coverage publish gate.
  */
 export const CARAVEL_PREMIUM_TERMS = Object.freeze({
   scope: {
@@ -106,10 +108,10 @@ export const CARAVEL_PREMIUM_TERMS = Object.freeze({
     {code: "excess_zero", pl: "Udział własny 0 dla szkód objętych ochroną", en: "Zero excess for covered damage"},
     {code: "cdw_scdw", pl: "Ochrona CDW/SCDW", en: "CDW/SCDW protection"},
     {code: "theft_fire_zero", pl: "Zerowy udział własny przy kradzieży i pożarze", en: "Zero excess for theft and fire"},
-    {code: "glass_tyres_undercarriage", pl: "Ochrona szyb, opon i podwozia", en: "Glass, tyre and undercarriage cover"},
     {code: "no_credit_card", pl: "Brak wymogu karty kredytowej", en: "No credit card required"},
   ],
   exclusions: [
+    {code: "glass_tyres_undercarriage", pl: "Szyby, koła, opony i podwozie NIE są objęte ochroną Premium", en: "Glass, wheels, tyres and undercarriage are NOT covered by Premium"},
     {code: "off_road", pl: "Jazda poza drogami asfaltowymi", en: "Driving off paved roads"},
     {code: "exterior_mirrors", pl: "Lusterka zewnętrzne", en: "Exterior mirrors"},
     {code: "interior_roof_engine_locks", pl: "Wnętrze, dach, silnik i zamki", en: "Interior, roof, engine and locks"},
@@ -125,11 +127,13 @@ export const CARAVEL_PREMIUM_TERMS = Object.freeze({
     {code: "unauthorised_ferry_border", pl: "Nieautoryzowany prom lub przekroczenie granicy", en: "Unauthorised ferry or border crossing"},
   ],
   other: [
+    {code: "damage_administration_fee", pl: "Opłata administracyjna 100 EUR za wynajem, w którym wystąpi szkoda lub kradzież, także w Premium", en: "EUR 100 administration fee per rental with damage or theft, including Premium", amountMinor: 10000, currency: "EUR"},
+    {code: "traffic_fines_handling", pl: "Mandaty drogowe i parkingowe obciążają najemcę, dodatkowo naliczana jest opłata manipulacyjna (sprawdź regulamin)", en: "Traffic and parking fines remain the renter's responsibility, plus a handling fee (see rental terms)"},
     {code: "repair_downtime", pl: "Przestój naprawczy może być naliczany do 20 dni", en: "Repair downtime may be charged for up to 20 days", maxDays: 20},
     {code: "police_report", pl: "Wypadek lub kradzież wymaga raportu policyjnego", en: "An accident or theft requires a police report"},
     {code: "licence_one_year", pl: "Prawo jazdy posiadane co najmniej rok", en: "Driving licence held for at least one year", minYears: 1},
     {code: "id_document", pl: "Wymagany dokument tożsamości", en: "An identity document is required"},
-    {code: "idp_non_eu", pl: "Kierowcy z prawem jazdy spoza UE potrzebują międzynarodowego prawa jazdy", en: "Drivers with a non-EU licence need an international driving permit"},
+    {code: "idp_non_eu_eea", pl: "Prawo jazdy wydane poza UE/EOG wymaga międzynarodowego prawa jazdy", en: "Licences issued outside the EU/EEA require an International Driving Permit"},
   ],
 });
 
