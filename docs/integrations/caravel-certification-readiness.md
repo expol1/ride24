@@ -1,5 +1,101 @@
 # Caravel Channel API v1.67.0 — certification readiness (Ride24)
 
+## AKTUALNY stan: 17 listopada 2026 (zaktualizowane po emailu Caravel)
+
+**Werdykt: NIE URUCHAMIAĆ PRODUKCJI. Oficjalna 24-godzinna
+certyfikacja NIE została zakończona ani uruchomiona.**
+Poniżej aktualny stan zastępujący historyczne TODO z 13–16 listopada.
+
+### Sprawdzone i wykonane
+- Repozytorium `expol1/ride24`, gałąź `claude/caravel-finish`,
+  PR #84 nadal **draft / niescalony**. Caravel-only moduły i testy
+  nie są podłączone do produkcyjnego `provider-adapters.ts`.
+- Sandbox: dwaj dostawcy EUR/GBP, manualne skany okresowe zakończone,
+  6 obserwacji statusów i żadnego webhooka na żywo; Cron Caravel 0.
+- Deployed isolated `caravel-sandbox-periodic-poll` v2 i
+  `caravel-sandbox-reconcile-worker` v1 (chronione sekretem),
+  `caravel-sandbox-cert-rehearsal` v7 (JWT administratora),
+  `caravel-sandbox-acceptance` v14 i `caravel-sandbox-diagnostics` v8
+  zamknięte HTTP 410. **Odbiornik webhooków HMAC nadal NIE jest
+  wdrożony**. Funkcje testowe mają termin wyłączenia
+  **20.11.2026 godz. 20:00 UTC**.
+- `GET /v1/reference/terms` ma teraz tylko przygotowaną,
+  dostawca-scoped metodę `referenceTerms()` w izolowanym adapterze;
+  jej **prawdziwe wywołanie i schemat odpowiedzi pozostają
+  niezweryfikowane**.
+- Ten sam `rules.pdf` znajduje się w Supabase Storage i został
+  zweryfikowany na podstawie rozmiaru i zgodnego MD5/ETag.
+  `terms.pdf` jest w Storage, lecz zawartości nie odczytano.
+  Obecny interfejs Ride24 pokazuje dwa linki PDF klientowi przed
+  zatwierdzeniem rezerwacji — bez potrzeby tworzenia nowego systemu.
+- Filtr L2A przygotowany przy katalogu, ofercie, ochronie i
+  szkicu rezerwacji; dokładne pole identyfikatora kodu `L2A`
+  musi zostać potwierdzone na prawdziwej odpowiedzi API.
+- Przygotowano tylko dla Caravel normalizację idempotencyjnego
+  `ride24:<booking UUID>` do UUID, z osobnym prefiksem `external_ref`
+  w sandbox i produkcji. Produkcyjny szkic rezerwacji wymaga
+  przejścia bramki: zakończona certyfikacja, warunki pokazane przed
+  płatnością, zgodny zakres Premium, zweryfikowany staż i IDP.
+  Nie jest jeszcze wpięty do publicznego procesu rezerwacji.
+- Wyszukiwarka Caravel odrzuca dostawcę, który nie oświadcza
+  w `Supplier.payment_models` obsługi `pay_on_arrival`.
+  Podział `quote.totals.pay_now/pay_at_pickup` nie zastępuje
+  rzeczywistego modelu płatności.
+
+### Przeszkody, które naprawdę blokują ukończenie
+1. **HMAC**: nieznany rzeczywisty sekret sandboxowy, brak prawdziwego
+   podpisanego zdarzenia i testu `/_certification/hmac-self-test`.
+   Odbiornika NIE wdrażać, dopóki sekret nie został skonfigurowany
+   i zweryfikowany. NIGDY nie ujawniać sekretu w repo, w czacie
+   ani w dokumentacji.
+2. **Certyfikacja**: aktualne wymagania 10 etapów, w tym
+   `opaque-id-tolerance` z `POST /v1/quote` dla **domyślnego planu
+   bez jawnego `plan`**, nie tylko dla Premium. Nie wystartowano
+   `/_certification/start`; pozytywne testy mock/CI
+   nie są równoważne raportowi partnera. Wymaga osobnego
+   nadzorowanego okna i pełnego zestawu dowodów.
+3. **Polityka ubezpieczenia Ride24**: Caravel potwierdził
+   17.11 wyłączenie **szyb, kół/opon i podwozia** we wszystkich
+   pakietach, mimo zerowego udziału własnego/depozytu w Premium.
+   Administracyjna opłata **100 EUR** za wynajem ze szkodą/kradzieżą
+   także w Premium; zapis w PDF §6.1. Bieżące
+   `REQUIRED_PREMIUM_COVERS` celowo odrzuca takie oferty.
+   Należy uzyskać zgodny produkt od Caravel albo osobną, świadomą
+   zgodę właściciela Ride24 na zmianę standardu wraz z prawidłowym
+   komunikatem dla klienta — bez niej żadnych ofert.
+4. **Prawnie wiążące terms**: `GET /v1/reference/terms` ma mieć
+   pierwszeństwo przed opisem kodów ochrony. Zawartości endpointu
+   i pliku `terms.pdf` nie porównano. Sekcja numerów w e-mailu
+   różni się od przesłanego `rules.pdf`; sprawdzić, czy nie są
+   to odmienne wersje. Wyjaśnić §5.1 o obciążeniu karty przy odbiorze
+   wobec deklarowanej płatności gotówką bez karty kredytowej.
+5. **Dane/licencja kierowcy**: tabela `public.drivers`
+   przechowuje wiek i kontakt, bez pierwszej daty uzyskania prawa
+   jazdy i kraju wydania. Izolowany walidator już jest,
+   brak bezpiecznego wpięcia do formularza, zapisu zgody
+   i backendu. Nie modyfikować danych innych dostawców.
+6. **Wpięcie produkcyjne**: po uzyskaniu wyników certyfikacji i
+   pozytywnej decyzji o ochronie — wprowadzić `caravel` do
+   `provider-adapters.ts`, wyszukiwarki, synchronizacji,
+   ponownej wyceny po Stripe, tworzenia/anulowania rezerwacji,
+   webhooków, voucherów i zwrotów. Przedtem dostawca nadal
+   `partners.api_enabled=false` i `api_provider=custom`.
+7. **Dostęp produkcyjny**: dopiero po pozytywnym raporcie
+   Caravel przez `Request production` w panelu,
+   następnie potwierdzić klucze, identyfikatory supplier,
+   walutę, model płatności i pełną politykę Premium.
+
+### Granice bezpieczeństwa
+**Bez zmiany AVIA, Stripe, Android APK, regulaminów innych partnerów,
+danych użytkowników, cron i produkcyjnych tabel. Bez aktywacji API
+Caravel, bez scalania PR #84 i bez generowania próbnych prawdziwych
+rezerwacji.** Dalsze przygotowania mogą dotyczyć tylko odizolowanych
+modułów Caravel i testów.
+
+---
+
+
+
 Source: partner pack `https://sandbox-api.caravelway.com/docs/packs/caravel/` (CERTIFICATION, Webhook Receiver Guide, CHANNEL-API), read 14 Nov 2026.
 **The official 24-hour run (`POST /_certification/start`) has NOT been started.** Start it only with Ride24's explicit authorization for that irreversible 24-hour certification window.
 
