@@ -1,3 +1,4 @@
+import {ride24ClassFromAcriss,canonicalApiLocation} from "./provider-normalization.mjs";
 // Arvent/kolayCAR pure contract: no network, credentials or supplier mutations.
 // Partner Postman Collection v2.1, received 2026-11-17.
 export const ARVENT_PROVIDER="arvent_kolaycar";
@@ -53,44 +54,57 @@ export function arventLocationRows(e,cities=[]) {
    :allowedAirports.has(nameCode)?nameCode:null;
   if(!airport)return [];
   const city=cn.get(String(x.cityId))||str(x.cityName)||null;
-  return [{external_id:k,country:"Turkey",region:city||name,city,location_name:name,
+  return [canonicalApiLocation({external_id:k,country:"Turkey",region:city||name,city,location_name:name,
    display_name:name,iata_code:airport,
-   type:x.isAirport===true?"airport":x.isOffice===true?"office":"city",
-   return_only:x.isPickup===false,extra_fee:false,extra_fee_amount:null,
-   contact_required:false,active:true}];
+   type:"airport",return_only:x.isPickup===false,
+   extra_fee:false,extra_fee_amount:null,contact_required:false,active:true})];
  });
 }
 const sipp=v=>str(v,16).toUpperCase();
-const classCode=v=>/^[A-Z]/.test(sipp(v))?sipp(v)[0]:"A";
 const count=v=>{const m=/\d+/.exec(str(v));return m?Number(m[0]):null;};
 const image=x=>{
  const v=Array.isArray(x.vehicleImages)?x.vehicleImages[0]?.url:null;
  try{const u=new URL(v);return u.protocol==="https:"&&!u.username&&!u.password?u.toString().slice(0,2000):null;}
  catch{return null;}
 };
+// Same A-F taxonomy as AVIA. Supplier vehicleId is NEVER a Ride24
+// group ID: it is only a token-bound quote choice for supplier checkout.
+const classNames=Object.freeze({
+ A:"Economy",B:"Compact",C:"Sedan",D:"SUV",E:"Premium",F:"Van / Family",
+});
+const normalizedTransmission=code=>["A","B"].includes(code[2])?"Automatic":["M","N"].includes(code[2])?"Manual":null;
 function category(x,price,currency,input) {
- const k=id(x.vehicleId);
- const code=sipp(x.sippCode);
- // A missing SIPP cannot be safely mapped to category A. Live catalogue
- // includes such entries, which must be suppressed pending supplier mapping.
- if(!k||!/^[A-Z]{4}$/.test(code))return null;
- return {external_id:k,class_code:classCode(code),public_price:price,currency,
-  example_model:str(x.vehicleName)||null,model:str(x.vehicleName)||null,
-  transmission:str(x.transmissionTypeName)||null,fuel_type:str(x.fuelTypeName)||null,
-  seats:count(x.passangerQuantityName),bags:count(x.baggageQuantityName),image:image(x),
-  description:str(x.vehicleDescription)||str(x.vehicleName)||"Arvent category",
-  features:{provider:ARVENT_PROVIDER,sipp:sipp(x.sippCode),arvent_vehicle_id:k,
-   air_conditioning:x.isThereAirCondition===true},
+ const vehicleId=id(x.vehicleId),code=sipp(x.sippCode);
+ if(!vehicleId||!/^[A-Z]{4}$/.test(code))return null;
+ const seats=count(x.passangerQuantityName);
+ const ride24Class=ride24ClassFromAcriss(code,seats);
+ if(!ride24Class)return null;
+ const className=classNames[ride24Class];
+ const model=str(x.vehicleName)||null;
+ return {external_id:code,class_code:ride24Class,public_price:price,currency,
+  // Example model only; the contract guarantees category, never an exact car.
+  example_model:model,model:null,
+  transmission:normalizedTransmission(code),
+  fuel_type:null,seats,bags:count(x.baggageQuantityName),image:image(x),
+  description:className+(model?" — "+model+" or similar":" — or similar"),
+  features:{provider:ARVENT_PROVIDER,sipp:code,category_name:className,
+   representative_model:model,image_is_representative:true,
+   air_conditioning:x.isThereAirCondition===true,
+   noCreditCard:true,noCardHold:true},
   driver_included:false,seasonal_prices:null,
   location_external_ids:input?[input.pickup_location_id,input.dropoff_location_id].filter(Boolean):null};
 }
 export function arventGroupRows(e) {
  const data=supplierData(e);
  if(!Array.isArray(data))throw Error("PARTNER_API_ERROR:ARVENT_GROUPS_SHAPE");
- return data.slice(0,10000).filter(record).flatMap(x=>{
-  const c=category(x,0,null,null);
-  return c?[{...c,active:true,mileage_limit:null,deposit_amount:null}]:[];
- });
+ const groups=new Map();
+ for(const x of data.slice(0,10000)) {
+  if(!record(x))continue;
+  const c=category(x,0,"EUR",null);
+  if(c&&!groups.has(c.external_id))
+   groups.set(c.external_id,{...c,active:true,mileage_limit:null,deposit_amount:0});
+ }
+ return [...groups.values()];
 }
 export function arventOfferMatchesTerms(x,currency="EUR") {
  // Fail closed: don't silently rewrite nonzero deposit, required card hold or mileage cap.
@@ -107,26 +121,38 @@ export function arventOfferRows(e,input) {
  const start=Date.parse(input.pickup_date+"T00:00:00Z"),end=Date.parse(input.return_date+"T00:00:00Z");
  const days=Math.ceil((end-start)/86400000);
  if(!(days>0&&days<=366))throw Error("PARTNER_API_ERROR:ARVENT_DATES_INVALID");
- return data.slice(0,10000).filter(x=>arventOfferMatchesTerms(x,currency)).flatMap(x=>{
+ const grouped=new Map();
+ for(const x of data.slice(0,10000)) {
+  if(!arventOfferMatchesTerms(x,currency))continue;
   const total=x.totalPrice;
   const supplierDays=num(x.rentalDuration);
   const billedDays=supplierDays!==null&&Number.isInteger(supplierDays)&&supplierDays>0&&supplierDays<=366
    ?supplierDays:days;
   const c=category(x,Number((total/billedDays).toFixed(6)),currency,input);
-  if(!c)return [];
-  return [{...c,active:true,deposit_amount:0,mileage_limit:null,
+  if(!c)continue;
+  const offer={...c,active:true,deposit_amount:0,mileage_limit:null,
    price_is_total:true,public_price_total:total,
-   quote_reference:[c.external_id,str(x.sippCode,20)].join(":").slice(0,500),
+   quote_reference:[c.external_id,id(x.vehicleId)].join(":").slice(0,500),
    quote_expires_at:null,
-   features:{...c.features,noCreditCard:true,noCardHold:true,
+   features:{...c.features,
     min_license_years:num(x.vendorMinimumDrivingLicenseAge),
     minimum_driver_age:num(x.vendorMinimumDriverAge),
     insurance_unverified:true},
-   provider_quote_data:{provider:ARVENT_PROVIDER,vehicle_id:c.external_id,sipp:sipp(x.sippCode),
+   provider_quote_data:{provider:ARVENT_PROVIDER,
+    vehicle_id:id(x.vehicleId),sipp:c.external_id,
     total_amount:total,currency,pickup_location_id:input.pickup_location_id,
     dropoff_location_id:input.dropoff_location_id,quote_requires_live_revalidation:true}
-  }];
- });
+  };
+  // One offer per SIPP, cheapest eligible *supplier* vehicle within it.
+  // Deterministic tie-break is the numeric supplier vehicleId.
+  const previous=grouped.get(c.external_id);
+  if(!previous||total<previous.public_price_total
+   ||(total===previous.public_price_total
+    && Number(id(x.vehicleId))<Number(previous.provider_quote_data.vehicle_id)))
+   grouped.set(c.external_id,offer);
+ }
+ return [...grouped.values()].sort((a,b)=>
+  a.class_code.localeCompare(b.class_code)||a.external_id.localeCompare(b.external_id));
 }
 // Mustafa's 2026-11-18 production status enum supersedes the synthetic
 // Postman sample (which had used -4 for cancellation).
