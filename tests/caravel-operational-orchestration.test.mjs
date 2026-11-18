@@ -76,7 +76,7 @@ function database(){
    external_group_id:"opaque-veh",external_quote_reference:QUOTE,
    partner_net_total:150,partner_discount_percent:0,currency:"EUR",
    expires_at:quote().expires_at,used_at:stamp(NOW-40000),
-   raw_response:{caravel_quote:quote(),ride24_context:{}},
+   raw_response:{provider_quote_data:quote(),ride24_context:{}},
  };
  const state={booking:booking(),quote:storedQuote,reviews:[],bookingWrites:0,reviewWrites:0,
    cancelledDuringSupplier:false,failedReviewWrites:false};
@@ -249,7 +249,7 @@ test("REAL DATA PATH: supplier POST only after paid evidence is read from persis
 test("missing or tampered Caravel quote provenance stops BEFORE atomic claim and supplier POST",async()=>{
  for(const patch of [
    {raw_response:{ride24_context:{}}},
-   {raw_response:{caravel_quote:{...quote(),supplier_id:"other"}}},
+   {raw_response:{provider_quote_data:{...quote(),supplier_id:"other"}}},
    {partner_net_total:200},
    {booking_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"},
  ]){

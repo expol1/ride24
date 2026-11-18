@@ -3,7 +3,7 @@
  * trusted service-role Ride24 DB rows; never from a client JSON payload.
  *
  * NOT WIRED or DEPLOYED. The Caravel quote must be saved under
- * api_quotes.raw_response.caravel_quote by the future audited server-side
+ * api_quotes.raw_response.provider_quote_data by the future audited server-side
  * Caravel search/quote path BEFORE client checkout. This deliberately
  * rejects today's API quote rows without that provenance.
  *
@@ -110,7 +110,7 @@ export async function loadCaravelPaidEvidence(args:{
    .maybeSingle();
  }catch{return fail("CARAVEL_EVIDENCE_QUOTE_READ_FAILED");}
  const q=quoteResult.data,raw=record(q?.raw_response);
- const supplierQuote=record(raw?.caravel_quote);
+ const supplierQuote=record(raw?.provider_quote_data);
  if(quoteResult.error||!q||!supplierQuote||
     q.id!==b.api_quote_id||q.booking_id!==args.bookingId||
     q.partner_id!==PARTNER_ID||q.car_class_id!==b.car_class_id||

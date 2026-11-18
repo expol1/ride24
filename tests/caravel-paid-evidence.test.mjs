@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {loadCaravelPaidEvidence}
  from "../supabase/functions/_shared/caravel-paid-evidence.ts";
 const NOW=Date.now(),ID="d9bb87e8-71cc-43a2-bd09-a487639acd14";
@@ -39,7 +40,7 @@ const stored=()=>({
  external_group_id:"opaque-veh",external_quote_reference:Q,
  partner_net_total:150,partner_discount_percent:0,currency:"EUR",
  expires_at:later,used_at:paid,
- raw_response:{ride24_context:{},caravel_quote:quote()},
+ raw_response:{ride24_context:{},provider_quote_data:quote()},
 });
 function db(b=booking(),q=stored()){
  const stats={queries:[],errors:[]};
@@ -100,8 +101,8 @@ test("forged, missing, cross-partner, consumed-without-booking or changed quotes
   {car_class_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"},
   {external_quote_reference:"wrong"},
   {external_group_id:"replaced-group"},
-  {raw_response:{caravel_quote:{...quote(),supplier_id:"other"}}},
-  {raw_response:{caravel_quote:{...quote(),quote_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"}}},
+  {raw_response:{provider_quote_data:{...quote(),supplier_id:"other"}}},
+  {raw_response:{provider_quote_data:{...quote(),quote_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"}}},
   {raw_response:{fake_quote:quote()}},
   {used_at:null},{partner_net_total:151},{currency:"GBP"},
   {partner_discount_percent:10},
@@ -145,4 +146,12 @@ test("missing production migration columns and database errors fail closed",asyn
  const r=await load(admin);
  assert.equal(r.ok,false);
  assert.equal(r.reason,"CARAVEL_EVIDENCE_BOOKING_READ_FAILED");
+});
+
+test("Caravel evidence reads the existing search-api raw_response.provider_quote_data contract",()=>{
+ const src=readFileSync(new URL("../supabase/functions/_shared/caravel-paid-evidence.ts",import.meta.url),"utf8");
+ const search=readFileSync(new URL("../supabase/functions/search-api/index.ts",import.meta.url),"utf8");
+ assert.match(src,/raw\.provider_quote_data/);
+ assert.match(search,/provider_quote_data: group\.provider_quote_data \|\| \{\}/);
+ assert.doesNotMatch(src,/raw\.caravel_quote/);
 });
