@@ -64,6 +64,8 @@ test("production booking draft is fail-closed until certified terms, protection 
   i.provider_quote_data.terms_document_id="en-caravel-v4";
   i.provider_quote_data.terms_content_hash="a".repeat(64);
   i.provider_quote_data.terms_language="en";
+  i.provider_quote_data.payment_model="pay_on_arrival";
+  i.provider_quote_data.amounts_minor={total:15000,pay_now:0,pay_at_pickup:15000};
   const noGate=buildCaravelBookingDraft(i,NOW,{environment:"production"});
   assert.equal(noGate.ok,false);
   assert.ok(noGate.errors.includes("CARAVEL_CERTIFICATION_REQUIRED"));
@@ -75,6 +77,14 @@ test("production booking draft is fail-closed until certified terms, protection 
   assert.equal(ok.draft.termsDocumentId,"en-caravel-v4");
   assert.equal(ok.draft.termsContentHash,"a".repeat(64));
   assert.equal(ok.draft.termsLanguage,"en");
+  const partial=buildCaravelBookingDraft({...i,provider_quote_data:{
+    ...i.provider_quote_data,amounts_minor:{total:15000,pay_now:2500,pay_at_pickup:12500},
+  }},NOW,{environment:"production",production:compliant});
+  assert.ok(partial.errors.includes("CARAVEL_PREPAYMENT_NOT_ALLOWED"));
+  const missingPaymentSplit=buildCaravelBookingDraft({...i,provider_quote_data:{
+    ...i.provider_quote_data,amounts_minor:undefined,
+  }},NOW,{environment:"production",production:compliant});
+  assert.ok(missingPaymentSplit.errors.includes("CARAVEL_PAYMENT_SPLIT_UNVERIFIED"));
   const unverifiedHash=buildCaravelBookingDraft(i,NOW,{environment:"production",
     production:{...compliant,termsCanonicalHashVerified:false}});
   assert.ok(unverifiedHash.errors.includes("CARAVEL_TERMS_CANONICAL_HASH_NOT_VERIFIED"));
