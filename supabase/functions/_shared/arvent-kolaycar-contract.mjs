@@ -42,9 +42,15 @@ export function arventLocationRows(e,cities=[]) {
   if(!k||!name||str(x.countryCode).toUpperCase()!=="TR"||x.isAirport!==true)return [];
   // The first rollout is limited to the ten agreed airports. An unknown
   // IATA/location code cannot silently grant a new pickup point.
-  const iata=str(x.iataCode,12).toUpperCase();
+  // Real account 2026-11-18: ADB is "(ADB)" and TZX has a blank
+  // iataCode but an explicit terminal "(TZX)" in locationName.
+  // Never infer a code from city/region (or create unreturned airports).
+  const iata=str(x.iataCode,12).toUpperCase().replace(/^\(([A-Z]{3})\)$/,"$1");
   const locationCode=str(x.locationCode,12).toUpperCase();
-  const airport=allowedAirports.has(iata)?iata:allowedAirports.has(locationCode)?locationCode:null;
+  const nameCode=/\(([A-Z]{3})\)\s*$/.exec(name.toUpperCase())?.[1]||"";
+  const airport=allowedAirports.has(iata)?iata
+   :allowedAirports.has(locationCode)?locationCode
+   :allowedAirports.has(nameCode)?nameCode:null;
   if(!airport)return [];
   const city=cn.get(String(x.cityId))||str(x.cityName)||null;
   return [{external_id:k,country:"Turkey",region:city||name,city,location_name:name,
@@ -64,8 +70,11 @@ const image=x=>{
 };
 function category(x,price,currency,input) {
  const k=id(x.vehicleId);
- if(!k)return null;
- return {external_id:k,class_code:classCode(x.sippCode),public_price:price,currency,
+ const code=sipp(x.sippCode);
+ // A missing SIPP cannot be safely mapped to category A. Live catalogue
+ // includes such entries, which must be suppressed pending supplier mapping.
+ if(!k||!/^[A-Z]{4}$/.test(code))return null;
+ return {external_id:k,class_code:classCode(code),public_price:price,currency,
   example_model:str(x.vehicleName)||null,model:str(x.vehicleName)||null,
   transmission:str(x.transmissionTypeName)||null,fuel_type:str(x.fuelTypeName)||null,
   seats:count(x.passangerQuantityName),bags:count(x.baggageQuantityName),image:image(x),
@@ -99,7 +108,11 @@ export function arventOfferRows(e,input) {
  const days=Math.ceil((end-start)/86400000);
  if(!(days>0&&days<=366))throw Error("PARTNER_API_ERROR:ARVENT_DATES_INVALID");
  return data.slice(0,10000).filter(x=>arventOfferMatchesTerms(x,currency)).flatMap(x=>{
-  const total=x.totalPrice,c=category(x,Number((total/days).toFixed(6)),currency,input);
+  const total=x.totalPrice;
+  const supplierDays=num(x.rentalDuration);
+  const billedDays=supplierDays!==null&&Number.isInteger(supplierDays)&&supplierDays>0&&supplierDays<=366
+   ?supplierDays:days;
+  const c=category(x,Number((total/billedDays).toFixed(6)),currency,input);
   if(!c)return [];
   return [{...c,active:true,deposit_amount:0,mileage_limit:null,
    price_is_total:true,public_price_total:total,
