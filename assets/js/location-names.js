@@ -71,6 +71,23 @@
     return dictionaryCountry?.name_en || original;
   }
 
+  function localizedCountry(value, language = currentLang()) {
+    const canonical = canonicalCountry(value);
+    const row = dictionaryRows.find(item => item.category === "country"
+      && normalized(item.name_en) === normalized(canonical));
+    return row ? (language === "en" ? row.name_en : row.name_pl) : String(value || "");
+  }
+
+  function localizedCity(value, country, language = currentLang()) {
+    const name = normalized(value);
+    const parent = normalized(canonicalCountry(country));
+    const matches = dictionaryRows.filter(item => item.category === "city"
+      && normalized(item.name_en) === name
+      && (!item.parent_country_en || normalized(canonicalCountry(item.parent_country_en)) === parent));
+    const row = matches.find(item => normalized(item.parent_country_en) === parent) || matches[0];
+    return row ? (language === "en" ? row.name_en : row.name_pl) : String(value || "");
+  }
+
   function dictionaryLocation(location) {
     const country = normalized(canonicalCountry(location?.country));
     const name = normalized(location?.location_name || location?.display_name);
@@ -147,5 +164,22 @@
     }
     return { ...data, display_name: String(data.location_name || "").trim() };
   }
-  root.Ride24LocationNames = Object.freeze({ displayName, normalizeForSave, loadDictionary, canonicalCountry, canonicalLocationName, localizedNames });
+  // Warm the public PL/EN dictionary before rendering search, map and results labels.
+  // Do not alter stored booking keys or block the page when the dictionary is unavailable.
+  function warmDictionary() {
+    const client = root.supabaseClient;
+    if (client && typeof client.from === "function") {
+      loadDictionary(client).catch(() => {
+        // The existing public display_name / location_name fallback remains usable.
+      });
+    }
+  }
+  if (root.document) {
+    if (root.document.readyState === "loading") {
+      root.document.addEventListener("DOMContentLoaded", warmDictionary, { once: true });
+    } else {
+      warmDictionary();
+    }
+  }
+  root.Ride24LocationNames = Object.freeze({ displayName, normalizeForSave, loadDictionary, canonicalCountry, canonicalLocationName, localizedCountry, localizedCity, localizedNames });
 })(typeof window === "undefined" ? globalThis : window);
