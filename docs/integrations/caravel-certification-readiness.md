@@ -1,4 +1,14 @@
 # Caravel Channel API v1.67.0 — certification readiness (Ride24)
+## 18 Nov 2026 (afternoon) — REAL sandbox evidence (supersedes the "not run" items below)
+
+Details: `caravel-live-sandbox-evidence-2026-11-18.md`; draft vendor message: `caravel-message-2026-11-18.md`.
+- Canonical terms SHA-256 (§3.9) implemented and **verified on real sandbox documents** (EUR + GBP).
+- Official `/_certification/hmac-self-test`: **verified=true** (req_LrHmSwCowGN6twkc).
+- Real sandbox E2E with our adapter: **26/26 steps per supplier** (book, replay, 409s, cancel, idempotent cancel).
+- Hosted certification run `15adba20-…`: **all 10 phases executed**; verdict only on the Caravel account page — NOT yet read, so NOT claimed.
+- Caravel wired into the shared Stripe-first fulfilment behind two unset server flags; all customer holds unchanged.
+- Still NO-GO: production key/approval, production EN v4 terms + exact exclusions/admin fee, real production Premium quote, WEB/Android consent UI, search wiring.
+
 
 ## 18 Nov 2026 — Latest production cutover check (DO NOT CLAIM GO-LIVE)
 
