@@ -6,6 +6,7 @@ import ts from 'typescript';
 import * as contract from '../../supabase/functions/_shared/api-quote-contract.mjs';
 import * as readiness from '../../supabase/functions/_shared/api-readiness.mjs';
 import * as driverAge from '../../supabase/functions/_shared/driver-age.mjs';
+import * as caravelHold from '../../supabase/functions/_shared/caravel-production-hold.mjs';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
 import * as durationRules from '../../supabase/functions/_shared/rental-duration.ts';
 import {normalizeLocations, assertSafeApiUrl} from '../../supabase/functions/_shared/partner-api.ts';
@@ -103,6 +104,7 @@ function setup() {
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
       if(specifier.includes('driver-age.mjs'))return driverAge;
+      if(specifier.includes('caravel-production-hold.mjs'))return caravelHold;
       if(specifier.includes('rental-duration.ts'))return durationRules;
       if(specifier.includes('ride24-security'))return security;
       if(specifier.includes('booking-request'))return {readJsonObject:req=>req.json()};
@@ -280,4 +282,17 @@ test('partner API URL rejects private, metadata, credential and non-HTTPS destin
     'https://169.254.169.254','https://[::1]','https://[::ffff:127.0.0.1]','https://user:password@provider.example.com'])
     assert.throws(()=>assertSafeApiUrl(url));
   assert.equal(assertSafeApiUrl('https://provider.example.com/api/'),'https://provider.example.com/api');
+});
+
+test('Caravel cannot create a booking through generic supplier-first handler even with API enabled',async()=>{
+ const s=setup();
+ s.tables.partners[0].api_provider='caravel';
+ const response=await s.handler('create-booking-request')(body());
+ assert.equal(response.status,409);
+ const data=await response.json();
+ assert.equal(data.code,'CARAVEL_CERTIFICATION_PENDING');
+ assert.equal(s.saved.length,0);
+ assert.equal(s.outgoing.length,0);
+ const claimed=s.operations.filter(x=>x.table==='api_quotes'&&x.update);
+ assert.equal(claimed.length,0,'Caravel quote was not consumed');
 });
