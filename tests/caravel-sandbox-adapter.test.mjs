@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {CaravelClient,CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
-import {compareCaravelTermsVersion} from "../supabase/functions/_shared/caravel-terms-version.ts";
+import {compareCaravelTermsVersion,fetchCaravelCurrentTermsForReview} from "../supabase/functions/_shared/caravel-terms-version.ts";
 const original=globalThis.fetch;
 const mock=(handler)=>{globalThis.fetch=async (url,options)=>new Response(JSON.stringify(handler(String(url),options)),{status:200,headers:{"content-type":"application/json"}});};
 test.afterEach(()=>{globalThis.fetch=original;});
@@ -137,6 +137,48 @@ test("immutable Caravel terms per supplier sync require review of any new docume
    /CARAVEL_TERMS_PREVIOUS_SNAPSHOT_INVALID/);
  assert.throws(()=>compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
    currentMetadataList:[termsMeta(),termsMeta("second")] }),/CARAVEL_TERMS_CURRENT_AMBIGUOUS_OR_MISSING/);
+});
+test("current Caravel clauses document is fetched per supplier and compared with list metadata",async()=>{
+  const calls=[];
+  const expected=termsMeta("current-en-v4");
+  const client={
+    async referenceTerms(supplierId){calls.push(["list",supplierId]);return {data:[expected]};},
+    async referenceTermsDocument(documentId,supplierId){
+      calls.push(["detail",documentId,supplierId]);
+      return {data:{...expected,body:{clauses:[{number:"1",text:"English terms"}]}}};
+    },
+  };
+  const r=await fetchCaravelCurrentTermsForReview(client,"acct_eur","en");
+  assert.equal(r.comparison.action,"initial_review_required");
+  assert.equal(r.comparison.snapshot.documentId,"current-en-v4");
+  assert.equal(r.document.body.clauses[0].text,"English terms");
+  assert.equal(r.canonicalHashIndependentlyVerified,false);
+  assert.deepEqual(calls,[["list","acct_eur"],["detail","current-en-v4","acct_eur"]]);
+  const repeat=await fetchCaravelCurrentTermsForReview(client,"acct_eur","en",r.comparison.snapshot);
+  assert.equal(repeat.comparison.action,"unchanged");
+});
+test("provider changed terms between list/detail: fail closed, never show mismatched text",async()=>{
+ const meta=termsMeta("en-v4");
+ const mismatch=[
+  {...meta,document_id:"en-v3",body:{clauses:[{number:"1",text:"OLD"}]}},
+  {...meta,version:3,body:{clauses:[{number:"1",text:"STALE"}]}},
+  {...meta,content_hash:"b".repeat(64),body:{clauses:[{number:"1",text:"ALTERED"}]}},
+  {...meta,withdrawn_at:"2026-11-18T07:00:00Z",body:{clauses:[{number:"1",text:"WITHDRAWN"}]}},
+ ];
+ for(const bad of mismatch){
+   const client={
+     async referenceTerms(){return {data:[meta]};},
+     async referenceTermsDocument(){return {data:bad};},
+   };
+   await assert.rejects(()=>fetchCaravelCurrentTermsForReview(client,"acct_eur","en"),
+     /CARAVEL_TERMS_LIST_DOCUMENT_MISMATCH/);
+ }
+ const noCurrent={
+   async referenceTerms(){return {data:[termsMeta("en-v4",{withdrawn_at:"2026-11-18T07:00:00Z"})]};},
+   async referenceTermsDocument(){throw Error("SHOULD_NOT_FETCH");},
+ };
+ await assert.rejects(()=>fetchCaravelCurrentTermsForReview(noCurrent,"acct_eur","en"),
+   /CARAVEL_TERMS_CURRENT_AMBIGUOUS_OR_MISSING/);
 });
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];
