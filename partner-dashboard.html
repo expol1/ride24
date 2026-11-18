@@ -1305,7 +1305,7 @@ async>
 
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 <link rel="stylesheet" href="assets/css/partner-bookings-ux.css?v=20261115dashclock3">
-<link rel="stylesheet" href="assets/css/partner-fleet-locations-ux.css?v=20261118scooters1">
+<link rel="stylesheet" href="assets/css/partner-fleet-locations-ux.css?v=20261118simple1">
 <link rel="stylesheet" href="assets/css/partner-android-showcase.css?v=20261029a">
 </head>
 <body>
@@ -2137,7 +2137,7 @@ Dodaj opinię o Partnerze
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Grupa pojazdu" data-en="Vehicle group">Vehicle group</label>
-                        <select id="carClass" onchange="syncCarLocationScope()">
+                        <select id="carClass">
                             <option value="" disabled selected data-pl="Wybierz grupę" data-en="Select group">Select group</option>
                             <option value="0" data-pl="0 - Skutery / ATV" data-en="0 - Scooters / ATV">0 - Scooters / ATV</option>
                             <option value="A" data-pl="A - Ekonomiczna" data-en="A - Economy">A - Economy</option>
@@ -2162,8 +2162,7 @@ Dodaj opinię o Partnerze
                         <input type="checkbox" id="carAllLocations" checked onchange="syncCarLocationScope()">
                         <span data-pl="Wszystkie aktywne lokalizacje partnera" data-en="All active partner locations">All active partner locations</span>
                     </label>
-                    <div id="carLocationChoices" class="r24-car-location-choices"></div>
-                    <small id="carLocationScopeHelp" data-pl="Dla skuterów / ATV (grupa 0) wybierz co najmniej jedną lokalizację. Odbiór i zwrot będą możliwe tylko w zaznaczonych punktach." data-en="For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.">For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.</small>
+                    <div id="carLocationChoices" class="r24-car-location-choices" style="display:none"></div>
                 </div>
 
                 <div class="form-row-3">
@@ -3324,20 +3323,14 @@ const updateData = {
             };
         }
 
-        // A NULL allowed_location_ids value preserves the existing all-locations behavior.
-        // Scooter/ATV group 0 is always explicitly scoped; no auto-selection by city name.
+        // One simple choice for every group, including Scooters/ATV:
+        // all locations checked by default, or manually selected pickup/return locations.
+        // NULL in the DB means unrestricted within this partner's active locations.
         window.syncCarLocationScope = function() {
-            const isScooter = document.getElementById("carClass")?.value === "0";
             const allBox = document.getElementById("carAllLocations");
-            const allRow = document.getElementById("carAllLocationsLabel");
             const choices = document.getElementById("carLocationChoices");
-            const help = document.getElementById("carLocationScopeHelp");
             if (!allBox || !choices) return;
-            allBox.disabled = isScooter;
-            if (isScooter) allBox.checked = false;
-            if (allRow) allRow.hidden = isScooter;
-            if (help) help.hidden = !isScooter;
-            choices.style.display = !allBox.checked ? "grid" : "none";
+            choices.style.display = allBox.checked ? "none" : "grid";
             choices.querySelectorAll('input[type="checkbox"]').forEach(input => {
                 input.disabled = allBox.checked;
             });
@@ -3371,7 +3364,7 @@ const updateData = {
                 "Najpierw dodaj aktywną lokalizację w zakładce Lokalizacje.",
                 "Add an active pickup location in Locations first."
             );
-            allBox.checked = selected === null && document.getElementById("carClass").value !== "0";
+            allBox.checked = selected === null;
             window.syncCarLocationScope();
         }
 
@@ -3392,13 +3385,10 @@ const updateData = {
                 const allCarLocations = document.getElementById("carAllLocations")?.checked === true;
                 const scopedLocationIds = [...document.querySelectorAll('#carLocationChoices input.car-location-option:checked')]
                     .map(input => input.value);
-                if (class_code === "0" && (allCarLocations || scopedLocationIds.length === 0)) {
-                    throw new Error(partnerText("Dla skuterów / ATV wybierz co najmniej jedną lokalizację.", "Choose at least one pickup location for scooters / ATV."));
-                }
                 if (!allCarLocations && scopedLocationIds.length === 0) {
                     throw new Error(partnerText("Zaznacz lokalizację lub wybierz wszystkie lokalizacje.", "Select a location or choose all partner locations."));
                 }
-                const allowedLocationIds = allCarLocations && class_code !== "0" ? null : scopedLocationIds;
+                const allowedLocationIds = allCarLocations ? null : scopedLocationIds;
                 const seats = parseInt(document.getElementById("carSeats").value) || 5;
                 const transmission = document.getElementById("carTransmission").value;
                 const bagsInput = parseInt(document.getElementById("carBags").value, 10);
