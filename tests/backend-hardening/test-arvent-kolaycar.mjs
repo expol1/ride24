@@ -137,3 +137,22 @@ test("initial Arvent sync cannot expose non-agreed airports or non-airport offic
  assert.deepEqual(rows.map(x=>x.iata_code),["SAW","TZX"]);
  assert.deepEqual(rows.map(x=>x.external_id),["1","5"]);
 });
+
+test("live Arvent mapping explicitly recovers '(ADB)' IATA and Trabzon name '(TZX)'",()=>{
+ const data=[
+  {locationId:10,locationName:"İzmir Adnan Menderes Airport (ADB)",iataCode:"(ADB)",isAirport:true,isPickup:true,countryCode:"TR"},
+  {locationId:9,locationName:"Trabzon Airport (TZX)",iataCode:"",isAirport:true,isPickup:true,countryCode:"TR"},
+  {locationId:14,locationName:"Muğla Milas-Bodrum (BJV)",iataCode:"BJV",isAirport:true,isPickup:true,countryCode:"TR"},
+  {locationId:17,locationName:"Alanya/Antalya Gazi Paşa Airport",iataCode:"",isAirport:false,isPickup:true,countryCode:"TR"}
+ ];
+ assert.deepEqual(arventLocationRows(ok(data)).map(x=>x.iata_code),["ADB","TZX"]);
+});
+test("Arvent catalogue and search do not invent category A for blank SIPP",()=>{
+ assert.equal(arventGroupRows(ok([{vehicleId:260,vehicleName:"Dacia Sandero",sippCode:""}])).length,0);
+ assert.equal(arventOfferRows(ok([{...example,sippCode:""}]),search).length,0);
+});
+test("billed supplier rentalDuration controls per-day display, while total remains authoritative",()=>{
+ const [x]=arventOfferRows(ok([{...example,rentalDuration:3}]),search);
+ assert.equal(x.public_price,50);
+ assert.equal(x.public_price_total,150);
+});
