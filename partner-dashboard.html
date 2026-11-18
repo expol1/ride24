@@ -2137,7 +2137,7 @@ Dodaj opinię o Partnerze
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label data-pl="Grupa pojazdu" data-en="Vehicle group">Vehicle group</label>
-                        <select id="carClass">
+                        <select id="carClass" onchange="syncCarLocationScope()">
                             <option value="" disabled selected data-pl="Wybierz grupę" data-en="Select group">Select group</option>
                             <option value="0" data-pl="0 - Skutery / ATV" data-en="0 - Scooters / ATV">0 - Scooters / ATV</option>
                             <option value="A" data-pl="A - Ekonomiczna" data-en="A - Economy">A - Economy</option>
@@ -2152,6 +2152,16 @@ Dodaj opinię o Partnerze
                         <label data-pl="Liczba miejsc" data-en="Seats">Seats</label>
                         <input type="number" id="carSeats" placeholder="5" min="1" max="9">
                     </div>
+                </div>
+
+                <div class="form-group" id="carLocationScopeSection" style="margin:16px 0;padding:12px;border:1px solid #cbd5e1;border-radius:9px;">
+                    <label data-pl="Lokalizacje dostępności pojazdu" data-en="Vehicle pickup and return locations">Vehicle pickup and return locations</label>
+                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                        <input type="checkbox" id="carAllLocations" checked onchange="syncCarLocationScope()">
+                        <span data-pl="Wszystkie aktywne lokalizacje partnera" data-en="All active partner locations">All active partner locations</span>
+                    </label>
+                    <div id="carLocationChoices" style="margin-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px;"></div>
+                    <small id="carLocationScopeHelp" data-pl="Dla skuterów / ATV (grupa 0) wybierz co najmniej jedną lokalizację. Odbiór i zwrot będą możliwe tylko w zaznaczonych punktach." data-en="For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.">For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.</small>
                 </div>
 
                 <div class="form-row-3">
@@ -3312,6 +3322,53 @@ const updateData = {
             };
         }
 
+        // A NULL allowed_location_ids value preserves the existing all-locations behavior.
+        // Scooter/ATV group 0 is always explicitly scoped; no auto-selection by city name.
+        window.syncCarLocationScope = function() {
+            const isScooter = document.getElementById("carClass")?.value === "0";
+            const allBox = document.getElementById("carAllLocations");
+            const choices = document.getElementById("carLocationChoices");
+            if (!allBox || !choices) return;
+            allBox.disabled = isScooter;
+            if (isScooter) allBox.checked = false;
+            choices.style.display = !allBox.checked ? "grid" : "none";
+            choices.querySelectorAll('input[type="checkbox"]').forEach(input => {
+                input.disabled = allBox.checked;
+            });
+        };
+
+        async function loadCarLocationChoices(selectedIds = null) {
+            const container = document.getElementById("carLocationChoices");
+            const allBox = document.getElementById("carAllLocations");
+            if (!container || !allBox) return;
+            container.textContent = partnerText("Ładowanie lokalizacji...", "Loading locations...");
+            const { data: { session } } = await db.auth.getSession();
+            if (!session) throw new Error("AUTH_REQUIRED");
+            const { data: partner, error: partnerError } = await db.from("partners")
+                .select("id").eq("user_id", session.user.id).single();
+            if (partnerError || !partner) throw partnerError || new Error("PARTNER_NOT_FOUND");
+            const { data: locations, error } = await db.from("partner_locations")
+                .select("id,location_name,city,active")
+                .eq("partner_id", partner.id).eq("active", true)
+                .order("location_name", { ascending: true });
+            if (error) throw error;
+            const selected = Array.isArray(selectedIds) ? new Set(selectedIds) : null;
+            const available = Array.isArray(locations) ? locations : [];
+            container.innerHTML = available.map(loc => `
+                <label style="display:flex;gap:8px;align-items:center;font-size:13px;">
+                    <input type="checkbox" class="car-location-option"
+                        value="${escapeHtmlValue(loc.id)}"
+                        ${selected?.has(loc.id) ? "checked" : ""}>
+                    <span>${escapeHtmlValue(loc.location_name || loc.city || "Location")}</span>
+                </label>`).join("");
+            if (!available.length) container.textContent = partnerText(
+                "Najpierw dodaj aktywną lokalizację w zakładce Lokalizacje.",
+                "Add an active pickup location in Locations first."
+            );
+            allBox.checked = selected === null && document.getElementById("carClass").value !== "0";
+            window.syncCarLocationScope();
+        }
+
         async function saveVehicle() {
             const uploadedVehicleImagePaths = [];
             const btn = document.querySelector("#addCarModal .btn-primary");
@@ -3326,6 +3383,16 @@ const updateData = {
 
                 const model = document.getElementById("carModel").value;
                 const class_code = document.getElementById("carClass").value;
+                const allCarLocations = document.getElementById("carAllLocations")?.checked === true;
+                const scopedLocationIds = [...document.querySelectorAll('#carLocationChoices input.car-location-option:checked')]
+                    .map(input => input.value);
+                if (class_code === "0" && (allCarLocations || scopedLocationIds.length === 0)) {
+                    throw new Error(partnerText("Dla skuterów / ATV wybierz co najmniej jedną lokalizację.", "Choose at least one pickup location for scooters / ATV."));
+                }
+                if (!allCarLocations && scopedLocationIds.length === 0) {
+                    throw new Error(partnerText("Zaznacz lokalizację lub wybierz wszystkie lokalizacje.", "Select a location or choose all partner locations."));
+                }
+                const allowedLocationIds = allCarLocations && class_code !== "0" ? null : scopedLocationIds;
                 const seats = parseInt(document.getElementById("carSeats").value) || 5;
                 const transmission = document.getElementById("carTransmission").value;
                 const bagsInput = parseInt(document.getElementById("carBags").value, 10);
@@ -3405,6 +3472,7 @@ const updateData = {
                 const vehicleData = {
                     partner_id: partner.id,
                     class_code: class_code,
+                    allowed_location_ids: allowedLocationIds,
                     description: model,
                     public_price: base_price,
                     partner_net_price: partner_net_price,
@@ -4998,6 +5066,10 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
     }
     document.getElementById("featureFullInsurance").checked = true;
     syncCashDepositOption();
+    void loadCarLocationChoices(null).catch(error => {
+        console.error("Unable to load partner locations for vehicle", error);
+        window.showToast(partnerText("Nie udało się pobrać lokalizacji.", "Could not load locations."), "error");
+    });
 
     const isEn = getPartnerLang() !== "pl";
 
@@ -5022,6 +5094,7 @@ document.getElementById("avatarUpload").addEventListener("change", async (e)=>{
                 // 1. Wypełniamy proste pola text/number/select
                 document.getElementById("carModel").value = car.description || "";
                 document.getElementById("carClass").value = car.class_code || "";
+                await loadCarLocationChoices(car.allowed_location_ids ?? null);
                 document.getElementById("carSeats").value = car.seats || 5;
                 document.getElementById("carTransmission").value = car.transmission || "M";
                 document.getElementById("carBags").value = car.bags ?? 2;
