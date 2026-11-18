@@ -157,3 +157,29 @@ export function arventSavePayload({reservationToken,reference,customer,extras=[]
   flightNumberArrival:"",flightNumberDeparture:"",departureInfo:"",
   fullCredit:false,creditType:0,contactPermission:false};
 }
+
+// A supplier's "Approved" status and price do not certify the purchased route.
+// Refuse automatic confirmation unless the original locations, dates and
+// pickup/return clock times are exactly preserved. No implicit timezone shift.
+export function arventSavedRouteMatches(saved, expected) {
+ if(!record(saved)||!record(expected))return false;
+ const idString=v=>/^[1-9]\d*$/.test(str(v,30))?String(Number(v)):null;
+ const dateTime=value=>{
+  const match=/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(str(value,50));
+  if(!match)return null;
+  const hh=Number(match[2]),mm=Number(match[3]);
+  if(hh>23||mm>59)return null;
+  try { arventDate(match[1]); } catch {return null;}
+  return {date:match[1],time:match[2]+":"+match[3]};
+ };
+ const start=dateTime(saved.pickupDate),end=dateTime(saved.returnDate);
+ const startTime=/^(\d{2}):(\d{2})/.exec(str(expected.pickup_time,16));
+ const endTime=/^(\d{2}):(\d{2})/.exec(str(expected.return_time,16));
+ return Boolean(start&&end&&startTime&&endTime
+   &&idString(saved.pickupLocationId)===idString(expected.pickup_location_id)
+   &&idString(saved.returnLocationId)===idString(expected.dropoff_location_id)
+   &&start.date===str(expected.pickup_date,10)
+   &&end.date===str(expected.return_date,10)
+   &&start.time===startTime[1]+":"+startTime[2]
+   &&end.time===endTime[1]+":"+endTime[2]);
+}
