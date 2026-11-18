@@ -110,6 +110,49 @@ test("production booking draft is fail-closed until certified terms, protection 
   assert.equal(refused.ok,false);
   for(const code of ["COVER_MISSING_GLASS","COVER_MISSING_TYRES_AND_WHEELS","COVER_MISSING_UNDERCARRIAGE"])
     assert.ok(refused.errors.includes(code),code);
+  // Ride24 owner authorized Premium with explicitly documented exclusions,
+  // never an implied "full insurance" claim. A newer/stale policy must fail.
+  const excluded=correctedCaravel.protection.excludes;
+  const review={termsDocumentId:"en-caravel-v4",
+    termsContentHash:"a".repeat(64),documentedExcludedCodes:[...excluded],
+    damageAdministrationFeeMinor:10000,currency:"EUR",
+    approvedByRide24:true,canonicalHashVerified:true};
+  const disclosedGate={
+    ...correctedCaravel,coverageReview:review,
+    coverageDisclosureAcceptedBeforePayment:true,
+    coverageExcludedCodesShown:[...excluded],
+    damageAdministrationFeeShownMinor:10000,
+  };
+  const disclosedQuote={...i,provider_quote_data:{
+    ...i.provider_quote_data,coverage_review_terms_document_id:"en-caravel-v4",
+    coverage_exclusions:[...excluded],damage_administration_fee_minor:10000,
+    protection:{product_type:"waiver",covers:correctedCaravel.protection.covers,excludes:[...excluded]},
+  }};
+  const approved=buildCaravelBookingDraft(disclosedQuote,NOW,{
+    environment:"production",production:disclosedGate});
+  assert.equal(approved.ok,true,JSON.stringify(approved.errors));
+  const absentCustomerAcceptance=buildCaravelBookingDraft(disclosedQuote,NOW,{
+    environment:"production",
+    production:{...disclosedGate,coverageDisclosureAcceptedBeforePayment:false}});
+  assert.ok(absentCustomerAcceptance.errors.includes("CARAVEL_COVERAGE_DISCLOSURE_ACCEPTANCE_REQUIRED"));
+  const changedExclusions=buildCaravelBookingDraft(disclosedQuote,NOW,{
+    environment:"production",production:{
+      ...disclosedGate,protection:{
+        ...disclosedGate.protection,excludes:[...excluded,"battery"],
+      },
+    }});
+  assert.ok(changedExclusions.errors.includes("CARAVEL_EXCLUSIONS_CHANGED_OR_NOT_DISCLOSED"));
+  const changedQuote=buildCaravelBookingDraft({...disclosedQuote,provider_quote_data:{
+    ...disclosedQuote.provider_quote_data,coverage_exclusions:excluded.filter(x=>x!=="glass"),
+  }},NOW,{environment:"production",production:disclosedGate});
+  assert.ok(changedQuote.errors.includes("CARAVEL_QUOTE_COVERAGE_DISCLOSURE_CHANGED"));
+  const feeNotShown=buildCaravelBookingDraft(disclosedQuote,NOW,{
+    environment:"production",production:{...disclosedGate,damageAdministrationFeeShownMinor:0}});
+  assert.ok(feeNotShown.errors.includes("CARAVEL_DAMAGE_FEE_NOT_SHOWN"));
+  const wrongTerms=buildCaravelBookingDraft(disclosedQuote,NOW,{
+    environment:"production",
+    production:{...disclosedGate,coverageReview:{...review,termsDocumentId:"en-caravel-v5"}}});
+  assert.ok(wrongTerms.errors.includes("CARAVEL_DISCLOSURE_TERMS_VERSION_MISMATCH"));
   const absentExclusions=buildCaravelBookingDraft(i,NOW,{environment:"production",
     production:{...compliant,protection:{...protection,excludes:undefined}}});
   assert.ok(absentExclusions.errors.includes("PROTECTION_EXCLUSIONS_UNVERIFIED"));
