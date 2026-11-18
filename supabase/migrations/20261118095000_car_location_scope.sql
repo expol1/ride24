@@ -13,7 +13,12 @@ SET search_path = public, pg_catalog
 AS $func$
 DECLARE valid_count integer;
 BEGIN
-  IF NEW.active IS TRUE AND NEW.class_code = '0' AND NEW.allowed_location_ids IS NULL THEN
+  IF NEW.active IS TRUE AND NEW.class_code = '0' AND NEW.allowed_location_ids IS NULL
+     AND (TG_OP = 'INSERT' OR
+       (TG_OP = 'UPDATE' AND
+         (OLD.class_code IS DISTINCT FROM '0'
+          OR OLD.allowed_location_ids IS NOT NULL
+          OR (OLD.active IS NOT TRUE AND NEW.active IS TRUE)))) THEN
     RAISE EXCEPTION 'SCOOTER_LOCATION_REQUIRED' USING ERRCODE='23514';
   END IF;
   IF NEW.allowed_location_ids IS NOT NULL THEN
