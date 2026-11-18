@@ -1055,7 +1055,6 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 
                     row.innerHTML = `
 <div class="car-img-box">
-    ${!car.api_managed && (!car.image || parsedFeatures.image_is_representative) ? `<small>${lang === "pl" ? "Zdjęcie poglądowe" : "Representative image"}</small>` : ""}
     <img src="${safeCarImage}" ${responsiveSrcSet} loading="${imageLoading}" decoding="async" fetchpriority="${index === 0 ? "high" : "auto"}" alt="${safeCarCode}" data-full-image="${safeCarImage}" onerror="this.removeAttribute('srcset');this.onerror=function(){this.onerror=null;this.src='auto.png';};this.src=this.dataset.fullImage;">
 </div>
 
