@@ -121,6 +121,8 @@ test("approved Premium exclusions can be sold only with an exact authoritative r
  assert.equal(approved.fullInsuranceClaimAllowed,false);
  assert.equal(approved.disclosureRequired,true);
  assert.equal(approved.damageAdministrationFeeMinor,10000);
+ const missingQuoteDeposit=evaluateCaravelPremiumForRide24("premium",corrected,undefined,review);
+ assert.ok(missingQuoteDeposit.errors.includes("CARAVEL_QUOTE_DEPOSIT_UNVERIFIED"));
  assert.equal(selectCaravelPremiumProtection(row("EUR",[corrected])),null);
  assert.equal(selectCaravelPremiumProtection(row("EUR",[corrected]),review)?.source,"option");
  const quoted=quote("EUR",{totals:{
