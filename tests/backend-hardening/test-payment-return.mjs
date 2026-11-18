@@ -90,6 +90,7 @@ test('real checkout handler still ignores client amounts and authorizes the save
   class Stripe {constructor(){this.checkout={sessions:{create:async data=>{calls.push(data);return {id:'cs_fixture',url:'https://checkout.stripe.com/fixture'};}}};}}
   const handler=captureHandler('supabase/functions/create_checkout_session/index.ts',{
    Stripe,androidPaymentReturnUrl,isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR,
+   loadCaravelRelease:async()=>({open:false,reason:'CARAVEL_NOT_CERTIFIED'}),
    Deno:{env:{get:name=>name==='SUPABASE_URL'?base:name}},
    createClient:(_url,key,options)=>options?userClient:admin,
   });
@@ -114,6 +115,7 @@ test('Caravel launch hold rejects a signed-in owner BEFORE creating a Stripe che
  class Stripe {constructor(){this.checkout={sessions:{create:async x=>{calls.push(x);return {id:'cs_unwanted'};}}};}}
  const handler=captureHandler('supabase/functions/create_checkout_session/index.ts',{
    Stripe,androidPaymentReturnUrl,isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR,
+   loadCaravelRelease:async()=>({open:false,reason:'CARAVEL_NOT_CERTIFIED'}),
    Deno:{env:{get:name=>name==='SUPABASE_URL'?base:name}},
    createClient:(_url,key,options)=>options?client:admin,
  });
