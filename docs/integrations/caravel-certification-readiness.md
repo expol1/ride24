@@ -1,5 +1,27 @@
 # Caravel Channel API v1.67.0 — certification readiness (Ride24)
 
+## SCHEMA DEPLOYED — 18 Nov 2026 (supersedes historical schema TODOs)
+
+Migration `20261118124748_caravel_booking_evidence_additive_20261118`
+was applied to the live Ride24 Supabase database: **14 new nullable Caravel-only
+bookings columns, 3 validated CHECK constraints and one unique partial
+Caravel operator-review index**. RLS and existing partner data/policies were
+left unchanged. Verified all new columns, constraints and index, and confirmed
+Caravel remains `api_provider=custom`, `api_enabled=false`,
+`api_status=draft` with 0 offers/quotes/bookings.
+
+**Important:** This is SCHEMA deployment ONLY; not a certified production
+integration. Current EN v4 clauses/v1 + independent canonical SHA-256,
+supplier API/official HMAC 24h certification, active location/class catalog,
+customer consent in WWW/Android, Caravel-only secure checkout, signed
+Stripe webhook, operator worker, voucher and refunds still need verification
+and activation. No remote Caravel booking or customer payment was made.
+
+The source-of-truth SQL is
+`supabase/migrations/20261118124748_caravel_booking_evidence_additive_20261118.sql`.
+Sections below mentioning a proposed/unapplied migration are historical.
+
+
 ## UPDATE 17.11.2026 (Caravel response; supersedes earlier assumptions)
 
 See `docs/integrations/caravel-vendor-clarification-2026-11-17.md` for complete supplier instructions and evidence.

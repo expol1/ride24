@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 const sql=readFileSync(new URL("../docs/integrations/caravel-paid-dispatch-claim.sql",import.meta.url),"utf8");
 const withoutComments=sql.replace(/--[^\n]*/g,"");
-test("Caravel paid claim migration is a single unexecuted additive transaction",()=>{
- assert.match(sql,/DRAFT ONLY/);
+test("Caravel paid claim schema is a single recorded additive transaction",()=>{
+ assert.match(sql,/APPLIED \(SCHEMA ONLY\)/);
  assert.equal((withoutComments.match(/\bBEGIN\s*;/g)||[]).length,1);
  assert.equal((withoutComments.match(/\bCOMMIT\s*;/g)||[]).length,1);
  assert.equal((withoutComments.match(/ADD COLUMN IF NOT EXISTS/g)||[]).length,4);

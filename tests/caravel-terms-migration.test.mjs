@@ -4,8 +4,8 @@ import {readFileSync} from "node:fs";
 
 const sql=readFileSync(new URL("../docs/integrations/caravel-terms-booking-snapshot.sql",import.meta.url),"utf8");
 
-// This is a DRAFT migration structural regression check, NOT a PostgreSQL
-// syntax execution or permission to apply a migration to production.
+// The additive schema migration WAS applied to production on 18 Nov 2026.
+// These source checks validate its reproducibility, NOT supplier certification.
 // Prior draft corruption split CHECK regex strings and duplicated COMMITs.
 function strippedStatements(source) {
   let s=source.replace(/--[^\n]*/g,"");
@@ -15,7 +15,7 @@ function strippedStatements(source) {
 
 test("Caravel terms SQL proposal is a single complete transaction, never repeated or truncated",()=>{
   const clean=strippedStatements(sql);
-  assert.match(sql,/DRAFT ONLY|PROPOSAL ONLY/);
+  assert.match(sql,/APPLIED \(SCHEMA ONLY\)/);
   assert.equal((clean.match(/\bBEGIN\s*;/g)||[]).length,1);
   assert.equal((clean.match(/\bCOMMIT\s*;/g)||[]).length,1);
   assert.equal((clean.match(/\bDO\s+\$caravel_terms\$/g)||[]).length,1);

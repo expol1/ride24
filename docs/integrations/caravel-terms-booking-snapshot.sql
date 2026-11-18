@@ -1,6 +1,9 @@
--- DRAFT ONLY — DO NOT EXECUTE until Caravel contract, quote persistence,
--- customer acceptance, canonical SHA-256 (§3.9), RLS and full Ride24 E2E
--- booking/refund tests have passed. This is NOT a production migration.
+-- APPLIED (SCHEMA ONLY) on 18 Nov 2026 in production Supabase via
+-- 20261118124748_caravel_booking_evidence_additive_20261118.
+-- The columns and CHECK constraints exist. This does NOT authorize Caravel
+-- offers, Stripe charges or supplier dispatch. Production flow remains OFF
+-- until verified current clauses/v1 / canonical SHA-256 §3.9, customer consent,
+-- supplier certification, frontend integration and actual E2E tests.
 --
 -- Caravel documents are immutable and identified by document_id. Save the
 -- exact authoritative clauses/v1 version displayed and accepted BEFORE Stripe.
@@ -120,7 +123,7 @@ $caravel_coverage$;
 
 COMMIT;
 
--- BEFORE APPROVING/EXECUTING:
+-- BEFORE ENABLING CARAVEL BOOKINGS / STRIPE:
 -- 1. Verify the canonical clauses/v1 SHA-256 algorithm from Caravel §3.9.
 --    A matching provider-declared hash alone is NOT independent verification.
 -- 2. Add a SERVER-SIDE reviewed doc id/hash/language to api_quotes.raw_response

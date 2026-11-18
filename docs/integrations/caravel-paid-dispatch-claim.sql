@@ -1,8 +1,10 @@
--- DRAFT ONLY — NOT APPLIED TO RIDE24 SUPABASE.
--- Caravel post-Stripe atomic dispatch claim. Requires the previously reviewed
--- Caravel terms and coverage snapshot migration, real signed Stripe handler,
--- current Caravel clauses/v1/quote proof, official 24-hour certification and
--- an E2E test of cancellations/refunds/voucher gating BEFORE deploying.
+-- APPLIED (SCHEMA ONLY) on 18 Nov 2026 in production Supabase via
+-- 20261118124748_caravel_booking_evidence_additive_20261118.
+-- The fields, claim CHECK and review index now exist. This does NOT mean
+-- the post-Stripe dispatcher, voucher flow or Caravel supplier API are live.
+-- Before enabling any booking: verified clauses/v1 canonical §3.9 hash,
+-- explicit customer terms/coverage consent, official HMAC + 24-hour supplier
+-- certification, production API secrets and full Ride24 E2E tests.
 --
 -- Sole designated Caravel partner (until a separately reviewed expansion):
 -- 78721481-7619-44df-a9b7-5faa344b69bb.
