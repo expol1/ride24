@@ -195,6 +195,14 @@ test("booked price, protection and payment model must match the quote", () => {
     [{protection: {excess: eur(100), deposit: eur(0)}}, "BOOKED_PROTECTION_NOT_ZERO_RISK"],
     [{payment: {model: "prepaid"}}, "PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL"],
     [{payment: {model: "pay_on_arrival", amount_on_arrival: eur(14000)}}, "AMOUNT_ON_ARRIVAL_DIFFERS"],
+    [{protection: {excess: {amount:0,currency:"GBP"}, deposit:eur(0)}}, "BOOKED_PROTECTION_NOT_ZERO_RISK"],
+    [{protection: {excess:eur(0), deposit:{amount:0,currency:"USD"}}}, "BOOKED_PROTECTION_NOT_ZERO_RISK"],
+    [{payment: {model:"pay_on_arrival",amount_prepaid:eur(0),amount_on_arrival:{amount:15000,currency:"GBP"}}}, "AMOUNT_ON_ARRIVAL_DIFFERS"],
+    [{payment: {model:"pay_on_arrival",amount_prepaid:{amount:0,currency:"GBP"},amount_on_arrival:eur(15000)}}, "BOOKED_PREPAYMENT_NOT_ZERO"],
+    [{payment: {model:"pay_on_arrival",amount_prepaid:eur(100),amount_on_arrival:eur(15000)}}, "BOOKED_PREPAYMENT_NOT_ZERO"],
+    [{payment: {model:"pay_on_arrival",amount_prepaid:eur(0)}}, "AMOUNT_ON_ARRIVAL_DIFFERS"],
+    [{payment: {model:"pay_on_arrival",amount_on_arrival:eur(15000)}}, "BOOKED_PREPAYMENT_NOT_ZERO"],
+    [{payment: null}, "PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL"],
   ];
   for (const [patch, code] of cases) assert.ok(verifyCaravelBookingAgainstQuote(booking(patch), q).errors.includes(code), code);
 });
