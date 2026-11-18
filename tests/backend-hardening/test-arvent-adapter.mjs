@@ -122,13 +122,11 @@ test("reservation status lookup uses server-side stored email and stays pending"
  assert.ok(lookup.path.includes("customerEmail=synthetic%40example.invalid"));
 });
 
-test("read-only lookup after uncertain booking can find exact original reference",async()=>{
+test("unsupported agency-reference lookup never sends an invented supplier request",async()=>{
  const a=setup();
- const found=await a.arventLookupByAgencyReference(creds,"R24-XYZ","example@example.com");
- assert.equal(found.booking_reference,"A-1");
- assert.equal(found.status,"pending");
- assert.ok(a.calls.some(c=>c.path.includes("agencyReservationReference=R24-XYZ")));
- assert.ok(a.calls.every(c=>c.path!=="/reservations/save"));
+ await assert.rejects(()=>a.arventLookupByAgencyReference(creds,"R24-XYZ","example@example.com"),
+  /ARVENT_AGENCY_LOOKUP_UNSUPPORTED/);
+ assert.equal(a.calls.length,0);
 });
 const syntheticBooking={...input,partner_discount_percent:0,partner_amount:100,
  idempotency_key:"ride24:synthetic",ride24_booking_id:"R24-XYZ",reservation_code:"R24-XYZ",
