@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import {isCaravelBooking} from "../_shared/caravel-production-hold.mjs";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
   corsHeaders,
@@ -889,6 +890,15 @@ serve(async (req) => {
         uniquePartners.set(location.partner_id, location);
       }
       if (uniquePartners.size >= MAX_PARTNERS_PER_SEARCH) break;
+    }
+
+    // Caravel is not certified yet. Even if somebody accidentally enables
+    // its account, no Caravel quote or offer may reach a customer.
+    // This also matches the partner UUID while api_provider remains custom.
+    for (const [partnerId, location] of uniquePartners) {
+      if (isCaravelBooking({partner_id: partnerId, partners: location.partners})) {
+        uniquePartners.delete(partnerId);
+      }
     }
 
     // Avoid generating external API quotes for durations below the partner's minimum.

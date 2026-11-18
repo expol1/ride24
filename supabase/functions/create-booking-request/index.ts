@@ -1,4 +1,5 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
+import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -40,6 +41,7 @@ type PartnerRelation = {
   email: string | null;
   provider_type: "local" | "api";
   api_enabled: boolean;
+  api_provider: string | null;
   rental_terms_url: string | null;
   rental_rules_url: string | null;
   min_rental_days: number;
@@ -257,6 +259,7 @@ function normalizePartner(value: unknown): PartnerRelation | null {
     email: cleanText(row.email, 254),
     provider_type: String(row.provider_type || "local") as "local" | "api",
     api_enabled: row.api_enabled === true,
+    api_provider: cleanText(row.api_provider, 100),
     rental_terms_url: cleanText(row.rental_terms_url, 2_000),
     rental_rules_url: cleanText(row.rental_rules_url, 2_000),
     min_rental_days: Number.isInteger(Number(row.min_rental_days)) && Number(row.min_rental_days) >= 1
@@ -930,6 +933,7 @@ serve(async (req) => {
           email,
           provider_type,
           api_enabled,
+          api_provider,
           rental_terms_url,
           rental_rules_url,
           min_rental_days,
@@ -953,6 +957,22 @@ serve(async (req) => {
         { error: "Wybrana grupa pojazdów nie jest dostępna" },
         400,
       );
+    }
+
+    // Caravel is *Stripe-before-supplier*, while this generic handler
+    // immediately sends an API booking before Stripe. Refuse Caravel HERE,
+    // before claiming a quote or inserting any booking, until the dedicated
+    // flow + real clauses/v1 acceptance + certification are deployed.
+    // The UUID also catches today's Caravel account (api_provider=custom).
+    if (isCaravelBooking({
+      partner_id: car.partner_id,
+      partners: {api_provider: car.partner.api_provider},
+    })) {
+      return jsonResponse(req, {
+        error: "Oferty Caravel są chwilowo niedostępne. Wybierz inną ofertę.",
+        error_en: "Caravel reservations are not yet available.",
+        code: CARAVEL_PRE_CERTIFICATION_ERROR,
+      }, 409);
     }
 
     // Authoritative protection: old apps and direct API requests cannot bypass
