@@ -199,3 +199,77 @@ reservation has been certified.
 - Temporary branch-only GitHub Actions `push` trigger is in place while
   draft PR #105 has a merge conflict. Remove this temporary trigger before
   final production merge.
+
+## 2026-11-18 — verified actual rental documents from Supabase Storage
+
+Read source: two PDF v1.3 attachments sent on 2026-11-12 with the subject
+"ride24 contract and document templates." Confirmed that the Storage objects
+in `partners.rental_terms_url` and `partners.rental_rules_url` have exactly
+the same byte length and MD5/Storage ETag as these two originals:
+
+| Exact Storage object | Bytes | MD5 |
+| --- | ---: | --- |
+| `partner-documents/f781c993-8b26-4209-b3b8-11d0b544e4e1/versions/9adb25e5-0c7a-4f4f-9d24-756d77c74b71/terms.pdf` | 60878 | `b0532a5c4f62e2c8aca99d54186d8091` |
+| `partner-documents/f781c993-8b26-4209-b3b8-11d0b544e4e1/versions/4161c7aa-660e-4346-ae87-ba7cf5315838/rules.pdf` | 56058 | `c08065aa5eedfd71ec3a9b1fdfd6962c` |
+
+The two PDFs are **Arvent-specific**, bilingual EN/TR, dated 12 November 2026,
+version 1.3. The fact that the Storage directory starts with
+`f781c993...` instead of the Arvent partner ID is not evidence of wrong
+content; cryptographic hashes match the received Arvent files byte-for-byte.
+
+### Confirmed by the *customer-facing written terms*, not yet by live API
+
+- Special EUR net rental amount, supplier gets 100%; Ride24 partner discount
+  is 0%; independent Ride24 service fee; rental paid to Arvent in cash at pickup.
+- No security deposit, credit card, or preauthorization/card hold for agreed
+  Ride24 pilot offers.
+- Included comprehensive rental insurance for covered risks and **zero excess
+  only when the policy requirements are met**. No mandatory insurance top-up
+  for already included cover.
+- Unlimited mileage. Complimentary minor cosmetic-damage cover up to
+  TRY 10,000.
+- **Tire punctures/damage are excluded** from comprehensive and minor damage
+  insurance. Renter may owe actual, justified repair/replacement costs.
+- Booking by vehicle category. Equivalent or higher-category vehicle is allowed
+  under accepted terms without unexpected costs. Material substitution requires
+  customer consent before charging Ride24's fee.
+- Duration minimum billing unit 24 hours; return grace 2 hours, thereafter
+  a full additional rental day.
+- Driver guidance only (subject to category-level supplier confirmation):
+  economy age >=21 and license >=2y; intermediate >=25 and license >=2y;
+  upper classes >=28 and license >=5y.
+- Arvent pilot rental cancellation: at least 24h before pickup is free;
+  **no automatic Arvent penalty within 24h or for no-show** during pilot.
+  Separate Ride24 service fee refund is governed by Ride24 customer terms
+  and law, not automatically by Arvent's free cancellation.
+- Rental handover requires authorization, relevant license/identity document,
+  accepted fuel terms, and insurance exclusions/official accident documents.
+
+### Launch blocker: payment sequence discrepancy
+
+**Do not gloss over this conflict.** The documents say that Arvent receives
+the API request, confirms or declines, and **the customer pays the separate
+Ride24 online service fee after Arvent has confirmed** (Customer Policy
+section 1; Rental Terms sections 2 and 5). The current API paid-fulfillment
+design **takes the Stripe fee first, then rechecks the offer and creates the
+supplier reservation**. These are materially different commitments.
+
+Before launch, either:
+1. Obtain written agreement from Arvent to the actual paid-fulfillment order
+   and update the customer-facing policy and terms accordingly before
+   accepting any bookings, **or**
+2. Implement and thoroughly test a supplier-first (approved, unpaid), then
+   Stripe, then voucher flow including expiry/cancellation/late payment.
+
+The existing live adapter is gated and must stay gated until the documents
+and actual process agree. Do not silently edit signed/accepted PDFs.
+
+### Remaining supplier verification
+
+The written PDFs resolve **what the commercial policy promises**, not **whether
+the production easyCAR tenant actually returns the promised amounts/terms**.
+Supplier still needs to confirm live EUR net pricing, insurance flags and
+category-level eligibility, and whether status 0 requires manual approval.
+Read-only authenticated API probes and a controlled real booking/cancellation
+test remain required. Customer-facing tire exclusion must remain visible.
+
