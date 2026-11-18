@@ -104,7 +104,7 @@ export async function submitVerifiedCaravelBooking(args:{
     quoteId:plan.request.quote_id,
     totalAmountMinor:expectedCents,
     currency,
-  });
+  }, {strictProductionPayment:true});
   // Require explicit collection on arrival even if other reference checks pass.
   const payment=obj(record.payment)?record.payment:null;
   const missingPayment=payment?.model!=="pay_on_arrival";
