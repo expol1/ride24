@@ -555,43 +555,53 @@ test('homepage map uses the existing image as both desktop and mobile card backg
     dom.window.close();
 });
 
-test('vehicle location checkbox layout stays compact and scooter-only scope is clear', () => {
-    const css = read('assets/css/partner-fleet-locations-ux.css');
-    const d = new JSDOM(panel, {runScripts:'outside-only'});
+test('vehicle location selector defaults to all and reveals specific locations only when unchecked', () => {
+    const css=read('assets/css/partner-fleet-locations-ux.css');
+    const d=new JSDOM(panel,{runScripts:'outside-only'});
     try {
-        const w=d.window, doc=w.document;
+        const w=d.window,doc=w.document;
         const group=doc.getElementById('carClass');
         const all=doc.getElementById('carAllLocations');
         const allRow=doc.getElementById('carAllLocationsLabel');
         const choices=doc.getElementById('carLocationChoices');
-        const help=doc.getElementById('carLocationScopeHelp');
+        assert.equal(all.checked,true,'new vehicle must default to every active location');
+        assert.equal(choices.style.display,'none','hide individual location options until all is unchecked');
         assert.ok(doc.getElementById('carLocationScopeSection').classList.contains('r24-car-location-scope'));
         assert.ok(allRow.classList.contains('r24-car-location-all-row'));
         assert.ok(choices.classList.contains('r24-car-location-choices'));
+        assert.ok(!doc.getElementById('carLocationScopeHelp'),'scooters are no longer a special UI case');
         assert.match(panel,/class="r24-car-location-choice"/);
         assert.match(css,/#carLocationScopeSection input\[type="checkbox"\]/);
         assert.match(css,/width:19px!important;/);
         assert.match(css,/flex:0 0 19px!important;/);
         assert.match(css,/justify-content:flex-start!important;/);
         assert.match(css,/@media \(max-width:640px\)/);
+        assert.match(panel,/const allowedLocationIds = allCarLocations \? null : scopedLocationIds/);
+        assert.match(panel,/allBox.checked = selected === null;/);
         w.eval(declaration('syncCarLocationScope'));
-        group.value='A';
+        choices.innerHTML='<label><input type="checkbox" class="car-location-option" value="mostar"></label>'
+                        +'<label><input type="checkbox" class="car-location-option" value="sarajevo"></label>';
+        const inputs=[...choices.querySelectorAll('input')];
+        for(const value of ['A','0','B','F']) {
+            group.value=value;
+            all.checked=true;
+            w.syncCarLocationScope();
+            assert.equal(all.checked,true,'group '+value+' must not force uncheck');
+            assert.equal(all.disabled,false);
+            assert.equal(allRow.hidden,false);
+            assert.equal(choices.style.display,'none');
+            assert.ok(inputs.every(input=>input.disabled));
+            all.checked=false;
+            w.syncCarLocationScope();
+            assert.equal(choices.style.display,'grid');
+            assert.ok(inputs.every(input=>!input.disabled));
+            inputs[0].checked=true;
+            assert.equal(inputs[0].checked,true);
+            assert.equal(inputs[1].checked,false);
+        }
         all.checked=true;
         w.syncCarLocationScope();
         assert.equal(choices.style.display,'none');
-        assert.equal(allRow.hidden,false);
-        assert.equal(help.hidden,true);
-        group.value='0';
-        w.syncCarLocationScope();
-        assert.equal(all.checked,false);
-        assert.equal(all.disabled,true);
-        assert.equal(allRow.hidden,true);
-        assert.equal(help.hidden,false);
-        assert.equal(choices.style.display,'grid');
-        group.value='B';
-        w.syncCarLocationScope();
-        assert.equal(all.disabled,false);
-        assert.equal(allRow.hidden,false);
-        assert.equal(help.hidden,true);
-    } finally { d.window.close(); }
+        assert.ok(inputs.every(input=>input.disabled));
+    } finally {d.window.close();}
 });

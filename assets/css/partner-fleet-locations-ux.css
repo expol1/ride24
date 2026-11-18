@@ -325,7 +325,7 @@ html:lang(fr) :is(#view-fleet,#view-locations){--r24-seats:"Places";--r24-transm
   transition:border-color .15s ease,background .15s ease;
 }
 #carLocationScopeSection .r24-car-location-all-row {
-  margin-bottom:11px!important;
+  margin-bottom:0!important;
   background:#edf6ff;
   border-color:#b9d4f2;
 }
@@ -356,7 +356,7 @@ html:lang(fr) :is(#view-fleet,#view-locations){--r24-seats:"Places";--r24-transm
   grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr));
   align-items:stretch;
   gap:9px;
-  margin:0;
+  margin:10px 0 0;
   padding:0;
   color:#48617d;
   font-size:13px;
