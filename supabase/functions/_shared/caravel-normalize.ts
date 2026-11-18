@@ -636,7 +636,7 @@ export function buildCaravelOfferFromApi(input: {
   const read = caravelQuoteFromApi(input?.quoteData, protection, input?.supplier);
   if ("errors" in read) errors.push(...read.errors);
   // Ride24 Premium guarantees, confirmed only from supplier data (fail closed).
-  const premium = evaluateCaravelPremiumForRide24(row.plan, protection, qd.deposit, input.exclusionReview);
+  const premium = evaluateCaravelPremiumForRide24(row.plan, protection, qd.deposit, input?.exclusionReview);
   if ("errors" in premium) errors.push(...premium.errors);
   let hours = input?.operatingHours;
   if (!hours && input?.pickupLocation && input?.dropoffLocation) {
