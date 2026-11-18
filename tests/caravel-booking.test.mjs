@@ -131,6 +131,9 @@ test("production booking draft is fail-closed until certified terms, protection 
   const approved=buildCaravelBookingDraft(disclosedQuote,NOW,{
     environment:"production",production:disclosedGate});
   assert.equal(approved.ok,true,JSON.stringify(approved.errors));
+  const missingDepositProof=buildCaravelBookingDraft(disclosedQuote,NOW,{
+    environment:"production",production:{...disclosedGate,quoteDeposit:undefined}});
+  assert.ok(missingDepositProof.errors.includes("CARAVEL_QUOTE_DEPOSIT_UNVERIFIED"));
   const absentCustomerAcceptance=buildCaravelBookingDraft(disclosedQuote,NOW,{
     environment:"production",
     production:{...disclosedGate,coverageDisclosureAcceptedBeforePayment:false}});
