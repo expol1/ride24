@@ -964,10 +964,13 @@ export function caravelProtectionCandidates(row: unknown): Array<{source: "inclu
  * only a pre-selection — publication still requires the final quote to confirm
  * it (zero quote deposit, protection line in the quote, totals reconciled).
  */
-export function selectCaravelPremiumProtection(row: unknown): {source: "included" | "option"; protection: Json} | null {
+export function selectCaravelPremiumProtection(
+  row: unknown, reviewedExclusions?: CaravelApprovedExclusionReview,
+): {source: "included" | "option"; protection: Json} | null {
   const r = rec(row) ?? {};
   if (r.plan !== "premium") return null;
-  return caravelProtectionCandidates(r).find((c) => evaluateCaravelPremium("premium", c.protection).ok) ?? null;
+  return caravelProtectionCandidates(r).find(c=>
+    evaluateCaravelPremiumForRide24("premium",c.protection,undefined,reviewedExclusions).ok) ?? null;
 }
 
 const minor = (v: unknown): number | null => { const m = money(v); return m ? m.amount : null; };
