@@ -68,7 +68,8 @@ const bookingSnapshot=()=>({
 });
 const booking=()=>({
  id:B,client_id:C,partner_id:PARTNER,provider_type:"api",
- status:"awaiting_payment",api_status:null,api_booking_reference:null,
+ status:"awaiting_payment",api_status:"caravel_awaiting_stripe",
+ api_booking_reference:null,
  cancelled_at:null,manual_review:false,
  online_payment_pln:39.99,stripe_session_id:"cs_test_full",
  stripe_currency:null,stripe_amount_cents:null,api_quote_id:RQ,
