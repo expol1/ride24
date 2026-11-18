@@ -20,6 +20,7 @@ import {
   aggregatorCancel,
 } from "./renteon-aggregator.ts";
 import {arventTestConnection, arventFetchLocations, arventFetchGroups, arventSearch, arventCreateBooking, arventBookingStatus, arventCancelBooking} from "./arvent-kolaycar.ts";
+import {cancelCaravelBooking} from "./caravel-paid-fulfillment.ts";
 
 export type ProviderKey =
   | "ride24_standard_v1"
@@ -1389,6 +1390,10 @@ export async function cancelProviderBooking(
   externalReference: string,
   body: Record<string, unknown> = {},
 ): Promise<Record<string, unknown>> {
+  // Caravel: only cancellation of an existing booking goes through this shared helper
+  // (search/booking use the Caravel adapters). Checked before safeProvider on purpose.
+  if (String(providerValue || "").trim().toLowerCase() === "caravel")
+    return await cancelCaravelBooking(credentials, externalReference, body);
   const provider = safeProvider(providerValue);
   if (provider === "arvent_kolaycar") return await arventCancelBooking(credentials, externalReference, body);
   if (provider === "renteon_aggregator") {

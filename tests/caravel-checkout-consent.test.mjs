@@ -24,7 +24,7 @@ test("release gate: closed by default (production today), opens only with certif
   assert.equal((await loadCaravelRelease(fakeDb(s))).reason, "CARAVEL_CHECKOUT_NOT_RELEASED");
   const p = await releasedState(); p.partners[0].api_enabled = false;
   assert.equal((await loadCaravelRelease(fakeDb(p))).reason, "CARAVEL_PARTNER_NOT_ACTIVE");
-  const tampered = await releasedState(); tampered.caravel_reviewed_terms[0].body.clauses[0].clauses[0].paragraphs[0][0].text = "No fee.";
+  const tampered = await releasedState(); tampered.caravel_reviewed_terms[0].body.clauses[2].clauses[0].paragraphs[0][0].text = "No fee.";
   assert.equal((await loadCaravelRelease(fakeDb(tampered))).reason, "CARAVEL_REVIEWED_TERMS_HASH_MISMATCH");
   const missing = await releasedState({caravel_reviewed_terms: []});
   assert.equal((await loadCaravelRelease(fakeDb(missing))).reason, "CARAVEL_REVIEWED_TERMS_MISSING");
@@ -37,7 +37,7 @@ test("release gate: closed by default (production today), opens only with certif
 test("consent view: verified terms, every exclusion, exact admin fee, money split, no full-insurance claim", async () => {
   const release = await loadCaravelRelease(fakeDb(await releasedState()));
   const v = buildCaravelConsentView(await quoteRow(), release, "pl", NOW);
-  assert.equal(v.terms.document_id, "caravel-en-v4");
+  assert.equal(v.terms.document_id, "caravel-en-v5");
   assert.match(v.terms.html, /<strong>An administration fee of EUR 100/);
   assert.deepEqual(v.coverage.excluded.map((x) => x.label), ["szyby", "opony i koła", "podwozie"]);
   assert.equal(v.coverage.full_insurance_claim_allowed, false);
@@ -48,8 +48,16 @@ test("consent view: verified terms, every exclusion, exact admin fee, money spli
   assert.match(all, /płacisz Caravel przy odbiorze/);
   assert.match(all, /Stripe pobiera wyłącznie osobną opłatę rezerwacyjną Ride24/);
   assert.match(all, /NIE obejmuje: szyby, opony i koła, podwozie/);
-  assert.match(all, /100\.00 EUR \(pkt 6\.1/);
+  assert.match(all, /100\.00 EUR za wynajem \(nie za każde zdarzenie\), także przy pakiecie Premium \(pkt 7\.1/);
   assert.match(all, /kategorię pojazdu, nie konkretny model/);
+  // EN v5 key clauses (Caravel 18 Nov 2026): 17, 27.1, 7.4, 13 and the no-double-payment guarantee.
+  assert.match(all, /gotówką lub kartą Visa\/Mastercard/);
+  assert.match(all, /Karta kredytowa ani depozyt nie są wymagane przy pakiecie Premium \(pkt 17\)/);
+  assert.match(all, /płacisz przy zwrocie gotówką lub kartą; kwoty ustalone później Caravel fakturuje .* \(pkt 27\.1\)/);
+  assert.match(all, /Mandaty, parkingi, opłaty drogowe .* \(pkt 7\.4\)/);
+  assert.match(all, /bezpłatnie anulować do momentu odbioru \(pkt 13\)/);
+  assert.match(all, /nie płacisz dwa razy/);
+  assert.match(all, /udział własny przy kradzieży 0/);
   assert.doesNotMatch(all, /pełne ubezpieczenie(?! bez wyłączeń)/);
   const en = buildCaravelConsentView(await quoteRow(), release, "en", NOW);
   assert.match(en.statements.join(" "), /not full cover without exclusions/);
@@ -58,7 +66,7 @@ test("consent view: verified terms, every exclusion, exact admin fee, money spli
 test("consent view refuses: release closed, quote of other terms version, prepayment, expiring or used quote", async () => {
   const release = await loadCaravelRelease(fakeDb(await releasedState()));
   assert.equal(buildCaravelConsentView(await quoteRow(), {open: false, reason: "x"}, "pl", NOW), null);
-  assert.equal(buildCaravelConsentView(await quoteRow({}, {terms_document_id: "caravel-en-v3"}), release, "pl", NOW), null);
+  assert.equal(buildCaravelConsentView(await quoteRow({}, {terms_document_id: "caravel-en-v4"}), release, "pl", NOW), null);
   assert.equal(buildCaravelConsentView(await quoteRow({}, {amounts_minor: {total: 15000, pay_now: 5000, pay_at_pickup: 10000}}), release, "pl", NOW), null);
   assert.equal(buildCaravelConsentView(await quoteRow({expires_at: new Date(NOW + 5 * 60000).toISOString()}), release, "pl", NOW), null);
   assert.equal(buildCaravelConsentView(await quoteRow({used_at: "2026-12-01T09:00:00Z"}), release, "pl", NOW), null);
@@ -76,13 +84,13 @@ test("commit payload: echo must match what was shown; terms version change inval
   assert.equal(ok.payload.caravel_coverage_damage_admin_fee_minor, 10000);
   assert.equal(ok.payload.terms_accepted, true);
   for (const bad of [{...echo, accepted: false}, {...echo, coverage_acknowledged: undefined},
-    {...echo, terms_content_hash: "b".repeat(64)}, {...echo, terms_document_id: "caravel-en-v3"},
+    {...echo, terms_content_hash: "b".repeat(64)}, {...echo, terms_document_id: "caravel-en-v4"},
     {...echo, excluded_codes: ["glass"]}, {...echo, damage_admin_fee_minor: 0}])
     assert.deepEqual(buildCaravelCommitPayload(row, release, bad, ctx(), NOW), {ok: false, code: "CARAVEL_TERMS_CONSENT_STALE_OR_MISSING"});
   // New document approved after the customer saw v4: the old echo no longer matches.
-  const v5Body = {...body(), title: "Caravel Rental Terms v5"};
-  const v5 = await releasedState({caravel_reviewed_terms: [await termsRow({document_id: "caravel-en-v5", version: 5, title: "Caravel Rental Terms v5", body: v5Body, content_hash: await computeCaravelTermsContentHash(v5Body)})]});
-  v5.caravel_release_control[0].terms_document_id = "caravel-en-v5"; v5.caravel_release_control[0].terms_content_hash = v5.caravel_reviewed_terms[0].content_hash;
+  const v5Body = {...body(), title: "Caravel Rental Terms v6"};
+  const v5 = await releasedState({caravel_reviewed_terms: [await termsRow({document_id: "caravel-en-v6", version: 6, title: "Caravel Rental Terms v6", body: v5Body, content_hash: await computeCaravelTermsContentHash(v5Body)})]});
+  v5.caravel_release_control[0].terms_document_id = "caravel-en-v6"; v5.caravel_release_control[0].terms_content_hash = v5.caravel_reviewed_terms[0].content_hash;
   const r5 = await loadCaravelRelease(fakeDb(v5));
   assert.equal(r5.open, true);
   assert.equal(buildCaravelCommitPayload(row, r5, echo, ctx(), NOW).ok, false);
@@ -180,7 +188,7 @@ test("search-api / checkout / web wiring keeps every other partner path and fail
   const search = readFileSync(new URL("../supabase/functions/search-api/index.ts", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.match(search, /caravelRelease \?\?= await loadCaravelRelease\(admin\);\n\s+if \(!caravelRelease\.open\) uniquePartners\.delete\(partnerId\);/);
   assert.match(search, /if \(caravelRelease\?\.open && isCaravelBooking\(/);
-  assert.match(search, /noCreditCard: false,/);
+  assert.match(search, /noCreditCard: release\.terms\.noCardRequired === true,/);
   const checkout = readFileSync(new URL("../supabase/functions/create_checkout_session/index.ts", import.meta.url), "utf8");
   assert.match(checkout, /if \(isCaravelBooking\(booking\)\) \{\s+const release = await loadCaravelRelease\(admin\);/);
   assert.match(checkout, /booking\.caravel_terms_document_id !== release\.terms\.documentId/);

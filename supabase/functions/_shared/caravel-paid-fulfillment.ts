@@ -48,7 +48,7 @@ export async function caravelBookingUuid(bookingId: string, purpose: "quote" | "
 }
 
 export type CaravelClientFactory = (apiKey: string, writes: boolean) => Pick<CaravelClient,
-  "environment" | "quote" | "book" | "bookingStatusSandbox" | "suppliers" | "referenceTerms">;
+  "environment" | "quote" | "book" | "bookingStatusSandbox" | "suppliers" | "referenceTerms" | "cancel">;
 const defaultFactory: CaravelClientFactory = (apiKey, writes) => new CaravelClient({
   apiKey, environment: "production", allowProduction: true, allowProductionBookingWrites: writes});
 
@@ -222,4 +222,49 @@ export async function readPaidCaravelStatus(credentials: unknown, reference: str
 /** Read-only production client from partner_api_credentials (search, consent re-quote). */
 export function caravelProductionReadClient(credentials: unknown) {
   return defaultFactory(productionKey(credentials), false) as CaravelClient;
+}
+
+/** Stable UUID for any Ride24 idempotency string (e.g. "ride24:cancel:<booking id>"). */
+async function uuidFromKey(key: string): Promise<string> {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`ride24-caravel:${key}`)));
+  d[6] = (d[6] & 0x0f) | 0x50; d[8] = (d[8] & 0x3f) | 0x80;
+  const h = [...d.slice(0, 16)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
+}
+
+/**
+ * Cancel a confirmed Caravel booking from the EXISTING Ride24 cancellation flows
+ * (client-cancel-booking, api-booking-dispatch, api-booking-status-sync via
+ * cancelProviderBooking). Free until pickup under the Ride24 agreement (clause 13);
+ * any fee Caravel reports is returned for the existing refund logic, never hidden.
+ * Reads the current revision, cancels with a stable Idempotency-Key, refetches once
+ * on 409 revision_conflict. Needs CARAVEL_PRODUCTION_WRITES_ALLOWED=true; otherwise
+ * it throws and the existing flow queues manual review.
+ */
+export async function cancelCaravelBooking(credentials: unknown, reference: string, body: Rec = {},
+  opts: {factory?: CaravelClientFactory; read?: (k: string) => string | undefined} = {}) {
+  if ((opts.read ?? env)("CARAVEL_PRODUCTION_WRITES_ALLOWED") !== "true") throw new Error("CARAVEL_CANCEL_WRITES_DISABLED");
+  if (typeof reference !== "string" || !isUuid(reference)) throw new Error("CARAVEL_REFERENCE_INVALID");
+  const client = (opts.factory ?? defaultFactory)(productionKey(credentials), true);
+  const key = await uuidFromKey(String(body.idempotency_key ?? `cancel:${reference}`));
+  const read = async () => rec((await client.bookingStatusSandbox(reference)).data) ?? {};
+  let current = await read();
+  if (current.status === "cancelled")
+    return {booking_reference: reference, reference, status: "cancelled", provider_payload: {revision: current.revision, already_cancelled: true}};
+  let result: Rec | null = null;
+  for (let attempt = 0; attempt < 2 && !result; attempt++) {
+    try {
+      result = rec((await client.cancel(reference, Number(current.revision), key)).data);
+    } catch (e) {
+      if ((e as {code?: string})?.code !== "revision_conflict" || attempt > 0) throw e;
+      current = await read();
+      if (current.status === "cancelled")
+        return {booking_reference: reference, reference, status: "cancelled", provider_payload: {revision: current.revision}};
+    }
+  }
+  const status = caravelBookingStatus(result?.status);
+  const fee = rec(rec(result?.cancellation)?.fee);
+  return {booking_reference: reference, reference, status: status.ride24 === "cancelled" ? "cancelled" : status.caravel,
+    provider_payload: {revision: result?.revision, cancellation_fee_minor: typeof fee?.amount === "number" ? fee.amount : null,
+      cancellation_fee_currency: typeof fee?.currency === "string" ? fee.currency : null}};
 }

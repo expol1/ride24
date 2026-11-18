@@ -25,6 +25,7 @@ export type CaravelReviewedTerms = {
   contentHash: string; publishedAt: string; body: Rec;
   documentedExcludedCodes: string[]; damageAdminFeeMinor: number; damageAdminFeeCurrency: "EUR";
   exclusionClauseRefs: string[]; adminFeeClauseRef: string | null;
+  keyClauseRefs: Record<string, string>; noCardRequired: boolean; freeCancellationUntilPickup: boolean;
 };
 export type CaravelRelease =
   | {open: true; terms: CaravelReviewedTerms; snapshot: CaravelTermsSnapshot; review: CaravelApprovedExclusionReview}
@@ -45,7 +46,9 @@ export function reviewedTermsFromRow(row: unknown): CaravelReviewedTerms | null 
   return {documentId: r.document_id, supplierId: r.supplier_id, language: r.language, version: r.version as number,
     title: r.title, contentHash: r.content_hash, publishedAt: r.published_at, body: r.body as Rec,
     documentedExcludedCodes: [...new Set(codes as string[])].sort(), damageAdminFeeMinor: r.damage_admin_fee_minor as number,
-    damageAdminFeeCurrency: "EUR", exclusionClauseRefs: refs as string[], adminFeeClauseRef: (r.admin_fee_clause_ref as string) ?? null};
+    damageAdminFeeCurrency: "EUR", exclusionClauseRefs: refs as string[], adminFeeClauseRef: (r.admin_fee_clause_ref as string) ?? null,
+    keyClauseRefs: Object.fromEntries(Object.entries(rec(r.key_clause_refs) ?? {}).filter(([, v]) => typeof v === "string")) as Record<string, string>,
+    noCardRequired: r.no_card_required === true, freeCancellationUntilPickup: r.free_cancellation_until_pickup === true};
 }
 
 export async function loadCaravelRelease(admin: Db): Promise<CaravelRelease> {

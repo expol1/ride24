@@ -17,7 +17,7 @@ const sql = (f) => readFile(new URL('../../supabase/migrations/' + f, import.met
 const MIGRATIONS = ['20261114110526_api_payment_first_workflow_20261113.sql',
   '20261118124748_caravel_booking_evidence_additive_20261118.sql',
   '20261118141251_caravel_atomic_pending_booking_release_closed_20261118.sql',
-  '20261118170000_caravel_reviewed_terms_store.sql'];
+  '20261118170000_caravel_reviewed_terms_store.sql', '20261118210000_caravel_reviewed_terms_key_clauses.sql'];
 const USER = '0a1b2c3d-4e5f-4a6b-8c7d-1234567890ab';
 const PICK = '0aa18fda-4e7c-4b31-98b9-480d53e086e8';
 const CAR = 'd20bbca4-678c-4abf-bf4d-cf5356220170';
@@ -94,7 +94,7 @@ async function supplier() {
   const calls = [];
   const hash = (await termsRow()).content_hash;
   const factory = () => ({environment: 'production',
-    async referenceTerms() { return {data: [{document_id: 'caravel-en-v4', language: 'en', content_hash: hash, withdrawn_at: null}]}; },
+    async referenceTerms() { return {data: [{document_id: 'caravel-en-v5', language: 'en', content_hash: hash, withdrawn_at: null}]}; },
     async suppliers() { return {data: [{supplier_id: 'acct_eur', status: 'active', currency: 'EUR', tax_inclusive: true}]}; },
     async quote(req, key) { calls.push(['quote', key]); return {data: {quote_id: '9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d', status: 'active',
       plan: 'premium', currency: 'EUR', payment_model: 'pay_on_arrival', rental_days: 3, expires_at: new Date(Date.now() + 30 * 60000).toISOString(),

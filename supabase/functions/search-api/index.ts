@@ -871,8 +871,11 @@ async function searchCaravelPartner(
       api_quote_id: offer.apiQuoteId,
       api_pickup_external_id: pickupLocation.external_id,
       api_dropoff_external_id: dropoffLocation.external_id,
-      noCreditCard: false,
-      noCardHold: false,
+      // Clause 17 (EN v5): "No card is required for the Premium package" — claimed only
+      // when the reviewed binding terms say so; never inferred from supplier codes.
+      noCreditCard: release.terms.noCardRequired === true,
+      noCardHold: release.terms.noCardRequired === true,
+      caravel_free_cancellation_until_pickup: release.terms.freeCancellationUntilPickup === true,
       caravel_consent_required: true,
       caravel_protection: "premium_included",
       caravel_deposit_minor: 0,

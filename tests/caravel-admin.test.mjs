@@ -22,14 +22,14 @@ function db(state = {}) {
 }
 async function termsClient(patch = {}, env = "production") {
   const b = body();
-  const meta = {document_id: "caravel-en-v4", language: "en", version: 4, title: b.title, format: "clauses/v1",
+  const meta = {document_id: "caravel-en-v5", language: "en", version: 4, title: b.title, format: "clauses/v1",
     content_hash: await computeCaravelTermsContentHash(b), published_at: "2026-11-17T10:00:00Z", withdrawn_at: null, ...patch};
   return {environment: env, async referenceTerms() { return {data: [meta]}; },
     async referenceTermsDocument() { return {data: {...meta, body: b}}; }, meta};
 }
-const input = (p = {}) => ({supplierId: "acct_eur", language: "en", documentId: "caravel-en-v4",
+const input = (p = {}) => ({supplierId: "acct_eur", language: "en", documentId: "caravel-en-v5",
   excludedCodes: ["undercarriage", "glass", "tyres_and_wheels"], damageAdminFeeMinor: 10000,
-  exclusionClauseRefs: ["6"], adminFeeClauseRef: "6.1", approvedBy: "admin:test", ...p});
+  exclusionClauseRefs: ["5.4"], adminFeeClauseRef: "7.1", approvedBy: "admin:test", ...p});
 
 test("terms ingest: production document re-hashed, clause refs checked, stored immutably with sorted codes", async () => {
   const c = await termsClient(); const d = db();
@@ -38,7 +38,9 @@ test("terms ingest: production document re-hashed, clause refs checked, stored i
   const row = d.ops[0].rows[0];
   assert.equal(row.content_hash, c.meta.content_hash);
   assert.deepEqual(row.documented_excluded_codes, ["glass", "tyres_and_wheels", "undercarriage"]);
-  assert.equal(row.admin_fee_clause_ref, "6.1");
+  assert.equal(row.admin_fee_clause_ref, "7.1");
+  assert.equal(row.no_card_required, true, "clause 17 states no card is required");
+  assert.equal(row.key_clause_refs.post_return, "27.1");
   assert.equal(d.ops.filter((o) => o.table === "caravel_release_control").length, 0, "never approves the release");
   const again = await ingestCaravelProductionTerms({admin: d, client: c, input: input()});
   assert.equal(again.ok, true); assert.equal(again.alreadyStored, true);
@@ -49,9 +51,9 @@ test("terms ingest: production document re-hashed, clause refs checked, stored i
 test("terms ingest refuses: sandbox, not current doc, forged hash, missing clause, fee not in clause, bad input", async () => {
   const d = db();
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient({}, "sandbox"), input: input()})).code, "CARAVEL_PRODUCTION_ONLY");
-  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({documentId: "caravel-en-v3"})})).code, "CARAVEL_TERMS_NOT_CURRENT_DOCUMENT");
+  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({documentId: "caravel-en-v4"})})).code, "CARAVEL_TERMS_NOT_CURRENT_DOCUMENT");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient({content_hash: "a".repeat(64)}), input: input()})).code, "CARAVEL_TERMS_CONTENT_HASH_MISMATCH");
-  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({exclusionClauseRefs: ["9"]})})).code, "CARAVEL_CLAUSE_REFERENCE_NOT_IN_DOCUMENT");
+  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({exclusionClauseRefs: ["9.9"]})})).code, "CARAVEL_CLAUSE_REFERENCE_NOT_IN_DOCUMENT");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({damageAdminFeeMinor: 15000})})).code, "CARAVEL_ADMIN_FEE_NOT_STATED_IN_CLAUSE");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({adminFeeClauseRef: null})})).code, "CARAVEL_ADMIN_FEE_CLAUSE_REQUIRED");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({excludedCodes: ["Glass!"]})})).code, "CARAVEL_TERMS_INGEST_INPUT_INVALID");

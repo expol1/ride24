@@ -47,7 +47,19 @@ export type TermsIngestInput = {
   exclusionClauseRefs: string[];
   adminFeeClauseRef: string | null;
   approvedBy: string;
+  /**
+   * Key clauses shown to the customer (Caravel EN v5, 18 Nov 2026): no_card (17),
+   * post_return (27.1), fines (7.4), cancellation (13), premium_package (5.2).
+   * Defaults to those numbers; each must exist in the document.
+   */
+  keyClauseRefs?: Partial<Record<CaravelKeyClause, string>>;
+  /** Operator confirmation from the supplier's agreement: free cancellation until pickup. */
+  freeCancellationUntilPickup?: boolean;
 };
+export type CaravelKeyClause = "no_card" | "post_return" | "fines" | "cancellation" | "premium_package";
+export const CARAVEL_V5_KEY_CLAUSES: Readonly<Record<CaravelKeyClause, string>> = Object.freeze({
+  no_card: "17", post_return: "27.1", fines: "7.4", cancellation: "13", premium_package: "5.2",
+});
 
 export async function ingestCaravelProductionTerms(args: {
   admin: Db; client: Pick<CaravelClient, "environment" | "referenceTerms" | "referenceTermsDocument">;
@@ -76,6 +88,11 @@ export async function ingestCaravelProductionTerms(args: {
     if (!new RegExp(`(^|[^0-9])${major.replace(".", "[.,]")}([^0-9]|$)`).test(clauses.get(i.adminFeeClauseRef!)!))
       return {ok: false, code: "CARAVEL_ADMIN_FEE_NOT_STATED_IN_CLAUSE"};
   }
+  const keyRefs = {...CARAVEL_V5_KEY_CLAUSES, ...(i.keyClauseRefs ?? {})};
+  for (const ref of Object.values(keyRefs))
+    if (typeof ref !== "string" || !clauses.has(ref)) return {ok: false, code: "CARAVEL_KEY_CLAUSE_NOT_IN_DOCUMENT"};
+  // "No card required" is claimed only when the binding clause says so in words.
+  const noCardRequired = /\bno card is required\b/i.test(clauses.get(keyRefs.no_card) ?? "");
   const hash = String(doc.content_hash);
   const existing = await args.admin.from("caravel_reviewed_terms").select("document_id,content_hash")
     .eq("document_id", i.documentId).maybeSingle();
@@ -88,6 +105,8 @@ export async function ingestCaravelProductionTerms(args: {
     title: doc.title, format: doc.format, content_hash: hash, published_at: doc.published_at, body: doc.body,
     documented_excluded_codes: [...i.excludedCodes].sort(), damage_admin_fee_minor: i.damageAdminFeeMinor,
     damage_admin_fee_currency: "EUR", exclusion_clause_refs: i.exclusionClauseRefs, admin_fee_clause_ref: i.adminFeeClauseRef,
+    key_clause_refs: keyRefs, no_card_required: noCardRequired,
+    free_cancellation_until_pickup: i.freeCancellationUntilPickup === true,
     approved_by: i.approvedBy.trim().slice(0, 200), approved_at: args.nowIso ?? new Date().toISOString(),
   });
   if (error) return {ok: false, code: "CARAVEL_TERMS_STORE_WRITE_FAILED"};

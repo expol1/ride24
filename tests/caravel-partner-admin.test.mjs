@@ -24,12 +24,14 @@ function db(state = {}) {
   }, async rpc(name, args) { ops.push({rpc: name, args}); return {data: {open: args.p_open}, error: null}; }};
   return api;
 }
-async function client(docId = "caravel-en-v4", env = "production") {
+async function client(docId = "caravel-en-v5", env = "production") {
   const b = body();
   const meta = {document_id: docId, language: "en", version: 4, title: b.title, format: "clauses/v1",
     content_hash: await computeCaravelTermsContentHash(b), published_at: "2026-11-17T10:00:00Z", withdrawn_at: null};
   return {environment: env, meta,
     async capabilities() { return {data: {api_version: "1.68.0"}}; },
+    pinned: "1.67.0",
+    async whoami() { return {data: {api_version: {pinned: this.pinned, latest: "1.68.0"}}}; },
     async suppliers() { return {data: [{supplier_id: "acct_eur", status: "active", tax_inclusive: true, payment_models: ["pay_on_arrival"]},
       {supplier_id: "acct_other", status: "active", tax_inclusive: true, payment_models: ["prepaid"]}]}; },
     async locations() { return {data: [{supplier_id: "acct_eur", location_id: "1", type: "airport", name: "Athens Airport",
@@ -41,7 +43,7 @@ async function client(docId = "caravel-en-v4", env = "production") {
     async referenceTermsDocument() { return {data: {...meta, body: b}}; }};
 }
 const panel = {certified_at: "2026-11-30T12:00:00.000Z", damage_admin_fee_eur: "100", excluded_codes: "glass, tyres_and_wheels, undercarriage",
-  exclusion_clause_refs: "6", admin_fee_clause_ref: "6.1"};
+  exclusion_clause_refs: "5.4", admin_fee_clause_ref: "7.1"};
 const run = async (action, d, c, p = panel) => handleCaravelPartnerAction({action, admin: d, client: c, panel: p, actor: "admin:test"});
 
 test("Test button: read-only production check; sandbox credentials refused", async () => {
@@ -50,6 +52,9 @@ test("Test button: read-only production check; sandbox credentials refused", asy
   assert.equal(r.status, 200); assert.match(r.body.message, /dostawców: 1/);
   assert.equal(d.ops.find((o) => o.table === "partner_api_credentials").values.last_test_ok, true);
   assert.equal((await run("test", db(), await client("x", "sandbox"))).status, 409);
+  const moved = await client(); moved.pinned = "1.68.0";
+  const r2 = await run("test", db(), moved);
+  assert.equal(r2.status, 409); assert.match(r2.body.error, /wymagane 1\.67\.0/);
 });
 
 test("Sync button: catalogue (pay-on-arrival suppliers only, new rows inactive) + terms with panel review fields", async () => {
@@ -68,12 +73,12 @@ test("Sync button: catalogue (pay-on-arrival suppliers only, new rows inactive) 
 });
 
 test("Activate button: atomic release with certification time and newest reviewed document; Deactivate without supplier", async () => {
-  const d = db({caravel_reviewed_terms: [{document_id: "caravel-en-v4", content_hash: "a".repeat(64), approved_at: "x"}]});
+  const d = db({caravel_reviewed_terms: [{document_id: "caravel-en-v5", content_hash: "a".repeat(64), approved_at: "x"}]});
   const r = await run("activate", d, await client());
   assert.equal(r.status, 200);
   const call = d.ops.find((o) => o.rpc === "caravel_set_release");
   assert.equal(call.args.p_open, true); assert.equal(call.args.p_certified_at, panel.certified_at);
-  assert.equal(call.args.p_document_id, "caravel-en-v4");
+  assert.equal(call.args.p_document_id, "caravel-en-v5");
   assert.equal((await run("activate", db(), await client())).status, 409, "no reviewed terms -> blocked");
   assert.equal((await run("activate", db({caravel_reviewed_terms: [{document_id: "d", content_hash: "a".repeat(64)}]}), await client(), {})).status, 409, "no certification date -> blocked");
   const off = db();
@@ -90,7 +95,7 @@ test("auto-sync: unchanged terms keep selling; new terms version is stored and s
   assert.ok(!same.ops.some((o) => o.rpc));
   assert.ok(same.ops.filter((o) => o.op === "insert").every((o) => o.rows.every((x) => x.active === true)), "new catalogue rows go live while released");
   const changed = db(structuredClone(s));
-  const r2 = await runCaravelAutoSync({admin: changed, client: await client("caravel-en-v5")});
+  const r2 = await runCaravelAutoSync({admin: changed, client: await client("caravel-en-v6")});
   assert.equal(r2.suppliers[0].terms.changed, true);
   assert.equal(r2.suppliers[0].terms.stored.ok, true, "re-verified with previous review parameters");
   assert.equal(changed.ops.find((o) => o.rpc).args.p_open, false, "sales paused");

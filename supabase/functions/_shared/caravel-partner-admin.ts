@@ -22,7 +22,9 @@ import type {CaravelClient} from "./caravel-sandbox-adapter.ts";
 type Rec = Record<string, unknown>;
 // deno-lint-ignore no-explicit-any
 type Db = any;
-type Client = Pick<CaravelClient, "environment" | "capabilities" | "suppliers" | "locations" | "vehicleClasses" | "reference" |
+/** The account stays pinned to the certified version; Ride24 never sends X-API-Version. */
+export const CARAVEL_CERTIFIED_API_VERSION = "1.67.0";
+type Client = Pick<CaravelClient, "environment" | "capabilities" | "whoami" | "suppliers" | "locations" | "vehicleClasses" | "reference" |
   "referenceTerms" | "referenceTermsDocument">;
 const rec = (v: unknown): Rec | null => !!v && typeof v === "object" && !Array.isArray(v) ? v as Rec : null;
 const list = (v: unknown) => (typeof v === "string" ? v.split(/[,\s]+/) : Array.isArray(v) ? v.map(String) : [])
@@ -31,6 +33,7 @@ const list = (v: unknown) => (typeof v === "string" ? v.split(/[,\s]+/) : Array.
 export type CaravelPanelInput = {
   certified_at?: string; excluded_codes?: string | string[]; damage_admin_fee_eur?: string | number;
   exclusion_clause_refs?: string | string[]; admin_fee_clause_ref?: string;
+  free_cancellation_until_pickup?: boolean;
 };
 export type CaravelAdminResult = {status: number; body: Rec};
 const ok = (message: string, extra: Rec = {}): CaravelAdminResult => ({status: 200, body: {success: true, message, ...extra}});
@@ -44,7 +47,7 @@ async function sellableSuppliers(client: Client): Promise<string[]> {
 }
 
 async function latestReviewed(admin: Db, supplierId?: string): Promise<Rec | null> {
-  let q = admin.from("caravel_reviewed_terms").select("document_id,supplier_id,language,content_hash,documented_excluded_codes,damage_admin_fee_minor,exclusion_clause_refs,admin_fee_clause_ref,approved_at");
+  let q = admin.from("caravel_reviewed_terms").select("document_id,supplier_id,language,content_hash,documented_excluded_codes,damage_admin_fee_minor,exclusion_clause_refs,admin_fee_clause_ref,key_clause_refs,free_cancellation_until_pickup,approved_at");
   if (supplierId) q = q.eq("supplier_id", supplierId);
   const {data} = await q.order("approved_at", {ascending: false}).limit(1);
   return (data ?? [])[0] ?? null;
@@ -62,8 +65,14 @@ async function refreshTerms(admin: Db, client: Client, supplierId: string, panel
   const current = metaList.filter((m) => m.language === "en" && m.withdrawn_at === null);
   if (current.length !== 1) return {ok: false, code: "CARAVEL_TERMS_CURRENT_AMBIGUOUS_OR_MISSING"};
   if (!Number.isSafeInteger(fee)) return {ok: false, code: "CARAVEL_TERMS_REVIEW_FIELDS_REQUIRED"};
+  // Free cancellation until pickup is read from the supplier's published policy (never typed in).
+  const policy = rec(((await client.reference("policies", supplierId)).data as Rec[])?.[0]);
+  const c = rec(policy?.cancellation);
+  const freeUntilPickup = c?.type === "free" || (c?.type === "free_until" && c?.free_until_hours_before_pickup === 0);
   return ingestCaravelProductionTerms({admin, client, input: {supplierId, language: "en", documentId: current[0].document_id,
-    excludedCodes: codes, damageAdminFeeMinor: fee, exclusionClauseRefs: refs, adminFeeClauseRef: feeRef, approvedBy: actor}});
+    excludedCodes: codes, damageAdminFeeMinor: fee, exclusionClauseRefs: refs, adminFeeClauseRef: feeRef, approvedBy: actor,
+    keyClauseRefs: rec(prev?.key_clause_refs) as Record<string, string> | undefined ?? undefined,
+    freeCancellationUntilPickup: freeUntilPickup}});
 }
 
 export async function handleCaravelPartnerAction(args: {
@@ -79,11 +88,14 @@ export async function handleCaravelPartnerAction(args: {
   if (!client || client.environment !== "production") return no("Caravel: wymagane poświadczenia produkcyjne (https://api.caravelway.com)");
   if (action === "test") {
     const caps = await client.capabilities();
+    const pinned = rec(rec((await client.whoami()).data)?.api_version)?.pinned;
+    if (pinned !== CARAVEL_CERTIFIED_API_VERSION)
+      return no(`Caravel: konto przypięte do API ${String(pinned ?? "?")}, wymagane ${CARAVEL_CERTIFIED_API_VERSION} (certyfikowane)`);
     const suppliers = await sellableSuppliers(client);
     await admin.from("partner_api_credentials").update({last_test_at: new Date().toISOString(), last_test_ok: suppliers.length > 0,
       last_error: suppliers.length ? null : "CARAVEL_NO_PAY_ON_ARRIVAL_SUPPLIER"}).eq("partner_id", CARAVEL_PARTNER_ID);
     return suppliers.length
-      ? ok(`Caravel: połączenie poprawne (API ${String(rec(caps.data)?.api_version ?? "?")}, dostawców: ${suppliers.length})`)
+      ? ok(`Caravel: połączenie poprawne (API przypięte ${pinned}, serwer ${String(rec(caps.data)?.api_version ?? "?")}, dostawców: ${suppliers.length})`)
       : no("Caravel: brak dostawcy z płatnością przy odbiorze");
   }
   if (action === "sync") {

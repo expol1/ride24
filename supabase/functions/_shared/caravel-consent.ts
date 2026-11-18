@@ -100,22 +100,38 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
   const t = release.terms;
   const pl = lang === "pl";
   const at = money(f.rentalMinor, f.currency);
+  const ref = (k: string, fallback = "") => t.keyClauseRefs?.[k] ? (pl ? ` (pkt ${t.keyClauseRefs[k]})` : ` (clause ${t.keyClauseRefs[k]})`) : fallback;
   const statements = [
     pl ? `Rezerwujesz kategorię pojazdu, nie konkretny model.` : `You are booking a vehicle category, not a specific model.`,
-    pl ? `Cenę wynajmu ${at} płacisz Caravel przy odbiorze. Stripe pobiera wyłącznie osobną opłatę rezerwacyjną Ride24.`
-       : `You pay the rental price of ${at} to Caravel at pickup. Stripe charges only the separate Ride24 booking fee.`,
-    pl ? `Pakiet Premium jest wliczony w cenę wynajmu: depozyt 0 i udział własny 0 według tej wyceny.`
-       : `Premium protection is included in the rental price: deposit 0 and excess 0 according to this quote.`,
+    pl ? `Cenę wynajmu ${at} płacisz Caravel przy odbiorze${t.noCardRequired ? ", gotówką lub kartą Visa/Mastercard (kredytową albo debetową) wystawioną na głównego kierowcę" : ""}. Stripe pobiera wyłącznie osobną opłatę rezerwacyjną Ride24 — nie płacisz dwa razy.`
+       : `You pay the rental price of ${at} to Caravel at pickup${t.noCardRequired ? ", in cash or by Visa/Mastercard (credit or debit) in the main driver's name" : ""}. Stripe charges only the separate Ride24 booking fee — you never pay twice.`,
+    pl ? `Pakiet Premium jest wliczony w cenę wynajmu: depozyt 0, udział własny 0 i udział własny przy kradzieży 0 według tej wyceny.`
+       : `Premium protection is included in the rental price: deposit 0, excess 0 and theft excess 0 according to this quote.`,
   ];
+  if (t.noCardRequired)
+    statements.push(pl ? `Karta kredytowa ani depozyt nie są wymagane przy pakiecie Premium${ref("no_card")}.`
+      : `No credit card and no deposit are needed on the Premium package${ref("no_card")}.`);
   if (f.excludes.length) {
     statements.push(pl
       ? `Ochrona NIE obejmuje: ${f.excludes.map((c) => label(c, "pl")).join(", ")}. Nie jest to pełne ubezpieczenie bez wyłączeń.`
       : `Protection does NOT cover: ${f.excludes.map((c) => label(c, "en")).join(", ")}. This is not full cover without exclusions.`);
     if (f.adminFeeMinor && f.adminFeeMinor > 0)
       statements.push(pl
-        ? `W razie szkody lub kradzieży Caravel pobiera opłatę administracyjną ${money(f.adminFeeMinor, "EUR")}${t.adminFeeClauseRef ? ` (pkt ${t.adminFeeClauseRef} regulaminu)` : ""}.`
-        : `In case of damage or theft Caravel charges an administration fee of ${money(f.adminFeeMinor, "EUR")}${t.adminFeeClauseRef ? ` (clause ${t.adminFeeClauseRef})` : ""}.`);
+        ? `W razie szkody lub kradzieży Caravel pobiera opłatę administracyjną ${money(f.adminFeeMinor, "EUR")} za wynajem (nie za każde zdarzenie), także przy pakiecie Premium${t.adminFeeClauseRef ? ` (pkt ${t.adminFeeClauseRef} regulaminu)` : ""}.`
+        : `If the vehicle is damaged or stolen, Caravel charges an administration fee of ${money(f.adminFeeMinor, "EUR")} per rental (not per incident), also on Premium${t.adminFeeClauseRef ? ` (clause ${t.adminFeeClauseRef})` : ""}.`);
   }
+  if (t.keyClauseRefs?.post_return)
+    statements.push(pl
+      ? `Kwoty należne po zwrocie (szkody poza ochroną, opłata administracyjna, mandaty itp.) płacisz przy zwrocie gotówką lub kartą; kwoty ustalone później Caravel fakturuje na głównego kierowcę, płatne od razu po otrzymaniu faktury${ref("post_return")}.`
+      : `Amounts owed after return (damage outside the cover, the administration fee, fines, etc.) are paid at return in cash or by card; amounts identified later are invoiced to the main driver and due on receipt${ref("post_return")}.`);
+  if (t.keyClauseRefs?.fines)
+    statements.push(pl
+      ? `Mandaty, parkingi, opłaty drogowe i podobne należności obciążają najemcę i są przekazywane wraz z opłatą administracyjną za obsługę${ref("fines")}.`
+      : `Traffic fines, parking, tolls and similar charges remain the renter's and are passed on with an administrative handling fee${ref("fines")}.`);
+  if (t.freeCancellationUntilPickup)
+    statements.push(pl
+      ? `Rezerwację u Caravel można bezpłatnie anulować do momentu odbioru${ref("cancellation")}. Zwrot opłaty rezerwacyjnej Ride24 odbywa się zgodnie z regulaminem Ride24.`
+      : `The Caravel booking can be cancelled free of charge until pickup${ref("cancellation")}. Refund of the Ride24 booking fee follows the Ride24 terms.`);
   return {
     api_quote_id: f.quote.id, supplier_quote_id: f.quote.external_quote_reference, expires_at: f.quote.expires_at,
     terms: {document_id: t.documentId, content_hash: t.contentHash, language: t.language, version: t.version,
