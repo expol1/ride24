@@ -9,7 +9,7 @@ const source=await readFile(new URL("../../supabase/functions/_shared/arvent-kol
 const transformed=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
 assert.equal(transformed.diagnostics?.length||0,0,"Arvent adapter must parse as TypeScript");
 
-function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0,savedPickupLocation=9}={}){
+function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false}={}){
  const calls=[];
  const transport={
   sanitizePartnerPayload:x=>x,
@@ -28,6 +28,7 @@ function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0,sa
     totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
    if(path.startsWith("/extras?"))return {success:true,resultCode:0,
     data:{vehicle:{vehicleId:100},extras:[]}};
+   if(path==="/reservations/save"&&save401)throw Error("PARTNER_API_ERROR:HTTP:401");
    if(path==="/reservations/save")return {success:true,resultCode:0,
     data:{reservationNumber:"A-1",agencyReservationReference:"R24-XYZ",reservationStatusType:savedStatus,
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
@@ -171,4 +172,10 @@ test("approved supplier confirmation with changed pickup must never reach vouche
  const created=await b.arventCreateBooking(creds,syntheticBooking);
  assert.equal(created.status,"pending");
  assert.equal(created.route_mismatch,true);
+});
+
+test("HTTP 401 cannot replay SaveReservation POST and risk double-booking",async()=>{
+ const a=setup({allowWrites:true,save401:true});
+ await assert.rejects(()=>a.arventCreateBooking(creds,syntheticBooking),/HTTP:401/);
+ assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
 });
