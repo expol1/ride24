@@ -128,8 +128,7 @@ export async function issueVerifiedCaravelQuote(args:{
  }catch{return reject("CARAVEL_QUOTE_DB_CONTEXT_FAILED");}
  const partner=p.data,klass=c.data;
  const pickupRow=pickup.data,dropoffRow=dropoff.data;
- if(p.error||c.error||pickup.error||dropoff.error||
-    !partner||!klass||!pickupRow||!dropoffRow||
+ if(p.error||c.error||!partner||!klass||
     partner.api_provider!=="caravel"||partner.api_enabled!==true||
     partner.api_status!=="synced"||partner.provider_type!=="api"||
     partner.active!==true||partner.account_status!=="active"||
@@ -137,7 +136,8 @@ export async function issueVerifiedCaravelQuote(args:{
     partner.currency!==requested.currency||
     klass.active!==true||klass.external_id!==requested.vehicle_id)
    return reject("CARAVEL_QUOTE_PARTNER_CLASS_NOT_ACTIVE");
- if(pickupRow.id!==args.pickupLocationId||
+ if(pickup.error||dropoff.error||!pickupRow||!dropoffRow||
+    pickupRow.id!==args.pickupLocationId||
     dropoffRow.id!==args.dropoffLocationId||
     pickupRow.partner_id!==PARTNER_ID||
     dropoffRow.partner_id!==PARTNER_ID||
