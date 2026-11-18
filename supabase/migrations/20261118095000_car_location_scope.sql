@@ -14,6 +14,7 @@ AS $func$
 DECLARE valid_count integer;
 BEGIN
   IF NEW.active IS TRUE AND NEW.class_code = '0' AND NEW.allowed_location_ids IS NULL
+     AND EXISTS (SELECT 1 FROM public.partners p WHERE p.id=NEW.partner_id AND p.provider_type='local')
      AND (TG_OP = 'INSERT' OR
        (TG_OP = 'UPDATE' AND
          (OLD.class_code IS DISTINCT FROM '0'
