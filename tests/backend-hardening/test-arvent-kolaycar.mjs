@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
  supplierData,arventDate,arventQuery,arventLocationRows,arventGroupRows,
  arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventDateOfBirth,arventSavePayload,arventSavedRouteMatches,
- ARVENT_PATHS,
+ ARVENT_PATHS, ARVENT_INITIAL_AIRPORT_IATAS,
 } from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 
 const ok=data=>({success:true,resultCode:0,data});
@@ -121,4 +121,19 @@ test("supplier approved booking must preserve exact locations, dates and times",
   {pickupLocationId:null},{returnDate:null}
  ])assert.equal(arventSavedRouteMatches({...saved,...changed},expected),false,JSON.stringify(changed));
  assert.equal(arventSavedRouteMatches(saved,{...expected,return_time:"12:00"}),false);
+});
+
+test("initial Arvent sync cannot expose non-agreed airports or non-airport offices",()=>{
+ assert.deepEqual([...ARVENT_INITIAL_AIRPORT_IATAS].sort(),
+ ["SAW","IST","SZF","ASR","DLM","AYT","ADB","EDO","AOE","TZX"].sort());
+ const input=[
+  {locationId:1,locationName:"Allowed Airport",countryCode:"TR",isAirport:true,iataCode:"SAW",isPickup:true},
+  {locationId:2,locationName:"Non-contract Airport",countryCode:"TR",isAirport:true,iataCode:"BJV",isPickup:true},
+  {locationId:3,locationName:"Ambiguous Airport",countryCode:"TR",isAirport:true,iataCode:null,isPickup:true},
+  {locationId:4,locationName:"Non-airport Office",countryCode:"TR",isAirport:false,iataCode:"SAW",isPickup:true},
+  {locationId:5,locationName:"Approved coded airport",countryCode:"TR",isAirport:true,locationCode:"TZX",isPickup:true},
+ ];
+ const rows=arventLocationRows(ok(input));
+ assert.deepEqual(rows.map(x=>x.iata_code),["SAW","TZX"]);
+ assert.deepEqual(rows.map(x=>x.external_id),["1","5"]);
 });
