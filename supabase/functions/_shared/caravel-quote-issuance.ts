@@ -227,7 +227,7 @@ export async function issueVerifiedCaravelQuote(args:{
    return reject("CARAVEL_QUOTE_PROTECTION_STORAGE_INVALID");
  const money=(value:unknown):{amount:number;currency:string}|null=>{
    const r=rec(value);
-   return r&&Number.isSafeInteger(r.amount)&&
+   return r&&typeof r.amount==="number"&&Number.isSafeInteger(r.amount)&&
      r.amount>=0&&r.currency===contract.currency?
      {amount:r.amount as number,currency:contract.currency}:null;
  };
