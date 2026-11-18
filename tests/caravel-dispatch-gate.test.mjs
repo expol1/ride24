@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {prepareVerifiedCaravelDispatch} from "../supabase/functions/_shared/caravel-dispatch-gate.ts";
+import {captureCaravelCoverageConsentBeforeStripe} from "../supabase/functions/_shared/caravel-coverage-consent.ts";
 import {submitVerifiedCaravelBooking} from "../supabase/functions/_shared/caravel-provider-bridge.ts";
 
 const NOW=1900000000000;
@@ -135,6 +136,54 @@ test("expired quote, failed insurance or licence checks prevent creation of a di
     assert.equal(result.action,"hold_for_manual_review");
     assert.ok(result.reasons.length>0);
   }
+});
+
+test("Caravel exclusions require actual persisted consent across Stripe, not a transient true flag",()=>{
+ const f=fixture();
+ const excludes=["glass","tyres_and_wheels","undercarriage","administration_fee"];
+ const reviewed={
+   termsDocumentId:f.reviewedTerms.documentId,
+   termsContentHash:f.reviewedTerms.contentHash,
+   documentedExcludedCodes:excludes,
+   damageAdministrationFeeMinor:10000,currency:"EUR",
+   approvedByRide24:true,canonicalHashVerified:true,
+ };
+ const gate={...f.productionGate,coverageReview:reviewed,
+   coverageDisclosureAcceptedBeforePayment:true,
+   coverageExcludedCodesShown:excludes,
+   damageAdministrationFeeShownMinor:10000,
+   protection:{...f.productionGate.protection,
+     covers:["bodywork","theft","fire"],excludes},
+ };
+ const data={...f.bookingInput.provider_quote_data,
+   coverage_review_terms_document_id:reviewed.termsDocumentId,
+   coverage_exclusions:excludes,
+   damage_administration_fee_minor:10000,
+   protection:{product_type:"waiver",covers:gate.protection.covers,excludes},
+ };
+ const bookingInput={...f.bookingInput,provider_quote_data:data};
+ const consent=captureCaravelCoverageConsentBeforeStripe({
+   quote:data,reviewed,customerAccepted:true,
+   displayedDocumentId:reviewed.termsDocumentId,
+   displayedExcludedCodes:excludes,displayedAdminFeeMinor:10000,
+   acceptedAtServerIso:"2026-11-18T10:12:34.000Z",
+ });
+ const args={...f,bookingInput,productionGate:gate};
+ const notSaved=prepareVerifiedCaravelDispatch(args);
+ assert.equal(notSaved.ok,false);
+ assert.ok(notSaved.reasons.includes("CARAVEL_COVERAGE_PERSISTED_CONSENT_MISSING"));
+ const good=prepareVerifiedCaravelDispatch({...args,persistedCoverageConsent:consent});
+ assert.equal(good.ok,true,JSON.stringify(good));
+ const changed=prepareVerifiedCaravelDispatch({...args,
+   persistedCoverageConsent:{...consent,caravel_coverage_damage_admin_fee_minor:0}});
+ assert.equal(changed.ok,false);
+ assert.ok(changed.reasons.includes("CARAVEL_COVERAGE_PERSISTED_CONSENT_MISMATCH"));
+ const staleQuote=prepareVerifiedCaravelDispatch({...args,
+   bookingInput:{...bookingInput,provider_quote_data:{...data,
+     coverage_exclusions:["glass"]}},
+   persistedCoverageConsent:consent});
+ assert.equal(staleQuote.ok,false);
+ assert.ok(staleQuote.reasons.includes("CARAVEL_COVERAGE_QUOTE_CHANGED"));
 });
 
 const SUPPLIER_BOOKING_ID="04a1f3e1-1fb4-4d28-af02-979604d5c622";
