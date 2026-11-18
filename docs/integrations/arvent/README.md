@@ -273,3 +273,74 @@ category-level eligibility, and whether status 0 requires manual approval.
 Read-only authenticated API probes and a controlled real booking/cancellation
 test remain required. Customer-facing tire exclusion must remain visible.
 
+
+## 2026-11-18 — live, read-only supplier validation (NO booking writes)
+
+Authenticated against the **live** Arvent REST host using the credentials
+already supplied in the original user-provided integration materials.
+The credentials were stored in Ride24's existing protected server-side
+`partner_api_credentials` record. Neither credentials nor Bearer token
+were sent to GitHub, logs or the client.
+
+- `POST /users/authenticate`: HTTP 200, business success, Bearer returned.
+- `GET /locations`: HTTP 200, **13** supplier locations.
+  - Contracted available airport IDs: **SAW=1, IST=4, SZF=6, ASR=5,
+    DLM=13, AYT=12, ADB=10, TZX=9**.
+  - EDO and AOE were **not present** in the actual supplier response.
+  - ESB, GZT, BJV and two Alanya locations are outside the rollout
+    allowance; do not enable them. Preserve existing Erdem ADB/BJV.
+  - Supplier IATA anomalies: `"(ADB)"` for Izmir and blank IATA but
+    explicit `"(TZX)"` in the Trabzon airport name. The adapter now
+    handles these exact cases without city-based guesses.
+- `GET /locations/cities?countryCode=TR`: HTTP 200, **82** cities.
+- `GET /vehicles/list?languageCode=EN`: HTTP 200, **415**
+  catalogue items. Only **203** have complete four-letter SIPP codes;
+  **212** have no code. Missing SIPP cannot be replaced by an invented
+  class identifier.
+- Live availability AYT, pickup/return **16–18 February 2027**,
+  EUR, 10:00: HTTP 200, **78** offers. All 78 explicitly returned
+  zero deposit, no card required and unlimited mileage; **55**
+  offers also have a valid four-letter SIPP code.
+- Same search SAW: the first 10-second call timed out; a 25-second
+  read-only retry returned HTTP 200 with **68** offers; **46**
+  with valid SIPP. All 68 had zero deposit/card hold and unlimited KM
+  fields, in EUR.
+- Live `GET /extras` for an AYT offer (vehicle 1, €58.76 total for
+  two days): HTTP 200. Response was `{vehicle: {...}, extras: null}`,
+  so the adapter was adjusted to accept this **only** with price,
+  route and no-deposit/card/KM verification of the returned vehicle.
+  This does not certify priced optional extras for other offers.
+
+### Production database — safe, unpublished metadata stage
+
+- Successful connection evidence recorded (`last_test_ok=true`).
+- **8** real contracted airport records staged, `active=false`.
+- **203** SIPP-mappable category records staged, `active=false`,
+  `public_price=0`; static catalog prices are never fabricated.
+- Partner remains `api_provider='custom'`, `api_enabled=false`,
+  `api_status='draft'`; no full admin sync `last_sync_at` and
+  no deployment. Other partners unchanged.
+- No supplier booking or cancellation POST, no Stripe customer payment
+  and no confirmed voucher have been executed.
+
+### Hard launch blockers — signed/accepted flow and provider confirmation
+
+The customer-facing EN/TR v1.3 documents (and the supplier's full B2B
+draft) say **Arvent approval precedes Ride24's separate Stripe fee**.
+The current Ride24 API paid fulfillment does **Stripe first, supplier
+reservation second**. A signed/agreed policy amendment or a safely
+implemented supplier-first branch is required. Do not enable selling
+simply because live search works.
+
+The full B2B agreement *draft* sent on 12 Nov also calls for end-to-end
+acceptance and **mutual written launch confirmation**. The accepted
+partner-agreement PDF on the account is a separate *temporary short
+agreement*, so do not claim that draft was signed without checking.
+Approval behavior of status=0 and definitive meaning of status=6,
+supplier-supported timeout/duplicate recovery, optional extras,
+one-way charges and passenger DOB requirements still require explicit
+end-to-end certification.
+
+Read-only test evidence is not a substitute for an actual reservation,
+immediate confirmed cancellation, Stripe refund path, voucher/notification
+and other-provider regression tests.
