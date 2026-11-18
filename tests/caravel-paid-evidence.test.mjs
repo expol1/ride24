@@ -151,7 +151,7 @@ test("missing production migration columns and database errors fail closed",asyn
 test("Caravel evidence reads the existing search-api raw_response.provider_quote_data contract",()=>{
  const src=readFileSync(new URL("../supabase/functions/_shared/caravel-paid-evidence.ts",import.meta.url),"utf8");
  const search=readFileSync(new URL("../supabase/functions/search-api/index.ts",import.meta.url),"utf8");
- assert.match(src,/raw\.provider_quote_data/);
+ assert.match(src,/raw\?\.provider_quote_data/);
  assert.match(search,/provider_quote_data: group\.provider_quote_data \|\| \{\}/);
  assert.doesNotMatch(src,/raw\.caravel_quote/);
 });
