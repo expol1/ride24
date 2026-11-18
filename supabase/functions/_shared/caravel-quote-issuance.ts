@@ -26,6 +26,7 @@ import {compareCaravelTermsVersion,bindReviewedCaravelTermsToQuote,
   from "./caravel-terms-version.ts";
 import {sanitizePartnerPayload}
   from "./partner-api.ts";
+import {apiQuoteContext} from "./api-quote-contract.mjs";
 type Rec=Record<string,unknown>;
 type DbResult={data:Rec|null;error:{message?:string}|null};
 type Query={eq:(k:string,v:unknown)=>Query;maybeSingle:()=>Promise<DbResult>};
@@ -60,6 +61,9 @@ export async function issueVerifiedCaravelQuote(args:{
  quoteRequest:CaravelQuoteRequest;
  /** Trusted Ride24 location/date mapping for the same request. */
  startDate:string;endDate:string;
+ /** Trusted user-visible canonical Ride24 locations and clock time. */
+ pickupDisplayName:string;dropoffDisplayName:string;
+ pickupLocalTime:string;dropoffLocalTime:string;
  rentalDays:number;
  nowEpochMs:number;
  reviewedTerms:CaravelTermsSnapshot;
@@ -74,6 +78,10 @@ export async function issueVerifiedCaravelQuote(args:{
     !uuid(args.idempotencyKey)||!uuid(args.carClassId)||
     typeof args.supplierId!=="string"||!SUPPLIER.test(args.supplierId)||
     !DAY.test(args.startDate)||!DAY.test(args.endDate)||
+    typeof args.pickupDisplayName!=="string"||!args.pickupDisplayName.trim()||
+    typeof args.dropoffDisplayName!=="string"||!args.dropoffDisplayName.trim()||
+    !/^\d\d:\d\d$/.test(args.pickupLocalTime)||
+    !/^\d\d:\d\d$/.test(args.dropoffLocalTime)||
     !Number.isSafeInteger(args.rentalDays)||args.rentalDays<1||
     args.rentalDays>366||!Number.isSafeInteger(args.nowEpochMs))
    return reject("CARAVEL_QUOTE_INPUT_INVALID");
@@ -97,8 +105,8 @@ export async function issueVerifiedCaravelQuote(args:{
     requested.drivers[0]?.role!=="main"||
     !Number.isSafeInteger(requested.drivers[0]?.age)||
     requested.drivers[0].age<18||requested.drivers[0].age>90||
-    !requested.pickup.at.startsWith(args.startDate)||
-    !requested.dropoff.at.startsWith(args.endDate)||
+    !requested.pickup.at.startsWith(args.startDate+"T"+args.pickupLocalTime)||
+    !requested.dropoff.at.startsWith(args.endDate+"T"+args.dropoffLocalTime)||
     Date.parse(requested.pickup.at)>=Date.parse(requested.dropoff.at)||
     !Number.isFinite(Date.parse(requested.pickup.at))||
     !Number.isFinite(Date.parse(requested.dropoff.at))||
@@ -215,10 +223,10 @@ export async function issueVerifiedCaravelQuote(args:{
    group_external_id:requested.vehicle_id,
    quote_reference:parsed.quote.quoteId,
    provider_quote_data:enriched,
-   ride24_context:{
-    pickup_time:requested.pickup.at,
-    return_time:requested.dropoff.at,
-   },
+   ride24_context:apiQuoteContext({
+     pickupTime:args.pickupLocalTime,returnTime:args.dropoffLocalTime,
+     pickupName:args.pickupDisplayName,returnName:args.dropoffDisplayName,
+   }),
  };
  const sanitized=sanitizePartnerPayload(payload,60000);
  if(!sanitized||typeof sanitized!=="object"||
