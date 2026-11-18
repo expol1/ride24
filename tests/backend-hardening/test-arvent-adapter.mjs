@@ -9,7 +9,7 @@ const source=await readFile(new URL("../../supabase/functions/_shared/arvent-kol
 const transformed=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
 assert.equal(transformed.diagnostics?.length||0,0,"Arvent adapter must parse as TypeScript");
 
-function setup(){
+function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0}={}){
  const calls=[];
  const transport={
   sanitizePartnerPayload:x=>x,
@@ -26,6 +26,15 @@ function setup(){
     vehicleId:100,vehicleName:"Example Category",sippCode:"CDAR",
     currencyCode:"EUR",isAvailable:true,depositPrice:0,depositCreditCardRequired:false,
     totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
+   if(path.startsWith("/extras?"))return {success:true,resultCode:0,
+    data:{vehicle:{vehicleId:100},extras:[]}};
+   if(path==="/reservations/save")return {success:true,resultCode:0,
+    data:{reservationNumber:"A-1",agencyReservationReference:"R24-XYZ",reservationStatusType:savedStatus,
+     totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     depositCreditCardRequired:false,totalKMLimit:0}};
+   if(path.startsWith("/reservations?")&&path.includes("agencyReservationReference="))
+    return {success:true,resultCode:0,data:{reservationNumber:"A-1",
+     agencyReservationReference:"R24-XYZ",reservationStatusType:0}};
    if(path.startsWith("/reservations?"))return {success:true,resultCode:0,
     data:{reservationNumber:"A-1",reservationStatusType:0}};
    throw Error("Unexpected supplier endpoint "+path.split("?")[0]);
@@ -38,7 +47,7 @@ function setup(){
   name==="./ride24-security.ts"?supabase:
   name==="./arvent-kolaycar-contract.mjs"?contract:
   (()=>{throw Error("Unexpected import "+name)})();
- const sandbox={exports:{},require,Deno:{env:{get:()=>undefined}},URLSearchParams,URL,console};
+ const sandbox={exports:{},require,Deno:{env:{get:key=>allowWrites&&key==="ARVENT_KOLAYCAR_WRITE_ALLOWED"?"true":undefined}},URLSearchParams,URL,console};
  vm.runInNewContext(transformed.outputText,sandbox);
  return {...sandbox.exports,calls};
 }
@@ -95,4 +104,37 @@ test("reservation status lookup uses server-side stored email and stays pending"
  assert.equal(result.status,"pending");
  const lookup=a.calls.find(c=>c.path.startsWith("/reservations?"));
  assert.ok(lookup.path.includes("customerEmail=synthetic%40example.invalid"));
+});
+
+test("read-only lookup after uncertain booking can find exact original reference",async()=>{
+ const a=setup();
+ const found=await a.arventLookupByAgencyReference(creds,"R24-XYZ","example@example.com");
+ assert.equal(found.booking_reference,"A-1");
+ assert.equal(found.status,"pending");
+ assert.ok(a.calls.some(c=>c.path.includes("agencyReservationReference=R24-XYZ")));
+ assert.ok(a.calls.every(c=>c.path!=="/reservations/save"));
+});
+const syntheticBooking={...input,partner_discount_percent:0,partner_amount:100,
+ idempotency_key:"ride24:synthetic",ride24_booking_id:"R24-XYZ",reservation_code:"R24-XYZ",
+ vehicle_group_id:"100",main_driver:{name:"Example Customer"},client_email:"example@example.com",
+ client_phone:"000000000",provider_quote_data:{provider:"arvent_kolaycar",vehicle_id:"100"}};
+test("approved status 1 only clears review after price and contract verification",async()=>{
+ const a=setup({allowWrites:true,savedStatus:1});
+ const result=await a.arventCreateBooking(creds,syntheticBooking);
+ assert.equal(result.status,"confirmed");
+ assert.equal(result.needs_manual_review,false);
+ assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
+});
+test("received 0 never triggers voucher even after successful HTTP response",async()=>{
+ const a=setup({allowWrites:true,savedStatus:0});
+ const result=await a.arventCreateBooking(creds,syntheticBooking);
+ assert.equal(result.status,"pending");
+ assert.equal(result.needs_manual_review,true);
+});
+test("changed amount or deposit in saved reservation requires manual review",async()=>{
+ for(const options of [{savedPrice:101},{savedDeposit:2000}]){
+  const a=setup({allowWrites:true,savedStatus:1,...options});
+  const result=await a.arventCreateBooking(creds,syntheticBooking);
+  assert.equal(result.needs_manual_review,true,JSON.stringify(options));
+ }
 });
