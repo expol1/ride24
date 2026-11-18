@@ -9,7 +9,9 @@ test("generic booking rejects Caravel before claiming quote or saving a booking"
  const quote=src.indexOf("quoteClaim = await claimApiQuote(");
  const insert=src.indexOf('.from("bookings")\n      .insert(insertPayload)');
  const provider=src.indexOf("await dispatchApiBooking(bookingId)");
- assert.ok(loadCar>=0&&guard>loadCar&&quote>guard&&insert>guard&&provider>guard);
+ // main moved API bookings to Stripe-first: the handler no longer dispatches
+ // to the supplier at all (provider === -1). If it ever does again, it must be after the guard.
+ assert.ok(loadCar>=0&&guard>loadCar&&quote>guard&&insert>guard&&(provider===-1||provider>guard));
  assert.match(src,/api_provider,\s*rental_terms_url,/);
  assert.match(src,/code: CARAVEL_PRE_CERTIFICATION_ERROR/);
 });

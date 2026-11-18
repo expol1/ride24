@@ -302,6 +302,9 @@ export async function issueVerifiedCaravelQuote(args:{
    return reject("CARAVEL_QUOTE_PROTECTION_STORAGE_INVALID");
  enriched.protection=safeProtection;
  enriched.deposit={amount:{amount:0,currency:contract.currency}};
+ // Exact instants of the accepted selection: the paid flow re-quotes the identical request.
+ enriched.pickup_at=requested.pickup.at;
+ enriched.dropoff_at=requested.dropoff.at;
  const payload= {
    group_external_id:requested.vehicle_id,
    quote_reference:parsed.quote.quoteId,

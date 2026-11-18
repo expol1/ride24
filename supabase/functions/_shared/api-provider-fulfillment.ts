@@ -2,6 +2,7 @@ import { aggregatorAvailability, aggregatorQuoteOptions, aggregatorBook, aggrega
 import { arventSearch, arventCreateBooking, arventBookingStatus } from './arvent-kolaycar.ts';
 import { selectedServices, serviceCents } from './provider-services.mjs';
 import { DefiniteApiFailure } from './api-payment-flow.mjs';
+import { caravelPaidFulfillmentApproved, revalidatePaidCaravel, createPaidCaravel, readPaidCaravelStatus } from './caravel-paid-fulfillment.ts';
 
 // A new adapter must implement all four operations before it can accept payment.
 // Generic HTTP endpoints are not evidence of safe post-payment fulfillment.
@@ -16,7 +17,9 @@ function arventPaymentApproved():boolean {
 }
 export function hasPaidFulfillmentAdapter(provider:unknown) {
  return provider==='renteon_aggregator'
-  ||(provider==='arvent_kolaycar'&&arventPaymentApproved());
+  ||(provider==='arvent_kolaycar'&&arventPaymentApproved())
+  // Caravel: same shared Stripe-first workflow; disabled until both server flags are set.
+  ||(provider==='caravel'&&caravelPaidFulfillmentApproved());
 }
 const fail=(code:string):never=>{throw new DefiniteApiFailure(code);};
 const stable=(v:any):string=>JSON.stringify(v==null?null:Array.isArray(v)?v.map(x=>JSON.parse(stable(x))):typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,JSON.parse(stable(v[k]))])):v);
@@ -35,6 +38,8 @@ export async function revalidatePaidProvider(credentials:any,booking:any,quote:a
  if(!hasPaidFulfillmentAdapter(booking.partners.api_provider))fail('ADAPTER_NOT_READY');
  if(booking.partners.api_provider==='arvent_kolaycar')
   return revalidatePaidArvent(credentials,booking,quote);
+ if(booking.partners.api_provider==='caravel')
+  return revalidatePaidCaravel(credentials,booking,quote);
  if(booking.cancelled_at || ['cancelled','rejected','expired','payment_expired'].includes(booking.status))fail('CANCELLED_BEFORE_DISPATCH');
  if(!quote)fail('ACCEPTED_QUOTE_REQUIRED');
  const raw=quote.raw_response,old=raw?.provider_quote_data,options=raw?.ride24_options;
@@ -138,6 +143,7 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  };
 }
 export async function createPaidProvider(credentials:any,input:any) {
+ if(input?.provider==='caravel')return createPaidCaravel(credentials,input);
  if(input?.provider==='arvent_kolaycar'){
    if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
    return arventCreateBooking(credentials,input);
@@ -146,6 +152,7 @@ export async function createPaidProvider(credentials:any,input:any) {
  return aggregatorBook(credentials,input);
 }
 export async function readPaidProviderStatus(credentials:any,reference:string,prepared:any) {
+ if(prepared?.provider==='caravel')return readPaidCaravelStatus(credentials,reference,prepared);
  if(prepared?.provider==='arvent_kolaycar'){
   if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
   const result=await arventBookingStatus(credentials,reference);
