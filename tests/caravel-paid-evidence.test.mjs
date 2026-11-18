@@ -15,7 +15,7 @@ const quote=()=>({
  vehicle_id:"opaque-veh",currency:"EUR",payment_model:"pay_on_arrival",
  plan:"premium",expires_at:later,terms_document_id:"caravel-en-v4",
  terms_language:"en",terms_content_hash:H,
- amounts_minor:{total:15000,pay_now:0,pay_at_pickup:15000},
+ amounts:{total:150},amounts_minor:{total:15000,pay_now:0,pay_at_pickup:15000},
 });
 const booking=()=>({
  id:ID,partner_id:P,client_id:CLIENT,car_class_id:CAR,api_quote_id:AID,
