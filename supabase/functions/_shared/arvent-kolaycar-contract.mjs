@@ -2,6 +2,8 @@
 // Partner Postman Collection v2.1, received 2026-11-17.
 export const ARVENT_PROVIDER="arvent_kolaycar";
 export const ARVENT_ORIGIN="https://racapi.arventcarrental.com";
+export const ARVENT_INITIAL_AIRPORT_IATAS=Object.freeze(["SAW","IST","SZF","ASR","DLM","AYT","ADB","EDO","AOE","TZX"]);
+const allowedAirports=new Set(ARVENT_INITIAL_AIRPORT_IATAS);
 export const ARVENT_PATHS=Object.freeze({
  auth:"/users/authenticate",locations:"/locations",cities:"/locations/cities",
  countries:"/locations/countries",groups:"/vehicles/list",search:"/vehicles",
@@ -37,10 +39,16 @@ export function arventLocationRows(e,cities=[]) {
  const cn=new Map(Array.isArray(cities)?cities.filter(record).map(c=>[String(c.CityId??c.cityId),str(c.CityName??c.cityName)]):[]);
  return data.slice(0,10000).filter(record).flatMap(x=>{
   const k=id(x.locationId),name=str(x.locationName);
-  if(!k||!name||str(x.countryCode).toUpperCase()!=="TR")return [];
+  if(!k||!name||str(x.countryCode).toUpperCase()!=="TR"||x.isAirport!==true)return [];
+  // The first rollout is limited to the ten agreed airports. An unknown
+  // IATA/location code cannot silently grant a new pickup point.
+  const iata=str(x.iataCode,12).toUpperCase();
+  const locationCode=str(x.locationCode,12).toUpperCase();
+  const airport=allowedAirports.has(iata)?iata:allowedAirports.has(locationCode)?locationCode:null;
+  if(!airport)return [];
   const city=cn.get(String(x.cityId))||str(x.cityName)||null;
   return [{external_id:k,country:"Turkey",region:city||name,city,location_name:name,
-   display_name:name,iata_code:/^[A-Z]{3}$/.test(str(x.iataCode))?x.iataCode:null,
+   display_name:name,iata_code:airport,
    type:x.isAirport===true?"airport":x.isOffice===true?"office":"city",
    return_only:x.isPickup===false,extra_fee:false,extra_fee_amount:null,
    contact_required:false,active:true}];
