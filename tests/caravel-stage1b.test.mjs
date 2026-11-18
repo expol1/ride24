@@ -11,6 +11,7 @@ import {normalizeGroups} from "../supabase/functions/_shared/partner-api.ts";
 import {verifyCaravelRide24PaymentContract} from "../supabase/functions/_shared/caravel-payment-contract.ts";
 import {runCaravelAcceptance} from "../supabase/functions/_shared/caravel-acceptance.mjs";
 import {evaluateCaravelPremium,CARAVEL_PREMIUM_TERMS,caravelConditionsOfHire,reconcileCaravelTerms,checkCaravelLicenceEligibility} from "../supabase/functions/_shared/caravel-premium.ts";
+import {evaluateCaravelPremiumForRide24} from "../supabase/functions/_shared/caravel-exclusion-policy.ts";
 
 const NOW = 1900000000000;
 const pickup = Date.UTC(2027, 0, 11, 10, 0); // Monday 11:00 Zagreb, inside desk hours
@@ -53,7 +54,9 @@ test("Caravel API supports partial payments, but Ride24 only publishes zero-prep
   }})});
   const sellable=buildRide24SellableCaravelOfferFromApi(full);
   assert.equal(sellable.ok,true,JSON.stringify(sellable.errors));
-  assert.equal(sellable.value.features.fullInsurance,true);
+  assert.equal(sellable.value.features.fullInsurance,false);
+  assert.equal(sellable.value.features.premiumProtectionIncluded,true);
+  assert.equal(sellable.value.features.premiumProtectionWithExclusions,true);
   assert.equal(sellable.value.features.payment_model,"pay_on_arrival");
   assert.equal(sellable.value.features.supplier_collects_grand_total,true);
   assert.deepEqual(
@@ -98,6 +101,66 @@ test("Caravel corrected production Premium is not publishable under Ride24 full-
     assert.ok(verdict.errors.includes(code), code);
   }
   assert.equal(selectCaravelPremiumProtection(row("EUR", [p])), null);
+});
+
+test("approved Premium exclusions can be sold only with an exact authoritative review",()=>{
+ const corrected=zeroRisk("EUR",{
+   covers:["bodywork","theft","fire","third_party_liability","roadside_assistance","towing_and_recovery"],
+   excludes:["glass","tyres_and_wheels","undercarriage","mirrors","interior","roof","keys","administration_fee"],
+ });
+ const review={
+   termsDocumentId:"caravel-en-v4",termsContentHash:"a".repeat(64),
+   documentedExcludedCodes:[...corrected.excludes],
+   damageAdministrationFeeMinor:10000,currency:"EUR",
+   approvedByRide24:true,canonicalHashVerified:true,
+ };
+ const basic=evaluateCaravelPremium("premium",corrected,{amount:mny(0)});
+ assert.equal(basic.ok,false);
+ const approved=evaluateCaravelPremiumForRide24("premium",corrected,{amount:mny(0)},review);
+ assert.equal(approved.ok,true,JSON.stringify(approved.errors));
+ assert.equal(approved.fullInsuranceClaimAllowed,false);
+ assert.equal(approved.disclosureRequired,true);
+ assert.equal(approved.damageAdministrationFeeMinor,10000);
+ assert.equal(selectCaravelPremiumProtection(row("EUR",[corrected])),null);
+ assert.equal(selectCaravelPremiumProtection(row("EUR",[corrected]),review)?.source,"option");
+ const quoted=quote("EUR",{totals:{
+   grand_total:mny(17700),pay_now:mny(0),pay_at_pickup:mny(17700),
+ }});
+ const sellable=buildRide24SellableCaravelOfferFromApi(offer({
+   availabilityRow:row("EUR",[corrected]),
+   exclusionReview:review,
+   quoteData:quoted,
+ }));
+ assert.equal(sellable.ok,true,JSON.stringify(sellable.errors));
+ assert.equal(sellable.value.features.fullInsurance,false);
+ assert.equal(sellable.value.features.premiumProtectionIncluded,true);
+ assert.equal(sellable.value.features.premiumProtectionWithExclusions,true);
+ assert.equal(sellable.value.features.damageAdministrationFeeMinor,10000);
+ assert.equal(sellable.value.features.protectionTermsDocumentId,"caravel-en-v4");
+ assert.deepEqual(sellable.value.features.caravelExclusions,corrected.excludes);
+ assert.equal(sellable.value.provider_quote_data.coverage_review_terms_document_id,"caravel-en-v4");
+ assert.equal(sellable.value.provider_quote_data.damage_administration_fee_minor,10000);
+ const changed=evaluateCaravelPremiumForRide24("premium",{
+   ...corrected,excludes:[...corrected.excludes,"battery"],
+ },{amount:mny(0)},review);
+ assert.equal(changed.ok,false);
+ assert.ok(changed.errors.includes("CARAVEL_EXCLUSIONS_CHANGED_OR_NOT_DISCLOSED"));
+ const unverified=evaluateCaravelPremiumForRide24("premium",corrected,{amount:mny(0)},{
+   ...review,canonicalHashVerified:false,
+ });
+ assert.ok(unverified.errors.includes("CARAVEL_TERMS_REVIEW_UNVERIFIED"));
+ const badFee=evaluateCaravelPremiumForRide24("premium",corrected,{amount:mny(0)},{
+   ...review,damageAdministrationFeeMinor:-1,
+ });
+ assert.ok(badFee.errors.includes("CARAVEL_DAMAGE_ADMIN_FEE_UNVERIFIED"));
+ const notActuallyExcluded=evaluateCaravelPremiumForRide24("premium",{
+   ...corrected,excludes:corrected.excludes.filter(x=>x!=="glass"),
+ },{amount:mny(0)},{...review,documentedExcludedCodes:corrected.excludes.filter(x=>x!=="glass")});
+ assert.ok(notActuallyExcluded.errors.includes("COVER_MISSING_GLASS"));
+ const noBodywork=evaluateCaravelPremiumForRide24("premium",{
+   ...corrected,covers:["theft","fire"],
+ },{amount:mny(0)},review);
+ assert.ok(noBodywork.errors.includes("CARAVEL_BODYWORK_COVER_NOT_CONFIRMED"));
 });
 
 test("corrected Caravel public text warns of uncovered damage and EUR 100 fee", () => {
