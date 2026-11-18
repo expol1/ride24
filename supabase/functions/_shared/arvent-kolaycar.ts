@@ -3,7 +3,7 @@ import { serviceClient } from "./ride24-security.ts";
 import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
  arventLocationRows, arventGroupRows, arventOfferRows,
- arventOfferMatchesTerms, arventReservationStatus, arventSavePayload,
+ arventOfferMatchesTerms, arventReservationStatus, arventSavePayload, arventSavedRouteMatches,
 } from "./arvent-kolaycar-contract.mjs";
 
 type SearchInput={
@@ -99,9 +99,10 @@ export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Pr
 }
 async function bookingContextFor(c:PartnerApiCredentials,reference:string):Promise<{
  client_email:string;partner_currency:unknown;partner_net_price_snapshot:unknown;
+ api_quote_id:string|null;start_date:string;end_date:string;pickup_time:string;return_time:string;
 }> {
  const admin=serviceClient();
- const {data,error}=await admin.from("bookings").select("client_email,partner_currency,partner_net_price_snapshot")
+ const {data,error}=await admin.from("bookings").select("client_email,partner_currency,partner_net_price_snapshot,api_quote_id,start_date,end_date,pickup_time,return_time")
   .eq("partner_id",c.partner_id).eq("api_booking_reference",reference).limit(1).maybeSingle();
  if(error||typeof data?.client_email!=="string"||!data.client_email)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_EMAIL_NOT_FOUND");
@@ -120,7 +121,21 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
  const response=await request(c,ARVENT_PATHS.booking_status+"?"+arventQuery({
   reservationNumber:reference,customerEmail:booking.client_email}));
  const status=arventReservationStatus(response),d=supplierData(response) as Record<string,unknown>;
- const verified=booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot);
+ const admin=serviceClient();
+ const {data:quote,error:quoteError}=booking.api_quote_id
+  ?await admin.from("api_quotes")
+    .select("pickup_location_external_id,dropoff_location_external_id")
+    .eq("id",booking.api_quote_id).eq("partner_id",c.partner_id).maybeSingle()
+  :{data:null,error:null};
+ const routeValid=!quoteError&&quote
+  &&arventSavedRouteMatches(d,{
+   pickup_location_id:quote.pickup_location_external_id,
+   dropoff_location_id:quote.dropoff_location_external_id,
+   pickup_date:booking.start_date,return_date:booking.end_date,
+   pickup_time:booking.pickup_time,return_time:booking.return_time,
+  });
+ const verified=booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot)
+  &&routeValid===true;
  // If status is "approved" but supplier price/terms cannot be proved, do
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
@@ -198,12 +213,13 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  // no-deposit/no-card/unlimited-km contract and EUR payable amount.
  const termsMismatch=d.currencyCode!=="EUR"||d.depositPrice!==0
   ||d.depositCreditCardRequired!==false||d.totalKMLimit!==0;
+ const routeMismatch=!arventSavedRouteMatches(d,input);
  return {...status,
   // Do not leak "confirmed" into generic handlers if money/terms mismatch.
-  status:status.status==="confirmed"&&(priceMismatch||termsMismatch)?"pending":status.status,
-  needs_manual_review:status.needs_manual_review||priceMismatch||termsMismatch,
+  status:status.status==="confirmed"&&(priceMismatch||termsMismatch||routeMismatch)?"pending":status.status,
+  needs_manual_review:status.needs_manual_review||priceMismatch||termsMismatch||routeMismatch,
   provider_payload:sanitizePartnerPayload(d,12000),
-  price_mismatch:priceMismatch,terms_mismatch:termsMismatch,
+  price_mismatch:priceMismatch,terms_mismatch:termsMismatch,route_mismatch:routeMismatch,
  };
 }
 export async function arventCancelBooking(c:PartnerApiCredentials,reference:string,body:Record<string,unknown>={}):Promise<Record<string,unknown>> {
