@@ -52,7 +52,7 @@ test("production booking draft is fail-closed until certified terms, protection 
   const i=input(); i.ride24_booking_id=bookingId; i.idempotency_key=`ride24:${bookingId}`;
   const zero=(amount=0)=>({amount,currency:"EUR"});
   const protection={tier:"premium",deposit:zero(),excess:zero(),theft_excess:zero(),
-    product_type:"waiver",covers:["theft","fire","glass","tyres_and_wheels","undercarriage"],excludes:["mirrors"]};
+    product_type:"waiver",covers:["theft","fire","glass","tyres_and_wheels","undercarriage"],excludes:[]};
   const compliant={certificationPassed:true,termsVerifiedAndShownBeforePayment:true,
     protection,quoteDeposit:{amount:zero()},
     currentTermsDocumentId:"en-caravel-v4",termsDocumentIdShown:"en-caravel-v4",
