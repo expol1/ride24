@@ -59,6 +59,7 @@ export async function submitVerifiedCaravelBooking(args:{
   reviewedTerms:CaravelTermsSnapshot;
   currentTermsMetadataList:unknown;
   persistedBookingTerms:CaravelBookingTermsSnapshot|null;
+  persistedCoverageConsent?:unknown;
 }):Promise<Result> {
   if(!args || args.enableSupplierWrite!==true ||
      args.client?.environment!=="production" ||
@@ -75,6 +76,7 @@ export async function submitVerifiedCaravelBooking(args:{
     reviewedTerms:args.reviewedTerms,
     currentTermsMetadataList:args.currentTermsMetadataList,
     persistedBookingTerms:args.persistedBookingTerms,
+    persistedCoverageConsent:args.persistedCoverageConsent,
   });
   if("reasons" in prepared) return {
     ok:false,action:"hold_for_manual_review",phase:"preflight",
