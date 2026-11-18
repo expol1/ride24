@@ -548,7 +548,10 @@ export function buildCaravelOffer(input: CaravelOfferInput): Result<Json> {
       ...(c.features as Json),
       noCardHold: q.depositAmountMinor === 0,
       plan: "premium",
-      fullInsurance: true,
+      // A raw validated price alone is NOT proof of full coverage.
+      // Only buildCaravelOfferFromApi() sets this after supplier protection
+      // has passed evaluateCaravelPremium() against Ride24 requirements.
+      fullInsurance: false,
       excess_amount: 0,
       deposit_amount: 0,
       mandatory_fees_amount: amounts.mandatory_fees,
@@ -661,12 +664,19 @@ export function buildCaravelOfferFromApi(input: {
   });
   if ("errors" in built) return built;
   const v = built.value as Json;
+  // A supplier may support pay_on_arrival generally while this SPECIFIC
+  // quote still requires prepayment. Do not invent a payment-model claim.
+  const fullCollectionAtPickup =
+    r.payNowMinor === 0 && r.payAtPickupMinor === r.quote.totalAmountMinor;
   return okv({
     ...v,
     features: {...(v.features as Json), noCreditCard: p.noCreditCard, noCardHold: p.noCardHold,
+      fullInsurance: true,
       protection_product_type: p.productType, covers: p.covers, excludes: p.excludes,
-      payment_model: "pay_on_arrival", supplier_collects_grand_total: true},
-    provider_quote_data: {...(v.provider_quote_data as Json), payment_model: "pay_on_arrival",
+      payment_model: fullCollectionAtPickup ? "pay_on_arrival" : null,
+      supplier_collects_grand_total: fullCollectionAtPickup},
+    provider_quote_data: {...(v.provider_quote_data as Json),
+      payment_model: fullCollectionAtPickup ? "pay_on_arrival" : null,
       protection: {product_type: p.productType, covers: p.covers, excludes: p.excludes}},
   });
 }
