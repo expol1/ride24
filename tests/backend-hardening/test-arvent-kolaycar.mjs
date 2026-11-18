@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
  supplierData,arventDate,arventQuery,arventLocationRows,arventGroupRows,
- arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventDateOfBirth,arventSavePayload,
+ arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventDateOfBirth,arventSavePayload,arventSavedRouteMatches,
  ARVENT_PATHS,
 } from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 
@@ -106,4 +106,19 @@ test("query parameters are URL encoded",()=>{
  const query=arventQuery({reservationNumber:"A/1",customerEmail:"x+y@example.com",languageCode:"EN"});
  assert.ok(query.includes("reservationNumber=A%2F1"));
  assert.ok(query.includes("customerEmail=x%2By%40example.com"));
+});
+
+test("supplier approved booking must preserve exact locations, dates and times",()=>{
+ const saved={pickupLocationId:9,returnLocationId:10,
+  pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-18T11:30:00"};
+ const expected={pickup_location_id:"9",dropoff_location_id:"10",
+  pickup_date:"2030-12-16",return_date:"2030-12-18",pickup_time:"10:00",return_time:"11:30"};
+ assert.equal(arventSavedRouteMatches(saved,expected),true);
+ for (const changed of [
+  {pickupLocationId:11},{returnLocationId:11},
+  {pickupDate:"2030-12-17T10:00:00"},{returnDate:"2030-12-19T11:30:00"},
+  {pickupDate:"2030-12-16T10:30:00"},{returnDate:"2030-12-18T12:00:00"},
+  {pickupLocationId:null},{returnDate:null}
+ ])assert.equal(arventSavedRouteMatches({...saved,...changed},expected),false,JSON.stringify(changed));
+ assert.equal(arventSavedRouteMatches(saved,{...expected,return_time:"12:00"}),false);
 });
