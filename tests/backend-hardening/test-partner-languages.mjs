@@ -554,3 +554,44 @@ test('homepage map uses the existing image as both desktop and mobile card backg
     assert.match(home, /\.from\('partner_locations'\)[\s\S]*?\.eq\('active', true\)/);
     dom.window.close();
 });
+
+test('vehicle location checkbox layout stays compact and scooter-only scope is clear', () => {
+    const css = read('assets/css/partner-fleet-locations-ux.css');
+    const d = new JSDOM(panel, {runScripts:'outside-only'});
+    try {
+        const w=d.window, doc=w.document;
+        const group=doc.getElementById('carClass');
+        const all=doc.getElementById('carAllLocations');
+        const allRow=doc.getElementById('carAllLocationsLabel');
+        const choices=doc.getElementById('carLocationChoices');
+        const help=doc.getElementById('carLocationScopeHelp');
+        assert.ok(doc.getElementById('carLocationScopeSection').classList.contains('r24-car-location-scope'));
+        assert.ok(allRow.classList.contains('r24-car-location-all-row'));
+        assert.ok(choices.classList.contains('r24-car-location-choices'));
+        assert.match(panel,/class="r24-car-location-choice"/);
+        assert.match(css,/#carLocationScopeSection input\[type="checkbox"\]/);
+        assert.match(css,/width:19px!important;/);
+        assert.match(css,/flex:0 0 19px!important;/);
+        assert.match(css,/justify-content:flex-start!important;/);
+        assert.match(css,/@media \(max-width:640px\)/);
+        w.eval(declaration('syncCarLocationScope'));
+        group.value='A';
+        all.checked=true;
+        w.syncCarLocationScope();
+        assert.equal(choices.style.display,'none');
+        assert.equal(allRow.hidden,false);
+        assert.equal(help.hidden,true);
+        group.value='0';
+        w.syncCarLocationScope();
+        assert.equal(all.checked,false);
+        assert.equal(all.disabled,true);
+        assert.equal(allRow.hidden,true);
+        assert.equal(help.hidden,false);
+        assert.equal(choices.style.display,'grid');
+        group.value='B';
+        w.syncCarLocationScope();
+        assert.equal(all.disabled,false);
+        assert.equal(allRow.hidden,false);
+        assert.equal(help.hidden,true);
+    } finally { d.window.close(); }
+});

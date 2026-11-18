@@ -277,3 +277,129 @@ html:lang(fr) :is(#view-fleet,#view-locations){--r24-seats:"Places";--r24-transm
     min-width:0;width:100%;margin-top:7px;
   }
 }
+
+/* Vehicle availability locations — isolated from generic .form-group input styles.
+   The generic width:100% rule previously pushed checkbox text to the far right. */
+#carLocationScopeSection.r24-car-location-scope {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  margin:18px 0 20px;
+  padding:16px 18px;
+  border:1px solid #cfdded;
+  border-radius:14px;
+  background:#f8fbff;
+}
+#carLocationScopeSection .r24-car-location-scope-heading {
+  display:flex;
+  align-items:center;
+  margin:0 0 12px;
+}
+#carLocationScopeSection .r24-car-location-scope-heading strong {
+  display:block;
+  font-size:14px;
+  font-weight:800;
+  line-height:1.4;
+  color:#173b68;
+}
+#carLocationScopeSection .r24-car-location-all-row,
+#carLocationScopeSection .r24-car-location-choice {
+  box-sizing:border-box;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  flex-wrap:nowrap!important;
+  gap:12px!important;
+  width:100%;
+  min-width:0;
+  min-height:46px;
+  padding:11px 13px;
+  margin:0!important;
+  text-align:left;
+  border:1px solid #d6e2f1;
+  border-radius:10px;
+  background:#fff;
+  color:#233d59;
+  cursor:pointer;
+  transition:border-color .15s ease,background .15s ease;
+}
+#carLocationScopeSection .r24-car-location-all-row {
+  margin-bottom:11px!important;
+  background:#edf6ff;
+  border-color:#b9d4f2;
+}
+#carLocationScopeSection .r24-car-location-all-row:hover,
+#carLocationScopeSection .r24-car-location-choice:hover {
+  background:#f3f9ff;
+  border-color:#7daee9;
+}
+#carLocationScopeSection .r24-car-location-all-row span,
+#carLocationScopeSection .r24-car-location-choice span {
+  display:block;
+  flex:1 1 auto;
+  min-width:0;
+  width:auto;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  font-size:13px;
+  font-weight:650;
+  line-height:1.4;
+  color:#24446d;
+  text-align:left;
+}
+#carLocationScopeSection .r24-car-location-choices {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr));
+  align-items:stretch;
+  gap:9px;
+  margin:0;
+  padding:0;
+  color:#48617d;
+  font-size:13px;
+}
+#carLocationScopeSection input[type="checkbox"] {
+  /* Explicitly override .form-group input {width:100%} on the parent form. */
+  box-sizing:border-box!important;
+  position:static!important;
+  display:block!important;
+  flex:0 0 19px!important;
+  width:19px!important;
+  min-width:19px!important;
+  max-width:19px!important;
+  height:19px!important;
+  min-height:19px!important;
+  padding:0!important;
+  margin:0!important;
+  transform:none!important;
+  border:1px solid #9bb4cf;
+  border-radius:5px;
+  accent-color:#73d700;
+  cursor:pointer;
+}
+#carLocationScopeSection :is(.r24-car-location-all-row,.r24-car-location-choice):focus-within {
+  outline:2px solid #2563eb;
+  outline-offset:2px;
+}
+#carLocationScopeSection .r24-car-location-all-row[hidden],
+#carLocationScopeSection #carLocationScopeHelp[hidden] {
+  display:none!important;
+}
+#carLocationScopeSection #carLocationScopeHelp {
+  display:block;
+  max-width:80ch;
+  margin-top:12px;
+  font-size:12px;
+  line-height:1.55;
+  font-weight:500;
+  color:#496786;
+}
+@media (max-width:640px) {
+  #carLocationScopeSection.r24-car-location-scope { padding:14px; margin:14px 0; }
+  #carLocationScopeSection .r24-car-location-choices { grid-template-columns:minmax(0,1fr); }
+  #carLocationScopeSection .r24-car-location-all-row,
+  #carLocationScopeSection .r24-car-location-choice { min-height:48px; padding:12px; }
+}
