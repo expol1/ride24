@@ -20,8 +20,11 @@ test("Caravel terms SQL proposal is a single complete transaction, never repeate
   assert.equal((clean.match(/\bCOMMIT\s*;/g)||[]).length,1);
   assert.equal((clean.match(/\bDO\s+\$caravel_terms\$/g)||[]).length,1);
   assert.equal((clean.match(/\$caravel_terms\$\s*;/g)||[]).length,1);
+  assert.equal((clean.match(/\bDO\s+\$caravel_coverage\$/g)||[]).length,1);
+  assert.equal((clean.match(/\$caravel_coverage\$\s*;/g)||[]).length,1);
+  assert.equal((clean.match(/ADD\s+CONSTRAINT\s+bookings_caravel_coverage_consent_consistency_chk/g)||[]).length,1);
   assert.equal((clean.match(/ADD\s+CONSTRAINT\s+bookings_caravel_terms_snapshot_consistency_chk/g)||[]).length,1);
-  assert.equal((clean.match(/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS/g)||[]).length,3);
+  assert.equal((clean.match(/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS/g)||[]).length,8);
   const statements=clean.split(/\bCOMMIT\s*;/);
   assert.equal(statements.length,2);
   assert.equal(statements[1].trim(),"");
@@ -38,4 +41,23 @@ test("Caravel terms SQL proposal enforces complete id/hash/language triplets",()
   assert.match(sql,/SELECT\s+1\s+FROM\s+pg_constraint/);
   assert.match(sql,/WHERE\s+conrelid\s*=\s*'public\.bookings'::regclass/);
   assert.doesNotMatch(sql,/\bGRANT\s+\b(?:INSERT|UPDATE|ALL)\b\s+ON/);
+});
+
+test("Caravel limited Premium consent snapshot is all-or-none and tied to accepted terms",()=>{
+  const cols=[
+   "caravel_coverage_terms_document_id",
+   "caravel_coverage_terms_content_hash",
+   "caravel_coverage_excluded_codes",
+   "caravel_coverage_damage_admin_fee_minor",
+   "caravel_coverage_accepted_at",
+  ];
+  for(const col of cols){
+    assert.match(sql,new RegExp(col+"\\s+IS\\s+NULL"));
+    assert.match(sql,new RegExp(col+"\\s+IS\\s+NOT\\s+NULL"));
+  }
+  assert.match(sql,/caravel_coverage_terms_document_id\s*=\s*caravel_terms_document_id/);
+  assert.match(sql,/caravel_coverage_terms_content_hash\s*=\s*caravel_terms_content_hash/);
+  assert.match(sql,/jsonb_typeof\(caravel_coverage_excluded_codes\)\s*=\s*'array'/);
+  assert.match(sql,/caravel_coverage_damage_admin_fee_minor\s*>=\s*0/);
+  assert.match(sql,/bookings_caravel_coverage_consent_consistency_chk/);
 });
