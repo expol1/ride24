@@ -10,6 +10,7 @@
  */
 import {CARAVEL_PROVIDER} from "./caravel-normalize.ts";
 import {evaluateCaravelPremium, checkCaravelLicenceEligibility} from "./caravel-premium.ts";
+import {verifyCaravelRide24PaymentContract} from "./caravel-payment-contract.ts";
 import type {CaravelQuotedBookingRequest} from "./caravel-sandbox-adapter.ts";
 
 type Json = Record<string, unknown>;
@@ -129,6 +130,10 @@ export function buildCaravelBookingDraft(
     if (!licence.ok && "errors" in licence) errors.push(...licence.errors);
   }
   const data = isRecord(input?.provider_quote_data) ? input.provider_quote_data : null;
+  if(environment==="production"){
+    const collection=verifyCaravelRide24PaymentContract(data);
+    if("errors" in collection)errors.push(...collection.errors);
+  }
   const rawQuoteTermsId = typeof data?.terms_document_id === "string" ? data.terms_document_id : null;
   const docId = options?.production?.termsDocumentIdShown ?? null;
   if (environment === "production") {
