@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {CaravelClient,CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
-import {compareCaravelTermsVersion,fetchCaravelCurrentTermsForReview} from "../supabase/functions/_shared/caravel-terms-version.ts";
+import {compareCaravelTermsVersion,fetchCaravelCurrentTermsForReview,bindReviewedCaravelTermsToQuote} from "../supabase/functions/_shared/caravel-terms-version.ts";
 const original=globalThis.fetch;
 const mock=(handler)=>{globalThis.fetch=async (url,options)=>new Response(JSON.stringify(handler(String(url),options)),{status:200,headers:{"content-type":"application/json"}});};
 test.afterEach(()=>{globalThis.fetch=original;});
@@ -179,6 +179,30 @@ test("provider changed terms between list/detail: fail closed, never show mismat
  };
  await assert.rejects(()=>fetchCaravelCurrentTermsForReview(noCurrent,"acct_eur","en"),
    /CARAVEL_TERMS_CURRENT_AMBIGUOUS_OR_MISSING/);
+});
+test("Caravel quote can only bind human-reviewed current immutable terms after canonical digest approval",()=>{
+ const meta=termsMeta("en-caravel-v4");
+ const initial=compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",currentMetadataList:[meta]});
+ const quote={provider:"caravel",supplier_id:"acct_eur",quote_id:"quote-1",amounts:{total:100}};
+ const params={quoteData:quote,comparison:initial,canonicalHashVerified:true};
+ assert.throws(()=>bindReviewedCaravelTermsToQuote(params),/CARAVEL_TERMS_REVIEW_REQUIRED/);
+ const reviewed=compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",currentMetadataList:[meta],previousReviewed:initial.snapshot});
+ assert.throws(()=>bindReviewedCaravelTermsToQuote({...params,comparison:reviewed,canonicalHashVerified:false}),
+   /CARAVEL_TERMS_CANONICAL_HASH_NOT_VERIFIED/);
+ const attached=bindReviewedCaravelTermsToQuote({...params,comparison:reviewed});
+ assert.equal(attached.terms_document_id,"en-caravel-v4");
+ assert.equal(attached.terms_content_hash,meta.content_hash);
+ assert.equal(attached.terms_language,"en");
+ assert.equal(quote.terms_document_id,undefined,"original quote object must stay immutable");
+ assert.throws(()=>bindReviewedCaravelTermsToQuote({...params,comparison:reviewed,
+   quoteData:{...quote,supplier_id:"acct_gbp"}}),/CARAVEL_QUOTE_TERMS_SCOPE_MISMATCH/);
+ assert.throws(()=>bindReviewedCaravelTermsToQuote({...params,comparison:reviewed,
+   quoteData:{...quote,terms_document_id:"old"}}),/CARAVEL_QUOTE_TERMS_ALREADY_BOUND/);
+ const changed=compareCaravelTermsVersion({supplierId:"acct_eur",language:"en",
+   currentMetadataList:[termsMeta("en-caravel-v5",{version:5,content_hash:"b".repeat(64),
+     published_at:"2026-11-18T10:00:00Z"})],previousReviewed:initial.snapshot});
+ assert.throws(()=>bindReviewedCaravelTermsToQuote({...params,comparison:changed}),
+   /CARAVEL_TERMS_REVIEW_REQUIRED/);
 });
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];
