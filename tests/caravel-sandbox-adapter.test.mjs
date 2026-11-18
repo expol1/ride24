@@ -204,6 +204,33 @@ test("Caravel quote can only bind human-reviewed current immutable terms after c
  assert.throws(()=>bindReviewedCaravelTermsToQuote({...params,comparison:changed}),
    /CARAVEL_TERMS_REVIEW_REQUIRED/);
 });
+test("production booking cannot cross suppliers or reuse a different booking idempotency UUID",async()=>{
+ const bookingId="9ac84d3e-df5b-4b6d-8613-68b1f119fa2c";
+ const quoteId="e5d0c483-a64e-4e82-a852-0a327c67eb79";
+ const valid={quote_id:quoteId,external_ref:`ride24-${bookingId}`,
+   drivers:[],customer:{},payment_model:"pay_on_arrival"};
+ const calls=[];
+ mock((url,options)=>{calls.push({url,options});
+   return url.endsWith("/v1/capabilities")?{data:{environment:"production"}}:
+     {data:{booking_id:"booking-accepted",status:"confirmed"}};
+ });
+ const disabled=new CaravelClient({apiKey:"fixture",environment:"production",allowProduction:true});
+ await assert.rejects(()=>disabled.book(valid,bookingId,"acct_eur"),
+   /PRODUCTION_BOOKING_WRITES_DISABLED/);
+ const prod=new CaravelClient({apiKey:"fixture",environment:"production",allowProduction:true,
+   allowProductionBookingWrites:true});
+ await assert.rejects(()=>prod.book(valid,bookingId),/CARAVEL_PRODUCTION_BOOKING_IDENTITY_MISMATCH/);
+ await assert.rejects(()=>prod.book(valid,"b72ec07b-cd43-4ec8-a4c7-68783a8e9c4a","acct_eur"),
+   /CARAVEL_PRODUCTION_BOOKING_IDENTITY_MISMATCH/);
+ await assert.rejects(()=>prod.book({...valid,external_ref:`ride24-sandbox-${bookingId}`},bookingId,"acct_eur"),
+   /SANDBOX_BOOKING_GUARD/);
+ assert.equal(calls.length,0,"blocked requests must not reach production");
+ const result=await prod.book(valid,bookingId,"acct_eur");
+ assert.equal(result.data.status,"confirmed");
+ assert.equal(calls.length,2);
+ assert.equal(calls[1].options.headers["Idempotency-Key"],bookingId);
+ assert.equal(calls[1].options.headers["X-Supplier-Id"],"acct_eur");
+});
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];
  mock((url,options)=>{calls.push({url,options});return url.endsWith("/v1/capabilities")?{data:{environment:"sandbox"}}:{data:[]};});
