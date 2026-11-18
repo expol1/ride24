@@ -95,15 +95,25 @@ function acceptedQuote(booking: Rec, quote: Rec | null) {
 
 /** Customer terms and coverage consent captured BEFORE Stripe must match the quote exactly. */
 function acceptedConsent(booking: Rec, data: Rec) {
-  const excluded = Array.isArray(data.coverage_exclusions) ? [...data.coverage_exclusions as string[]].sort() : [];
-  const accepted = Array.isArray(booking.caravel_coverage_excluded_codes)
-    ? [...booking.caravel_coverage_excluded_codes as string[]].sort() : [];
+  // Same rule as public.caravel_commit_pending_booking: the disclosed codes are the
+  // quote's protection.excludes; coverage consent exists exactly when something is excluded.
+  const excludes = rec(data.protection)?.excludes;
+  if (!Array.isArray(excludes)) fail("CARAVEL_TERMS_CONSENT_MISSING_OR_STALE");
+  const excluded = [...(excludes as string[])].sort();
   if (typeof data.terms_document_id !== "string" || !data.terms_document_id ||
       typeof data.terms_content_hash !== "string" || !/^[0-9a-f]{64}$/.test(data.terms_content_hash) ||
       booking.caravel_terms_document_id !== data.terms_document_id ||
       booking.caravel_terms_content_hash !== data.terms_content_hash ||
-      booking.caravel_terms_language !== data.terms_language ||
-      typeof booking.caravel_coverage_accepted_at !== "string" ||
+      booking.caravel_terms_language !== data.terms_language || booking.terms_accepted === false)
+    fail("CARAVEL_TERMS_CONSENT_MISSING_OR_STALE");
+  if (excluded.length === 0) {
+    if (booking.caravel_coverage_excluded_codes != null || booking.caravel_coverage_accepted_at != null)
+      fail("CARAVEL_TERMS_CONSENT_MISSING_OR_STALE");
+    return;
+  }
+  const accepted = Array.isArray(booking.caravel_coverage_excluded_codes)
+    ? [...booking.caravel_coverage_excluded_codes as string[]].sort() : [];
+  if (typeof booking.caravel_coverage_accepted_at !== "string" ||
       booking.caravel_coverage_quote_id !== data.quote_id ||
       booking.caravel_coverage_supplier_id !== data.supplier_id ||
       booking.caravel_coverage_terms_document_id !== data.terms_document_id ||
@@ -161,8 +171,8 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
     supplier_id: supplierId, quote_id: parsed.value.quote.quoteId, accepted_quote_id: data.quote_id,
     total_minor: totalMinor, currency: data.currency, partner_amount: totalMinor / 100,
     terms_document_id: data.terms_document_id, terms_content_hash: data.terms_content_hash,
-    main_driver: {first_name: main.first, last_name: main.last, age},
-    customer: {first_name: main.first, last_name: main.last, email: booking.client_email,
+    main_driver: {first_name: main!.first, last_name: main!.last, age},
+    customer: {first_name: main!.first, last_name: main!.last, email: booking.client_email,
       ...(typeof booking.client_phone === "string" && booking.client_phone ? {phone: booking.client_phone} : {})},
   };
 }
@@ -206,4 +216,9 @@ export async function readPaidCaravelStatus(credentials: unknown, reference: str
   const client = (opts.factory ?? defaultFactory)(productionKey(credentials), false);
   const response = await client.bookingStatusSandbox(reference, String(prepared?.supplier_id));
   return resultFromBooking(response.data, prepared);
+}
+
+/** Read-only production client from partner_api_credentials (search, consent re-quote). */
+export function caravelProductionReadClient(credentials: unknown) {
+  return defaultFactory(productionKey(credentials), false) as CaravelClient;
 }

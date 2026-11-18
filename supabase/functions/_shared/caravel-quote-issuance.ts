@@ -305,6 +305,7 @@ export async function issueVerifiedCaravelQuote(args:{
  // Exact instants of the accepted selection: the paid flow re-quotes the identical request.
  enriched.pickup_at=requested.pickup.at;
  enriched.dropoff_at=requested.dropoff.at;
+ enriched.rental_days=args.rentalDays;
  const payload= {
    group_external_id:requested.vehicle_id,
    quote_reference:parsed.quote.quoteId,

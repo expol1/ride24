@@ -2157,6 +2157,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
+    <script src="assets/caravel-consent.js"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
         // Otwieranie modala
@@ -2955,6 +2956,13 @@ document.addEventListener("click", async function(e) {
 
                 if (partner?.rental_terms_url) { tLink.href = partner.rental_terms_url; tLink.style.display = "block"; }
                 if (partner?.rental_rules_url) { rLink.href = partner.rental_rules_url; rLink.style.display = "block"; }
+                // Caravel: binding terms, exclusions and fees come from the server, not from PDFs.
+                if (window.Ride24CaravelConsent) {
+                    const { data: { session } } = await db.auth.getSession();
+                    await window.Ride24CaravelConsent.prepare({ partnerId: car.partner_id,
+                        apiQuoteId: localStorage.getItem("selectedApiQuoteId") || null,
+                        accessToken: session?.access_token || "", supabaseUrl, supabaseKey });
+                }
             } catch (err) { console.error(err); }
         }
 
@@ -2965,6 +2973,11 @@ document.addEventListener("click", async function(e) {
 
             if (!document.getElementById("acceptTerms")?.checked) {
                 return window.showToast(isEn ? "Please accept the terms!" : "Zaakceptuj regulaminy!", "error");
+            }
+            const caravelBooking = !!window.Ride24CaravelConsent?.active();
+            if (caravelBooking && !window.Ride24CaravelConsent.canSubmit()) {
+                return window.showToast(isEn ? "Please read and confirm Caravel's terms and protection conditions."
+                    : "Przeczytaj i potwierdź regulamin oraz warunki ochrony Caravel.", "error");
             }
             const cardNotice = document.getElementById("aviaCardRequirement");
             const mustAcknowledgeDebit = cardNotice && !cardNotice.hidden;
@@ -3007,7 +3020,10 @@ document.addEventListener("click", async function(e) {
                 }
 
                 const pricingPayload = bookingExtras.payload();
-                const response = await fetch(supabaseUrl + "/functions/v1/create-booking-request", {
+                const caravelResult = caravelBooking ? await window.Ride24CaravelConsent.book({
+                    accessToken: session.access_token, supabaseUrl, supabaseKey, driverId, additionalDriverId }) : null;
+                const response = caravelResult ? { ok: caravelResult.ok, json: async () => caravelResult.body }
+                    : await fetch(supabaseUrl + "/functions/v1/create-booking-request", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -4833,6 +4849,7 @@ window.closeReviewModal = function() {
                     <span data-pl="Potwierdzam, że główny kierowca okaże wymaganą fizyczną kartę debetową przy odbiorze." data-en="I confirm that the main driver will present the required physical bank debit card at pickup.">Potwierdzam, że główny kierowca okaże wymaganą fizyczną kartę debetową przy odbiorze.</span>
                 </label>
             </div>
+            <section id="caravelConsent" hidden aria-live="polite" style="margin:14px 0;padding:14px;border:1px solid #FDBA74;border-radius:10px;background:#FFF7ED;color:#431407;font-size:13px;line-height:1.5"></section>
             <label class="premium-checkbox-wrapper">
                 <input type="checkbox" id="acceptTerms">
                 <span class="premium-checkbox-text" data-pl="Akceptuję regulamin Ride24 oraz warunki wynajmu wybranej grupy aut." data-en="I accept Ride24 terms and the rental conditions for the selected car group.">

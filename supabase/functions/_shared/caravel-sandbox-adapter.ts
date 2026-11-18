@@ -223,15 +223,15 @@ export class CaravelClient {
     let lastMeta:Json|undefined;
     while(true){
       if(pages>=30) throw new Error("CARAVEL_PAGINATION_LIMIT");
-      const endpoint=nextPage===null ? base : `${base}${base.includes("?") ? "&" : "?"}page_token=${encodeURIComponent(nextPage)}`;
-      const page=await this.request<T[]>("GET",endpoint,undefined,undefined,supplierId);
+      const endpoint:string=nextPage===null ? base : `${base}${base.includes("?") ? "&" : "?"}page_token=${encodeURIComponent(nextPage)}`;
+      const page:CaravelEnvelope<T[]>=await this.request<T[]>("GET",endpoint,undefined,undefined,supplierId);
       if(!Array.isArray(page.data)) throw new Error("CARAVEL_PAGINATION_INVALID_ROWS");
       firstRequestId??=page.request_id;
       lastMeta=page.meta;
       rows.push(...page.data);
       if(rows.length>6000) throw new Error("CARAVEL_PAGINATION_TOO_MANY_ROWS");
       pages++;
-      const cursor=page.meta?.next_page;
+      const cursor:unknown=page.meta?.next_page;
       if(cursor===undefined || cursor===null || cursor==="")
         return {data:rows,meta:{...lastMeta,page_count:pages,next_page:null},request_id:firstRequestId};
       if(typeof cursor!=="string" || cursor.length>2048 || /[\u0000-\u001F\u007F]/.test(cursor) || seen.has(cursor))

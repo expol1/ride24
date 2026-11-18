@@ -1,0 +1,186 @@
+/**
+ * Caravel pre-Stripe customer consent: what the customer is SHOWN (built by
+ * the server from the released, re-hashed terms + the server-issued quote) and
+ * how the echoed acceptance is VERIFIED before the atomic booking RPC
+ * (public.caravel_commit_pending_booking re-checks every field in SQL).
+ *
+ * Wording rules (Ride24 policy, 18 Nov 2026):
+ *  - Premium is included in the rental price; deposit 0 and excess 0 only as
+ *    confirmed by the quote; no "full insurance" claim while anything is excluded;
+ *  - every excluded code is listed; the admin fee is stated exactly;
+ *  - Stripe takes only the separate Ride24 booking fee; the rental is paid to
+ *    Caravel at pickup; a vehicle CATEGORY is booked, not a model.
+ */
+import {renderCaravelTermsHtml} from "./caravel-terms-canonical.ts";
+import type {CaravelRelease} from "./caravel-release.ts";
+import {CARAVEL_PARTNER_ID} from "./caravel-release.ts";
+
+type Rec = Record<string, unknown>;
+const rec = (v: unknown): Rec | null => !!v && typeof v === "object" && !Array.isArray(v) ? v as Rec : null;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Labels for Caravel protection_coverage_codes; unknown codes are shown verbatim, never hidden. */
+export const CARAVEL_COVERAGE_LABELS: Readonly<Record<string, {pl: string; en: string}>> = Object.freeze({
+  glass: {pl: "szyby", en: "glass"},
+  tyres_and_wheels: {pl: "opony i koła", en: "tyres and wheels"},
+  undercarriage: {pl: "podwozie", en: "undercarriage"},
+  mirrors: {pl: "lusterka", en: "mirrors"},
+  interior: {pl: "wnętrze pojazdu", en: "interior"},
+  roof: {pl: "dach", en: "roof"},
+  keys: {pl: "kluczyki", en: "keys"},
+  immobilisation: {pl: "unieruchomienie pojazdu", en: "immobilisation"},
+  wrong_fuel: {pl: "zatankowanie niewłaściwego paliwa", en: "wrong fuel"},
+  administration_fee: {pl: "opłata administracyjna", en: "administration fee"},
+  unauthorised_driver: {pl: "kierowca nieupoważniony", en: "unauthorised driver"},
+  off_road_use: {pl: "jazda poza drogami utwardzonymi", en: "off-road use"},
+  driving_under_influence: {pl: "jazda pod wpływem alkoholu lub środków odurzających", en: "driving under the influence"},
+  ferry_or_sea_transport: {pl: "transport promem lub drogą morską", en: "ferry or sea transport"},
+  cross_border_use: {pl: "wyjazd za granicę", en: "cross-border use"},
+  bodywork: {pl: "karoseria", en: "bodywork"},
+  theft: {pl: "kradzież", en: "theft"},
+  fire: {pl: "pożar", en: "fire"},
+  third_party_liability: {pl: "OC wobec osób trzecich", en: "third-party liability"},
+  roadside_assistance: {pl: "pomoc drogowa", en: "roadside assistance"},
+  towing_and_recovery: {pl: "holowanie", en: "towing and recovery"},
+});
+const label = (code: string, lang: "pl" | "en") => CARAVEL_COVERAGE_LABELS[code]?.[lang] ?? code;
+const money = (minor: number, currency: string) => `${(minor / 100).toFixed(2)} ${currency}`;
+
+export type CaravelQuoteRow = {
+  id: string; partner_id: string; car_class_id: string; external_quote_reference: string;
+  partner_net_total: number | string; commission_total: number | string; final_total: number | string;
+  currency: string; expires_at: string; start_date: string; end_date: string;
+  booking_id?: string | null; used_at?: string | null; raw_response: unknown;
+};
+
+/** Server-side reading of a Caravel api_quotes row; null if it is not a releasable Caravel quote. */
+export function caravelQuoteFacts(row: unknown, release: CaravelRelease, nowMs = Date.now()) {
+  if (!release.open) return null;
+  const q = rec(row) as CaravelQuoteRow | null;
+  const data = rec(rec(q?.raw_response)?.provider_quote_data);
+  const prot = rec(data?.protection);
+  const minor = rec(data?.amounts_minor);
+  const excludes = prot?.excludes, covers = prot?.covers, drivers = data?.drivers;
+  if (!q || q.partner_id !== CARAVEL_PARTNER_ID || q.booking_id || q.used_at || !data || data.provider !== "caravel" ||
+      data.quote_id !== q.external_quote_reference || data.payment_model !== "pay_on_arrival" || data.plan !== "premium" ||
+      data.terms_document_id !== release.terms.documentId || data.terms_content_hash !== release.terms.contentHash ||
+      data.terms_language !== release.terms.language || data.supplier_id !== release.terms.supplierId ||
+      !Array.isArray(excludes) || !Array.isArray(covers) || !Number.isSafeInteger(minor?.total) ||
+      minor?.pay_now !== 0 || minor?.pay_at_pickup !== minor?.total ||
+      !Array.isArray(drivers) || drivers.length !== 1 || !Number.isSafeInteger(rec(drivers[0])?.age) ||
+      !Number.isFinite(Date.parse(q.expires_at)) || Date.parse(q.expires_at) <= nowMs + 10 * 60_000)
+    return null;
+  const fee = Number(q.commission_total);
+  if (!Number.isFinite(fee) || fee <= 0) return null;
+  const adminFee = Number.isSafeInteger(data.damage_administration_fee_minor) ? data.damage_administration_fee_minor as number : null;
+  if (excludes.length > 0 && adminFee === null) return null;
+  return {quote: q, data, excludes: excludes as string[], covers: covers as string[], rentalMinor: minor!.total as number,
+    currency: String(q.currency), feeMajor: fee, driverAge: rec(drivers[0])!.age as number, adminFeeMinor: adminFee};
+}
+
+export type CaravelConsentView = {
+  api_quote_id: string; supplier_quote_id: string; expires_at: string;
+  terms: {document_id: string; content_hash: string; language: string; version: number; title: string; html: string};
+  coverage: {covers: Array<{code: string; label: string}>; excluded: Array<{code: string; label: string}>;
+    full_insurance_claim_allowed: boolean; deposit_minor: 0; excess_minor: 0;
+    damage_admin_fee_minor: number | null; damage_admin_fee_currency: "EUR" | null;
+    exclusion_clause_refs: string[]; admin_fee_clause_ref: string | null};
+  money: {rental_at_pickup: string; rental_at_pickup_minor: number; rental_currency: string;
+    ride24_fee: string; ride24_fee_currency: string; charged_by_stripe: "ride24_fee_only"};
+  driver_age: number;
+  statements: string[];
+  /** Exactly what the client must echo back with accepted:true. */
+  echo: {terms_document_id: string; terms_content_hash: string; terms_language: string;
+    excluded_codes: string[]; damage_admin_fee_minor: number | null};
+};
+
+export function buildCaravelConsentView(row: unknown, release: CaravelRelease, lang: "pl" | "en", nowMs = Date.now()): CaravelConsentView | null {
+  const f = caravelQuoteFacts(row, release, nowMs);
+  if (!f || !release.open) return null;
+  const t = release.terms;
+  const pl = lang === "pl";
+  const at = money(f.rentalMinor, f.currency);
+  const statements = [
+    pl ? `Rezerwujesz kategorię pojazdu, nie konkretny model.` : `You are booking a vehicle category, not a specific model.`,
+    pl ? `Cenę wynajmu ${at} płacisz Caravel przy odbiorze. Stripe pobiera wyłącznie osobną opłatę rezerwacyjną Ride24.`
+       : `You pay the rental price of ${at} to Caravel at pickup. Stripe charges only the separate Ride24 booking fee.`,
+    pl ? `Pakiet Premium jest wliczony w cenę wynajmu: depozyt 0 i udział własny 0 według tej wyceny.`
+       : `Premium protection is included in the rental price: deposit 0 and excess 0 according to this quote.`,
+  ];
+  if (f.excludes.length) {
+    statements.push(pl
+      ? `Ochrona NIE obejmuje: ${f.excludes.map((c) => label(c, "pl")).join(", ")}. Nie jest to pełne ubezpieczenie bez wyłączeń.`
+      : `Protection does NOT cover: ${f.excludes.map((c) => label(c, "en")).join(", ")}. This is not full cover without exclusions.`);
+    if (f.adminFeeMinor && f.adminFeeMinor > 0)
+      statements.push(pl
+        ? `W razie szkody lub kradzieży Caravel pobiera opłatę administracyjną ${money(f.adminFeeMinor, "EUR")}${t.adminFeeClauseRef ? ` (pkt ${t.adminFeeClauseRef} regulaminu)` : ""}.`
+        : `In case of damage or theft Caravel charges an administration fee of ${money(f.adminFeeMinor, "EUR")}${t.adminFeeClauseRef ? ` (clause ${t.adminFeeClauseRef})` : ""}.`);
+  }
+  return {
+    api_quote_id: f.quote.id, supplier_quote_id: f.quote.external_quote_reference, expires_at: f.quote.expires_at,
+    terms: {document_id: t.documentId, content_hash: t.contentHash, language: t.language, version: t.version,
+      title: t.title, html: renderCaravelTermsHtml(t.body)},
+    coverage: {covers: f.covers.map((c) => ({code: c, label: label(c, lang)})),
+      excluded: f.excludes.map((c) => ({code: c, label: label(c, lang)})),
+      full_insurance_claim_allowed: f.excludes.length === 0, deposit_minor: 0, excess_minor: 0,
+      damage_admin_fee_minor: f.excludes.length ? f.adminFeeMinor : null,
+      damage_admin_fee_currency: f.excludes.length ? "EUR" : null,
+      exclusion_clause_refs: t.exclusionClauseRefs, admin_fee_clause_ref: t.adminFeeClauseRef},
+    money: {rental_at_pickup: at, rental_at_pickup_minor: f.rentalMinor, rental_currency: f.currency,
+      ride24_fee: `${f.feeMajor.toFixed(2)} ${f.currency}`, ride24_fee_currency: f.currency, charged_by_stripe: "ride24_fee_only"},
+    driver_age: f.driverAge, statements,
+    echo: {terms_document_id: t.documentId, terms_content_hash: t.contentHash, terms_language: t.language,
+      excluded_codes: [...f.excludes], damage_admin_fee_minor: f.excludes.length ? f.adminFeeMinor : null},
+  };
+}
+
+export type CaravelBookingContext = {
+  clientId: string; clientEmail: string; clientPhone: string; mainDriverName: string; mainDriverAge: number;
+  pickupLocationId: string; dropoffLocationId: string; pickupLocationName: string; returnLocationName: string;
+  pickupTime: string; returnTime: string; exchangeRate: number;
+};
+
+/**
+ * Verify the echoed consent against what the server would show NOW, then build
+ * the exact payload caravel_commit_pending_booking re-checks in SQL.
+ * Any version change of the terms (different id/hash) invalidates the old consent.
+ */
+export function buildCaravelCommitPayload(row: unknown, release: CaravelRelease, consent: unknown,
+  ctx: CaravelBookingContext, nowMs = Date.now()): {ok: true; payload: Rec} | {ok: false; code: string} {
+  const f = caravelQuoteFacts(row, release, nowMs);
+  if (!f || !release.open) return {ok: false, code: "CARAVEL_QUOTE_NOT_BOOKABLE"};
+  const c = rec(consent);
+  const shown = [...f.excludes].sort();
+  const echoed = Array.isArray(c?.excluded_codes) ? [...(c!.excluded_codes as unknown[])].map(String).sort() : null;
+  if (!c || c.accepted !== true || c.coverage_acknowledged !== true ||
+      c.terms_document_id !== release.terms.documentId || c.terms_content_hash !== release.terms.contentHash ||
+      c.terms_language !== release.terms.language || !echoed || JSON.stringify(echoed) !== JSON.stringify(shown) ||
+      (c.damage_admin_fee_minor ?? null) !== (f.excludes.length ? f.adminFeeMinor : null))
+    return {ok: false, code: "CARAVEL_TERMS_CONSENT_STALE_OR_MISSING"};
+  // The supplier priced this exact age; another age is a different price (requote).
+  if (ctx.mainDriverAge !== f.driverAge) return {ok: false, code: "CARAVEL_DRIVER_AGE_REQUOTE_REQUIRED"};
+  if (!UUID.test(ctx.clientId) || !UUID.test(ctx.pickupLocationId) || !UUID.test(ctx.dropoffLocationId) ||
+      !ctx.clientEmail.includes("@") || !ctx.clientPhone.trim() || ctx.mainDriverName.trim().split(/\s+/).length < 2 ||
+      !(Number.isFinite(ctx.exchangeRate) && ctx.exchangeRate > 0))
+    return {ok: false, code: "CARAVEL_CUSTOMER_INVALID"};
+  const online = Math.round(f.feeMajor * ctx.exchangeRate * 100) / 100;
+  const payload: Rec = {
+    client_id: ctx.clientId, car_class_id: f.quote.car_class_id, partner_id: CARAVEL_PARTNER_ID, api_quote_id: f.quote.id,
+    caravel_supplier_quote_id: f.quote.external_quote_reference, caravel_supplier_id: release.terms.supplierId,
+    caravel_terms_document_id: release.terms.documentId, caravel_terms_content_hash: release.terms.contentHash,
+    caravel_terms_language: release.terms.language, terms_accepted: true,
+    start_date: f.quote.start_date, end_date: f.quote.end_date, pickup_time: ctx.pickupTime, return_time: ctx.returnTime,
+    pickup_location_id: ctx.pickupLocationId, dropoff_location_id: ctx.dropoffLocationId,
+    pickup_location: ctx.pickupLocationName, return_location: ctx.returnLocationName,
+    exchange_rate_snapshot: ctx.exchangeRate, online_payment_pln: online,
+    main_driver_name: ctx.mainDriverName.trim(), main_driver_age: ctx.mainDriverAge,
+    client_email: ctx.clientEmail.trim(), client_phone: ctx.clientPhone.trim(),
+  };
+  if (f.excludes.length) Object.assign(payload, {
+    // Must equal the stored protection.excludes array exactly (SQL compares jsonb).
+    caravel_coverage_excluded_codes: f.excludes, caravel_coverage_terms_document_id: release.terms.documentId,
+    caravel_coverage_terms_content_hash: release.terms.contentHash, caravel_coverage_supplier_id: release.terms.supplierId,
+    caravel_coverage_quote_id: f.quote.external_quote_reference, caravel_coverage_damage_admin_fee_minor: f.adminFeeMinor,
+  });
+  return {ok: true, payload};
+}
