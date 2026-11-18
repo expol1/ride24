@@ -138,6 +138,12 @@ test("approved Premium exclusions can be sold only with an exact authoritative r
  assert.equal(sellable.value.features.damageAdministrationFeeMinor,10000);
  assert.equal(sellable.value.features.protectionTermsDocumentId,"caravel-en-v4");
  assert.deepEqual(sellable.value.features.caravelExclusions,corrected.excludes);
+ const [ride24Group]=normalizeGroups({groups:[sellable.value]});
+ assert.equal(ride24Group.features.fullInsurance,false);
+ assert.equal(ride24Group.features.premiumProtectionIncluded,true);
+ assert.equal(ride24Group.features.premiumProtectionWithExclusions,true);
+ assert.equal(ride24Group.features.damageAdministrationFeeMinor,10000);
+ assert.deepEqual(ride24Group.features.caravelExclusions,corrected.excludes);
  assert.equal(sellable.value.provider_quote_data.coverage_review_terms_document_id,"caravel-en-v4");
  assert.equal(sellable.value.provider_quote_data.damage_administration_fee_minor,10000);
  const changed=evaluateCaravelPremiumForRide24("premium",{
