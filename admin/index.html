@@ -6224,9 +6224,9 @@ async function loadGuideLocations() {
 
             <tr data-guide-location="${loc.id}" data-guide-assigned="${loc.guide_id ? "true" : "false"}">
 
-                <td>${escapeHtml(loc.country || "")}</td>
+                <td>${escapeHtml(window.Ride24LocationNames.localizedCountry(loc.country, "pl") || loc.country || "")}</td>
 
-                <td>${escapeHtml(loc.city || "")}</td>
+                <td>${escapeHtml(window.Ride24LocationNames.localizedCity(loc.city, loc.country, "pl") || loc.city || "")}</td>
 
                 <td>${escapeHtml(window.Ride24LocationNames.displayName(loc, "pl") || loc.location_name || "")}</td>
 
@@ -6258,12 +6258,13 @@ async function loadGuideLocations() {
         `;
 
     });
-    const originalNamesById = new Map((locations || []).map(loc => [loc.id, loc.location_name || ""]));
+    const originalsById = new Map((locations || []).map(loc => [loc.id, loc]));
     tbody.querySelectorAll("tr[data-guide-location]").forEach(row => {
-        const original = originalNamesById.get(row.dataset.guideLocation) || "";
-        row.cells[2].title = original;
+        const original = originalsById.get(row.dataset.guideLocation) || {};
+        row.cells[2].title = original.location_name || "";
         row.dataset.guideSearch = normalizeGuideLocationSearch(
-            Array.from(row.cells).slice(0, 3).map(cell => cell.textContent).join(" ") + " " + original
+            Array.from(row.cells).slice(0, 3).map(cell => cell.textContent).join(" ") +
+            " " + [original.country, original.city, original.location_name].filter(Boolean).join(" ")
         );
     });
     const emptyRow = document.createElement("tr");
