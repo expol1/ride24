@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
  supplierData,arventDate,arventQuery,arventLocationRows,arventGroupRows,
- arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventSavePayload,
+ arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventDateOfBirth,arventSavePayload,
  ARVENT_PATHS,
 } from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 
@@ -67,19 +67,35 @@ test("accepted EUR quote is per-day priced with total and no token leakage",()=>
  assert.equal(x.provider_quote_data.total_amount,150);
  assert.ok(!JSON.stringify(x).includes(example.reservationToken));
 });
-test("supplier status 0 stays pending; -4 is definitive cancellation",()=>{
- const pending=arventReservationStatus(ok({reservationNumber:"A-1",reservationStatusType:0}));
- assert.equal(pending.status,"pending");
- assert.equal(pending.needs_manual_review,true);
- const cancelled=arventReservationStatus(ok({reservationNumber:"A-1",reservationStatusType:-4}));
- assert.equal(cancelled.status,"cancelled");
- assert.equal(cancelled.needs_manual_review,false);
+test("2026-11-18 authoritative enum: only approved 1 is confirmed, 3 is cancelled",()=>{
+ const expectations=[
+  [0,"pending",true,"received"],[1,"confirmed",false,"approved"],
+  [2,"pending",true,"payment_completed"],[3,"cancelled",false,"cancelled"],
+  [4,"pending",true,"awaiting_payment"],[5,"pending",true,"vehicle_handed_over"],
+  [6,"pending",true,"unapproved"],[-4,"pending",true,"unknown"],
+  [999,"pending",true,"unknown"]
+ ];
+ for(const [code,status,review,label] of expectations) {
+  const actual=arventReservationStatus(ok({reservationNumber:"A-1",reservationStatusType:code}));
+  assert.equal(actual.status,status,String(code));
+  assert.equal(actual.needs_manual_review,review,String(code));
+  assert.equal(actual.supplier_status_label,label,String(code));
+  assert.equal(actual.definitive_rejection,false);
+ }
+});
+test("real date of birth uses dd.MM.yyyy, never synthesizes a date from age",()=>{
+ assert.equal(arventDateOfBirth("1999-10-29"),"29.10.1999");
+ assert.equal(arventDateOfBirth("29.10.1999"),"29.10.1999");
+ assert.equal(arventDateOfBirth(""),"");
+ assert.throws(()=>arventDateOfBirth("31.02.1990"),/BIRTHDAY_INVALID/);
+ assert.throws(()=>arventDateOfBirth("35"),/BIRTHDAY_INVALID/);
 });
 test("save payload uses only code/piece extras and no prepayment",()=>{
  const p=arventSavePayload({reservationToken:example.reservationToken,reference:"R24-XYZ",
   customer:{name:"Example",surname:"Customer",phoneNumber:"+48 000000000",
-   email:"example@example.com"},extras:[{code:"REAL_CODE",piece:1}]});
+   email:"example@example.com",birthDay:"1999-10-29"},extras:[{code:"REAL_CODE",piece:1}]});
  assert.equal(p.payment.paymentType,3);
+ assert.equal(p.customer.birthDay,"29.10.1999");
  assert.equal(p.pricing.paidAmount,0);
  assert.equal(p.sendReservationMail,false);
  assert.deepEqual(p.extras,[{code:"REAL_CODE",piece:1}]);
