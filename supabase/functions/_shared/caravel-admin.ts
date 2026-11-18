@@ -7,7 +7,8 @@
  *     It does NOT approve the release; caravel_release_control is untouched.
  *  2. syncCaravelCatalog — read production locations / vehicle groups / policies,
  *     normalise with the existing Caravel normalisers, MERGE into partner_locations and
- *     car_classes: new rows are inserted INACTIVE, existing rows keep their active flag,
+ *     car_classes: new rows are inserted INACTIVE (or active when sales are already
+ *     released and the caller says so), existing rows keep their active flag,
  *     nothing is deleted (a smaller refresh is never a deletion — certification rule).
  *  3. setCaravelRelease — one call to the atomic SQL function caravel_set_release
  *     (open = certification + reviewed terms + credentials + catalogue checks in one
@@ -96,6 +97,8 @@ export async function ingestCaravelProductionTerms(args: {
 export async function syncCaravelCatalog(args: {
   admin: Db; client: Pick<CaravelClient, "environment" | "suppliers" | "locations" | "vehicleClasses" | "reference">;
   supplierId: string; partnerId?: string;
+  /** Only when sales are already released: new rows go live immediately (AVIA-like). */
+  activateNew?: boolean;
 }): Promise<{ok: true; locations: {inserted: number; updated: number; missingFromRefresh: number; rejected: Record<string, number>};
   vehicles: {inserted: number; updated: number; missingFromRefresh: number; rejected: Record<string, number>}} | {ok: false; code: string}> {
   const partnerId = args.partnerId ?? CARAVEL_PARTNER_ID;
@@ -122,7 +125,7 @@ export async function syncCaravelCatalog(args: {
     const known = new Set(((data ?? []) as Rec[]).map((r) => String(r.external_id)));
     const fresh = new Set(incoming.map((r) => String(r.external_id)));
     const existing = incoming.filter((r) => known.has(String(r.external_id))).map(({active: _a, ...rest}) => rest);
-    const added = incoming.filter((r) => !known.has(String(r.external_id))).map((r) => ({...r, active: false}));
+    const added = incoming.filter((r) => !known.has(String(r.external_id))).map((r) => ({...r, active: args.activateNew === true}));
     if (existing.length) {
       const r = await args.admin.from(table).upsert(existing, {onConflict: "partner_id,external_id"});
       if (r.error) throw new Error("CARAVEL_CATALOG_WRITE_FAILED");

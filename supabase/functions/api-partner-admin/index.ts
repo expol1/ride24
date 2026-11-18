@@ -20,12 +20,18 @@ import {
 import { assertApiPricingCompatible } from "../_shared/api-quote-contract.mjs";
 import { inspectApiReadiness } from "../_shared/api-readiness.mjs";
 import { BookingOptionsError } from "../_shared/booking-options.mjs";
+import { handleCaravelPartnerAction, type CaravelPanelInput } from "../_shared/caravel-partner-admin.ts";
+import { caravelProductionReadClient } from "../_shared/caravel-paid-fulfillment.ts";
+
+// Caravel is configured in this same modal like any API partner; only its UUID is routed.
+const CARAVEL_PARTNER_ID = "78721481-7619-44df-a9b7-5faa344b69bb";
 
 type AdminClient = Awaited<ReturnType<typeof requireAdmin>>["admin"];
 type Action = "get" | "save" | "test" | "sync" | "activate" | "deactivate";
 
 type RequestBody = {
   action?: unknown;
+  caravel?: unknown;
   partner_id?: unknown;
   provider?: unknown;
   api_url?: unknown;
@@ -85,7 +91,7 @@ const ACTIONS = new Set<Action>([
   "activate",
   "deactivate",
 ]);
-const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar"]);
+const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar", "caravel"]);
 const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer", "renteon_oauth"]);
 const ENDPOINT_NAMES = new Set([
   "auth",
@@ -499,6 +505,16 @@ async function saveConfiguration(
   const aggregatorCode = provider === "renteon_aggregator"
     ? String(body.renteon_provider_code ?? previousCredentials?.renteon_provider_code ?? "").trim()
     : null;
+  if (provider === "caravel") {
+    // Caravel: fixed production host, API key header, no discount (its quote is the
+    // exact on-arrival price; the Ride24 fee is added separately).
+    if (partner.id !== CARAVEL_PARTNER_ID) throw new Error("Caravel jest dostępny tylko dla partnera Caravel");
+    if (apiUrl !== "https://api.caravelway.com") throw new Error("Caravel wymaga adresu https://api.caravelway.com");
+    if (authType !== "custom_headers") throw new Error("Caravel wymaga autoryzacji API Key");
+    body.endpoints = {};
+    body.extra_headers = {};
+    body.discount_percent = 0;
+  }
   if (provider === "renteon_aggregator") {
     if (apiUrl !== "https://aggregator.renteon.com") {
       throw new Error("Renteon Aggregator wymaga adresu https://aggregator.renteon.com");
@@ -968,7 +984,7 @@ serve(async (req) => {
   }
 
   try {
-    const { admin } = await requireAdmin(req);
+    const { admin, user } = await requireAdmin(req);
     const body = await readJsonObject(req) as RequestBody;
     const action = cleanAction(body.action);
 
@@ -977,6 +993,19 @@ serve(async (req) => {
     }
 
     const partner = await getPartner(admin, body.partner_id);
+
+    if (partner.id === CARAVEL_PARTNER_ID && partner.api_provider === "caravel" &&
+        ["test", "sync", "activate", "deactivate"].includes(action)) {
+      if (action !== "deactivate") ensureCommerciallyActive(partner);
+      let client = null;
+      if (action !== "deactivate") {
+        try { client = caravelProductionReadClient(await loadPartnerCredentials(admin, partner.id)); }
+        catch { return jsonResponse(req, { error: "Caravel: zapisz klucz produkcyjny i adres https://api.caravelway.com" }, 409); }
+      }
+      const panel = isRecord(body.caravel) ? body.caravel as CaravelPanelInput : null;
+      const result = await handleCaravelPartnerAction({ action, admin, client, panel, actor: `admin:${user.id}` });
+      return jsonResponse(req, result.body, result.status);
+    }
 
     if (action === "get") {
       const credentials = await getCredentials(admin, partner.id);

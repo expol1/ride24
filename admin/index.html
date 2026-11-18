@@ -3590,6 +3590,11 @@ window.togglePartnerType = function () {
 
 
 const API_PROVIDER_PRESETS = {
+    caravel: {
+        auth_type: "custom_headers",
+        api_url_placeholder: "https://api.caravelway.com",
+        endpoints: {}
+    },
     renteon_aggregator: {
         auth_type: "basic",
         api_url_placeholder: "https://aggregator.renteon.com",
@@ -3693,6 +3698,9 @@ window.applyApiProviderPreset = function() {
     if (aggregatorCodeRow) aggregatorCodeRow.style.display = aggregatorMode ? "block" : "none";
     const aggregatorDemoPanel = document.getElementById("renteon-aggregator-demo-panel");
     if (aggregatorDemoPanel) aggregatorDemoPanel.style.display = aggregatorMode ? "block" : "none";
+    if (provider === "caravel" && url) url.value = "https://api.caravelway.com";
+    const caravelPanel = document.getElementById("caravel-review-panel");
+    if (caravelPanel) caravelPanel.style.display = provider === "caravel" ? "block" : "none";
 
     const mapping = {
         auth: "api-endpoint-auth",
@@ -3740,6 +3748,8 @@ window.openApiConfiguration = async function(partnerId) {
             config.provider === "renteon_aggregator" ? "block" : "none";
         document.getElementById("renteon-aggregator-code-row").style.display =
             config.provider === "renteon_aggregator" ? "block" : "none";
+        document.getElementById("caravel-review-panel").style.display =
+            config.provider === "caravel" ? "block" : "none";
         document.getElementById("api-renteon-provider-code").value = config.renteon_provider_code || "";
         document.getElementById("api-auth-type").value = config.auth_type || "custom_headers";
         document.getElementById("api-url").value = config.api_url || "";
@@ -3869,17 +3879,34 @@ window.testApiConnection = async function() {
 window.syncApiPartner = async function() {
     try {
         setApiStatus("Synchronizacja lokalizacji i grup pojazd\u00F3w...");
-        const result = await callApiPartnerAdmin({ action: "sync", partner_id: window.currentApiPartnerId });
+        const result = await callApiPartnerAdmin({ action: "sync", partner_id: window.currentApiPartnerId, ...caravelPanelPayload() });
         const counts = result.result || {};
-        setApiStatus(`Synchronizacja OK: ${counts.locations || 0} lokalizacji, ${counts.groups || 0} grup`, true);
+        setApiStatus(result.message && caravelPanelPayload().caravel
+            ? `${result.message}: ${counts.locations || 0} lokalizacji, ${counts.groups || 0} grup`
+            : `Synchronizacja OK: ${counts.locations || 0} lokalizacji, ${counts.groups || 0} grup`, true);
     } catch (error) {
         setApiStatus(error.message, false);
     }
 };
 
+// Caravel review fields travel with the ordinary Sync/Activate buttons (no extra buttons).
+function caravelPanelPayload() {
+    if (document.getElementById("api-provider")?.value !== "caravel") return {};
+    const v = (id) => document.getElementById(id)?.value?.trim() || "";
+    const [exclusionRefs, feeRef] = v("caravel-clause-refs").split("/").map((x) => x.trim());
+    const at = v("caravel-certified-at");
+    return { caravel: {
+        certified_at: at ? new Date(at).toISOString() : undefined,
+        damage_admin_fee_eur: v("caravel-admin-fee"),
+        excluded_codes: v("caravel-excluded-codes"),
+        exclusion_clause_refs: exclusionRefs || "",
+        admin_fee_clause_ref: feeRef || ""
+    } };
+}
+
 window.activateApiPartner = async function() {
     try {
-        const result = await callApiPartnerAdmin({ action: "activate", partner_id: window.currentApiPartnerId });
+        const result = await callApiPartnerAdmin({ action: "activate", partner_id: window.currentApiPartnerId, ...caravelPanelPayload() });
         setApiStatus(result.message || "Partner API aktywny", true);
         await loadPartnersData();
     } catch (error) {
@@ -6736,6 +6763,7 @@ hereinafter referred to as the “Partner”.
                         <option value="easy_web_rent">Easy Web Rent</option>
                         <option value="ride24_standard_v1">Ride24 Standard API v1</option>
                         <option value="custom">Custom API</option>
+                        <option value="caravel">Caravel Channel API</option>
                     </select>
                 </div>
 
@@ -6814,6 +6842,16 @@ hereinafter referred to as the “Partner”.
     <button type="button" class="btn-primary" id="renteon-aggregator-demo-btn" onclick="testRenteonAggregatorDemo()">Sprawdź Renteon DEMO</button>
     <button type="button" class="btn-warn" id="renteon-aggregator-avia-btn" onclick="testRenteonAggregatorDemo('check_avia')">Sprawdź AVIA (tylko odczyt)</button>
     <pre id="renteon-aggregator-demo-result" style="white-space:pre-wrap; overflow:auto; max-height:260px; font:12px/1.45 monospace; margin:12px 0 0; color:#0F172A;" role="status"></pre>
+</div>
+<div id="caravel-review-panel" style="display:none; margin:12px 0 16px; padding:15px; border:1px solid #FDBA74; border-radius:12px; background:#FFF7ED;">
+    <h4 style="margin:0 0 8px; color:#9A3412; font-size:15px;">Caravel — dane przeglądu regulaminu i certyfikacji</h4>
+    <p style="font-size:12px; color:#7C2D12; margin:0 0 12px;">Uzupełnij tylko przy pierwszej aktywacji lub po zmianie regulaminu. „Synchronizuj” pobiera katalog i aktualny regulamin z API Caravel (weryfikacja SHA-256), „Aktywuj API” otwiera sprzedaż wyłącznie po certyfikacji. Później katalog i regulamin synchronizują się automatycznie.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group"><label>Data certyfikacji Caravel</label><input id="caravel-certified-at" type="datetime-local"></div>
+        <div class="form-group"><label>Opłata administracyjna za szkodę/kradzież (EUR)</label><input id="caravel-admin-fee" type="number" min="0" step="0.01" placeholder="np. 100"></div>
+        <div class="form-group"><label>Kody wyłączeń Premium (z regulaminu)</label><input id="caravel-excluded-codes" placeholder="glass, tyres_and_wheels, undercarriage"></div>
+        <div class="form-group"><label>Punkty regulaminu: wyłączenia / opłata</label><input id="caravel-clause-refs" placeholder="np. 6.2 / 6.1"></div>
+    </div>
 </div>
 <div id="api-test-status" style="padding:12px; border-radius:8px; background:#F3F4F6; font-weight:700;">&#9679; Nie sprawdzono</div>
                     <div id="api-readiness" role="status" style="margin-top:14px;padding:14px;border:1px solid #FDE68A;border-radius:8px;background:#FFFBEB;font-size:13px"></div>
