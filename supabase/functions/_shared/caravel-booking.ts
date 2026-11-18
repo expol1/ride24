@@ -9,7 +9,9 @@
  * is never booked silently.
  */
 import {CARAVEL_PROVIDER} from "./caravel-normalize.ts";
-import {evaluateCaravelPremium, checkCaravelLicenceEligibility} from "./caravel-premium.ts";
+import {checkCaravelLicenceEligibility} from "./caravel-premium.ts";
+import {evaluateCaravelPremiumForRide24, type CaravelApprovedExclusionReview}
+  from "./caravel-exclusion-policy.ts";
 import {verifyCaravelRide24PaymentContract} from "./caravel-payment-contract.ts";
 import type {CaravelQuotedBookingRequest} from "./caravel-sandbox-adapter.ts";
 
@@ -78,6 +80,13 @@ export type CaravelDraftOptions = {
     /** Current protection and final quoted deposit; must pass Ride24 policy. */
     protection: unknown;
     quoteDeposit: unknown;
+    /** Trusted Ride24 review of exact Caravel clauses/v1 exclusions. */
+    coverageReview?: CaravelApprovedExclusionReview;
+    /** Explicitly accepted disclosure, saved by Ride24 before charging Stripe. */
+    coverageDisclosureAcceptedBeforePayment?: boolean;
+    /** Exactly what the buyer saw beside Premium and the accepted terms. */
+    coverageExcludedCodesShown?: string[];
+    damageAdministrationFeeShownMinor?: number;
     /** Licence rules and user evidence verified for this booking/supplier. */
     licencePolicy: unknown;
     licenceEvidence: unknown;
@@ -119,17 +128,59 @@ export function buildCaravelBookingDraft(
     const gate = options?.production;
     if (gate?.certificationPassed !== true) errors.push("CARAVEL_CERTIFICATION_REQUIRED");
     if (gate?.termsVerifiedAndShownBeforePayment !== true) errors.push("CARAVEL_TERMS_REQUIRED_BEFORE_PAYMENT");
-    const coverage = evaluateCaravelPremium("premium", gate?.protection, gate?.quoteDeposit);
-    if (!coverage.ok && "errors" in coverage) errors.push(...coverage.errors);
-    // Production must receive an explicit full exclusions list; an omitted
-    // list is not equivalent to an empty list of exclusions.
-    if (!isRecord(gate?.protection) || !Array.isArray(gate.protection.excludes) ||
-        gate.protection.excludes.some(code => typeof code !== "string"))
+    const coverage = evaluateCaravelPremiumForRide24(
+      "premium",gate?.protection,gate?.quoteDeposit,gate?.coverageReview);
+    if ("errors" in coverage) errors.push(...coverage.errors);
+    // Unknown exclusions are never treated as none. For ANY documented
+    // exclusions the buyer must see/accept the actual policy and all codes.
+    const actualExclusions=isRecord(gate?.protection) ? gate.protection.excludes : null;
+    if (!Array.isArray(actualExclusions) ||
+        !actualExclusions.every((c:unknown)=>typeof c==="string"))
       errors.push("PROTECTION_EXCLUSIONS_UNVERIFIED");
+    if (Array.isArray(actualExclusions) && actualExclusions.length>0 && !gate?.coverageReview)
+      errors.push("CARAVEL_EXCLUSION_DISCLOSURE_REVIEW_REQUIRED");
+    if(gate?.coverageReview){
+      const reviewed=gate.coverageReview;
+      if(reviewed.termsDocumentId!==gate.currentTermsDocumentId ||
+         reviewed.termsDocumentId!==gate.termsDocumentIdShown ||
+         reviewed.termsContentHash!==gate.currentTermsContentHash ||
+         reviewed.termsContentHash!==gate.termsContentHashShown)
+        errors.push("CARAVEL_DISCLOSURE_TERMS_VERSION_MISMATCH");
+      if(gate.coverageDisclosureAcceptedBeforePayment!==true)
+        errors.push("CARAVEL_COVERAGE_DISCLOSURE_ACCEPTANCE_REQUIRED");
+      const sameCodes=(a:unknown,b:unknown)=>
+        Array.isArray(a)&&Array.isArray(b)&&
+        a.every((x:unknown)=>typeof x==="string")&&
+        b.every((x:unknown)=>typeof x==="string")&&
+        a.length===b.length&&
+        [...a].sort().every((x:string,i:number)=>x===[...b].sort()[i]);
+      if(!sameCodes(gate.coverageExcludedCodesShown,reviewed.documentedExcludedCodes))
+        errors.push("CARAVEL_COVERAGE_EXCLUSIONS_NOT_SHOWN");
+      if(gate.damageAdministrationFeeShownMinor!==reviewed.damageAdministrationFeeMinor)
+        errors.push("CARAVEL_DAMAGE_FEE_NOT_SHOWN");
+    }
     const licence = checkCaravelLicenceEligibility(gate?.licencePolicy, gate?.licenceEvidence);
     if (!licence.ok && "errors" in licence) errors.push(...licence.errors);
   }
   const data = isRecord(input?.provider_quote_data) ? input.provider_quote_data : null;
+  if(environment==="production" && options.production?.coverageReview){
+    const review=options.production.coverageReview;
+    const qExclusions=data?.coverage_exclusions;
+    const pExclusions=isRecord(data?.protection)?data.protection.excludes:null;
+    const currentExclusions=isRecord(options.production.protection)
+      ?options.production.protection.excludes:null;
+    const same=(a:unknown,b:unknown)=>
+      Array.isArray(a)&&Array.isArray(b)&&
+      a.length===b.length&&
+      a.every((x:unknown)=>typeof x==="string")&&
+      b.every((x:unknown)=>typeof x==="string")&&
+      [...a].sort().every((x:string,i:number)=>x===[...b].sort()[i]);
+    if(data?.coverage_review_terms_document_id!==review.termsDocumentId ||
+       !same(qExclusions,review.documentedExcludedCodes) ||
+       !same(pExclusions,currentExclusions) ||
+       data?.damage_administration_fee_minor!==review.damageAdministrationFeeMinor)
+      errors.push("CARAVEL_QUOTE_COVERAGE_DISCLOSURE_CHANGED");
+  }
   if(environment==="production"){
     const collection=verifyCaravelRide24PaymentContract(data);
     if("errors" in collection)errors.push(...collection.errors);
