@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {CaravelClient,CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
 import {compareCaravelTermsVersion,fetchCaravelCurrentTermsForReview,bindReviewedCaravelTermsToQuote} from "../supabase/functions/_shared/caravel-terms-version.ts";
 import {validateCaravelTermsBeforeStripe,validateCaravelTermsBeforeDispatch} from "../supabase/functions/_shared/caravel-terms-lifecycle.ts";
+import {computeCaravelTermsContentHash} from "../supabase/functions/_shared/caravel-terms-canonical.ts";
 const original=globalThis.fetch;
 const mock=(handler)=>{globalThis.fetch=async (url,options)=>new Response(JSON.stringify(handler(String(url),options)),{status:200,headers:{"content-type":"application/json"}});};
 test.afterEach(()=>{globalThis.fetch=original;});
@@ -141,19 +142,26 @@ test("immutable Caravel terms per supplier sync require review of any new docume
 });
 test("current Caravel clauses document is fetched per supplier and compared with list metadata",async()=>{
   const calls=[];
-  const expected=termsMeta("current-en-v4");
+  const base=termsMeta("current-en-v4");
+  const body={title:base.title,language:"en",clauses:[{number:"1",paragraphs:[[{text:"English terms"}]]}]};
+  const expected={...base,content_hash:await computeCaravelTermsContentHash(body)};
   const client={
     async referenceTerms(supplierId){calls.push(["list",supplierId]);return {data:[expected]};},
     async referenceTermsDocument(documentId,supplierId){
       calls.push(["detail",documentId,supplierId]);
-      return {data:{...expected,body:{clauses:[{number:"1",text:"English terms"}]}}};
+      return {data:{...expected,body}};
     },
   };
   const r=await fetchCaravelCurrentTermsForReview(client,"acct_eur","en");
   assert.equal(r.comparison.action,"initial_review_required");
   assert.equal(r.comparison.snapshot.documentId,"current-en-v4");
-  assert.equal(r.document.body.clauses[0].text,"English terms");
-  assert.equal(r.canonicalHashIndependentlyVerified,false);
+  assert.equal(r.document.body.clauses[0].paragraphs[0][0].text,"English terms");
+  assert.equal(r.canonicalHashIndependentlyVerified,true);
+  // Declared hash that does not match the body: fail closed.
+  const forged={async referenceTerms(){return {data:[base]};},
+    async referenceTermsDocument(){return {data:{...base,body}};}};
+  await assert.rejects(()=>fetchCaravelCurrentTermsForReview(forged,"acct_eur","en"),
+    /CARAVEL_TERMS_CONTENT_HASH_MISMATCH/);
   assert.deepEqual(calls,[["list","acct_eur"],["detail","current-en-v4","acct_eur"]]);
   const repeat=await fetchCaravelCurrentTermsForReview(client,"acct_eur","en",r.comparison.snapshot);
   assert.equal(repeat.comparison.action,"unchanged");

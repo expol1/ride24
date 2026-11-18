@@ -6,6 +6,7 @@
 import {isCaravelTermsMetadata, selectCurrentCaravelTerms, type CaravelTermsMetadata,
   type CaravelTermsDocument, type CaravelClient}
   from "./caravel-sandbox-adapter.ts";
+import {verifyCaravelTermsDocumentHash} from "./caravel-terms-canonical.ts";
 
 export type CaravelTermsSnapshot = {
   supplierId: string;
@@ -79,9 +80,10 @@ export function compareCaravelTermsVersion(args:{
  * Comparing a detail document against list metadata prevents a stale or
  * mismatched document from being displayed or snapshotted.
  *
- * The returned SHA-256 is the provider-declared hash, NOT a locally verified
- * canonical digest. Caravel's contract §3.9 must be implemented and audited
- * before activating the production client UI.
+ * The body is independently re-hashed with Caravel's published canonical
+ * serialisation (§3.9 / TermsDocument.content_hash, see
+ * caravel-terms-canonical.ts). A mismatch throws; the flag below is only
+ * true after the recomputed digest equals the declared content_hash.
  *
  * No secrets, bookings, storage documents or DB rows are modified here.
  */
@@ -93,7 +95,7 @@ export async function fetchCaravelCurrentTermsForReview(
 ): Promise<{
   comparison: CaravelTermsComparison;
   document: CaravelTermsDocument;
-  canonicalHashIndependentlyVerified: false;
+  canonicalHashIndependentlyVerified: true;
 }> {
   if (!supplierCode(supplierId) || !langCode(language))
     throw new Error("CARAVEL_TERMS_SYNC_SCOPE_INVALID");
@@ -114,7 +116,10 @@ export async function fetchCaravelCurrentTermsForReview(
   // Reject a retrieved document that is not currently active.
   if (document.withdrawn_at !== null || !document.body)
     throw new Error("CARAVEL_TERMS_DOCUMENT_NOT_CURRENT");
-  return {comparison,document,canonicalHashIndependentlyVerified:false};
+  const hash = await verifyCaravelTermsDocumentHash(document);
+  if (hash.contentHash !== comparison.snapshot.contentHash)
+    throw new Error("CARAVEL_TERMS_CONTENT_HASH_MISMATCH");
+  return {comparison,document,canonicalHashIndependentlyVerified:true};
 }
 
 
