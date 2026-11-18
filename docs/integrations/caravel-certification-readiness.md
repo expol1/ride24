@@ -350,3 +350,35 @@ Older evidence below is retained as dated history; references to pending live bo
   Caravel API, deployu, modyfikacji bazy czy Stripe.
 - Biznesowa przeszkoda wciąż istnieje: Caravel Premium
   wyłącza szkło, koła i podwozie; nie włączać ofert.
+
+
+## 18.11.2026 — prawdziwość etykiet płatności i pełnego ubezpieczenia w znormalizowanej ofercie
+
+- Naprawiono niebezpieczne założenie w `buildCaravelOfferFromApi()`:
+  sam fakt, że `Supplier.payment_models` zawiera `pay_on_arrival`,
+  nie oznacza, że **konkretna wycena** nie wymaga przedpłaty.
+  Wcześniej parser oznaczał każde poprawnie odczytane Premium jako
+  `features.payment_model="pay_on_arrival"` i
+  `supplier_collects_grand_total=true`, nawet gdy Caravel zwracał
+  `pay_now>0`. Teraz te pola są ustawione wyłącznie, jeśli
+  `pay_now=0` i `pay_at_pickup=grand_total`; dla pozostałych
+  wycen `payment_model=null` i `supplier_collects_grand_total=false`.
+  Opcjonalne pola nie są zastępowane domysłami.
+- Poprawiono także `buildCaravelOffer()`: sama surowa wycena,
+  bez zweryfikowanego zakresu ochrony, ma
+  `features.fullInsurance=false`. Dopiero
+  `buildCaravelOfferFromApi()`, **po** udanej walidacji
+  `evaluateCaravelPremium()`, może ustawić `fullInsurance=true`.
+  Wynik nie oznacza zgody na rzeczywiste obecne wyłączenia Caravel
+  (szyby, opony/koła, podwozie), które pozostają blokadą.
+- Testy obejmują zarówno niesprzedawalną wycenę z przedpłatą
+  (zachowaną do diagnostyki/certyfikacji), jak i wycenę
+  bez przedpłaty w EUR/GBP, która przechodzi odrębny filtr
+  `buildRide24SellableCaravelOfferFromApi()`.
+- Kod nadal nie jest podłączony do produkcyjnej wyszukiwarki
+  Ride24, rezerwacji ani Stripe. Nie wykonano żadnych wywołań
+  rzeczywistego API, deployu lub migracji bazy.
+- Trzy przebiegi GitHub Actions dla commita
+  `e71ac6b2bcf14d68d5230ecd9476948c91536141`:
+  `Ride24 API Compatibility QA` oraz dwa
+  `Caravel sandbox adapter checks` — wszystkie `success`.
