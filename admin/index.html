@@ -2103,6 +2103,7 @@
 </div>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../assets/helper/supabaseConfig.js"></script>
+    <script src="../assets/js/location-names.js?v=20261118dictionary1"></script>
     <script src="../assets/js/admin-smart-search.js?v=20261112a"></script>
     <script src="../assets/js/admin-api-readiness.js?v=20261021a"></script>
 <script src="../assets/js/admin-google-ads-drafts.js?v=20261023a" defer></script>
@@ -6175,6 +6176,9 @@ async function loadGuideLocations() {
         return;
     }
 
+    // Match the displayed Polish pickup labels without changing stored identifiers.
+    await window.Ride24LocationNames.loadDictionary(db).catch(() => {});
+
     const { data: guides, error: guideError } = await db
         .from("travel_guides")
         .select("id,title")
@@ -6224,7 +6228,7 @@ async function loadGuideLocations() {
 
                 <td>${escapeHtml(loc.city || "")}</td>
 
-                <td>${escapeHtml(loc.location_name || "")}</td>
+                <td>${escapeHtml(window.Ride24LocationNames.displayName(loc, "pl") || loc.location_name || "")}</td>
 
                 <td>
 
@@ -6254,8 +6258,13 @@ async function loadGuideLocations() {
         `;
 
     });
+    const originalNamesById = new Map((locations || []).map(loc => [loc.id, loc.location_name || ""]));
     tbody.querySelectorAll("tr[data-guide-location]").forEach(row => {
-        row.dataset.guideSearch = normalizeGuideLocationSearch(Array.from(row.cells).slice(0, 3).map(cell => cell.textContent).join(" "));
+        const original = originalNamesById.get(row.dataset.guideLocation) || "";
+        row.cells[2].title = original;
+        row.dataset.guideSearch = normalizeGuideLocationSearch(
+            Array.from(row.cells).slice(0, 3).map(cell => cell.textContent).join(" ") + " " + original
+        );
     });
     const emptyRow = document.createElement("tr");
     emptyRow.id = "guide-location-empty";
