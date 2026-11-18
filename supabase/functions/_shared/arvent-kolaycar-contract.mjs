@@ -77,7 +77,10 @@ function category(x,price,currency,input) {
  const vehicleId=id(x.vehicleId),code=sipp(x.sippCode);
  if(!vehicleId||!/^[A-Z]{4}$/.test(code))return null;
  const seats=count(x.passangerQuantityName);
- const ride24Class=ride24ClassFromAcriss(code,seats);
+ // Seat count belongs to a representative supplier model, not to the
+ // ACRISS group itself. A given live SIPP has both 5- and 7-seat models.
+ // A-F display class must be stable for the SAME SIPP (as in AVIA).
+ const ride24Class=ride24ClassFromAcriss(code);
  if(!ride24Class)return null;
  const className=classNames[ride24Class];
  const model=str(x.vehicleName)||null;
