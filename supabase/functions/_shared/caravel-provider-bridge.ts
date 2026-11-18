@@ -76,7 +76,7 @@ export async function submitVerifiedCaravelBooking(args:{
     currentTermsMetadataList:args.currentTermsMetadataList,
     persistedBookingTerms:args.persistedBookingTerms,
   });
-  if(!prepared.ok) return {
+  if("reasons" in prepared) return {
     ok:false,action:"hold_for_manual_review",phase:"preflight",
     reasons:prepared.reasons,externalReference:null,
   };
