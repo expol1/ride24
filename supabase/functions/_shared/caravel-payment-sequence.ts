@@ -15,6 +15,9 @@ const rec=(v:unknown):Rec|null=>v!==null&&typeof v==="object"&&!Array.isArray(v)
 const uuid=(v:unknown):v is string=>
   typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const nonempty=(v:unknown):v is string=>typeof v==="string"&&v.length>0;
+const isValidServerTimestamp=(v:unknown):v is string=>
+  typeof v==="string"&&/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d{1,6})?Z$/.test(v)&&
+  Number.isFinite(Date.parse(v));
 export const CARAVEL_PAID_AWAITING_SUPPLIER="caravel_paid_awaiting_supplier" as const;
 
 type StripeCheckpoint={
@@ -24,6 +27,9 @@ type StripeCheckpoint={
     status:"pending";
     api_status:typeof CARAVEL_PAID_AWAITING_SUPPLIER;
     manual_review:false;
+    caravel_stripe_payment_confirmed_at:string;
+    stripe_currency:"pln";
+    stripe_amount_cents:number;
   };
   /** Keep voucher/email generation OFF until provider confirmation persisted. */
   generateVoucher:false;
@@ -45,6 +51,7 @@ function expectedPlnMinor(b:Rec):number|null{
 }
 export function verifyCaravelPaidCheckoutForSupplierQueue(
   bookingInput:unknown,verifiedStripeSessionInput:unknown,
+  serverVerifiedAtIso:unknown,
 ):StripeCheckpoint{
   const b=rec(bookingInput),s=rec(verifiedStripeSessionInput);
   const meta=rec(s?.metadata);
@@ -71,10 +78,16 @@ export function verifyCaravelPaidCheckoutForSupplierQueue(
   if(b.status!=="awaiting_payment"||b.api_booking_reference!=null)
     return {ready:false,action:"hold_for_manual_review",
       reason:"CARAVEL_PREPAYMENT_BOOKING_STATE_INVALID",generateVoucher:false};
+  if(!isValidServerTimestamp(serverVerifiedAtIso) ||
+     Date.parse(serverVerifiedAtIso)>Date.now()+300000)
+    return {ready:false,action:"hold_for_manual_review",
+      reason:"CARAVEL_STRIPE_SERVER_TIMESTAMP_REQUIRED",generateVoucher:false};
   return {ready:true,
     transition:{
       fromStatus:"awaiting_payment",status:"pending",
       api_status:CARAVEL_PAID_AWAITING_SUPPLIER,manual_review:false,
+      caravel_stripe_payment_confirmed_at:serverVerifiedAtIso,
+      stripe_currency:"pln",stripe_amount_cents:amount,
     },generateVoucher:false,notifyCustomerConfirmed:false};
 }
 export function verifyCaravelProviderDispatchMayStart(bookingInput:unknown):
@@ -84,7 +97,7 @@ export function verifyCaravelProviderDispatchMayStart(bookingInput:unknown):
      b.status!=="pending"||b.api_status!==CARAVEL_PAID_AWAITING_SUPPLIER||
      b.cancelled_at!=null||b.api_booking_reference!=null||
      b.manual_review===true||!uuid(b.id)||!nonempty(b.stripe_session_id)||
-     b.stripe_payment_confirmed!==true)
+     !isValidServerTimestamp(b.caravel_stripe_payment_confirmed_at))
     return {ok:false,reason:"CARAVEL_PAID_DISPATCH_NOT_AUTHORIZED"};
   return {ok:true};
 }
@@ -98,5 +111,6 @@ export function canReleaseCaravelVoucher(bookingInput:unknown):boolean{
   return !!b&&b.provider_type==="api"&&b.api_provider==="caravel"&&
     b.status==="paid"&&b.api_status==="confirmed"&&
     nonempty(b.api_booking_reference)&&b.cancelled_at==null&&
-    b.manual_review!==true&&b.stripe_payment_confirmed===true;
+    b.manual_review!==true&&
+    isValidServerTimestamp(b.caravel_stripe_payment_confirmed_at);
 }
