@@ -1,5 +1,27 @@
 # Caravel Channel API v1.67.0 — certification readiness (Ride24)
 
+## 18 Nov 2026 — Latest production cutover check (DO NOT CLAIM GO-LIVE)
+
+**Production already changed and verified:**
+- Additive Caravel schema migration `20261118124748_caravel_booking_evidence_additive_20261118` **APPLIED** in Ride24 Supabase: 14 nullable booking evidence/terms fields, 3 validated CHECK constraints, and one scoped unique operator-review index. Exact migration source **MERGED TO MAIN** via [PR #114](https://github.com/expol1/ride24/pull/114).
+- Production `generate-voucher` Edge Function **v135 ACTIVE** with extra Caravel-only guard requiring a confirmed, durably persisted supplier booking + Stripe paid evidence + exact accepted terms before voucher/confirmation email. Current live voucher includes supplier booking number, normalized pickup/return and all previous features. **MERGED TO MAIN** via [PR #115](https://github.com/expol1/ride24/pull/115). Normal AVIA/other-provider paths preserved.
+- Isolated, **NOT DEPLOYED** PR #84 quote issuer fixed to use the actual Ride24 `get_global_platform_margin()` SQL RPC (currently **10.00%**) and existing `apiPriceTotals` formula. Supplier quote remains unchanged: 150 EUR rental at pickup → Ride24 fee 15 EUR (charged separately via Stripe after FX) → total shown 165 EUR. Previously the unconnected issuer wrote 0 platform fee and Stripe checkout would be rejected.
+- Isolated, **NOT DEPLOYED** PR #84 Stripe paid transition now durably saves an idempotent `public.payments` record against the existing `payments_stripe_session_uidx` unique index before publishing the paid supplier queue. The server-owned paid evidence loader independently verifies the payment receipt against the booking's signed Stripe checkpoint and fee amount **before** a one-time supplier claim or remote POST.
+- Draft PR #84 last test run before this documentation edit: **295/295 Caravel unit tests passed**, TypeScript + Deno checks passed, plus Ride24 API Compatibility, Mandatory Fee and Minimum Rental workflows green (head `80a55e11566f60e1bf9a6e7942c777fe8d794495`).
+
+**What was checked as NOT READY in live Ride24:**
+- Partner ID `78721481-7619-44df-a9b7-5faa344b69bb`: `account_status=active` but `api_provider=custom`, `api_enabled=false`, `api_status=draft`. Active account **is not an active supplier integration**.
+- For this partner: **0 rows** each in `partner_api_credentials`, `partner_locations`, `car_classes`, `api_quotes` and `bookings`. The sandbox-only Edge secrets, if present, are distinct from production partner credentials.
+- No official current supplier `clauses/v1` full body and independently verified canonical SHA-256 contract §3.9, no approved fully disclosed glass/wheels/undercarriage exclusions + EUR100 damage fee, no confirmed no-credit-card/full-Premium production quote, no live HMAC self-test/24h official certification, no provisioned production key.
+- Client flows still lack Caravel current terms/exclusion confirmation before Stripe on both WEB and Android; Caravel authenticated quote/booking snapshot flow, dedicated checkout route, signed Stripe webhook dispatch and confirmed operator workflow are **isolated prepared modules**, not invoked by deployed production endpoints. No real Caravel sandbox or production E2E certified run.
+
+**Release decision: NO-GO for enabling Caravel offers, charging real customers, or creating any Caravel supplier booking.** Main branch contains only already-deployed safe schema/voucher guards; draft PR #84 remains unmerged. Never bypass external certification, canonical hash validation, coverage disclosure or customer assent because mock CI is green.
+
+**Exact remaining cutover sequence:** authoritative account-specific API access, full EN v4 clauses/§3.9 canonicalization and coverage review → supplier HMAC self-test and supervised 24h cert → active catalog and production credentials → audited WEB+Android terms consent with immutable booking snapshot → Caravel-only Stripe-first path / service-role webhook and dispatcher → real sandbox end-to-end + cancellation/refund/reconciliation and voucher verification → limited monitored production smoke → then and only then set `api_provider=caravel`, `api_enabled=true` and `api_status=synced` through the reviewed admin activation route.
+
+---
+
+
 ## SCHEMA DEPLOYED — 18 Nov 2026 (supersedes historical schema TODOs)
 
 Migration `20261118124748_caravel_booking_evidence_additive_20261118`
