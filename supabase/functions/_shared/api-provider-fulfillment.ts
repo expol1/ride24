@@ -78,15 +78,21 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  const old=quote.raw_response?.provider_quote_data;
  const sipp=String(quote.external_group_id||'');
  const vehicleId=String(old?.vehicle_id||'');
- const net=serviceCents(booking.partner_net_price_snapshot);
+ const cents=(v:any):number|null=>{
+  // Supabase numeric columns may be returned as numbers or decimal strings.
+  if(typeof v!=='number'&&(typeof v!=='string'||v.trim()===''))return null;
+  const n=Number(v);
+  if(!Number.isFinite(n)||n<0||n>1000000)return null;
+  return serviceCents(n);
+ };
+ const net=cents(booking.partner_net_price_snapshot);
  if(old?.provider!=='arvent_kolaycar'||!/^\w{4}$/.test(sipp)
    ||old?.sipp!==sipp||!/^\d+$/.test(vehicleId)
    ||quote.currency!=='EUR'||booking.partner_currency!=='EUR'
    ||Number(quote.partner_discount_percent)!==0
-   ||net<=0||net!==serviceCents(quote.partner_net_total)
-   ||net!==serviceCents(old.total_amount)
-   ||!Number.isInteger(serviceCents(booking.online_payment_pln))
-   ||serviceCents(booking.online_payment_pln)<=0)
+   ||net===null||net<=0||net!==cents(quote.partner_net_total)
+   ||net!==cents(old.total_amount)
+   ||(cents(booking.online_payment_pln)??0)<=0)
   fail('ACCEPTED_QUOTE_MISMATCH');
  if(booking.add_driver_name||booking.add_driver_age||!booking.main_driver_name
    ||!booking.client_email||!booking.client_phone)
@@ -108,7 +114,7 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  const live=await arventSearch(credentials,input);
  const match=live.find((offer:any)=>offer.external_id===sipp
    &&offer.currency==='EUR'&&offer.deposit_amount===0
-   &&serviceCents(offer.public_price_total)===net);
+   &&cents(offer.public_price_total)===net);
  if(!match)fail(live.some((offer:any)=>offer.external_id===sipp)
    ?'PROVIDER_PRICE_OR_TERMS_CHANGED':'PROVIDER_UNAVAILABLE');
  const age=Number(booking.main_driver_age);
