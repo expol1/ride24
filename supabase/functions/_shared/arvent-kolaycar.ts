@@ -145,25 +145,16 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
   needs_manual_review:status.needs_manual_review||(status.status==="confirmed"&&!confirmed),
   provider_payload:sanitizePartnerPayload(d,12000)};
 }
-// Read-only reconciliation using Ride24's reference and the original email.
-// agencyReservationReference is not a unique/idempotent create guarantee.
-// A lookup failure or empty result MUST NOT trigger a second supplier POST.
-export async function arventLookupByAgencyReference(c:PartnerApiCredentials,reference:string,email:string):Promise<Record<string,unknown>|null> {
- if(!/^[A-Za-z0-9_-]{1,150}$/.test(reference)||!/^\S+@\S+\.\S+$/.test(email))
-  throw Error("PARTNER_API_ERROR:ARVENT_LOOKUP_INVALID");
- const response=await request(c,ARVENT_PATHS.booking_status+"?"+arventQuery({
-  agencyReservationReference:reference,customerEmail:email,
- }));
- const data=supplierData(response);
- if(data===null)return null;
- if(!data||typeof data!=="object"||Array.isArray(data))
-  throw Error("PARTNER_API_ERROR:ARVENT_LOOKUP_UNCERTAIN");
- const record=data as Record<string,unknown>;
- // Confirm that the supplier actually returned this exact agency reference.
- if(record.agencyReservationReference!==reference)
-  throw Error("PARTNER_API_ERROR:ARVENT_REFERENCE_MISMATCH");
- return {...arventReservationStatus(response),
-  provider_payload:sanitizePartnerPayload(data,12000)};
+// Supplier documentation only supports GET /reservations by supplier
+// reservationNumber + original customerEmail. It does NOT document a lookup
+// by agencyReservationReference, so do not send an unsupported query or
+// falsely treat an empty response as proof that a timed-out POST failed.
+// An ambiguous SaveReservation outcome requires manual reconciliation with
+// Arvent until they document a supported idempotency/recovery mechanism.
+export async function arventLookupByAgencyReference(
+ _c:PartnerApiCredentials,_reference:string,_email:string,
+):Promise<Record<string,unknown>|null>{
+ throw Error("PARTNER_API_ERROR:ARVENT_AGENCY_LOOKUP_UNSUPPORTED");
 }
 function allowSupplierMutation():void {
  // Different from api_enabled: explicit server-side provider certification gate.
