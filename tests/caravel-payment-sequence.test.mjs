@@ -11,7 +11,8 @@ const ID="d9bb87e8-71cc-43a2-bd09-a487639acd14";
 const CLIENT="0138fbc3-5ebf-4e37-b27c-87df3de44c12";
 const ACCEPTED_AT="2026-11-18T09:45:00.000Z";
 const b=()=>({id:ID,client_id:CLIENT,provider_type:"api",api_provider:"caravel",
- status:"awaiting_payment",api_status:null,api_booking_reference:null,
+ status:"awaiting_payment",api_status:"caravel_awaiting_stripe",
+ api_booking_reference:null,
  cancelled_at:null,manual_review:false,stripe_session_id:"cs_test_abc",
  online_payment_pln:39.99,stripe_amount_cents:3999,stripe_currency:"pln"});
 const s=()=>({id:"cs_test_abc",client_reference_id:ID,
@@ -42,6 +43,9 @@ test("missing, unpaid, reused, altered or mismatched session never releases vouc
   [base,{...pay,metadata:{booking_id:ID,client_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"}}],
   [{...base,stripe_currency:"eur"},pay],
   [{...base,api_provider:"avia"},pay],
+  [{...base,api_status:null},pay],
+  [{...base,api_status:"caravel_quote_unclaimed"},pay],
+  [{...base,api_status:"caravel_supplier_dispatch_claimed"},pay],
   [{...base,provider_type:"local"},pay],
   [{...base,status:"cancelled",cancelled_at:"2026-11-18"},pay],
   [{...base,status:"rejected"},pay],

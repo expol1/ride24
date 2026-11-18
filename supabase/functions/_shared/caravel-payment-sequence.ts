@@ -79,7 +79,11 @@ export function verifyCaravelPaidCheckoutForSupplierQueue(
   if(b.status==="paid"&&b.api_status==="confirmed"&&nonempty(b.api_booking_reference))
     return {ready:false,action:"already_completed",
       reason:"CARAVEL_SUPPLIER_ALREADY_CONFIRMED",generateVoucher:false};
-  if(b.status!=="awaiting_payment"||b.api_booking_reference!=null)
+  // The atomic Caravel-only quote+booking RPC writes this exact initial
+  // marker. No other awaiting_payment API path may be queued by Stripe.
+  if(b.status!=="awaiting_payment"||
+     b.api_status!=="caravel_awaiting_stripe"||
+     b.api_booking_reference!=null)
     return {ready:false,action:"hold_for_manual_review",
       reason:"CARAVEL_PREPAYMENT_BOOKING_STATE_INVALID",generateVoucher:false};
   if(!isValidServerTimestamp(serverVerifiedAtIso) ||

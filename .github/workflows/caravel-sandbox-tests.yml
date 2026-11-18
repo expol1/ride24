@@ -48,10 +48,25 @@ jobs:
         with:
           deno-version: v2.x
       - name: Deno check (no secrets, no deployments)
+        shell: bash
         run: |
-          deno check --config supabase/functions/caravel-audit-deno.json \
-            supabase/functions/caravel-sandbox-acceptance/index.ts \
-            supabase/functions/caravel-sandbox-cert-rehearsal/index.ts \
-            supabase/functions/caravel-sandbox-webhook-receiver/index.ts \
-            supabase/functions/caravel-sandbox-reconcile-worker/index.ts \
-            supabase/functions/caravel-sandbox-periodic-poll/index.ts
+          set -o pipefail
+          # Retry only confirmed transient upstream dependency HTTP timeouts.
+          # Real TS/Deno errors fail on the first attempt; never hide them.
+          for attempt in 1 2 3; do
+            if deno check --config supabase/functions/caravel-audit-deno.json \
+              supabase/functions/caravel-sandbox-acceptance/index.ts \
+              supabase/functions/caravel-sandbox-cert-rehearsal/index.ts \
+              supabase/functions/caravel-sandbox-webhook-receiver/index.ts \
+              supabase/functions/caravel-sandbox-reconcile-worker/index.ts \
+              supabase/functions/caravel-sandbox-periodic-poll/index.ts \
+              2>&1 | tee /tmp/caravel-deno-check.log; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ] && grep -Eqi '408 Request Timeout|503 Service Unavailable|429 Too Many Requests' /tmp/caravel-deno-check.log; then
+              echo "Transient Deno dependency fetch: retrying (attempt $attempt/3)"
+              sleep 5
+            else
+              exit 1
+            fi
+          done

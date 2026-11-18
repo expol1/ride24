@@ -10,7 +10,8 @@ const CARAVEL="78721481-7619-44df-a9b7-5faa344b69bb";
 const NOW=new Date().toISOString();
 const hash="a".repeat(64);
 const row=()=>({id:ID,client_id:CLIENT,partner_id:CARAVEL,
- provider_type:"api",status:"awaiting_payment",api_status:null,
+ provider_type:"api",status:"awaiting_payment",
+ api_status:"caravel_awaiting_stripe",
  api_booking_reference:null,cancelled_at:null,manual_review:false,
  online_payment_pln:39.99,stripe_session_id:"cs_test_caravel",
  stripe_currency:null,stripe_amount_cents:null,api_quote_id:AID,
@@ -117,6 +118,9 @@ test("wrong client, amount, currency, session, partner or quote cannot be marked
   [{caravel_terms_content_hash:"b".repeat(64)},{}],
   [{status:"cancelled",cancelled_at:NOW},{}],
   [{manual_review:true},{}],
+  [{api_status:null},{}],
+  [{api_status:"caravel_quote_unclaimed"},{}],
+  [{api_status:"caravel_supplier_dispatch_claimed"},{}],
   [{online_payment_pln:39.98},{}],
  ];
  for(const [patch,overrides] of cases){
