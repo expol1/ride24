@@ -30,7 +30,8 @@ export const CARAVEL_PARTNER_ID = "78721481-7619-44df-a9b7-5faa344b69bb";
 const SUPPLIER = /^[A-Za-z0-9_-]{1,128}$/;
 const rec = (v: unknown): Rec | null => !!v && typeof v === "object" && !Array.isArray(v) ? v as Rec : null;
 const fail = (code: string): never => { throw new DefiniteApiFailure(code); };
-const env = (k: string) => (typeof Deno !== "undefined" ? Deno.env.get(k) : undefined);
+// deno-lint-ignore no-explicit-any
+const env = (k: string): string | undefined => (globalThis as any).Deno?.env?.get(k);
 
 export function caravelPaidFulfillmentApproved(read: (k: string) => string | undefined = env): boolean {
   return read("CARAVEL_PRODUCTION_WRITES_ALLOWED") === "true" && read("CARAVEL_STRIPE_FIRST_APPROVED") === "true";
@@ -152,6 +153,7 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
       parsed.value.quote.excessAmountMinor !== 0 ||
       parsed.value.quote.expiresAtEpochMs < (opts.nowMs ?? Date.now()) + 60_000)
     fail("PROVIDER_PRICE_OR_TERMS_CHANGED");
+  if ("errors" in parsed) throw new DefiniteApiFailure("PROVIDER_PRICE_OR_TERMS_CHANGED");
   const key = await caravelBookingUuid(String(booking.id), "book");
   return {
     provider: "caravel", idempotency_key: key, external_ref: `ride24-${key}`,
