@@ -52,6 +52,10 @@ export function evaluateCaravelPremiumForRide24(
   }
   const review=reviewedExclusions;
   const errors:string[]=[];
+  // Publishing a price with zero deposit requires the FINAL quote's deposit
+  // confirmation, not just the protection catalogue's advertised zero.
+  if(!rec(quoteDeposit)||!rec(rec(quoteDeposit)?.amount))
+    errors.push("CARAVEL_QUOTE_DEPOSIT_UNVERIFIED");
   const p=rec(protection);
   const excludes=p?.excludes;
   const covers=p?.covers;
