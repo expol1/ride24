@@ -1,6 +1,13 @@
 /* Partner panel UI only. Original PL/EN strings and five additional locales. */
 window.Ride24PartnerLocales = Object.freeze({
   "source": {
+      "Vehicle pickup and return locations": "Lokalizacje odbioru i zwrotu pojazdu",
+      "All active partner locations": "Wszystkie aktywne lokalizacje partnera",
+      "For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.": "Dla skuterów / ATV (grupa 0) wybierz co najmniej jedną lokalizację. Odbiór i zwrot będą możliwe tylko w zaznaczonych punktach.",
+      "Add an active pickup location in Locations first.": "Najpierw dodaj aktywną lokalizację odbioru w zakładce Lokalizacje.",
+      "Choose at least one pickup location for scooters / ATV.": "Dla skuterów / ATV wybierz co najmniej jedną lokalizację odbioru.",
+      "Select a location or choose all partner locations.": "Wybierz lokalizację lub wszystkie lokalizacje partnera.",
+      "Could not load locations.": "Nie udało się pobrać lokalizacji.",
       "🎉 Ready for pickup": "🎉 Gotowe do odbioru",
       "❌ REJECT": "❌ ODRZUĆ",
       "✅ ACCEPT": "✅ AKCEPTUJ",
@@ -634,6 +641,13 @@ window.Ride24PartnerLocales = Object.freeze({
   },
   "languages": {
     "es": {
+      "Vehicle pickup and return locations": "Lugares de recogida y devolución del vehículo",
+      "All active partner locations": "Todos los puntos activos del socio",
+      "For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.": "Para scooters / ATV (grupo 0), selecciona al menos un lugar. La recogida y devolución solo son posibles en los lugares seleccionados.",
+      "Add an active pickup location in Locations first.": "Primero añade un lugar de recogida activo en Ubicaciones.",
+      "Choose at least one pickup location for scooters / ATV.": "Elige al menos un lugar de recogida para scooters / ATV.",
+      "Select a location or choose all partner locations.": "Selecciona un lugar o todos los lugares del socio.",
+      "Could not load locations.": "No se pudieron cargar las ubicaciones.",
       "🎉 Ready for pickup": "🎉 Listo para recoger",
       "❌ REJECT": "❌ RECHAZAR",
       "✅ ACCEPT": "✅ ACEPTAR",
@@ -1266,6 +1280,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "No tienes permiso para cambiar este estado."
     },
     "el": {
+      "Vehicle pickup and return locations": "Τοποθεσίες παραλαβής και επιστροφής οχήματος",
+      "All active partner locations": "Όλες οι ενεργές τοποθεσίες του συνεργάτη",
+      "For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.": "Για σκούτερ / ATV (ομάδα 0), επιλέξτε τουλάχιστον μία τοποθεσία. Παραλαβή και επιστροφή επιτρέπονται μόνο στα επιλεγμένα σημεία.",
+      "Add an active pickup location in Locations first.": "Προσθέστε πρώτα ένα ενεργό σημείο παραλαβής στις Τοποθεσίες.",
+      "Choose at least one pickup location for scooters / ATV.": "Επιλέξτε τουλάχιστον ένα σημείο παραλαβής για σκούτερ / ATV.",
+      "Select a location or choose all partner locations.": "Επιλέξτε μια τοποθεσία ή όλες τις τοποθεσίες του συνεργάτη.",
+      "Could not load locations.": "Δεν ήταν δυνατή η φόρτωση των τοποθεσιών.",
       "🎉 Ready for pickup": "🎉 Έτοιμο για παραλαβή",
       "❌ REJECT": "❌ ΑΠΟΡΡΙΨΗ",
       "✅ ACCEPT": "✅ ΑΠΟΔΟΧΗ",
@@ -1898,6 +1919,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Δεν έχετε δικαίωμα να αλλάξετε αυτή την κατάσταση."
     },
     "it": {
+      "Vehicle pickup and return locations": "Località di ritiro e riconsegna del veicolo",
+      "All active partner locations": "Tutte le sedi attive del partner",
+      "For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.": "Per scooter / ATV (gruppo 0), seleziona almeno una sede. Ritiro e riconsegna sono consentiti solo nelle sedi selezionate.",
+      "Add an active pickup location in Locations first.": "Aggiungi prima una località di ritiro attiva in Località.",
+      "Choose at least one pickup location for scooters / ATV.": "Scegli almeno una località di ritiro per scooter / ATV.",
+      "Select a location or choose all partner locations.": "Seleziona una località oppure tutte le sedi del partner.",
+      "Could not load locations.": "Impossibile caricare le località.",
       "🎉 Ready for pickup": "🎉 Pronto per il ritiro",
       "❌ REJECT": "❌ RIFIUTA",
       "✅ ACCEPT": "✅ ACCETTA",
@@ -2530,6 +2558,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Non hai i permessi per cambiare questo stato."
     },
     "de": {
+      "Vehicle pickup and return locations": "Abhol- und Rückgabeorte des Fahrzeugs",
+      "All active partner locations": "Alle aktiven Standorte des Partners",
+      "For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.": "Für Roller / ATV (Gruppe 0) mindestens einen Standort auswählen. Abholung und Rückgabe sind nur an den ausgewählten Standorten möglich.",
+      "Add an active pickup location in Locations first.": "Fügen Sie zuerst einen aktiven Abholort unter Standorte hinzu.",
+      "Choose at least one pickup location for scooters / ATV.": "Wählen Sie mindestens einen Abholort für Roller / ATV.",
+      "Select a location or choose all partner locations.": "Wählen Sie einen Standort oder alle Partnerstandorte.",
+      "Could not load locations.": "Standorte konnten nicht geladen werden.",
       "🎉 Ready for pickup": "🎉 Abholbereit",
       "❌ REJECT": "❌ ABLEHNEN",
       "✅ ACCEPT": "✅ ANNEHMEN",
@@ -3162,6 +3197,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "Sie sind nicht berechtigt, diesen Status zu ändern."
     },
     "ru": {
+      "Vehicle pickup and return locations": "Места получения и возврата транспорта",
+      "All active partner locations": "Все действующие пункты партнёра",
+      "For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.": "Для скутеров / квадроциклов (группа 0) выберите хотя бы один пункт. Получение и возврат возможны только в выбранных пунктах.",
+      "Add an active pickup location in Locations first.": "Сначала добавьте активный пункт получения в разделе Локации.",
+      "Choose at least one pickup location for scooters / ATV.": "Выберите хотя бы один пункт получения для скутеров / квадроциклов.",
+      "Select a location or choose all partner locations.": "Выберите пункт или все пункты партнёра.",
+      "Could not load locations.": "Не удалось загрузить пункты.",
       "🎉 Ready for pickup": "🎉 Готово к выдаче",
       "❌ REJECT": "❌ ОТКЛОНИТЬ",
       "✅ ACCEPT": "✅ ПРИНЯТЬ",
@@ -3794,6 +3836,13 @@ window.Ride24PartnerLocales = Object.freeze({
       "You are not allowed to change this status.": "У вас нет прав для изменения этого статуса."
     },
     "fr": {
+      "Vehicle pickup and return locations": "Lieux de prise en charge et de restitution du véhicule",
+      "All active partner locations": "Tous les lieux actifs du partenaire",
+      "For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.": "Pour les scooters / quads (groupe 0), choisissez au moins un lieu. La prise en charge et la restitution ne sont possibles que dans les lieux sélectionnés.",
+      "Add an active pickup location in Locations first.": "Ajoutez d’abord un lieu de prise en charge actif dans Lieux.",
+      "Choose at least one pickup location for scooters / ATV.": "Choisissez au moins un lieu de prise en charge pour les scooters / quads.",
+      "Select a location or choose all partner locations.": "Choisissez un lieu ou tous les lieux du partenaire.",
+      "Could not load locations.": "Impossible de charger les lieux.",
       "🎉 Ready for pickup": "🎉 Prêt à récupérer",
       "❌ REJECT": "❌ REFUSER",
       "✅ ACCEPT": "✅ ACCEPTER",
