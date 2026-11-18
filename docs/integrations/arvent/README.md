@@ -180,3 +180,22 @@ to the paid fulfillment workflow.
 no credentials are currently persisted, admin activation is blocked,
 provider write flag is unset, no paid-fulfillment integration or live
 reservation has been certified.
+
+## Follow-up safeguards — 18 November 2026
+
+- Supplier `Approved` must match the exact original Ride24 pickup and
+  return location IDs, calendar dates and local clock times, as well as
+  rental total EUR / zero deposit / no credit-card hold / unlimited KM.
+  A mismatch stays `pending` and requires manual review; never issue voucher.
+- A supplier HTTP 401 on a booking/cancellation **POST** is not replayed
+  automatically. Read-only GET may refresh the Bearer once.
+- Initial location synchronization is restricted to the ten agreed airport
+  IATA codes **SAW, IST, SZF, ASR, DLM, AYT, ADB, EDO, AOE, TZX**.
+  Missing or ambiguous IATA/locationCode stays disabled until an explicit
+  supplier-to-Ride24 location mapping can be verified. Existing Erdem at
+  ADB/BJV remains untouched.
+- These are static safety checks and mocked-contract tests, NOT a claim
+  of actual live-catalog acceptance or of supplier booking certification.
+- Temporary branch-only GitHub Actions `push` trigger is in place while
+  draft PR #105 has a merge conflict. Remove this temporary trigger before
+  final production merge.
