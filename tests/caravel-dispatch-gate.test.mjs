@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {prepareVerifiedCaravelDispatch} from "../supabase/functions/_shared/caravel-dispatch-gate.ts";
 import {captureCaravelCoverageConsentBeforeStripe} from "../supabase/functions/_shared/caravel-coverage-consent.ts";
-import {submitVerifiedCaravelBooking} from "../supabase/functions/_shared/caravel-provider-bridge.ts";
+import {submitVerifiedCaravelBooking,claimAndSubmitVerifiedCaravelBooking} from "../supabase/functions/_shared/caravel-provider-bridge.ts";
 
 const NOW=1900000000000;
 const BOOKING_ID="d9bb87e8-71cc-43a2-bd09-a487639acd14";
@@ -289,4 +289,70 @@ test("remote request failure is ambiguous: manual reconciliation, never blind re
  assert.equal(r.ok,false);
  assert.equal(r.phase,"supplier_outcome_uncertain");
  assert.deepEqual(r.reasons,["CARAVEL_CREATE_RESULT_UNKNOWN_RECONCILE_BEFORE_RETRY"]);
+});
+
+test("atomic Caravel post-Stripe wrapper sends at most ONE supplier POST under concurrent calls",async()=>{
+  const row={...paidClaim(),api_status:"caravel_paid_awaiting_supplier",
+    caravel_supplier_dispatch_claimed_at:null,
+    partners:{api_provider:"caravel",api_enabled:true}};
+  let current=row, claims=0, calls=0;
+  const db={from(name){
+    assert.equal(name,"bookings");
+    return {update(update){
+      const filters=[];
+      const chain={
+        eq:(col,value)=>{filters.push([col,"eq",value]);return chain;},
+        is:(col,value)=>{filters.push([col,"is",value]);return chain;},
+        not:(col,op,value)=>{filters.push([col,"not_is",value]);return chain;},
+        select:()=>({maybeSingle:async()=>{
+          if(!current || filters.some(([col,op,value])=>{
+            const v=current[col];
+            return op==="eq"?v!==value:op==="is"?v!==null:v===null;
+          }))return {data:null,error:null};
+          current={...current,...update};claims++;
+          return {data:{...current},error:null};
+        }})
+      };
+      return chain;
+    }};
+  }};
+  const client={environment:"production",async book(){
+    calls++;return {data:acceptedBooking()};
+  }};
+  const base={...fixture(),client,admin:db,enableSupplierWrite:true,
+    partnerApiEnabled:true,currentExternalReference:null};
+  const [first,second]=await Promise.all([
+    claimAndSubmitVerifiedCaravelBooking(base),
+    claimAndSubmitVerifiedCaravelBooking(base),
+  ]);
+  assert.equal(first.ok,true,JSON.stringify(first));
+  assert.equal(second.ok,false,JSON.stringify(second));
+  assert.equal(second.reasons[0],"CARAVEL_CLAIM_ALREADY_TAKEN_OR_INELIGIBLE");
+  assert.equal(claims,1);
+  assert.equal(calls,1,"never send the same Caravel booking twice");
+});
+test("invalid Caravel terms, certification and disabled supplier never acquire an atomic claim",async()=>{
+  let claimed=0,called=0;
+  const admin={from(){claimed++;throw new Error("should not claim");}};
+  const client={environment:"production",async book(){called++;throw Error("should not book");}};
+  const f=fixture();
+  for(const patch of [
+    {enableSupplierWrite:false},
+    {partnerApiEnabled:false},
+    {productionGate:{...f.productionGate,certificationPassed:false}},
+    {persistedBookingTerms:null},
+    {currentTermsMetadataList:[metadata({
+      document_id:"caravel-en-v5",version:5,
+      content_hash:"b".repeat(64),published_at:"2026-11-18T10:00:00Z",
+    })]},
+  ]){
+    const result=await claimAndSubmitVerifiedCaravelBooking({
+      ...f,client,admin,enableSupplierWrite:true,partnerApiEnabled:true,
+      currentExternalReference:null,...patch,
+    });
+    assert.equal(result.ok,false,JSON.stringify(patch));
+    assert.equal(result.phase,"preflight");
+  }
+  assert.equal(claimed,0);
+  assert.equal(called,0);
 });

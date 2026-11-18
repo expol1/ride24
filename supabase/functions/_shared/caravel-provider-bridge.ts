@@ -13,6 +13,7 @@
  */
 import {prepareVerifiedCaravelDispatch} from "./caravel-dispatch-gate.ts";
 import {verifyCaravelClaimedPaidBooking} from "./caravel-dispatch-proof.ts";
+import {claimCaravelPaidDispatch,type CaravelClaimClient} from "./caravel-dispatch-claim.ts";
 import {verifyCaravelBookingAgainstQuote} from "./caravel-booking.ts";
 import {isUuid, type CaravelClient} from "./caravel-sandbox-adapter.ts";
 import type {Ride24BookingInput,CaravelDraftOptions} from "./caravel-booking.ts";
@@ -148,4 +149,57 @@ export async function submitVerifiedCaravelBooking(args:{
       payment_model:"pay_on_arrival",
     },
   }};
+}
+
+/**
+ * Preferred isolated Caravel dispatch entrypoint.
+ * 1) fail-closed pure preflight — NO state mutation on known invalid offers
+ * 2) ONE compare-and-swap DB claim for the Stripe-paid Ride24 booking
+ * 3) verified supplier POST under stable booking UUID idempotency
+ *
+ * The service-role caller must load the quote, saved terms and verified
+ * Stripe state. The claim persists even on ambiguous supplier responses;
+ * an operational review worker must reconcile rather than retry blindly.
+ *
+ * Not wired into production Ride24, not deployed, no automatic refunds.
+ */
+export async function claimAndSubmitVerifiedCaravelBooking(
+  args:Omit<Parameters<typeof submitVerifiedCaravelBooking>[0],
+    "persistedPaidBooking"> & {admin:CaravelClaimClient},
+):Promise<Result>{
+  const reject=(reason:string):Result=>({
+    ok:false,action:"hold_for_manual_review",phase:"preflight",
+    reasons:[reason],externalReference:null,
+  });
+  if(!args || args.enableSupplierWrite!==true ||
+     args.client?.environment!=="production" ||
+     args.partnerApiEnabled!==true ||
+     args.currentExternalReference!==null ||
+     !Number.isSafeInteger(args.nowEpochMs) ||
+     args.productionGate?.certificationPassed!==true)
+    return reject("CARAVEL_LIVE_DISPATCH_NOT_AUTHORIZED");
+  // Avoid claiming a known expired quote/invalid terms before the DB fence.
+  const preflight=prepareVerifiedCaravelDispatch({
+    bookingInput:args.bookingInput,
+    nowEpochMs:args.nowEpochMs,
+    productionGate:args.productionGate,
+    reviewedTerms:args.reviewedTerms,
+    currentTermsMetadataList:args.currentTermsMetadataList,
+    persistedBookingTerms:args.persistedBookingTerms,
+    persistedCoverageConsent:args.persistedCoverageConsent,
+  });
+  if("reasons" in preflight)return {
+    ok:false,action:"hold_for_manual_review",phase:"preflight",
+    reasons:preflight.reasons,externalReference:null,
+  };
+  const claim=await claimCaravelPaidDispatch({
+    admin:args.admin,
+    bookingId:args.bookingInput.ride24_booking_id,
+    nowIso:new Date(args.nowEpochMs).toISOString(),
+    partnerApiEnabled:args.partnerApiEnabled,
+    providerQuote:args.bookingInput.provider_quote_data,
+  });
+  if("reason" in claim)return reject(claim.reason);
+  return submitVerifiedCaravelBooking({...args,
+    persistedPaidBooking:claim.persistedBooking});
 }
