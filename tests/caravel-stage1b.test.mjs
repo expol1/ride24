@@ -4,10 +4,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildCaravelOfferFromApi, caravelExtraFromApi, caravelExtrasCatalog, caravelProtectionCandidates, describeCaravelProtection,
+  buildCaravelOfferFromApi, buildRide24SellableCaravelOfferFromApi, caravelExtraFromApi, caravelExtrasCatalog, caravelProtectionCandidates, describeCaravelProtection,
   selectCaravelPremiumProtection, validateCaravelExtrasMapping, caravelQuoteFromApi,
 } from "../supabase/functions/_shared/caravel-normalize.ts";
 import {normalizeGroups} from "../supabase/functions/_shared/partner-api.ts";
+import {verifyCaravelRide24PaymentContract} from "../supabase/functions/_shared/caravel-payment-contract.ts";
 import {runCaravelAcceptance} from "../supabase/functions/_shared/caravel-acceptance.mjs";
 import {evaluateCaravelPremium,CARAVEL_PREMIUM_TERMS,caravelConditionsOfHire,reconcileCaravelTerms,checkCaravelLicenceEligibility} from "../supabase/functions/_shared/caravel-premium.ts";
 
@@ -33,6 +34,50 @@ const offer = (patch = {}, c = "EUR") => ({availabilityRow: row(c), protectionId
   pickupLocation: desk, dropoffLocation: desk,
   context: {scopeSupplierId: "sup-1", partnerCurrency: c, pickupLocationId: "loc", dropoffLocationId: "loc", pickupEpochMs: pickup, dropoffEpochMs: pickup + 3 * 86400000,
     rentalDays: 3, driverAge: 30, nowEpochMs: NOW}, ...patch});
+
+test("Caravel API supports partial payments, but Ride24 only publishes zero-prepayment quotes", () => {
+  // The raw Caravel API reader must still parse non-Ride24 sandbox examples.
+  const partial=offer();
+  assert.equal(buildCaravelOfferFromApi(partial).ok,true);
+  const blocked=buildRide24SellableCaravelOfferFromApi(partial);
+  assert.equal(blocked.ok,false);
+  assert.ok(blocked.errors.includes("CARAVEL_PREPAYMENT_NOT_ALLOWED"));
+  assert.ok(blocked.errors.includes("CARAVEL_PICKUP_AMOUNT_MISMATCH"));
+
+  const full=offer({quoteData:quote("EUR",{totals:{
+    grand_total:mny(17700),pay_now:mny(0),pay_at_pickup:mny(17700),
+  }})});
+  const sellable=buildRide24SellableCaravelOfferFromApi(full);
+  assert.equal(sellable.ok,true,JSON.stringify(sellable.errors));
+  assert.deepEqual(
+    [sellable.value.provider_quote_data.amounts_minor.pay_now,
+     sellable.value.provider_quote_data.amounts_minor.pay_at_pickup],
+    [0,17700],
+  );
+  const gbp=offer({quoteData:quote("GBP",{totals:{
+    grand_total:mny(17700,"GBP"),pay_now:mny(0,"GBP"),
+    pay_at_pickup:mny(17700,"GBP"),
+  }})},"GBP");
+  assert.equal(buildRide24SellableCaravelOfferFromApi(gbp).ok,true);
+});
+test("no false pay-on-arrival label can override provider's quoted money split", () => {
+  const compliant={provider:"caravel",payment_model:"pay_on_arrival",currency:"EUR",
+    amounts_minor:{total:15000,pay_now:0,pay_at_pickup:15000},amounts:{total:150}};
+  assert.deepEqual(verifyCaravelRide24PaymentContract(compliant),
+    {ok:true,currency:"EUR",totalMinor:15000});
+  const cases=[
+    [{amounts_minor:{total:15000,pay_now:12000,pay_at_pickup:3000}},"CARAVEL_PREPAYMENT_NOT_ALLOWED"],
+    [{amounts_minor:{total:15000,pay_now:0,pay_at_pickup:14900}},"CARAVEL_PICKUP_AMOUNT_MISMATCH"],
+    [{amounts_minor:{total:15000,pay_now:null,pay_at_pickup:15000}},"CARAVEL_PAYMENT_SPLIT_UNVERIFIED"],
+    [{payment_model:"prepaid"},"PAY_ON_ARRIVAL_NOT_VERIFIED"],
+    [{amounts:{total:149}},"CARAVEL_PAYMENT_MAJOR_MINOR_MISMATCH"],
+  ];
+  for(const [patch,error] of cases) {
+    const verdict=verifyCaravelRide24PaymentContract({...compliant,...patch});
+    assert.equal(verdict.ok,false);
+    assert.ok(verdict.errors.includes(error),error);
+  }
+});
 
 test("Caravel corrected production Premium is not publishable under Ride24 full-insurance policy", () => {
   // Partner confirmation 17 Nov: zero deposit/excess but glass, wheels and undercarriage excluded.
