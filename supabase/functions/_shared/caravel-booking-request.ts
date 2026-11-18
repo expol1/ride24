@@ -64,7 +64,7 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
   const lang = body?.lang === "en" ? "en" : "pl";
   if (!body || (action !== "consent-view" && action !== "book")) return out(400, {code: "BAD_REQUEST"});
   const release = deps.release ?? await loadCaravelRelease(deps.admin);
-  if (!release.open) return out(409, {code: "CARAVEL_CERTIFICATION_PENDING", reason: release.reason,
+  if ("reason" in release) return out(409, {code: "CARAVEL_CERTIFICATION_PENDING", reason: release.reason,
     error: "Oferty Caravel są chwilowo niedostępne. Wybierz inną ofertę.", error_en: "Caravel reservations are not yet available."});
   const now = deps.nowMs ?? Date.now();
   const quote = await loadQuote(deps.admin, body.api_quote_id);
@@ -120,7 +120,7 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
     pickupLocationId: String(pick.id), dropoffLocationId: String(drop.id),
     pickupLocationName: String(pick.location_name), returnLocationName: String(drop.location_name),
     pickupTime, returnTime, exchangeRate: rate}, now);
-  if (!built.ok) {
+  if ("code" in built) {
     const msg: Record<string, [string, string]> = {
       CARAVEL_TERMS_CONSENT_STALE_OR_MISSING: ["Regulamin lub warunki ochrony zmieniły się albo nie zostały zaakceptowane. Przeczytaj je ponownie.",
         "The terms or protection conditions changed or were not accepted. Please review them again."],
