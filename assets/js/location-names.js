@@ -147,5 +147,22 @@
     }
     return { ...data, display_name: String(data.location_name || "").trim() };
   }
+  // Warm the public PL/EN dictionary before rendering search, map and results labels.
+  // Do not alter stored booking keys or block the page when the dictionary is unavailable.
+  function warmDictionary() {
+    const client = root.supabaseClient;
+    if (client && typeof client.from === "function") {
+      loadDictionary(client).catch(() => {
+        // The existing public display_name / location_name fallback remains usable.
+      });
+    }
+  }
+  if (root.document) {
+    if (root.document.readyState === "loading") {
+      root.document.addEventListener("DOMContentLoaded", warmDictionary, { once: true });
+    } else {
+      warmDictionary();
+    }
+  }
   root.Ride24LocationNames = Object.freeze({ displayName, normalizeForSave, loadDictionary, canonicalCountry, canonicalLocationName, localizedNames });
 })(typeof window === "undefined" ? globalThis : window);
