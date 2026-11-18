@@ -344,3 +344,59 @@ end-to-end certification.
 Read-only test evidence is not a substitute for an actual reservation,
 immediate confirmed cancellation, Stripe refund path, voucher/notification
 and other-provider regression tests.
+
+## 2026-11-18 — normalized ACRISS/SIPP group model on current main
+
+The user requires **vehicle groups, not individual supplier cars**. Like
+AVIA, Ride24 groups by stable **four-character SIPP/ACRISS group** and
+assigns that group to its existing A-F taxonomy:
+A Economy, B Compact, C Sedan, D SUV, E Premium, F Van / Family.
+This preserves transmission/body differences that would be lost if all
+groups were collapsed to only six prices.
+
+The live supplier returned 415 vehicle catalogue entries, of which 203
+had complete SIPP; these collapsed to 87 unique codes. One code
+(`ODBD`) could not be mapped safely by the existing Ride24 taxonomy,
+so **86 distinct groups** were staged in production Supabase under
+Arvent only. Counts:
+A=15, B=12, C=16, D=18, E=13, F=12.
+
+The 203 previously staged individual model rows (with no linked bookings,
+quotes, discounts or seasonal prices) were atomically replaced with
+the 86 group rows. All remain **inactive**, with zero static prices;
+real supplier EUR rates only come from live availability, not the
+catalogue. Example model and representative photo are metadata only.
+No exact make/model is guaranteed by a group booking.
+
+`arventOfferRows` now emits **one eligible cheapest offer per SIPP**.
+Its `external_id` is the SIPP group (not `vehicleId`).
+The specific selected supplier `vehicleId`, quote price and
+the SIPP remain in private `provider_quote_data`, and
+`arventCreateBooking` rechecks that exact supplier offer
+against the original SIPP and payment snapshot using a fresh
+`reservationToken`. A category cannot silently change on checkout.
+Within one SIPP there can be inconsistent representative seat counts;
+class mapping therefore uses the SIPP code, not a single car's seats.
+
+Normalized airport names are stable for the **8 actually returned**
+contracted airports (SAW, IST, SZF, ASR, DLM, AYT, ADB, TZX),
+independent of the supplier spelling and case.
+EDO/AOE were not supplied and were not invented.
+
+### Integration status and invariants
+
+- New clean <https://github.com/expol1/ride24/pull/119> started from
+  current `main`, resolving the original <https://github.com/expol1/ride24/pull/105>
+  merge conflict without overwriting Caravel or AVIA.
+- Run new PR CI including all original Caravel/voucher/payment tests,
+  *plus* the three isolated Arvent tests. Do not merge with failing tests.
+- `partner_api_credentials.last_test_ok=true` records real supplier auth/GET;
+  `last_sync_at` stays null until certified admin synchronization.
+- Arvent partner remains `api_provider=custom`, `api_enabled=false`,
+  `api_status=draft`, with all 86 classes and 8 locations inactive.
+- B2B/customer terms specify Arvent approval BEFORE Stripe charge,
+  while the standard Ride24 API paid-workflow is Stripe-first. Do not
+  bypass this contractual launch gate or the explicit supplier write
+  guard. Obtaining mutually agreed payment ordering, then live
+  supplier booking/cancellation and end-to-end voucher certification
+  is mandatory before customer-facing activation.
