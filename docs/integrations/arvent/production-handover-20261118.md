@@ -14,6 +14,7 @@
 
 ## Zachowanie po poprawkach tej gałęzi
 
+- Wyniki WWW dla Arvent biorą cenę całego okresu i kwotę przy odbiorze z wyceny serwera. Wybór oferty i backend rezerwacji wymagają potwierdzonego kursu NBP. Klasa F ma nazwę Van / Family.
 - Checkout Arvent sprawdza własną wycenę SIPP oraz tokenową ofertę extras przed wydaniem linku Stripe. Po zapłacie powtarza kontrolę. Dostawca otrzymuje paidAmount=0 i paymentType=3 w ograniczonej ścieżce odbioru i zwrotu w tym samym miejscu, bez płatnych dodatków. Potwierdzić u Arvent, że cały najem jest płatny przy odbiorze.
 - Przy rozbieżności SIPP, kwoty, trasy lub warunków brak automatycznego vouchera. Status wymaga zgodności numeru dostawcy. W odpowiedzi zapisu sprawdzana jest również referencja Ride24. Numer, PDF i dostarczenie wiadomości sprawdzić na rzeczywistym potwierdzeniu.
 - Brak danych o wymaganym stażu, dodatni wymagany staż bez dowodu, nieznany minimalny wiek, niepotwierdzona trasa one-way i obowiązkowy dodatek bez jawnej zerowej ceny blokują ścieżkę. Profil kierowcy przechowuje wiek. Jeśli wymagane są staż lub DOB, uzupełnić źródło danych i oba klienty przed dopuszczeniem takich ofert. Uzgodnić dokumentowe minima również przy API zwracającym zero.

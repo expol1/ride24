@@ -42,6 +42,7 @@ type PartnerRelation = {
   email: string | null;
   provider_type: "local" | "api";
   api_enabled: boolean;
+  api_provider: string | null;
   rental_terms_url: string | null;
   rental_rules_url: string | null;
   min_rental_days: number;
@@ -260,6 +261,7 @@ function normalizePartner(value: unknown): PartnerRelation | null {
     email: cleanText(row.email, 254),
     provider_type: String(row.provider_type || "local") as "local" | "api",
     api_enabled: row.api_enabled === true,
+    api_provider: cleanText(row.api_provider,80),
     rental_terms_url: cleanText(row.rental_terms_url, 2_000),
     rental_rules_url: cleanText(row.rental_rules_url, 2_000),
     min_rental_days: Number.isInteger(Number(row.min_rental_days)) && Number(row.min_rental_days) >= 1
@@ -388,7 +390,7 @@ function normalizeQuote(value: unknown): QuoteRow | null {
   };
 }
 
-async function exchangeRate(currency: string): Promise<number> {
+async function exchangeRate(currency: string, requireLive = false): Promise<number> {
   if (currency === "PLN") return 1;
 
   const tables = ["A", "B"] as const;
@@ -433,6 +435,7 @@ async function exchangeRate(currency: string): Promise<number> {
   }
 
   // Zachowujemy dotychczasowy awaryjny fallback wyłącznie dla EUR/USD.
+  if (requireLive) throw new Error("Nie udało się pobrać aktualnego kursu NBP");
   if (currency === "USD") return 4.0;
   if (currency === "EUR") return 4.5;
   throw new Error("Nie udało się pobrać kursu waluty partnera");
@@ -934,6 +937,7 @@ serve(async (req) => {
           currency,
           email,
           provider_type,
+          api_provider,
           api_enabled,
           rental_terms_url,
           rental_rules_url,
@@ -1186,7 +1190,7 @@ serve(async (req) => {
     const currency = safeCurrency(
       apiQuoteCurrency || car.partner.currency || "EUR",
     );
-    const rate = await exchangeRate(currency);
+    const rate = await exchangeRate(currency, car.partner.api_provider === "arvent_kolaycar");
     let onlinePaymentPln = Number(
       (commission * rate * (1 - discountPercent / 100)).toFixed(2),
     );
