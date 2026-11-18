@@ -3,6 +3,7 @@
 // ale wiążącą kwotę zawsze pobiera z bazy po weryfikacji właściciela rezerwacji.
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { androidPaymentReturnUrl } from "../_shared/payment-return.mjs";
+import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -35,10 +36,16 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: booking, error } = await admin.from("bookings")
-      .select("id,client_id,status,online_payment_pln,reservation_code,payment_deadline")
+      .select("id,client_id,partner_id,status,online_payment_pln,reservation_code,payment_deadline,partners!bookings_partner_id_fkey(api_provider)")
       .eq("id", bookingId).maybeSingle();
     if (error || !booking) return new Response(JSON.stringify({ error: "BOOKING_NOT_FOUND" }), { status: 404, headers: cors(req) });
     if (booking.client_id !== user.id) return new Response(JSON.stringify({ error: "FORBIDDEN" }), { status: 403, headers: cors(req) });
+    // Caravel requires Stripe-first and supplier-second. Until certified,
+    // fail closed BEFORE Stripe can charge the Ride24 booking fee.
+    if (isCaravelBooking(booking)) return new Response(
+      JSON.stringify({error:CARAVEL_PRE_CERTIFICATION_ERROR}),
+      {status:409,headers:cors(req)},
+    );
     if (!["accepted", "awaiting_payment"].includes(booking.status)) return new Response(JSON.stringify({ error: "PAYMENT_NOT_ALLOWED" }), { status: 409, headers: cors(req) });
 
     const amount = Number(booking.online_payment_pln || 0);
