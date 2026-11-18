@@ -50,6 +50,7 @@ type PartnerRelation = {
 };
 
 type CarRow = {
+  allowed_location_ids: string[] | null;
   min_driver_age: number | null;
   id: string;
   partner_id: string;
@@ -280,6 +281,7 @@ function normalizeCar(value: unknown): CarRow | null {
 
   return {
     min_driver_age: value.min_driver_age == null ? null : finiteNumber(value.min_driver_age),
+    allowed_location_ids: Array.isArray(value.allowed_location_ids) ? value.allowed_location_ids.filter(v => typeof v === "string") : null,
     id: value.id,
     partner_id: value.partner_id,
     active: value.active === true,
@@ -914,6 +916,7 @@ serve(async (req) => {
         id,
         partner_id,
         active,
+        allowed_location_ids,
         public_price,
         partner_discount_percent,
         partner_net_price,
@@ -1284,6 +1287,19 @@ serve(async (req) => {
       }
       pickupName = pickupLocation.location_name || pickupName;
       returnName = dropoffLocation.location_name || returnName;
+    }
+
+    // Revalidate against the database after resolving both partner-owned
+    // locations. This also blocks stale Android clients and forged requests.
+    if (car.partner.provider_type === "local" && car.allowed_location_ids !== null) {
+      const allowed = car.allowed_location_ids;
+      if (!Array.isArray(allowed) || !pickupLocation || !dropoffLocation
+          || !allowed.includes(pickupLocation.id) || !allowed.includes(dropoffLocation.id)) {
+        return jsonResponse(req, {
+          error: "Ta grupa pojazdów jest dostępna tylko w wyznaczonych lokalizacjach. Wróć do wyszukiwarki i wybierz dostępny punkt.",
+          code: "VEHICLE_LOCATION_UNAVAILABLE"
+        }, 409);
+      }
     }
 
     let pricingItemsSnapshot = null;

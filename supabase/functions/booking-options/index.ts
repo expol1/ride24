@@ -23,7 +23,7 @@ serve(async(req: Request)=>{
     await enforceRateLimit(admin,req,'booking-options',60,60);
     const body=await readJsonObject(req);
     if(!isUuid(body.car_class_id)) throw new Error('Nieprawidłowa grupa');
-    const {data:car,error}=await admin.from('car_classes').select('id,partner_id,active,min_driver_age,driver_included,partners(id,active,account_status,currency,provider_type,api_provider,min_rental_days,min_driver_age,max_driver_age)').eq('id',body.car_class_id).single();
+    const {data:car,error}=await admin.from('car_classes').select('id,partner_id,allowed_location_ids,active,min_driver_age,driver_included,partners(id,active,account_status,currency,provider_type,api_provider,min_rental_days,min_driver_age,max_driver_age)').eq('id',body.car_class_id).single();
     const partner=Array.isArray(car?.partners) ? car.partners[0] : car?.partners;
     if(error || !car?.active || !partner?.active || partner.account_status!=='active') throw new Error('Wybrana grupa nie jest dostępna');
     const driverAges:number[]=[];
@@ -59,6 +59,24 @@ serve(async(req: Request)=>{
       throw new BookingOptionsError('MIN_RENTAL_DAYS','Wybierz dłuższy okres wynajmu.','Select a longer rental period.',400);
     }
     if(typeof body.pickup_location!=='string' || typeof body.return_location!=='string' || body.pickup_location.length>250 || body.return_location.length>250) throw new Error('Nieprawidłowa lokalizacja');
+    // A scoped local group may be quoted only for the selected partner-owned
+    // pickup AND return locations. Older APKs cannot bypass this restriction.
+    if (car.allowed_location_ids !== null) {
+      const allowed = Array.isArray(car.allowed_location_ids) ? car.allowed_location_ids : [];
+      if (!allowed.length) throw new BookingOptionsError('VEHICLE_LOCATION_UNAVAILABLE',
+        'Ta grupa pojazdów nie jest dostępna w wybranej lokalizacji.',
+        'This vehicle group is not available at the selected location.',409);
+      const {data:rows,error:locationError}=await admin.from('partner_locations')
+        .select('id,location_name').eq('partner_id',car.partner_id).eq('active',true)
+        .in('location_name',[body.pickup_location,body.return_location]);
+      if (locationError) throw locationError;
+      const valid = name => (rows||[]).some(row => row.location_name===name && allowed.includes(row.id));
+      if(!valid(body.pickup_location) || !valid(body.return_location)) {
+        throw new BookingOptionsError('VEHICLE_LOCATION_UNAVAILABLE',
+          'Ta grupa pojazdów nie jest dostępna w wybranej lokalizacji.',
+          'This vehicle group is not available at the selected location.',409);
+      }
+    }
     if(body.additional_driver_id && !isUuid(body.additional_driver_id)) throw new Error('Nieprawidłowy kierowca');
     const [options,price,loyalty]=await Promise.all([
       loadBookingOptions(admin,car.partner_id,body.pickup_location,body.return_location),
