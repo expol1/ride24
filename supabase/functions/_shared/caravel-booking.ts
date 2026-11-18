@@ -47,6 +47,9 @@ export type CaravelBookingDraft = {
   currency: string;
   /** Immutable Caravel API document id presented and accepted before Stripe. */
   termsDocumentId: string | null;
+  /** Caravel-issued canonical hash; checked via contract §3.9 before production. */
+  termsContentHash: string | null;
+  termsLanguage: string | null;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -64,6 +67,13 @@ export type CaravelDraftOptions = {
     currentTermsDocumentId: string;
     /** Exact document shown and accepted by this customer before Stripe. */
     termsDocumentIdShown: string;
+    /** From the same server-fetched authoritative terms metadata/document. */
+    currentTermsContentHash: string;
+    termsContentHashShown: string;
+    currentTermsLanguage: string;
+    termsLanguageShown: string;
+    /** Proof that the canonical digest algorithm from contract §3.9 passed. */
+    termsCanonicalHashVerified: boolean;
     /** Current protection and final quoted deposit; must pass Ride24 policy. */
     protection: unknown;
     quoteDeposit: unknown;
@@ -132,6 +142,23 @@ export function buildCaravelBookingDraft(
       errors.push("CARAVEL_TERMS_DOCUMENT_ID_REQUIRED");
     else if(current!==docId || rawQuoteTermsId!==docId)
       errors.push("CARAVEL_TERMS_DOCUMENT_CHANGED_REQUOTE_REQUIRED");
+    const gate = options.production;
+    const hash=(v:unknown):v is string=>typeof v==="string" && /^[a-f0-9]{64}$/.test(v);
+    const lang=(v:unknown):v is string=>typeof v==="string" && /^[a-z]{2}(?:-[A-Z]{2})?$/.test(v);
+    if(gate?.termsCanonicalHashVerified!==true)
+      errors.push("CARAVEL_TERMS_CANONICAL_HASH_NOT_VERIFIED");
+    if(!hash(gate?.currentTermsContentHash) || !hash(gate?.termsContentHashShown) ||
+       !hash(data?.terms_content_hash))
+      errors.push("CARAVEL_TERMS_CONTENT_HASH_REQUIRED");
+    else if(gate.currentTermsContentHash!==gate.termsContentHashShown ||
+            data.terms_content_hash!==gate.currentTermsContentHash)
+      errors.push("CARAVEL_TERMS_CONTENT_HASH_CHANGED");
+    if(!lang(gate?.currentTermsLanguage) || !lang(gate?.termsLanguageShown) ||
+       !lang(data?.terms_language))
+      errors.push("CARAVEL_TERMS_LANGUAGE_REQUIRED");
+    else if(gate.currentTermsLanguage!==gate.termsLanguageShown ||
+            data.terms_language!==gate.currentTermsLanguage)
+      errors.push("CARAVEL_TERMS_LANGUAGE_CHANGED");
   }
   const amounts = data && isRecord(data.amounts) ? data.amounts : null;
   if (!data || data.provider !== CARAVEL_PROVIDER) errors.push("CARAVEL_QUOTE_REQUIRED");
@@ -193,6 +220,8 @@ export function buildCaravelBookingDraft(
     expectedPartnerAmount: expected!,
     currency,
     termsDocumentId: environment === "production" ? docId : null,
+    termsContentHash: environment === "production" ? options.production!.currentTermsContentHash : null,
+    termsLanguage: environment === "production" ? options.production!.currentTermsLanguage : null,
   }};
 }
 
