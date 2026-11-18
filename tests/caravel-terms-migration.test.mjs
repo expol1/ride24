@@ -19,7 +19,7 @@ test("Caravel terms SQL proposal is a single complete transaction, never repeate
   assert.equal((clean.match(/\bBEGIN\s*;/g)||[]).length,1);
   assert.equal((clean.match(/\bCOMMIT\s*;/g)||[]).length,1);
   assert.equal((clean.match(/\bDO\s+\$caravel_terms\$/g)||[]).length,1);
-  assert.equal((clean.match(/\$caravel_terms\s*;/g)||[]).length,1);
+  assert.equal((clean.match(/\$caravel_terms\$\s*;/g)||[]).length,1);
   assert.equal((clean.match(/ADD\s+CONSTRAINT\s+bookings_caravel_terms_snapshot_consistency_chk/g)||[]).length,1);
   assert.equal((clean.match(/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS/g)||[]).length,3);
   const statements=clean.split(/\bCOMMIT\s*;/);
