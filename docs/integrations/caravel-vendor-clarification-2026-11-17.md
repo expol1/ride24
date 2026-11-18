@@ -204,3 +204,47 @@ zweryfikować RLS oraz testy wyświetlenia przed Stripe i na voucherze.
   oficjalnego wyniku certyfikacji HMAC, uruchomionego
   pełnego przebiegu certyfikacyjnego ani zgody na wyłączenia
   szkód. `api_enabled=false`; nie scalać PR.
+
+
+## 9. 18.11.2026 — naprawa SQL, granice płatności i tożsamość rezerwacji
+
+- Naprawiono wcześniejszy, **uszkodzony projekt SQL** w
+  `docs/integrations/caravel-terms-booking-snapshot.sql`.
+  Poprzednia wersja miała przerwane ciągi regex w warunku CHECK
+  i powielone transakcje `COMMIT`. Obecnie zawiera jedną kompletną
+  transakcję, trzy nullable kolumny oraz warunek all-or-none.
+  Dodano `tests/caravel-terms-migration.test.mjs` do workflow Caravel,
+  który testuje strukturę; nie jest to zastępstwo pełnego walidatora
+  składni PostgreSQL lub testu migracji na bazie testowej.
+- Zwiększono ochronę w `CaravelClient.book()` produkcyjnym:
+  `X-Supplier-Id` jest obowiązkowy, a `external_ref` musi być
+  **dokładnie** `ride24-<Idempotency-Key UUID>`. Jest to dodatkowa
+  kontrola izolująca EUR i GBP oraz chroniąca przed rozbieżnością
+  numeru rezerwacji i klucza idempotencji. Alias sandbox zachowano.
+- Nowy czysto izolowany plik `caravel-terms-lifecycle.ts`:
+  `validateCaravelTermsBeforeStripe()` porównuje server-side
+  zapisany i zweryfikowany quote, wcześniej zaakceptowany
+  niezmienny dokument Caravel i potwierdzenie klienta. Zwraca
+  triplet dokument ID / język / SHA-256 do atomowego zapisu.
+  `validateCaravelTermsBeforeDispatch()` porównuje ten sam
+  triplet w rezerwacji po płatności z bieżącą wersją Caravel
+  i w przypadku różnicy zwraca `hold_for_manual_review`
+  zamiast zezwalać na wysłanie booking do dostawcy.
+  **Żadna z tych funkcji nie jest jeszcze połączona ze wspólnym
+  `create-booking-request`, Stripe ani `api-booking-dispatch`.**
+- Rozbudowano testy Caravel o odrzucenie zmian po płatności,
+  brak akceptacji klienta, brak niezależnego potwierdzenia
+  canonical hash, inny supplier, błędny klucz idempotencji,
+  brak `supplierId` i strukturę SQL. Oba workflow:
+  `Caravel sandbox adapter checks` i
+  `Ride24 API Compatibility QA` przeszły na commicie
+  `1c897eb6b4d16c0fb52c63f87bead828170c310b`.
+- Supabase read-only: `public.bookings` nadal ma RLS;
+  **zero** kolumn `caravel_terms_*` obecnie istnieje;
+  konto Caravel `api_provider=custom`, `api_enabled=false`.
+  Nie wykonywano żadnych migracji ani zmian produkcyjnych.
+- Pozostałe prawdziwe blokady: aktualny wiążący EN v4 z API,
+  kanonizacja SHA-256 wg Caravel §3.9, klucz sandbox do wykonania
+  realnych wywołań, HMAC i certyfikacja, poprawne wpięcie
+  mechanizmu regulaminów do całej ścieżki rezerwacji,
+  oraz niezgodne ze standardem Ride24 wyłączenia Premium.
