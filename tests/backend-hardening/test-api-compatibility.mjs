@@ -113,6 +113,7 @@ function setup() {
       if(specifier.includes('caravel-production-hold.mjs'))return caravelHold;
       // Caravel release gate stays closed in these generic harnesses (production today).
       if(specifier.includes('caravel-release.ts'))return {loadCaravelRelease:async()=>({open:false,reason:'CARAVEL_NOT_CERTIFIED'})};
+      if(specifier.includes('caravel-partner-admin.ts'))return {handleCaravelPartnerAction:async()=>{throw Error('Caravel admin routing must not run for other partners');}};
       if(specifier.includes('caravel-search.ts'))return {searchCaravelOffers:async()=>{throw Error('Caravel search must stay closed');}};
       if(specifier.includes('caravel-paid-fulfillment.ts'))return {caravelProductionReadClient:()=>{throw Error('Caravel client must stay closed');}};
       if(specifier.includes('rental-duration.ts'))return durationRules;

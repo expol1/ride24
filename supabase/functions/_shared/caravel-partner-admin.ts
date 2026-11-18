@@ -94,7 +94,7 @@ export async function handleCaravelPartnerAction(args: {
     const terms: Rec[] = [];
     for (const sid of suppliers) {
       const c = await syncCaravelCatalog({admin, client, supplierId: sid, activateNew: open});
-      if (!c.ok) return no(`Caravel: synchronizacja katalogu nieudana (${c.code})`);
+      if ("code" in c) return no(`Caravel: synchronizacja katalogu nieudana (${c.code})`);
       locations += c.locations.inserted + c.locations.updated; groups += c.vehicles.inserted + c.vehicles.updated;
       terms.push({supplier_id: sid, ...(await refreshTerms(admin, client, sid, panel, actor))});
     }
