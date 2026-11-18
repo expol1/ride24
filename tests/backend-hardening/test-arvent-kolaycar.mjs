@@ -44,9 +44,12 @@ test("locations map numeric IDs and preserve return-only flags",()=>{
 });
 test("catalog has no fabricated prices",()=>{
  const rows=arventGroupRows(ok([{vehicleId:100,vehicleName:"Example Vehicle",sippCode:"CDAR"}]));
- assert.equal(rows[0].external_id,"100");
- assert.equal(rows[0].class_code,"C");
+ assert.equal(rows[0].external_id,"CDAR");
+ assert.equal(rows[0].class_code,"B");
  assert.equal(rows[0].public_price,0);
+ assert.equal(rows[0].model,null);
+ assert.equal(rows[0].example_model,"Example Vehicle");
+ assert.equal(rows[0].features.image_is_representative,true);
 });
 test("rejects supplier deposit, credit card, capped mileage or TRY quotes",()=>{
  for(const mutation of [
@@ -155,4 +158,47 @@ test("billed supplier rentalDuration controls per-day display, while total remai
  const [x]=arventOfferRows(ok([{...example,rentalDuration:3}]),search);
  assert.equal(x.public_price,50);
  assert.equal(x.public_price_total,150);
+});
+
+test("AVIA normalization: 6 Ride24 classes and one unique offer per SIPP group",()=>{
+ const groups=[
+  {vehicleId:101,vehicleName:"Renault Clio",sippCode:"MDMR"},
+  {vehicleId:102,vehicleName:"Peugeot 208",sippCode:"MDMR"},
+  {vehicleId:103,vehicleName:"Fiat Egea",sippCode:"CDAR"},
+  {vehicleId:104,vehicleName:"Skoda Octavia",sippCode:"IDAR"},
+  {vehicleId:105,vehicleName:"Hyundai Tucson",sippCode:"SFAR"},
+  {vehicleId:106,vehicleName:"Premium",sippCode:"PDAR"},
+  {vehicleId:107,vehicleName:"Family Van",sippCode:"FVAR"}
+ ];
+ const catalog=arventGroupRows(ok(groups));
+ assert.deepEqual(catalog.map(x=>x.class_code),["A","B","C","D","E","F"]);
+ assert.equal(catalog.length,6);
+ assert.ok(catalog.every(x=>x.model===null&&x.example_model));
+ const offers=arventOfferRows(ok([
+  {...example,vehicleId:101,sippCode:"MDMR",totalPrice:180},
+  {...example,vehicleId:102,sippCode:"MDMR",totalPrice:140},
+  {...example,vehicleId:103,sippCode:"CDAR",totalPrice:150},
+  {...example,vehicleId:104,sippCode:"IDAR",totalPrice:220},
+  {...example,vehicleId:105,sippCode:"SFAR",totalPrice:300},
+  {...example,vehicleId:106,sippCode:"PDAR",totalPrice:400},
+  {...example,vehicleId:107,sippCode:"FVAR",totalPrice:500},
+ ]),search);
+ assert.equal(offers.length,6);
+ assert.deepEqual(offers.map(x=>x.class_code),["A","B","C","D","E","F"]);
+ const cheap=offers.find(x=>x.external_id==="MDMR");
+ assert.equal(cheap.public_price_total,140);
+ assert.equal(cheap.provider_quote_data.vehicle_id,"102");
+ assert.equal(cheap.provider_quote_data.sipp,"MDMR");
+ assert.equal(cheap.example_model,"Example Vehicle");
+ assert.equal(cheap.model,null);
+ assert.ok(!JSON.stringify(offers).includes(example.reservationToken));
+});
+test("supplier models with same group and price choose deterministic lowest supplier ID",()=>{
+ const offers=arventOfferRows(ok([
+  {...example,vehicleId:44,sippCode:"CDAR"},
+  {...example,vehicleId:3,sippCode:"CDAR"},
+  {...example,vehicleId:9,sippCode:"CDAR"},
+ ]),search);
+ assert.equal(offers.length,1);
+ assert.equal(offers[0].provider_quote_data.vehicle_id,"3");
 });
