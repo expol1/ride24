@@ -33,7 +33,7 @@ export type CaravelApprovedExclusionReview={
   canonicalHashVerified:true;
 };
 export type CaravelProtectionDecision=
-  |{ok:true;covers:string[];excludes:string[];productType:"waiver";
+  |{ok:true;covers:string[];excludes:string[]|null;productType:"waiver";
      noCreditCard:true;noCardHold:true;fullInsuranceClaimAllowed:boolean;
      disclosureRequired:boolean;damageAdministrationFeeMinor:number|null;
      reviewedTermsDocumentId:string|null}
