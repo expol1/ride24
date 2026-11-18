@@ -6312,6 +6312,21 @@ data-en="🌍 Ride24 World Map">
         return countries;
     }
 
+    // Same location identity as Android SearchRepository.activePickupLocations().
+    // Different partners may serve the same pickup point; display it once.
+    function getRide24UniquePickupLocations(rows){
+        const seen = new Set();
+        return (rows || []).filter(item => {
+            if (!String(item.country ?? "").trim()) return false;
+            const key = [item.country, item.city, item.location_name, item.type]
+                .map(value => String(value ?? "").trim().toLowerCase())
+                .join("\u001f");
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
     async function loadWorldExplorerStats(){
         const supabase = getRide24SupabaseClient();
 
@@ -6331,7 +6346,8 @@ data-en="🌍 Ride24 World Map">
         }
 
         const rows = data || [];
-        const countries = rows
+        const uniqueRows = getRide24UniquePickupLocations(rows);
+        const countries = uniqueRows
             .map(item => normalizeRide24Country(item.country))
             .filter(Boolean);
 
@@ -6351,7 +6367,7 @@ data-en="🌍 Ride24 World Map">
             .map(item => partnerKeys.map(key => item[key]).find(Boolean))
             .filter(Boolean);
 
-        ride24CountryLocationCounts = rows.reduce((acc, item) => {
+        ride24CountryLocationCounts = uniqueRows.reduce((acc, item) => {
             const country = normalizeRide24Country(item.country);
 
             if (country) {
@@ -6363,7 +6379,7 @@ data-en="🌍 Ride24 World Map">
 
         ride24WorldStats = {
             countries: new Set(countries).size,
-            locations: rows.filter(item => item.location_name).length,
+            locations: uniqueRows.length,
             partners: new Set(partners).size
         };
 
@@ -6482,9 +6498,10 @@ data-en="🌍 Ride24 World Map">
             return;
         }
 
+        const uniqueLocations = getRide24UniquePickupLocations(data || []);
         ride24SelectedCountry = country;
-        ride24SelectedLocations = data || [];
-        renderCountryLocations(country, data || []);
+        ride24SelectedLocations = uniqueLocations;
+        renderCountryLocations(country, uniqueLocations);
     }
 
     function renderCountryLocations(country, locations){
