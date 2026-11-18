@@ -1,6 +1,5 @@
 import { appendVoucherPricing, validateVoucherPricing } from "../_shared/voucher-booking-items.mjs";
-import {isCaravelBooking} from "../_shared/caravel-production-hold.mjs";
-import {canReleaseCaravelVoucher} from "../_shared/caravel-payment-sequence.ts";
+import {isCaravelVoucherBooking,isCaravelVoucherAllowed} from "../_shared/caravel-voucher-confirmation-guard.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   corsHeaders,
@@ -43,19 +42,31 @@ type CarClassRelation = {
 
 type PickupLocationRelation = {
   location_name: string;
+  display_name: string | null;
 };
 
 type BookingRow = {
   id: string;
   client_id: string;
-  partner_id: string;
+  partner_id: string | null;
   provider_type: string | null;
   api_provider: string | null;
   api_status: string | null;
-  api_booking_reference: string | null;
-  cancelled_at: string | null;
   manual_review: boolean;
+  cancelled_at: string | null;
+  stripe_session_id: string | null;
+  stripe_currency: string | null;
+  stripe_amount_cents: number | null;
   caravel_stripe_payment_confirmed_at: string | null;
+  caravel_supplier_dispatch_claimed_at: string | null;
+  caravel_supplier_quote_id: string | null;
+  caravel_supplier_id: string | null;
+  caravel_terms_document_id: string | null;
+  caravel_terms_content_hash: string | null;
+  caravel_terms_language: string | null;
+  terms_accepted: boolean;
+  terms_accepted_at: string | null;
+  main_driver_name: string | null;
   status: string;
   reservation_code: string;
   start_date: string;
@@ -70,11 +81,14 @@ type BookingRow = {
   driver_hours_snapshot: string | null;
   pricing_items_snapshot: ReturnType<typeof validateVoucherPricing>;
   pickup_payment_partner_currency: number;
+  online_payment_pln: number;
   partner_currency: string;
+  api_booking_reference: string | null;
   client: ClientRelation;
   partner: PartnerRelation;
   carClass: CarClassRelation;
   pickupLocation: PickupLocationRelation | null;
+  dropoffLocation: PickupLocationRelation | null;
 };
 
 type VoucherRow = {
@@ -223,7 +237,10 @@ function normalizePickupLocation(
 ): PickupLocationRelation | null {
   const row = firstRecord(value);
   const locationName = cleanText(row?.location_name, 250);
-  return locationName ? { location_name: locationName } : null;
+  return locationName ? {
+    location_name: locationName,
+    display_name: cleanText(row?.display_name, 250) || null,
+  } : null;
 }
 
 function normalizeBooking(value: unknown): BookingRow | null {
@@ -256,18 +273,31 @@ function normalizeBooking(value: unknown): BookingRow | null {
   return {
     id: value.id,
     client_id: value.client_id,
-    partner_id: typeof value.partner_id==="string"?value.partner_id:"",
-    provider_type: typeof value.provider_type==="string"?value.provider_type:null,
-    api_provider: typeof firstRecord(value.partners)?.api_provider==="string"?
-      firstRecord(value.partners)?.api_provider as string:null,
-    api_status: typeof value.api_status==="string"?value.api_status:null,
-    api_booking_reference: typeof value.api_booking_reference==="string"?
-      value.api_booking_reference:null,
-    cancelled_at: typeof value.cancelled_at==="string"?value.cancelled_at:null,
+    partner_id: isUuid(value.partner_id) ? value.partner_id : null,
+    provider_type: cleanText(value.provider_type, 60) || null,
+    api_provider: cleanText(firstRecord(value.partners)?.api_provider, 60) || null,
+    api_status: cleanText(value.api_status, 100) || null,
     manual_review: value.manual_review===true,
+    cancelled_at: typeof value.cancelled_at==="string"?value.cancelled_at:null,
+    stripe_session_id: cleanText(value.stripe_session_id, 250) || null,
+    stripe_currency: cleanText(value.stripe_currency, 5) || null,
+    stripe_amount_cents: Number.isSafeInteger(value.stripe_amount_cents)?
+      value.stripe_amount_cents as number:null,
     caravel_stripe_payment_confirmed_at:
       typeof value.caravel_stripe_payment_confirmed_at==="string"?
-        value.caravel_stripe_payment_confirmed_at:null,
+      value.caravel_stripe_payment_confirmed_at:null,
+    caravel_supplier_dispatch_claimed_at:
+      typeof value.caravel_supplier_dispatch_claimed_at==="string"?
+      value.caravel_supplier_dispatch_claimed_at:null,
+    caravel_supplier_quote_id: cleanText(value.caravel_supplier_quote_id, 100) || null,
+    caravel_supplier_id: cleanText(value.caravel_supplier_id, 128) || null,
+    caravel_terms_document_id: cleanText(value.caravel_terms_document_id, 200) || null,
+    caravel_terms_content_hash: cleanText(value.caravel_terms_content_hash, 70) || null,
+    caravel_terms_language: cleanText(value.caravel_terms_language, 20) || null,
+    terms_accepted: value.terms_accepted===true,
+    terms_accepted_at: typeof value.terms_accepted_at==="string"?
+      value.terms_accepted_at:null,
+    main_driver_name: cleanText(value.main_driver_name, 200) || null,
     status: value.status,
     reservation_code: reservationCode,
     start_date: startDate,
@@ -283,11 +313,14 @@ function normalizeBooking(value: unknown): BookingRow | null {
       cleanText(value.driver_hours_snapshot, 100) || null,
     pricing_items_snapshot: validateVoucherPricing(value.pricing_items_snapshot),
     pickup_payment_partner_currency: pickupPayment,
+    online_payment_pln: finiteNonNegative(value.online_payment_pln) ?? 0,
     partner_currency: partnerCurrency,
+    api_booking_reference: cleanText(value.api_booking_reference, 120) || null,
     client: normalizeClient(value.profiles),
     partner,
     carClass: normalizeCarClass(value.car_classes),
     pickupLocation: normalizePickupLocation(value.pickup_location_join),
+    dropoffLocation: normalizePickupLocation(value.dropoff_location_join),
   };
 }
 
@@ -512,6 +545,12 @@ async function createVoucherPdf(
     },
   );
 
+  if (booking.api_booking_reference) {
+    page.drawText(fitText(font, `Supplier ref / Nr wypożyczalni: ${booking.api_booking_reference}`, 9, 245), {
+      x: 300, y: 714, size: 9, font, color: rgb(0.88, 0.92, 0.97),
+    });
+  }
+
   let y = 640;
 
   page.drawText("CLIENT DETAILS / DANE KLIENTA", {
@@ -522,7 +561,7 @@ async function createVoucherPdf(
     color: textGray,
   });
   y -= 25;
-  drawValue(page, font, bold, "Name / Imię i nazwisko:", booking.client.name, y);
+  drawValue(page, font, bold, "Main driver / Główny kierowca:", booking.main_driver_name || booking.client.name, y);
   y -= 18;
   drawValue(page, font, bold, "Phone / Telefon:", booking.client.phone, y);
   y -= 18;
@@ -546,16 +585,29 @@ async function createVoucherPdf(
   });
   y -= 25;
   drawValue(page, font, bold, "Class / Klasa:", booking.carClass.class_code, y);
+  // Supplier-backed API reservations guarantee the category, not the pictured model.
+  // An equivalent car or free upgrade is permitted; ordinary partner vouchers stay unchanged.
+  if (booking.api_booking_reference) {
+    y -= 12;
+    page.drawText(
+      fitText(font, "Category booking: same group or free upgrade / Rezerwacja kategorii: taka sama lub wyższa bez dopłaty", 8, 490),
+      { x: 50, y, size: 8, font, color: textGray },
+    );
+  }
   y -= 18;
 
   const pickup =
-    booking.pickupLocation?.location_name
+    booking.pickupLocation?.display_name
+    || booking.pickupLocation?.location_name
     || booking.pickup_location
     || "-";
   drawValue(page, font, bold, "Pickup / Miejsce odbioru:", pickup, y);
   y -= 18;
 
-  const returnLocation = booking.return_location || "-";
+  const returnLocation =
+    booking.dropoffLocation?.display_name
+    || booking.dropoffLocation?.location_name
+    || booking.return_location || "-";
   drawValue(page, font, bold, "Return / Miejsce zwrotu:", returnLocation, y);
   y -= 18;
 
@@ -620,9 +672,9 @@ async function createVoucherPdf(
   if (booking.pickup_payment_partner_currency > 0) {
     page.drawRectangle({
       x: 40,
-      y: y - 55,
+      y: y - 62,
       width: 520,
-      height: 80,
+      height: 87,
       color: rgb(0.96, 0.97, 0.98),
     });
     page.drawText("PAYMENT SUMMARY / PODSUMOWANIE PŁATNOŚCI", {
@@ -632,28 +684,25 @@ async function createVoucherPdf(
       font: bold,
       color: textGray,
     });
-    y -= 25;
+    y -= 18;
+    page.drawText("Paid online to Ride24 / Opłacono online:", {
+      x: 60, y, size: 10, font, color: textGray,
+    });
+    page.drawText(`${booking.online_payment_pln.toFixed(2)} PLN`, {
+      x: 385, y, size: 11, font: bold, color: brandBlue,
+    });
+    y -= 22;
     page.drawText("To pay at pickup / Do zapłaty na miejscu:", {
-      x: 60,
-      y,
-      size: 12,
-      font,
-      color: textGray,
+      x: 60, y, size: 10, font, color: textGray,
     });
     page.drawText(
-      `${booking.pickup_payment_partner_currency} ${booking.partner_currency}`,
-      {
-        x: 300,
-        y,
-        size: 14,
-        font: bold,
-        color: rgb(0.1, 0.6, 0.1),
-      },
+      `${booking.pickup_payment_partner_currency.toFixed(2)} ${booking.partner_currency}`,
+      { x: 385, y, size: 11, font: bold, color: rgb(0.1, 0.6, 0.1) },
     );
     if (booking.pricing_items_snapshot) {
       page.drawText("Price breakdown on following pages / Rozpiska ceny na kolejnych stronach", {x:60,y:y-17,size:8,font,color:textGray});
     }
-    y -= 45;
+    y -= 30;
   }
 
   page.drawText("RENTAL PARTNER / WYPOŻYCZALNIA", {
@@ -721,6 +770,22 @@ async function createVoucherPdf(
     height: 85,
   });
 
+  // AVIA requires a bank-issued physical debit card from the named main driver,
+  // even if the rental is paid in cash. No card details are collected by Ride24.
+  if (booking.partner_id === "91e04805-31da-4242-9e6f-b6075019d784") {
+    const notice = [
+      "AVIA: main driver must present a physical, named bank debit card.",
+      "Also for cash payments. No prepaid, virtual or anonymous cards.",
+      "AVIA: fizyczna, imienna karta debetowa także przy płatności gotówką.",
+      "Bez kaucji i blokady środków. Karty prepaid i wirtualne wykluczone.",
+    ];
+    notice.forEach((line, index) => {
+      page.drawText(fitText(font, line, 8, 390), {
+        x: 50, y: 98 - index * 11, size: 8, font, color: brandBlue,
+      });
+    });
+  }
+
   page.drawText(
     "Please present this voucher when picking up the vehicle.",
     {
@@ -766,13 +831,24 @@ async function loadBooking(
       id,
       client_id,
       partner_id,
+      main_driver_name,
+      status,
       provider_type,
       api_status,
-      api_booking_reference,
-      cancelled_at,
       manual_review,
+      cancelled_at,
+      stripe_session_id,
+      stripe_currency,
+      stripe_amount_cents,
       caravel_stripe_payment_confirmed_at,
-      status,
+      caravel_supplier_dispatch_claimed_at,
+      caravel_supplier_quote_id,
+      caravel_supplier_id,
+      caravel_terms_document_id,
+      caravel_terms_content_hash,
+      caravel_terms_language,
+      terms_accepted,
+      terms_accepted_at,
       reservation_code,
       start_date,
       end_date,
@@ -786,6 +862,8 @@ async function loadBooking(
       driver_hours_snapshot,
       pricing_items_snapshot,
       pickup_payment_partner_currency,
+      online_payment_pln,
+      api_booking_reference,
       partner_currency,
       profiles!fk_client(name, email, phone),
       partners!bookings_partner_id_fkey(
@@ -796,7 +874,10 @@ async function loadBooking(
         currency
       ),
       pickup_location_join:partner_locations!pickup_location_id(
-        location_name
+        location_name, display_name
+      ),
+      dropoff_location_join:partner_locations!dropoff_location_id(
+        location_name, display_name
       ),
       car_classes!bookings_car_class_id_fkey(class_code)
     `)
@@ -978,12 +1059,11 @@ serve(async (req) => {
     if (!booking) {
       return jsonResponse(req, { error: "Rezerwacja nie istnieje" }, 404);
     }
-    // Caravel-only provider evidence fence. Never create/retry vouchers or
-    // queue confirmation emails for a Stripe-paid Caravel booking until its
-    // supplier confirmation is durably stored. Runs BEFORE the generic paid
-    // branch, including an existing voucher row.
-    if(isCaravelBooking(booking)&&!canReleaseCaravelVoucher(booking)){
-      return jsonResponse(req, {
+    // Caravel requires supplier confirmation AFTER Stripe. The server must
+    // refuse vouchers and confirmation emails until matching provider evidence
+    // is durably persisted. This check runs before any voucher claim/retry.
+    if(isCaravelVoucherBooking(booking)&&!isCaravelVoucherAllowed(booking)){
+      return jsonResponse(req,{
         error:"CARAVEL_SUPPLIER_CONFIRMATION_REQUIRED",
         code:"CARAVEL_SUPPLIER_CONFIRMATION_REQUIRED",
       },409);
@@ -994,6 +1074,14 @@ serve(async (req) => {
         skipped: true,
         reason: "BOOKING_NOT_PAID",
       });
+    }
+    const {data:apiGuard,error:guardError}=await admin.from('bookings').select('provider_type,api_status,api_booking_reference,manual_review').eq('id',booking.id).maybeSingle();
+    if(guardError||!apiGuard)throw Error('VOUCHER_API_STATE_UNAVAILABLE');
+    if(apiGuard?.provider_type==='api') {
+      const {data:w,error}=await admin.from('api_booking_workflows').select('state,paid_at,provider_reference').eq('booking_id',booking.id).maybeSingle();
+      if(error||w?.state!=='confirmed'||!w.paid_at||apiGuard.manual_review||apiGuard.api_status!=='confirmed'
+        ||!apiGuard.api_booking_reference||apiGuard.api_booking_reference!==w.provider_reference)
+        return jsonResponse(req,{error:'API_CONFIRMATION_REQUIRED'},409);
     }
     if (!(await hasPaidPayment(admin, booking.id))) {
       return jsonResponse(
