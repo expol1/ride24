@@ -1,0 +1,23 @@
+[
+  {
+    "hour": "23:00",
+    "count": 0,
+    "partial": true,
+    "errors": [
+      {
+        "partner_id": "91e04805-31da-4242-9e6f-b6075019d784",
+        "code": "PARTNER_API_ERROR:RENTEON_AGGREGATOR_SURCHARGES_REQUIRE_QUOTE"
+      }
+    ],
+    "models": 0,
+    "images": 0
+  },
+  {
+    "hour": "10:00",
+    "count": 25,
+    "partial": false,
+    "errors": [],
+    "models": 25,
+    "images": 24
+  }
+]

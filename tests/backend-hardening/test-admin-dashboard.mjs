@@ -43,6 +43,7 @@ const db={
  rpc:async function(name){
   if(name==='admin_get_deletion_requests')return {data:[{id:'c1'}],error:null};
   if(name==='admin_get_refunds')return {data:[{id:'b5'}],error:null};
+  if(name==='admin_get_api_supplier_refunds')return {data:[],error:null};
   throw Error('Unexpected RPC: '+name);
  }
 };

@@ -15,7 +15,7 @@ export async function pricedExtrasEnabled(admin) {
 export async function loadBookingOptions(admin, partnerId, pickupName, returnName) {
   const [locations,extras,timeFees,timeBlocks,conditional] = await Promise.all([
     admin.from('partner_locations').select('id,location_name,city,extra_fee,extra_fee_amount,return_fee_amount,free_from_rental_days').eq('partner_id',partnerId).eq('active',true).eq('is_api_managed',false),
-    admin.from('partner_extras').select('id,code,name_en,name_pl,amount,billing,max_quantity,active').eq('partner_id',partnerId).eq('active',true).order('id'),
+    admin.from('partner_extras').select('id,code,name_en,name_pl,amount,billing,max_quantity,max_total_amount,active').eq('partner_id',partnerId).eq('active',true).order('id'),
     admin.from('partner_time_fees').select('id,location_id,applies_to,starts_at,ends_at,amount,once_per_booking,requires_approval,active').eq('partner_id',partnerId).eq('active',true).order('id'),
     admin.from('partner_time_blocks').select('id,location_id,applies_to,starts_at,ends_at,active').eq('partner_id',partnerId).eq('active',true).order('id'),
     admin.from('partner_conditional_fees').select('id,kind,location_id,city_scope,name_pl,name_en,amount,active').eq('partner_id',partnerId).eq('active',true).order('id'),
@@ -56,17 +56,43 @@ export function publicCatalog(catalog, marginPercent) {
     return {id:x.id,code:x.code,name_pl:names.pl,name_en:names.en,billing:x.billing,max_quantity:x.max_quantity,unit_customer_cents:net+Math.round(net*marginPercent/100)};
   });
 }
+// Capped daily extras remain stored as daily rates, but the customer quote represents
+// their *total* for this rental as a single-charge item. This lets existing web/Android
+// clients use their normal checkbox, fingerprint and voucher without any client changes.
+// Rows without max_total_amount (all existing extras) keep their original pricing.
+export function cappedCatalogForQuote(catalog, days) {
+  if (!Number.isSafeInteger(days) || days < 1 || days > 366 || !Array.isArray(catalog)) {
+    throw new Error('INVALID_CAPPED_EXTRA_DURATION');
+  }
+  return catalog.map(extra => {
+    if (extra.max_total_amount == null) return extra;
+    if (extra.billing !== 'day' || extra.max_quantity !== 1) {
+      throw new Error('INVALID_CAPPED_EXTRA');
+    }
+    const perDayCents = cents(extra.amount);
+    const maxCents = cents(extra.max_total_amount);
+    if (maxCents <= 0 || perDayCents <= 0) throw new Error('INVALID_CAPPED_EXTRA');
+    const partnerTotalCents = Math.min(perDayCents * days, maxCents);
+    return {
+      ...extra,
+      amount: (partnerTotalCents / 100).toFixed(2),
+      billing: 'rental',
+    };
+  });
+}
+
 export async function makeBookingQuote({options,selections,hasAdditionalDriver,context,...pricing}) {
-  validateDriverExtra(options.catalog,selections,hasAdditionalDriver);
+  const quoteOptions={...options,catalog:cappedCatalogForQuote(options.catalog,pricing.days)};
+  validateDriverExtra(quoteOptions.catalog,selections,hasAdditionalDriver);
   let snapshot;
-  try { snapshot=calculateBookingItems({...pricing,...options,selections,pickupTime:context.pickupTime,returnTime:context.returnTime}); }
+  try { snapshot=calculateBookingItems({...pricing,...quoteOptions,selections,pickupTime:context.pickupTime,returnTime:context.returnTime}); }
   catch(error) {
     if(error instanceof BookingOptionsError) throw error;
     if(error?.message === 'PICKUP_UNAVAILABLE_TIME') throw new BookingOptionsError('PICKUP_UNAVAILABLE_TIME','Odbiór auta o wybranej godzinie nie jest dostępny w tej lokalizacji. Wybierz inną godzinę.','Pickup is unavailable at the selected time at this location. Choose a different time.');
     if(error?.message === 'RETURN_UNAVAILABLE_TIME') throw new BookingOptionsError('RETURN_UNAVAILABLE_TIME','Zwrot auta o wybranej godzinie nie jest dostępny w tej lokalizacji. Wybierz inną godzinę.','Return is unavailable at the selected time at this location. Choose a different time.');
     throw new BookingOptionsError('INVALID_BOOKING_OPTIONS','Wybrane dodatki lub cena nie są już dostępne. Odśwież podsumowanie.','Selected extras or prices are no longer available. Refresh the summary.',400);
   }
-  return {snapshot,publicQuote:{enabled:true,pricing:customerPricing(snapshot),fingerprint:await priceFingerprint(snapshot,context),catalog:publicCatalog(options.catalog,pricing.marginPercent)}};
+  return {snapshot,publicQuote:{enabled:true,pricing:customerPricing(snapshot),fingerprint:await priceFingerprint(snapshot,context),catalog:publicCatalog(quoteOptions.catalog,pricing.marginPercent)}};
 }
 export function assertAcceptedQuote(body, quote, options) {
   if(body.pricing_version!==2) {

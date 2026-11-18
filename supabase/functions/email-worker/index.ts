@@ -26,6 +26,9 @@ type BookingRow = {
   client_phone: string | null;
   partner_phone: string | null;
   partner_type: string | null;
+  status: string | null;
+  api_status: string | null;
+  api_booking_reference: string | null;
   class_code: string | null;
 };
 
@@ -50,6 +53,9 @@ const SUPPORTED_TYPES = new Set([
   "client_booking_rejected",
   "partner_new_request",
   "partner_booking_confirmed",
+  "api_refund_pending",
+  "api_refund_completed",
+  "api_refund_failed",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -128,6 +134,9 @@ function normalizeBooking(value: unknown): BookingRow | null {
     client_phone: cleanPhone(profile?.phone),
     partner_phone: cleanPhone(partner?.phone),
     partner_type: cleanText(partner?.provider_type, 20),
+    status: cleanText(value.status,50),
+    api_status: cleanText(value.api_status,100),
+    api_booking_reference: cleanText(value.api_booking_reference,500),
     class_code: cleanText(carClass?.class_code, MAX_CLASS_CODE_LENGTH),
   };
 }
@@ -183,6 +192,17 @@ function buildEmail(log: EmailLogRow, booking: BookingRow): EmailContent | null 
 
   if (log.type.startsWith("partner_") && booking.partner_type === "api") {
     return null;
+  }
+
+  if(booking.partner_type==='api') {
+    if(log.type==='client_payment_required'||log.type==='client_booking_rejected')return null;
+    if(log.type==='booking_confirmation'&&(booking.status!=='paid'||booking.api_status!=='confirmed'||!booking.api_booking_reference))return null;
+    if(log.type.startsWith('api_refund_')) {
+      if(!booking.client_email)return null;
+      const done=log.type==='api_refund_completed',failed=log.type==='api_refund_failed';
+      return {recipient:booking.client_email,subject:`Ride24 – ${done?'zwrot opłaty':failed?'zwrot wymaga obsługi':'zwrot w toku'}: ${code}`,
+        html:baseTemplate('Rezerwacja nie została zrealizowana',`${highlight('Numer',code)}<p>${done?'Stripe potwierdził pełny zwrot opłaty rezerwacyjnej Ride24 na pierwotną metodę płatności. Termin zaksięgowania zależy od banku.':failed?'Automatyczny zwrot opłaty nie zakończył się poprawnie. Ride24 musi uzgodnić sposób zwrotu; pieniądze nie są oznaczone jako zwrócone.':'Zlecono pełny zwrot opłaty rezerwacyjnej Ride24. Zwrot jest jeszcze przetwarzany; nie jest to potwierdzenie zaksięgowania pieniędzy.'}</p>`),whatsappPhone:null,whatsappTemplate:null};
+    }
   }
 
   if (log.type === "client_payment_required") {
@@ -287,6 +307,9 @@ async function loadBooking(
     .select(`
       id,
       reservation_code,
+      status,
+      api_status,
+      api_booking_reference,
       profiles!fk_client(email, phone),
       partners!bookings_partner_id_fkey(email, phone, provider_type),
       car_classes!bookings_car_class_id_fkey(class_code)

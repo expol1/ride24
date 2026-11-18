@@ -17,6 +17,8 @@ import {
   createProviderBooking,
 } from "../_shared/provider-adapters.ts";
 import { assertApiPricingCompatible, assertApiQuoteContext } from "../_shared/api-quote-contract.mjs";
+import { runApiPayment } from "../_shared/api-payment-runtime.ts";
+import Stripe from "npm:stripe@14.0.0";
 
 type AdminClient = ReturnType<typeof serviceClient>;
 
@@ -678,6 +680,16 @@ serve(async (req) => {
       }, 409);
     }
 
+    // All API providers use verified-payment fulfillment. Legacy pending rows
+    // without a recorded Stripe event must never reach any provider create call.
+    if (booking.partner.provider_type === "api") {
+      const {data:workflow,error}=await admin.from('api_booking_workflows').select('paid_at,payment_intent').eq('booking_id',booking.id).maybeSingle();
+      if(error)throw Error('API_PAYMENT_STATE_UNAVAILABLE');
+      if(!workflow?.paid_at||!workflow.payment_intent)return jsonResponse(req,{success:true,skipped:true,reason:'PAYMENT_REQUIRED'},202);
+      const stripe=new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!,{apiVersion:'2023-10-16'});
+      return jsonResponse(req,await runApiPayment(admin,stripe,booking.id));
+    }
+
     if (booking.status !== "pending") {
       return jsonResponse(req, {
         success: true,
@@ -810,6 +822,11 @@ serve(async (req) => {
 
     const parsedResponse = parsePartnerResponse(responsePayload);
     const safeResponse = sanitizePartnerPayload(responsePayload, 12_000);
+    // A provider may save a booking whose final price no longer matches the
+    // Ride24 quote. Preserve its external reference for reconciliation, but
+    // never allow payment or auto-confirmation of this booking.
+    const providerPriceNeedsReview = isRecord(responsePayload)
+      && responsePayload.needs_manual_review === true;
 
     const { data: currentRaw, error: currentError } = await admin
       .from("bookings")
@@ -957,10 +974,12 @@ serve(async (req) => {
       api_booking_reference: parsedResponse.externalReference,
       api_status: parsedResponse.status,
       api_response: safeResponse,
-      manual_review: false,
+      manual_review: providerPriceNeedsReview,
     };
 
-    if (parsedResponse.status === "confirmed") {
+    if (providerPriceNeedsReview) {
+      updatePayload.api_status = "price_mismatch_manual_review";
+    } else if (parsedResponse.status === "confirmed") {
       const reportedAt = reportedConfirmationTime(
         parsedResponse.payload,
         booking.created_at,

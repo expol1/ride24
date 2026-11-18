@@ -1,3 +1,4 @@
+import * as normalization from '../../supabase/functions/_shared/provider-normalization.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -32,7 +33,7 @@ function adapters() {
   const transport={endpointFor:()=>'/reservations',sanitizePartnerPayload:x=>x,
     partnerApiRequest:async(_credentials,path,request)=>{requests.push({path,...request});return {id:'external-1',status:'pending'};}};
   const aggregator={aggregatorTest:async()=>({ok:true}),aggregatorLocations:async()=>[],aggregatorGroups:async()=>[],aggregatorAvailability:async()=>[],aggregatorBook:async()=>({}),aggregatorStatus:async()=>({}),aggregatorCancel:async()=>({})};
-  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?aggregator:(()=>{throw Error(name)})(),
+  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?aggregator:name.includes('arvent-kolaycar')?{}:(()=>{throw Error(name)})(),
     URL,URLSearchParams,TextEncoder,TextDecoder,crypto,console};
   vm.runInNewContext(adapterCode,sandbox);
   return {requests,...sandbox.exports};
@@ -64,6 +65,7 @@ function setup() {
     constructor(table){this.table=table;this.filters=[];this.one=false;this.max=Infinity;}
     select(){return this;}
     eq(k,v){this.filters.push(r=>k.includes('.')?true:r[k]===v);return this;}
+    or(expr){const terms=[...expr.matchAll(/(\w+)\.eq\."([^"]*)"/g)];this.filters.push(r=>terms.some(m=>r[m[1]]===m[2]));return this;}
     is(k,v){this.filters.push(r=>r[k]===v);return this;}
     gt(k,v){this.filters.push(r=>r[k]>v);return this;}
     in(k,v){this.filters.push(r=>v.includes(r[k]));return this;}
@@ -77,7 +79,7 @@ function setup() {
       if(this.updated){rows.forEach(r=>Object.assign(r,this.updated));operations.push({table:this.table,update:this.updated,count:rows.length});}
       if(this.inserted){
         const row={...this.inserted,id:this.table==='bookings'?booking:quoteId};
-        if(this.table==='bookings'){saved.push(this.inserted);row.reservation_code='R24-API-TEST';row.status='pending';}
+        if(this.table==='bookings'){saved.push(this.inserted);row.reservation_code='R24-API-TEST';row.status=this.inserted.status||'pending';}
         (tables[this.table]??=[]).push(row);rows=[row];
       }
       return Promise.resolve({data:this.one?(rows[0]||null):rows,error:null}).then(resolve,reject);
@@ -100,6 +102,10 @@ function setup() {
   function handler(name){
     let serve;
     const sandbox={exports:{},require:specifier=>{
+      if(specifier.includes('api-payment-runtime'))return {apiPaymentEnabled:async()=>true,runApiPayment:async()=>{throw Error('Unpaid booking must never run fulfillment');}};
+      if(specifier.startsWith('npm:stripe'))return {default:class Stripe {}};
+      if(specifier.includes('provider-normalization'))return normalization;
+      if(specifier.includes('api-booking-options.ts'))return {makeApiBookingOptions:()=>{throw Error('Unexpected provider options call');}};
       if(specifier.includes('api-readiness'))return readiness;
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
@@ -166,7 +172,7 @@ test('API creation retains server loyalty, exact partner amount and one-time quo
   const r=await request(body());assert.equal(r.status,200,await r.text());
   assert.equal(s.saved.length,1);assert.equal(s.saved[0].partner_net_price_snapshot,100);
   assert.equal(s.saved[0].online_payment_pln,96.75);assert.equal(s.saved[0].loyalty_discount_percent,10);
-  assert.equal(s.tables.api_quotes[0].booking_id,booking);assert.equal(s.outgoing.length,1);
+  assert.equal(s.tables.api_quotes[0].booking_id,booking);assert.equal(s.outgoing.length,0);assert.equal(s.saved[0].status,'awaiting_payment');
   const again=await request(body());assert.equal(again.status,409);assert.equal(s.saved.length,1);
 });
 test('an API time or route change rejects before claiming a quote, booking or contacting a partner',async()=>{
@@ -239,24 +245,13 @@ async function booked(s) {
   Object.assign(s.tables.bookings[0],{created_at:new Date().toISOString(),api_booking_reference:null,
     car_classes:{external_id:'group-1',class_code:'A'},partners:s.tables.partners[0]});
 }
-test('dispatch sends exactly the quoted route and partner amount, and repeat dispatch is skipped',async()=>{
+test('dispatch refuses unpaid API bookings, including repeated attempts',async()=>{
   const s=setup();await booked(s);const request=s.handler('api-booking-dispatch');
-  const first=await request({booking_id:booking});assert.equal(first.status,200,await first.text());
-  assert.equal(s.outgoing.filter(x=>x==='provider-create').length,1);
-  assert.equal(s.tables.bookings[0].api_booking_reference,'external-1');
-  const again=await request({booking_id:booking});assert.equal(again.status,200);
-  assert.equal((await again.json()).reason,'ALREADY_DISPATCHED');
-  assert.equal(s.outgoing.filter(x=>x==='provider-create').length,1);
-});
-test('dispatch detects a changed route or new fees before sending anything to the provider',async()=>{
-  for(const change of ['time','fees']){
-    const s=setup();await booked(s);
-    if(change==='time')s.tables.bookings[0].pickup_time='23:00';
-    else s.tables.partner_time_fees.push({id:'night',partner_id:partner,active:true});
-    const r=await s.handler('api-booking-dispatch')({booking_id:booking});assert.equal(r.status,409,await r.text());
-    assert.equal(s.outgoing.filter(x=>x==='provider-create').length,0);
-    assert.equal(s.tables.bookings[0].manual_review,true);
+  for(let attempt=0;attempt<2;attempt++) {
+    const result=await request({booking_id:booking});assert.equal(result.status,202,await result.text());
   }
+  assert.equal(s.outgoing.filter(x=>x==='provider-create').length,0);
+  assert.equal(s.tables.bookings[0].api_booking_reference,null);
 });
 test('custom/standard API sends only partner-payable accounting, never Ride24 totals or margin',async()=>{
   for(const name of ['ride24_standard_v1','custom']){
@@ -295,4 +290,31 @@ test('Caravel cannot create a booking through generic supplier-first handler eve
  assert.equal(s.outgoing.length,0);
  const claimed=s.operations.filter(x=>x.table==='api_quotes'&&x.update);
  assert.equal(claimed.length,0,'Caravel quote was not consumed');
+});
+
+test('search resolves stable UUIDs despite stale display labels and keeps separate route points',async()=>{
+  const s=setup();s.tables.api_quotes=[];
+  const response=await s.handler('search-api')({pickupLocationId:pickup,pickupLocationName:'stale Polish label',
+    dropoffLocationId:dropoff,dropoffLocationName:'another stale label',pickupDate:'2027-01-10',returnDate:'2027-01-13',pickupTime:'10:00',returnTime:'10:00'});
+  const value=await response.json();assert.equal(response.status,200);assert.equal(value.count,1);
+  assert.equal(s.tables.api_quotes[0].dropoff_location_external_id,'office-1');
+});
+test('provider failures are explicitly reported and never impersonate a successful empty search',async()=>{
+  const s=setup();s.failures.add('partner_extras');
+  const response=await s.handler('search-api')({pickupLocationId:pickup,pickupDate:'2027-01-10',returnDate:'2027-01-13',pickupTime:'10:00',returnTime:'10:00'});
+  const value=await response.json();assert.equal(response.status,200);assert.equal(value.count,0);
+  assert.equal(value.partial,true);assert.equal(value.provider_errors.length,1);
+});
+
+test('accepted provider extras snapshot survives booking creation without losing services or payment split',async()=>{
+ const {providerPricingSnapshot}=await import('../../supabase/functions/_shared/provider-services.mjs');
+ const service=(id,code,amount,quantity=1)=>({ServiceId:id,Code:code,Name:code,Quantity:quantity,IsSelected:true,IsMandatory:code==='FEE-OOH',IsRent:code==='CAR-RENT',Prepaid:false,ServicePrice:{Currency:'EUR',Amount:amount/quantity,AmountTotal:amount}});
+ const snapshot=providerPricingSnapshot({Currency:'EUR',Total:335,Services:[service(361,'CAR-RENT',100),service(489,'EQ-BABYSEAT',75,2),service(119,'FEE-OOH',80),service(121,'FEE-OOH',80)]},{marginPercent:10,loyaltyPercent:10,exchangeRate:4.3,days:3});
+ const s=setup();const q=s.tables.api_quotes[0];Object.assign(q,{platform_margin_percent:10,partner_net_total:335,commission_total:33.5,final_total:368.5});
+ const requestBody={...body(),pricing_version:2,pricing_fingerprint:'confirmed',extras:[{id:'489',quantity:2}]};
+ q.raw_response.ride24_options={snapshot,fingerprint:'confirmed',binding:{user_id:uid,driver_id:null,additional_driver_id:null,ages:[35],selections:requestBody.extras}};
+ const response=await s.handler('create-booking-request')(requestBody);assert.equal(response.status,200,await response.text());
+ assert.equal(s.saved.length,1);assert.deepEqual(s.saved[0].pricing_items_snapshot,snapshot);
+ assert.equal(s.saved[0].partner_net_price_snapshot,335);assert.equal(s.saved[0].online_payment_pln,129.65);
+ assert.equal(s.tables.api_quotes[0].booking_id,booking);
 });

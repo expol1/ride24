@@ -1,0 +1,27 @@
+name: Ride24 Admin PDF Replacement QA
+on:
+  pull_request:
+    paths:
+      - 'admin/index.html'
+      - 'supabase/functions/admin-replace-partner-documents/**'
+      - 'tests/backend-hardening/test-partner-document-replacement.mjs'
+      - '.github/workflows/partner-document-replacement.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'admin/index.html'
+      - 'supabase/functions/admin-replace-partner-documents/**'
+      - 'tests/backend-hardening/test-partner-document-replacement.mjs'
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check admin PDF-replacement safeguards
+        run: node --test tests/backend-hardening/test-partner-document-replacement.mjs

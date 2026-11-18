@@ -1649,9 +1649,10 @@ async>
 .r24-client-price-deposit{background:#fffbeb;color:#92400e;padding:15px;margin-top:12px;border:1px solid #fde68a;border-radius:10px}
 </style>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
-<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261029a">
+<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261115status-font-v5">
 <link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
-<link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261029a">
+<link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261115nav-compact-v3">
+<link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113-switch">
 </head>
 <body> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -2157,7 +2158,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
     document.getElementById('deleteModal').style.display = 'flex';
@@ -2443,17 +2444,24 @@ window.processAccountDeletion = async function() {
     const isEn = localStorage.getItem("client_lang") === "en";
 
     try {
-        const { data: { user } } = await db.auth.getUser();
+        const { data: { user }, error: authError } = await db.auth.getUser();
+        if (authError || !user?.id) {
+            throw new Error(isEn ? "Sign in again to submit the request." : "Zaloguj się ponownie, aby wysłać wniosek.");
+        }
 
-        const { error } = await db
+        const requestedAt = new Date().toISOString();
+        const { data: savedRequest, error } = await db
             .from("profiles")
-            .update({
-                deletion_requested: true,
-                deletion_requested_at: new Date().toISOString()
-            })
-            .eq("id", user.id);
+            .update({ deletion_requested: true, deletion_requested_at: requestedAt })
+            .eq("id", user.id)
+            .select("id,deletion_requested,deletion_requested_at")
+            .maybeSingle();
 
+        // PostgREST UPDATE can succeed with zero changed rows under RLS.
         if (error) throw error;
+        if (savedRequest?.id !== user.id || savedRequest.deletion_requested !== true || !savedRequest.deletion_requested_at) {
+            throw new Error(isEn ? "The request was not saved. Please contact Ride24." : "Wniosek nie został zapisany. Skontaktuj się z Ride24.");
+        }
 
         alert(isEn ? "Request submitted. You will be logged out." : "Zgłoszenie wysłane. Zostaniesz wylogowany.");
 
@@ -2835,14 +2843,15 @@ document.addEventListener("click", async function(e) {
                car_class_id: localStorage.getItem("selectedCarId"),
                start_date: localStorage.getItem("bookingStartDate"), end_date: localStorage.getItem("bookingEndDate"),
                pickup_time: localStorage.getItem("bookingPickupTime") || "10:00", return_time: localStorage.getItem("bookingDropTime") || "10:00",
-               pickup_location: search.pickup_location?.name || "Do ustalenia",
-               return_location: search.drop_location?.name || search.pickup_location?.name || "Do ustalenia",
+               pickup_location: search.pickup_location?.location_name || search.pickup_location?.name || "Do ustalenia",
+               return_location: search.drop_location?.location_name || search.drop_location?.name || search.pickup_location?.location_name || search.pickup_location?.name || "Do ustalenia",
                driver_id: document.getElementById("driverSelect")?.value || null,
-               additional_driver_id: additional?.length === 36 ? additional : null
+               additional_driver_id: additional?.length === 36 ? additional : null,
+               api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
            };
        }
        const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
-           context:bookingQuoteContext, isEn:()=>localStorage.getItem("client_lang")==="en"});
+           context:bookingQuoteContext, isApiBooking:()=>!!localStorage.getItem("selectedApiQuoteId"), isEn:()=>localStorage.getItem("client_lang")==="en"});
        window.submitBooking = function() {
     const isEn = localStorage.getItem("client_lang") === "en";
 
@@ -2854,6 +2863,12 @@ document.addEventListener("click", async function(e) {
 
     // 🔥 MODAL OD RAZU
     document.getElementById("termsModal").style.display = "flex";
+    const cardNotice = document.getElementById("aviaCardRequirement");
+    if (cardNotice) cardNotice.hidden = true;
+    const cardAck = document.getElementById("aviaDebitCardConfirm");
+    if (cardAck) cardAck.checked = false;
+    const generalAck = document.getElementById("acceptTerms");
+    if (generalAck) generalAck.checked = false;
 
     const select = document.getElementById("driverSelect");
     const addSelect = document.getElementById("additionalDriverSelect");
@@ -2920,6 +2935,9 @@ document.addEventListener("click", async function(e) {
                 const { data: car } = await db.from("car_classes").select("partner_id,min_driver_age,driver_included").eq("id", carClassId).single();
                 if (!car) return;
 
+                const cardNotice = document.getElementById("aviaCardRequirement");
+                if (cardNotice) cardNotice.hidden =
+                    car.partner_id !== "91e04805-31da-4242-9e6f-b6075019d784";
                 const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age").eq("id", car.partner_id).single();
 
                 const ageInfo = document.getElementById("bookingDriverAgeInfo");
@@ -2948,6 +2966,14 @@ document.addEventListener("click", async function(e) {
             if (!document.getElementById("acceptTerms")?.checked) {
                 return window.showToast(isEn ? "Please accept the terms!" : "Zaakceptuj regulaminy!", "error");
             }
+            const cardNotice = document.getElementById("aviaCardRequirement");
+            const mustAcknowledgeDebit = cardNotice && !cardNotice.hidden;
+            if (mustAcknowledgeDebit && !document.getElementById("aviaDebitCardConfirm")?.checked) {
+                return window.showToast(
+                    isEn ? "Please confirm you can present a physical bank debit card in the main driver's name." :
+                        "Potwierdź posiadanie fizycznej, imiennej karty debetowej głównego kierowcy.",
+                    "error");
+            }
 
             if (btn) {
                 btn.disabled = true;
@@ -2966,8 +2992,8 @@ document.addEventListener("click", async function(e) {
                 }
 
                 const searchParams = JSON.parse(localStorage.getItem("searchParams") || "{}");
-                const pickupName = searchParams?.pickup_location?.name || "Do ustalenia";
-                const returnName = searchParams?.drop_location?.name || pickupName;
+                const pickupName = searchParams?.pickup_location?.location_name || searchParams?.pickup_location?.name || "Do ustalenia";
+                const returnName = searchParams?.drop_location?.location_name || searchParams?.drop_location?.name || pickupName;
 
                 const mainValue = document.getElementById("driverSelect")?.value || null;
                 const additionalValue = document.getElementById("additionalDriverSelect")?.value || null;
@@ -2999,8 +3025,12 @@ document.addEventListener("click", async function(e) {
                         driver_id: driverId,
                         additional_driver_id: additionalDriverId,
                         terms_accepted: true,
-                        ...pricingPayload,
-                        api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
+                        avia_personal_debit_card_acknowledged:
+                            !!(document.getElementById("aviaCardRequirement") &&
+                               !document.getElementById("aviaCardRequirement").hidden &&
+                               document.getElementById("aviaDebitCardConfirm")?.checked),
+                        api_quote_id: localStorage.getItem("selectedApiQuoteId") || null,
+                        ...pricingPayload
                     })
                 });
 
@@ -3016,7 +3046,9 @@ document.addEventListener("click", async function(e) {
                 } catch { console.warn("Referral attachment unavailable"); }
 
                 document.getElementById("termsModal").style.display = "none";
-                window.showToast(isEn ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!", "success");
+                window.showToast(result.payment_required
+                    ? (isEn ? "Pay the Ride24 fee to request confirmation from the supplier." : "Opłać usługę Ride24, aby przekazać rezerwację do potwierdzenia dostawcy.")
+                    : (isEn ? "Booking created successfully!" : "Rezerwacja została pomyślnie utworzona!"), "success");
 
                 [
                     "selectedCarId", "selectedApiQuoteId", "bookingStartDate", "bookingEndDate",
@@ -3025,6 +3057,7 @@ document.addEventListener("click", async function(e) {
                 ].forEach(key => localStorage.removeItem(key));
 
                 if (typeof loadClientBookings === "function") await loadClientBookings();
+                if (result.payment_required && result.booking?.id) await goToPayment(null, result.booking.id);
             } catch (err) {
                 console.error("BOOKING ERROR:", err);
                 window.showToast(err?.message || (isEn ? "Booking error." : "Błąd rezerwacji."), "error");
@@ -3206,7 +3239,7 @@ else if (booking.status === 'accepted') {
     statusHtml = `<div class="status-tile accepted" data-pl="✅ Potwierdzona" data-en="✅ Accepted">✅ ${isEn ? 'Accepted' : 'Potwierdzona'}</div>`;
 }
 else if (booking.status === 'awaiting_payment') {
-    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Oczekuje płatności" data-en="💳 Awaiting payment">💳 ${isEn ? 'Awaiting payment' : 'Oczekuje płatności'}</div>`;
+    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Opłać" data-en="💳 Pay">💳 ${isEn ? 'Pay' : 'Opłać'}</div>`;
 
 }
 else if (booking.status === 'paid') {
@@ -3228,15 +3261,16 @@ let actionsHtml = `<div style="display:flex;flex-direction:column;gap:8px; align
 const s = booking.status;
 
 if (s === 'pending') {
+    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
+        ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
+    </button>`;
     actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;" data-pl="Decyzja partnera:" data-en="Partner decision:">
         ${isEn ? 'Partner decision:' : 'Decyzja partnera:'}
     </span>`;
     actionsHtml += `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="font-size:13px; margin-top:0; color:var(--orange);">
         ⌛ --:--:--
     </span>`;
-    actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
-        ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
-    </button>`;
+
 }
 else if (s === 'accepted') {
     actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" data-pl="Anuluj rezerwację" data-en="Cancel booking">
@@ -3264,10 +3298,24 @@ actionsHtml += `
         💳 ${isEn ? 'Pay now' : 'Opłać teraz'}
     </button>
 
+    <button type="button" class="action-btn-premium btn-cancel-soft"
+        onclick="window.cancelBooking('${booking.id}', '${booking.status}')"
+        data-pl="Anuluj rezerwację" data-en="Cancel booking">
+        ${isEn ? 'Cancel booking' : 'Anuluj rezerwację'}
+    </button>
+
     ${timerHtml}
 `;
 }
 else if (s === 'paid') {
+    // Paid bookings use the existing refund/no-refund flow instead of an unpaid cancellation.
+    if (booking.refund_status === 'pending') {
+        actionsHtml += `<span class="status-tile awaiting_payment" data-pl="Zwrot w toku" data-en="Refund pending">${isEn ? 'Refund pending' : 'Zwrot w toku'}</span>`;
+    } else if (booking.refund_status !== 'completed') {
+        actionsHtml += `<button type="button" class="action-btn-premium btn-cancel-soft"
+            onclick="window.cancelBooking('${booking.id}', '${booking.status}')"
+            data-pl="Anuluj rezerwację" data-en="Cancel booking">${isEn ? 'Cancel booking' : 'Anuluj rezerwację'}</button>`;
+    }
     actionsHtml += `<button class="action-btn-premium btn-download-voucher" onclick="window.downloadVoucher('${booking.id}')" data-pl="📄 Voucher PDF" data-en="📄 Voucher PDF">
         📄 Voucher PDF
     </button>`;
@@ -3334,8 +3382,8 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
     '${booking.partner_rules_snapshot ?? ""}',
     '${booking.id}'
 )"
-              style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;" data-pl="Zobacz szczegóły" data-en="View details">
-            ${isEn ? 'View details' : 'Zobacz szczegóły'}
+              style="font-size: 10px; font-weight: 700; color: #2563EB; cursor: pointer; text-decoration: underline; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;" data-pl="Szczegóły" data-en="Details">
+            ${isEn ? 'Details' : 'Szczegóły'}
         </span>
     </div>
 </td>
@@ -3354,7 +3402,7 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
                                     </div>
                                 </div>
                             </td>
-                            <td>${statusHtml}</td>
+                            <td>${statusHtml}<span class="r24-client-status-id">#R24-${booking.id.toString().slice(-4)}</span></td>
                             <td>
     <strong>
         ${(booking.pickup_payment_partner_currency || 0).toFixed(2)} ${partnerCurrency}
@@ -3703,18 +3751,19 @@ window.showToast(
 };
 // 🔥 LICZENIE PROCENTU ZWROTU
 function calculateRefundPercent(pickupDate) {
-    if (!pickupDate) return 0;
+    if (typeof pickupDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) return 0;
 
-    const today = new Date();
-    const pickup = new Date(pickupDate);
+    // Match the UTC calendar-day difference used by the server's CURRENT_DATE.
+    // Time-of-day, daylight-saving changes and the exact 60-day boundary must not change the displayed refund tier.
+    const now = new Date();
+    const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const pickupUtc = Date.parse(pickupDate + 'T00:00:00Z');
+    if (!Number.isFinite(pickupUtc) || new Date(pickupUtc).toISOString().slice(0, 10) !== pickupDate) return 0;
+    const diffDays = Math.floor((pickupUtc - todayUtc) / 86400000);
 
-    // Obliczamy różnicę dni (zaokrąglamy w górę)
-    const diffTime = pickup - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 60) return 90;      // Powyżej 60 dni -> 90%
-    if (diffDays >= 30) return 50;    // Od 30 do 60 dni -> 50%
-    return 0;                         // Poniżej 30 dni -> Brak zwrotu
+    if (diffDays >= 60) return 90;     // 60+ days
+    if (diffDays >= 30) return 50;     // 30-59 days
+    return 0;                         // Under 30 days
 }
 
        async function loadUserProfile() {
@@ -4063,10 +4112,29 @@ function calculateRefundPercent(pickupDate) {
        // --- NOWOCZESNE ANULOWANIE (SaaS Version) ---
 window.cancelBooking = async function(id, currentStatus) {
     const isEn = localStorage.getItem("client_lang") === "en";
-
-    // 🔒 Zabezpieczenie przed zwykłym anulowaniem dla opłaconych (wymuszamy zwrot)
-    if (currentStatus === 'paid') {
-        window.showToast(isEn ? "Please use the refund option in the Payments tab." : "Użyj opcji zwrotu w zakładce Płatności.", "error");
+    const booking = window.ride24BookingsById?.[id];
+    // Always rely on the latest displayed booking, never just an inline status parameter.
+    if (!booking || booking.status !== currentStatus) {
+        window.showToast(isEn ? "Booking changed. Refresh the list." : "Status rezerwacji się zmienił. Odśwież listę.", "info");
+        await loadClientBookings();
+        return;
+    }
+    if (!['pending', 'accepted', 'awaiting_payment', 'paid'].includes(booking.status)) {
+        window.showToast(isEn ? "This booking cannot be cancelled." : "Tej rezerwacji nie można już anulować.", "info");
+        return;
+    }
+    if (booking.status === 'paid') {
+        if (booking.refund_status === 'pending' || booking.refund_status === 'completed') {
+            window.showToast(isEn ? "This refund is already being handled." : "Zwrot jest już obsługiwany.", "info");
+            return;
+        }
+        // The backend is authoritative; this UI only selects the existing refund path.
+        const refundPercent = calculateRefundPercent(booking.start_date);
+        if (refundPercent > 0) {
+            window.handleRefundClick(id, booking.start_date, Number(booking.online_payment_pln || 0));
+        } else {
+            window.cancelWithoutRefund(id);
+        }
         return;
     }
 
@@ -4715,6 +4783,22 @@ window.closeReviewModal = function() {
                 </div>
             </div>
 
+    <!-- Extras are a primary booking step, not another legal document. Presentation only. -->
+    <div class="r24-extras-callout">
+        <button type="button" class="docs-extra-item" onclick="openEquipmentInfoModal()"
+                aria-haspopup="dialog" aria-controls="equipmentInfoModal">
+            <span class="docs-extra-left">
+                <span class="docs-extra-icon" aria-hidden="true">🧸</span>
+                <span class="r24-extras-copy">
+                    <strong data-pl="Wybierz dodatki do wynajmu" data-en="Choose rental extras">Wybierz dodatki do wynajmu</strong>
+                    <small data-pl="Zobacz dostępne usługi i ich aktualną cenę."
+                           data-en="See available services and their current prices.">Zobacz dostępne usługi i ich aktualną cenę.</small>
+                </span>
+            </span>
+            <span class="r24-extras-action" data-pl="Sprawdź ›" data-en="Explore ›">Sprawdź ›</span>
+        </button>
+    </div>
+
             <div class="docs-container">
     <a href="/regulamin.html" target="_blank">
         <span style="font-size: 18px;">📄</span>
@@ -4737,21 +4821,18 @@ window.closeReviewModal = function() {
         </span>
     </a>
 
-    <button type="button"
-            class="docs-extra-item"
-            onclick="openEquipmentInfoModal()">
-        <span class="docs-extra-left">
-            <span class="docs-extra-icon">🧸</span>
-            <span data-pl="Potrzebujesz dodatków?" data-en="Need extras?">
-    Potrzebujesz dodatków?
-</span>
-        </span>
 
-        <span class="docs-extra-info">i</span>
-    </button>
 </div>
 
             <section id="bookingPriceBreakdown" class="booking-price-breakdown" aria-live="polite" hidden></section>
+            <div id="aviaCardRequirement" hidden style="margin:14px 0;padding:14px;border:1px solid #86EFAC;border-radius:10px;background:#F0FDF4;color:#14532D;font-size:13px;line-height:1.5">
+                <strong data-pl="AVIA — bez kaucji i blokady karty" data-en="AVIA — no deposit or card hold">AVIA — bez kaucji i blokady karty</strong>
+                <p style="margin:6px 0 10px" data-pl="Przy odbiorze okaż fizyczną kartę debetową wydaną przez bank na nazwisko głównego kierowcy, także przy płatności gotówką. Bez karty kredytowej, kaucji i preautoryzacji. Karty wirtualne i prepaid nie są akceptowane." data-en="Present a physical bank-issued debit card in the main driver’s name at pickup, including when paying cash. No credit card, deposit or preauthorisation required. Virtual and prepaid cards are not accepted.">Przy odbiorze okaż fizyczną kartę debetową wydaną przez bank na nazwisko głównego kierowcy, także przy płatności gotówką. Bez karty kredytowej, kaucji i preautoryzacji. Karty wirtualne i prepaid nie są akceptowane.</p>
+                <label style="display:flex;align-items:flex-start;gap:9px;font-weight:650;cursor:pointer">
+                    <input type="checkbox" id="aviaDebitCardConfirm" style="margin-top:4px" />
+                    <span data-pl="Potwierdzam, że główny kierowca okaże wymaganą fizyczną kartę debetową przy odbiorze." data-en="I confirm that the main driver will present the required physical bank debit card at pickup.">Potwierdzam, że główny kierowca okaże wymaganą fizyczną kartę debetową przy odbiorze.</span>
+                </label>
+            </div>
             <label class="premium-checkbox-wrapper">
                 <input type="checkbox" id="acceptTerms">
                 <span class="premium-checkbox-text" data-pl="Akceptuję regulamin Ride24 oraz warunki wynajmu wybranej grupy aut." data-en="I accept Ride24 terms and the rental conditions for the selected car group.">
@@ -4806,9 +4887,9 @@ window.closeReviewModal = function() {
 <div id="deleteModal" class="custom-modal">
     <div class="modal-content">
         <h3 data-pl="Usuń konto" data-en="Delete Account" data-premium="Usuń konto Premium">Usuń konto</h3>
-        <p data-pl="Ta operacja jest nieodwracalna. Wszystkie Twoje dane zostaną usunięte. Wpisz poniżej słowo USUŃ, aby potwierdzić."
-           data-en="This action is irreversible. All your data will be deleted. Type DELETE below to confirm.">
-           Ta operacja jest nieodwracalna...
+        <p data-pl="Złożysz wniosek o usunięcie konta. Po weryfikacji administrator usunie konto, z zachowaniem danych wymaganych przepisami. Wpisz USUŃ, aby potwierdzić."
+           data-en="This submits an account deletion request. After review, Ride24 will delete your account except for legally required records. Type DELETE to confirm.">
+           Złóż wniosek o usunięcie konta.
         </p>
 
         <input type="text" id="deleteConfirmInput" placeholder="USUŃ / DELETE" autocomplete="off">
@@ -4871,6 +4952,6 @@ window.closeReviewModal = function() {
         </div>
     </div>
 </div>
-<script src="/assets/js/affiliate-referral.js?v=20261110a" defer></script>
+<script src="/assets/js/affiliate-referral.js?v=20261112-pause" defer></script>
 </body>
 </html>

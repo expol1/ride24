@@ -315,3 +315,253 @@
     display:inline;white-space:nowrap;
   }
 }
+
+
+/* SAFE UX V2: presentation only. Original DOM, booking JS, actions, RPCs and modal unchanged.
+   The original status cell is #5 in BOTH tables; move it visually without moving HTML. */
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:not(:has(>td:only-child)) {
+  --r24-strong:#cbd5e1; --r24-soft:#f8fafc; --r24-edge:#64748b;
+  background:linear-gradient(90deg,var(--r24-strong),var(--r24-soft)) !important;
+  border-left:5px solid var(--r24-edge) !important;
+}
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:has(.status-tile.pending) {
+  --r24-strong:#cbd5e1; --r24-soft:#f8fafc; --r24-edge:#64748b;
+}
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:has(.status-tile.awaiting_payment) {
+  --r24-strong:#facc15; --r24-soft:#fffbeb; --r24-edge:#bd8d00;
+}
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:has(.status-tile.confirmed),
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:has(.status-tile.paid) {
+  --r24-strong:#86d79b; --r24-soft:#f0fdf4; --r24-edge:#18833b;
+}
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:has(.status-tile.cancelled),
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:has(.status-tile.rejected),
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:has(.status-tile.payment_expired) {
+  --r24-strong:#fca5a5; --r24-soft:#fff1f2; --r24-edge:#b91c1c;
+}
+:is(#view-bookings,#view-dashboard) .table-container tbody tr:not(:has(>td:only-child)) > td {
+  background-color:transparent !important;
+}
+@media (min-width:1201px) {
+  /* All eight existing columns remain visible, including ID, dates, timer and actions. */
+  :is(#view-bookings,#view-dashboard) .table-container tr {
+    grid-template-columns:minmax(132px,1.2fr) minmax(84px,.7fr) minmax(130px,1.2fr)
+      minmax(82px,.7fr) minmax(165px,1.5fr) minmax(145px,1.3fr)
+      minmax(150px,1.2fr) minmax(150px,1.2fr) !important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container thead th {
+    display:block !important; grid-row:1 !important; min-width:0;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr:not(:has(>td:only-child)) {
+    grid-template-rows:auto !important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr:not(:has(>td:only-child)) > td {
+    display:block !important; grid-row:1 !important;
+    align-self:center !important; padding:12px 8px !important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(5) {grid-column:1 !important;}
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(1) {grid-column:2 !important;}
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(2) {grid-column:3 !important;}
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(3) {grid-column:4 !important;}
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(4) {grid-column:5 !important;}
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(6) {grid-column:6 !important;}
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(7) {grid-column:7 !important;}
+  :is(#view-bookings,#view-dashboard) .table-container tr > :nth-child(8) {grid-column:8 !important;}
+  /* Dashboard's 8 columns are: client, class, route, dates, STATUS, timer, amount, actions.
+     Bookings' 8 columns are: ID, client, class, route, STATUS, dates, amount, actions. */
+  :is(#view-bookings,#view-dashboard) .table-container tbody td.r24-booking-amount-cell {
+    display:flex !important; flex-direction:column; align-items:flex-start; gap:8px;
+  }
+}
+@media (max-width:1200px) {
+  /* Retain the existing complete mobile cards and all original cell positions. */
+  :is(#view-bookings,#view-dashboard) .table-container tbody tr:not(:has(>td:only-child)) {
+    background:linear-gradient(115deg,var(--r24-strong),var(--r24-soft) 80%) !important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container tbody td:nth-child(7) {
+    background:rgba(255,255,255,.60) !important;
+  }
+}
+/* Fix the unreadable details CTA on phones: dark text on light surface.
+   The original onclick, pricing snapshots and settlement dialog are preserved. */
+:is(#view-bookings,#view-dashboard) .table-container .r24-items-open.r24-booking-details-cta {
+  background:#eff6ff !important; border:2px solid #2563eb !important;
+  color:#1d4ed8 !important; box-shadow:0 3px 10px rgba(37,99,235,.12) !important;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-primary,
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-full,
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-compact,
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-icon,
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-arrow {
+  color:#1d4ed8 !important; opacity:1 !important;
+}
+:is(#view-bookings,#view-dashboard) .table-container .r24-booking-details-cta .r24-booking-cta-hint {
+  color:#475569 !important; opacity:1 !important;
+}
+
+/* SAFE UX V2: centered countdown clock on mobile only.
+   Existing countdown JS, data-deadline and urgency state remain untouched. */
+@media (max-width:1200px) {
+  :is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:9px !important;
+    width:fit-content !important;
+    max-width:100% !important;
+    min-width:170px;
+    margin:12px auto 5px !important;
+    padding:10px 18px !important;
+    border:1px solid #bfdbfe !important;
+    border-radius:999px !important;
+    background:linear-gradient(135deg,#ffffff,#eff6ff) !important;
+    color:#1e40af !important;
+    box-shadow:0 3px 12px rgba(30,64,175,.10) !important;
+    font-size:20px !important;
+    font-weight:800 !important;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.8px;
+    line-height:1.3 !important;
+    text-align:center !important;
+  }
+  :is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer.timer-urgent {
+    color:#b91c1c !important;
+    background:linear-gradient(135deg,#fff7f7,#fee2e2) !important;
+    border-color:#fca5a5 !important;
+  }
+}
+
+/* Mobile countdown placement: center even inside the existing actions flex/grid. */
+@media (max-width:1200px) {
+  #view-bookings .table-container tbody td:last-child .countdown-timer,
+  #view-dashboard .table-container tbody td:last-child .countdown-timer,
+  #view-bookings .table-container tbody td .timer-badge.countdown-timer,
+  #view-dashboard .table-container tbody td .timer-badge.countdown-timer {
+    justify-self:center !important;
+    align-self:center !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+    text-align:center !important;
+  }
+  #view-bookings .table-container tbody td:last-child > div > .countdown-timer,
+  #view-dashboard .table-container tbody td:last-child > div > .countdown-timer {
+    grid-column:1 / -1 !important;
+  }
+}
+
+/* Hourglass is already rendered by the existing countdown renderer (⌛).
+   Preserve the exact displayed countdown text and its update mechanism. */
+:is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer {
+  text-shadow:0 1px 0 rgba(255,255,255,.65);
+}
+@media (max-width:1200px) {
+  :is(#view-bookings,#view-dashboard) .table-container .timer-badge.countdown-timer {
+    font-family:Inter,system-ui,"Segoe UI Emoji",sans-serif !important;
+    font-size:21px !important;
+    box-shadow:0 4px 14px rgba(37,99,235,.15),inset 0 1px 0 #fff !important;
+  }
+}
+
+/* Desktop-only polish: retain all original data/actions and mobile card layout. */
+.r24-desktop-status-id { display:none; }
+@media (min-width:1201px) {
+  #view-dashboard .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(5),
+  #view-bookings .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(5) {
+    display:flex !important; flex-direction:column; align-items:flex-start;
+    justify-content:center; gap:9px; min-width:0;
+  }
+  :is(#view-dashboard,#view-bookings) .r24-desktop-status-id {
+    display:block; font-size:14px; font-weight:800; color:#1d4ed8;
+    letter-spacing:.15px; white-space:nowrap;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container thead th:nth-child(5) {
+    font-size:0 !important;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container thead th:nth-child(5)::after {
+    content:"STATUS / ID"; font-size:12px; font-weight:800; color:#475569;
+  }
+  /* Bookings: use the now-redundant standalone ID space for the status/ID cell. */
+  #view-bookings .table-container thead th:nth-child(1),
+  #view-bookings .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(1) {
+    display:none !important;
+  }
+  #view-bookings .table-container tr {
+    grid-template-columns:minmax(150px,1.3fr) minmax(80px,.7fr) minmax(130px,1.2fr)
+      minmax(85px,.7fr) minmax(165px,1.5fr) minmax(145px,1.3fr)
+      minmax(160px,1.2fr) minmax(155px,1.2fr) !important;
+  }
+  #view-bookings .table-container tr > :nth-child(5) {grid-column:1 / span 2 !important;}
+  #view-bookings .table-container tr > :nth-child(2) {grid-column:3 !important;}
+  #view-bookings .table-container tr > :nth-child(3) {grid-column:4 !important;}
+  #view-bookings .table-container tr > :nth-child(4) {grid-column:5 !important;}
+  #view-bookings .table-container tr > :nth-child(6) {grid-column:6 !important;}
+  #view-bookings .table-container tr > :nth-child(7) {grid-column:7 !important;}
+  #view-bookings .table-container tr > :nth-child(8) {grid-column:8 !important;}
+  /* Emphasize status without changing its underlying state. */
+  :is(#view-dashboard,#view-bookings) .table-container tbody .status-tile {
+    border-width:1.5px !important; border-style:solid !important;
+    padding:9px 12px !important; border-radius:12px !important;
+    box-shadow:0 2px 6px rgba(15,23,42,.08);
+    font-weight:800 !important;
+  }
+  /* More legible amount, with a small visual break before the details CTA. */
+  :is(#view-dashboard,#view-bookings) .table-container .r24-booking-amount-value {
+    font-size:20px !important; font-weight:900 !important; color:#277c17 !important;
+    letter-spacing:.1px; line-height:1.25;
+  }
+  :is(#view-dashboard,#view-bookings) .table-container .r24-booking-amount-cell .r24-booking-details-cta {
+    margin-top:12px !important; min-height:38px;
+    padding:8px 12px !important; border-radius:10px !important;
+    background:#eff6ff !important; border:2px solid #2563eb !important;
+    box-shadow:0 3px 10px rgba(37,99,235,.10) !important;
+  }
+  /* Booking countdown is below the action buttons: center in the action cell. */
+  #view-bookings .table-container tbody tr:not(:has(>td:only-child)) > td:nth-child(8) .countdown-timer {
+    align-self:center !important; justify-self:center !important;
+    margin:12px auto 0 !important; justify-content:center !important;
+    text-align:center !important; font-size:14px !important;
+    font-weight:800 !important; font-variant-numeric:tabular-nums;
+    padding:6px 9px !important; border-radius:999px;
+    background:rgba(255,255,255,.75); border:1px solid #cbd5e1;
+  }
+}
+
+/* Dashboard clock now lives below action buttons, matching Bookings. */
+#view-dashboard .table-container .r24-dashboard-actions-with-timer .countdown-timer {
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  width:fit-content; max-width:100%; margin:12px auto 0 !important;
+  padding:7px 12px !important; border-radius:999px !important;
+  background:linear-gradient(135deg,#fff,#eff6ff) !important;
+  border:1px solid #bfdbfe !important; color:#1e40af !important;
+  box-shadow:0 3px 10px rgba(37,99,235,.10) !important;
+  font-weight:800 !important; font-variant-numeric:tabular-nums;
+  white-space:nowrap; text-align:center;
+}
+#view-dashboard .table-container .r24-dashboard-actions-with-timer .countdown-timer.timer-urgent {
+  color:#b91c1c !important; background:#fee2e2 !important; border-color:#fca5a5 !important;
+}
+@media (min-width:1201px) {
+  #view-dashboard .table-container thead th:nth-child(6),
+  #view-dashboard .table-container tbody td.r24-dashboard-timer-old-slot {display:none !important;}
+  #view-dashboard .table-container tr {
+    grid-template-columns:minmax(150px,1.3fr) minmax(140px,1.2fr)
+      minmax(85px,.7fr) minmax(160px,1.5fr) minmax(155px,1.3fr)
+      minmax(165px,1.2fr) minmax(165px,1.3fr) !important;
+  }
+  #view-dashboard .table-container tr > :nth-child(5) {grid-column:1 !important;}
+  #view-dashboard .table-container tr > :nth-child(1) {grid-column:2 !important;}
+  #view-dashboard .table-container tr > :nth-child(2) {grid-column:3 !important;}
+  #view-dashboard .table-container tr > :nth-child(3) {grid-column:4 !important;}
+  #view-dashboard .table-container tr > :nth-child(4) {grid-column:5 !important;}
+  #view-dashboard .table-container tr > :nth-child(7) {grid-column:6 !important;}
+  #view-dashboard .table-container tr > :nth-child(8) {grid-column:7 !important;}
+  #view-dashboard .table-container .r24-dashboard-actions-with-timer .countdown-timer {
+    font-size:14px !important;
+  }
+}
+@media (max-width:1200px) {
+  #view-dashboard .table-container .r24-dashboard-timer-old-slot {display:none !important;}
+  #view-dashboard .table-container .r24-dashboard-actions-with-timer .countdown-timer {
+    font-size:21px !important; padding:10px 18px !important;
+  }
+}

@@ -83,3 +83,22 @@ export function apiPriceTotals(group, days, discountPercent, marginPercent) {
     partnerNetPerDay: Number((partnerExact / days).toFixed(2)),
     finalPerDay: Number((customerExact / days).toFixed(2)) };
 }
+
+// A server-created options quote is bound to one account and its driver selection.
+export function assertApiOptionsQuote(raw,body,userId,ages) {
+ const o=raw?.ride24_options,b=o?.binding;
+ const fail=()=>{throw new BookingOptionsError('QUOTE_CHANGED','Cena lub dodatki wymagają ponownego potwierdzenia.','Price or extras require confirmation again.');};
+ if(!o){assertApiRequestedOptions(body);return null;}
+ if(body.pricing_version!==2||body.pricing_fingerprint!==o.fingerprint||b?.user_id!==userId
+   ||b.driver_id!==(body.driver_id||null)||b.additional_driver_id!==(body.additional_driver_id||null)
+   ||JSON.stringify(b.ages)!==JSON.stringify(ages)||JSON.stringify(b.selections)!==JSON.stringify(body.extras??[]))fail();
+ const s=o.snapshot;
+ const money=n=>Number.isSafeInteger(n)&&n>=0&&n<=100000000;
+ if(!s||s.version!==2||!Array.isArray(s.items)||s.items.length<1||s.items.length>23
+   ||!['partner_cents','gross_cents','commission_cents','loyalty_discount_cents','total_cents','online_pln_cents'].every(k=>money(s[k]))
+   ||s.items.some(x=>!money(x.partner_cents)||!money(x.customer_cents))
+   ||s.items.reduce((n,x)=>n+x.partner_cents,0)!==s.partner_cents
+   ||s.items.reduce((n,x)=>n+x.customer_cents,0)!==s.gross_cents
+   ||s.partner_cents+s.commission_cents!==s.gross_cents||s.total_cents!==s.gross_cents-s.loyalty_discount_cents)fail();
+ return s;
+}

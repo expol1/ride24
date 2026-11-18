@@ -752,7 +752,50 @@
         }
         .r24-custom-agreement-close:hover { background: #e2e8f0; color: #0f172a; }
         .r24-custom-agreement-close:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
-    </style>
+    
+/* RIDE24_ADMIN_MOBILE_NAV_V2_SAFE_ROLLBACK_20261115 */
+@media(max-width:768px){
+ html,body,.main-wrapper {max-width:100%;min-width:0;overflow-x:hidden}
+ body,.main-wrapper {width:100%}
+ .content-area{min-width:0;max-width:100%;overflow-x:hidden;padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+ .topbar,.admin-badge{min-width:0}
+ #admin-email{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mobile-nav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;justify-content:stretch;gap:0;width:100%;max-width:100vw;height:calc(64px + env(safe-area-inset-bottom,0px));padding:0 3px env(safe-area-inset-bottom,0px);overflow:hidden;box-sizing:border-box;z-index:1001}
+ .mobile-nav-item{appearance:none;background:transparent;border:0;border-top:3px solid transparent;border-radius:0;min-width:0;width:100%;height:64px;padding:6px 1px;display:flex;justify-content:center;align-items:center;font:600 10px/1.15 Inter,sans-serif;color:#CBD5E1;overflow:hidden;white-space:nowrap;touch-action:manipulation}
+ .mobile-nav-item>span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+ .mobile-nav-item>span:first-child{font-size:19px;line-height:1}
+ .mobile-nav-item.active{border-top-color:#86EFAC;background:#13253E;color:white}
+ .mobile-nav-item:focus-visible,.mobile-admin-more :focus-visible{outline:2px solid #86EFAC;outline-offset:-2px}
+ .mobile-admin-more-backdrop:not([hidden]){display:block;position:fixed;inset:0;background:rgba(2,6,23,.4);z-index:999}
+ .mobile-admin-more:not([hidden]){display:block;position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom,0px));max-height:min(68vh,540px);max-height:min(68dvh,540px);overflow-y:auto;overscroll-behavior:contain;padding:12px;border-radius:14px;background:#fff;border:1px solid #CBD5E1;box-shadow:0 15px 35px rgba(15,23,42,.25);z-index:1002}
+ .mobile-admin-more-header{display:flex;justify-content:space-between;align-items:center;padding:3px 2px 11px}
+ .mobile-admin-more-header button{border:0;border-radius:7px;background:#E2E8F0;font-size:24px;min-width:36px;min-height:36px}
+ .mobile-admin-more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .mobile-admin-more-grid button,.mobile-admin-more-grid a{display:block;min-width:0;min-height:44px;padding:12px 8px;border:1px solid #E2E8F0;border-radius:9px;background:#F8FAFC;color:#0F172A;text-decoration:none;text-align:left;font:600 12px/1.35 Inter,sans-serif;overflow-wrap:anywhere}
+ #view-refunds .table-container{max-width:100%;overflow-x:visible}
+ #view-refunds table,#view-refunds tbody{display:block;width:100%;min-width:0}
+ #view-refunds thead{display:none}
+ #view-refunds tbody tr{display:block;width:100%;margin-bottom:12px;border:1px solid #E2E8F0;border-radius:11px;background:#FFF;overflow:hidden}
+ #view-refunds tbody td{display:block;width:100%;max-width:100%!important;min-width:0;padding:10px 12px;font-size:12px;overflow-wrap:anywhere;white-space:normal}
+ #view-refunds tbody td::before{display:block;margin-bottom:4px;font-weight:800;font-size:10px;letter-spacing:.03em;text-transform:uppercase;color:#64748B}
+ #api-supplier-refunds-tbody td:nth-child(1)::before{content:"Wypożyczalnia / numery"}
+ #api-supplier-refunds-tbody td:nth-child(2)::before{content:"Klient"}
+ #api-supplier-refunds-tbody td:nth-child(3)::before{content:"Kontakt"}
+ #api-supplier-refunds-tbody td:nth-child(4)::before{content:"Zwrot Ride24"}
+ #api-supplier-refunds-tbody td:nth-child(5)::before{content:"Wynajem"}
+ #api-supplier-refunds-tbody td:nth-child(6)::before{content:"Status"}
+ #api-supplier-refunds-tbody td:nth-child(7)::before{content:"Działania"}
+ #refunds-tbody td:nth-child(1)::before{content:"Klient"}
+ #refunds-tbody td:nth-child(2)::before{content:"Data"}
+ #refunds-tbody td:nth-child(3)::before{content:"Kwota"}
+ #refunds-tbody td:nth-child(4)::before{content:"Procent"}
+ #refunds-tbody td:nth-child(5)::before{content:"Konto"}
+ #refunds-tbody td:nth-child(6)::before{content:"Powód"}
+ #refunds-tbody td:nth-child(7)::before{content:"Działania"}
+ #view-refunds tbody td[colspan]::before{display:none}
+ #view-refunds tbody button{min-height:42px;margin:2px 5px 2px 0}
+}
+</style>
 <link rel="stylesheet" href="../assets/css/admin-seo.css?v=20261014a">
 <link rel="stylesheet" href="../assets/css/brand-logo.css?v=20261019b">
 </head>
@@ -807,41 +850,27 @@
     <a class="nav-item" href="/admin/polecenia.html">Polecenia · 10%</a>
 </nav>
     </aside>
-<nav class="mobile-nav">
-    <div class="mobile-nav-item active" onclick="switchTab('radar')" id="m-nav-radar">
-                <span>📡</span>
-                <span>Radar</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('partners')" id="m-nav-partners">
-                <span>🤝</span>
-                <span>Firmy</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('messages')" id="m-nav-messages">
-                <span>✉️</span>
-                <span>Wiadomości</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('search')" id="m-nav-search">
-                <span>🔍</span>
-                <span>Search</span>
-            </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('guides')" id="m-nav-guides">
-        <span>🗺️</span>
-        <span>Guides</span>
-    </div>
-
-    <div class="mobile-nav-item" onclick="switchTab('seo')" id="m-nav-seo"><span>🔎</span><span>SEO</span></div>
-
-    <div class="mobile-nav-item" onclick="switchTab('marketing')" id="m-nav-marketing">
-                <span>🚀</span>
-                <span>Marketing</span>
-            </div>
-
-    <a class="mobile-nav-item" href="/admin/polecenia.html"><span>↗</span><span>Polecenia</span></a>
+<nav class="mobile-nav" aria-label="Nawigacja mobilna administratora">
+<button type="button" class="mobile-nav-item active" onclick="switchTab('radar')" id="m-nav-radar"><span>📡</span><span>Radar</span></button>
+<button type="button" class="mobile-nav-item" onclick="switchTab('partners')" id="m-nav-partners"><span>🤝</span><span>Firmy</span></button>
+<button type="button" class="mobile-nav-item" onclick="switchTab('bookings')" id="m-nav-bookings"><span>📅</span><span>Rezerwacje</span></button>
+<button type="button" class="mobile-nav-item" onclick="switchTab('refunds')" id="m-nav-refunds"><span>↩️</span><span>Zwroty</span></button>
+<button type="button" class="mobile-nav-item" onclick="toggleMobileMore()" id="m-nav-more" aria-controls="mobile-admin-more" aria-expanded="false"><span>☰</span><span>Więcej</span></button>
 </nav>
+<div id="mobile-admin-more-backdrop" class="mobile-admin-more-backdrop" onclick="closeMobileMore()" hidden></div>
+<div id="mobile-admin-more" class="mobile-admin-more" role="dialog" aria-label="Pozostałe sekcje" hidden>
+<div class="mobile-admin-more-header"><strong>Pozostałe sekcje</strong><button type="button" onclick="closeMobileMore()" aria-label="Zamknij">×</button></div>
+<div class="mobile-admin-more-grid">
+<button type="button" onclick="switchTab('clients')">👤 Klienci</button>
+<button type="button" onclick="switchTab('finances')">💳 Rozliczenia Stripe</button>
+<button type="button" onclick="switchTab('deletions')">🗑️ Usunięcia kont</button>
+<button type="button" onclick="switchTab('messages')">✉️ Wiadomości</button>
+<button type="button" onclick="switchTab('search')">🔍 Smart Search</button>
+<button type="button" onclick="switchTab('guides')">🗺️ Autoprzewodniki</button>
+<button type="button" onclick="switchTab('seo')">🔎 SEO</button>
+<button type="button" onclick="switchTab('marketing')">🚀 Marketing</button>
+<a href="/admin/polecenia.html">↗ Polecenia</a>
+</div></div>
     <div class="main-wrapper">
         <header class="topbar">
             <div class="admin-badge">
@@ -925,8 +954,8 @@
         <div class="page-header"><h1 class="page-title">Zarejestrowani klienci</h1></div>
         <p id="admin-clients-count" class="dashboard-table-status" role="status">Ładowanie listy klientów...</p>
         <div class="table-container admin-table-scroll">
-            <table><thead><tr><th>Klient</th><th>E-mail</th><th>Data rejestracji</th><th>Status</th></tr></thead>
-                <tbody id="admin-clients-tbody"><tr><td colspan="4">Ładowanie...</td></tr></tbody>
+            <table><thead><tr><th>Klient</th><th>E-mail</th><th>Data rejestracji</th><th>Status</th><th>Akcje</th></tr></thead>
+                <tbody id="admin-clients-tbody"><tr><td colspan="5">Ładowanie...</td></tr></tbody>
             </table>
         </div>
         <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px">
@@ -973,6 +1002,23 @@
         <h1 class="page-title">Zwroty do zatwierdzenia</h1>
     </div>
 
+
+    <div class="table-container" style="margin-bottom:22px;border:1px solid #93c5fd;">
+      <div style="padding:16px 18px 8px;">
+        <h2 style="font-size:18px;margin:0 0 8px;color:#123a66;">Zwroty API — anulowanie przez wypożyczalnię</h2>
+        <p style="font-size:13px;color:#475569;line-height:1.6;margin:0 0 8px;">
+          Oddzielna kolejka po potwierdzeniu anulowania w API. 100% opłaty rezerwacyjnej faktycznie pobranej przez Ride24, bez reguł 60/30 dni.
+          Kontakt i rozliczenie są ręczne. Przyciski nie wykonują zwrotu Stripe ani nie wydają bonu.
+        </p>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Partner i numery</th><th>Klient</th><th>Kontakt</th><th>Zwrot Ride24</th><th>Wynajem</th><th>Stan</th><th>Działania ręczne</th></tr></thead>
+          <tbody id="api-supplier-refunds-tbody"><tr><td colspan="7">Ładowanie...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <h2 style="font-size:17px;margin:16px 0 12px;">Pozostałe zwroty standardowe</h2>
     <div class="table-container">
         <table>
             <thead>
@@ -1097,7 +1143,9 @@
             <h1 class="page-title">Smart Search & Słownik</h1>
         </div>
     </div>
-
+    <p id="smart-auto-status" role="status" style="font-size:12px;color:#475569;margin:0 0 16px">
+      Automatyzacja Smart Search: sprawdzanie statusu…
+    </p>
     <div class="saas-grid">
         <div class="saas-card">
             <div class="saas-card-header">
@@ -2055,7 +2103,8 @@
 </div>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../assets/helper/supabaseConfig.js"></script>
-    <script src="../assets/js/admin-smart-search.js?v=20261023a"></script>
+    <script src="../assets/js/location-names.js?v=20261118dictionary1"></script>
+    <script src="../assets/js/admin-smart-search.js?v=20261112a"></script>
     <script src="../assets/js/admin-api-readiness.js?v=20261021a"></script>
 <script src="../assets/js/admin-google-ads-drafts.js?v=20261023a" defer></script>
 <script src="../assets/js/admin-google-ads-custom.js?v=20261023b" defer></script>
@@ -2232,7 +2281,68 @@ async function loadDeletionRequests() {
     const statDeletions = document.getElementById("stat-deletions");
     if (statDeletions) statDeletions.innerText = totalDeletions;
 }
+
+       async function loadApiSupplierRefunds() {
+         const tbody=document.getElementById("api-supplier-refunds-tbody");
+         if(!tbody)return;
+         tbody.innerHTML="<tr><td colspan='7'>Ładowanie...</td></tr>";
+         const {data,error}=await db.rpc("admin_get_api_supplier_refunds");
+         if(error){console.error("Zwroty API",error);tbody.innerHTML="<tr><td colspan='7'>Błąd pobierania zwrotów API</td></tr>";return;}
+         tbody.replaceChildren();
+         if(!data||!data.length){tbody.innerHTML="<tr><td colspan='7'>Brak anulowań API do rozliczenia</td></tr>";return;}
+         const safe=v=>escapeHtml(String(v==null?"":v));
+         const money=v=>new Intl.NumberFormat("pl-PL",{style:"currency",currency:"PLN"}).format(Number(v)||0);
+         data.forEach(r=>{
+           const open=!r.resolved_at&&r.refund_status==="pending";
+           const state=r.resolved_at?"Rozliczono ("+(r.resolution_method||"—")+")":
+             r.contacted_at?"Skontaktowano — sprawa otwarta":"Do kontaktu";
+           const tr=document.createElement("tr");
+           tr.innerHTML=
+             '<td><b>'+safe(r.partner_name)+'</b><div style="font-size:12px">Ride24: '+safe(r.ride24_ref)+
+             '</div><div style="font-size:12px">API: '+safe(r.supplier_ref)+'</div></td>'+
+             '<td>'+safe(r.client_name)+'</td>'+
+             '<td><div>'+safe(r.client_phone)+'</div><div style="font-size:12px">'+safe(r.client_email)+'</div></td>'+
+             '<td style="font-weight:700;white-space:nowrap">'+safe(money(r.amount_pln))+
+             '<div style="font-size:11px;font-weight:400">100% opłaty Ride24</div></td>'+
+             '<td>'+safe(r.start_date)+' – '+safe(r.end_date)+'</td>'+
+             '<td><b>'+safe(state)+'</b><div style="font-size:11px;max-width:210px;white-space:pre-wrap">'+safe(r.resolution_note)+'</div></td>'+
+             '<td>'+(open?'<button type="button" class="btn-secondary" data-api-contact>Skontaktowano</button> '+
+                    '<button type="button" class="btn-primary" data-api-resolve>Rozliczono</button>':'—')+'</td>';
+           const contact=tr.querySelector("[data-api-contact]");
+           const resolve=tr.querySelector("[data-api-resolve]");
+           if(contact)contact.addEventListener("click",()=>markApiSupplierContacted(r.booking_id));
+           if(resolve)resolve.addEventListener("click",()=>markApiSupplierResolved(r.booking_id));
+           tbody.appendChild(tr);
+         });
+       }
+       async function markApiSupplierContacted(bookingId) {
+         const note=prompt("Notatka z kontaktu z klientem (opcjonalna):","");
+         if(note===null)return;
+         const {error}=await db.rpc("admin_update_api_supplier_refund",
+           {p_booking_id:bookingId,p_action:"contacted",p_method:null,p_note:note||null});
+         if(error){alert("Błąd: "+error.message);return;}
+         await loadApiSupplierRefunds();
+       }
+       async function markApiSupplierResolved(bookingId) {
+         const answer=prompt("Wpisz sposób zakończonego rozliczenia: bank, Stripe lub bon", "");
+         if(answer===null)return;
+         const selected=answer.trim().toLowerCase();
+         const options={bank:"bank_transfer",przelew:"bank_transfer",stripe:"stripe",bon:"voucher"};
+         const method=options[selected];
+         if(!method){alert("Wpisz tylko: bank, Stripe lub bon.");return;}
+         // Backend requires a note for voucher; add a neutral technical note without another question.
+         // This never issues a voucher or sends a Stripe refund.
+         const note=method==="voucher"
+           ?"Bon: metoda rozliczenia wskazana ręcznie w panelu; bon nie jest wystawiany automatycznie."
+           :null;
+         const {error}=await db.rpc("admin_update_api_supplier_refund",
+           {p_booking_id:bookingId,p_action:"resolved",p_method:method,p_note:note});
+         if(error){alert("Błąd: "+error.message);return;}
+         await loadApiSupplierRefunds();
+         loadRadarData();
+       }
        async function loadRefunds() {
+  void loadApiSupplierRefunds();
 
   const { data, error } = await db.rpc("admin_get_refunds");
 
@@ -2245,12 +2355,13 @@ async function loadDeletionRequests() {
     return;
   }
 
-  if (!data.length) {
+  const regularRefunds=(data||[]).filter(r=>r.reason!=="API_SUPPLIER_CANCELLED_FULL_FEE");
+  if (!regularRefunds.length) {
     tbody.innerHTML = "<tr><td colspan='7'>Brak zwrotów</td></tr>";
     return;
   }
 
-  data.forEach(r => {
+  regularRefunds.forEach(r => {
     tbody.innerHTML += `
       <tr>
 
@@ -2381,7 +2492,23 @@ function closePromotionModal() {
         });
 
         // --- NAWIGACJA ---
-       window.switchTab = function(tabId) {
+              window.closeMobileMore=function(){
+ const box=document.getElementById('mobile-admin-more');
+ const shade=document.getElementById('mobile-admin-more-backdrop');
+ const btn=document.getElementById('m-nav-more');
+ if(box)box.hidden=true;if(shade)shade.hidden=true;if(btn)btn.setAttribute('aria-expanded','false');
+ };
+       window.toggleMobileMore=function(){
+ const box=document.getElementById('mobile-admin-more');
+ const shade=document.getElementById('mobile-admin-more-backdrop');
+ const btn=document.getElementById('m-nav-more');
+ if(!box||!shade||!btn)return;
+ const open=box.hidden;
+ box.hidden=!open;shade.hidden=!open;btn.setAttribute('aria-expanded',String(open));
+ };
+       document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMore()});
+window.switchTab = function(tabId) {
+            closeMobileMore();
             if (tabId === "radar") loadRadarData();
             if (tabId === "clients") loadClientsData();
             if (tabId === "bookings") loadBookingsData();
@@ -2424,6 +2551,7 @@ function closePromotionModal() {
             document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active'));
             const mobileNavBtn = document.getElementById('m-nav-' + tabId);
             if(mobileNavBtn) mobileNavBtn.classList.add('active');
+            else {const moreBtn=document.getElementById('m-nav-more');if(moreBtn)moreBtn.classList.add('active');}
         }
 
         window.logout = async function() {
@@ -2508,8 +2636,10 @@ async function loadRadarData(){
     (async()=>{
       const el=document.getElementById('stat-pending-refunds');
       try{
-        const {data,error}=await db.rpc('admin_get_refunds');
-        if(el)el.textContent=error?'—':String((data||[]).length);
+        const [regular,api]=await Promise.all([db.rpc('admin_get_refunds'),db.rpc('admin_get_api_supplier_refunds')]);
+        const normalCount=(regular.data||[]).filter(r=>r.reason!=='API_SUPPLIER_CANCELLED_FULL_FEE').length;
+        const apiCount=(api.data||[]).filter(r=>!r.resolved_at&&r.refund_status==='pending').length;
+        if(el)el.textContent=(regular.error||api.error)?'—':String(normalCount+apiCount);
       }catch(error){if(el)el.textContent='—';console.error('Radar pending refunds',error);}
     })()
   ]);
@@ -2544,7 +2674,7 @@ async function loadClientsData(){
   if(!tbody||!label)return;
   const requestId=++clientsRequestId;
   label.textContent='Pobieranie klientów...';
-  tbody.innerHTML='<tr><td colspan="4">Ładowanie...</td></tr>';
+  tbody.innerHTML='<tr><td colspan="5">Ładowanie...</td></tr>';
   const {data,count,error}=await db.from('profiles')
     .select('id,name,email,created_at,deletion_requested',{count:'exact'})
     .eq('role','client').order('created_at',{ascending:false})
@@ -2552,20 +2682,93 @@ async function loadClientsData(){
   if(requestId!==clientsRequestId)return;
   if(error){
     label.textContent='Błąd odczytu listy klientów.';
-    tbody.innerHTML='<tr><td colspan="4">Nie udało się pobrać klientów.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="5">Nie udało się pobrać klientów.</td></tr>';
     return;
   }
   const rows=data||[],start=rows.length?clientPage*ADMIN_RADAR_PAGE_SIZE+1:0,end=clientPage*ADMIN_RADAR_PAGE_SIZE+rows.length;
+  const ids=rows.map(u=>u.id).filter(Boolean);
+  const controls=new Map();
+  if(ids.length){
+    const result=await db.from('client_account_controls')
+      .select('client_id,suspended_at').in('client_id',ids);
+    if(requestId!==clientsRequestId)return;
+    if(result.error){
+      label.textContent='Błąd weryfikacji statusów klientów.';
+      tbody.innerHTML='<tr><td colspan="5">Nie można zweryfikować statusów kont. Akcje administracyjne są chwilowo niedostępne.</td></tr>';
+      return;
+    }
+    (result.data||[]).forEach(s=>controls.set(s.client_id,s.suspended_at));
+  }
   label.textContent='Zarejestrowani klienci: '+Number(count??0)+' • wyświetlono '+start+'–'+end;
   const prev=document.getElementById('admin-clients-prev'),next=document.getElementById('admin-clients-next');
   if(prev)prev.disabled=clientPage===0;
   if(next)next.disabled=end>=Number(count??0);
-  tbody.innerHTML=rows.length?rows.map(u=>'<tr>'
-   +'<td><strong>'+escapeHtml(u.name||'—')+'</strong><div class="client-info">'+escapeHtml(u.id)+'</div></td>'
-   +'<td>'+escapeHtml(u.email||'—')+'</td>'
-   +'<td>'+escapeHtml(radarDate(u.created_at))+'</td>'
-   +'<td>'+(u.deletion_requested?'Wniosek o usunięcie':'Zarejestrowany')+'</td>'
-   +'</tr>').join(''):'<tr><td colspan="4">Brak zarejestrowanych klientów.</td></tr>';
+  tbody.innerHTML=rows.length?rows.map(u=>{
+    const suspended=Boolean(controls.get(u.id));
+    const label=suspended?'Zawieszony':(u.deletion_requested?'Wniosek o usunięcie':'Aktywny');
+    const toggle=suspended?'Przywróć':'Zawieś';
+    const action=suspended?'restore':'suspend';
+    return '<tr>'
+     +'<td><strong>'+escapeHtml(u.name||'—')+'</strong><div class="client-info">'+escapeHtml(u.id)+'</div></td>'
+     +'<td>'+escapeHtml(u.email||'—')+'</td>'
+     +'<td>'+escapeHtml(radarDate(u.created_at))+'</td>'
+     +'<td><strong style="color:'+(suspended?'#b45309':'#166534')+'">'+label+'</strong></td>'
+     +'<td style="white-space:nowrap">'
+     +'<button type="button" class="btn-secondary" style="padding:5px 9px;margin-right:6px" onclick="adminClientAction(\''+u.id+'\',\''+action+'\')">'+toggle+'</button>'
+     +'<button type="button" class="btn-danger" style="padding:5px 9px" onclick="adminClientAction(\''+u.id+'\',\'delete\')">Usuń</button>'
+     +'</td></tr>';
+  }).join(''):'<tr><td colspan="5">Brak zarejestrowanych klientów.</td></tr>';
+}
+async function adminClientAction(userId,action){
+  if(!/^[0-9a-f-]{36}$/i.test(String(userId)))return;
+  if(!['suspend','restore','delete'].includes(action))return;
+  const profileResult=await db.from('profiles').select('email,name,role').eq('id',userId).maybeSingle();
+  if(profileResult.error||profileResult.data?.role!=='client'){
+    alert('Nie można potwierdzić tożsamości konta klienta.');return;
+  }
+  const who=profileResult.data.email||userId;
+  try{
+    if(action==='delete'){
+      const preflight=await db.functions.invoke('admin-client-controls',{
+        body:{action:'preflight_delete',user_id:userId}
+      });
+      if(preflight.error||!preflight.data?.eligible){
+        alert('Nie można bezpiecznie usunąć konta:\n'+
+          (preflight.data?.blockers||[]).join('\n')+
+          '\nJeśli klient ma historię rezerwacji, użyj zawieszenia.');
+        return;
+      }
+      const typed=prompt('Trwałe usunięcie konta jest nieodwracalne.\nAby potwierdzić, wpisz dokładnie: '+who);
+      if(typed===null||typed.trim()!==who)return;
+      if(!confirm('Ostatecznie usunąć konto '+who+' z Supabase Authentication?'))return;
+      const result=await db.functions.invoke('admin-client-controls',{
+        body:{action:'delete',user_id:userId,confirm_text:typed.trim()}
+      });
+      if(result.error||result.data?.auth_deleted!==true||!result.data?.success)
+        throw new Error((result.data?.blockers||[]).join('; ')||result.data?.error||'Nie potwierdzono usunięcia konta.');
+      alert(result.data?.cleanup_pending?.length
+        ? 'Konto usunięte. Sprawdź pozostałe dane: '+result.data.cleanup_pending.join(', ')
+        : 'Konto klienta zostało usunięte.');
+    }else{
+      const restoring=action==='restore';
+      if(!confirm((restoring?'Przywrócić dostęp klientowi ':'Zawiesić konto klienta ')+who+'?'))return;
+      let reason='';
+      if(!restoring){
+        const provided=prompt('Opcjonalny powód zawieszenia (widoczny tylko dla administracji):','');
+        if(provided===null)return;
+        reason=provided.trim().slice(0,500);
+      }
+      const result=await db.functions.invoke('admin-client-controls',{
+        body:{action,user_id:userId,reason}
+      });
+      if(result.error||!result.data?.success)
+        throw new Error(result.data?.error||'Nie udało się zmienić statusu.');
+      alert(restoring?'Dostęp klienta przywrócony.':'Klient zawieszony. Nowe rezerwacje są blokowane.');
+    }
+    await Promise.all([loadClientsData(),loadRadarData()]);
+  }catch(error){
+    alert('Operacja nie została potwierdzona: '+(error?.message||'Błąd serwera.')+' Odśwież listę klientów.');
+  }
 }
 async function loadBookingsData(){
   const tbody=document.getElementById('admin-bookings-tbody');
@@ -2772,16 +2975,14 @@ if ((p.provider_type ?? "local") === "api") {
 
 }
     }
-// Pokazuj przycisk tylko przy brakujących dokumentach.
-const hasTerms = typeof p.rental_terms_url === "string" && p.rental_terms_url.trim().length > 0;
-const hasRules = typeof p.rental_rules_url === "string" && p.rental_rules_url.trim().length > 0;
-if (!hasTerms || !hasRules) {
+// Warunki i Regulamin można wymieniać tylko przed podpisaniem umowy.
+if (p.agreement_accepted !== true) {
     actionBtn += `
         <button type="button" class="r24-admin-pdf-btn"
-            aria-label="PDF Terms / PDF Rules"
-            title="Wgraj brakujące warunki wynajmu lub regulamin PDF"
+            aria-label="Wgraj lub podmień warunki wynajmu i regulamin"
+            title="Wgraj albo podmień PDF Warunków wynajmu i Regulaminu"
             onclick="openAdminPartnerDocs('${p.id}')">
-            <span>PDF Terms</span><span>PDF Rules</span>
+            <span>PDF TERMS</span><span>PODMIEŃ / RULES</span>
         </button>
     `;
 }
@@ -3047,12 +3248,31 @@ async function uploadAdminPartnerPdfs(partnerId, terms, rules) {
     return data;
 }
 
+async function replaceAdminPartnerPdfs(partnerId, terms, rules) {
+    validateSelectedPartnerPdfs(terms, rules);
+    const payload = new FormData();
+    payload.append("partner_id", partnerId);
+    if (terms) payload.append("terms", terms, "terms.pdf");
+    if (rules) payload.append("rules", rules, "rules.pdf");
+    const { data, error } = await db.functions.invoke("admin-replace-partner-documents", { body: payload });
+    if (error) {
+        let message = error.message || "Błąd podmiany dokumentów";
+        try {
+            const detail = await error.context?.json?.();
+            if (detail?.error) message = detail.error;
+        } catch (_) { /* Brak treści błędu */ }
+        throw new Error(message);
+    }
+    if (!data?.success) throw new Error(data?.error || "Nie udało się podmienić PDF-ów");
+    return data;
+}
+
 window.currentAdminDocsPartnerId = null;
 
 window.openAdminPartnerDocs = async function(partnerId) {
     try {
         const { data, error } = await db.from("partners")
-            .select("id,company_name,rental_terms_url,rental_rules_url")
+            .select("id,company_name,rental_terms_url,rental_rules_url,agreement_accepted")
             .eq("id", partnerId).single();
         if (error || !data) throw new Error("Nie znaleziono partnera");
         window.currentAdminDocsPartnerId = data.id;
@@ -3061,13 +3281,14 @@ window.openAdminPartnerDocs = async function(partnerId) {
         const r = document.getElementById("admin-pdf-rules");
         t.value = "";
         r.value = "";
-        t.disabled = Boolean(data.rental_terms_url);
-        r.disabled = Boolean(data.rental_rules_url);
-        const allDone = t.disabled && r.disabled;
-        document.getElementById("admin-pdf-status").textContent =
-            (t.disabled ? "Warunki: już przypisane. " : "Warunki: brak. ") +
-            (r.disabled ? "Regulamin: już przypisany." : "Regulamin: brak.");
-        document.getElementById("admin-pdf-upload-btn").disabled = allDone;
+        const signed = data.agreement_accepted === true;
+        t.disabled = signed;
+        r.disabled = signed;
+        document.getElementById("admin-pdf-status").textContent = signed
+            ? "Podpisana umowa: dokumentów nie można zmieniać."
+            : (data.rental_terms_url ? "Warunki: wgrane; wybierz nowy PDF, aby podmienić. " : "Warunki: brak. ") +
+              (data.rental_rules_url ? "Regulamin: wgrany; wybierz nowy PDF, aby podmienić." : "Regulamin: brak.");
+        document.getElementById("admin-pdf-upload-btn").disabled = signed;
         document.getElementById("adminPartnerDocsModal").style.display = "flex";
     } catch (error) {
         alert("Błąd otwierania dokumentów: " + error.message);
@@ -3088,10 +3309,10 @@ window.submitAdminPartnerDocs = async function() {
     const button = document.getElementById("admin-pdf-upload-btn");
     button.disabled = true;
     try {
-        document.getElementById("admin-pdf-status").textContent = "Wgrywanie i przypisywanie plików...";
-        await uploadAdminPartnerPdfs(partnerId, terms, rules);
+        document.getElementById("admin-pdf-status").textContent = "Bezpieczna podmiana i archiwizacja poprzednich wersji...";
+        await replaceAdminPartnerPdfs(partnerId, terms, rules);
         await loadPartnersData();
-        alert("PDF-y wgrane i automatycznie przypisane do konta partnera.");
+        alert("PDF-y zaktualizowane. Poprzednie pliki zachowano w Storage.");
         closeAdminPartnerDocs();
     } catch (error) {
         document.getElementById("admin-pdf-status").textContent = "Błąd: " + error.message;
@@ -5955,6 +6176,9 @@ async function loadGuideLocations() {
         return;
     }
 
+    // Match the displayed Polish pickup labels without changing stored identifiers.
+    await window.Ride24LocationNames.loadDictionary(db).catch(() => {});
+
     const { data: guides, error: guideError } = await db
         .from("travel_guides")
         .select("id,title")
@@ -6000,11 +6224,11 @@ async function loadGuideLocations() {
 
             <tr data-guide-location="${loc.id}" data-guide-assigned="${loc.guide_id ? "true" : "false"}">
 
-                <td>${escapeHtml(loc.country || "")}</td>
+                <td>${escapeHtml(window.Ride24LocationNames.localizedCountry(loc.country, "pl") || loc.country || "")}</td>
 
-                <td>${escapeHtml(loc.city || "")}</td>
+                <td>${escapeHtml(window.Ride24LocationNames.localizedCity(loc.city, loc.country, "pl") || loc.city || "")}</td>
 
-                <td>${escapeHtml(loc.location_name || "")}</td>
+                <td>${escapeHtml(window.Ride24LocationNames.displayName(loc, "pl") || loc.location_name || "")}</td>
 
                 <td>
 
@@ -6034,8 +6258,14 @@ async function loadGuideLocations() {
         `;
 
     });
+    const originalsById = new Map((locations || []).map(loc => [loc.id, loc]));
     tbody.querySelectorAll("tr[data-guide-location]").forEach(row => {
-        row.dataset.guideSearch = normalizeGuideLocationSearch(Array.from(row.cells).slice(0, 3).map(cell => cell.textContent).join(" "));
+        const original = originalsById.get(row.dataset.guideLocation) || {};
+        row.cells[2].title = original.location_name || "";
+        row.dataset.guideSearch = normalizeGuideLocationSearch(
+            Array.from(row.cells).slice(0, 3).map(cell => cell.textContent).join(" ") +
+            " " + [original.country, original.city, original.location_name].filter(Boolean).join(" ")
+        );
     });
     const emptyRow = document.createElement("tr");
     emptyRow.id = "guide-location-empty";
@@ -6429,15 +6659,15 @@ hereinafter referred to as the “Partner”.
       </div> </div> </div>
       <div id="adminPartnerDocsModal" style="display:none; position:fixed; inset:0; z-index:100000; background:rgba(2,6,23,.8); align-items:center; justify-content:center; padding:20px;">
         <div style="background:#fff; border-radius:15px; width:100%; max-width:580px; max-height:90vh; overflow-y:auto; padding:24px;">
-          <h2 style="font-size:19px; margin:0 0 8px;">Dołącz dokumenty PDF partnera</h2>
+          <h2 style="font-size:19px; margin:0 0 8px;">Wgraj lub podmień dokumenty PDF partnera</h2>
           <p id="admin-pdf-partner-name" style="font-weight:700; margin:0 0 12px;"></p>
-          <p style="font-size:12px; color:#64748B; margin:0 0 16px;">Wgrywanie jest opcjonalne; istniejące dokumenty nie zostaną nadpisane. Tylko PDF, maks. 5 MB na plik.</p>
+          <p style="font-size:12px; color:#64748B; margin:0 0 16px;">Dla kont bez podpisanej umowy możesz zastąpić Warunki i Regulamin. Stare pliki pozostaną w archiwum; nowe otrzymają osobne adresy. Tylko PDF, maks. 5 MB na plik.</p>
           <div class="form-group" style="margin-bottom:13px;"><label for="admin-pdf-terms">Warunki wynajmu</label><input type="file" id="admin-pdf-terms" accept=".pdf,application/pdf" style="width:100%;"></div>
           <div class="form-group" style="margin-bottom:13px;"><label for="admin-pdf-rules">Regulamin</label><input type="file" id="admin-pdf-rules" accept=".pdf,application/pdf" style="width:100%;"></div>
           <div id="admin-pdf-status" style="font-size:12px; color:#475569; margin:12px 0;" role="status"></div>
           <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
             <button type="button" onclick="closeAdminPartnerDocs()" class="btn-warn">Zamknij</button>
-            <button type="button" id="admin-pdf-upload-btn" onclick="submitAdminPartnerDocs()" class="btn-primary">Wgraj wybrane PDF-y</button>
+            <button type="button" id="admin-pdf-upload-btn" onclick="submitAdminPartnerDocs()" class="btn-primary">Wgraj / podmień wybrane PDF-y</button>
           </div>
         </div>
       </div>

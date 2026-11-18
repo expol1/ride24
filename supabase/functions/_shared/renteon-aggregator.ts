@@ -1,3 +1,5 @@
+import { reconcileAvailabilityServices, selectedServices, applyProviderSelections, verifySelectedServices, providerServiceCatalog } from "./provider-services.mjs";
+import { ride24ClassFromAcriss, canonicalApiLocation } from "./provider-normalization.mjs";
 // Renteon AGGREGATOR API, not the older direct Renteon ExBooking API.
 // Based on "Aggregator API Ride24" Postman collection from Renteon support.
 // Each rental brand uses a case-sensitive provider code on a shared API host.
@@ -80,6 +82,16 @@ function amountIsEqual(a: unknown, b: unknown): boolean {
   return actual !== null && expected !== null
     && Math.abs(actual - expected) <= Math.max(0.02, expected * 0.0002);
 }
+function sameBookingContext(model: Obj, offer: Obj): boolean {
+  return model.Provider === offer.Provider && model.Prepaid === false
+    && model.Currency === offer.Currency && model.CarCategory === offer.CarCategory
+    && equalDateTime(model.PickupDate, String(offer.PickupDate))
+    && equalDateTime(model.DropOffDate, String(offer.DropOffDate))
+    && !!txt(obj(offer.PickupOffice)?.LocationCode)
+    && !!txt(obj(offer.DropOffOffice)?.LocationCode)
+    && txt(obj(model.PickupOffice)?.LocationCode) === txt(obj(offer.PickupOffice)?.LocationCode)
+    && txt(obj(model.DropOffOffice)?.LocationCode) === txt(obj(offer.DropOffOffice)?.LocationCode);
+}
 function groupCode(v: unknown): string {
   const raw = txt(v, 20).toUpperCase();
   return /^[A-Z0-9]{2,10}$/.test(raw) ? raw : "";
@@ -130,7 +142,16 @@ export async function aggregatorTest(credentials: PartnerApiCredentials): Promis
   }
 }
 
+function transmissionFromSipp(sipp: string): string | null {
+  // ACRISS/SIPP position 3 is the transmission/drive code; do not guess fuel.
+  const transmissionCode = sipp[2]?.toUpperCase();
+  if (["A", "B", "D"].includes(transmissionCode)) return "automatic";
+  if (["M", "N", "C"].includes(transmissionCode)) return "manual";
+  return null;
+}
+
 export async function aggregatorLocations(credentials: PartnerApiCredentials): Promise<ApiLocation[]> {
+  const avia = agencyCode(credentials) === "Avia";
   const response = await setup(credentials);
   const offices = arr(response.Offices).map(obj).filter((o): o is Obj => !!o);
   const enabledCodes = new Set(
@@ -150,25 +171,45 @@ export async function aggregatorLocations(credentials: PartnerApiCredentials): P
     const path = txt(location.Path, 300);
     const city = path.includes(">") ? path.split(">")[0].trim() : name;
     const locationType = txt(location.Type, 30).toLowerCase();
-    locations.push({
+    const matchingOffices = offices.filter(o => txt(o.LocationCode) === code);
+    locations.push(canonicalApiLocation({
       external_id: code,
       country,
       region: city || country,
       city: city || null,
       location_name: name,
-      type: locationType.includes("airport") ? "airport" : "city",
+      iata_code: locationType.includes("airport") ? code.split("-").at(-1) : null,
+      type: locationType.includes("airport") ? "airport" : locationType.includes("port") ? "seaport" : "city",
+      return_only: !matchingOffices.some(o => o.IsPickupOffice === true),
       extra_fee: false,
       extra_fee_amount: null,
       return_fee_amount: null,
       contact_required: false,
-      active: true,
-    });
+      // AVIA contract / current Ride24 territory: Croatia only.
+      // Keep other aggregator locations as inactive metadata, even after resync.
+      active: !avia || country === "Croatia",
+    }));
   }
   return locations;
 }
 
 export async function aggregatorGroups(credentials: PartnerApiCredentials): Promise<ApiVehicleGroup[]> {
   const response = await setup(credentials);
+  const metadata = new Map<string, { row: Obj; origin: string }>();
+  for (const connectorValue of arr(response.Connectors)) {
+    const connector = obj(connectorValue);
+    if (!connector) continue;
+    let origin = "";
+    try {
+      const url = new URL(txt(connector.Url, 2000));
+      if (url.protocol === "https:" && url.hostname.endsWith(".renteon.com") && !url.username && !url.password) origin = url.origin;
+    } catch { /* Missing image origin stays unknown. */ }
+    for (const value of arr(connector.CarCategories)) {
+      const row = obj(value);
+      const sipp = groupCode(row?.SIPP);
+      if (row && sipp && !metadata.has(sipp)) metadata.set(sipp, { row, origin });
+    }
+  }
   const groups: ApiVehicleGroup[] = [];
   const seen = new Set<string>();
   for (const item of arr(response.CarCategories).slice(0, 2000)) {
@@ -177,17 +218,41 @@ export async function aggregatorGroups(credentials: PartnerApiCredentials): Prom
     const code = groupCode(row.Code);
     if (!code || seen.has(code)) continue;
     seen.add(code);
+    const source = metadata.get(code);
+    const details = source?.row || {};
+    const model = txt(details.CarModel, 250) || null;
+    let image: string | null = null;
+    if (source?.origin && txt(details.CarModelImageURL, 2000)) {
+      try {
+        const url = new URL(txt(details.CarModelImageURL, 2000), source.origin);
+        if (url.origin === source.origin && !url.username && !url.password) image = url.href;
+      } catch { /* A malformed URL must not replace a valid stored image. */ }
+    }
+    const large = nonNegative(details.BigBagsCapacity);
+    const small = nonNegative(details.SmallBagsCapacity);
+    const fuelNames = [...new Set(arr(details.FuelTypes).map(x => txt(obj(x)?.Name, 60)).filter(Boolean))];
+    const supported = !["Y", "K"].includes(code[1]);
     groups.push({
       external_id: code,
-      class_code: code[0],
+      class_code: ride24ClassFromAcriss(code, details.PassengerCapacity) || "",
       public_price: 0, // Live availability supplies prices per requested rental dates.
       currency: "EUR",
-      example_model: code,
-      model: code,
-      description: "Renteon " + code,
+      example_model: model,
+      model,
+      description: model,
+      image,
+      seats: finiteInt(details.PassengerCapacity),
+      bags: large !== null && small !== null ? large + small : null,
+      fuel_type: fuelNames.length === 1 ? fuelNames[0] : null,
+      transmission: transmissionFromSipp(code),
       features: {
         provider: "renteon_aggregator",
         sipp: code,
+        air_conditioning: typeof details.AirConditioning === "boolean" ? details.AirConditioning : null,
+        number_of_doors: finiteInt(details.NumberOfDoors),
+        minimum_driver_age: finiteInt(details.MinimumDriverAge),
+        image_is_representative: details.IsModelGuaranteed !== true,
+        sync_review_required: !supported ? "unsupported_vehicle_type" : !image ? "missing_image" : null,
         noCreditCard: true,
         noCardHold: agencyCode(credentials) === "Avia",
         requiresPersonalDebitCard: agencyCode(credentials) === "Avia",
@@ -195,7 +260,7 @@ export async function aggregatorGroups(credentials: PartnerApiCredentials): Prom
         prepaidCardsAccepted: agencyCode(credentials) === "Avia" ? false : null,
       },
       deposit_amount: 0,
-      active: true,
+      active: supported && details.ShowInList !== false,
       seasonal_prices: null,
     });
   }
@@ -230,6 +295,7 @@ export async function aggregatorAvailability(
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_INVALID_AVAILABILITY");
   }
   const output: ApiVehicleGroup[] = [];
+  let unsupportedSurcharges = 0;
   for (const value of payload.slice(0, 1000)) {
     const item = obj(value);
     if (!item || txt(item.Provider) !== code || item.Prepaid !== false) continue;
@@ -241,9 +307,11 @@ export async function aggregatorAvailability(
     const officeIn = obj(item.DropOffOffice);
     if (txt(officeOut?.LocationCode) !== pickup || txt(officeIn?.LocationCode) !== dropoff) continue;
     if (!equalDateTime(item.PickupDate, start) || !equalDateTime(item.DropOffDate, end)) continue;
-    const rentalAmount = positive(item.CarRentalAmount);
-    // Unexpected provider price components must be investigated before publication.
-    if (rentalAmount !== null && !amountIsEqual(total, rentalAmount)) continue;
+    // Accept only a complete, reconciled supplier total; included fees are not added again.
+    try { reconcileAvailabilityServices(item); } catch {
+      unsupportedSurcharges += 1;
+      continue;
+    }
     // Renteon POA Availability.DepositAmount may represent the amount due
     // at pickup, NOT a refundable vehicle security deposit. AVIA confirmed
     // no traditional deposit and no card preauthorization (AVIA written confirmation).
@@ -254,15 +322,14 @@ export async function aggregatorAvailability(
     const isAgreedAviaTerms = code === "Avia";
     const aviaFieldIsPaymentDue = renteonDepositField !== null
       && amountIsEqual(renteonDepositField, total);
-    const aviaFieldIsSmallHold = renteonDepositField !== null
-      && renteonDepositField <= 1;
+    const aviaFieldIsZero = renteonDepositField === 0;
     const excess = nonNegative(item.ExcessAmount);
     if (code !== "demo" && excess !== null && excess > 0) {
       // No excess for covered events under AVIA's agreed Ride24 policy.
       continue;
     }
     if (isAgreedAviaTerms && renteonDepositField !== null
-      && !aviaFieldIsPaymentDue && !aviaFieldIsSmallHold) {
+      && !aviaFieldIsPaymentDue && !aviaFieldIsZero) {
       // An unexplained amount is unsafe to show as a no-deposit offer.
       continue;
     }
@@ -279,16 +346,16 @@ export async function aggregatorAvailability(
     const offer = sanitizePartnerPayload(item, 70_000);
     output.push({
       external_id: group,
-      class_code: group[0],
+      class_code: ride24ClassFromAcriss(group, item.PassengerCapacity) || "",
       public_price: Number((total / days).toFixed(6)),
       public_price_total: total,
       price_is_total: true,
       currency,
       example_model: model,
       model,
-      description: model + " (" + group + ")",
-      transmission: null,
-      fuel_type: null,
+      description: model, // Do not expose technical SIPP IDs on customer car cards.
+      transmission: transmissionFromSipp(group),
+      fuel_type: null, // Provider quote does not verify fuel; never invent it.
       seats: finiteInt(item.PassengerCapacity),
       bags: Number.isFinite(bags) && bags >= 0 ? bags : null,
       image: null, // Images are on provider domains, not the aggregator origin.
@@ -298,6 +365,7 @@ export async function aggregatorAvailability(
         minimum_driver_age: nonNegative(item.MinimumDriverAge),
         maximum_driver_age: nonNegative(item.MaximumDriverAge),
         excess_amount: excess,
+        fullInsurance: isAgreedAviaTerms && excess === 0,
         is_on_request: item.IsOnRequest === true,
         // Metadata for display/audit only; not a security deposit.
         pay_on_arrival_rental_total_eur: isAgreedAviaTerms ? total : null,
@@ -325,7 +393,37 @@ export async function aggregatorAvailability(
       },
     });
   }
+  if (!output.length && unsupportedSurcharges > 0) {
+    throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_SURCHARGES_REQUIRE_QUOTE");
+  }
   return output;
+}
+
+// /create returns an UNSAVED model (official Aggregator swagger). /save is never
+// called while quoting. Prices and limits always come from /calculate.
+export async function aggregatorQuoteOptions(credentials: PartnerApiCredentials, quoteData: unknown,
+  selections: unknown[], driverAges: number[]) {
+  const code=agencyCode(credentials), q=obj(quoteData), offered=obj(q?.offer);
+  if(!offered || q?.provider_code!==code || offered.Provider!==code || offered.Prepaid!==false)
+    throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_QUOTE_MISSING");
+  if(!driverAges.length || driverAges.length>2 || driverAges.some(x=>!Number.isSafeInteger(x)||x<18||x>99))
+    throw new Error("PARTNER_API_ERROR:RENTEON_DRIVER_AGE_REQUIRED");
+  // AVIA's confirmed 18–24 policy differs from the live supplier 18–23 rule.
+  // Do not invent or suppress the missing fee for a 24-year-old driver.
+  if(code==="Avia" && driverAges.includes(24) && Number(offered.YoungDriverAgeTo)<24)
+    throw new Error("PARTNER_API_ERROR:RENTEON_DRIVER_AGE_POLICY_REQUIRES_CONFIRMATION");
+  const created=obj(await call(credentials,createPath,{method:"POST",body:{...offered,
+    Drivers:driverAges.map(DriverAge=>({DriverAge}))}}));
+  if(!created || created.Number || !sameBookingContext(created,offered))
+    throw new Error("PARTNER_API_ERROR:RENTEON_UNSAVED_QUOTE_REQUIRED");
+  selectedServices(created);
+  const catalog=providerServiceCatalog(created);
+  const requested=applyProviderSelections(created,selections);
+  const calculated=obj(await call(credentials,calculatePath,{method:"POST",body:requested}));
+  if(!calculated || calculated.Number || !sameBookingContext(calculated,offered))
+    throw new Error("PARTNER_API_ERROR:RENTEON_QUOTE_CHANGED");
+  verifySelectedServices(requested,calculated);
+  return {calculated,catalog,provider_quote_data:{...q,calculated,driver_ages:driverAges,total_amount:calculated.Total}};
 }
 
 export async function aggregatorBook(
@@ -345,7 +443,8 @@ export async function aggregatorBook(
   if (offered.Prepaid !== false || txt(offered.CarCategory) !== input.vehicle_group_id) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_QUOTE_CHANGED");
   }
-  const amount = positive(offered.Amount);
+  const prepared = obj(quote?.calculated);
+  const amount = positive(prepared?.Total ?? offered.Amount);
   if (amount === null || !amountIsEqual(amount, input.partner_amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_PRICE_MISMATCH");
   }
@@ -361,25 +460,36 @@ export async function aggregatorBook(
   const email = txt(input.client_email, 250);
   if (!name || !email) throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CUSTOMER_REQUIRED");
 
-  const created = obj(await call<unknown>(credentials, createPath, {
+  const created = prepared || obj(await call<unknown>(credentials, createPath, {
     method: "POST",
     body: offered,
   }));
-  if (!created || txt(created.Provider) !== code || !amountIsEqual(created.Total, amount)) {
+  if (!created || created.Number || !sameBookingContext(created, offered) || !amountIsEqual(created.Total, amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CREATE_PRICE_CHANGED");
   }
+  if (prepared) {
+    const ages=[input.main_driver?.age,...(input.additional_driver ? [input.additional_driver.age] : [])];
+    if(JSON.stringify(ages)!==JSON.stringify(quote?.driver_ages))
+      throw new Error("PARTNER_API_ERROR:RENTEON_DRIVER_QUOTE_CHANGED");
+    selectedServices(prepared);
+  }
+  const drivers=[input.main_driver,...(input.additional_driver ? [input.additional_driver] : [])].map(d=>{
+    const parts=txt(d?.name,200).split(/\s+/);return {Name:parts.shift()||"",Surname:parts.join(" "),DriverAge:d?.age};
+  });
   const calculation = obj(await call<unknown>(credentials, calculatePath, {
     method: "POST",
     body: {
       ...created,
+      Drivers: drivers,
       ClientName: name,
       ClientEmail: email,
       ClientPhone: txt(input.client_phone, 60) || null,
     },
   }));
-  if (!calculation || txt(calculation.Provider) !== code || !amountIsEqual(calculation.Total, amount)) {
+  if (!calculation || calculation.Number || !sameBookingContext(calculation, offered) || !amountIsEqual(calculation.Total, amount)) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_CALCULATE_PRICE_CHANGED");
   }
+  if (prepared) verifySelectedServices(prepared,calculation);
   // Save is the first durable booking. Renteon Postman does not define idempotency,
   // so transport failures are flagged for manual investigation, never auto-retried here.
   const saved = obj(await call<unknown>(credentials, savePath, {
@@ -398,7 +508,11 @@ export async function aggregatorBook(
   if (!saved || !bookingNumber || txt(saved.Provider) !== code) {
     throw new Error("PARTNER_API_ERROR:RENTEON_AGGREGATOR_SAVE_UNVERIFIED");
   }
-  const matched = amountIsEqual(saved.Total, amount);
+  // A persisted response needs reconciliation, never a retry that could duplicate it.
+  let matched = sameBookingContext(saved, offered) && amountIsEqual(saved.Total, amount);
+  if (prepared) {
+    try { verifySelectedServices(prepared, saved); } catch { matched = false; }
+  }
   const status = matched && saved.IsCancelled !== true
     ? saved.IsOnRequest === true ? "pending" : "confirmed"
     : "pending";

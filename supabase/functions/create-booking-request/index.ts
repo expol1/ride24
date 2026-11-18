@@ -1,7 +1,8 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
-import { assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
+import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
+import { apiPaymentEnabled } from "../_shared/api-payment-runtime.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
@@ -27,6 +28,7 @@ type BookingBody = {
   pickup_location?: unknown;
   return_location?: unknown;
   terms_accepted?: unknown;
+  avia_personal_debit_card_acknowledged?: unknown;
   api_quote_id?: unknown;
   pricing_version?: unknown;
   pricing_fingerprint?: unknown;
@@ -50,6 +52,7 @@ type PartnerRelation = {
 };
 
 type CarRow = {
+  allowed_location_ids: string[] | null;
   min_driver_age: number | null;
   id: string;
   partner_id: string;
@@ -281,6 +284,7 @@ function normalizeCar(value: unknown): CarRow | null {
 
   return {
     min_driver_age: value.min_driver_age == null ? null : finiteNumber(value.min_driver_age),
+    allowed_location_ids: Array.isArray(value.allowed_location_ids) ? value.allowed_location_ids.filter(v => typeof v === "string") : null,
     id: value.id,
     partner_id: value.partner_id,
     active: value.active === true,
@@ -915,6 +919,7 @@ serve(async (req) => {
         id,
         partner_id,
         active,
+        allowed_location_ids,
         public_price,
         partner_discount_percent,
         partner_net_price,
@@ -973,6 +978,17 @@ serve(async (req) => {
         error_en: "Caravel reservations are not yet available.",
         code: CARAVEL_PRE_CERTIFICATION_ERROR,
       }, 409);
+    }
+
+    // A physical, named bank debit card is mandatory for AVIA Ride24 rentals
+    // even when paying cash. Never collect/store actual card data here.
+    const isAvia = car.partner_id === "91e04805-31da-4242-9e6f-b6075019d784";
+    if (isAvia && body.avia_personal_debit_card_acknowledged !== true) {
+      return jsonResponse(req, {
+        code: "AVIA_PERSONAL_DEBIT_CARD_ACK_REQUIRED",
+        error: "AVIA: potwierdź posiadanie fizycznej, imiennej karty debetowej z normalnego konta bankowego. Karty prepaid, wirtualne i anonimowe są niedozwolone także przy płatności gotówką.",
+        error_en: "AVIA: confirm that the main driver will present a physical, named bank debit card linked to a regular bank account, even when paying cash. Prepaid, virtual and anonymous cards are prohibited."
+      }, 400);
     }
 
     // Authoritative protection: old apps and direct API requests cannot bypass
@@ -1076,6 +1092,7 @@ serve(async (req) => {
     let apiQuoteCurrency: string | null = null;
 
     if (car.partner.provider_type === "api") {
+      if (!await apiPaymentEnabled(admin)) return jsonResponse(req, {error:"Rezerwacje API są chwilowo wstrzymane podczas weryfikacji płatności.",code:"API_PAYMENT_FLOW_PAUSED"},503);
       if (
         car.partner.api_enabled !== true
         || !isUuid(body.api_quote_id)
@@ -1090,7 +1107,7 @@ serve(async (req) => {
         );
       }
 
-      assertApiRequestedOptions(body);
+      if(body.pricing_version!==2) assertApiRequestedOptions(body);
       await assertApiPricingCompatible(admin, car.partner_id);
       quoteClaim = await claimApiQuote(
         admin,
@@ -1292,12 +1309,34 @@ serve(async (req) => {
       returnName = dropoffLocation.location_name || returnName;
     }
 
+    // Revalidate against the database after resolving both partner-owned
+    // locations. This also blocks stale Android clients and forged requests.
+    if (car.partner.provider_type === "local" && car.allowed_location_ids !== null) {
+      const allowed = car.allowed_location_ids;
+      if (!Array.isArray(allowed) || !pickupLocation || !dropoffLocation
+          || !allowed.includes(pickupLocation.id) || !allowed.includes(dropoffLocation.id)) {
+        return jsonResponse(req, {
+          error: "Ta grupa pojazdów jest dostępna tylko w wyznaczonych lokalizacjach. Wróć do wyszukiwarki i wybierz dostępny punkt.",
+          code: "VEHICLE_LOCATION_UNAVAILABLE"
+        }, 409);
+      }
+    }
+
     let pricingItemsSnapshot = null;
     const selections = body.extras ?? [];
     if (!Array.isArray(selections) || selections.length > 20) throw quoteChanged();
     if (car.partner.provider_type === "api") {
       // API provider quotes remain authoritative, including their own services.
-      if (selections.length || body.pricing_version === 2) throw quoteChanged();
+      const raw=quoteClaim?.row.raw_response;
+      pricingItemsSnapshot=assertApiOptionsQuote(raw,body,user.id,
+        [mainDriverAge,...(additionalDriverAge!==null?[additionalDriverAge]:[])]);
+      if(pricingItemsSnapshot) {
+        const p=pricingItemsSnapshot;
+        if(p.currency!==currency || p.exchange_rate!==rate || p.partner_cents!==Math.round(baseTotal*100)
+          ||p.gross_cents!==Math.round(finalTotal*100)
+          ||p.loyalty_discount_cents!==Math.round(p.commission_cents*discountPercent/100))throw quoteChanged();
+        onlinePaymentPln=p.online_pln_cents/100;
+      }
     } else if (await pricedExtrasEnabled(admin)) {
       const options = await loadBookingOptions(admin, car.partner_id, pickupName, returnName);
       if (body.pricing_version !== 2) {
@@ -1352,7 +1391,8 @@ serve(async (req) => {
       end_date: endDate.text,
       pickup_time: pickupTime,
       return_time: returnTime,
-      status: "pending",
+      status: car.partner.provider_type === "api" ? "awaiting_payment" : "pending",
+      ...(car.partner.provider_type === "api" ? {api_status:"payment_awaiting_payment",payment_deadline:new Date(now.getTime()+45*60000).toISOString(),expires_at:new Date(now.getTime()+45*60000).toISOString()} : {}),
       partner_response_deadline: partnerResponseDeadline,
       client_phone: profilePhone,
       client_email: cleanText(user.email, 254),
@@ -1374,6 +1414,7 @@ serve(async (req) => {
       platform_terms_version: PLATFORM_TERMS_VERSION,
       terms_accepted: true,
       terms_accepted_at: nowIso,
+      avia_debit_card_acknowledged: isAvia && body.avia_personal_debit_card_acknowledged === true,
       pickup_location: pickupName,
       return_location: returnName,
       partner_public_price_snapshot: publicPriceSnapshot,
@@ -1431,7 +1472,7 @@ serve(async (req) => {
         .delete()
         .eq("id", bookingId)
         .eq("client_id", user.id)
-        .eq("status", "pending");
+        .eq("status", insertPayload.status);
 
       await releaseQuoteClaim(admin, quoteClaim);
       quoteClaim = null;
@@ -1475,12 +1516,11 @@ serve(async (req) => {
       // Android Partner App: push o nowej rezerwacji.
       // Awaria push NIE blokuje utworzenia rezerwacji.
       await triggerPartnerPush(bookingId);
-    } else {
-      await dispatchApiBooking(bookingId);
     }
 
     return jsonResponse(req, {
       success: true,
+      payment_required: car.partner.provider_type === "api",
       booking: {
         id: bookingId,
         reservation_code: cleanText(

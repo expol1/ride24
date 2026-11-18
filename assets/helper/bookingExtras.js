@@ -1,5 +1,5 @@
 // Shared web presentation for server-authoritative v2 quotes. Never computes totals.
-export function createBookingExtras({ db, url, key, context, isEn }) {
+export function createBookingExtras({ db, url, key, context, isEn, isApiBooking = () => false }) {
     let quote = null, selections = [], revision = 0, ready = false, busy = false, quoteContext = '';
     const el = id => document.getElementById(id);
     const label = (pl, en) => isEn() ? en : pl;
@@ -24,6 +24,11 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         if (total) total.hidden = !enabled;
         el('equipmentLegacyInfo').hidden = enabled;
         if (!enabled) {
+            if (isApiBooking()) {
+                picker.hidden = false;
+                el("equipmentLegacyInfo").hidden = true;
+                picker.append(node("p", label("Dodatki tego dostawcy nie są jeszcze dostępne do potwierdzenia i rezerwacji online. Nie zostały dodane do rezerwacji ani ceny.", "This supplier’s extras cannot yet be confirmed and booked online. No extras have been added to your reservation or price.")));
+            }
             // Do not silently convert a previously selected v2 extra into a free v1 booking.
             if (selections.length) {
                 ready = false;
@@ -50,26 +55,65 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         for (const extra of quote.catalog) {
             const r = node('label'); r.className = 'booking-extra-row';
             const copy = node('span'); copy.append(node('strong', isEn() ? extra.name_en : extra.name_pl));
-            copy.append(node('small', money(extra.unit_customer_cents, p.currency) + ' / ' + (extra.billing === 'day' ? label('dzień', 'day') : label('wynajem', 'rental'))));
+            copy.append(node('small', money(extra.unit_customer_cents, p.currency) + ' / ' + (extra.billing === 'day' ? label('dzień', 'day') : label('szt. za cały wybrany okres', 'unit for the entire selected period'))));
+            if (extra.provider_billing === 'duration')
+                copy.append(node('small', label('Opłata zależna od długości najmu; pokazana kwota jest już sumą za wybrany okres.', 'Duration-based charge; the amount shown is already the total for the selected period.')));
+            if (Number.isInteger(extra.max_billed_days) && extra.max_billed_days > 0)
+                copy.append(node('small', label('Limit naliczania: ', 'Billing cap: ') + extra.max_billed_days + label(' dni; uwzględniony w cenie.', ' days; included in the quoted price.')));
             r.append(copy);
             if (extra.code === 'additional_driver') {
                 r.append(node('small', label('Wybierz osobę w polu „Dodatkowy kierowca”.', 'Select a person in “Additional driver”.')));
             } else {
-                const select = node('select'); select.setAttribute('aria-label', isEn() ? extra.name_en : extra.name_pl);
-                for (let i = 0; i <= extra.max_quantity; i++) { const option = node('option', String(i)); option.value = String(i); select.append(option); }
-                select.value = String(selections.find(x => x.id === extra.id)?.quantity || 0);
-                select.onchange = () => {
-                    selections = selections.filter(x => x.id !== extra.id);
-                    if (Number(select.value)) selections.push({ id: extra.id, quantity: Number(select.value) });
-                    refresh();
-                };
-                r.append(select);
+                // Single-use extras are genuine accessible on/off switches, not dropdowns.
+                // API contract stays unchanged: checked = 1, unchecked = no selected item.
+                const singleChoice = extra.max_quantity === 1
+                    || /^(EQ-GPS|FEE-CB|FEE-FERRY|EQ-DIESEL|FEE-DIESEL|VEH-DIESEL)$/i.test(extra.code || '');
+                if (singleChoice) {
+                    const control = node('span'); control.className = 'r24-extra-switch';
+                    const toggle = node('input');
+                    toggle.type = 'checkbox';
+                    toggle.className = 'r24-extra-switch-input';
+                    toggle.setAttribute('role', 'switch');
+                    toggle.setAttribute('aria-label', (isEn() ? extra.name_en : extra.name_pl) + ': ' + label('Tak lub Nie', 'Yes or No'));
+                    toggle.checked = selections.some(x => x.id === extra.id && x.quantity > 0);
+                    const track = node('span'); track.className = 'r24-extra-switch-track'; track.setAttribute('aria-hidden', 'true');
+                    track.append(node('span')); // visual thumb
+                    const value = node('span', toggle.checked ? label('Tak', 'Yes') : label('Nie', 'No'));
+                    value.className = 'r24-extra-switch-value';
+                    toggle.onchange = () => {
+                        value.textContent = toggle.checked ? label('Tak', 'Yes') : label('Nie', 'No');
+                        selections = selections.filter(x => x.id !== extra.id);
+                        if (toggle.checked) selections.push({ id: extra.id, quantity: 1 });
+                        refresh();
+                    };
+                    control.append(toggle, track, value);
+                    r.append(control);
+                } else {
+                    const select = node('select'); select.setAttribute('aria-label', isEn() ? extra.name_en : extra.name_pl);
+                    for (let i = 0; i <= extra.max_quantity; i++) {
+                        const option = node('option', String(i)); option.value = String(i); select.append(option);
+                    }
+                    select.value = String(selections.find(x => x.id === extra.id)?.quantity || 0);
+                    select.onchange = () => {
+                        selections = selections.filter(x => x.id !== extra.id);
+                        if (Number(select.value)) selections.push({ id: extra.id, quantity: Number(select.value) });
+                        refresh();
+                    };
+                    r.append(select);
+                }
             }
             picker.append(r);
         }
+        for (const service of (quote.unavailable_services || []).filter(s => s.status !== 'mapping_requires_confirmation')) picker.append(node('p',
+            (isEn() ? service.name_en : (service.name_pl || service.name_en)) + ' — ' +
+            (service.status === 'price_requires_confirmation'
+                ? label('cena wymaga potwierdzenia przez dostawcę; wybór online niedostępny.', 'price requires supplier confirmation; online selection unavailable.')
+                : label('usługa wymaga potwierdzenia; wybór online niedostępny.', 'service requires confirmation; online selection unavailable.'))));
+        if (quote.unavailable_services?.some(s => s.status === 'mapping_requires_confirmation'))
+            picker.append(node('small', label('Pozostałe usługi wymagają indywidualnego potwierdzenia partnera.', 'Other services require individual confirmation by the partner.')));
         picker.append(node('small', label('Kwoty obejmują wybraną liczbę sztuk i dni. Aktualizacja ceny pochodzi bezpośrednio z serwera Ride24.', 'Prices reflect quantity and days. The updated quote comes directly from Ride24.')));
         if (total) {
-            const selected = p.items.filter(item => item.kind === 'extra');
+            const selected = p.items.filter(item => item.kind === 'extra' && !item.included_in_price);
             total.append(node('strong', label('Twoje dodatki', 'Your extras') + ': ' + (selected.length ? selected.length : label('brak', 'none'))));
             for (const item of selected) {
                 const name = (isEn() ? item.name_en : item.name_pl) + ' × ' + item.quantity + (item.billing === 'day' ? ' × ' + item.days + ' ' + label('dni', 'days') : '');
@@ -119,7 +163,7 @@ export function createBookingExtras({ db, url, key, context, isEn }) {
         payload() {
             if (selections.length && !quote?.enabled) throw new Error(label('Płatne dodatki nie są obecnie dostępne. Nie można ich pominąć po cichu.', 'Paid extras are currently unavailable and cannot be silently removed.'));
             if (!ready || busy || quoteContext !== JSON.stringify(context())) throw new Error(label('Sprawdź aktualne podsumowanie ceny.', 'Review the current price summary.'));
-            return quote?.enabled ? { pricing_version: 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })) } : {};
+            return quote?.enabled ? { pricing_version: 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })), ...(quote.api_quote_id ? {api_quote_id:quote.api_quote_id} : {}) } : {};
         },
         canSubmit: () => ready && !busy,
     };

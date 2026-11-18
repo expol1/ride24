@@ -3368,7 +3368,7 @@ body .world-explorer.world-explorer-mobile::before {
     }
 }
 </style>
-<script src="assets/js/location-names.js?v=20261102hurghada1"></script>
+<script src="assets/js/location-names.js?v=20261118dictionary1"></script>
     <!-- Mobile partner login: avoid full-screen backdrop blur during keyboard input. -->
     <style id="ride24-partner-login-mobile-performance">
         @media (max-width: 768px) {
@@ -5375,8 +5375,11 @@ function collectSearchData() {
             return;
         }
 
-        const lang = localStorage.getItem("lang") || "pl";
+        // Capture this query before awaiting shared dictionary I/O to avoid stale results.
         const requestId = lastQueryId;
+        await window.Ride24LocationNames.loadDictionary(db).catch(() => {});
+        if (requestId !== lastQueryId) return;
+        const lang = localStorage.getItem("lang") || "pl";
         window.Ride24SearchMiss?.cancel(type);
         const pickupAtSearch = SELECTED_PICKUP?.location_name || null;
         // Zwrot może pochodzić wyłącznie z lokalizacji partnerów obsługujących odbiór.
@@ -5423,7 +5426,7 @@ function collectSearchData() {
             .filter(Boolean))];
 
         const orFilters = uniqueTerms.flatMap(term =>
-            ['location_name', 'city', 'region', 'country'].map(field =>
+            ['location_name', 'display_name', 'city', 'region', 'country'].map(field =>
                 field + '.ilike.' + searchPattern(term)
             )
         ).join(',');
@@ -5518,6 +5521,7 @@ function collectSearchData() {
                 let score = 0;
 
                 const location = (item.location_name || '').toLowerCase();
+                const label = (item.name || '').toLowerCase();
                 const city = (item.city || '').toLowerCase();
                 const region = (item.region || '').toLowerCase();
                 const country = (item.country || '').toLowerCase();
@@ -5537,6 +5541,7 @@ function collectSearchData() {
 
                 // CONTAINS
                 if (location.includes(q)) score += 60;
+                if (label.includes(q)) score += 85; // Including IATA codes in display labels.
                 if (city.includes(q)) score += 55;
                 if (region.includes(q)) score += 50;
 
@@ -6310,6 +6315,21 @@ data-en="🌍 Ride24 World Map">
         return countries;
     }
 
+    // Same location identity as Android SearchRepository.activePickupLocations().
+    // Different partners may serve the same pickup point; display it once.
+    function getRide24UniquePickupLocations(rows){
+        const seen = new Set();
+        return (rows || []).filter(item => {
+            if (!String(item.country ?? "").trim()) return false;
+            const key = [item.country, item.city, item.location_name, item.type]
+                .map(value => String(value ?? "").trim().toLowerCase())
+                .join("\u001f");
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
     async function loadWorldExplorerStats(){
         const supabase = getRide24SupabaseClient();
 
@@ -6329,7 +6349,8 @@ data-en="🌍 Ride24 World Map">
         }
 
         const rows = data || [];
-        const countries = rows
+        const uniqueRows = getRide24UniquePickupLocations(rows);
+        const countries = uniqueRows
             .map(item => normalizeRide24Country(item.country))
             .filter(Boolean);
 
@@ -6349,7 +6370,7 @@ data-en="🌍 Ride24 World Map">
             .map(item => partnerKeys.map(key => item[key]).find(Boolean))
             .filter(Boolean);
 
-        ride24CountryLocationCounts = rows.reduce((acc, item) => {
+        ride24CountryLocationCounts = uniqueRows.reduce((acc, item) => {
             const country = normalizeRide24Country(item.country);
 
             if (country) {
@@ -6361,7 +6382,7 @@ data-en="🌍 Ride24 World Map">
 
         ride24WorldStats = {
             countries: new Set(countries).size,
-            locations: rows.filter(item => item.location_name).length,
+            locations: uniqueRows.length,
             partners: new Set(partners).size
         };
 
@@ -6480,9 +6501,11 @@ data-en="🌍 Ride24 World Map">
             return;
         }
 
+        await window.Ride24LocationNames.loadDictionary(supabase).catch(() => {});
+        const uniqueLocations = getRide24UniquePickupLocations(data || []);
         ride24SelectedCountry = country;
-        ride24SelectedLocations = data || [];
-        renderCountryLocations(country, data || []);
+        ride24SelectedLocations = uniqueLocations;
+        renderCountryLocations(country, uniqueLocations);
     }
 
     function renderCountryLocations(country, locations){
@@ -6605,6 +6628,8 @@ setTimeout(() => {
 }, 300);
 
         const selectedLocation = {
+            id: location.id,
+            partner_id: location.partner_id,
             name: locationName,
             location_name: location.location_name,
             country: location.country,
@@ -6839,10 +6864,10 @@ document.addEventListener("keydown", event => {
 })();
 </script>
 
-<script src="assets/js/world-map-regions.js?v=20261109-azory3"></script>
+<script src="assets/js/world-map-regions.js?v=20261117-islands1"></script>
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
 <script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
 <script src="assets/js/min-rental-search.js?v=20261026web1"></script>
-<script src="/assets/js/affiliate-referral.js?v=20261110a" defer></script>
+<script src="/assets/js/affiliate-referral.js?v=20261112-pause" defer></script>
 </body>
 </html>

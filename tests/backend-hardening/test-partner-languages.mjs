@@ -116,8 +116,20 @@ test('static panel labels, placeholders and helper messages have catalogue entri
     const s=setup();
     try {
         const keys=new Set(Object.keys(s.w.Ride24PartnerLocales.source));
+        const bilingualLocationHints = new Map([
+            ['Select a suggested location when available', 'Wybierz lokalizację z podpowiedzi, jeśli jest dostępna'],
+            ['Search in Polish or English. We save the standard English name and show the verified Polish translation when available.', 'Możesz szukać po polsku lub angielsku. Zapisujemy standardową nazwę angielską, a obok pokażemy zatwierdzone tłumaczenie polskie.'],
+            ['Choose a location to see its Polish name.', 'Wybierz lokalizację, aby sprawdzić polską nazwę.'],
+            ['Polish translation is not yet verified. The Android app will display the English name.', 'Polskie tłumaczenie nie jest jeszcze zatwierdzone w słowniku. W APK wyświetli się poprawna nazwa angielska.']
+        ]);
         for (const node of parsed.window.document.querySelectorAll('[data-pl][data-en]')) {
-            if (!node.closest('#guideModal')) assert.ok(keys.has(node.dataset.en),'Missing HTML label: '+node.dataset.en);
+            if (!node.closest('#guideModal')) {
+                if (bilingualLocationHints.has(node.dataset.en)) {
+                    assert.equal(node.dataset.pl, bilingualLocationHints.get(node.dataset.en));
+                    continue;
+                }
+                assert.ok(keys.has(node.dataset.en),'Missing HTML label: '+node.dataset.en);
+            }
         }
         for (const [file,code] of [
             ['panel',script],...['partnerExtras.js','partnerTimeFees.js','partnerMandatoryRules.js','partnerI18n.js'].map(file=>[file,read('assets/helper/'+file)])
@@ -131,7 +143,13 @@ test('static panel labels, placeholders and helper messages have catalogue entri
                         ['partnerLabel','node','el','field','fld','setLabel'].includes(name)?[1,2]:null;
                     if (pair) {
                         const pl=string(node.arguments[pair[0]]),en=string(node.arguments[pair[1]]);
-                        if (pl&&en) assert.ok(keys.has(en),file+': missing '+en);
+                        if (pl&&en) {
+                            if (file==='panel' && bilingualLocationHints.has(en)) {
+                                assert.equal(pl,bilingualLocationHints.get(en),file+': bilingual hint mismatch '+en);
+                            } else {
+                                assert.ok(keys.has(en),file+': missing '+en);
+                            }
+                        }
                     }
                 }
                 ts.forEachChild(node,walk);
@@ -433,8 +451,8 @@ test('web booking breakdown CTA is visible in dashboard and bookings with transl
     assert.equal(panel.split('class="r24-items-open r24-booking-details-cta"').length - 1, 2);
     assert.ok(panel.includes('data-pl="Szczegóły i rozliczenie" data-en="Details and price breakdown"'));
     assert.ok(panel.includes('data-pl="Sprawdź foteliki, dodatki, dopłaty i cenę" data-en="Check child seats, extras, surcharges and price"'));
-    assert.ok(panel.includes('assets/css/partner-bookings-ux.css?v=20261031amount2'));
-    assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261110a'));
+    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=[A-Za-z0-9_-]+/);
+    assert.match(panel, /assets\/i18n\/partner-panel\.js\?v=\d{8}[a-z0-9_-]+/i);
 });
 
 
@@ -453,7 +471,7 @@ test('desktop breakdown CTA stays compact on Bookings and Dashboard while mobile
         assert.match(block, /onclick="openPartnerBookingItems/);
     }
     assert.equal((panel.match(/onclick="openPartnerBookingItems/g) || []).length, 2);
-    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=20261031amount2/);
+    assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=[A-Za-z0-9_-]+/);
     assert.match(css, /@media\s*\(max-width:1200px\)[\s\S]*min-height:78px/);
     const marker = css.indexOf('R24 DESKTOP COMPACT PRICE BREAKDOWN CTA');
     assert.ok(marker > 0, 'Desktop-only compact styling is missing');
@@ -535,4 +553,55 @@ test('homepage map uses the existing image as both desktop and mobile card backg
     assert.match(home, /tajlandia:\s*"Thailand"/);
     assert.match(home, /\.from\('partner_locations'\)[\s\S]*?\.eq\('active', true\)/);
     dom.window.close();
+});
+
+test('vehicle location selector defaults to all and reveals specific locations only when unchecked', () => {
+    const css=read('assets/css/partner-fleet-locations-ux.css');
+    const d=new JSDOM(panel,{runScripts:'outside-only'});
+    try {
+        const w=d.window,doc=w.document;
+        const group=doc.getElementById('carClass');
+        const all=doc.getElementById('carAllLocations');
+        const allRow=doc.getElementById('carAllLocationsLabel');
+        const choices=doc.getElementById('carLocationChoices');
+        assert.equal(all.checked,true,'new vehicle must default to every active location');
+        assert.equal(choices.style.display,'none','hide individual location options until all is unchecked');
+        assert.ok(doc.getElementById('carLocationScopeSection').classList.contains('r24-car-location-scope'));
+        assert.ok(allRow.classList.contains('r24-car-location-all-row'));
+        assert.ok(choices.classList.contains('r24-car-location-choices'));
+        assert.ok(!doc.getElementById('carLocationScopeHelp'),'scooters are no longer a special UI case');
+        assert.match(panel,/class="r24-car-location-choice"/);
+        assert.match(css,/#carLocationScopeSection input\[type="checkbox"\]/);
+        assert.match(css,/width:19px!important;/);
+        assert.match(css,/flex:0 0 19px!important;/);
+        assert.match(css,/justify-content:flex-start!important;/);
+        assert.match(css,/@media \(max-width:640px\)/);
+        assert.match(panel,/const allowedLocationIds = allCarLocations \? null : scopedLocationIds/);
+        assert.match(panel,/allBox.checked = selected === null;/);
+        w.eval(declaration('syncCarLocationScope'));
+        choices.innerHTML='<label><input type="checkbox" class="car-location-option" value="mostar"></label>'
+                        +'<label><input type="checkbox" class="car-location-option" value="sarajevo"></label>';
+        const inputs=[...choices.querySelectorAll('input')];
+        for(const value of ['A','0','B','F']) {
+            group.value=value;
+            all.checked=true;
+            w.syncCarLocationScope();
+            assert.equal(all.checked,true,'group '+value+' must not force uncheck');
+            assert.equal(all.disabled,false);
+            assert.equal(allRow.hidden,false);
+            assert.equal(choices.style.display,'none');
+            assert.ok(inputs.every(input=>input.disabled));
+            all.checked=false;
+            w.syncCarLocationScope();
+            assert.equal(choices.style.display,'grid');
+            assert.ok(inputs.every(input=>!input.disabled));
+            inputs[0].checked=true;
+            assert.equal(inputs[0].checked,true);
+            assert.equal(inputs[1].checked,false);
+        }
+        all.checked=true;
+        w.syncCarLocationScope();
+        assert.equal(choices.style.display,'none');
+        assert.ok(inputs.every(input=>input.disabled));
+    } finally {d.window.close();}
 });
