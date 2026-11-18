@@ -191,5 +191,5 @@ test("live extras:null with verified token-bound vehicle does not prevent bookin
  assert.equal(created.status,"confirmed");
  const save=a.calls.find(x=>x.path==="/reservations/save");
  assert.ok(save);
- assert.deepEqual(save.request.body.extras,[]);
+ assert.equal(JSON.stringify(save.request.body.extras),"[]");
 });
