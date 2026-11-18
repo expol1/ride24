@@ -199,8 +199,21 @@ const acceptedBooking=()=>({
   protection:{deposit:{amount:0,currency:"EUR"},excess:{amount:0,currency:"EUR"}},
   payment:{model:"pay_on_arrival",amount_prepaid:{amount:0,currency:"EUR"},amount_on_arrival:{amount:15000,currency:"EUR"}},
 });
+function paidClaim(){return {
+ id:BOOKING_ID,partner_id:"78721481-7619-44df-a9b7-5faa344b69bb",
+ provider_type:"api",api_provider:"caravel",status:"pending",
+ api_status:"caravel_supplier_dispatch_claimed",api_booking_reference:null,
+ cancelled_at:null,manual_review:false,stripe_session_id:"cs_test_verified",
+ stripe_currency:"pln",stripe_amount_cents:3999,
+ caravel_stripe_payment_confirmed_at:new Date(NOW-50000).toISOString(),
+ caravel_supplier_dispatch_claimed_at:new Date(NOW-10000).toISOString(),
+ caravel_supplier_quote_id:QUOTE_ID,caravel_supplier_id:"acct_eur",
+ caravel_terms_document_id:"caravel-en-v4",caravel_terms_content_hash:HASH,
+ caravel_terms_language:"en",
+};}
 function deliveryFixture(client){
- return {...fixture(),client,enableSupplierWrite:true,paymentConfirmed:true,
+ return {...fixture(),client,enableSupplierWrite:true,
+   persistedPaidBooking:paidClaim(),
    partnerApiEnabled:true,currentExternalReference:null};
 }
 test("isolated Caravel bridge requires explicit write, paid booking and active partner",async()=>{
@@ -209,7 +222,16 @@ test("isolated Caravel bridge requires explicit write, paid booking and active p
  const base=deliveryFixture(client);
  for(const override of [
    {enableSupplierWrite:false},{enableSupplierWrite:undefined},
-   {paymentConfirmed:false},{partnerApiEnabled:false},
+   {persistedPaidBooking:null},
+   {persistedPaidBooking:{...paidClaim(),status:"awaiting_payment"}},
+   {persistedPaidBooking:{...paidClaim(),stripe_session_id:null}},
+   {persistedPaidBooking:{...paidClaim(),caravel_stripe_payment_confirmed_at:null}},
+   {persistedPaidBooking:{...paidClaim(),caravel_supplier_dispatch_claimed_at:null}},
+   {persistedPaidBooking:{...paidClaim(),caravel_supplier_quote_id:"bad"}},
+   {persistedPaidBooking:{...paidClaim(),id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}},
+   {persistedPaidBooking:{...paidClaim(),api_status:"caravel_paid_awaiting_supplier"}},
+   {persistedPaidBooking:{...paidClaim(),caravel_supplier_dispatch_claimed_at:new Date(NOW-200000).toISOString()}},
+   {partnerApiEnabled:false},
    {currentExternalReference:SUPPLIER_BOOKING_ID},
    {client:{...client,environment:"sandbox"}},
    {persistedBookingTerms:null},

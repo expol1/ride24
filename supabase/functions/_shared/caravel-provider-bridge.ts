@@ -12,6 +12,7 @@
  * fresh booking with a new idempotency key.
  */
 import {prepareVerifiedCaravelDispatch} from "./caravel-dispatch-gate.ts";
+import {verifyCaravelClaimedPaidBooking} from "./caravel-dispatch-proof.ts";
 import {verifyCaravelBookingAgainstQuote} from "./caravel-booking.ts";
 import {isUuid, type CaravelClient} from "./caravel-sandbox-adapter.ts";
 import type {Ride24BookingInput,CaravelDraftOptions} from "./caravel-booking.ts";
@@ -50,7 +51,8 @@ function centsExactly(amount:unknown):number|null {
 export async function submitVerifiedCaravelBooking(args:{
   client:Pick<CaravelClient,"environment"|"book">;
   enableSupplierWrite?:boolean;
-  paymentConfirmed:boolean;
+  /** Fresh service-role row returned by the atomic post-Stripe dispatch claim. */
+  persistedPaidBooking:unknown;
   partnerApiEnabled:boolean;
   currentExternalReference:string|null;
   bookingInput:Ride24BookingInput;
@@ -63,12 +65,24 @@ export async function submitVerifiedCaravelBooking(args:{
 }):Promise<Result> {
   if(!args || args.enableSupplierWrite!==true ||
      args.client?.environment!=="production" ||
-     args.paymentConfirmed!==true ||
      args.partnerApiEnabled!==true ||
      args.currentExternalReference!==null)
     return {ok:false,action:"hold_for_manual_review",phase:"preflight",
       reasons:["CARAVEL_LIVE_DISPATCH_NOT_AUTHORIZED"],externalReference:null};
 
+  // The booking must have been paid via a Stripe-validated webhook and
+  // atomically claimed by THIS dispatcher in the database. A caller-provided
+  // paymentConfirmed=true can never authorize an external supplier write.
+  const claim=verifyCaravelClaimedPaidBooking({
+    persistedBooking:args.persistedPaidBooking,
+    ride24BookingId:args.bookingInput?.ride24_booking_id,
+    providerQuote:args.bookingInput?.provider_quote_data,
+    nowEpochMs:args.nowEpochMs,
+  });
+  if("reason" in claim)return {
+    ok:false,action:"hold_for_manual_review",phase:"preflight",
+    reasons:[claim.reason],externalReference:null,
+  };
   const prepared=prepareVerifiedCaravelDispatch({
     bookingInput:args.bookingInput,
     nowEpochMs:args.nowEpochMs,
@@ -83,6 +97,11 @@ export async function submitVerifiedCaravelBooking(args:{
     reasons:prepared.reasons,externalReference:null,
   };
   const plan=prepared.plan;
+  if(plan.idempotencyKey!==claim.idempotencyKey||
+     plan.supplierId!==claim.supplierId||
+     plan.request.quote_id!==claim.quoteId)
+    return {ok:false,action:"hold_for_manual_review",phase:"preflight",
+      reasons:["CARAVEL_DISPATCH_CLAIM_PLAN_MISMATCH"],externalReference:null};
   const expectedCents=centsExactly(args.bookingInput.partner_amount);
   const currency=args.bookingInput.currency;
   if(expectedCents===null || (currency!=="EUR"&&currency!=="GBP"))
