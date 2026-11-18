@@ -229,6 +229,7 @@
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
 <script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
 <script src="assets/js/results-location-pricing.js?v=20261110a"></script>
+<script src="assets/js/car-location-scope.js?v=20261118"></script>
     <script src="assets/js/location-contact-notice.js?v=20261031a"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
@@ -577,6 +578,7 @@ let query = db
                 city,
                 location_name,
                 active,
+                id,
                 type,
                 contact_required,
                 extra_fee,
@@ -599,7 +601,7 @@ let query = db
                 if (returnLocationName) {
                     let returnQuery = db
                         .from('partner_locations')
-                        .select('partner_id,return_fee_amount,free_from_rental_days')
+                        .select('id,partner_id,return_fee_amount,free_from_rental_days')
                         .eq('active', true)
                         .eq('location_name', returnLocationName);
                     if (selectedReturnLocation.country) {
@@ -700,6 +702,7 @@ let query = db
                 }
                 let cars = Array.from(unique.values())
                     .filter(car => (car.partners?.provider_type || "local") !== "api")
+                    .filter(car => window.Ride24CarLocationScope.isCarAllowed(car, returnLocationRowsByPartner))
                     .filter(car => window.Ride24RentalDuration.meetsMinimum(
                         duration,
                         window.Ride24SeasonalMinimum.effectiveForPickup(
