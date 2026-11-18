@@ -84,7 +84,7 @@ test("documented availability row + quote pass shared normalizeGroups unchanged"
   assert.deepEqual(group.provider_quote_data.drivers.map(d => ({...d})), [{age: 30, role: "main"}]);
 });
 
-test("pay_on_arrival: partner payable is exactly grand_total; Ride24 fee is separate (shared apiPriceTotals)", () => {
+test("shared gross quote math is correct but does not prove supplier pay-on-arrival eligibility", () => {
   const [group] = normalizeGroups({groups: [buildCaravelOfferFromApi(apiOffer()).value]});
   // Caravel partner discount must be 0: Caravel collects grand_total at the desk.
   const totals = apiPriceTotals(group, 3, 0, 20);
@@ -92,7 +92,11 @@ test("pay_on_arrival: partner payable is exactly grand_total; Ride24 fee is sepa
   assert.equal(totals.commissionTotal, 30); // Ride24 booking fee, charged separately via Stripe
   assert.equal(totals.finalTotal, 180);
   assert.equal(totals.finalTotal - totals.commissionTotal, 150); // fee is never added into grand_total
-  assert.equal(group.features.payment_model, "pay_on_arrival");
+  assert.equal(group.features.payment_model, null);
+  assert.equal(group.features.supplier_collects_grand_total, false);
+  assert.equal(group.provider_quote_data.payment_model, null);
+  // The quote explicitly contains a Caravel prepayment, so public
+  // sellability must not be inferred from the separate Ride24 fee.
 });
 
 test("quote lines are reconciled by kind with grand_total and the payment split", () => {
