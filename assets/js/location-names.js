@@ -71,6 +71,23 @@
     return dictionaryCountry?.name_en || original;
   }
 
+  function localizedCountry(value, language = currentLang()) {
+    const canonical = canonicalCountry(value);
+    const row = dictionaryRows.find(item => item.category === "country"
+      && normalized(item.name_en) === normalized(canonical));
+    return row ? (language === "en" ? row.name_en : row.name_pl) : String(value || "");
+  }
+
+  function localizedCity(value, country, language = currentLang()) {
+    const name = normalized(value);
+    const parent = normalized(canonicalCountry(country));
+    const matches = dictionaryRows.filter(item => item.category === "city"
+      && normalized(item.name_en) === name
+      && (!item.parent_country_en || normalized(canonicalCountry(item.parent_country_en)) === parent));
+    const row = matches.find(item => normalized(item.parent_country_en) === parent) || matches[0];
+    return row ? (language === "en" ? row.name_en : row.name_pl) : String(value || "");
+  }
+
   function dictionaryLocation(location) {
     const country = normalized(canonicalCountry(location?.country));
     const name = normalized(location?.location_name || location?.display_name);
@@ -164,5 +181,5 @@
       warmDictionary();
     }
   }
-  root.Ride24LocationNames = Object.freeze({ displayName, normalizeForSave, loadDictionary, canonicalCountry, canonicalLocationName, localizedNames });
+  root.Ride24LocationNames = Object.freeze({ displayName, normalizeForSave, loadDictionary, canonicalCountry, canonicalLocationName, localizedCountry, localizedCity, localizedNames });
 })(typeof window === "undefined" ? globalThis : window);
