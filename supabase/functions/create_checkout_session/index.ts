@@ -76,18 +76,13 @@ serve(async (req) => {
         price_data: {
           currency: "pln",
           product_data: {
-            name: "Opłata rezerwacyjna Ride24.pl",
+            name: "Ride24 – Auta z różnych zakątków świata",
             description: `Rezerwacja: ${booking.reservation_code || booking.id}`,
           },
           unit_amount: Math.round(amount * 100),
         },
         quantity: 1,
       }],
-      custom_text: {
-        submit: {
-          message: "Płacisz tylko opłatę rezerwacyjną Ride24.pl. Za wynajem samochodu zapłacisz bezpośrednio wypożyczalni przy odbiorze pojazdu, zgodnie z warunkami rezerwacji.",
-        },
-      },
       metadata: { booking_id: booking.id, client_id: user.id },
       client_reference_id: booking.id,
       success_url: client === "android"
