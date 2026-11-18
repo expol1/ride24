@@ -169,12 +169,21 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  if(!input.vehicle_group_id||!input.main_driver?.name||!input.client_email||!input.client_phone)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
  const quote=input.provider_quote_data as Record<string,unknown>|null;
- if(!quote||quote.provider!=="arvent_kolaycar"||quote.vehicle_id!==input.vehicle_group_id)
+ // Ride24 sells ACRISS/SIPP groups like AVIA. Keep the chosen supplier
+ // vehicleId only in the private quote payload; never present it as a category.
+ const supplierVehicleId=String(quote?.vehicle_id||"");
+ if(!quote||quote.provider!=="arvent_kolaycar"
+  ||quote.sipp!==input.vehicle_group_id
+  ||!/^\d+$/.test(supplierVehicleId)
+  ||!Number.isFinite(Number(quote.total_amount))
+  ||Math.abs(Number(quote.total_amount)-Number(input.partner_amount))>0.01)
   throw Error("PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED");
  // Re-price with a newly issued token. Never use or persist an old reservationToken.
  const live=supplierData(await request(c,searchPath(input)));
  const list=Array.isArray(live)?live:(live&&typeof live==="object"&&Array.isArray((live as any).vehicles)?(live as any).vehicles:[]);
- const current=list.find((x:any)=>String(x?.vehicleId)===input.vehicle_group_id&&arventOfferMatchesTerms(x,"EUR"));
+ const current=list.find((x:any)=>String(x?.vehicleId)===supplierVehicleId
+  &&String(x?.sippCode||"").toUpperCase()===input.vehicle_group_id
+  &&arventOfferMatchesTerms(x,"EUR"));
  if(!current)throw Error("PARTNER_API_ERROR:ARVENT_OFFER_CHANGED");
  const actual=Number(current.totalPrice);
  if(Math.abs(actual-Number(input.partner_amount))>0.01)
@@ -188,7 +197,8 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  // Its vehicle is still the final reservation-token quotation and must
  // match the user's accepted period, route, price, currency and terms.
  const pricedVehicle=(extraData as any).vehicle;
- if(!pricedVehicle||String(pricedVehicle.vehicleId)!==input.vehicle_group_id
+ if(!pricedVehicle||String(pricedVehicle.vehicleId)!==supplierVehicleId
+  ||String(pricedVehicle.sippCode||"").toUpperCase()!==input.vehicle_group_id
   ||!arventOfferMatchesTerms(pricedVehicle,"EUR")
   ||Math.abs(Number(pricedVehicle.totalPrice)-actual)>0.01
   ||!arventSavedRouteMatches({
