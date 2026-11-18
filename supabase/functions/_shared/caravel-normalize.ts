@@ -668,13 +668,19 @@ export function buildCaravelOfferFromApi(input: {
   if (errors.length) return fail(errors);
   const r = (read as {value: CaravelQuoteRead}).value;
   const p = premium as Extract<typeof premium, {ok: true}>;
+  const models = rec(input?.supplier)?.payment_models;
+  const agreementPayOnArrival = Array.isArray(models) && models.includes("pay_on_arrival");
   const vehicle = caravelVehicleFromApi(row, input.policies);
   const built = buildCaravelOffer({
     vehicle,
     quote: r.quote,
     protectionId: String(protection?.protection_id ?? ""),
     mandatoryCharges: r.mandatoryCharges,
-    payment: {payNowMinor: r.payNowMinor, payAtPickupMinor: r.payAtPickupMinor},
+    // Schedule from the supplier AGREEMENT (Supplier.payment_models), not from the
+    // product-wide totals.pay_now split (contract §6.2).
+    payment: agreementPayOnArrival
+      ? {payNowMinor: 0, payAtPickupMinor: r.quote.totalAmountMinor}
+      : {payNowMinor: r.payNowMinor, payAtPickupMinor: r.payAtPickupMinor},
     operatingHours: hours!,
     // Rental-length bounds are enforced by Caravel itself (unsellable_window /
     // quote 422), so only the age limits are re-checked here.
@@ -686,8 +692,7 @@ export function buildCaravelOfferFromApi(input: {
   const v = built.value as Json;
   // A supplier may support pay_on_arrival generally while this SPECIFIC
   // quote still requires prepayment. Do not invent a payment-model claim.
-  const fullCollectionAtPickup =
-    r.payNowMinor === 0 && r.payAtPickupMinor === r.quote.totalAmountMinor;
+  const fullCollectionAtPickup = agreementPayOnArrival;
   return okv({
     ...v,
     features: {...(v.features as Json), noCreditCard: p.noCreditCard, noCardHold: p.noCardHold,

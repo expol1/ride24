@@ -398,6 +398,13 @@ export function verifyCaravelBookingAgainstQuote(
       errors.push("AMOUNT_ON_ARRIVAL_DIFFERS");
     if (!exact(payment?.amount_prepaid, 0))
       errors.push("BOOKED_PREPAYMENT_NOT_ZERO");
+    // Caravel collects at the desk (who_collects.on_arrival = operator); Ride24 never collects rental.
+    const who = isRecord(payment?.who_collects) ? payment!.who_collects as Record<string, unknown> : null;
+    if (who && who.on_arrival !== undefined && who.on_arrival !== "operator")
+      errors.push("RENTAL_NOT_COLLECTED_BY_OPERATOR");
+    if (who && who.prepaid !== undefined && who.prepaid !== null && payment?.amount_prepaid &&
+        isRecord(payment.amount_prepaid) && (payment.amount_prepaid as Record<string, unknown>).amount !== 0)
+      errors.push("BOOKED_PREPAYMENT_NOT_ZERO");
   }
   if (errors.length) return {ok: false, errors};
   return {ok: true, bookingId: b.booking_id as string, revision: b.revision as number};

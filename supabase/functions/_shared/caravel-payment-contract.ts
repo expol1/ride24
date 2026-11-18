@@ -1,7 +1,11 @@
 /**
  * Caravel supplier quote -> Ride24 collection contract, WITHOUT any API calls.
  *
- * Caravel's quote may have pay_now>0 under its default/prepaid models.
+ * amounts_minor is the Ride24 payment SCHEDULE derived from the supplier's
+ * pay_on_arrival AGREEMENT (Caravel contract §6.2: price.totals.pay_now is a
+ * product-wide price-line split and may be non-zero; it never means anything is
+ * due before pickup under pay_on_arrival). The real schedule is proven again by
+ * booking.payment (model pay_on_arrival, amount_prepaid 0, on-arrival = total).
  * Ride24 charges its OWN reservation fee separately through Stripe and the
  * supplier must collect the ENTIRE rental at vehicle pickup. A quote split
  * is authoritative; merely setting payment_model=pay_on_arrival on a local

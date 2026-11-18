@@ -217,8 +217,6 @@ export async function issueVerifiedCaravelQuote(args:{
     parsed.rentalDays!==args.rentalDays||
     parsed.quote.depositAmountMinor!==0||
     parsed.quote.excessAmountMinor!==0||
-    parsed.payNowMinor!==0||
-    parsed.payAtPickupMinor!==parsed.quote.totalAmountMinor||
     parsed.extraLines.length!==0||
     parsed.quote.expiresAtEpochMs<args.nowEpochMs+10*60*1000)
    return reject("CARAVEL_QUOTE_PAYMENT_OR_VALIDITY_UNSAFE");
@@ -240,10 +238,19 @@ export async function issueVerifiedCaravelQuote(args:{
       deposit,
       expires_at:new Date(parsed.quote.expiresAtEpochMs).toISOString(),
       amounts:{total:amt(parsed.quote.totalAmountMinor)},
+      // Ride24 payment SCHEDULE (contract §6.2, Caravel 18 Nov 2026): under the
+      // pay_on_arrival agreement nothing is due before pickup, whatever the
+      // product-wide totals.pay_now price-line split says. The booking's
+      // payment object is re-verified at booking (amount_prepaid 0,
+      // amount_on_arrival = grand total). The split is kept for audit only.
       amounts_minor:{
         total:parsed.quote.totalAmountMinor,
+        pay_now:0,pay_at_pickup:parsed.quote.totalAmountMinor,
+      },
+      supplier_price_split_minor:{
         pay_now:parsed.payNowMinor,pay_at_pickup:parsed.payAtPickupMinor,
       },
+      payment_schedule_source:"supplier_agreement_pay_on_arrival",
       drivers:requested.drivers,
       ...(args.approvedExclusions?{
         coverage_review_terms_document_id:args.approvedExclusions.termsDocumentId,

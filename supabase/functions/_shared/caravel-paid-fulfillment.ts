@@ -158,8 +158,9 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
   const fresh = (await client.quote(request, await caravelBookingUuid(String(booking.id), "quote"), supplierId)).data;
   const parsed = caravelQuoteFromApi(fresh, data.protection, supplier);
   if ("errors" in parsed || parsed.value.quote.plan !== "premium" || parsed.value.quote.currency !== data.currency ||
-      parsed.value.quote.totalAmountMinor !== totalMinor || parsed.value.payNowMinor !== 0 ||
-      parsed.value.payAtPickupMinor !== totalMinor || parsed.value.quote.depositAmountMinor !== 0 ||
+      // totals.pay_now is a price-line split, not the schedule (contract §6.2): only the
+      // total is compared; booking.payment proves nothing is prepaid.
+      parsed.value.quote.totalAmountMinor !== totalMinor || parsed.value.quote.depositAmountMinor !== 0 ||
       parsed.value.quote.excessAmountMinor !== 0 ||
       parsed.value.quote.expiresAtEpochMs < (opts.nowMs ?? Date.now()) + 60_000)
     fail("PROVIDER_PRICE_OR_TERMS_CHANGED");
