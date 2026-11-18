@@ -58,6 +58,7 @@ export function verifyCaravelPaidCheckoutForSupplierQueue(
   const amount=b?expectedPlnMinor(b):null;
   if(!b||!s||!uuid(b.id)||
     b.provider_type!=="api"||b.api_provider!=="caravel"||
+    !uuid(b.client_id)||meta?.client_id!==b.client_id||
     !nonempty(b.stripe_session_id)||b.stripe_session_id!==s.id||
     s.client_reference_id!==b.id||meta?.booking_id!==b.id||
     s.payment_status!=="paid"||s.status!=="complete"||
