@@ -1,4 +1,5 @@
 import { appendVoucherPricing, validateVoucherPricing } from "../_shared/voucher-booking-items.mjs";
+import {isCaravelVoucherBooking,isCaravelVoucherAllowed} from "../_shared/caravel-voucher-confirmation-guard.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   corsHeaders,
@@ -48,6 +49,23 @@ type BookingRow = {
   id: string;
   client_id: string;
   partner_id: string | null;
+  provider_type: string | null;
+  api_provider: string | null;
+  api_status: string | null;
+  manual_review: boolean;
+  cancelled_at: string | null;
+  stripe_session_id: string | null;
+  stripe_currency: string | null;
+  stripe_amount_cents: number | null;
+  caravel_stripe_payment_confirmed_at: string | null;
+  caravel_supplier_dispatch_claimed_at: string | null;
+  caravel_supplier_quote_id: string | null;
+  caravel_supplier_id: string | null;
+  caravel_terms_document_id: string | null;
+  caravel_terms_content_hash: string | null;
+  caravel_terms_language: string | null;
+  terms_accepted: boolean;
+  terms_accepted_at: string | null;
   main_driver_name: string | null;
   status: string;
   reservation_code: string;
@@ -256,6 +274,29 @@ function normalizeBooking(value: unknown): BookingRow | null {
     id: value.id,
     client_id: value.client_id,
     partner_id: isUuid(value.partner_id) ? value.partner_id : null,
+    provider_type: cleanText(value.provider_type, 60) || null,
+    api_provider: cleanText(firstRecord(value.partners)?.api_provider, 60) || null,
+    api_status: cleanText(value.api_status, 100) || null,
+    manual_review: value.manual_review===true,
+    cancelled_at: typeof value.cancelled_at==="string"?value.cancelled_at:null,
+    stripe_session_id: cleanText(value.stripe_session_id, 250) || null,
+    stripe_currency: cleanText(value.stripe_currency, 5) || null,
+    stripe_amount_cents: Number.isSafeInteger(value.stripe_amount_cents)?
+      value.stripe_amount_cents as number:null,
+    caravel_stripe_payment_confirmed_at:
+      typeof value.caravel_stripe_payment_confirmed_at==="string"?
+      value.caravel_stripe_payment_confirmed_at:null,
+    caravel_supplier_dispatch_claimed_at:
+      typeof value.caravel_supplier_dispatch_claimed_at==="string"?
+      value.caravel_supplier_dispatch_claimed_at:null,
+    caravel_supplier_quote_id: cleanText(value.caravel_supplier_quote_id, 100) || null,
+    caravel_supplier_id: cleanText(value.caravel_supplier_id, 128) || null,
+    caravel_terms_document_id: cleanText(value.caravel_terms_document_id, 200) || null,
+    caravel_terms_content_hash: cleanText(value.caravel_terms_content_hash, 70) || null,
+    caravel_terms_language: cleanText(value.caravel_terms_language, 20) || null,
+    terms_accepted: value.terms_accepted===true,
+    terms_accepted_at: typeof value.terms_accepted_at==="string"?
+      value.terms_accepted_at:null,
     main_driver_name: cleanText(value.main_driver_name, 200) || null,
     status: value.status,
     reservation_code: reservationCode,
@@ -794,6 +835,20 @@ async function loadBooking(
       status,
       provider_type,
       api_status,
+      manual_review,
+      cancelled_at,
+      stripe_session_id,
+      stripe_currency,
+      stripe_amount_cents,
+      caravel_stripe_payment_confirmed_at,
+      caravel_supplier_dispatch_claimed_at,
+      caravel_supplier_quote_id,
+      caravel_supplier_id,
+      caravel_terms_document_id,
+      caravel_terms_content_hash,
+      caravel_terms_language,
+      terms_accepted,
+      terms_accepted_at,
       reservation_code,
       start_date,
       end_date,
@@ -812,6 +867,7 @@ async function loadBooking(
       partner_currency,
       profiles!fk_client(name, email, phone),
       partners!bookings_partner_id_fkey(
+        api_provider,
         company_name,
         phone,
         emergency_phone,
@@ -1002,6 +1058,15 @@ serve(async (req) => {
 
     if (!booking) {
       return jsonResponse(req, { error: "Rezerwacja nie istnieje" }, 404);
+    }
+    // Caravel requires supplier confirmation AFTER Stripe. The server must
+    // refuse vouchers and confirmation emails until matching provider evidence
+    // is durably persisted. This check runs before any voucher claim/retry.
+    if(isCaravelVoucherBooking(booking)&&!isCaravelVoucherAllowed(booking)){
+      return jsonResponse(req,{
+        error:"CARAVEL_SUPPLIER_CONFIRMATION_REQUIRED",
+        code:"CARAVEL_SUPPLIER_CONFIRMATION_REQUIRED",
+      },409);
     }
     if (booking.status !== "paid") {
       return jsonResponse(req, {
