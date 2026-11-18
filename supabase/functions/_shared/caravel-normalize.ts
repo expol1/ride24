@@ -30,6 +30,7 @@ import {
 } from "./caravel-verified-rules.ts";
 import {evaluateCaravelPremium} from "./caravel-premium.ts";
 import {caravelLocalTime, caravelOutsideHours} from "./caravel-hours.ts";
+import {verifyCaravelRide24PaymentContract} from "./caravel-payment-contract.ts";
 
 export const CARAVEL_PROVIDER = "caravel";
 
@@ -973,4 +974,24 @@ export function describeCaravelProtection(plan: unknown, protection: unknown, so
     missing_fields: missing,
     premium: "errors" in verdict ? verdict.errors : "PUBLISHABLE",
   };
+}
+
+/**
+ * Sellability boundary for Ride24 (NOT the generic Caravel API reader).
+ * Certification exercises intentionally cover quote splits like partial and
+ * prepaid; they remain parseable by buildCaravelOfferFromApi(). Ride24 must
+ * never publish or book those quotes as pay_on_arrival.
+ *
+ * Use THIS function in the eventual Caravel-specific offer connector.
+ * It is intentionally not connected to the shared Ride24 search path yet.
+ */
+export function buildRide24SellableCaravelOfferFromApi(
+  input: Parameters<typeof buildCaravelOfferFromApi>[0],
+): Result<Json> {
+  const result=buildCaravelOfferFromApi(input);
+  if ("errors" in result) return result;
+  const data=rec(result.value.provider_quote_data);
+  const contract=verifyCaravelRide24PaymentContract(data);
+  if ("errors" in contract) return fail(contract.errors);
+  return result;
 }
