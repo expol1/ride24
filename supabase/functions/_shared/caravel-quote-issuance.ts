@@ -32,7 +32,7 @@ type Insert={
  insert:(row:Rec)=>{select:(cols:string)=>{single:()=>Promise<DbResult>}};
 };
 export type CaravelQuoteAdmin={
- from:(name:"partners"|"car_classes"|"api_quotes")=>{select:(cols:string)=>Query}&Insert;
+ from:(name:"partners"|"car_classes"|"partner_locations"|"api_quotes")=>{select:(cols:string)=>Query}&Insert;
 };
 type Client=Pick<CaravelClient,"quote"|"suppliers"|"referenceTerms"|"environment">;
 export type CaravelQuoteIssueResult=
@@ -56,11 +56,12 @@ export async function issueVerifiedCaravelQuote(args:{
  idempotencyKey:string;
  supplierId:string;
  carClassId:string;
+ /** Trusted Ride24 location primary keys, never provider-side IDs from browser. */
+ pickupLocationId:string;dropoffLocationId:string;
  quoteRequest:CaravelQuoteRequest;
  /** Trusted Ride24 location/date mapping for the same request. */
  startDate:string;endDate:string;
- /** Trusted user-visible canonical Ride24 locations and clock time. */
- pickupDisplayName:string;dropoffDisplayName:string;
+ /** Server checked local times; canonical names are reloaded from DB. */
  pickupLocalTime:string;dropoffLocalTime:string;
  rentalDays:number;
  nowEpochMs:number;
@@ -74,10 +75,9 @@ export async function issueVerifiedCaravelQuote(args:{
 }):Promise<CaravelQuoteIssueResult>{
  if(!args||!args.admin||!args.client||
     !uuid(args.idempotencyKey)||!uuid(args.carClassId)||
+    !uuid(args.pickupLocationId)||!uuid(args.dropoffLocationId)||
     typeof args.supplierId!=="string"||!SUPPLIER.test(args.supplierId)||
     !DAY.test(args.startDate)||!DAY.test(args.endDate)||
-    typeof args.pickupDisplayName!=="string"||!args.pickupDisplayName.trim()||
-    typeof args.dropoffDisplayName!=="string"||!args.dropoffDisplayName.trim()||
     !/^\d\d:\d\d$/.test(args.pickupLocalTime)||
     !/^\d\d:\d\d$/.test(args.dropoffLocalTime)||
     !Number.isSafeInteger(args.rentalDays)||args.rentalDays<1||
@@ -110,7 +110,7 @@ export async function issueVerifiedCaravelQuote(args:{
     !Number.isFinite(Date.parse(requested.dropoff.at))||
     args.startDate>=args.endDate)
    return reject("CARAVEL_QUOTE_SELECTION_UNVERIFIED");
- let p:DbResult,c:DbResult;
+ let p:DbResult,c:DbResult,pickup:DbResult,dropoff:DbResult;
  try{
   p=await args.admin.from("partners").select(
     "id,api_provider,api_enabled,api_status,provider_type,active,account_status,currency,discount_percent"
@@ -118,9 +118,18 @@ export async function issueVerifiedCaravelQuote(args:{
   c=await args.admin.from("car_classes").select(
     "id,partner_id,external_id,active"
   ).eq("id",args.carClassId).eq("partner_id",PARTNER_ID).maybeSingle();
+  pickup=await args.admin.from("partner_locations").select(
+    "id,partner_id,external_id,location_name,active,is_api_managed,return_only"
+  ).eq("id",args.pickupLocationId).eq("partner_id",PARTNER_ID).maybeSingle();
+  dropoff=args.pickupLocationId===args.dropoffLocationId?pickup:
+   await args.admin.from("partner_locations").select(
+    "id,partner_id,external_id,location_name,active,is_api_managed,return_only"
+   ).eq("id",args.dropoffLocationId).eq("partner_id",PARTNER_ID).maybeSingle();
  }catch{return reject("CARAVEL_QUOTE_DB_CONTEXT_FAILED");}
  const partner=p.data,klass=c.data;
- if(p.error||c.error||!partner||!klass||
+ const pickupRow=pickup.data,dropoffRow=dropoff.data;
+ if(p.error||c.error||pickup.error||dropoff.error||
+    !partner||!klass||!pickupRow||!dropoffRow||
     partner.api_provider!=="caravel"||partner.api_enabled!==true||
     partner.api_status!=="synced"||partner.provider_type!=="api"||
     partner.active!==true||partner.account_status!=="active"||
@@ -128,6 +137,20 @@ export async function issueVerifiedCaravelQuote(args:{
     partner.currency!==requested.currency||
     klass.active!==true||klass.external_id!==requested.vehicle_id)
    return reject("CARAVEL_QUOTE_PARTNER_CLASS_NOT_ACTIVE");
+ if(pickupRow.id!==args.pickupLocationId||
+    dropoffRow.id!==args.dropoffLocationId||
+    pickupRow.partner_id!==PARTNER_ID||
+    dropoffRow.partner_id!==PARTNER_ID||
+    pickupRow.active!==true||dropoffRow.active!==true||
+    pickupRow.is_api_managed!==true||dropoffRow.is_api_managed!==true||
+    pickupRow.return_only===true||
+    pickupRow.external_id!==requested.pickup.location_id||
+    dropoffRow.external_id!==requested.dropoff.location_id||
+    typeof pickupRow.location_name!=="string"||
+    !pickupRow.location_name.trim()||
+    typeof dropoffRow.location_name!=="string"||
+    !dropoffRow.location_name.trim())
+   return reject("CARAVEL_QUOTE_LOCATION_SCOPE_INVALID");
  let supplier:Rec|undefined;
  let terms:unknown;
  try{
@@ -250,7 +273,8 @@ export async function issueVerifiedCaravelQuote(args:{
    provider_quote_data:enriched,
    ride24_context:apiQuoteContext({
      pickupTime:args.pickupLocalTime,returnTime:args.dropoffLocalTime,
-     pickupName:args.pickupDisplayName,returnName:args.dropoffDisplayName,
+     pickupName:pickupRow.location_name as string,
+     returnName:dropoffRow.location_name as string,
    }),
  };
  let safeLength:number;

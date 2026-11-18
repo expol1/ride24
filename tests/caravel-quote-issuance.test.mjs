@@ -7,6 +7,8 @@ import {assertApiQuoteContext}
 const NOW=Date.UTC(2026,10,18,11,30,0);
 const PARTNER="78721481-7619-44df-a9b7-5faa344b69bb";
 const CAR="d20bbca4-678c-4abf-bf4d-cf5356220170";
+const PICKUP="0aa18fda-4e7c-4b31-98b9-480d53e086e8";
+const DROPOFF="be45cfec-3fa6-49a5-9b37-a83ff9ed81e2";
 const QID="3f2b6c1e-8a4d-4f0b-9c2e-5d7a1b0c9e11";
 const RID="4da4d7ca-7244-4416-ab7b-2632bd5f882a";
 const IDENTITY="e2d2d947-d147-4975-b757-a9e76b52765d";
@@ -39,6 +41,10 @@ function db(){
    api_status:"synced",provider_type:"api",active:true,
    account_status:"active",currency:"EUR",discount_percent:"0"},
    car:{id:CAR,partner_id:PARTNER,external_id:"opaque-group",active:true},
+   pickup:{id:PICKUP,partner_id:PARTNER,external_id:"ath-airport",
+    location_name:"Athens Airport",active:true,is_api_managed:true,return_only:false},
+   dropoff:{id:DROPOFF,partner_id:PARTNER,external_id:"ath-airport",
+    location_name:"Athens Airport",active:true,is_api_managed:true,return_only:false},
    quotes:[],lookups:0};
  return {state,from(table){
    if(table==="api_quotes")return {insert:row=>({
@@ -54,7 +60,9 @@ function db(){
       maybeSingle:async()=>{
        state.lookups++;
        const data=table==="partners"?state.partner:
-         table==="car_classes"?state.car:null;
+         table==="car_classes"?state.car:
+         table==="partner_locations"?[state.pickup,state.dropoff]
+          .find(item=>filters.some(([k,v])=>k==="id"&&v===item.id)):null;
        if(!data||filters.some(([k,v])=>data[k]!==v))
          return {data:null,error:null};
        return {data:{...data},error:null};
@@ -81,10 +89,10 @@ function client(){
 const args=(admin,c,overrides={})=>({
  admin,client:c,idempotencyKey:IDENTITY,
  supplierId:"acct_eur",carClassId:CAR,
+ pickupLocationId:PICKUP,dropoffLocationId:DROPOFF,
  quoteRequest:selection(),
  startDate:"2027-01-10",endDate:"2027-01-13",
  pickupLocalTime:"10:00",dropoffLocalTime:"10:00",
- pickupDisplayName:"Athens Airport",dropoffDisplayName:"Athens Airport",
  rentalDays:3,nowEpochMs:NOW,reviewedTerms:{
    supplierId:"acct_eur",language:"en",documentId:"caravel-en-v4",
    version:4,contentHash:HASH,publishedAt:terms().published_at,
@@ -127,7 +135,7 @@ test("no external supplier contact without independently verified terms or appro
   {quoteRequest:{...selection(),drivers:[{age:18,role:"additional"}]}},
   {pickupLocalTime:"14:00"},
   {startDate:"2027-01-11"},
-  {pickupDisplayName:""},
+  {pickupLocationId:"invalid"},
  ]){
   const admin=db(),c=client();
   const r=await issueVerifiedCaravelQuote(args(admin,c,patch));
@@ -149,6 +157,39 @@ test("partner disabled or category changed prevents all Caravel supplier reads",
   assert.equal(c.state.supplierLists,0);
   assert.equal(c.state.quotes,0);
  }
+});
+test("supplier quote cannot be issued for an inactive, foreign or mismatched pickup/return location",async()=>{
+ const patches=[
+  ["pickup",{active:false}],
+  ["pickup",{is_api_managed:false}],
+  ["pickup",{return_only:true}],
+  ["pickup",{external_id:"other-provider-location"}],
+  ["pickup",{partner_id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}],
+  ["dropoff",{active:false}],
+  ["dropoff",{external_id:"cross-provider-location"}],
+  ["dropoff",{partner_id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}],
+ ];
+ for(const [name,patch] of patches){
+  const admin=db(),c=client();
+  Object.assign(admin.state[name],patch);
+  const res=await issueVerifiedCaravelQuote(args(admin,c));
+  assert.equal(res.ok,false,JSON.stringify({name,patch}));
+  assert.equal(res.reason,"CARAVEL_QUOTE_LOCATION_SCOPE_INVALID");
+  assert.equal(c.state.quotes,0);
+  assert.equal(c.state.supplierLists,0);
+  assert.equal(admin.state.quotes.length,0);
+ }
+});
+test("canonical Ride24 pickup and dropoff names are read from location rows, not caller",async()=>{
+ const admin=db(),c=client();
+ admin.state.pickup.location_name="Athens Airport Official Pickup";
+ admin.state.dropoff.location_name="Athens Airport Official Return";
+ const result=await issueVerifiedCaravelQuote(args(admin,c));
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(admin.state.quotes[0].raw_response.ride24_context.pickup_location,
+  "Athens Airport Official Pickup");
+ assert.equal(admin.state.quotes[0].raw_response.ride24_context.return_location,
+  "Athens Airport Official Return");
 });
 test("unapproved pay-now, short quote expiry and changed supplier terms never reach Stripe",async()=>{
  for(const patch of [
