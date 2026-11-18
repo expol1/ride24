@@ -253,3 +253,51 @@ Older evidence below is retained as dated history; references to pending live bo
 2. Recheck the official `CERTIFICATION.md` prerequisites and HMAC self-test interface with the partner pack; the `opaque-id-tolerance` certification phase MUST send **no plan** and use a fresh `protection_id` from `GET /v1/reference/protections` (served Medium in sandbox only). All bookings remain Premium.
 3. Obtain Ride24's explicit authorization to start `POST /_certification/start` and complete the subsequent run in the 24-hour limit. Do not start merely because CI passed.
 4. After passing certification, request production access in Caravel portal and verify EVERY production Premium availability/protection row before exposing offers; keep partner `api_enabled=false` until the AVIA shared-flow integration is safely complete.
+
+
+## 18.11.2026 — izolowany most wynikowy Caravel → Ride24
+
+- `caravel-provider-bridge.ts` udostępnia `submitVerifiedCaravelBooking()`.
+  To jest **izolowany, niedeployowany** moduł, którego obecnie NIE wywołuje
+  `provider-adapters.ts`, `create-booking-request` ani `api-booking-dispatch`.
+  Odróżnić gotowość samego modułu od gotowości pełnej produkcji.
+- **Dwa niezależne bezpieczniki na utworzenie rezerwacji**:
+  `enableSupplierWrite=true` + potwierdzona płatność + aktywny partner
+  + brak dotychczasowej referencji + produkcyjne środowisko klienta;
+  dodatkowo `CaravelClient.book()` wymaga jawnego
+  `allowProductionBookingWrites=true` w konstruktorze i zgodnego
+  supplier ID oraz klucza idempotencji. Są to serwerowe wartości
+  konfiguracyjne, nigdy dane podawane przez klienta.
+- Po przejściu `prepareVerifiedCaravelDispatch()` moduł wysyła
+  dokładnie jedno żądanie do klienta Caravel z tym samym UUID
+  Ride24 i `pay_on_arrival`. Przed wysłaniem weryfikuje
+  kwotę w euro/funtach z dokładnością do centa/pensa.
+  Odpowiedź musi zawierać potwierdzoną rezerwację, to samo
+  `quote_id`, niezmieniony całkowity koszt i walutę,
+  zerowy depozyt/udział własny, płatność na miejscu oraz
+  prawidłowy `booking_id`/numer rewizji.
+- Tylko taki wynik mapowany jest na standardową odpowiedź Ride24
+  `booking_reference`, `reference`, `status=confirmed`.
+  Zwracane są minimalne metadane techniczne, bez danych osobowych.
+- Po odpowiedzi niezgodnej z wyceną lub bez potwierdzonej
+  płatności na miejscu — `hold_for_manual_review`, z zachowaniem
+  identyfikatora zewnętrznego, jeśli go otrzymano.
+  Przy utraconej odpowiedzi sieciowej wynik jest NIEZNANY:
+  `supplier_outcome_uncertain`. **Nigdy** automatycznie nie
+  generować nowego klucza ani nie robić kolejnego żądania,
+  dopóki odczyt po referencji nie wyjaśni stanu dostawcy.
+- Testy mock obejmują brak upoważnienia, brak płatności,
+  nieaktywny profil, stary regulamin, utratę sieci,
+  niezgodność ceny, status `pending`, brak modelu
+  `pay_on_arrival` i poprawne mapowanie z potwierdzonego
+  API Booking. Nie wysłano rzeczywistej rezerwacji.
+- CI: `Caravel sandbox adapter checks` i
+  `Ride24 API Compatibility QA` przeszły na commicie
+  `3caa68f728ca955de0338b86f856ef79863c1e86`.
+- Następny prawdziwy krok integracyjny: wdrożenie zaufanego
+  kontekstu rezerwacji/zaakceptowanego `document_id` w istniejących
+  backendach Ride24, później routing Caravel w
+  `provider-adapters.ts`. Nie podłączać, dopóki nie będzie
+  certyfikacji, hash §3.9 i zgodności ubezpieczenia.
+  Unikać zmian we wspólnym adapterze wpływających na AVIA.
+
