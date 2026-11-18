@@ -41,6 +41,7 @@ test("locations map numeric IDs and preserve return-only flags",()=>{
  assert.equal(rows[0].region,"Antalya");
  assert.equal(rows[0].return_only,true);
  assert.equal(rows[0].type,"airport");
+ assert.equal(rows[0].display_name,"Antalya Airport (AYT)");
 });
 test("catalog has no fabricated prices",()=>{
  const rows=arventGroupRows(ok([{vehicleId:100,vehicleName:"Example Vehicle",sippCode:"CDAR"}]));
@@ -222,4 +223,17 @@ test("one SIPP maps to one stable A-F class despite conflicting representative s
  assert.equal(offers.length,2);
  assert.equal(offers.find(x=>x.external_id==="IWMD").class_code,"C");
  assert.equal(offers.find(x=>x.external_id==="XFAD").class_code,"D");
+});
+
+test("Istanbul supplier typo and Turkish city variants normalize to Ride24 names",()=>{
+ const rows=arventLocationRows(ok([
+  {locationId:4,locationName:"İstanbul New Airpot (IST)",iataCode:"IST",
+   cityName:"İstanbul",countryCode:"TR",isAirport:true,isPickup:true},
+  {locationId:1,locationName:"Istanbul Sabiha Gokcen Airport (SAW)",iataCode:"SAW",
+   cityName:"İstanbul",countryCode:"TR",isAirport:true,isPickup:true}
+ ]));
+ assert.deepEqual(rows.map(x=>x.display_name),[
+  "Istanbul Airport (IST)","Istanbul Sabiha Gökçen Airport (SAW)"
+ ]);
+ assert.ok(rows.every(x=>x.city==="Istanbul"&&x.country==="Turkey"));
 });
