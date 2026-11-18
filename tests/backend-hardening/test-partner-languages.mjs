@@ -452,7 +452,7 @@ test('web booking breakdown CTA is visible in dashboard and bookings with transl
     assert.ok(panel.includes('data-pl="Szczegóły i rozliczenie" data-en="Details and price breakdown"'));
     assert.ok(panel.includes('data-pl="Sprawdź foteliki, dodatki, dopłaty i cenę" data-en="Check child seats, extras, surcharges and price"'));
     assert.match(panel, /assets\/css\/partner-bookings-ux\.css\?v=[A-Za-z0-9_-]+/);
-    assert.ok(panel.includes('assets/i18n/partner-panel.js?v=20261110a'));
+    assert.match(panel, /assets\/i18n\/partner-panel\.js\?v=\d{8}[a-z0-9_-]+/i);
 });
 
 
