@@ -41,6 +41,8 @@ function setup(){
  const storedQuote={
   id:API,partner_id:PARTNER,car_class_id:CLS,used_at:null,booking_id:null,
   start_date:"2027-01-10",end_date:"2027-01-13",
+  pickup_location_external_id:"ath-airport",
+  dropoff_location_external_id:"ath-airport",
   partner_net_total:150,commission_total:15,final_total:165,
   partner_discount_percent:0,platform_margin_percent:10,
   currency:"EUR",expires_at:quote.expires_at,
@@ -52,6 +54,12 @@ function setup(){
  };
  return {storedQuote,preflight,authenticatedClientId:USER,selectedClassId:CLS,
  pickupLocationId:PICKUP,dropoffLocationId:DROPOFF,
+ storedPickupLocation:{id:PICKUP,partner_id:PARTNER,active:true,
+  is_api_managed:true,return_only:false,external_id:"ath-airport",
+  location_name:"Athens Airport"},
+ storedDropoffLocation:{id:DROPOFF,partner_id:PARTNER,active:true,
+  is_api_managed:true,return_only:false,external_id:"ath-airport",
+  location_name:"Athens Airport"},
  startDate:"2027-01-10",endDate:"2027-01-13",
  pickupTime:"10:00",returnTime:"10:00",
  pickupName:"Athens Airport",returnName:"Athens Airport",
@@ -116,4 +124,23 @@ test("Ride24 separate Stripe fee must match supplier on-arrival amount and globa
  }
  const a=setup();a.reservationFeePln=0;
  assert.equal(buildCertifiedCaravelBookingInsert(a).ok,false);
+});
+
+test("booking must use two independently verified Ride24 locations for the persisted Caravel quote",()=>{
+ for(const [location,patch] of [
+  ["storedPickupLocation",{partner_id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}],
+  ["storedPickupLocation",{active:false}],
+  ["storedPickupLocation",{is_api_managed:false}],
+  ["storedPickupLocation",{return_only:true}],
+  ["storedPickupLocation",{external_id:"other-provider-location"}],
+  ["storedPickupLocation",{location_name:"Other Pickup"}],
+  ["storedDropoffLocation",{active:false}],
+  ["storedDropoffLocation",{external_id:"mismatched-return"}],
+  ["storedDropoffLocation",{partner_id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}],
+ ]){
+  const a=setup();a[location]={...a[location],...patch};
+  const result=buildCertifiedCaravelBookingInsert(a);
+  assert.equal(result.ok,false,JSON.stringify({location,patch}));
+  assert.equal(result.reason,"CARAVEL_BOOKING_LOCATION_BINDING_INVALID");
+ }
 });

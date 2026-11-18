@@ -33,6 +33,8 @@ export type CaravelInsertBuilderArgs={
  authenticatedClientId:string;
  selectedClassId:string;
  pickupLocationId:string;dropoffLocationId:string;
+ /** Both location rows must be separately read from the Ride24 DB. */
+ storedPickupLocation:unknown;storedDropoffLocation:unknown;
  startDate:string;endDate:string;
  pickupTime:string;returnTime:string;
  pickupName:string;returnName:string;
@@ -55,6 +57,17 @@ export function buildCertifiedCaravelBookingInsert(a:CaravelInsertBuilderArgs):
     row.start_date!==a.startDate||row.end_date!==a.endDate||
     row.used_at!=null||row.booking_id!=null)
   return err("CARAVEL_BOOKING_QUOTE_SCOPE_INVALID");
+ const pl=obj(a.storedPickupLocation),dl=obj(a.storedDropoffLocation);
+ if(!pl||!dl||
+    pl.id!==a.pickupLocationId||dl.id!==a.dropoffLocationId||
+    pl.partner_id!==PID||dl.partner_id!==PID||
+    pl.active!==true||dl.active!==true||
+    pl.is_api_managed!==true||dl.is_api_managed!==true||
+    pl.return_only===true||
+    pl.external_id!==row.pickup_location_external_id||
+    dl.external_id!==row.dropoff_location_external_id||
+    pl.location_name!==a.pickupName||dl.location_name!==a.returnName)
+   return err("CARAVEL_BOOKING_LOCATION_BINDING_INVALID");
  if(a.startDate>=a.endDate||
     typeof a.mainDriverName!=="string"||!a.mainDriverName.trim()||
     !Number.isSafeInteger(a.mainDriverAge)||a.mainDriverAge<18||
