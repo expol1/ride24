@@ -36,12 +36,14 @@ function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0}={
     return {success:true,resultCode:0,data:{reservationNumber:"A-1",
      agencyReservationReference:"R24-XYZ",reservationStatusType:0}};
    if(path.startsWith("/reservations?"))return {success:true,resultCode:0,
-    data:{reservationNumber:"A-1",reservationStatusType:0}};
+    data:{reservationNumber:"A-1",reservationStatusType:savedStatus,
+     totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     depositCreditCardRequired:false,totalKMLimit:0}};
    throw Error("Unexpected supplier endpoint "+path.split("?")[0]);
   },
  };
  const supabase={serviceClient:()=>({from:()=>({select:()=>({
-   eq(){return this;},limit(){return this;},async maybeSingle(){return {data:{client_email:"synthetic@example.invalid"},error:null};}
+   eq(){return this;},limit(){return this;},async maybeSingle(){return {data:{client_email:"synthetic@example.invalid",partner_currency:"EUR",partner_net_price_snapshot:100},error:null};}
   })})})};
  const require=name=>name==="./partner-api.ts"?transport:
   name==="./ride24-security.ts"?supabase:
@@ -136,5 +138,18 @@ test("changed amount or deposit in saved reservation requires manual review",asy
   const a=setup({allowWrites:true,savedStatus:1,...options});
   const result=await a.arventCreateBooking(creds,syntheticBooking);
   assert.equal(result.needs_manual_review,true,JSON.stringify(options));
+ }
+});
+
+test("status 1 returns confirmed only if actual supplier EUR price and terms match booking",async()=>{
+ const a=setup({savedStatus:1});
+ const confirmed=await a.arventBookingStatus(creds,"A-1");
+ assert.equal(confirmed.status,"confirmed");
+ assert.equal(confirmed.needs_manual_review,false);
+ for(const options of [{savedStatus:1,savedPrice:115},{savedStatus:1,savedDeposit:50}]){
+  const changed=setup(options);
+  const row=await changed.arventBookingStatus(creds,"A-1");
+  assert.equal(row.status,"pending",JSON.stringify(options));
+  assert.equal(row.needs_manual_review,true,JSON.stringify(options));
  }
 });
