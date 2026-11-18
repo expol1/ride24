@@ -20,6 +20,8 @@
  */
 import {prepareVerifiedCaravelDispatch}
   from "./caravel-dispatch-gate.ts";
+import {loadCaravelPaidEvidence,type CaravelEvidenceAdmin}
+  from "./caravel-paid-evidence.ts";
 import {claimCaravelPaidDispatch,type CaravelClaimClient}
   from "./caravel-dispatch-claim.ts";
 import {submitVerifiedCaravelBooking}
@@ -141,4 +143,44 @@ export async function processVerifiedCaravelPaidBooking(
  return {ok:true,status:"confirmed",bookingId,
    providerReference:result.providerReference,
    mayGenerateVoucher:true,mayNotifyCustomer:true};
+}
+
+/**
+ * Preferred PRODUCTION-CANDIDATE service-role entrypoint.
+ *
+ * Caller provides ONLY a Ride24 booking UUID, the service-role DB connection,
+ * certified Caravel client and independently reviewed current supplier
+ * policies / consent proof. Supplier quote, driver/contact data, payment and
+ * accepted document snapshots are loaded exclusively from the Ride24 DB.
+ *
+ * Any spoofed runtime bookingInput/snapshots are overwritten below.
+ * Does NOT authenticate an HTTP request; NEVER expose directly to the web.
+ * A separate server entrypoint must enforce internal secret + service-role
+ * authorization, certification status, safe credential source, and rate caps.
+ *
+ * Still NOT deployed; currently the required DB migrations and Caravel
+ * provenance writer are absent from Ride24 production.
+ */
+export async function processPersistedCaravelPaidBooking(
+ args:Omit<Args,"bookingInput"|"persistedBookingTerms"|"persistedCoverageConsent"
+  |"partnerApiEnabled"|"currentExternalReference">&{
+   bookingId:string;admin:Admin&CaravelEvidenceAdmin;
+ }):Promise<CaravelOperationalResult>{
+ const id=String(args?.bookingId??"");
+ if(!UUID.test(id)||!args?.admin)
+   return block(id,"CARAVEL_ORCHESTRATION_INPUT_INVALID","hold_unqueued",null);
+ const loaded=await loadCaravelPaidEvidence({
+   admin:args.admin,bookingId:id,nowEpochMs:args.nowEpochMs,
+ });
+ if("reason" in loaded)
+   return block(id,loaded.reason,"hold_unqueued",null);
+ const e=loaded.evidence;
+ return processVerifiedCaravelPaidBooking({
+   ...args,
+   bookingInput:e.bookingInput,
+   persistedBookingTerms:e.bookingTerms,
+   persistedCoverageConsent:e.coverageConsent,
+   partnerApiEnabled:true,
+   currentExternalReference:null,
+ });
 }

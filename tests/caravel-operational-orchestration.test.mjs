@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {processVerifiedCaravelPaidBooking}
+import {processVerifiedCaravelPaidBooking,processPersistedCaravelPaidBooking}
  from "../supabase/functions/_shared/caravel-paid-orchestration.ts";
 import {canReleaseCaravelVoucher}
  from "../supabase/functions/_shared/caravel-payment-sequence.ts";
@@ -9,6 +9,9 @@ const ID="d9bb87e8-71cc-43a2-bd09-a487639acd14";
 const QUOTE="3f2b6c1e-8a4d-4f0b-9c2e-5d7a1b0c9e11";
 const REF="04a1f3e1-1fb4-4d28-af02-979604d5c622";
 const PARTNER="78721481-7619-44df-a9b7-5faa344b69bb";
+const API_QUOTE="5dc264ef-743d-4aa9-8579-aa0a8dcb04b7";
+const CAR_CLASS="d20bbca4-678c-4abf-bf4d-cf5356220170";
+const CLIENT_ID="0138fbc3-5ebf-4e37-b27c-87df3de44c12";
 const HASH="a".repeat(64);
 const NOW=Date.now();
 const stamp=(ms)=>new Date(ms).toISOString();
@@ -40,7 +43,8 @@ const productionGate=()=>({certificationPassed:true,
  licenceEvidence:{firstIssuedOn:"2025-02-01",pickupOn:"2027-01-10",
   issuedInEuEea:true,hasInternationalDrivingPermit:false}});
 const booking=()=>({
- id:ID,partner_id:PARTNER,provider_type:"api",status:"pending",
+ id:ID,partner_id:PARTNER,client_id:CLIENT_ID,car_class_id:CAR_CLASS,
+ api_quote_id:API_QUOTE,provider_type:"api",status:"pending",
  api_status:"caravel_paid_awaiting_supplier",
  manual_review:false,cancelled_at:null,api_booking_reference:null,
  stripe_session_id:"cs_test_verified",
@@ -50,7 +54,14 @@ const booking=()=>({
  caravel_supplier_quote_id:QUOTE,caravel_supplier_id:"acct_eur",
  caravel_terms_document_id:"caravel-en-v4",
  caravel_terms_content_hash:HASH,caravel_terms_language:"en",
- partners:{api_provider:"caravel",api_enabled:true},
+ terms_accepted:true,terms_accepted_at:stamp(NOW-40000),
+ main_driver_name:"Jan Testowy",main_driver_age:30,
+ add_driver_name:null,add_driver_age:null,
+ client_email:"sandbox@example.test",client_phone:"+48 000 000 000",
+ partner_net_price_snapshot:150,partner_currency:"EUR",
+ partner_discount_snapshot:0,reservation_code:"R24-TEST",
+ partners:{api_provider:"caravel",api_enabled:true,
+ active:true,account_status:"active"},
 });
 const receipt=(amount=15000)=>({
  booking_id:REF,quote_id:QUOTE,revision:1,status:"confirmed",
@@ -60,7 +71,14 @@ const receipt=(amount=15000)=>({
   amount_on_arrival:{amount,currency:"EUR"}},
 });
 function database(){
- const state={booking:booking(),reviews:[],bookingWrites:0,reviewWrites:0,
+ const storedQuote={
+   id:API_QUOTE,booking_id:ID,partner_id:PARTNER,car_class_id:CAR_CLASS,
+   external_group_id:"opaque-veh",external_quote_reference:QUOTE,
+   partner_net_total:150,partner_discount_percent:0,currency:"EUR",
+   expires_at:quote().expires_at,used_at:stamp(NOW-40000),
+   raw_response:{caravel_quote:quote(),ride24_context:{}},
+ };
+ const state={booking:booking(),quote:storedQuote,reviews:[],bookingWrites:0,reviewWrites:0,
    cancelledDuringSupplier:false,failedReviewWrites:false};
  return {state,from(name){
   let payload=null,filters=[];
@@ -72,7 +90,8 @@ function database(){
    not:(k,op,v)=>{filters.push([k,"not_is",v]);return query;},
    limit:()=>query,
    maybeSingle:async()=>{
-    const rows=name==="bookings"?[state.booking]:state.reviews;
+    const rows=name==="bookings"?[state.booking]:
+     name==="api_quotes"?[state.quote]:state.reviews;
     const found=rows.find(row=>row&&filters.every(([k,op,v])=>{
      if(op==="eq")return row[k]===v;
      if(op==="is")return row[k]===null;
@@ -203,4 +222,46 @@ test("review queue failure leaves paid Caravel booking locked, never auto retrie
  assert.equal(result.mayGenerateVoucher,false);
  assert.equal(result.mayAutomaticallyRetry,false);
  assert.equal(result.mayAutomaticallyRefund,false);
+});
+
+test("REAL DATA PATH: supplier POST only after paid evidence is read from persisted booking+quote",async()=>{
+ const db=database();let calls=0;
+ const client={environment:"production",async book(payload,idempotency,supplier){
+   calls++;assert.equal(supplier,"acct_eur");
+   assert.equal(idempotency,ID);
+   assert.equal(payload.quote_id,QUOTE);
+   return {data:receipt()};
+ }};
+ const base=args(db,client);
+ const result=await processPersistedCaravelPaidBooking({
+  ...base,bookingId:ID,
+  // untrusted runtime fields must be ignored by the hydrated wrapper:
+  bookingInput:{...base.bookingInput,
+    provider_quote_data:{...quote(),quote_id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}},
+  persistedBookingTerms:null,
+ });
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(calls,1);
+ assert.equal(db.state.booking.status,"paid");
+ assert.equal(db.state.booking.api_booking_reference,REF);
+ assert.equal(db.state.reviewWrites,0);
+});
+test("missing or tampered Caravel quote provenance stops BEFORE atomic claim and supplier POST",async()=>{
+ for(const patch of [
+   {raw_response:{ride24_context:{}}},
+   {raw_response:{caravel_quote:{...quote(),supplier_id:"other"}}},
+   {partner_net_total:200},
+   {booking_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"},
+ ]){
+   const db=database(),client={environment:"production",
+     async book(){throw Error("supplier must not be contacted");}};
+   db.state.quote={...db.state.quote,...patch};
+   const result=await processPersistedCaravelPaidBooking({
+     ...args(db,client),bookingId:ID,
+   });
+   assert.equal(result.ok,false,JSON.stringify(patch));
+   assert.equal(result.status,"hold_unqueued");
+   assert.equal(db.state.booking.api_status,"caravel_paid_awaiting_supplier");
+   assert.equal(db.state.bookingWrites,0);
+ }
 });
