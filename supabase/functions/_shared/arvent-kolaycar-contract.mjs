@@ -186,8 +186,10 @@ export function arventReservationStatus(e) {
  const status=raw===1?"confirmed":raw===3?"cancelled":"pending";
  return {booking_reference:reference,reference,id:reference,status,
   supplier_status_type:raw,supplier_status_label:label,
-  // A negative enum from illustrative examples is *not* an approved state.
-  needs_manual_review:raw!==1&&raw!==3,
+  // 0 is a real "received/awaiting approval" state, not an error.
+  // Keep it pending so the durable Stripe-paid workflow can poll status 1.
+  // Unknown/ambiguous statuses require manual review; no premature voucher.
+  needs_manual_review:raw!==0&&raw!==1&&raw!==3,
   definitive_rejection:false};
 }
 export function arventDateOfBirth(value) {

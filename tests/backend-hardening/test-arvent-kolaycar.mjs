@@ -73,7 +73,7 @@ test("accepted EUR quote is per-day priced with total and no token leakage",()=>
 });
 test("2026-11-18 authoritative enum: only approved 1 is confirmed, 3 is cancelled",()=>{
  const expectations=[
-  [0,"pending",true,"received"],[1,"confirmed",false,"approved"],
+  [0,"pending",false,"received"],[1,"confirmed",false,"approved"],
   [2,"pending",true,"payment_completed"],[3,"cancelled",false,"cancelled"],
   [4,"pending",true,"awaiting_payment"],[5,"pending",true,"vehicle_handed_over"],
   [6,"pending",true,"unapproved"],[-4,"pending",true,"unknown"],

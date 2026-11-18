@@ -140,11 +140,12 @@ test("approved status 1 only clears review after price and contract verification
  assert.equal(result.needs_manual_review,false);
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
 });
-test("received 0 never triggers voucher even after successful HTTP response",async()=>{
+test("received 0 stays in provider_pending for safe polling, never triggers voucher",async()=>{
  const a=setup({allowWrites:true,savedStatus:0});
  const result=await a.arventCreateBooking(creds,syntheticBooking);
  assert.equal(result.status,"pending");
- assert.equal(result.needs_manual_review,true);
+ assert.equal(result.needs_manual_review,false);
+ assert.ok(result.booking_reference);
 });
 test("changed amount or deposit in saved reservation requires manual review",async()=>{
  for(const options of [{savedPrice:101},{savedDeposit:2000}]){
