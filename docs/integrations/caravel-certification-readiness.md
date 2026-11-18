@@ -382,3 +382,64 @@ Older evidence below is retained as dated history; references to pending live bo
   `e71ac6b2bcf14d68d5230ecd9476948c91536141`:
   `Ride24 API Compatibility QA` oraz dwa
   `Caravel sandbox adapter checks` — wszystkie `success`.
+
+
+## 18 Nov 2026 — operator approves disclosed Premium exclusions, supplier current state unverified
+
+**Business decision (Ride24 owner):** a Caravel Premium offer can be sold despite
+excluded glass, tyres/wheels or undercarriage **only if the customer is shown
+the actual current provider exclusions and fees before paying the Ride24
+reservation fee, opens the authoritative supplier terms, and explicitly
+accepts this limited cover**. Do not show a claim that the excluded components
+are covered. This is a Caravel-only exception; other API providers remain unchanged.
+
+**Source of truth:** supplier says EN v4 is published on 17 Nov 2026 by
+`GET /v1/reference/terms/{document_id}`. The older Caravel rules PDF dated
+10 Nov still explicitly excludes glass, wheels, tyres and undercarriage
+(§3.1), states a EUR100 damage/theft administration fee (§6.1), and
+authorizes charging a card presented on collection (§5.1). That document is
+NOT evidence that the supplier has since changed its current API coverage.
+`caravel_sbx_reference_snapshots` currently contains zero rows. Fresh
+supplier `Protection`, `QuoteResponseData.deposit` and current EN v4
+terms remain to be read with a valid sandbox/production key. Never infer a
+recent change from a user hypothesis or from a historical PDF.
+
+**Implementation (isolated PR #84):**
+- `caravel-exclusion-policy.ts` preserves strict default Premium checks, but
+  optionally accepts a **backend/operator-approved** exact list of
+  `Protection.excludes` if theft/fire and bodywork coverage with zero excess,
+  zero theft excess and zero deposit are genuinely verified. It permits
+  omitted glass/tyres/undercarriage coverage ONLY when each is explicitly in
+  the reviewed exclusions, not silently.
+- The review includes the immutable terms `document_id`, verified content
+  hash, ALL excluded codes, and the supplier administration fee. A change of
+  supplier exclusions or missing/invalid final zero-deposit quote rejects
+  publication. Pre-quote protection selection is allowed to inspect the
+  catalogue without the final quote; publishing or booking NEVER bypasses
+  the quote deposit check.
+- `buildCaravelOfferFromApi()` now carries flags
+  `premiumProtectionIncluded`, `premiumProtectionWithExclusions`,
+  `caravelExclusions`, `damageAdministrationFeeMinor`,
+  `protectionTermsDocumentId`. Disclosed Premium has
+  `fullInsurance=false` so no misleading blanket promise appears.
+  Caravel offers must still pass the separate zero-prepayment quote filter
+  before Ride24 may sell them. Existing AVIA and Stripe unaffected.
+- `buildCaravelBookingDraft()` for production requires
+  `coverageDisclosureAcceptedBeforePayment=true`, exact exclusions and
+  fee shown to the client, the same latest terms id/hash, a quote snapshot
+  with the same coverage and fee, and all existing licence/payment/
+  idempotency/insurance conditions. If a partner changes the exclusions,
+  client consent or an outdated quote fails closed.
+- `CARAVEL_PREMIUM_TERMS` is clearly labelled **historical**, not live.
+  It must not be rendered without verifying current Caravel API clauses.
+
+**Still not done and strictly required before launch:** retrieve/verify
+the actual latest Caravel Terms EN v4 canonical hash per §3.9, current
+supplier protection and quote, configure secure credentials in the test
+environment, submit HMAC self-test and complete official 24-hour
+certification, persist/display immutable terms and exclusions through the
+real WWW and Android customer workflows, enable safe provider routing,
+reconcile live refunds/cancellations and run E2E booking tests. Do not
+enable `partners.api_enabled` or merge the PR as a production release
+until these are evidenced. Existing sandbox functions expire 20 Nov
+2026 20:00 UTC.
