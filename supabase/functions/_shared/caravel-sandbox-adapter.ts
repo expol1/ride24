@@ -360,7 +360,11 @@ export class CaravelClient {
     if(!isUuid(idempotencyKey) || typeof input?.external_ref!=="string" || !input.external_ref.startsWith(prefix) ||
       (this.environment==="production" && input.external_ref.startsWith("ride24-sandbox-")) ||
       !/^[A-Za-z0-9._-]{1,64}$/.test(input.external_ref) || !isUuid(input.quote_id) || input.payment_model!=="pay_on_arrival")
-      throw new Error("SANDBOX_BOOKING_GUARD");
+      throw new Error("CARAVEL_BOOKING_GUARD");
+    if(this.environment==="production" && (
+      !supplierId || !/^[A-Za-z0-9_-]{1,128}$/.test(supplierId) ||
+      input.external_ref !== `ride24-${idempotencyKey}`
+    )) throw new Error("CARAVEL_PRODUCTION_BOOKING_IDENTITY_MISMATCH");
     await this.capabilities();
     return this.request<Json>("POST","/v1/bookings",input as unknown as Json,idempotencyKey,supplierId);
   }
