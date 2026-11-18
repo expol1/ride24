@@ -37,8 +37,7 @@ BEGIN
     ADD CONSTRAINT bookings_caravel_claim_consistency_chk
     CHECK (
       api_status IS DISTINCT FROM 'caravel_supplier_dispatch_claimed'
-      OR
-      (
+      OR COALESCE((
         partner_id = '78721481-7619-44df-a9b7-5faa344b69bb'::uuid
         AND provider_type = 'api'
         AND status = 'pending'
@@ -57,7 +56,7 @@ BEGIN
         AND caravel_stripe_payment_confirmed_at IS NOT NULL
         AND caravel_supplier_dispatch_claimed_at IS NOT NULL
         AND caravel_supplier_dispatch_claimed_at >= caravel_stripe_payment_confirmed_at
-      )
+      ), FALSE)
     );
  END IF;
 END
