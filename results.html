@@ -225,7 +225,7 @@
     
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
-<script src="assets/js/location-names.js?v=20261112canonical1"></script>
+<script src="assets/js/location-names.js?v=20261118dictionary1"></script>
 <script src="assets/js/rentalDuration.js?v=20261025b"></script>
 <script src="assets/js/seasonal-minimum-info.js?v=20261026web1"></script>
 <script src="assets/js/results-location-pricing.js?v=20261110a"></script>
@@ -1409,7 +1409,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const lang = localStorage.getItem("lang") || "pl";
     if (typeof setLang === "function") setLang(lang);
 
-    // 2. WYWOŁANIE POBIERANIA AUT
+    // 2. Read the same canonical PL/EN point labels as the public search.
+    await window.Ride24LocationNames.loadDictionary(window.supabaseClient).catch(() => {});
     renderCars();
     
     // 3. Sprawdzenie sesji (opcjonalnie, żeby np. zmienić przyciski na "Wyloguj")
