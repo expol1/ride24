@@ -88,7 +88,8 @@ test("auth is JSON-only without Authorization headers, then Bearer for GET",asyn
 test("locations and catalog work read-only and do not trigger mutations",async()=>{
  const a=setup();
  const locations=await a.arventFetchLocations(creds);
- assert.equal(locations[0].city,"Example City");
+ assert.equal(locations[0].city,"Antalya");
+ assert.equal(locations[0].display_name,"Antalya Airport (AYT)");
  const groups=await a.arventFetchGroups(creds);
  assert.equal(groups[0].public_price,0);
  assert.ok(a.calls.every(call=>call.path!=="/reservations/save"));
