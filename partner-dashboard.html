@@ -1305,7 +1305,7 @@ async>
 
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
 <link rel="stylesheet" href="assets/css/partner-bookings-ux.css?v=20261115dashclock3">
-<link rel="stylesheet" href="assets/css/partner-fleet-locations-ux.css?v=20261029b">
+<link rel="stylesheet" href="assets/css/partner-fleet-locations-ux.css?v=20261118scooters1">
 <link rel="stylesheet" href="assets/css/partner-android-showcase.css?v=20261029a">
 </head>
 <body>
@@ -2154,13 +2154,15 @@ Dodaj opinię o Partnerze
                     </div>
                 </div>
 
-                <div class="form-group" id="carLocationScopeSection" style="margin:16px 0;padding:12px;border:1px solid #cbd5e1;border-radius:9px;">
-                    <label data-pl="Lokalizacje dostępności pojazdu" data-en="Vehicle pickup and return locations">Vehicle pickup and return locations</label>
-                    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <div class="form-group r24-car-location-scope" id="carLocationScopeSection">
+                    <div class="r24-car-location-scope-heading">
+                        <strong data-pl="Lokalizacje dostępności pojazdu" data-en="Vehicle pickup and return locations">Vehicle pickup and return locations</strong>
+                    </div>
+                    <label class="r24-car-location-all-row" id="carAllLocationsLabel">
                         <input type="checkbox" id="carAllLocations" checked onchange="syncCarLocationScope()">
                         <span data-pl="Wszystkie aktywne lokalizacje partnera" data-en="All active partner locations">All active partner locations</span>
                     </label>
-                    <div id="carLocationChoices" style="margin-top:8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px;"></div>
+                    <div id="carLocationChoices" class="r24-car-location-choices"></div>
                     <small id="carLocationScopeHelp" data-pl="Dla skuterów / ATV (grupa 0) wybierz co najmniej jedną lokalizację. Odbiór i zwrot będą możliwe tylko w zaznaczonych punktach." data-en="For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.">For scooters / ATV (group 0), select at least one location. Pickup and return are permitted only at the selected locations.</small>
                 </div>
 
@@ -3327,10 +3329,14 @@ const updateData = {
         window.syncCarLocationScope = function() {
             const isScooter = document.getElementById("carClass")?.value === "0";
             const allBox = document.getElementById("carAllLocations");
+            const allRow = document.getElementById("carAllLocationsLabel");
             const choices = document.getElementById("carLocationChoices");
+            const help = document.getElementById("carLocationScopeHelp");
             if (!allBox || !choices) return;
             allBox.disabled = isScooter;
             if (isScooter) allBox.checked = false;
+            if (allRow) allRow.hidden = isScooter;
+            if (help) help.hidden = !isScooter;
             choices.style.display = !allBox.checked ? "grid" : "none";
             choices.querySelectorAll('input[type="checkbox"]').forEach(input => {
                 input.disabled = allBox.checked;
@@ -3355,7 +3361,7 @@ const updateData = {
             const selected = Array.isArray(selectedIds) ? new Set(selectedIds) : null;
             const available = Array.isArray(locations) ? locations : [];
             container.innerHTML = available.map(loc => `
-                <label style="display:flex;gap:8px;align-items:center;font-size:13px;">
+                <label class="r24-car-location-choice">
                     <input type="checkbox" class="car-location-option"
                         value="${escapeHtmlValue(loc.id)}"
                         ${selected?.has(loc.id) ? "checked" : ""}>
