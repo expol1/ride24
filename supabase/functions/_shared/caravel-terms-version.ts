@@ -3,7 +3,8 @@
  * The supplier requires id comparison each sync and immutable historical docs.
  * NEVER replace accepted Ride24 documents or accept changed terms silently.
  */
-import {isCaravelTermsMetadata, selectCurrentCaravelTerms, type CaravelTermsMetadata}
+import {isCaravelTermsMetadata, selectCurrentCaravelTerms, type CaravelTermsMetadata,
+  type CaravelTermsDocument, type CaravelClient}
   from "./caravel-sandbox-adapter.ts";
 
 export type CaravelTermsSnapshot = {
@@ -69,4 +70,49 @@ export function compareCaravelTermsVersion(args:{
     throw new Error("CARAVEL_TERMS_PUBLICATION_DATE_ROLLBACK");
   return {action:"new_version_requires_review",snapshot,
     replacedDocumentId:previousReviewed.documentId};
+}
+
+
+/**
+ * Read and cross-check the active authoritative Caravel document for one
+ * supplier/language. The list is metadata ONLY; never show that list as terms.
+ * Comparing a detail document against list metadata prevents a stale or
+ * mismatched document from being displayed or snapshotted.
+ *
+ * The returned SHA-256 is the provider-declared hash, NOT a locally verified
+ * canonical digest. Caravel's contract §3.9 must be implemented and audited
+ * before activating the production client UI.
+ *
+ * No secrets, bookings, storage documents or DB rows are modified here.
+ */
+export async function fetchCaravelCurrentTermsForReview(
+  client: Pick<CaravelClient, "referenceTerms" | "referenceTermsDocument">,
+  supplierId: string,
+  language: string,
+  previousReviewed?: CaravelTermsSnapshot | null,
+): Promise<{
+  comparison: CaravelTermsComparison;
+  document: CaravelTermsDocument;
+  canonicalHashIndependentlyVerified: false;
+}> {
+  if (!supplierCode(supplierId) || !langCode(language))
+    throw new Error("CARAVEL_TERMS_SYNC_SCOPE_INVALID");
+  const list = await client.referenceTerms(supplierId);
+  const comparison = compareCaravelTermsVersion({
+    supplierId,language,currentMetadataList:list.data,previousReviewed,
+  });
+  const document = (await client.referenceTermsDocument(comparison.snapshot.documentId,supplierId)).data;
+  const current = selectCurrentCaravelTerms(list.data,language);
+  for (const key of [
+    "document_id","language","version","title","format",
+    "content_hash","published_at","withdrawn_at",
+  ] as const) {
+    if (document[key] !== current[key])
+      throw new Error("CARAVEL_TERMS_LIST_DOCUMENT_MISMATCH");
+  }
+  // Caravel's body is clauses/v1, not HTML or a PDF URL.
+  // Reject a retrieved document that is not currently active.
+  if (document.withdrawn_at !== null || !document.body)
+    throw new Error("CARAVEL_TERMS_DOCUMENT_NOT_CURRENT");
+  return {comparison,document,canonicalHashIndependentlyVerified:false};
 }
