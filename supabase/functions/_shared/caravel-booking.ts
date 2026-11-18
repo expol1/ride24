@@ -312,18 +312,26 @@ export function verifyCaravelBookingAgainstQuote(
   const grand = totals && isRecord(totals.grand_total) ? totals.grand_total : null;
   const protection = isRecord(b.protection) ? b.protection : null;
   const payment = isRecord(b.payment) ? b.payment : null;
-  const zero = (m: unknown) => isRecord(m) && m.amount === 0;
+  const correctCurrency = (m: unknown) => isRecord(m) && m.currency === quote?.currency;
+  const zero = (m: unknown) => correctCurrency(m) && (m as Json).amount === 0;
+  const equalsGrand = (m: unknown) => correctCurrency(m) &&
+    (m as Json).amount === quote?.totalAmountMinor;
   if (typeof b.booking_id !== "string" || !UUID.test(b.booking_id)) errors.push("BOOKING_ID_MISSING");
   if (!Number.isSafeInteger(b.revision) || (b.revision as number) < 1) errors.push("REVISION_MISSING");
   if (b.quote_id !== quote?.quoteId) errors.push("QUOTE_ID_MISMATCH");
   if (b.status !== "confirmed") errors.push("NOT_CONFIRMED");
   if (!grand || grand.amount !== quote?.totalAmountMinor || grand.currency !== quote?.currency) errors.push("BOOKED_PRICE_DIFFERS_FROM_QUOTE");
-  if (!protection || !zero(protection.excess) || !zero(protection.deposit)) errors.push("BOOKED_PROTECTION_NOT_ZERO_RISK");
-  if (payment) {
-    if (payment.model !== "pay_on_arrival") errors.push("PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL");
-    const onArrival = isRecord(payment.amount_on_arrival) ? payment.amount_on_arrival.amount : undefined;
-    if (onArrival !== undefined && onArrival !== quote?.totalAmountMinor) errors.push("AMOUNT_ON_ARRIVAL_DIFFERS");
-  }
+  // Zero EUR/GBP only: a zero amount denominated in a different currency
+  // cannot be accepted as proof of no deposit or excess on this rental.
+  if (!protection || !zero(protection.excess) || !zero(protection.deposit))
+    errors.push("BOOKED_PROTECTION_NOT_ZERO_RISK");
+  if (!payment || payment.model !== "pay_on_arrival")
+    errors.push("PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL");
+  // Missing money fields are UNKNOWN, not the same as 0 paid / full amount due.
+  if (!equalsGrand(payment?.amount_on_arrival))
+    errors.push("AMOUNT_ON_ARRIVAL_DIFFERS");
+  if (!zero(payment?.amount_prepaid))
+    errors.push("BOOKED_PREPAYMENT_NOT_ZERO");
   if (errors.length) return {ok: false, errors};
   return {ok: true, bookingId: b.booking_id as string, revision: b.revision as number};
 }
