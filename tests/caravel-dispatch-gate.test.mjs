@@ -138,7 +138,7 @@ const acceptedBooking=()=>({
   status:"confirmed",
   price:{totals:{grand_total:{amount:15000,currency:"EUR"}}},
   protection:{deposit:{amount:0,currency:"EUR"},excess:{amount:0,currency:"EUR"}},
-  payment:{model:"pay_on_arrival",amount_on_arrival:{amount:15000,currency:"EUR"}},
+  payment:{model:"pay_on_arrival",amount_prepaid:{amount:0,currency:"EUR"},amount_on_arrival:{amount:15000,currency:"EUR"}},
 });
 function deliveryFixture(client){
  return {...fixture(),client,enableSupplierWrite:true,paymentConfirmed:true,
@@ -184,6 +184,10 @@ test("Caravel price change, missing payment model or pending booking trigger rev
   {...acceptedBooking(),status:"pending"},
   {...acceptedBooking(),quote_id:"different"},
   {...acceptedBooking(),protection:{deposit:{amount:100},excess:{amount:0}}},
+  {...acceptedBooking(),protection:{deposit:{amount:0,currency:"GBP"},excess:{amount:0,currency:"EUR"}}},
+  {...acceptedBooking(),payment:{model:"pay_on_arrival",amount_prepaid:{amount:0,currency:"GBP"},amount_on_arrival:{amount:15000,currency:"EUR"}}},
+  {...acceptedBooking(),payment:{model:"pay_on_arrival",amount_prepaid:{amount:0,currency:"EUR"},amount_on_arrival:{amount:15000,currency:"GBP"}}},
+  {...acceptedBooking(),payment:{model:"pay_on_arrival",amount_on_arrival:{amount:15000,currency:"EUR"}}},
  ];
  for(const data of bad){
    let calls=0;
