@@ -130,6 +130,8 @@ export function buildCaravelBookingDraft(
     if (gate?.termsVerifiedAndShownBeforePayment !== true) errors.push("CARAVEL_TERMS_REQUIRED_BEFORE_PAYMENT");
     const coverage = evaluateCaravelPremiumForRide24(
       "premium",gate?.protection,gate?.quoteDeposit,gate?.coverageReview);
+    if(!isRecord(gate?.quoteDeposit)||!isRecord(gate.quoteDeposit.amount))
+      errors.push("CARAVEL_QUOTE_DEPOSIT_UNVERIFIED");
     if ("errors" in coverage) errors.push(...coverage.errors);
     // Unknown exclusions are never treated as none. For ANY documented
     // exclusions the buyer must see/accept the actual policy and all codes.
