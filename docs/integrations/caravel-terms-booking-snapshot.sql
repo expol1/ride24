@@ -23,10 +23,104 @@ COMMENT ON COLUMN public.bookings.caravel_terms_content_hash IS
 
 -- These constraints allow NULL for all preexisting/non-Caravel rows.
 -- Not a substitute for provider-scoped transactional server validation.
-ALTER TABLE public.bookings
-  ADD CONSTRAINT bookings_caravel_terms_hash_format_chk
-  CHECK (caravel_terms_content_hash IS NULL OR
-         caravel_terms_content_hash ~ '^[0-9a-f]{64}$');
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.bookings'::regclass
+      AND conname = 'bookings_caravel_terms_snapshot_consistency_chk'
+  ) THEN
+    ALTER TABLE public.bookings
+      ADD CONSTRAINT bookings_caravel_terms_snapshot_consistency_chk
+      CHECK (
+        (caravel_terms_document_id IS NULL AND
+         caravel_terms_language IS NULL AND
+         caravel_terms_content_hash IS NULL)
+        OR
+        (caravel_terms_document_id IS NOT NULL AND
+         caravel_terms_document_id ~ '^[A-Za-z0-9._~-]{1,200}
+
+COMMIT;
+
+-- REQUIRED IMPLEMENTATION BEFORE EXECUTING:
+-- 1. Id + hash must come from server-fetched authoritative Caravel terms,
+--    not browser text/old PDF, and be tied to partner + current language.
+-- 2. The same id must be stored in api_quotes.raw_response.provider_quote_data
+--    at quote creation, then copied to bookings in create-booking-request
+--    BEFORE Stripe. Race with new terms -> requote/reshow/re-accept, no charge.
+-- 3. Ensure selected id is still current when dispatching after Stripe.
+--    If it changed after charge: fail safe/manual review/refund according to
+--    existing Ride24 procedures. Do not book silently under changed terms.
+-- 4. Exact document and version must be accessible in customer booking/voucher.
+-- 5. Verify RLS grants: only backend service role may change these audit fields.
+-- 6. Test all existing non-Caravel partners with no values and ensure unaffected.
+-- SECURITY REVIEW (read-only verified 2026-11-18):
+-- public.bookings has RLS enabled; authenticated users have SELECT only,
+-- service_role has DML. public.api_quotes also has RLS and service_role
+-- DML only. New nullable columns do NOT need any added grants or RLS
+-- policies. Preserve these privileges; do not grant client write access.
+-- 7. Avoid reusing existing partner_terms_snapshot for a non-URL id; keep
+--    Ride24's URL-snapshot semantics intact for existing rentals.
+-- Rollback (only if columns are unused; require separate approval):
+-- ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS bookings_caravel_terms_snapshot_consistency_chk;
+-- ALTER TABLE public.bookings DROP COLUMN IF EXISTS caravel_terms_content_hash,
+--   DROP COLUMN IF EXISTS caravel_terms_language,
+--   DROP COLUMN IF EXISTS caravel_terms_document_id;
+ AND
+         caravel_terms_language IS NOT NULL AND
+         caravel_terms_language ~ '^[a-z]{2}(-[A-Z]{2})?
+
+COMMIT;
+
+-- REQUIRED IMPLEMENTATION BEFORE EXECUTING:
+-- 1. Id + hash must come from server-fetched authoritative Caravel terms,
+--    not browser text/old PDF, and be tied to partner + current language.
+-- 2. The same id must be stored in api_quotes.raw_response.provider_quote_data
+--    at quote creation, then copied to bookings in create-booking-request
+--    BEFORE Stripe. Race with new terms -> requote/reshow/re-accept, no charge.
+-- 3. Ensure selected id is still current when dispatching after Stripe.
+--    If it changed after charge: fail safe/manual review/refund according to
+--    existing Ride24 procedures. Do not book silently under changed terms.
+-- 4. Exact document and version must be accessible in customer booking/voucher.
+-- 5. Verify RLS grants: only backend service role may change these audit fields.
+-- 6. Test all existing non-Caravel partners with no values and ensure unaffected.
+-- 7. Avoid reusing existing partner_terms_snapshot for a non-URL id; keep
+--    Ride24's URL-snapshot semantics intact for existing rentals.
+-- Rollback (only if columns are unused; require separate approval):
+-- ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS bookings_caravel_terms_hash_format_chk;
+-- ALTER TABLE public.bookings DROP COLUMN IF EXISTS caravel_terms_content_hash,
+--   DROP COLUMN IF EXISTS caravel_terms_language,
+--   DROP COLUMN IF EXISTS caravel_terms_document_id;
+ AND
+         caravel_terms_content_hash IS NOT NULL AND
+         caravel_terms_content_hash ~ '^[0-9a-f]{64}
+
+COMMIT;
+
+-- REQUIRED IMPLEMENTATION BEFORE EXECUTING:
+-- 1. Id + hash must come from server-fetched authoritative Caravel terms,
+--    not browser text/old PDF, and be tied to partner + current language.
+-- 2. The same id must be stored in api_quotes.raw_response.provider_quote_data
+--    at quote creation, then copied to bookings in create-booking-request
+--    BEFORE Stripe. Race with new terms -> requote/reshow/re-accept, no charge.
+-- 3. Ensure selected id is still current when dispatching after Stripe.
+--    If it changed after charge: fail safe/manual review/refund according to
+--    existing Ride24 procedures. Do not book silently under changed terms.
+-- 4. Exact document and version must be accessible in customer booking/voucher.
+-- 5. Verify RLS grants: only backend service role may change these audit fields.
+-- 6. Test all existing non-Caravel partners with no values and ensure unaffected.
+-- 7. Avoid reusing existing partner_terms_snapshot for a non-URL id; keep
+--    Ride24's URL-snapshot semantics intact for existing rentals.
+-- Rollback (only if columns are unused; require separate approval):
+-- ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS bookings_caravel_terms_hash_format_chk;
+-- ALTER TABLE public.bookings DROP COLUMN IF EXISTS caravel_terms_content_hash,
+--   DROP COLUMN IF EXISTS caravel_terms_language,
+--   DROP COLUMN IF EXISTS caravel_terms_document_id;
+)
+      );
+  END IF;
+END
+$migration$;
 
 COMMIT;
 
