@@ -29,6 +29,8 @@ import {
   type VerifiedCaravelRules,
 } from "./caravel-verified-rules.ts";
 import {evaluateCaravelPremium} from "./caravel-premium.ts";
+import {evaluateCaravelPremiumForRide24, type CaravelApprovedExclusionReview}
+  from "./caravel-exclusion-policy.ts";
 import {caravelLocalTime, caravelOutsideHours} from "./caravel-hours.ts";
 import {verifyCaravelRide24PaymentContract} from "./caravel-payment-contract.ts";
 
@@ -598,6 +600,8 @@ export function buildCaravelOfferFromApi(input: {
   dropoffLocation?: unknown;
   /** The protection that was quoted: the plan's included one (default) or a protection_options package. */
   protectionId?: string;
+  /** Trusted admin review of CURRENT authoritative Caravel terms; never browser input. */
+  exclusionReview?: CaravelApprovedExclusionReview;
   context: Omit<CaravelOfferInput["context"], "providerChargeableDays">;
 }): Result<Json> {
   const rowIn = rec(input?.availabilityRow) ?? {};
@@ -632,7 +636,7 @@ export function buildCaravelOfferFromApi(input: {
   const read = caravelQuoteFromApi(input?.quoteData, protection, input?.supplier);
   if ("errors" in read) errors.push(...read.errors);
   // Ride24 Premium guarantees, confirmed only from supplier data (fail closed).
-  const premium = evaluateCaravelPremium(row.plan, protection, qd.deposit);
+  const premium = evaluateCaravelPremiumForRide24(row.plan, protection, qd.deposit, input.exclusionReview);
   if ("errors" in premium) errors.push(...premium.errors);
   let hours = input?.operatingHours;
   if (!hours && input?.pickupLocation && input?.dropoffLocation) {
@@ -671,13 +675,21 @@ export function buildCaravelOfferFromApi(input: {
   return okv({
     ...v,
     features: {...(v.features as Json), noCreditCard: p.noCreditCard, noCardHold: p.noCardHold,
-      fullInsurance: true,
+      fullInsurance: p.fullInsuranceClaimAllowed,
+      premiumProtectionIncluded: true,
+      premiumProtectionWithExclusions: p.disclosureRequired,
+      caravelExclusions: p.excludes,
+      damageAdministrationFeeMinor: p.damageAdministrationFeeMinor,
+      protectionTermsDocumentId: p.reviewedTermsDocumentId,
       protection_product_type: p.productType, covers: p.covers, excludes: p.excludes,
       payment_model: fullCollectionAtPickup ? "pay_on_arrival" : null,
       supplier_collects_grand_total: fullCollectionAtPickup},
     provider_quote_data: {...(v.provider_quote_data as Json),
       payment_model: fullCollectionAtPickup ? "pay_on_arrival" : null,
-      protection: {product_type: p.productType, covers: p.covers, excludes: p.excludes}},
+      protection: {product_type: p.productType, covers: p.covers, excludes: p.excludes},
+      coverage_review_terms_document_id: p.reviewedTermsDocumentId,
+      coverage_exclusions: p.excludes,
+      damage_administration_fee_minor: p.damageAdministrationFeeMinor},
   });
 }
 
