@@ -1,4 +1,6 @@
 import { appendVoucherPricing, validateVoucherPricing } from "../_shared/voucher-booking-items.mjs";
+import {isCaravelBooking} from "../_shared/caravel-production-hold.mjs";
+import {canReleaseCaravelVoucher} from "../_shared/caravel-payment-sequence.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
   corsHeaders,
@@ -46,6 +48,14 @@ type PickupLocationRelation = {
 type BookingRow = {
   id: string;
   client_id: string;
+  partner_id: string;
+  provider_type: string | null;
+  api_provider: string | null;
+  api_status: string | null;
+  api_booking_reference: string | null;
+  cancelled_at: string | null;
+  manual_review: boolean;
+  caravel_stripe_payment_confirmed_at: string | null;
   status: string;
   reservation_code: string;
   start_date: string;
@@ -246,6 +256,18 @@ function normalizeBooking(value: unknown): BookingRow | null {
   return {
     id: value.id,
     client_id: value.client_id,
+    partner_id: typeof value.partner_id==="string"?value.partner_id:"",
+    provider_type: typeof value.provider_type==="string"?value.provider_type:null,
+    api_provider: typeof firstRecord(value.partners)?.api_provider==="string"?
+      firstRecord(value.partners)?.api_provider as string:null,
+    api_status: typeof value.api_status==="string"?value.api_status:null,
+    api_booking_reference: typeof value.api_booking_reference==="string"?
+      value.api_booking_reference:null,
+    cancelled_at: typeof value.cancelled_at==="string"?value.cancelled_at:null,
+    manual_review: value.manual_review===true,
+    caravel_stripe_payment_confirmed_at:
+      typeof value.caravel_stripe_payment_confirmed_at==="string"?
+        value.caravel_stripe_payment_confirmed_at:null,
     status: value.status,
     reservation_code: reservationCode,
     start_date: startDate,
@@ -743,6 +765,13 @@ async function loadBooking(
     .select(`
       id,
       client_id,
+      partner_id,
+      provider_type,
+      api_status,
+      api_booking_reference,
+      cancelled_at,
+      manual_review,
+      caravel_stripe_payment_confirmed_at,
       status,
       reservation_code,
       start_date,
@@ -760,6 +789,7 @@ async function loadBooking(
       partner_currency,
       profiles!fk_client(name, email, phone),
       partners!bookings_partner_id_fkey(
+        api_provider,
         company_name,
         phone,
         emergency_phone,
@@ -947,6 +977,16 @@ serve(async (req) => {
 
     if (!booking) {
       return jsonResponse(req, { error: "Rezerwacja nie istnieje" }, 404);
+    }
+    // Caravel-only provider evidence fence. Never create/retry vouchers or
+    // queue confirmation emails for a Stripe-paid Caravel booking until its
+    // supplier confirmation is durably stored. Runs BEFORE the generic paid
+    // branch, including an existing voucher row.
+    if(isCaravelBooking(booking)&&!canReleaseCaravelVoucher(booking)){
+      return jsonResponse(req, {
+        error:"CARAVEL_SUPPLIER_CONFIRMATION_REQUIRED",
+        code:"CARAVEL_SUPPLIER_CONFIRMATION_REQUIRED",
+      },409);
     }
     if (booking.status !== "paid") {
       return jsonResponse(req, {
