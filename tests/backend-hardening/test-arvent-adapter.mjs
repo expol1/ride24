@@ -27,7 +27,12 @@ function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0,sa
     currencyCode:"EUR",isAvailable:true,depositPrice:0,depositCreditCardRequired:false,
     totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
    if(path.startsWith("/extras?"))return {success:true,resultCode:0,
-    data:{vehicle:{vehicleId:100},extras:[]}};
+    data:{vehicle:{vehicleId:100,currencyCode:"EUR",isAvailable:true,
+     depositPrice:0,depositCreditCardRequired:false,totalKMLimit:0,
+     totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001",
+     pickupLocationId:9,returnLocationId:9,
+     pickupDateTime:"2030-12-16T10:00:00",returnDateTime:"2030-12-17T10:00:00"},
+     extras:null}};
    if(path==="/reservations/save"&&save401)throw Error("PARTNER_API_ERROR:HTTP:401");
    if(path==="/reservations/save")return {success:true,resultCode:0,
     data:{reservationNumber:"A-1",agencyReservationReference:"R24-XYZ",reservationStatusType:savedStatus,
@@ -178,4 +183,13 @@ test("HTTP 401 cannot replay SaveReservation POST and risk double-booking",async
  const a=setup({allowWrites:true,save401:true});
  await assert.rejects(()=>a.arventCreateBooking(creds,syntheticBooking),/HTTP:401/);
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
+});
+
+test("live extras:null with verified token-bound vehicle does not prevent booking",async()=>{
+ const a=setup({allowWrites:true,savedStatus:1});
+ const created=await a.arventCreateBooking(creds,syntheticBooking);
+ assert.equal(created.status,"confirmed");
+ const save=a.calls.find(x=>x.path==="/reservations/save");
+ assert.ok(save);
+ assert.deepEqual(save.request.body.extras,[]);
 });
