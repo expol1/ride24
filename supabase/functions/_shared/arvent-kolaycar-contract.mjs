@@ -107,14 +107,37 @@ export function arventOfferRows(e,input) {
   }];
  });
 }
+// Mustafa's 2026-11-18 production status enum supersedes the synthetic
+// Postman sample (which had used -4 for cancellation).
+// Never infer approval from payment completion or vehicle handover alone.
+export const ARVENT_STATUS_LABELS=Object.freeze({
+ 0:"received",1:"approved",2:"payment_completed",3:"cancelled",
+ 4:"awaiting_payment",5:"vehicle_handed_over",6:"unapproved",
+});
 export function arventReservationStatus(e) {
  const d=supplierData(e);
  if(!record(d))throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_SHAPE");
  const reference=str(d.reservationNumber,500)||null,raw=num(d.reservationStatusType);
- // -4 = cancelled, 0 = received; no documented confirmed enum in sample.
- return {booking_reference:reference,reference,id:reference,
-  status:raw===-4?"cancelled":"pending",supplier_status_type:raw,
-  needs_manual_review:raw!==-4};
+ const label=Object.hasOwn(ARVENT_STATUS_LABELS,raw)?ARVENT_STATUS_LABELS[raw]:"unknown";
+ const status=raw===1?"confirmed":raw===3?"cancelled":"pending";
+ return {booking_reference:reference,reference,id:reference,status,
+  supplier_status_type:raw,supplier_status_label:label,
+  // A negative enum from illustrative examples is *not* an approved state.
+  needs_manual_review:raw!==1&&raw!==3,
+  definitive_rejection:false};
+}
+export function arventDateOfBirth(value) {
+ // A missing date must stay missing; do not derive DOB from driver's age.
+ if(value===undefined||value===null||value==="")return "";
+ const raw=str(value,20);
+ if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return arventDate(raw);
+ const m=/^(\d{2})\.(\d{2})\.(\d{4})$/.exec(raw);
+ if(!m)throw Error("PARTNER_API_ERROR:ARVENT_BIRTHDAY_INVALID");
+ const [day,month,year]=m.slice(1).map(Number);
+ const date=new Date(Date.UTC(year,month-1,day));
+ if(date.getUTCFullYear()!==year||date.getUTCMonth()!==month-1||date.getUTCDate()!==day)
+  throw Error("PARTNER_API_ERROR:ARVENT_BIRTHDAY_INVALID");
+ return raw;
 }
 export function arventSavePayload({reservationToken,reference,customer,extras=[]}) {
  if(!/^[0-9a-f-]{36}$/i.test(str(reservationToken,200)))
@@ -126,7 +149,7 @@ export function arventSavePayload({reservationToken,reference,customer,extras=[]
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_INVALID");
  return {reservationToken,languageCode:"EN",
   customer:{name:str(customer.name),surname:str(customer.surname),phoneNumber:str(customer.phoneNumber,80),
-   email:str(customer.email,250),birthDay:str(customer.birthDay,20),personalNumber:"",address:"",note:""},
+   email:str(customer.email,250),birthDay:arventDateOfBirth(customer.birthDay),personalNumber:"",address:"",note:""},
   pricing:{paidAmount:0,extraAmount:0,specialDailyPrice:-1,specialOneWayFee:-1},
   payment:{paymentType:3,extraPricePayToDelivery:true,oneWayFeePayToDelivery:true},
   extras:extras.map(e=>({code:e.code,piece:e.piece})),
