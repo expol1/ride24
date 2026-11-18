@@ -47,6 +47,7 @@ function fixture(change=()=>{},flags={}){
   aggregatorStatus:async()=>{throw Error('Wrong provider routing')}
  };
  const require=n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow
+  :n.includes('caravel-paid-fulfillment')?{caravelPaidFulfillmentApproved:()=>false}
   :n.includes('arvent-kolaycar')?arvent:n.includes('renteon-aggregator')?renteon
   :(()=>{throw Error('Unexpected import: '+n)})();
  const sandbox={exports:{},require,console,
