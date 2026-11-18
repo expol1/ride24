@@ -161,3 +161,46 @@ zweryfikować RLS oraz testy wyświetlenia przed Stripe i na voucherze.
   podłączony do cyklicznej synchronizacji ani produkcyjnej bazy.**
 - Stały biznesowy blocker pozostaje: obecne Caravel Premium bez ochrony
   szyb, kół i podwozia nie spełnia polityki Ride24. Nie aktywować.
+
+
+## 8. Aktualizacja integracyjna 18.11.2026 — wiążący regulamin przy wycenie
+
+- `fetchCaravelCurrentTermsForReview()` odczytuje listę metadanych i
+  następnie pełny `clauses/v1` po dokładnym `document_id`.
+  Sprawdza zgodność ID, języka, wersji, tytułu, formatu, hash,
+  czasu publikacji i `withdrawn_at`. Niezgodność oznacza
+  `CARAVEL_TERMS_LIST_DOCUMENT_MISMATCH` — brak dalszego procesu.
+- Funkcja **nie** twierdzi, że samodzielnie sprawdziła kanoniczny
+  SHA-256. Zwraca jawny znacznik
+  `canonicalHashIndependentlyVerified: false`. Kanonizacja
+  Caravel §3.9 pozostaje do odtworzenia z pełnego dokumentu.
+- `bindReviewedCaravelTermsToQuote()` dopuszcza przypięcie
+  `terms_document_id`, `terms_content_hash`, `terms_language`
+  do server-side `provider_quote_data` **tylko** przy niezmienionej,
+  wcześniej zweryfikowanej wersji oraz przy osobnym potwierdzeniu
+  canonical digest. Nie dopuszcza automatycznego zatwierdzenia nowej
+  wersji ani pomieszania dwóch dostawców, nie zmienia obiektu wejścia.
+  Jest to komponent odizolowany; kod produkcyjny wycen NIE wywołuje
+  go jeszcze.
+- `buildCaravelBookingDraft(..., {environment:"production"})`
+  wymaga już kompletnego i zgodnego tripletu (id, hash, language)
+  między przechowywaną wyceną, regulaminem pokazanym klientowi
+  oraz bieżącym stanem dokumentów z API; dodatkowo wymaga
+  `termsCanonicalHashVerified=true`. Jeżeli brakuje dowodu lub
+  wersje są różne, zwraca błąd i nie generuje rezerwacji.
+  Nie jest to aktywny endpoint produkcyjny.
+- Projekt migracji `caravel-terms-booking-snapshot.sql`
+  poprawiono do idempotentnego `DO` i warunku
+  all-or-none dla trzech pól; **NIE URUCHAMIANO** go.
+  Odczytane z aktualnej bazy uprawnienia: `bookings` i
+  `api_quotes` mają RLS; `authenticated` ma SELECT na
+  `bookings`, ale nie ma UPDATE/INSERT, a `service_role`
+  ma zapis. Nowe pola nie wymagają przyznawania zapisu klientom.
+- Publiczne URL Caravel z paczką i OpenAPI były niedostępne
+  z użytych narzędzi; w bibliotece plików nie znaleziono
+  kopii pakietu. Nie udawać, że zweryfikowano kanoniczny hash
+  albo pobrano rzeczywisty dokument EN v4.
+- Nadal nie ma klucza sandbox w GitHub Actions,
+  oficjalnego wyniku certyfikacji HMAC, uruchomionego
+  pełnego przebiegu certyfikacyjnego ani zgody na wyłączenia
+  szkód. `api_enabled=false`; nie scalać PR.
