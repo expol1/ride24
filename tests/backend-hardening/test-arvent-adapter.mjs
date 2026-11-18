@@ -19,7 +19,7 @@ function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0,sa
    if(path==="/users/authenticate")return {success:true,resultCode:0,data:{token:"SYNTHETIC_BEARER_TOKEN"}};
    if(path.startsWith("/locations/cities"))return {success:true,resultCode:0,data:[{CityId:7,CityName:"Example City"}]};
    if(path.startsWith("/locations"))return {success:true,resultCode:0,data:[{locationId:9,
-    countryCode:"TR",cityId:7,locationName:"Example Airport",isPickup:true,isAirport:true}]};
+    countryCode:"TR",cityId:7,locationName:"Example Airport",isPickup:true,isAirport:true,iataCode:"AYT"}]};
    if(path.startsWith("/vehicles/list"))return {success:true,resultCode:0,data:[{
     vehicleId:100,vehicleName:"Example Category",sippCode:"CDAR"}]};
    if(path.startsWith("/vehicles?"))return {success:true,resultCode:0,data:[{
