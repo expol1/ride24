@@ -77,7 +77,7 @@ export function buildCertifiedCaravelBookingInsert(a:CaravelInsertBuilderArgs):
     a.preflight.serverQuote!==provider)
   return err("CARAVEL_BOOKING_QUOTE_EXPIRED_OR_CHANGED");
  const p=prepareCaravelPrepayment(a.preflight);
- if(!p.ok)return err(p.errors[0]??"CARAVEL_BOOKING_PRESTRIPE_BLOCK");
+ if("errors" in p)return err(p.errors[0]??"CARAVEL_BOOKING_PRESTRIPE_BLOCK");
  const rent=money(row.partner_net_total),fee=money(row.commission_total);
  const full=money(row.final_total),discount=Number(row.partner_discount_percent);
  const margin=Number(row.platform_margin_percent);
