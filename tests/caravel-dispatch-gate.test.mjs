@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {prepareVerifiedCaravelDispatch} from "../supabase/functions/_shared/caravel-dispatch-gate.ts";
+import {submitVerifiedCaravelBooking} from "../supabase/functions/_shared/caravel-provider-bridge.ts";
 
 const NOW=1900000000000;
 const BOOKING_ID="d9bb87e8-71cc-43a2-bd09-a487639acd14";
@@ -129,4 +130,78 @@ test("expired quote, failed insurance or licence checks prevent creation of a di
     assert.equal(result.action,"hold_for_manual_review");
     assert.ok(result.reasons.length>0);
   }
+});
+
+const SUPPLIER_BOOKING_ID="04a1f3e1-1fb4-4d28-af02-979604d5c622";
+const acceptedBooking=()=>({
+  booking_id:SUPPLIER_BOOKING_ID,revision:1,quote_id:QUOTE_ID,
+  status:"confirmed",
+  price:{totals:{grand_total:{amount:15000,currency:"EUR"}}},
+  protection:{deposit:{amount:0,currency:"EUR"},excess:{amount:0,currency:"EUR"}},
+  payment:{model:"pay_on_arrival",amount_on_arrival:{amount:15000,currency:"EUR"}},
+});
+function deliveryFixture(client){
+ return {...fixture(),client,enableSupplierWrite:true,paymentConfirmed:true,
+   partnerApiEnabled:true,currentExternalReference:null};
+}
+test("isolated Caravel bridge requires explicit write, paid booking and active partner",async()=>{
+ let calls=0;
+ const client={environment:"production",async book(){calls++;return {data:acceptedBooking()};}};
+ const base=deliveryFixture(client);
+ for(const override of [
+   {enableSupplierWrite:false},{enableSupplierWrite:undefined},
+   {paymentConfirmed:false},{partnerApiEnabled:false},
+   {currentExternalReference:SUPPLIER_BOOKING_ID},
+   {client:{...client,environment:"sandbox"}},
+   {persistedBookingTerms:null},
+   {productionGate:{...base.productionGate,certificationPassed:false}},
+ ]){
+   const r=await submitVerifiedCaravelBooking({...base,...override});
+   assert.equal(r.ok,false);
+   assert.equal(r.action,"hold_for_manual_review");
+ }
+ assert.equal(calls,0,"preflight failures must never contact Caravel");
+});
+test("after all trusted checks, Caravel confirmed booking maps to Ride24 response",async()=>{
+ const calls=[];
+ const client={environment:"production",async book(payload,idem,supplier){
+   calls.push({payload,idem,supplier});return {data:acceptedBooking()};
+ }};
+ const r=await submitVerifiedCaravelBooking(deliveryFixture(client));
+ assert.equal(r.ok,true,JSON.stringify(r));
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].idem,BOOKING_ID);
+ assert.equal(calls[0].supplier,"acct_eur");
+ assert.equal(calls[0].payload.external_ref,`ride24-${BOOKING_ID}`);
+ assert.equal(r.result.booking_reference,SUPPLIER_BOOKING_ID);
+ assert.equal(r.result.status,"confirmed");
+ assert.equal("email" in r.result.provider_payload,false);
+});
+test("Caravel price change, missing payment model or pending booking trigger review",async()=>{
+ const bad=[
+  {...acceptedBooking(),price:{totals:{grand_total:{amount:15100,currency:"EUR"}}}},
+  {...acceptedBooking(),payment:undefined},
+  {...acceptedBooking(),status:"pending"},
+  {...acceptedBooking(),quote_id:"different"},
+  {...acceptedBooking(),protection:{deposit:{amount:100},excess:{amount:0}}},
+ ];
+ for(const data of bad){
+   let calls=0;
+   const client={environment:"production",async book(){calls++;return {data};}};
+   const r=await submitVerifiedCaravelBooking(deliveryFixture(client));
+   assert.equal(calls,1);
+   assert.equal(r.ok,false);
+   assert.equal(r.phase,"supplier_response");
+   assert.equal(r.externalReference,SUPPLIER_BOOKING_ID);
+   assert.ok(r.reasons.length>0);
+ }
+});
+test("remote request failure is ambiguous: manual reconciliation, never blind retry",async()=>{
+ let calls=0;
+ const client={environment:"production",async book(){calls++;throw new Error("lost network response");}};
+ const r=await submitVerifiedCaravelBooking(deliveryFixture(client));
+ assert.equal(calls,1);
+ assert.equal(r.ok,false);
+ assert.equal(r.phase,"supplier_outcome_uncertain");
+ assert.deepEqual(r.reasons,["CARAVEL_CREATE_RESULT_UNKNOWN_RECONCILE_BEFORE_RETRY"]);
 });
