@@ -15,7 +15,6 @@ test("claimed Caravel dispatch requires complete payment, supplier and terms pro
  for(const x of [
   "caravel_supplier_quote_id","caravel_supplier_id",
   "caravel_stripe_payment_confirmed_at","caravel_supplier_dispatch_claimed_at",
-  "api_booking_reference IS NULL","manual_review IS FALSE",
   "stripe_session_id IS NOT NULL","caravel_terms_document_id IS NOT NULL",
   "caravel_terms_content_hash IS NOT NULL",
   "caravel_terms_language IS NOT NULL",
@@ -31,4 +30,20 @@ test("migration does not change existing providers and requires service-role com
  assert.match(sql,/api_status='caravel_paid_awaiting_supplier'/);
  assert.match(sql,/Exactly one row = winner/);
  assert.match(sql,/NEVER automatically issue another booking/);
+});
+
+test("Caravel claim CHECK permits cancellation or manual review after supplier POST",()=>{
+ const after=withoutComments.split("ADD CONSTRAINT bookings_caravel_claim_consistency_chk")[1];
+ assert.ok(after,"expected claim integrity constraint");
+ const check=after.split("$caravel_claim$")[0];
+ for(const mutable of [
+  "AND status = 'pending'","AND manual_review IS FALSE",
+  "AND cancelled_at IS NULL","AND api_booking_reference IS NULL",
+ ]) assert.ok(!check.includes(mutable),mutable);
+ assert.match(sql,/cancellation\/reconciliation may happen while a/);
+});
+test("only Caravel supplier review tickets get a unique database fence",()=>{
+ assert.match(withoutComments,/CREATE UNIQUE INDEX IF NOT EXISTS booking_review_queue_caravel_supplier_review_uq/);
+ assert.match(withoutComments,/ON public\.booking_review_queue \(booking_id\)/);
+ assert.match(withoutComments,/WHERE provider_key='caravel' AND provider_status='supplier_manual_review'/);
 });

@@ -9,6 +9,9 @@
 --
 -- Existing non-Caravel rows keep all four fields NULL. No grants, RLS
 -- changes, service_role exposure or change to AVIA.
+-- Never constrain mutable cancelled/status/manual_review/api_booking_reference
+-- values in the claim CHECK: cancellation/reconciliation may happen while a
+-- supplier request is in flight. Their pre-claim safety is enforced by CAS.
 
 BEGIN;
 ALTER TABLE public.bookings
@@ -40,10 +43,6 @@ BEGIN
       OR COALESCE((
         partner_id = '78721481-7619-44df-a9b7-5faa344b69bb'::uuid
         AND provider_type = 'api'
-        AND status = 'pending'
-        AND manual_review IS FALSE
-        AND cancelled_at IS NULL
-        AND api_booking_reference IS NULL
         AND stripe_session_id IS NOT NULL
         AND stripe_currency = 'pln'
         AND stripe_amount_cents > 0
@@ -61,6 +60,13 @@ BEGIN
  END IF;
 END
 $caravel_claim$;
+
+-- Partial uniqueness is Caravel-only. It prevents duplicate review tickets
+-- when two workers encounter the SAME supplier outcome at once. It is not a
+-- new booking constraint, and other providers' reviews remain unchanged.
+CREATE UNIQUE INDEX IF NOT EXISTS booking_review_queue_caravel_supplier_review_uq
+ ON public.booking_review_queue (booking_id)
+ WHERE provider_key='caravel' AND provider_status='supplier_manual_review';
 COMMIT;
 
 -- Required integration semantics — NOT executable as a public SQL endpoint:
