@@ -24,20 +24,25 @@ import {evaluateCaravelPremiumForRide24,
 import {compareCaravelTermsVersion,bindReviewedCaravelTermsToQuote,
   type CaravelTermsSnapshot}
   from "./caravel-terms-version.ts";
-import {apiQuoteContext} from "./api-quote-contract.mjs";
+import {apiQuoteContext,apiPriceTotals} from "./api-quote-contract.mjs";
 type Rec=Record<string,unknown>;
 type DbResult={data:Rec|null;error:{message?:string}|null};
+type RpcResult={data:unknown;error:{message?:string}|null};
 type Query={eq:(k:string,v:unknown)=>Query;maybeSingle:()=>Promise<DbResult>};
 type Insert={
  insert:(row:Rec)=>{select:(cols:string)=>{single:()=>Promise<DbResult>}};
 };
 export type CaravelQuoteAdmin={
  from:(name:"partners"|"car_classes"|"partner_locations"|"api_quotes")=>{select:(cols:string)=>Query}&Insert;
+ /** Exact same Ride24 global-margin RPC used by search-api. */
+ rpc:(name:"get_global_platform_margin")=>Promise<RpcResult>;
 };
 type Client=Pick<CaravelClient,"quote"|"suppliers"|"referenceTerms"|"environment">;
 export type CaravelQuoteIssueResult=
  |{ok:true;apiQuoteId:string;providerQuoteId:string;
-   supplierId:string;partnerPayableMinor:number;expiresAt:string}
+   supplierId:string;partnerPayableMinor:number;
+   ride24ReservationFeeMinor:number;customerTotalMinor:number;
+   expiresAt:string}
  |{ok:false;reason:string};
 const PARTNER_ID="78721481-7619-44df-a9b7-5faa344b69bb";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -151,6 +156,21 @@ export async function issueVerifiedCaravelQuote(args:{
     typeof dropoffRow.location_name!=="string"||
     !dropoffRow.location_name.trim())
    return reject("CARAVEL_QUOTE_LOCATION_SCOPE_INVALID");
+ // Fail closed if the global Ride24 reservation fee cannot be determined.
+ // In particular, never save zero commission: the normal Ride24 checkout
+ // rejects Stripe payments with zero collection.
+ let globalMargin:RpcResult;
+ try{globalMargin=await args.admin.rpc("get_global_platform_margin");}
+ catch{return reject("CARAVEL_RIDE24_FEE_CONFIGURATION_UNAVAILABLE");}
+ const rawMargin=globalMargin?.data;
+ const marginValue=typeof rawMargin==="number"||typeof rawMargin==="string"?
+   Number(rawMargin):Number.NaN;
+ if(globalMargin.error||!Number.isFinite(marginValue)||
+    marginValue<=0||marginValue>100)
+   return reject("CARAVEL_RIDE24_FEE_CONFIGURATION_UNAVAILABLE");
+ const platformMarginPercent=Number(marginValue.toFixed(2));
+ if(platformMarginPercent<=0)
+   return reject("CARAVEL_RIDE24_FEE_CONFIGURATION_UNAVAILABLE");
  let supplier:Rec|undefined;
  let terms:unknown;
  try{
@@ -238,9 +258,24 @@ export async function issueVerifiedCaravelQuote(args:{
  const contract=verifyCaravelRide24PaymentContract(enriched);
  if("errors" in contract)
    return reject("CARAVEL_QUOTE_RIDE24_PAYMENT_CONTRACT_FAILED");
- // Ride24's fee is separate. Do not invent a partner discount or another
- // rental surcharge until the audited commercial model approves one.
- // Explicit allow-list: no supplier/customer credentials or untrusted
+ // Ride24's fee is separate from the supplier's exact on-arrival total.
+ // Apply the same configured global API margin and rounding as search-api.
+ let pricing;
+ try{
+  pricing=apiPriceTotals({
+   public_price:contract.totalMinor/100/args.rentalDays,
+   public_price_total:contract.totalMinor/100,price_is_total:true,
+  },args.rentalDays,0,platformMarginPercent);
+ }catch{return reject("CARAVEL_RIDE24_FEE_COMPUTATION_FAILED");}
+ const feeMinor=Math.round(pricing.commissionTotal*100);
+ const customerMinor=Math.round(pricing.finalTotal*100);
+ if(!Number.isSafeInteger(feeMinor)||feeMinor<=0||
+    !Number.isSafeInteger(customerMinor)||
+    customerMinor!==contract.totalMinor+feeMinor||
+    Math.round(pricing.partnerNetTotal*100)!==contract.totalMinor)
+   return reject("CARAVEL_RIDE24_FEE_COMPUTATION_FAILED");
+ // No partner discount or independent surcharge. Explicit allow-list:
+ // no supplier/customer credentials or untrusted
  // response fields are copied into the public API quote row.
  const covers=protection?.covers,excludes=protection?.excludes;
  if(!Array.isArray(covers)||!Array.isArray(excludes)||
@@ -294,9 +329,10 @@ export async function issueVerifiedCaravelQuote(args:{
     public_price_per_day:Number(
       (contract.totalMinor/100/args.rentalDays).toFixed(6)),
     partner_discount_percent:0,
-    platform_margin_percent:0,
+    platform_margin_percent:platformMarginPercent,
     partner_net_total:amt(contract.totalMinor),
-    commission_total:0,final_total:amt(contract.totalMinor),
+    commission_total:pricing.commissionTotal,
+    final_total:pricing.finalTotal,
     currency:contract.currency,
     external_quote_reference:parsed.quote.quoteId,
     raw_response:payload,
@@ -308,5 +344,6 @@ export async function issueVerifiedCaravelQuote(args:{
  return {ok:true,apiQuoteId:written.data.id as string,
    providerQuoteId:parsed.quote.quoteId,supplierId:args.supplierId,
    partnerPayableMinor:contract.totalMinor,
+   ride24ReservationFeeMinor:feeMinor,customerTotalMinor:customerMinor,
    expiresAt:new Date(parsed.quote.expiresAtEpochMs).toISOString()};
 }

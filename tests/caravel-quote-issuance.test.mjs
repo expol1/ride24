@@ -45,8 +45,13 @@ function db(){
     location_name:"Athens Airport",active:true,is_api_managed:true,return_only:false},
    dropoff:{id:DROPOFF,partner_id:PARTNER,external_id:"ath-airport",
     location_name:"Athens Airport",active:true,is_api_managed:true,return_only:false},
-   quotes:[],lookups:0};
- return {state,from(table){
+   quotes:[],lookups:0,globalMargin:25,feeRpcFails:false};
+ return {state,rpc:async name=>{
+    assert.equal(name,"get_global_platform_margin");
+    return state.feeRpcFails?
+     {data:null,error:{message:"unavailable"}}:
+     {data:state.globalMargin,error:null};
+   },from(table){
    if(table==="api_quotes")return {insert:row=>({
     select:columns=>({single:async()=>{
      assert.equal(columns,"id");
@@ -107,15 +112,17 @@ test("server verifies Caravel zero-prepay quote before saving standard Ride24 ap
  assert.equal(r.apiQuoteId,RID);
  assert.equal(r.providerQuoteId,QID);
  assert.equal(r.partnerPayableMinor,15000);
+ assert.equal(r.ride24ReservationFeeMinor,3750);
+ assert.equal(r.customerTotalMinor,18750);
  assert.equal(c.state.quotes,1);
  assert.equal(admin.state.quotes.length,1);
  const saved=admin.state.quotes[0];
  assert.equal(saved.partner_id,PARTNER);
  assert.equal(saved.partner_discount_percent,0);
- assert.equal(saved.platform_margin_percent,0);
- assert.equal(saved.commission_total,0);
+ assert.equal(saved.platform_margin_percent,25);
+ assert.equal(saved.commission_total,37.5);
  assert.equal(saved.partner_net_total,150);
- assert.equal(saved.final_total,150);
+ assert.equal(saved.final_total,187.5);
  assert.equal(saved.external_quote_reference,QID);
  assert.equal(saved.raw_response.provider_quote_data.terms_document_id,"caravel-en-v4");
  assert.equal(saved.raw_response.provider_quote_data.protection.tier,"premium");
@@ -242,4 +249,38 @@ test("no quote is published when Ride24 database insert fails",async()=>{
  const r=await issueVerifiedCaravelQuote(args(admin,c));
  assert.equal(r.ok,false);
  assert.equal(r.reason,"CARAVEL_QUOTE_DB_WRITE_FAILED");
+});
+
+test("global Ride24 fee is separate from supplier pay-on-arrival rental (all normal margins)",async()=>{
+ for(const margin of [10,18.5,25,30]){
+  const admin=db(),c=client();
+  admin.state.globalMargin=margin;
+  const r=await issueVerifiedCaravelQuote(args(admin,c));
+  assert.equal(r.ok,true,JSON.stringify({margin,r}));
+  const q=admin.state.quotes[0];
+  const fee=Math.round((150*margin/100)*100);
+  assert.equal(r.partnerPayableMinor,15000);
+  assert.equal(r.ride24ReservationFeeMinor,fee);
+  assert.equal(r.customerTotalMinor,15000+fee);
+  assert.equal(q.partner_net_total,150);
+  assert.equal(q.commission_total,fee/100);
+  assert.equal(q.final_total,150+fee/100);
+  assert.equal(q.raw_response.provider_quote_data.amounts_minor.pay_at_pickup,15000);
+  assert.equal(q.raw_response.provider_quote_data.amounts_minor.pay_now,0);
+ }
+});
+test("unavailable or zero global Ride24 fee fails before even requesting supplier quote",async()=>{
+ for(const margin of [null,0,-1,NaN,Infinity,101,"garbage"]){
+  const admin=db(),c=client();admin.state.globalMargin=margin;
+  const r=await issueVerifiedCaravelQuote(args(admin,c));
+  assert.equal(r.ok,false,JSON.stringify(margin));
+  assert.equal(r.reason,"CARAVEL_RIDE24_FEE_CONFIGURATION_UNAVAILABLE");
+  assert.equal(c.state.quotes,0);
+  assert.equal(c.state.supplierLists,0);
+  assert.equal(admin.state.quotes.length,0);
+ }
+ const admin=db(),c=client();admin.state.feeRpcFails=true;
+ const r=await issueVerifiedCaravelQuote(args(admin,c));
+ assert.equal(r.ok,false);
+ assert.equal(c.state.quotes,0);
 });
