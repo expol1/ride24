@@ -16,6 +16,7 @@ import {buildCaravelBookingDraft,caravelQuotedBookingRequest,
 import {validateCaravelTermsBeforeDispatch,
   type CaravelBookingTermsSnapshot} from "./caravel-terms-lifecycle.ts";
 import type {CaravelTermsSnapshot} from "./caravel-terms-version.ts";
+import {validateCaravelCoverageConsentBeforeDispatch} from "./caravel-coverage-consent.ts";
 import type {CaravelQuotedBookingRequest} from "./caravel-sandbox-adapter.ts";
 
 type ProductionGate = NonNullable<CaravelDraftOptions["production"]>;
@@ -40,6 +41,8 @@ export function prepareVerifiedCaravelDispatch(args:{
   reviewedTerms:CaravelTermsSnapshot;
   currentTermsMetadataList:unknown;
   persistedBookingTerms:CaravelBookingTermsSnapshot | null;
+  /** Saved by the server along with the booking BEFORE Stripe, never user-supplied. */
+  persistedCoverageConsent?:unknown;
 }):CaravelDispatchPreparation {
   if(!args || !args.bookingInput || !args.productionGate ||
      !args.reviewedTerms) return {
@@ -54,6 +57,19 @@ export function prepareVerifiedCaravelDispatch(args:{
   });
   if("reason" in terms) return {
     ok:false,action:"hold_for_manual_review",reasons:[terms.reason],
+  };
+  if(args.productionGate.coverageReview){
+    const coverage=validateCaravelCoverageConsentBeforeDispatch({
+      quote:args.bookingInput.provider_quote_data,
+      reviewed:args.productionGate.coverageReview,
+      persistedConsent:args.persistedCoverageConsent,
+    });
+    if("reason" in coverage)return {
+      ok:false,action:"hold_for_manual_review",reasons:[coverage.reason],
+    };
+  }else if(args.persistedCoverageConsent!=null) return {
+    ok:false,action:"hold_for_manual_review",
+    reasons:["CARAVEL_UNEXPECTED_COVERAGE_CONSENT_WITHOUT_REVIEW"],
   };
   const booking=buildCaravelBookingDraft(
     args.bookingInput,args.nowEpochMs,
