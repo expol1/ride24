@@ -190,9 +190,24 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
   throw Error("PARTNER_API_ERROR:ARVENT_PRICE_CHANGED");
  const extraData=supplierData(await request(c,ARVENT_PATHS.extras+"?"+arventQuery({
   reservationToken:current.reservationToken,languageCode:"EN"})));
- if(!extraData||typeof extraData!=="object"||!Array.isArray((extraData as any).extras))
+ if(!extraData||typeof extraData!=="object"
+  ||((extraData as any).extras!==null&&!Array.isArray((extraData as any).extras)))
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
- const required=(extraData as any).extras.filter((x:any)=>x&&x.isRequired===true);
+ // Live Arvent /extras may legitimately return `extras:null`.
+ // Its vehicle is still the final reservation-token quotation and must
+ // match the user's accepted period, route, price, currency and terms.
+ const pricedVehicle=(extraData as any).vehicle;
+ if(!pricedVehicle||String(pricedVehicle.vehicleId)!==input.vehicle_group_id
+  ||!arventOfferMatchesTerms(pricedVehicle,"EUR")
+  ||Math.abs(Number(pricedVehicle.totalPrice)-actual)>0.01
+  ||!arventSavedRouteMatches({
+    pickupLocationId:pricedVehicle.pickupLocationId,
+    returnLocationId:pricedVehicle.returnLocationId,
+    pickupDate:pricedVehicle.pickupDateTime,
+    returnDate:pricedVehicle.returnDateTime,
+  },input))
+  throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
+ const required=((extraData as any).extras||[]).filter((x:any)=>x&&x.isRequired===true);
  if(required.some((x:any)=>!x.code||Number(x.price||0)!==0))
   throw Error("PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNPRICED");
  const name=String(input.main_driver.name).trim().split(/\s+/);
