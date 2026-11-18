@@ -198,9 +198,19 @@ test("canonical Ride24 pickup and dropoff names are read from location rows, not
  assert.equal(admin.state.quotes[0].raw_response.ride24_context.return_location,
   "Athens Airport Official Return");
 });
-test("unapproved pay-now, short quote expiry and changed supplier terms never reach Stripe",async()=>{
+test("non-zero totals.pay_now under a pay_on_arrival agreement is valid (contract §6.2); schedule stays 0 prepaid",async()=>{
+ const admin=db(),c=client();
+ c.state.quote={...quote(),totals:{...quote().totals,pay_now:money(3000),pay_at_pickup:money(12000)}};
+ const r=await issueVerifiedCaravelQuote(args(admin,c));
+ assert.equal(r.ok,true,JSON.stringify(r));
+ const data=admin.state.quotes[0].raw_response.provider_quote_data;
+ assert.deepEqual({...data.amounts_minor},{total:15000,pay_now:0,pay_at_pickup:15000});
+ assert.deepEqual({...data.supplier_price_split_minor},{pay_now:3000,pay_at_pickup:12000});
+ assert.equal(data.payment_schedule_source,"supplier_agreement_pay_on_arrival");
+ assert.equal(admin.state.quotes[0].partner_net_total,150,"full rental still collected by Caravel at pickup");
+});
+test("short expiry, wrong status/plan/lines/deposit, prepaid model and changed supplier terms never reach Stripe",async()=>{
  for(const patch of [
-  {totals:{...quote().totals,pay_now:money(3000),pay_at_pickup:money(12000)}},
   {expires_at:new Date(NOW+1000).toISOString()},
   {status:"expired"},{plan:"basic"},
   {line_items:[{kind:"base_rate",total:money(14900)}]},

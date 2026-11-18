@@ -80,11 +80,13 @@ test("documented availability row + quote pass shared normalizeGroups unchanged"
   assert.equal(group.provider_quote_data.protection_id, "prot-premium");
   // Shared sanitizePartnerPayload returns null-prototype objects; compare plain values.
   assert.deepEqual({...group.provider_quote_data.amounts_minor},
-    {rental: 12000, extras: 0, mandatory_fees: 3000, total: 15000, pay_now: 12000, pay_at_pickup: 3000});
+    // Schedule from the pay_on_arrival AGREEMENT (contract §6.2): the quote's
+    // product-wide pay_now split (12000) never means anything is due before pickup.
+    {rental: 12000, extras: 0, mandatory_fees: 3000, total: 15000, pay_now: 0, pay_at_pickup: 15000});
   assert.deepEqual(group.provider_quote_data.drivers.map(d => ({...d})), [{age: 30, role: "main"}]);
 });
 
-test("shared gross quote math is correct but does not prove supplier pay-on-arrival eligibility", () => {
+test("shared gross quote math is correct; pay-on-arrival eligibility comes from the supplier agreement, not totals.pay_now", () => {
   const [group] = normalizeGroups({groups: [buildCaravelOfferFromApi(apiOffer()).value]});
   // Caravel partner discount must be 0: Caravel collects grand_total at the desk.
   const totals = apiPriceTotals(group, 3, 0, 20);
@@ -92,11 +94,16 @@ test("shared gross quote math is correct but does not prove supplier pay-on-arri
   assert.equal(totals.commissionTotal, 30); // Ride24 booking fee, charged separately via Stripe
   assert.equal(totals.finalTotal, 180);
   assert.equal(totals.finalTotal - totals.commissionTotal, 150); // fee is never added into grand_total
-  assert.equal(group.features.payment_model, null);
-  assert.equal(group.features.supplier_collects_grand_total, false);
-  assert.equal(group.provider_quote_data.payment_model, null);
-  // The quote explicitly contains a Caravel prepayment, so public
-  // sellability must not be inferred from the separate Ride24 fee.
+  // Quote says pay_now 12000, but the supplier agreement includes pay_on_arrival:
+  // under §6.2 that is a price-line split; the rental is collected at pickup.
+  assert.equal(group.features.payment_model, "pay_on_arrival");
+  assert.equal(group.features.supplier_collects_grand_total, true);
+  assert.equal(group.provider_quote_data.payment_model, "pay_on_arrival");
+  // A supplier WITHOUT pay_on_arrival in its agreement is never presented as pay at pickup.
+  const o = apiOffer(); o.supplier.payment_models = ["prepaid", "partial"];
+  const prepaidOnly = buildCaravelOfferFromApi(o);
+  assert.equal(prepaidOnly.ok, false);
+  assert.ok(prepaidOnly.errors.includes("PAY_ON_ARRIVAL_NOT_CONFIRMED"));
 });
 
 test("quote lines are reconciled by kind with grand_total and the payment split", () => {

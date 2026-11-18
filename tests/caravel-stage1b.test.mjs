@@ -36,18 +36,20 @@ const offer = (patch = {}, c = "EUR") => ({availabilityRow: row(c), protectionId
   context: {scopeSupplierId: "sup-1", partnerCurrency: c, pickupLocationId: "loc", dropoffLocationId: "loc", pickupEpochMs: pickup, dropoffEpochMs: pickup + 3 * 86400000,
     rentalDays: 3, driverAge: 30, nowEpochMs: NOW}, ...patch});
 
-test("Caravel API supports partial payments, but Ride24 only publishes zero-prepayment quotes", () => {
-  // The raw Caravel API reader must still parse non-Ride24 sandbox examples.
+test("pay-on-arrival comes from the supplier agreement; a non-zero totals.pay_now split is not a prepayment (contract §6.2)", () => {
   const partial=offer();
   assert.equal(buildCaravelOfferFromApi(partial).ok,true);
   const generic=buildCaravelOfferFromApi(partial).value;
-  assert.equal(generic.features.payment_model,null);
-  assert.equal(generic.features.supplier_collects_grand_total,false);
-  assert.equal(generic.provider_quote_data.payment_model,null);
-  const blocked=buildRide24SellableCaravelOfferFromApi(partial);
+  assert.equal(generic.features.payment_model,"pay_on_arrival");
+  assert.equal(generic.features.supplier_collects_grand_total,true);
+  const splitOk=buildRide24SellableCaravelOfferFromApi(partial);
+  assert.equal(splitOk.ok,true,JSON.stringify(splitOk.errors));
+  assert.equal(splitOk.value.provider_quote_data.amounts_minor.pay_now,0);
+  // A supplier whose agreement does NOT include pay_on_arrival is never sold.
+  const prepaidOnly=offer({supplier:{...supplier(),payment_models:["prepaid","partial"]}});
+  const blocked=buildRide24SellableCaravelOfferFromApi(prepaidOnly);
   assert.equal(blocked.ok,false);
-  assert.ok(blocked.errors.includes("CARAVEL_PREPAYMENT_NOT_ALLOWED"));
-  assert.ok(blocked.errors.includes("CARAVEL_PICKUP_AMOUNT_MISMATCH"));
+  assert.ok(blocked.errors.includes("PAY_ON_ARRIVAL_NOT_CONFIRMED"), JSON.stringify(blocked.errors));
 
   const full=offer({quoteData:quote("EUR",{totals:{
     grand_total:mny(17700),pay_now:mny(0),pay_at_pickup:mny(17700),

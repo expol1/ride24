@@ -124,12 +124,26 @@ test("terms changed after consent (new document_id) blocks old consent -> refund
 
 for (const [name, patch] of [
   ["price changed", {totals: {grand_total: money(15100), pay_now: money(), pay_at_pickup: money(15100)}, line_items: [{kind: "base_rate", total: money(15100)}]}],
-  ["prepayment introduced", {totals: {grand_total: money(15000), pay_now: money(5000), pay_at_pickup: money(10000)}}],
   ["fresh quote about to expire", {expires_at: new Date(NOW + 30000).toISOString()}],
 ]) test(`fresh supplier quote mismatch -> definitive refusal: ${name}`, () => withFlags(ON, async () => {
   const state = newState(); state.fresh = freshQuote(patch);
   const err = await revalidatePaidCaravel(creds(), booking(), quoteRow(), {factory: fakeFactory(state), nowMs: NOW}).catch((e) => e);
   assert.ok(err instanceof DefiniteApiFailure, String(err)); assert.match(err.message, /PROVIDER_PRICE_OR_TERMS_CHANGED/);
+}));
+
+test("fresh quote with non-zero totals.pay_now but same total is NOT refused (contract §6.2); booking.payment decides", () => withFlags(ON, async () => {
+  const state = newState();
+  state.fresh = freshQuote({totals: {grand_total: money(15000), pay_now: money(5000), pay_at_pickup: money(10000)}});
+  const prepared = await revalidatePaidCaravel(creds(), booking(), quoteRow(), {factory: fakeFactory(state), nowMs: NOW});
+  assert.equal(prepared.total_minor, 15000);
+  state.booked = (k) => confirmed(k, {payment: {model: "pay_on_arrival", amount_on_arrival: money(10000), amount_prepaid: money(5000)}});
+  assert.equal((await createPaidCaravel(creds(), prepared, {factory: fakeFactory(state)})).needs_manual_review, true, "real prepayment in booking.payment");
+  state.booked = (k) => confirmed(k, {payment: {model: "pay_on_arrival", amount_on_arrival: money(15000), amount_prepaid: money(0),
+    who_collects: {on_arrival: "broker"}}});
+  assert.equal((await createPaidCaravel(creds(), prepared, {factory: fakeFactory(state)})).needs_manual_review, true, "operator must collect the rental");
+  state.booked = (k) => confirmed(k, {payment: {model: "pay_on_arrival", amount_on_arrival: money(15000), amount_prepaid: money(0),
+    who_collects: {on_arrival: "operator"}}});
+  assert.equal((await createPaidCaravel(creds(), prepared, {factory: fakeFactory(state)})).status, "confirmed");
 }));
 
 test("credentials must be the production Caravel host", () => withFlags(ON, async () => {
