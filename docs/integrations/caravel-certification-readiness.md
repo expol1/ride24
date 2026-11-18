@@ -301,3 +301,52 @@ Older evidence below is retained as dated history; references to pending live bo
   certyfikacji, hash §3.9 i zgodności ubezpieczenia.
   Unikać zmian we wspólnym adapterze wpływających na AVIA.
 
+
+
+## 18.11.2026 — rozdzielenie sandbox / Ride24: waluta, depozyt i model pobrania płatności
+
+- Wykryto ryzyko w początkowej weryfikacji odpowiedzi rezerwacji:
+  sama kwota `deposit.amount=0` i `excess.amount=0` nie wystarcza
+  bez sprawdzenia waluty. Jednocześnie otwarty schemat API Caravel może
+  **pomijać `Booking.payment`**, gdy stosuje domyślne `pay_on_arrival`.
+  Wprowadzenie obowiązkowych pól dla wszystkich scenariuszy
+  zakłóciło 6 testów sandboxowych, co zostało poprawione.
+- `verifyCaravelBookingAgainstQuote(..., {strictProductionPayment:true})`
+  wymaga już dla *oddzielnego produkcyjnego mostu Ride24*:
+  zgodnej waluty przy zerowym depozycie i udziale własnym,
+  jawnego `payment.model=pay_on_arrival`,
+  kwoty płatnej przy odbiorze równej całej wycenie i
+  `payment.amount_prepaid=0` w tej samej walucie.
+  Bez takiego dowodu most odmawia uznania potwierdzenia za
+  zgodne i kieruje do ręcznego sprawdzenia. Standardowy
+  weryfikator sandbox pozostaje zgodny z opcjonalnymi polami API.
+  **Należy ustalić z Caravel, czy produkcyjna odpowiedź zawsze zawiera
+  rozbicie tych pól — w przeciwnym razie potrzebny wiarygodny
+  dowód z aktualnej wyceny i dostawcy, a nie ślepe dopisanie domyślnych wartości.**
+- W danych testowych Caravel często występuje rozbicie np.
+  `pay_now=13200` i `pay_at_pickup=4500` przy łącznej kwocie
+  `17700` w jednostkach groszowych. **Nie wolno** opublikować
+  takiej oferty w Ride24 pod etykietą `pay_on_arrival` tylko dlatego,
+  że Supplier.payment_models zawiera ten model.
+- Dodano `caravel-payment-contract.ts`:
+  `verifyCaravelRide24PaymentContract` wymaga
+  `payment_model=pay_on_arrival`, `pay_now=0`,
+  `pay_at_pickup=total`, zgodności kwot w minor/major
+  oraz waluty EUR lub GBP. Nie nalicza ani nie pobiera
+  opłaty Ride24 przez Stripe.
+- Dodano `buildRide24SellableCaravelOfferFromApi()` jako
+  odrębny *przyszły* punkt publikowania ofert. Zwykły
+  `buildCaravelOfferFromApi()` nadal parsuje różne rzeczywiste
+  tryby Caravel na potrzeby certyfikacji, a nowy wariant
+  odrzuca wymaganie przedpłaty. **Wyszukiwarka Ride24 nie jest
+  jeszcze podłączona do żadnego z nich**.
+- Produkcyjny `buildCaravelBookingDraft()` dodatkowo
+  odrzuca quote bez sprawdzonego zerowego `pay_now` i pełnej
+  kwoty przy odbiorze. Testy uwzględniają brak splitu,
+  częściową przedpłatę i dwie waluty.
+- Commit `75b780d47b1871380188b653a66e8d1dfae17b2e`:
+  dwa zestawy Caravel sandbox checks i Ride24 API Compatibility QA
+  zakończyły się sukcesem. Brak wywołań prawdziwego
+  Caravel API, deployu, modyfikacji bazy czy Stripe.
+- Biznesowa przeszkoda wciąż istnieje: Caravel Premium
+  wyłącza szkło, koła i podwozie; nie włączać ofert.
