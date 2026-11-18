@@ -25,6 +25,8 @@ function fixture(){
       provider:"caravel",quote_id:QUOTE_ID,supplier_id:"acct_eur",
       vehicle_id:"opaque-veh",protection_id:"prot-premium",
       plan:"premium",currency:"EUR",amounts:{total:150},
+      amounts_minor:{total:15000,pay_now:0,pay_at_pickup:15000},
+      payment_model:"pay_on_arrival",
       drivers:[{age:30,role:"main"}],
       expires_at:new Date(NOW+600000).toISOString(),
       terms_document_id:meta.document_id,
@@ -104,6 +106,9 @@ test("missing persisted acceptance or changed quote terms block even when mock c
     }}},
     {bookingInput:{...f.bookingInput,provider_quote_data:{
       ...f.bookingInput.provider_quote_data,supplier_id:"acct_gbp",
+    }}},
+    {bookingInput:{...f.bookingInput,provider_quote_data:{
+      ...f.bookingInput.provider_quote_data,amounts_minor:{total:15000,pay_now:5000,pay_at_pickup:10000},
     }}},
   ]){
     const result=prepareVerifiedCaravelDispatch({...f,...patch});
