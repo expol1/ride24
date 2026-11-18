@@ -117,7 +117,7 @@ export async function recordVerifiedCaravelStripePayment(args:{
     verifiedStripeSession:session,
     expectedFeeMinor:session.amount_total as number,
   });
-  if(!receipt.ok)return fail(receipt.reason);
+  if("reason" in receipt)return fail(receipt.reason);
   if("action" in decision){
     if(decision.action==="already_waiting_for_supplier")
       return {ok:true,action:"already_queued",bookingId,
