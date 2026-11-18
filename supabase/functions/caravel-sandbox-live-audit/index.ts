@@ -22,12 +22,13 @@ import {CaravelClient} from "../_shared/caravel-sandbox-adapter.ts";
 import {runCaravelAcceptance} from "../_shared/caravel-acceptance.mjs";
 import {verifyCaravelTermsDocumentHash} from "../_shared/caravel-terms-canonical.ts";
 import {buildCaravelHmacSelfTestSubmission} from "../_shared/caravel-webhooks.ts";
-import FIXTURE from "./webhook-hmac-self-test.json" with {type: "json"};
 
 const EXPIRES_AT = Date.parse("2026-11-20T20:00:00Z");
 const TOKEN_SHA256 = "036784ba932a088753833498653cb8a03272d6c6decc931047b9f69a30b79f81";
 const SID = /^[A-Za-z0-9_-]{1,128}$/;
 const SANDBOX = "https://sandbox-api.caravelway.com";
+// Official public self-test fixture, fetched from Caravel's own pack (not a live credential).
+const FIXTURE_URL = SANDBOX + "/docs/packs/caravel/fixtures/webhook-hmac-self-test.json";
 let running = false;
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
@@ -118,6 +119,9 @@ Deno.serve(async (req) => {
     if (action === "reference") {
       result = await reference(client, key, (body.supplier_id as string) ?? null);
     } else if (action === "hmac-self-test") {
+      const fr = await fetch(FIXTURE_URL, {redirect: "error", signal: AbortSignal.timeout(15000)});
+      if (!fr.ok) throw new Error("FIXTURE_HTTP_" + fr.status);
+      const FIXTURE = await fr.json();
       const local = await buildCaravelHmacSelfTestSubmission(FIXTURE);
       const submitted = await client.submitSandboxHmacSelfTest(local).catch((e) => ({error: errText(e, key)}));
       result = {local_signature_matches_fixture: local.signature_hex === (FIXTURE as {expected_signature_hex: string}).expected_signature_hex,
