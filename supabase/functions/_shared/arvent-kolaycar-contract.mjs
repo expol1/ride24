@@ -5,6 +5,18 @@ export const ARVENT_PROVIDER="arvent_kolaycar";
 export const ARVENT_ORIGIN="https://racapi.arventcarrental.com";
 export const ARVENT_INITIAL_AIRPORT_IATAS=Object.freeze(["SAW","IST","SZF","ASR","DLM","AYT","ADB","EDO","AOE","TZX"]);
 const allowedAirports=new Set(ARVENT_INITIAL_AIRPORT_IATAS);
+// Normalized Ride24 airport labels, independent of supplier spelling/typos.
+// Only map airports that are actually returned by the live provider API.
+export const ARVENT_AIRPORT_DISPLAY=Object.freeze({
+ SAW:{city:"Istanbul",name:"Istanbul Sabiha Gökçen Airport"},
+ IST:{city:"Istanbul",name:"Istanbul Airport"},
+ SZF:{city:"Samsun",name:"Samsun Çarşamba Airport"},
+ ASR:{city:"Kayseri",name:"Kayseri Erkilet Airport"},
+ DLM:{city:"Dalaman",name:"Dalaman Airport"},
+ AYT:{city:"Antalya",name:"Antalya Airport"},
+ ADB:{city:"Izmir",name:"Izmir Adnan Menderes Airport"},
+ TZX:{city:"Trabzon",name:"Trabzon Airport"},
+});
 export const ARVENT_PATHS=Object.freeze({
  auth:"/users/authenticate",locations:"/locations",cities:"/locations/cities",
  countries:"/locations/countries",groups:"/vehicles/list",search:"/vehicles",
@@ -53,9 +65,11 @@ export function arventLocationRows(e,cities=[]) {
    :allowedAirports.has(locationCode)?locationCode
    :allowedAirports.has(nameCode)?nameCode:null;
   if(!airport)return [];
-  const city=cn.get(String(x.cityId))||str(x.cityName)||null;
-  return [canonicalApiLocation({external_id:k,country:"Turkey",region:city||name,city,location_name:name,
-   display_name:name,iata_code:airport,
+  const standard=ARVENT_AIRPORT_DISPLAY[airport];
+  const city=standard?.city||cn.get(String(x.cityId))||str(x.cityName)||null;
+  const normalizedName=standard?.name||name;
+  return [canonicalApiLocation({external_id:k,country:"Turkey",region:city||name,city,location_name:normalizedName,
+   display_name:normalizedName,iata_code:airport,
    type:"airport",return_only:x.isPickup===false,
    extra_fee:false,extra_fee_amount:null,contact_required:false,active:true})];
  });
