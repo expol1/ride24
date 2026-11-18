@@ -132,3 +132,14 @@ test("concurrent state change cannot resurrect cancelled or already processed bo
  assert.equal(res.reason,"CARAVEL_PAYMENT_CONCURRENT_STATE_CHANGE");
  assert.equal(admin.state.writes,0);
 });
+
+test("signed Stripe duplicate AFTER supplier confirmation is a no-op, not a new manual case",async()=>{
+ const admin=db({...row(),status:"paid",api_status:"confirmed",
+   api_booking_reference:"04a1f3e1-1fb4-4d28-af02-979604d5c622"});
+ const res=await recordVerifiedCaravelStripePayment(args(admin));
+ assert.equal(res.ok,true,JSON.stringify(res));
+ assert.equal(res.action,"already_completed");
+ assert.equal(res.supplierDispatchRequired,false);
+ assert.equal(res.generateVoucher,false);
+ assert.equal(admin.state.writes,0);
+});

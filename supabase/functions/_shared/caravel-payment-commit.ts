@@ -33,7 +33,7 @@ export type CaravelPaymentAdmin={
   from:(name:"bookings")=>Query;
 };
 export type CaravelPaymentCommitResult=
- |{ok:true;action:"queued"|"already_queued";bookingId:string;
+ |{ok:true;action:"queued"|"already_queued"|"already_completed";bookingId:string;
     supplierDispatchRequired:boolean;generateVoucher:false;notifyConfirmed:false}
  |{ok:false;action:"hold_for_manual_review"|"reject_invalid_signature";
     reason:string;generateVoucher:false};
@@ -105,6 +105,9 @@ export async function recordVerifiedCaravelStripePayment(args:{
   if("action" in decision){
     if(decision.action==="already_waiting_for_supplier")
       return {ok:true,action:"already_queued",bookingId,
+       supplierDispatchRequired:false,generateVoucher:false,notifyConfirmed:false};
+    if(decision.action==="already_completed")
+      return {ok:true,action:"already_completed",bookingId,
        supplierDispatchRequired:false,generateVoucher:false,notifyConfirmed:false};
     return fail(decision.reason);
   }
