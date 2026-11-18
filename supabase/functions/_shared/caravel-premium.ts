@@ -155,11 +155,15 @@ export function checkCaravelLicenceEligibility(
 /**
  * Ride24's customer-facing Premium terms for Caravel (partner correction
  * 17 Nov 2026), prepared for later display. Not wired into WWW/APK.
- * These summaries never supersede GET /v1/reference/terms: Caravel rental
- * terms take precedence and must be shown before Stripe payment. Current
- * Caravel exclusions still fail Ride24's full-coverage publish gate.
+ * IMPORTANT: historical draft from the partner's 10 Nov rules / 17 Nov
+ * clarification only. It is NOT the authoritative live contract, and MUST
+ * NOT be rendered without comparing to the latest clauses/v1 document.
+ * Ride24 owner approved *disclosed* exclusions on 18 Nov: only supplier-
+ * verified current codes and amounts, then explicit customer acceptance.
  */
 export const CARAVEL_PREMIUM_TERMS = Object.freeze({
+  sourceAsOf: "2026-11-17",
+  authoritativeForCurrentOffers: false,
   scope: {
     pl: "Ochrona Premium obowiązuje podczas jazdy po drogach utwardzonych.",
     en: "Premium protection applies while driving on paved roads.",
