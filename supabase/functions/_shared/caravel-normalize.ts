@@ -612,6 +612,12 @@ export function buildCaravelOfferFromApi(input: {
   // Supplier.payment_models is optional in the API: absent = unverified,
   // never silently default to pay-on-arrival.
   const supplierRecord = rec(input?.supplier);
+  const scopedSupplierId = input?.context?.scopeSupplierId;
+  // Both Caravel sandbox suppliers intentionally have different hire,
+  // licence and protection policies. A quote assembled from supplier A's
+  // vehicle and supplier B's policies is not a valid Ride24 category offer.
+  if (!text(scopedSupplierId, 128) || supplierRecord?.supplier_id !== scopedSupplierId)
+    errors.push("SUPPLIER_CONTEXT_MISMATCH");
   if (!Array.isArray(supplierRecord?.payment_models) ||
       !supplierRecord.payment_models.includes("pay_on_arrival"))
     errors.push("PAY_ON_ARRIVAL_NOT_CONFIRMED");
@@ -621,15 +627,25 @@ export function buildCaravelOfferFromApi(input: {
     : candidates.find((c) => c.protection.protection_id === input.protectionId) ?? null;
   if (!chosen) errors.push("PROTECTION_NOT_OFFERED_ON_ROW");
   const protection = chosen ? chosen.protection : null;
+  if (protection?.supplier_id !== undefined && protection.supplier_id !== scopedSupplierId)
+    errors.push("PROTECTION_SUPPLIER_MISMATCH");
   // The vehicle card and deposit follow the protection actually quoted.
   const row: Json = chosen ? {...rowIn, protection} : rowIn;
   const qd = rec(input?.quoteData) ?? {};
+  if (qd.supplier_id !== undefined && qd.supplier_id !== scopedSupplierId)
+    errors.push("QUOTE_SUPPLIER_MISMATCH");
+  if (qd.vehicle_id !== undefined && qd.vehicle_id !== row.vehicle_id)
+    errors.push("QUOTE_VEHICLE_GROUP_MISMATCH");
+  if (qd.protection_id !== undefined && qd.protection_id !== protection?.protection_id)
+    errors.push("QUOTE_PROTECTION_MISMATCH");
   // The final quote must price exactly this protection product.
   if (protection && Array.isArray(qd.line_items) && typeof protection.code === "string" &&
       !(qd.line_items as Json[]).some((l) => rec(l)?.kind === "protection" && rec(l)?.code === protection.code))
     errors.push("PROTECTION_NOT_IN_QUOTE");
   // Rental-length bounds stated by the operator (policies), checked against the billed days.
   const pol = rec(input?.policies) ?? {};
+  if (pol.supplier_id !== undefined && pol.supplier_id !== scopedSupplierId)
+    errors.push("POLICY_SUPPLIER_MISMATCH");
   if (safeInt(qd.rental_days) && ((safeInt(pol.min_rental_days) && (qd.rental_days as number) < (pol.min_rental_days as number)) ||
       (safeInt(pol.max_rental_days) && (qd.rental_days as number) > (pol.max_rental_days as number))))
     errors.push("RENTAL_LENGTH_OUT_OF_BOUNDS");

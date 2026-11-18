@@ -441,3 +441,44 @@ test("Caravel extras mapping accepts supplier opaque codes containing s and keep
  assert.equal(caravelExtraFromApi({...ex,category:"additional_driver",code:"unknown_s"},valid).ride24Code,"additional_driver");
  assert.ok(validateCaravelExtrasMapping({"sup-1:code:bad:colon":"child_seat"}).errors.length);
 });
+
+test("Caravel offers never combine vehicle, supplier, policy or Premium cover from different suppliers",()=>{
+ const valid=offer();
+ assert.equal(buildCaravelOfferFromApi(valid).ok,true);
+ const scenarios=[
+  [{supplier:{...supplier(),supplier_id:"sup-2"}}, "SUPPLIER_CONTEXT_MISMATCH"],
+  [{policies:{...policies,supplier_id:"sup-2"}}, "POLICY_SUPPLIER_MISMATCH"],
+  [{availabilityRow:{...row(),supplier_id:"sup-2"}}, "SUPPLIER_SCOPE_MISMATCH"],
+  [{availabilityRow:{...row(),protection_options:[{
+    ...zeroRisk(),supplier_id:"sup-2",
+   }]}}, "PROTECTION_SUPPLIER_MISMATCH"],
+  [{quoteData:{...quote(),supplier_id:"sup-2"}}, "QUOTE_SUPPLIER_MISMATCH"],
+  [{quoteData:{...quote(),vehicle_id:"other-opaque-id"}}, "QUOTE_VEHICLE_GROUP_MISMATCH"],
+  [{quoteData:{...quote(),protection_id:"different-cover"}}, "QUOTE_PROTECTION_MISMATCH"],
+ ];
+ for(const [patch,expected] of scenarios){
+  const result=buildCaravelOfferFromApi(offer(patch));
+  assert.equal(result.ok,false,JSON.stringify(patch));
+  assert.ok(result.errors.includes(expected),JSON.stringify(result.errors));
+ }
+ const first=buildCaravelOfferFromApi(offer({policies:{
+  ...policies,supplier_id:"sup-1",licence_rules:{min_years_held:1},
+ }}));
+ assert.equal(first.ok,true,JSON.stringify(first.errors));
+ const second=buildCaravelOfferFromApi(offer({policies:{
+  ...policies,supplier_id:"sup-2",licence_rules:{min_years_held:2},
+ }}));
+ assert.ok(second.errors.includes("POLICY_SUPPLIER_MISMATCH"));
+});
+test("Caravel Ride24 card remains category/class only; supplier's opaque id is not a named car",()=>{
+ const result=buildCaravelOfferFromApi(offer({availabilityRow:{
+  ...row(),vehicle_id:"opaque-group-730x",display_name:"VW Golf or similar",
+ }}));
+ assert.equal(result.ok,true,JSON.stringify(result.errors));
+ const [normalized]=normalizeGroups({groups:[result.value]});
+ assert.equal(normalized.class_code,"C");
+ assert.equal(normalized.external_id,"opaque-group-730x");
+ assert.equal(normalized.example_model,"VW Golf or similar");
+ assert.equal(normalized.features.acriss,"CDMR");
+ assert.equal(normalized.provider_quote_data.vehicle_id,"opaque-group-730x");
+});
