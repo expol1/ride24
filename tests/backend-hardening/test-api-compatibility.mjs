@@ -33,7 +33,7 @@ function adapters() {
   const transport={endpointFor:()=>'/reservations',sanitizePartnerPayload:x=>x,
     partnerApiRequest:async(_credentials,path,request)=>{requests.push({path,...request});return {id:'external-1',status:'pending'};}};
   const aggregator={aggregatorTest:async()=>({ok:true}),aggregatorLocations:async()=>[],aggregatorGroups:async()=>[],aggregatorAvailability:async()=>[],aggregatorBook:async()=>({}),aggregatorStatus:async()=>({}),aggregatorCancel:async()=>({})};
-  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?aggregator:name.includes('arvent-kolaycar')?{}:(()=>{throw Error(name)})(),
+  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?aggregator:name.includes('arvent-kolaycar')?{}:name.includes('caravel-paid-fulfillment')?{cancelCaravelBooking:async()=>{throw Error('Caravel cancel must not run for other providers');}}:(()=>{throw Error(name)})(),
     URL,URLSearchParams,TextEncoder,TextDecoder,crypto,console};
   vm.runInNewContext(adapterCode,sandbox);
   return {requests,...sandbox.exports};
