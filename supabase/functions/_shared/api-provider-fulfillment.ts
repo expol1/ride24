@@ -73,7 +73,8 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
    ||quote.car_class_id!==booking.car_class_id||booking.api_quote_id!==quote.id
    ||quote.start_date!==booking.start_date||quote.end_date!==booking.end_date)
   fail('ACCEPTED_QUOTE_MISMATCH');
- if(booking.partners.rental_terms_url!==booking.partner_terms_snapshot
+ if(!booking.partner_terms_snapshot||!booking.partner_rules_snapshot
+   ||booking.partners.rental_terms_url!==booking.partner_terms_snapshot
    ||booking.partners.rental_rules_url!==booking.partner_rules_snapshot)
   fail('PARTNER_DOCUMENTS_CHANGED');
  const old=quote.raw_response?.provider_quote_data;
@@ -87,7 +88,7 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
   return serviceCents(n);
  };
  const net=cents(booking.partner_net_price_snapshot);
- if(old?.provider!=='arvent_kolaycar'||!/^\w{4}$/.test(sipp)
+ if(old?.provider!=='arvent_kolaycar'||!/^[A-Z]{4}$/.test(sipp)
    ||old?.sipp!==sipp||!/^\d+$/.test(vehicleId)
    ||quote.currency!=='EUR'||booking.partner_currency!=='EUR'
    ||Number(quote.partner_discount_percent)!==0
@@ -118,14 +119,19 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
    &&cents(offer.public_price_total)===net);
  if(!match)fail(live.some((offer:any)=>offer.external_id===sipp)
    ?'PROVIDER_PRICE_OR_TERMS_CHANGED':'PROVIDER_UNAVAILABLE');
+ if(pickup!==dropoff)fail('ARVENT_ONE_WAY_PAYMENT_UNVERIFIED');
+ // Ride24 currently stores age only. A supplier licence-tenure requirement
+ // cannot be satisfied by inferring years of driving from the driver's age.
+ if(match.features?.min_license_years!==0)fail('ARVENT_LICENCE_TENURE_UNVERIFIED');
  const age=Number(booking.main_driver_age);
  const minAge=match.features?.minimum_driver_age;
  if(!Number.isInteger(age)||age<18
-   ||(Number.isInteger(minAge)&&age<minAge))
+   ||typeof minAge!=="number"||!Number.isInteger(minAge)||minAge<18||age<minAge)
   fail('ARVENT_DRIVER_AGE_NOT_ALLOWED');
- if(match.provider_quote_data?.provider!=='arvent_kolaycar'
-   ||match.provider_quote_data?.sipp!==sipp
-   ||!/^\d+$/.test(String(match.provider_quote_data?.vehicle_id||'')))
+ const selected=match.provider_quote_data as Record<string,unknown>|null;
+ if(selected?.provider!=='arvent_kolaycar'
+   ||selected.sipp!==sipp
+   ||!/^\d+$/.test(String(selected.vehicle_id||'')))
   fail('PROVIDER_TERMS_CHANGED');
  return {
    provider:'arvent_kolaycar',idempotency_key:'ride24:'+booking.id,
@@ -140,7 +146,12 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
 export async function createPaidProvider(credentials:any,input:any) {
  if(input?.provider==='arvent_kolaycar'){
    if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
-   return arventCreateBooking(credentials,input);
+   try {
+     return await arventCreateBooking(credentials,input);
+   } catch(error) {
+     if(error instanceof Error&&error.message==='ARVENT_FAILED_BEFORE_SAVE')fail('ARVENT_FAILED_BEFORE_SAVE');
+     throw error;
+   }
  }
  if(input?.provider&&input.provider!=='renteon_aggregator')fail('ADAPTER_NOT_READY');
  return aggregatorBook(credentials,input);

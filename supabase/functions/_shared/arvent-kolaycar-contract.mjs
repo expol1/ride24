@@ -242,6 +242,7 @@ export function arventSavedRouteMatches(saved, expected) {
  const startTime=/^(\d{2}):(\d{2})/.exec(str(expected.pickup_time,16));
  const endTime=/^(\d{2}):(\d{2})/.exec(str(expected.return_time,16));
  return Boolean(start&&end&&startTime&&endTime
+   &&idString(expected.pickup_location_id)&&idString(expected.dropoff_location_id)
    &&idString(saved.pickupLocationId)===idString(expected.pickup_location_id)
    &&idString(saved.returnLocationId)===idString(expected.dropoff_location_id)
    &&start.date===str(expected.pickup_date,10)

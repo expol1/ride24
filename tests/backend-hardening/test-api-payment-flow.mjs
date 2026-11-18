@@ -66,3 +66,22 @@ test('existing supplier reference is reconciled by status without re-saving',asy
  assert.deepEqual(s.calls,['voucher-email-push']);
  assert.ok(!s.calls.includes('create'));
 });
+
+test('Arvent overdue approval enters manual review with original reference and no financial action',async()=>{
+ const s=setup({row:{state:'provider_pending',provider_reference:'A-1',
+  paid_at:new Date(Date.now()-61*60000).toISOString(),prepared_quote:{provider:'arvent_kolaycar'}}});
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'unknown');
+ assert.equal(s.row.provider_reference,'A-1');
+ assert.equal(s.row.last_error,'PROVIDER_RESPONSE_REQUIRES_REVIEW');
+ assert.deepEqual(s.calls,[]);
+});
+
+test('definite Arvent failure before save qualifies for full refund, ambiguous transport failure does not',async()=>{
+ for(const [error,expected] of [[new DefiniteApiFailure('ARVENT_FAILED_BEFORE_SAVE'),'refund_pending'],[Error('timeout'),'unknown']]){
+  const s=setup({createError:error});
+  s.deps.revalidate=async()=>({provider:'arvent_kolaycar'});
+  await advanceApiPayment(s.deps,'b');
+  assert.equal(s.row.state,expected);
+ }
+});

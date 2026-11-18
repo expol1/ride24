@@ -27,7 +27,7 @@ function fixture(change=()=>{},flags={}){
   start_date:'2027-02-16',end_date:'2027-02-18',
   raw_response:{provider_quote_data}};
  const fresh={external_id:'CDAR',currency:'EUR',deposit_amount:0,public_price_total:100,
-  features:{minimum_driver_age:21},
+  features:{minimum_driver_age:21,min_license_years:0},
   provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'15',sipp:'CDAR',
    total_amount:100,currency:'EUR'}};
  const state={booking,quote,fresh,live:[fresh],status:{status:'pending',
@@ -91,6 +91,8 @@ test('new supplier price, category, deposit, driver or documents reject before c
   group:s=>s.fresh.external_id='MDAR',
   deposit:s=>s.fresh.deposit_amount=250,
   currency:s=>s.fresh.currency='TRY',
+  licence:s=>s.fresh.features.min_license_years=2,
+  unknown_age:s=>delete s.fresh.features.minimum_driver_age,
   age:s=>s.booking.main_driver_age=19,
   docs:s=>s.booking.partners.rental_rules_url='different',
   owner:s=>s.quote.booking_id='other',
@@ -142,5 +144,42 @@ test('numeric Supabase money values may be decimal strings but never NaN/null',a
   const invalid=fixture(s=>{s.booking.partner_net_price_snapshot=bad},approved);
   await assert.rejects(invalid.revalidatePaidProvider({},invalid.booking,invalid.quote),
    flow.DefiniteApiFailure);
+ }
+});
+
+test('checkout handler admits a validated Arvent quote without a Renteon calculation and blocks failed preflight',async()=>{
+ const file=new URL('../../supabase/functions/create_checkout_session/index.ts',import.meta.url);
+ const compiled=ts.transpileModule(await readFile(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}});
+ for(const verified of [false,true]){
+  const calls=[];
+  const cart={id:'b',partner_id:'p',client_id:'u',status:'awaiting_payment',api_quote_id:'q',
+   provider_type:'api',online_payment_pln:35,payment_deadline:new Date(Date.now()+44*60000).toISOString(),
+   partners:{api_provider:'arvent_kolaycar'}};
+  const quote={booking_id:'b',expires_at:cart.payment_deadline,raw_response:{provider_quote_data:{provider:'arvent_kolaycar'}}};
+  const admin={auth:{getUser:async()=>({data:{user:{id:'u'}}})},
+   from(table){return {writing:false,select(){return this.writing?Promise.resolve({data:[{id:'b'}]}):this;},
+    eq(){return this;},is(){return this;},update(){this.writing=true;return this;},
+    async maybeSingle(){return {data:table==='bookings'?cart:table==='api_quotes'?quote:null};}};}};
+  let handler;
+  const require=name=>{
+   if(name.includes('http/server'))return {serve:fn=>handler=fn};
+   if(name.includes('supabase-js'))return {createClient:()=>admin};
+   if(name.includes('esm.sh/stripe'))return {default:class {checkout={sessions:{create:async request=>{
+    calls.push('stripe');assert.equal(request.line_items[0].price_data.unit_amount,3500);
+    return {id:'cs_mock',url:'https://example.invalid/checkout'};}}};}};
+   if(name.includes('api-payment-runtime'))return {apiPaymentEnabled:async()=>true};
+   if(name.includes('api-provider-fulfillment'))return {hasPaidFulfillmentAdapter:()=>true,
+    revalidatePaidProvider:async()=>{calls.push('revalidate');return {};}};
+   if(name.includes('arvent-kolaycar'))return {arventVerifyCheckout:async()=>{
+    calls.push('extras');if(!verified)throw Error('unverified');}};
+   if(name.includes('partner-api'))return {loadPartnerCredentials:async()=>({})};
+   if(name.includes('payment-return'))return {};
+   throw Error('Unexpected import '+name);
+  };
+  vm.runInNewContext(compiled.outputText,{exports:{},require,Deno:{env:{get:()=>''}},Response,console});
+  const res=await handler(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer test'},
+   body:JSON.stringify({booking_id:'b'})}));
+  assert.equal(res.status,verified?200:409);
+  assert.deepEqual(calls,verified?['revalidate','extras','stripe']:['revalidate','extras']);
  }
 });
