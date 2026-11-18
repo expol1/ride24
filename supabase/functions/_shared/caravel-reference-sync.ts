@@ -4,7 +4,9 @@
  * shrunk-reference-refresh). A refresh that omits a record never deletes it:
  * the record is kept, marked `missing_since`, and stays quotable by its
  * original id. A changed display name is the same record. Ids are opaque and
- * stored exactly as served — never parsed or derived.
+ * stored exactly as served — never parsed or derived. For supplier-filtered
+ * endpoint reads, pass supplierScope to prevent a supplier A refresh marking
+ * supplier B records missing.
  */
 type Json = Record<string, unknown>;
 export type ReferenceRecord = {id: string; supplier_id: string | null; data: Json; first_seen: string; last_seen: string; missing_since: string | null};
@@ -20,7 +22,14 @@ export function mergeCaravelReference(
   refresh: unknown[],
   idKey: string,
   syncedAtIso: string,
+  /** When the endpoint is scoped via X-Supplier-Id, limit missing detection to
+   * that supplier: a refresh for supplier A cannot hide supplier B's catalog. */
+  supplierScope?: string,
 ): {added: number; updated: number; missing: number; returned: number; invalid: number} {
+  if (supplierScope !== undefined &&
+      (typeof supplierScope !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(supplierScope)))
+    throw new Error("CARAVEL_REFERENCE_SUPPLIER_SCOPE_INVALID");
+
   const counts = {added: 0, updated: 0, missing: 0, returned: 0, invalid: 0};
   const seen = new Set<string>();
   for (const raw of Array.isArray(refresh) ? refresh : []) {
@@ -29,6 +38,10 @@ export function mergeCaravelReference(
     if (!r || !id) { counts.invalid++; continue; }
     // Key on supplier + id: ids are unique across suppliers, but keep the scope explicit.
     const supplier = typeof r.supplier_id === "string" ? r.supplier_id : null;
+    if (supplierScope !== undefined && supplier !== supplierScope) {
+      counts.invalid++;
+      continue;
+    }
     const key = `${supplier ?? ""}\u0000${id}`;
     seen.add(key);
     const prior = store.get(key);
@@ -42,7 +55,8 @@ export function mergeCaravelReference(
     }
   }
   for (const [key, rec] of store) {
-    if (!seen.has(key) && !rec.missing_since) {
+    if ((supplierScope === undefined || rec.supplier_id === supplierScope) &&
+        !seen.has(key) && !rec.missing_since) {
       store.set(key, {...rec, missing_since: syncedAtIso});
       counts.missing++;
     }

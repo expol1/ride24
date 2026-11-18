@@ -269,3 +269,33 @@ test("production client refuses a host that reports a different environment", as
       (e) => e instanceof CaravelError && e.details[0].issue === "out_of_hours_not_offered" && e.details[0].field === "pickup.at");
   } finally { globalThis.fetch = original; }
 });
+
+test("scoped Caravel reference refresh never marks another supplier missing",()=>{
+ const store=new Map();
+ const v=(sid,id,display)=>({supplier_id:sid,vehicle_id:id,
+   display_name:display,acriss:"CDMR"});
+ assert.deepEqual(mergeCaravelReference(store,[v("sup-1","same-opaque","Car A"),
+   v("sup-2","same-opaque","Car B")],"vehicle_id","t1"),{
+   added:2,updated:0,missing:0,returned:0,invalid:0});
+ const result=mergeCaravelReference(store,[v("sup-1","same-opaque","Car A or similar")],
+   "vehicle_id","t2","sup-1");
+ assert.deepEqual(result,{added:0,updated:1,missing:0,returned:0,invalid:0});
+ assert.equal(findCaravelReference(store,"same-opaque","sup-1").data.display_name,
+  "Car A or similar");
+ assert.equal(findCaravelReference(store,"same-opaque","sup-2").missing_since,null);
+ const invalid=mergeCaravelReference(store,[v("sup-2","from-other","Bad"),
+   v("sup-1","same-opaque","Car A")],"vehicle_id","t3","sup-1");
+ assert.deepEqual(invalid,{added:0,updated:1,missing:0,returned:0,invalid:1});
+ assert.equal(findCaravelReference(store,"from-other","sup-2"),null);
+ assert.equal(findCaravelReference(store,"same-opaque","sup-2").missing_since,null);
+ const shrink=mergeCaravelReference(store,[],"vehicle_id","t4","sup-1");
+ assert.equal(shrink.missing,1);
+ assert.equal(findCaravelReference(store,"same-opaque","sup-1").missing_since,"t4");
+ assert.equal(findCaravelReference(store,"same-opaque","sup-2").missing_since,null);
+ const restore=mergeCaravelReference(store,[v("sup-1","same-opaque","New label")],
+  "vehicle_id","t5","sup-1");
+ assert.equal(restore.returned,1);
+ assert.equal(findCaravelReference(store,"same-opaque","sup-1").first_seen,"t1");
+ assert.throws(()=>mergeCaravelReference(store,[],"vehicle_id","t6","bad:supplier"),
+  /CARAVEL_REFERENCE_SUPPLIER_SCOPE_INVALID/);
+});

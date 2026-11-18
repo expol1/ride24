@@ -423,3 +423,21 @@ test("acceptance books nothing when no package (included or option) passes Premi
   assert.equal(calls.some(c => c.method === "POST" && c.path === "/v1/bookings"), false);
   assert.ok(r.results.some(x => x.outcome === "NOT RUN" && String(x.summary).includes("premiumOnly")));
 });
+
+test("Caravel extras mapping accepts supplier opaque codes containing s and keeps other unmapped",()=>{
+ const valid={"sup-1:code:seat_standard":"child_seat",
+   "sup-2:supplier_code:second_driver":"additional_driver"};
+ assert.deepEqual(validateCaravelExtrasMapping(valid),{ok:true});
+ const ex={supplier_id:"sup-1",extra_id:"extraseat1",code:"seat_standard",
+  category:"other",name:"Unmapped generic label",
+  pricing_type:"per_day",unit_price:mny(300),price_cap:null,
+  quantity:{min:0,max:1,default:0},requires_quantity:false,
+  payable:"at_pickup"};
+ const mapped=caravelExtraFromApi(ex,valid);
+ assert.equal(mapped.ride24Code,"child_seat");
+ assert.equal(mapped.mappingSource,"confirmed");
+ assert.equal(caravelExtraFromApi({...ex,code:"unknown_s"},valid).ride24Code,null);
+ assert.equal(caravelExtraFromApi({...ex,category:"child_seat",code:"unknown_s"},valid).ride24Code,"child_seat");
+ assert.equal(caravelExtraFromApi({...ex,category:"additional_driver",code:"unknown_s"},valid).ride24Code,"additional_driver");
+ assert.ok(validateCaravelExtrasMapping({"sup-1:code:bad:colon":"child_seat"}).errors.length);
+});

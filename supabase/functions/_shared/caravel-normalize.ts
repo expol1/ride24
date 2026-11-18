@@ -781,7 +781,7 @@ export function validateCaravelExtrasMapping(mapping: unknown): {ok: true} | {ok
   if (!m) return {ok: false, errors: ["MAPPING_NOT_OBJECT"]};
   const errors: string[] = [];
   for (const [k, v] of Object.entries(m)) {
-    if (!/^[A-Za-z0-9_-]{1,128}:((code|supplier_code):)?[^:s]{1,128}$/.test(k)) errors.push(`BAD_KEY:${k.slice(0, 40)}`);
+    if (!/^[A-Za-z0-9_-]{1,128}:((code|supplier_code):)?[A-Za-z0-9_-]{1,128}$/.test(k)) errors.push(`BAD_KEY:${k.slice(0, 40)}`);
     if (v !== null && !RIDE24_EXTRA_CODES.has(String(v))) errors.push(`BAD_CODE:${String(v).slice(0, 20)}`);
   }
   return errors.length ? {ok: false, errors} : {ok: true};
