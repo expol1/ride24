@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {CaravelClient,CaravelSandboxClient,CaravelError,selectCurrentCaravelTerms} from "../supabase/functions/_shared/caravel-sandbox-adapter.ts";
 import {compareCaravelTermsVersion,fetchCaravelCurrentTermsForReview,bindReviewedCaravelTermsToQuote} from "../supabase/functions/_shared/caravel-terms-version.ts";
+import {validateCaravelTermsBeforeStripe,validateCaravelTermsBeforeDispatch} from "../supabase/functions/_shared/caravel-terms-lifecycle.ts";
 const original=globalThis.fetch;
 const mock=(handler)=>{globalThis.fetch=async (url,options)=>new Response(JSON.stringify(handler(String(url),options)),{status:200,headers:{"content-type":"application/json"}});};
 test.afterEach(()=>{globalThis.fetch=original;});
@@ -230,6 +231,52 @@ test("production booking cannot cross suppliers or reuse a different booking ide
  assert.equal(calls.length,2);
  assert.equal(calls[1].options.headers["Idempotency-Key"],bookingId);
  assert.equal(calls[1].options.headers["X-Supplier-Id"],"acct_eur");
+});
+test("Caravel terms accepted before Stripe remain identical at booking dispatch",()=>{
+ const meta=termsMeta("doc-en-v4");
+ const reviewed={supplierId:"acct_eur",language:"en",documentId:meta.document_id,
+   version:4,contentHash:meta.content_hash,publishedAt:meta.published_at};
+ const quote={provider:"caravel",supplier_id:"acct_eur",quote_id:"quote-verified",
+   terms_document_id:meta.document_id,terms_content_hash:meta.content_hash,terms_language:"en"};
+ const base={quote,reviewed,currentMetadataList:[meta],canonicalHashVerified:true};
+ const accepted=validateCaravelTermsBeforeStripe({...base,displayedDocumentId:"doc-en-v4",customerAccepted:true});
+ assert.deepEqual(accepted,{caravel_terms_document_id:"doc-en-v4",
+   caravel_terms_content_hash:meta.content_hash,caravel_terms_language:"en"});
+ assert.deepEqual(validateCaravelTermsBeforeDispatch({...base,persistedBookingSnapshot:accepted}),
+   {ok:true,documentId:"doc-en-v4"});
+ for(const candidate of [
+   {...base,displayedDocumentId:"doc-en-v3",customerAccepted:true},
+   {...base,displayedDocumentId:"doc-en-v4",customerAccepted:false},
+ ]){
+   assert.throws(()=>validateCaravelTermsBeforeStripe(candidate),/CARAVEL_TERMS_ACCEPTANCE_REQUIRED/);
+ }
+ assert.throws(()=>validateCaravelTermsBeforeStripe({...base,displayedDocumentId:"doc-en-v4",
+   customerAccepted:true,canonicalHashVerified:false}),/CARAVEL_TERMS_CANONICAL_HASH_NOT_VERIFIED/);
+ assert.throws(()=>validateCaravelTermsBeforeStripe({...base,displayedDocumentId:"doc-en-v4",
+   customerAccepted:true,quote:{...quote,supplier_id:"acct_gbp"}}),/CARAVEL_TERMS_SUPPLIER_MISMATCH/);
+});
+test("Caravel changed terms after Stripe -> manual review, never a supplier booking",()=>{
+ const meta=termsMeta("doc-en-v4");
+ const approved={supplierId:"acct_eur",language:"en",documentId:meta.document_id,
+   version:4,contentHash:meta.content_hash,publishedAt:meta.published_at};
+ const quote={provider:"caravel",supplier_id:"acct_eur",quote_id:"quote-verified",
+   terms_document_id:meta.document_id,terms_content_hash:meta.content_hash,terms_language:"en"};
+ const snapshot={caravel_terms_document_id:"doc-en-v4",
+   caravel_terms_content_hash:meta.content_hash,caravel_terms_language:"en"};
+ const base={quote,reviewed:approved,currentMetadataList:[meta],
+   canonicalHashVerified:true,persistedBookingSnapshot:snapshot};
+ const missing=validateCaravelTermsBeforeDispatch({...base,persistedBookingSnapshot:null});
+ assert.equal(missing.ok,false); assert.equal(missing.action,"hold_for_manual_review");
+ assert.equal(missing.reason,"CARAVEL_TERMS_BOOKING_SNAPSHOT_MISSING");
+ const changed=validateCaravelTermsBeforeDispatch({...base,
+   currentMetadataList:[termsMeta("doc-en-v5",{version:5,content_hash:"b".repeat(64),
+     published_at:"2026-11-18T10:00:00Z"})]});
+ assert.equal(changed.ok,false); assert.equal(changed.reason,"CARAVEL_TERMS_NEW_VERSION_REQUIRES_REACCEPTANCE");
+ const corrupted=validateCaravelTermsBeforeDispatch({...base,
+   persistedBookingSnapshot:{...snapshot,caravel_terms_content_hash:"b".repeat(64)}});
+ assert.equal(corrupted.ok,false); assert.equal(corrupted.reason,"CARAVEL_TERMS_BOOKING_SNAPSHOT_MISMATCH");
+ const falseHash=validateCaravelTermsBeforeDispatch({...base,canonicalHashVerified:false});
+ assert.equal(falseHash.ok,false); assert.equal(falseHash.action,"hold_for_manual_review");
 });
 test("supplier-scoped availability sends X-Supplier-Id",async()=>{
  const calls=[];
