@@ -116,3 +116,41 @@ export async function fetchCaravelCurrentTermsForReview(
     throw new Error("CARAVEL_TERMS_DOCUMENT_NOT_CURRENT");
   return {comparison,document,canonicalHashIndependentlyVerified:false};
 }
+
+
+/**
+ * Backend-only enrichment of a saved Caravel quote with the exact terms
+ * approved for sale. Caller must obtain proof from the authoritative
+ * document fetch, canonical digest implementation and human review.
+ *
+ * Fail-closed: "initial_review_required" or "new_version_requires_review"
+ * may never silently put new terms on a customer quote. This function
+ * performs no DB writes; save via existing service-role API-quote flow.
+ */
+export function bindReviewedCaravelTermsToQuote(input:{
+  quoteData: unknown;
+  comparison: CaravelTermsComparison;
+  canonicalHashVerified: boolean;
+}): Record<string,unknown> {
+  const {quoteData,comparison,canonicalHashVerified}=input ?? {} as typeof input;
+  if(canonicalHashVerified!==true) throw new Error("CARAVEL_TERMS_CANONICAL_HASH_NOT_VERIFIED");
+  if(comparison?.action!=="unchanged")throw new Error("CARAVEL_TERMS_REVIEW_REQUIRED");
+  const scope=comparison.snapshot;
+  if(!scope || !validPrevious(scope,scope.supplierId,scope.language))
+    throw new Error("CARAVEL_TERMS_SNAPSHOT_INVALID");
+  if(!quoteData || typeof quoteData!=="object" || Array.isArray(quoteData))
+    throw new Error("CARAVEL_QUOTE_METADATA_INVALID");
+  const row=quoteData as Record<string,unknown>;
+  if(row.provider!=="caravel" || row.supplier_id!==scope.supplierId ||
+     typeof row.quote_id!=="string" || !row.quote_id)
+    throw new Error("CARAVEL_QUOTE_TERMS_SCOPE_MISMATCH");
+  if(row.terms_document_id!==undefined || row.terms_content_hash!==undefined ||
+     row.terms_language!==undefined)
+    throw new Error("CARAVEL_QUOTE_TERMS_ALREADY_BOUND");
+  return {
+    ...row,
+    terms_document_id:scope.documentId,
+    terms_content_hash:scope.contentHash,
+    terms_language:scope.language,
+  };
+}
