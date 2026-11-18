@@ -131,3 +131,52 @@ status and cancellation handlers.
 
 No live Arvent reservation, cancellation, catalog sync, API-auth test or payment
 has been performed or claimed on the basis of these synthetic Postman examples.
+
+## 2026-11-18 — Mustafa's confirmation (Indi Yazılım)
+
+**Live-only endpoint:** there is NO sandbox. Read-only authentication, locations,
+catalog and offers are permitted. Supplier-side booking tests are REAL, even if
+test customers are used; use only short rentals 2–3 months in the future and
+cancel them promptly in coordination with Arvent. The live reservation and
+cancellation tests have NOT been run by Ride24.
+
+**Supplier status enum:**
+| Code | Meaning | Conservative Ride24 treatment |
+| --- | --- | --- |
+| 0 | Received | Pending; no voucher |
+| 1 | Approved | Confirmed, subject to price/terms verification |
+| 2 | Payment completed | Pending/manual; do not infer approval |
+| 3 | Cancelled | Cancelled |
+| 4 | Awaiting payment | Pending |
+| 5 | Vehicle handed over | Pending/manual if not already finalized |
+| 6 | Unapproved | Pending/manual; ask whether final rejection |
+| -4 | Synthetic Postman example only; contradicts actual enum | Unknown/manual; never infer cancellation |
+
+Birth date, **if required by a particular supplier/offer**, must use
+`dd.MM.yyyy`. Do not infer it from driver age. `paymentType=3` (POA) is
+permitted; `pricing.paidAmount=0` only where all rental-related charges,
+including selected/mandatory extras and one-way fee, are payable on arrival.
+The separate Ride24 Stripe booking fee NEVER enters the supplier payload.
+
+The agency reference does NOT guarantee idempotency. The adapter now has
+an explicit **read-only lookup by agency reference plus original email** to
+assist reconciliation. After an ambiguous create response/timeout, absence
+of a result is NOT proof that creation failed: do not retry POST until
+supplier existence is conclusively resolved. This lookup is not yet wired
+to the paid fulfillment workflow.
+
+**Still requires written confirmation from Arvent (not from kolayCAR):**
+1. EUR quotes are the agreed NET pickup-payable amounts; partner discount is 0%.
+2. No deposit, no credit card/hold, unlimited mileage and full insurance are
+   actually configured on the tenant for every advertised rate.
+3. Exact category substitution policy (kolayCAR itself has no upgrade feature).
+4. Are bookings auto-approved or does status 0 require human approval?
+5. Does `6=Unapproved` mean definitively rejected?
+6. Which offers require DOB; how to record it in Ride24 without inventing PII?
+7. Whether required/selected extras and one-way fees are all POA and are
+   included in `totalPrice` before a booking is created.
+
+**Release gate remains intact:** Arvent is disabled in Supabase,
+no credentials are currently persisted, admin activation is blocked,
+provider write flag is unset, no paid-fulfillment integration or live
+reservation has been certified.
