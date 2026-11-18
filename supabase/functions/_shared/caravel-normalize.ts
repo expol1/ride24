@@ -970,7 +970,8 @@ export function selectCaravelPremiumProtection(
   const r = rec(row) ?? {};
   if (r.plan !== "premium") return null;
   return caravelProtectionCandidates(r).find(c=>
-    evaluateCaravelPremiumForRide24("premium",c.protection,undefined,reviewedExclusions).ok) ?? null;
+    evaluateCaravelPremiumForRide24("premium",c.protection,undefined,reviewedExclusions,
+      {preselectionOnly:true}).ok) ?? null;
 }
 
 const minor = (v: unknown): number | null => { const m = money(v); return m ? m.amount : null; };
