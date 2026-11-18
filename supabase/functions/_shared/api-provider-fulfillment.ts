@@ -70,7 +70,8 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  if(booking.cancelled_at||['cancelled','rejected','expired','payment_expired'].includes(booking.status))
   fail('CANCELLED_BEFORE_DISPATCH');
  if(!quote||quote.booking_id!==booking.id||quote.partner_id!==booking.partner_id
-   ||quote.car_class_id!==booking.car_class_id||booking.api_quote_id!==quote.id)
+   ||quote.car_class_id!==booking.car_class_id||booking.api_quote_id!==quote.id
+   ||quote.start_date!==booking.start_date||quote.end_date!==booking.end_date)
   fail('ACCEPTED_QUOTE_MISMATCH');
  if(booking.partners.rental_terms_url!==booking.partner_terms_snapshot
    ||booking.partners.rental_rules_url!==booking.partner_rules_snapshot)
