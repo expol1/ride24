@@ -39,6 +39,10 @@ test("Caravel API supports partial payments, but Ride24 only publishes zero-prep
   // The raw Caravel API reader must still parse non-Ride24 sandbox examples.
   const partial=offer();
   assert.equal(buildCaravelOfferFromApi(partial).ok,true);
+  const generic=buildCaravelOfferFromApi(partial).value;
+  assert.equal(generic.features.payment_model,null);
+  assert.equal(generic.features.supplier_collects_grand_total,false);
+  assert.equal(generic.provider_quote_data.payment_model,null);
   const blocked=buildRide24SellableCaravelOfferFromApi(partial);
   assert.equal(blocked.ok,false);
   assert.ok(blocked.errors.includes("CARAVEL_PREPAYMENT_NOT_ALLOWED"));
@@ -49,6 +53,9 @@ test("Caravel API supports partial payments, but Ride24 only publishes zero-prep
   }})});
   const sellable=buildRide24SellableCaravelOfferFromApi(full);
   assert.equal(sellable.ok,true,JSON.stringify(sellable.errors));
+  assert.equal(sellable.value.features.fullInsurance,true);
+  assert.equal(sellable.value.features.payment_model,"pay_on_arrival");
+  assert.equal(sellable.value.features.supplier_collects_grand_total,true);
   assert.deepEqual(
     [sellable.value.provider_quote_data.amounts_minor.pay_now,
      sellable.value.provider_quote_data.amounts_minor.pay_at_pickup],
