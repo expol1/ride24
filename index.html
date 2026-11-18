@@ -5375,10 +5375,11 @@ function collectSearchData() {
             return;
         }
 
-        // Keep the public labels in sync with Smart Search PL/EN translations.
-        await window.Ride24LocationNames.loadDictionary(db).catch(() => {});
-        const lang = localStorage.getItem("lang") || "pl";
+        // Capture this query before awaiting shared dictionary I/O to avoid stale results.
         const requestId = lastQueryId;
+        await window.Ride24LocationNames.loadDictionary(db).catch(() => {});
+        if (requestId !== lastQueryId) return;
+        const lang = localStorage.getItem("lang") || "pl";
         window.Ride24SearchMiss?.cancel(type);
         const pickupAtSearch = SELECTED_PICKUP?.location_name || null;
         // Zwrot może pochodzić wyłącznie z lokalizacji partnerów obsługujących odbiór.
