@@ -15,6 +15,8 @@
  */
 import {verifyCaravelPaidCheckoutForSupplierQueue}
   from "./caravel-payment-sequence.ts";
+import {persistCaravelPaidStripeReceipt,type CaravelReceiptAdmin}
+  from "./caravel-stripe-payment-receipt.ts";
 const CARAVEL_ID="78721481-7619-44df-a9b7-5faa344b69bb";
 const uuid=(x:unknown):x is string=>
  typeof x==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
@@ -43,6 +45,8 @@ const fail=(reason:string,invalidSignature=false):CaravelPaymentCommitResult=>({
 });
 export async function recordVerifiedCaravelStripePayment(args:{
   admin:CaravelPaymentAdmin;
+  /** Service-role access to payments, never a client RLS account. */
+  receiptAdmin:CaravelReceiptAdmin;
   rawBody:string;
   stripeSignature:string;
   /** Must be the real Stripe SDK constructEventAsync bound to Stripe's
@@ -102,6 +106,18 @@ export async function recordVerifiedCaravelStripePayment(args:{
 
   const decision=verifyCaravelPaidCheckoutForSupplierQueue(
     {...b,api_provider:partner.api_provider},session,args.nowIso);
+  if("action" in decision&&
+     decision.action!=="already_waiting_for_supplier"&&
+     decision.action!=="already_completed")
+    return fail(decision.reason);
+  // Persist the REAL Stripe receipt BEFORE making the booking visible to
+  // the supplier queue. Voucher generation checks this same payments row.
+  const receipt=await persistCaravelPaidStripeReceipt({
+    admin:args.receiptAdmin,bookingId,clientId:b.client_id as string,
+    verifiedStripeSession:session,
+    expectedFeeMinor:session.amount_total as number,
+  });
+  if(!receipt.ok)return fail(receipt.reason);
   if("action" in decision){
     if(decision.action==="already_waiting_for_supplier")
       return {ok:true,action:"already_queued",bookingId,

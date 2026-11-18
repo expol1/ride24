@@ -91,8 +91,23 @@ const receipt=()=>({
    amount_on_arrival:{amount:15000,currency:"EUR"}},
 });
 function database(start=booking()){
- const state={row:start,writes:0};
- return {state,from(table){
+ const state={row:start,writes:0,payment:null,paymentWrites:0};
+ const receiptAdmin={from(table){
+  assert.equal(table,"payments");
+  const filters=[],q={
+   select:()=>q,eq:(k,v)=>{filters.push([k,v]);return q;},
+   maybeSingle:async()=>{
+    const p=state.payment;
+    return {data:p&&filters.every(([k,v])=>p[k]===v)?{...p}:null,error:null};
+   },
+   insert:async payload=>{
+    if(state.payment)return {error:{code:"23505"}};
+    state.payment={...payload};state.paymentWrites++;
+    return {error:null};
+   },
+  };return q;
+ }};
+ return {state,receiptAdmin,from(table){
   assert.equal(table,"bookings");
   const predicates=[],q={
    select:()=>q,update:p=>{q.payload=p;return q;},
@@ -121,13 +136,16 @@ test("E2E SIMULATION: verified Stripe -> queue -> atomic supplier create -> conf
    assert.equal(payload.payment_model,"pay_on_arrival");
    return {data:receipt()};
  }};
- const paymentArgs={admin:db,rawBody:"signed fixture",
+ const paymentArgs={admin:db,receiptAdmin:db.receiptAdmin,
+   rawBody:"signed fixture",
    stripeSignature:"t=123,v1=valid",
    constructVerifiedEvent:async()=>event(),
    providerQuote:quote(),nowIso:NOW_ISO};
  const p1=await recordVerifiedCaravelStripePayment(paymentArgs);
  assert.equal(p1.ok,true,JSON.stringify(p1));
  assert.equal(db.state.row.api_status,"caravel_paid_awaiting_supplier");
+ assert.equal(db.state.paymentWrites,1);
+ assert.equal(db.state.payment.amount,39.99);
  assert.equal(canReleaseCaravelVoucher({...db.state.row,api_provider:"caravel"}),false);
  const duplicate=await recordVerifiedCaravelStripePayment(paymentArgs);
  assert.equal(duplicate.action,"already_queued");

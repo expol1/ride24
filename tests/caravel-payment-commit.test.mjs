@@ -28,8 +28,23 @@ const event=()=>({type:"checkout.session.completed",data:{object:{
  amount_total:3999,
 }}});
 function db(start=row()){
- const state={row:start,reads:0,writes:0};
- return {state,from(name){
+ const state={row:start,reads:0,writes:0,payment:null,paymentWrites:0};
+ const receiptAdmin={from(name){
+  assert.equal(name,"payments");
+  const filters=[],q={
+   select:()=>q,eq:(k,v)=>{filters.push([k,v]);return q;},
+   maybeSingle:async()=>{
+    const p=state.payment;
+    return {data:p&&filters.every(([k,v])=>p[k]===v)?{...p}:null,error:null};
+   },
+   insert:async payload=>{
+    if(state.payment)return {error:{code:"23505"}};
+    state.payment={...payload};state.paymentWrites++;
+    return {error:null};
+   },
+  };return q;
+ }};
+ return {state,receiptAdmin,from(name){
   assert.equal(name,"bookings");
   const filters=[],q={
    select:()=>q,update:(p)=>{q.payload=p;return q;},
@@ -49,7 +64,8 @@ function db(start=row()){
  }};
 }
 function args(admin,changes={}){
- return {admin,rawBody:"{signed payload}",stripeSignature:"t=123,v1=verified",
+ return {admin,receiptAdmin:admin.receiptAdmin,
+  rawBody:"{signed payload}",stripeSignature:"t=123,v1=verified",
   constructVerifiedEvent:async()=>event(),providerQuote:quote(),
   nowIso:NOW,...changes};
 }
@@ -60,6 +76,10 @@ test("signed paid checkout moves awaiting_payment to pending supplier without vo
  assert.equal(res.generateVoucher,false);
  assert.equal(res.notifyConfirmed,false);
  assert.equal(admin.state.writes,1);
+ assert.equal(admin.state.paymentWrites,1);
+ assert.equal(admin.state.payment.booking_id,ID);
+ assert.equal(admin.state.payment.stripe_session_id,"cs_test_caravel");
+ assert.equal(admin.state.payment.amount,39.99);
  assert.equal(admin.state.row.status,"pending");
  assert.equal(admin.state.row.api_status,"caravel_paid_awaiting_supplier");
  assert.equal(admin.state.row.stripe_amount_cents,3999);
@@ -75,6 +95,7 @@ test("duplicate signed webhook does not write a second time or issue voucher",as
  assert.equal(b.action,"already_queued");
  assert.equal(b.supplierDispatchRequired,false);
  assert.equal(admin.state.writes,1);
+ assert.equal(admin.state.paymentWrites,1);
 });
 test("invalid Stripe signature stops BEFORE any booking database read",async()=>{
  const admin=db();
