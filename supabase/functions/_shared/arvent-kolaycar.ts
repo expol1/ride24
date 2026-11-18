@@ -110,6 +110,26 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
  const response=await request(c,ARVENT_PATHS.booking_status+"?"+arventQuery({reservationNumber:reference,customerEmail:email}));
  return {...arventReservationStatus(response),provider_payload:sanitizePartnerPayload(supplierData(response),12000)};
 }
+// Read-only reconciliation using Ride24's reference and the original email.
+// agencyReservationReference is not a unique/idempotent create guarantee.
+// A lookup failure or empty result MUST NOT trigger a second supplier POST.
+export async function arventLookupByAgencyReference(c:PartnerApiCredentials,reference:string,email:string):Promise<Record<string,unknown>|null> {
+ if(!/^[A-Za-z0-9_-]{1,150}$/.test(reference)||!/^\S+@\S+\.\S+$/.test(email))
+  throw Error("PARTNER_API_ERROR:ARVENT_LOOKUP_INVALID");
+ const response=await request(c,ARVENT_PATHS.booking_status+"?"+arventQuery({
+  agencyReservationReference:reference,customerEmail:email,
+ }));
+ const data=supplierData(response);
+ if(data===null)return null;
+ if(!data||typeof data!=="object"||Array.isArray(data))
+  throw Error("PARTNER_API_ERROR:ARVENT_LOOKUP_UNCERTAIN");
+ const record=data as Record<string,unknown>;
+ // Confirm that the supplier actually returned this exact agency reference.
+ if(record.agencyReservationReference!==reference)
+  throw Error("PARTNER_API_ERROR:ARVENT_REFERENCE_MISMATCH");
+ return {...arventReservationStatus(response),
+  provider_payload:sanitizePartnerPayload(data,12000)};
+}
 function allowSupplierMutation():void {
  // Different from api_enabled: explicit server-side provider certification gate.
  if(Deno.env.get("ARVENT_KOLAYCAR_WRITE_ALLOWED")!=="true")
@@ -154,11 +174,16 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  if(!status.booking_reference)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_REFERENCE_MISSING");
  const d=supplierData(result) as Record<string,unknown>;
- const confirmedPrice=Number(d.totalPrice);
+ const confirmedPrice=typeof d.totalPrice==="number"&&Number.isFinite(d.totalPrice)?d.totalPrice:null;
+ const priceMismatch=confirmedPrice===null||Math.abs(confirmedPrice-Number(input.partner_amount))>0.01;
+ // A confirmed status alone does not prove that the booking preserves the
+ // no-deposit/no-card/unlimited-km contract and EUR payable amount.
+ const termsMismatch=d.currencyCode!=="EUR"||d.depositPrice!==0
+  ||d.depositCreditCardRequired!==false||d.totalKMLimit!==0;
  return {...status,
-  needs_manual_review:true, // 0 is received, not a definitive confirmation.
+  needs_manual_review:status.needs_manual_review||priceMismatch||termsMismatch,
   provider_payload:sanitizePartnerPayload(d,12000),
-  price_mismatch:!Number.isFinite(confirmedPrice)||Math.abs(confirmedPrice-Number(input.partner_amount))>0.01,
+  price_mismatch:priceMismatch,terms_mismatch:termsMismatch,
  };
 }
 export async function arventCancelBooking(c:PartnerApiCredentials,reference:string,body:Record<string,unknown>={}):Promise<Record<string,unknown>> {
