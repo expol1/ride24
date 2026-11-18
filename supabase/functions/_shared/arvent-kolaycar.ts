@@ -52,7 +52,9 @@ async function request(c:PartnerApiCredentials,path:string,options:{method?:stri
   try {
    return await partnerApiRequest<unknown>(auth,path,options);
   } catch(error){
-   if(attempt===0&&error instanceof Error&&error.message==="PARTNER_API_ERROR:HTTP:401"){
+   // Never automatically replay supplier creation/cancellation POST requests:
+   // agencyReservationReference is not an idempotency guarantee.
+   if(attempt===0&&(options.method||"GET").toUpperCase()==="GET"&&error instanceof Error&&error.message==="PARTNER_API_ERROR:HTTP:401"){
     sessions.delete(c.partner_id);continue;
    }
    throw error;
