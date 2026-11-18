@@ -10,7 +10,15 @@
 //                   status -> cancel on ONE sandbox supplier (invented data)
 //   cert-status     GET /_certification/status (read-only)
 //
-// It NEVER calls /_certification/start or /advance, never reaches production
+//   cert-start / cert-phase / cert-advance
+//                   drive Caravel's HOSTED sandbox certification run (10 phases).
+//                   Authorized by Ride24 on 18 Nov 2026 once the prerequisites
+//                   (full live flow, key on capabilities, HMAC self-test) passed.
+//                   Sandbox-only by Caravel's design: a production target is refused.
+//                   Reference snapshots persist in the private service-role-only
+//                   caravel_sbx_reference_snapshots RPCs (no customer data).
+//
+// It never reaches production
 // (client fixed to environment "sandbox"), never reads/writes Ride24 tables,
 // never returns or logs CARAVEL_SANDBOX_API_KEY.
 //
@@ -22,10 +30,16 @@ import {CaravelClient} from "../_shared/caravel-sandbox-adapter.ts";
 import {runCaravelAcceptance} from "../_shared/caravel-acceptance.mjs";
 import {verifyCaravelTermsDocumentHash} from "../_shared/caravel-terms-canonical.ts";
 import {buildCaravelHmacSelfTestSubmission} from "../_shared/caravel-webhooks.ts";
+import {createCaravelSandboxReferenceRepository} from "../_shared/caravel-cert-state.mjs";
+import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
 
 const EXPIRES_AT = Date.parse("2026-11-20T20:00:00Z");
 const TOKEN_SHA256 = "036784ba932a088753833498653cb8a03272d6c6decc931047b9f69a30b79f81";
 const SID = /^[A-Za-z0-9_-]{1,128}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PHASES = new Set(["baseline", "unknown-enum-value", "unknown-error-code", "unknown-response-field",
+  "unknown-feature-code", "opaque-id-tolerance", "shrunk-reference-refresh:1", "shrunk-reference-refresh:2",
+  "deprecation-notice", "version-format"]);
 const SANDBOX = "https://sandbox-api.caravelway.com";
 // Official public self-test fixture, fetched from Caravel's own pack (not a live credential).
 const FIXTURE_URL = SANDBOX + "/docs/packs/caravel/fixtures/webhook-hmac-self-test.json";
@@ -103,11 +117,16 @@ Deno.serve(async (req) => {
   const allowed: Record<string, string[]> = {
     "reference": ["action", "supplier_id"], "hmac-self-test": ["action"],
     "acceptance": ["action", "supplier_id", "booking"], "cert-status": ["action"],
+    "cert-start": ["action", "confirm"], "cert-advance": ["action", "confirm"],
+    "cert-phase": ["action", "phase", "supplier_id", "session_id"],
   };
   if (!body || typeof action !== "string" || !allowed[action] ||
       Object.keys(body).some((k) => !allowed[action].includes(k)) ||
       (body.supplier_id !== undefined && (typeof body.supplier_id !== "string" || !SID.test(body.supplier_id))) ||
-      (action === "acceptance" && (typeof body.supplier_id !== "string" || typeof body.booking !== "boolean")))
+      (action === "acceptance" && (typeof body.supplier_id !== "string" || typeof body.booking !== "boolean")) ||
+      ((action === "cert-start" || action === "cert-advance") && body.confirm !== "SANDBOX_CERTIFICATION_RUN") ||
+      (action === "cert-phase" && (typeof body.phase !== "string" || !PHASES.has(body.phase) ||
+        typeof body.supplier_id !== "string" || typeof body.session_id !== "string" || !UUID.test(body.session_id))))
     return json({error: "BAD_REQUEST"}, 400);
   if (running) return json({error: "RUN_IN_PROGRESS"}, 409);
   const key = Deno.env.get("CARAVEL_SANDBOX_API_KEY") ?? "";
@@ -129,6 +148,23 @@ Deno.serve(async (req) => {
     } else if (action === "acceptance") {
       result = await runCaravelAcceptance(key, {booking: body.booking as boolean, supplierId: body.supplier_id as unknown as null,
         premiumOnly: true, sandboxPremiumMechanics: true, runId: crypto.randomUUID().slice(0, 8), budgetMs: 110_000});
+    } else if (action === "cert-phase") {
+      const url = Deno.env.get("SUPABASE_URL"), svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!url || !svc) throw new Error("SERVICE_ROLE_UNAVAILABLE");
+      const admin = createClient(url, svc, {auth: {persistSession: false}});
+      const referenceRepository = createCaravelSandboxReferenceRepository(admin, body.session_id as string);
+      const phase = body.phase as string;
+      result = await runCaravelAcceptance(key, {
+        booking: phase === "baseline" || phase === "unknown-response-field",
+        supplierId: body.supplier_id as unknown as null,
+        certificationPhase: (phase === "baseline" ? null : phase) as unknown as null,
+        referenceRepository: referenceRepository as never, sandboxPremiumMechanics: true, premiumOnly: true,
+        runId: crypto.randomUUID().slice(0, 8), budgetMs: 110_000});
+    } else if (action === "cert-start" || action === "cert-advance") {
+      const r = await fetch(SANDBOX + (action === "cert-start" ? "/_certification/start" : "/_certification/advance"), {
+        method: "POST", headers: {"X-API-Key": key, Accept: "application/json"},
+        redirect: "error", signal: AbortSignal.timeout(20000)});
+      result = {http_status: r.status, body: await r.json().catch(() => null)};
     } else {
       const r = await fetch(SANDBOX + "/_certification/status", {headers: {"X-API-Key": key, Accept: "application/json"},
         redirect: "error", signal: AbortSignal.timeout(15000)});
