@@ -23,7 +23,7 @@ type DbResult={data:Rec|null;error:{message?:string}|null};
 type Query={eq:(column:string,value:unknown)=>Query;
   maybeSingle:()=>Promise<DbResult>};
 export type CaravelEvidenceAdmin={
- from:(name:"bookings"|"api_quotes")=>{select:(columns:string)=>Query};
+ from:(name:"bookings"|"api_quotes"|"payments")=>{select:(columns:string)=>Query};
 };
 export type CaravelHydratedEvidence={
  bookingInput:Ride24BookingInput;
@@ -136,6 +136,25 @@ export async function loadCaravelPaidEvidence(args:{
     supplierQuote.terms_language!==b.caravel_terms_language||
     supplierQuote.terms_content_hash!==b.caravel_terms_content_hash)
    return fail("CARAVEL_EVIDENCE_PRICE_OR_TERMS_CHANGED");
+ // A signed Stripe timestamp on the booking is necessary, but not enough:
+ // the existing live voucher worker also requires a durable payments row.
+ // A concurrent or failed payment receipt write must block supplier POST
+ // BEFORE a one-time claim is taken or a remote reservation can be created.
+ let receiptResult:DbResult;
+ try{
+  receiptResult=await args.admin.from("payments").select(
+    "booking_id,stripe_session_id,status,amount,currency"
+  ).eq("booking_id",args.bookingId)
+   .eq("stripe_session_id",b.stripe_session_id)
+   .eq("status","paid").maybeSingle();
+ }catch{return fail("CARAVEL_EVIDENCE_PAYMENT_RECEIPT_READ_FAILED");}
+ const receipt=receiptResult.data;
+ if(receiptResult.error||!receipt||
+    receipt.booking_id!==args.bookingId||
+    receipt.stripe_session_id!==b.stripe_session_id||
+    receipt.status!=="paid"||receipt.currency!=="pln"||
+    cents(receipt.amount)!==b.stripe_amount_cents)
+   return fail("CARAVEL_EVIDENCE_PAYMENT_RECEIPT_MISSING_OR_MISMATCHED");
  // The limited-cover consent is accepted ONLY when every field matches the
  // same trusted booking. The complete exclusion review still runs later.
  const coverageFields=[

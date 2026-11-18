@@ -78,7 +78,10 @@ function database(){
    expires_at:quote().expires_at,used_at:stamp(NOW-40000),
    raw_response:{provider_quote_data:quote(),ride24_context:{}},
  };
- const state={booking:booking(),quote:storedQuote,reviews:[],bookingWrites:0,reviewWrites:0,
+ const paymentRow={booking_id:ID,stripe_session_id:"cs_test_verified",
+  status:"paid",currency:"pln",amount:39.99};
+ const state={booking:booking(),quote:storedQuote,payment:paymentRow,
+  reviews:[],bookingWrites:0,reviewWrites:0,
    cancelledDuringSupplier:false,failedReviewWrites:false};
  return {state,from(name){
   let payload=null,filters=[];
@@ -91,7 +94,8 @@ function database(){
    limit:()=>query,
    maybeSingle:async()=>{
     const rows=name==="bookings"?[state.booking]:
-     name==="api_quotes"?[state.quote]:state.reviews;
+     name==="api_quotes"?[state.quote]:
+     name==="payments"?[state.payment]:state.reviews;
     const found=rows.find(row=>row&&filters.every(([k,op,v])=>{
      if(op==="eq")return row[k]===v;
      if(op==="is")return row[k]===null;
@@ -264,4 +268,17 @@ test("missing or tampered Caravel quote provenance stops BEFORE atomic claim and
    assert.equal(db.state.booking.api_status,"caravel_paid_awaiting_supplier");
    assert.equal(db.state.bookingWrites,0);
  }
+});
+
+test("persisted paid worker never claims or contacts Caravel until matching Stripe payments row exists",async()=>{
+ const db=database(),client={environment:"production",
+  async book(){throw Error("must not call supplier");}};
+ db.state.payment=null;
+ const result=await processPersistedCaravelPaidBooking({
+  ...args(db,client),bookingId:ID,
+ });
+ assert.equal(result.status,"hold_unqueued",JSON.stringify(result));
+ assert.equal(result.reason,"CARAVEL_EVIDENCE_PAYMENT_RECEIPT_MISSING_OR_MISMATCHED");
+ assert.equal(db.state.bookingWrites,0);
+ assert.equal(db.state.booking.api_status,"caravel_paid_awaiting_supplier");
 });

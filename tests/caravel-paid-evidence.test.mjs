@@ -35,6 +35,10 @@ const booking=()=>({
  partners:{api_provider:"caravel",api_enabled:true,
  active:true,account_status:"active"},
 });
+const payment=()=>({
+ booking_id:ID,stripe_session_id:"cs_live_123",
+ status:"paid",currency:"pln",amount:39.99,
+});
 const stored=()=>({
  id:AID,booking_id:ID,partner_id:P,car_class_id:CAR,
  external_group_id:"opaque-veh",external_quote_reference:Q,
@@ -42,10 +46,11 @@ const stored=()=>({
  expires_at:later,used_at:paid,
  raw_response:{ride24_context:{},provider_quote_data:quote()},
 });
-function db(b=booking(),q=stored()){
+function db(b=booking(),q=stored(),p=payment()){
  const stats={queries:[],errors:[]};
  return {stats,from(name){
-  const rows=name==="bookings"?[b]:[q],filters=[];
+  const rows=name==="bookings"?[b]:
+   name==="api_quotes"?[q]:[p],filters=[];
   const item={
    eq:(k,v)=>{filters.push([k,v]);return item;},
    maybeSingle:async()=>{
@@ -63,7 +68,7 @@ const load=(admin,nowEpochMs=NOW)=>loadCaravelPaidEvidence({
 test("only persisted paid booking and bound server quote produce a Caravel provider request",async()=>{
  const admin=db(),r=await load(admin);
  assert.equal(r.ok,true,JSON.stringify(r));
- assert.deepEqual(admin.stats.queries,["bookings","api_quotes"]);
+ assert.deepEqual(admin.stats.queries,["bookings","api_quotes","payments"]);
  assert.equal(r.evidence.bookingInput.ride24_booking_id,ID);
  assert.equal(r.evidence.bookingInput.idempotency_key,`ride24:${ID}`);
  assert.equal(r.evidence.bookingInput.provider_quote_data.quote_id,Q);
@@ -154,4 +159,32 @@ test("Caravel evidence reads the existing search-api raw_response.provider_quote
  assert.match(src,/raw\?\.provider_quote_data/);
  assert.match(search,/provider_quote_data: group\.provider_quote_data \|\| \{\}/);
  assert.doesNotMatch(src,/raw\.caravel_quote/);
+});
+
+test("Caravel supplier dispatch rejects missing, mismatched or stale Stripe receipt despite signed booking timestamp",async()=>{
+ const scenarios=[
+  null,
+  {...payment(),booking_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"},
+  {...payment(),stripe_session_id:"cs_other"},
+  {...payment(),status:"pending"},
+  {...payment(),currency:"eur"},
+  {...payment(),amount:39.98},
+  {...payment(),amount:0},
+ ];
+ for(const p of scenarios){
+  const admin=db(booking(),stored(),p),result=await load(admin);
+  assert.equal(result.ok,false,JSON.stringify(p));
+  assert.equal(result.reason,"CARAVEL_EVIDENCE_PAYMENT_RECEIPT_MISSING_OR_MISMATCHED");
+  assert.deepEqual(admin.stats.queries,["bookings","api_quotes","payments"]);
+ }
+});
+test("Stripe receipt query failure blocks Caravel supplier POST fail-closed",async()=>{
+ const base=db();
+ const admin={from:name=>{
+  if(name==="payments")throw Error("simulated payment table read outage");
+  return base.from(name);
+ }};
+ const result=await load(admin);
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,"CARAVEL_EVIDENCE_PAYMENT_RECEIPT_READ_FAILED");
 });
