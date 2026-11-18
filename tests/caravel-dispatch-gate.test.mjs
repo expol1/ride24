@@ -49,7 +49,7 @@ function fixture(){
       tier:"premium",product_type:"waiver",
       deposit:zero(),excess:zero(),theft_excess:zero(),
       covers:["theft","fire","glass","tyres_and_wheels","undercarriage"],
-      excludes:["mirrors"],
+      excludes:[],
     },
     quoteDeposit:{amount:zero()},
     licencePolicy:{licence_rules:{min_years_held:1,international_permit_required_for:["non_eu_eea"]}},
