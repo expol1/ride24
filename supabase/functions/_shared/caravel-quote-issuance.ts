@@ -24,8 +24,6 @@ import {evaluateCaravelPremiumForRide24,
 import {compareCaravelTermsVersion,bindReviewedCaravelTermsToQuote,
   type CaravelTermsSnapshot}
   from "./caravel-terms-version.ts";
-import {sanitizePartnerPayload}
-  from "./partner-api.ts";
 import {apiQuoteContext} from "./api-quote-contract.mjs";
 type Rec=Record<string,unknown>;
 type DbResult={data:Rec|null;error:{message?:string}|null};
@@ -219,6 +217,33 @@ export async function issueVerifiedCaravelQuote(args:{
    return reject("CARAVEL_QUOTE_RIDE24_PAYMENT_CONTRACT_FAILED");
  // Ride24's fee is separate. Do not invent a partner discount or another
  // rental surcharge until the audited commercial model approves one.
+ // Explicit allow-list: no supplier/customer credentials or untrusted
+ // response fields are copied into the public API quote row.
+ const covers=protection?.covers,excludes=protection?.excludes;
+ if(!Array.isArray(covers)||!Array.isArray(excludes)||
+    covers.length>30||excludes.length>30||
+    ![...covers,...excludes].every(x=>
+      typeof x==="string"&&/^[a-z0-9_]{1,80}$/.test(x)))
+   return reject("CARAVEL_QUOTE_PROTECTION_STORAGE_INVALID");
+ const money=(value:unknown):{amount:number;currency:string}|null=>{
+   const r=rec(value);
+   return r&&Number.isSafeInteger(r.amount)&&
+     r.amount>=0&&r.currency===contract.currency?
+     {amount:r.amount as number,currency:contract.currency}:null;
+ };
+ const safeProtection={
+   protection_id:requested.protection_id,
+   tier:"premium",product_type:"waiver",
+   deposit:money(protection?.deposit),
+   excess:money(protection?.excess),
+   theft_excess:money(protection?.theft_excess),
+   covers:[...covers],excludes:[...excludes],
+ };
+ if(!safeProtection.deposit||!safeProtection.excess||
+    !safeProtection.theft_excess)
+   return reject("CARAVEL_QUOTE_PROTECTION_STORAGE_INVALID");
+ enriched.protection=safeProtection;
+ enriched.deposit={amount:{amount:0,currency:contract.currency}};
  const payload= {
    group_external_id:requested.vehicle_id,
    quote_reference:parsed.quote.quoteId,
@@ -228,10 +253,10 @@ export async function issueVerifiedCaravelQuote(args:{
      pickupName:args.pickupDisplayName,returnName:args.dropoffDisplayName,
    }),
  };
- const sanitized=sanitizePartnerPayload(payload,60000);
- if(!sanitized||typeof sanitized!=="object"||
-    "truncated" in sanitized ||
-    JSON.stringify(sanitized).length>55000)
+ let safeLength:number;
+ try{safeLength=JSON.stringify(payload).length;}
+ catch{return reject("CARAVEL_QUOTE_STORAGE_SIZE_UNSAFE");}
+ if(safeLength>55000)
    return reject("CARAVEL_QUOTE_STORAGE_SIZE_UNSAFE");
  let written:DbResult;
  try{
@@ -250,7 +275,7 @@ export async function issueVerifiedCaravelQuote(args:{
     commission_total:0,final_total:amt(contract.totalMinor),
     currency:contract.currency,
     external_quote_reference:parsed.quote.quoteId,
-    raw_response:sanitized,
+    raw_response:payload,
     expires_at:new Date(parsed.quote.expiresAtEpochMs).toISOString(),
   }).select("id").single();
  }catch{return reject("CARAVEL_QUOTE_DB_WRITE_FAILED");}
