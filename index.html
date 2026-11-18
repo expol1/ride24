@@ -3368,7 +3368,7 @@ body .world-explorer.world-explorer-mobile::before {
     }
 }
 </style>
-<script src="assets/js/location-names.js?v=20261112canonical1"></script>
+<script src="assets/js/location-names.js?v=20261118dictionary1"></script>
     <!-- Mobile partner login: avoid full-screen backdrop blur during keyboard input. -->
     <style id="ride24-partner-login-mobile-performance">
         @media (max-width: 768px) {
@@ -5375,6 +5375,8 @@ function collectSearchData() {
             return;
         }
 
+        // Keep the public labels in sync with Smart Search PL/EN translations.
+        await window.Ride24LocationNames.loadDictionary(db).catch(() => {});
         const lang = localStorage.getItem("lang") || "pl";
         const requestId = lastQueryId;
         window.Ride24SearchMiss?.cancel(type);
@@ -6498,6 +6500,7 @@ data-en="🌍 Ride24 World Map">
             return;
         }
 
+        await window.Ride24LocationNames.loadDictionary(supabase).catch(() => {});
         const uniqueLocations = getRide24UniquePickupLocations(data || []);
         ride24SelectedCountry = country;
         ride24SelectedLocations = uniqueLocations;
