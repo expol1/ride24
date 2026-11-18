@@ -52,14 +52,14 @@ export function prepareVerifiedCaravelDispatch(args:{
     canonicalHashVerified:args.productionGate.termsCanonicalHashVerified,
     persistedBookingSnapshot:args.persistedBookingTerms,
   });
-  if(!terms.ok) return {
+  if("reason" in terms) return {
     ok:false,action:"hold_for_manual_review",reasons:[terms.reason],
   };
   const booking=buildCaravelBookingDraft(
     args.bookingInput,args.nowEpochMs,
     {environment:"production",production:args.productionGate},
   );
-  if(!booking.ok) return {
+  if("errors" in booking) return {
     ok:false,action:"hold_for_manual_review",reasons:booking.errors,
   };
   const draft=booking.draft;
