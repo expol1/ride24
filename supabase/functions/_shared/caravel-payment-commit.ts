@@ -102,7 +102,7 @@ export async function recordVerifiedCaravelStripePayment(args:{
 
   const decision=verifyCaravelPaidCheckoutForSupplierQueue(
     {...b,api_provider:partner.api_provider},session,args.nowIso);
-  if(!decision.ready){
+  if("action" in decision){
     if(decision.action==="already_waiting_for_supplier")
       return {ok:true,action:"already_queued",bookingId,
        supplierDispatchRequired:false,generateVoucher:false,notifyConfirmed:false};
