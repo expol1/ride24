@@ -202,3 +202,24 @@ test("supplier models with same group and price choose deterministic lowest supp
  assert.equal(offers.length,1);
  assert.equal(offers[0].provider_quote_data.vehicle_id,"3");
 });
+
+test("one SIPP maps to one stable A-F class despite conflicting representative seat counts",()=>{
+ const rows=arventGroupRows(ok([
+  {vehicleId:1,vehicleName:"Wagon",sippCode:"IWMD",passangerQuantityName:"5 Person"},
+  {vehicleId:2,vehicleName:"Wagon XL",sippCode:"IWMD",passangerQuantityName:"7 Person"},
+  {vehicleId:3,vehicleName:"SUV",sippCode:"XFAD",passangerQuantityName:"5 Person"},
+  {vehicleId:4,vehicleName:"SUV XL",sippCode:"XFAD",passangerQuantityName:"7 Person"},
+ ]));
+ assert.equal(rows.length,2);
+ assert.equal(rows.find(x=>x.external_id==="IWMD").class_code,"C");
+ assert.equal(rows.find(x=>x.external_id==="XFAD").class_code,"D");
+ const offers=arventOfferRows(ok([
+  {...example,vehicleId:1,sippCode:"IWMD",passangerQuantityName:"5 Person"},
+  {...example,vehicleId:2,sippCode:"IWMD",passangerQuantityName:"7 Person",totalPrice:200},
+  {...example,vehicleId:3,sippCode:"XFAD",passangerQuantityName:"5 Person"},
+  {...example,vehicleId:4,sippCode:"XFAD",passangerQuantityName:"7 Person",totalPrice:250},
+ ]),search);
+ assert.equal(offers.length,2);
+ assert.equal(offers.find(x=>x.external_id==="IWMD").class_code,"C");
+ assert.equal(offers.find(x=>x.external_id==="XFAD").class_code,"D");
+});
