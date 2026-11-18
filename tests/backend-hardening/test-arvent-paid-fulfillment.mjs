@@ -24,6 +24,7 @@ function fixture(change=()=>{},flags={}){
  const quote={id:'q-1',booking_id:'bk-1',partner_id:'arvent',car_class_id:'cls',
   external_group_id:'CDAR',currency:'EUR',partner_net_total:100,partner_discount_percent:0,
   pickup_location_external_id:'12',dropoff_location_external_id:'12',
+  start_date:'2027-02-16',end_date:'2027-02-18',
   raw_response:{provider_quote_data}};
  const fresh={external_id:'CDAR',currency:'EUR',deposit_amount:0,public_price_total:100,
   features:{minimum_driver_age:21},
@@ -96,7 +97,8 @@ test('new supplier price, category, deposit, driver or documents reject before c
   changed_category:s=>s.quote.external_group_id='MDAR',
   optional_extras:s=>s.quote.raw_response.ride24_options={binding:{selections:[{id:'babyseat'}]}},
   extra_driver:s=>s.booking.add_driver_name='Extra Driver',
-  paid_amount_changed:s=>s.booking.partner_net_price_snapshot=120
+  paid_amount_changed:s=>s.booking.partner_net_price_snapshot=120,
+  date_changed:s=>s.quote.end_date='2027-02-20'
  };
  for(const [name,change] of Object.entries(cases)){
   const f=fixture(change,approved);
@@ -126,4 +128,19 @@ test('Received stays pending, Approved confirms and Cancelled is definitive reje
 test('unknown supplier adapters never silently route to aggregator booking',async()=>{
  const f=fixture(()=>{},approved);
  await assert.rejects(f.createPaidProvider({},{provider:'not-real'}),flow.DefiniteApiFailure);
+});
+
+test('numeric Supabase money values may be decimal strings but never NaN/null',async()=>{
+ const f=fixture(s=>{
+  s.booking.partner_net_price_snapshot='100.00';
+  s.booking.online_payment_pln='35.00';
+  s.quote.partner_net_total='100.00';
+ },approved);
+ const p=await f.revalidatePaidProvider({},f.booking,f.quote);
+ assert.equal(p.partner_amount,100);
+ for(const bad of ['not-a-number','',null,-1,0]){
+  const invalid=fixture(s=>{s.booking.partner_net_price_snapshot=bad},approved);
+  await assert.rejects(invalid.revalidatePaidProvider({},invalid.booking,invalid.quote),
+   flow.DefiniteApiFailure);
+ }
 });
