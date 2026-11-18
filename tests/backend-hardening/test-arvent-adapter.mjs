@@ -27,7 +27,7 @@ function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0,sa
     currencyCode:"EUR",isAvailable:true,depositPrice:0,depositCreditCardRequired:false,
     totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
    if(path.startsWith("/extras?"))return {success:true,resultCode:0,
-    data:{vehicle:{vehicleId:100,currencyCode:"EUR",isAvailable:true,
+    data:{vehicle:{vehicleId:100,sippCode:"CDAR",currencyCode:"EUR",isAvailable:true,
      depositPrice:0,depositCreditCardRequired:false,totalKMLimit:0,
      totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001",
      pickupLocationId:9,returnLocationId:9,
@@ -130,8 +130,8 @@ test("unsupported agency-reference lookup never sends an invented supplier reque
 });
 const syntheticBooking={...input,partner_discount_percent:0,partner_amount:100,
  idempotency_key:"ride24:synthetic",ride24_booking_id:"R24-XYZ",reservation_code:"R24-XYZ",
- vehicle_group_id:"100",main_driver:{name:"Example Customer"},client_email:"example@example.com",
- client_phone:"000000000",provider_quote_data:{provider:"arvent_kolaycar",vehicle_id:"100"}};
+ vehicle_group_id:"CDAR",main_driver:{name:"Example Customer"},client_email:"example@example.com",
+ client_phone:"000000000",provider_quote_data:{provider:"arvent_kolaycar",vehicle_id:"100",sipp:"CDAR",total_amount:100}};
 test("approved status 1 only clears review after price and contract verification",async()=>{
  const a=setup({allowWrites:true,savedStatus:1});
  const result=await a.arventCreateBooking(creds,syntheticBooking);
@@ -190,4 +190,11 @@ test("live extras:null with verified token-bound vehicle does not prevent bookin
  const save=a.calls.find(x=>x.path==="/reservations/save");
  assert.ok(save);
  assert.equal(JSON.stringify(save.request.body.extras),"[]");
+});
+
+test("customer SIPP group cannot be swapped for a different supplier vehicle category",async()=>{
+ const a=setup({allowWrites:true,savedStatus:1});
+ const wrong={...syntheticBooking,vehicle_group_id:"MDMR"};
+ await assert.rejects(()=>a.arventCreateBooking(creds,wrong),/ARVENT_QUOTE_REQUIRED/);
+ assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,0);
 });
