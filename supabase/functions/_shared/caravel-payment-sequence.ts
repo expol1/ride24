@@ -16,7 +16,7 @@ const uuid=(v:unknown):v is string=>
   typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const nonempty=(v:unknown):v is string=>typeof v==="string"&&v.length>0;
 const isValidServerTimestamp=(v:unknown):v is string=>
-  typeof v==="string"&&/^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d(?:\\.\\d{1,6})?Z$/.test(v)&&
+  typeof v==="string"&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,6})?Z$/.test(v)&&
   Number.isFinite(Date.parse(v));
 export const CARAVEL_PAID_AWAITING_SUPPLIER="caravel_paid_awaiting_supplier" as const;
 
