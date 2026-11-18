@@ -1,5 +1,13 @@
 name: Ride24 API Compatibility QA
 on:
+  # Temporary branch-only CI trigger while the draft PR has merge conflicts.
+  # Remove before merging to main.
+  push:
+    branches: ['feature/arvent-kolaycar-api-audit-20261116']
+    paths:
+      - 'supabase/functions/**'
+      - 'tests/backend-hardening/**'
+      - '.github/workflows/api-compatibility.yml'
   pull_request:
     paths:
       - 'supabase/functions/**'
