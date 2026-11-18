@@ -4,6 +4,7 @@
 -- substitute for supplier's official 24h certification + signed terms review.
 --
 -- Expected on 18 Nov 2026: NO_GO. Maintain customer checkout OFF.
+-- Updated 18 Nov 2026 (evening): + reviewed terms store and server-flag checks.
 WITH
   gate AS (
     SELECT bool_or(certified) AS certified,
@@ -39,6 +40,10 @@ WITH
       AND active IS TRUE AND is_api_managed IS TRUE
       AND nullif(external_id,'') IS NOT NULL) AS locations
   ),
+  reviewed AS (
+    SELECT count(*) AS n FROM public.caravel_reviewed_terms t, gate g
+    WHERE t.document_id = g.terms_id AND t.content_hash = g.terms_sha
+  ),
   checks AS (
     SELECT 10 AS seq, 'official_supplier_certification' AS check_id,
       CASE WHEN certified IS TRUE AND has_certificate_timestamp IS TRUE
@@ -50,6 +55,10 @@ WITH
         terms_sha ~ '^[0-9a-f]{64}$' THEN 'PASS' ELSE 'BLOCKED' END,
       'Must match independently canonical-hashed active clauses/v1 terms'
       FROM gate
+    UNION ALL SELECT 25,'reviewed_terms_body_stored',
+      CASE WHEN n = 1 THEN 'PASS' ELSE 'BLOCKED' END,
+      'caravel_reviewed_terms row (full clauses/v1 body + exclusions + admin fee) for the released id/hash'
+      FROM reviewed
     UNION ALL SELECT 30,'partner_provider_enabled',
       CASE WHEN api_active IS TRUE THEN 'PASS' ELSE 'BLOCKED' END,
       'Exact Caravel partner UUID; not any generic custom API partner'
@@ -70,6 +79,8 @@ WITH
       CASE WHEN checkout_enabled IS TRUE THEN 'PASS' ELSE 'BLOCKED' END,
       'Never enable before successful certification, coverage and E2E review'
       FROM gate
+    UNION ALL SELECT 75,'paid_fulfillment_server_flags',
+      'MANUAL','Edge secrets CARAVEL_PRODUCTION_WRITES_ALLOWED and CARAVEL_STRIPE_FIRST_APPROVED (both unset = no supplier booking)'
     UNION ALL SELECT 80,'verified_latest_supplier_coverage_terms',
       'MANUAL','Supplier Premium waiver, exclusions, admin fee, zero deposit/excess and real SHA-256'
     UNION ALL SELECT 90,'live_signed_HMAC_and_webhook_reconcile',

@@ -126,3 +126,33 @@ Ride24 side (cannot be finished without the above, or not available here):
    monitored production smoke, then partner activation through the reviewed admin route.
 
 **Release decision: NO-GO** for Caravel offers or customer payments until 1–8 are done.
+
+## 7. Evening 18 Nov 2026 — consent, search, Stripe → voucher wiring (all behind the closed gate)
+
+Implemented (PR #84 branch, tests green):
+- **Release gate** `caravel-release.ts`: open only with certification timestamp, checkout
+  release, partner `caravel/synced`, and a `caravel_reviewed_terms` row whose stored body
+  re-hashes to the released SHA-256. Today: closed (`CARAVEL_NOT_CERTIFIED`).
+- **Reviewed terms store** `caravel_reviewed_terms` — APPLIED in Supabase (empty, RLS, service
+  role only, UPDATE/DELETE refused by trigger). Plus Caravel-only trigger copying the
+  Stripe-verified evidence when the shared workflow claims dispatch (voucher guard bridge).
+- **WWW consent** (`klient.html` + `assets/caravel-consent.js`): server-rendered terms, every
+  exclusion, exact admin fee, rental-at-pickup vs Ride24-only Stripe fee, category not model,
+  two required confirmations; echo verified by `caravel-booking-request` and again in SQL
+  (`caravel_commit_pending_booking`). Terms version change → old consent refused (at booking,
+  checkout and dispatch). Driver age ≠ quoted age → server re-quote + fresh confirmation.
+- **Edge function `caravel-booking-request`** — DEPLOYED v1 (returns 401 without a user,
+  409 `CARAVEL_CERTIFICATION_PENDING` while the gate is closed). Shared functions
+  (`search-api`, `create_checkout_session`, `stripe-webhook`) are NOT redeployed from this branch.
+- **Search** `caravel-search.ts` + `search-api` branch: Premium rows → Ride24 policy with
+  reviewed exclusions → `issueVerifiedCaravelQuote` → card with `noCreditCard=false`.
+- **Tests**: Caravel unit 351/351; API compatibility (AVIA and all partners) 292/295 locally
+  (3 known Windows-only failures); new real-PostgreSQL (PGlite) E2E over the actual migrations:
+  consent → pending booking → verified Stripe payment (+duplicate webhook) → one dispatch claim
+  → Caravel booking → `api_finalize_confirmed` → voucher guard; cancel, late-payment refund,
+  declined payment, closed gate, tampered consent, immutable terms; jsdom WWW consent UI 4/4.
+
+Certification verdict: the Caravel portal (`/portal/`) requires the account owner's e-mail
+sign-in; no session exists in this workstation's browser, so the verdict was NOT read.
+Android: no source in GitHub/Drive/workstation (only `Ride24_Klient_1.0.27_TEST.apk`);
+spec in `caravel-android-required-changes.md`. GO/NO-GO re-run: **NO_GO** (8 BLOCKED, 5 MANUAL).
