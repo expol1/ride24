@@ -24,7 +24,7 @@ test("Caravel terms SQL proposal is a single complete transaction, never repeate
   assert.equal((clean.match(/\$caravel_coverage\$\s*;/g)||[]).length,1);
   assert.equal((clean.match(/ADD\s+CONSTRAINT\s+bookings_caravel_coverage_consent_consistency_chk/g)||[]).length,1);
   assert.equal((clean.match(/ADD\s+CONSTRAINT\s+bookings_caravel_terms_snapshot_consistency_chk/g)||[]).length,1);
-  assert.equal((clean.match(/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS/g)||[]).length,8);
+  assert.equal((clean.match(/ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS/g)||[]).length,10);
   const statements=clean.split(/\bCOMMIT\s*;/);
   assert.equal(statements.length,2);
   assert.equal(statements[1].trim(),"");
@@ -45,6 +45,8 @@ test("Caravel terms SQL proposal enforces complete id/hash/language triplets",()
 
 test("Caravel limited Premium consent snapshot is all-or-none and tied to accepted terms",()=>{
   const cols=[
+   "caravel_coverage_supplier_id",
+   "caravel_coverage_quote_id",
    "caravel_coverage_terms_document_id",
    "caravel_coverage_terms_content_hash",
    "caravel_coverage_excluded_codes",
@@ -55,6 +57,8 @@ test("Caravel limited Premium consent snapshot is all-or-none and tied to accept
     assert.match(sql,new RegExp(col+"\\s+IS\\s+NULL"));
     assert.match(sql,new RegExp(col+"\\s+IS\\s+NOT\\s+NULL"));
   }
+  assert.match(sql,/caravel_coverage_supplier_id\s*~\s*'\^\[A-Za-z0-9_-\]\{1,128\}\$'/);
+  assert.match(sql,/caravel_coverage_quote_id\s*~\*\s*'\^\[0-9a-f\]\{8\}/);
   assert.match(sql,/caravel_coverage_terms_document_id\s*=\s*caravel_terms_document_id/);
   assert.match(sql,/caravel_coverage_terms_content_hash\s*=\s*caravel_terms_content_hash/);
   assert.match(sql,/jsonb_typeof\(caravel_coverage_excluded_codes\)\s*=\s*'array'/);

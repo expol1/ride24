@@ -178,6 +178,11 @@ test("Caravel exclusions require actual persisted consent across Stripe, not a t
    persistedCoverageConsent:{...consent,caravel_coverage_damage_admin_fee_minor:0}});
  assert.equal(changed.ok,false);
  assert.ok(changed.reasons.includes("CARAVEL_COVERAGE_PERSISTED_CONSENT_MISMATCH"));
+ const replayedConsent=prepareVerifiedCaravelDispatch({...args,
+   persistedCoverageConsent:{...consent,caravel_coverage_quote_id:
+     "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"}});
+ assert.equal(replayedConsent.ok,false);
+ assert.ok(replayedConsent.reasons.includes("CARAVEL_COVERAGE_PERSISTED_CONSENT_MISMATCH"));
  const staleQuote=prepareVerifiedCaravelDispatch({...args,
    bookingInput:{...bookingInput,provider_quote_data:{...data,
      coverage_exclusions:["glass"]}},

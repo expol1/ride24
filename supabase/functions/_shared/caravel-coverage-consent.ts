@@ -22,11 +22,17 @@ const validId=(v:unknown):v is string=>
   typeof v==="string"&&/^[A-Za-z0-9._~-]{1,200}$/.test(v)&&v!=="."&&v!=="..";
 const validHash=(v:unknown):v is string=>
   typeof v==="string"&&/^[a-f0-9]{64}$/.test(v);
+const validSupplier=(v:unknown):v is string=>
+  typeof v==="string"&&/^[A-Za-z0-9_-]{1,128}$/.test(v);
+const validQuoteId=(v:unknown):v is string=>
+  typeof v==="string"&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 const validTime=(v:unknown):v is string=>
   typeof v==="string"&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(v)&&
   Number.isFinite(Date.parse(v))&&new Date(v).toISOString().startsWith(v.slice(0,19));
 
 export type CaravelCoverageConsentSnapshot={
+  caravel_coverage_supplier_id:string;
+  caravel_coverage_quote_id:string;
   caravel_coverage_terms_document_id:string;
   caravel_coverage_terms_content_hash:string;
   caravel_coverage_excluded_codes:string[];
@@ -43,6 +49,10 @@ function verifyQuoteAndReview(quote:unknown,review:CaravelApprovedExclusionRevie
      !Number.isSafeInteger(review.damageAdministrationFeeMinor)||
      review.damageAdministrationFeeMinor<0||review.currency!=="EUR")
     throw new Error("CARAVEL_COVERAGE_REVIEW_INVALID");
+  // Bind the acknowledgement to the exact scoped supplier quote.
+  // Matching terms and exclusions alone are insufficient across bookings.
+  if(!validSupplier(q.supplier_id)||!validQuoteId(q.quote_id))
+    throw new Error("CARAVEL_COVERAGE_QUOTE_SCOPE_UNVERIFIED");
   const protection=rec(q.protection);
   if(q.terms_document_id!==review.termsDocumentId||
      q.terms_content_hash!==review.termsContentHash||
@@ -72,7 +82,10 @@ export function captureCaravelCoverageConsentBeforeStripe(args:{
     throw new Error("CARAVEL_COVERAGE_DISCLOSURE_NOT_ACCEPTED");
   if(!validTime(args.acceptedAtServerIso))
     throw new Error("CARAVEL_COVERAGE_SERVER_ACCEPTED_AT_REQUIRED");
+  const quote=args.quote as Rec;
   return {
+    caravel_coverage_supplier_id:quote.supplier_id as string,
+    caravel_coverage_quote_id:quote.quote_id as string,
     caravel_coverage_terms_document_id:r.termsDocumentId,
     caravel_coverage_terms_content_hash:r.termsContentHash,
     caravel_coverage_excluded_codes:[...r.documentedExcludedCodes],
@@ -91,7 +104,10 @@ export function validateCaravelCoverageConsentBeforeDispatch(args:{
     const saved=rec(args?.persistedConsent);
     if(!saved||!validTime(saved.caravel_coverage_accepted_at))
       throw new Error("CARAVEL_COVERAGE_PERSISTED_CONSENT_MISSING");
-    if(saved.caravel_coverage_terms_document_id!==args.reviewed.termsDocumentId||
+    const quote=args.quote as Rec;
+    if(saved.caravel_coverage_supplier_id!==quote.supplier_id||
+       saved.caravel_coverage_quote_id!==quote.quote_id||
+       saved.caravel_coverage_terms_document_id!==args.reviewed.termsDocumentId||
        saved.caravel_coverage_terms_content_hash!==args.reviewed.termsContentHash||
        !same(saved.caravel_coverage_excluded_codes,args.reviewed.documentedExcludedCodes)||
        saved.caravel_coverage_damage_admin_fee_minor!==args.reviewed.damageAdministrationFeeMinor)

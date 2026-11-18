@@ -13,7 +13,9 @@ const review={
  approvedByRide24:true,canonicalHashVerified:true,
 };
 const quote={
- provider:"caravel",terms_document_id:review.termsDocumentId,
+ provider:"caravel",supplier_id:"acct_eur",
+ quote_id:"3f2b6c1e-8a4d-4f0b-9c2e-5d7a1b0c9e11",
+ terms_document_id:review.termsDocumentId,
  terms_content_hash:review.termsContentHash,
  coverage_review_terms_document_id:review.termsDocumentId,
  coverage_exclusions:[...review.documentedExcludedCodes],
@@ -31,6 +33,8 @@ const input=()=>({
 test("Caravel signed-off exclusion/fee consent persists exactly before Stripe",()=>{
  const snapshot=captureCaravelCoverageConsentBeforeStripe(input());
  assert.deepEqual(snapshot,{
+  caravel_coverage_supplier_id:"acct_eur",
+  caravel_coverage_quote_id:quote.quote_id,
   caravel_coverage_terms_document_id:review.termsDocumentId,
   caravel_coverage_terms_content_hash:review.termsContentHash,
   caravel_coverage_excluded_codes:review.documentedExcludedCodes,
@@ -74,6 +78,8 @@ test("canonical hash, revised policy, missing fee and false server timestamp fai
 test("post-payment booking cannot silently replace accepted exclusions, fee or terms",()=>{
  const s=captureCaravelCoverageConsentBeforeStripe(input());
  const changes=[
+   {caravel_coverage_supplier_id:"acct_gbp"},
+   {caravel_coverage_quote_id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"},
    {caravel_coverage_terms_document_id:"caravel-en-v5"},
    {caravel_coverage_terms_content_hash:"b".repeat(64)},
    {caravel_coverage_excluded_codes:["glass","undercarriage"]},
@@ -99,4 +105,17 @@ test("post-payment booking cannot silently replace accepted exclusions, fee or t
  });
  assert.equal(revisedQuote.ok,false);
  assert.equal(revisedQuote.reason,"CARAVEL_COVERAGE_QUOTE_CHANGED");
+ for(const changedQuote of [
+   {...quote,supplier_id:"acct_gbp"},
+   {...quote,quote_id:"aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"},
+ ]){
+   const replay=validateCaravelCoverageConsentBeforeDispatch({
+     quote:changedQuote,reviewed:review,persistedConsent:s,
+   });
+   assert.equal(replay.ok,false);
+   assert.equal(replay.reason,"CARAVEL_COVERAGE_PERSISTED_CONSENT_MISMATCH");
+ }
+ assert.throws(()=>captureCaravelCoverageConsentBeforeStripe({
+   ...input(),quote:{...quote,quote_id:"not-a-uuid"},
+ }),/CARAVEL_COVERAGE_QUOTE_SCOPE_UNVERIFIED/);
 });

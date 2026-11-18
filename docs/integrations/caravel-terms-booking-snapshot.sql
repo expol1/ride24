@@ -13,6 +13,8 @@ ALTER TABLE public.bookings
   ADD COLUMN IF NOT EXISTS caravel_terms_document_id text,
   ADD COLUMN IF NOT EXISTS caravel_terms_language text,
   ADD COLUMN IF NOT EXISTS caravel_terms_content_hash text,
+  ADD COLUMN IF NOT EXISTS caravel_coverage_supplier_id text,
+  ADD COLUMN IF NOT EXISTS caravel_coverage_quote_id text,
   ADD COLUMN IF NOT EXISTS caravel_coverage_terms_document_id text,
   ADD COLUMN IF NOT EXISTS caravel_coverage_terms_content_hash text,
   ADD COLUMN IF NOT EXISTS caravel_coverage_excluded_codes jsonb,
@@ -59,6 +61,11 @@ BEGIN
 END
 $caravel_terms$;
 
+COMMENT ON COLUMN public.bookings.caravel_coverage_supplier_id IS
+  'Supplier scope of Premium exclusion consent, captured before Stripe.';
+COMMENT ON COLUMN public.bookings.caravel_coverage_quote_id IS
+  'Exact Caravel UUID quote accepted before Stripe; changed quotes block dispatch.';
+
 -- The coverage consent is optional ONLY for fully covered Caravel Premium.
 -- A LIMITED Premium snapshot is all-or-none and must reference the exact
 -- same immutable contract the customer accepted. Its exclusion array must
@@ -75,6 +82,8 @@ BEGIN
       ADD CONSTRAINT bookings_caravel_coverage_consent_consistency_chk
       CHECK (
         (
+          caravel_coverage_supplier_id IS NULL AND
+          caravel_coverage_quote_id IS NULL AND
           caravel_coverage_terms_document_id IS NULL AND
           caravel_coverage_terms_content_hash IS NULL AND
           caravel_coverage_excluded_codes IS NULL AND
@@ -85,6 +94,10 @@ BEGIN
         (
           caravel_terms_document_id IS NOT NULL AND
           caravel_terms_content_hash IS NOT NULL AND
+          caravel_coverage_supplier_id IS NOT NULL AND
+          caravel_coverage_supplier_id ~ '^[A-Za-z0-9_-]{1,128}$' AND
+          caravel_coverage_quote_id IS NOT NULL AND
+          caravel_coverage_quote_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' AND
           caravel_coverage_terms_document_id IS NOT NULL AND
           caravel_coverage_terms_document_id = caravel_terms_document_id AND
           caravel_coverage_terms_content_hash IS NOT NULL AND
@@ -113,7 +126,8 @@ COMMIT;
 -- 2. Add a SERVER-SIDE reviewed doc id/hash/language to api_quotes.raw_response
 --    and display the exact document to the customer before payment.
 -- 3. Capture customer acceptance, including the separately accepted
---    Premium exclusion codes, damage/theft administration fee and server
+--    Premium exclusion codes, damage/theft administration fee, supplier,
+--    quote UUID and server
 --    timestamp (if applicable). Copy both snapshots into the same bookings
 --    INSERT atomically, not via an unauthenticated later UPDATE.
 -- 4. Re-read CURRENT document_id before Stripe payment. If changed, halt
@@ -138,6 +152,8 @@ COMMIT;
 -- ALTER TABLE public.bookings
 --   DROP CONSTRAINT IF EXISTS bookings_caravel_terms_snapshot_consistency_chk;
 -- ALTER TABLE public.bookings
+--   DROP COLUMN IF EXISTS caravel_coverage_supplier_id,
+--   DROP COLUMN IF EXISTS caravel_coverage_quote_id,
 --   DROP COLUMN IF EXISTS caravel_coverage_accepted_at,
 --   DROP COLUMN IF EXISTS caravel_coverage_damage_admin_fee_minor,
 --   DROP COLUMN IF EXISTS caravel_coverage_excluded_codes,
