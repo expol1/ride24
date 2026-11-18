@@ -9,7 +9,7 @@ const source=await readFile(new URL("../../supabase/functions/_shared/arvent-kol
 const transformed=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
 assert.equal(transformed.diagnostics?.length||0,0,"Arvent adapter must parse as TypeScript");
 
-function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0}={}){
+function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0,savedPickupLocation=9}={}){
  const calls=[];
  const transport={
   sanitizePartnerPayload:x=>x,
@@ -31,6 +31,7 @@ function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0}={
    if(path==="/reservations/save")return {success:true,resultCode:0,
     data:{reservationNumber:"A-1",agencyReservationReference:"R24-XYZ",reservationStatusType:savedStatus,
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
    if(path.startsWith("/reservations?")&&path.includes("agencyReservationReference="))
     return {success:true,resultCode:0,data:{reservationNumber:"A-1",
@@ -38,12 +39,19 @@ function setup({allowWrites=false,savedStatus=0,savedPrice=100,savedDeposit=0}={
    if(path.startsWith("/reservations?"))return {success:true,resultCode:0,
     data:{reservationNumber:"A-1",reservationStatusType:savedStatus,
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
    throw Error("Unexpected supplier endpoint "+path.split("?")[0]);
   },
  };
- const supabase={serviceClient:()=>({from:()=>({select:()=>({
-   eq(){return this;},limit(){return this;},async maybeSingle(){return {data:{client_email:"synthetic@example.invalid",partner_currency:"EUR",partner_net_price_snapshot:100},error:null};}
+ const supabase={serviceClient:()=>({from:(table)=>({select:()=>({
+   eq(){return this;},limit(){return this;},
+   async maybeSingle(){return {data:table==="api_quotes"?
+    {pickup_location_external_id:"9",dropoff_location_external_id:"9"}:
+    {client_email:"synthetic@example.invalid",partner_currency:"EUR",
+     partner_net_price_snapshot:100,api_quote_id:"10000000-0000-4000-8000-000000000001",
+     start_date:"2030-12-16",end_date:"2030-12-17",pickup_time:"10:00:00",return_time:"10:00:00"},
+    error:null};}
   })})})};
  const require=name=>name==="./partner-api.ts"?transport:
   name==="./ride24-security.ts"?supabase:
@@ -152,4 +160,15 @@ test("status 1 returns confirmed only if actual supplier EUR price and terms mat
   assert.equal(row.status,"pending",JSON.stringify(options));
   assert.equal(row.needs_manual_review,true,JSON.stringify(options));
  }
+});
+
+test("approved supplier confirmation with changed pickup must never reach voucher",async()=>{
+ const a=setup({savedStatus:1,savedPickupLocation:10});
+ const status=await a.arventBookingStatus(creds,"A-1");
+ assert.equal(status.status,"pending");
+ assert.equal(status.needs_manual_review,true);
+ const b=setup({allowWrites:true,savedStatus:1,savedPickupLocation:10});
+ const created=await b.arventCreateBooking(creds,syntheticBooking);
+ assert.equal(created.status,"pending");
+ assert.equal(created.route_mismatch,true);
 });
