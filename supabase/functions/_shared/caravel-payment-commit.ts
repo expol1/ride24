@@ -124,6 +124,8 @@ export async function recordVerifiedCaravelStripePayment(args:{
     })
       .eq("id",bookingId)
       .eq("partner_id",CARAVEL_ID)
+      .eq("client_id",b.client_id)
+      .eq("manual_review",false)
       .eq("status",decision.transition.fromStatus)
       .eq("stripe_session_id",session.id)
       .is("cancelled_at",null)

@@ -95,6 +95,7 @@ test("wrong client, amount, currency, session, partner or quote cannot be marked
   [{caravel_supplier_quote_id:"bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"},{}],
   [{caravel_terms_content_hash:"b".repeat(64)},{}],
   [{status:"cancelled",cancelled_at:NOW},{}],
+  [{manual_review:true},{}],
   [{online_payment_pln:39.98},{}],
  ];
  for(const [patch,overrides] of cases){
@@ -142,4 +143,21 @@ test("signed Stripe duplicate AFTER supplier confirmation is a no-op, not a new 
  assert.equal(res.supplierDispatchRequired,false);
  assert.equal(res.generateVoucher,false);
  assert.equal(admin.state.writes,0);
+});
+
+test("manual review begun after the signed Stripe event is read cannot be overwritten by payment",async()=>{
+ const admin=db(),before=admin.from.bind(admin);
+ admin.from=(name)=>{
+   const q=before(name),original=q.update;
+   q.update=(payload)=>{
+     admin.state.row.manual_review=true;
+     return original(payload);
+   };
+   return q;
+ };
+ const result=await recordVerifiedCaravelStripePayment(args(admin));
+ assert.equal(result.ok,false);
+ assert.equal(result.reason,"CARAVEL_PAYMENT_CONCURRENT_STATE_CHANGE");
+ assert.equal(admin.state.writes,0);
+ assert.equal(admin.state.row.manual_review,true);
 });

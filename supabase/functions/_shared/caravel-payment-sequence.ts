@@ -66,6 +66,9 @@ export function verifyCaravelPaidCheckoutForSupplierQueue(
     (b.stripe_currency!=null&&b.stripe_currency!=="pln"))
     return {ready:false,action:"hold_for_manual_review",
       reason:"CARAVEL_STRIPE_PAYMENT_EVIDENCE_MISMATCH",generateVoucher:false};
+  if(b.manual_review===true)
+    return {ready:false,action:"hold_for_manual_review",
+      reason:"CARAVEL_BOOKING_ALREADY_HELD_FOR_MANUAL_REVIEW",generateVoucher:false};
   if(b.cancelled_at!=null||["cancelled","rejected","expired","payment_expired"].includes(String(b.status)))
     return {ready:false,action:"hold_for_manual_review",
       reason:"CARAVEL_BOOKING_NOT_ELIGIBLE_AFTER_PAYMENT",generateVoucher:false};

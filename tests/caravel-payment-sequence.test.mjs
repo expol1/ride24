@@ -45,6 +45,7 @@ test("missing, unpaid, reused, altered or mismatched session never releases vouc
   [{...base,provider_type:"local"},pay],
   [{...base,status:"cancelled",cancelled_at:"2026-11-18"},pay],
   [{...base,status:"rejected"},pay],
+  [{...base,manual_review:true},pay],
   [{...base,api_booking_reference:"external-id"},pay],
  ]){
   const r=verifyCaravelPaidCheckoutForSupplierQueue(booking,session,ACCEPTED_AT);
