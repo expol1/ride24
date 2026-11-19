@@ -718,11 +718,17 @@ let query = db
                 let apiSearchIncomplete = false;
                 let apiSurchargesUnconfirmed = false;
                 try {
+                    // Logged-in users send their own Supabase access token so
+                    // account-scoped API pilots can be authorized server-side.
+                    // Anonymous searches continue without an Authorization header.
+                    const { data: searchAuthData } = await db.auth.getSession();
+                    const searchToken = searchAuthData?.session?.access_token;
                     const apiResponse = await fetch(supabaseUrl + "/functions/v1/search-api", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
-                            "apikey": supabaseKey
+                            "apikey": supabaseKey,
+                            ...(searchToken ? { "Authorization": `Bearer ${searchToken}` } : {})
                         },
                         body: JSON.stringify({
                             pickupLocationId: loc.id || undefined,
