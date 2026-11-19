@@ -2270,7 +2270,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
-    <script src="assets/caravel-consent.js?v=20261119-fee-lines"></script>
+    <script src="assets/caravel-consent.js?v=20261119-voluntary-extras"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
         // Otwieranie modala
@@ -3098,16 +3098,28 @@ document.addEventListener("click", async function(e) {
         select.onchange = () => {
             if (select.value === addSelect.value) addSelect.value = "none";
             prefillLicense();
-            bookingExtras.refresh();
+            if (!window.Ride24CaravelConsent?.active()) bookingExtras.refresh();
         };
 
         addSelect.onchange = () => {
             if (select.value === addSelect.value) select.value = "";
-            bookingExtras.refresh();
+            if (!window.Ride24CaravelConsent?.active()) bookingExtras.refresh();
         };
 
         await window.loadPartnerDocuments(carClassId);
-        await bookingExtras.start();
+        if (window.Ride24CaravelConsent?.active()) {
+            bookingExtras.close();
+            const price = document.getElementById("bookingPriceBreakdown");
+            if(price) price.hidden=true;
+            addSelect.disabled=true;
+            addSelect.value="none";
+            addSelect.title=isEn
+                ? "Additional drivers are not yet confirmed in Caravel's booking API."
+                : "Dodatkowy kierowca wymaga potwierdzenia w API Caravel i nie jest dostępny online.";
+        } else {
+            addSelect.disabled=false;
+            await bookingExtras.start();
+        }
 
     }, 0);
 };
@@ -3251,7 +3263,7 @@ document.addEventListener("click", async function(e) {
                         ? "Enter the original issue date of the main driver's driving licence."
                         : "Podaj datę pierwszego uzyskania prawa jazdy głównego kierowcy.");
                 }
-                const pricingPayload = bookingExtras.payload();
+                const pricingPayload = caravelBooking ? {} : bookingExtras.payload();
                 const caravelResult = caravelBooking ? await window.Ride24CaravelConsent.book({
                     accessToken: session.access_token, supabaseUrl, supabaseKey, driverId, additionalDriverId }) : null;
                 const response = caravelResult ? { ok: caravelResult.ok, json: async () => caravelResult.body }
@@ -3319,7 +3331,7 @@ document.addEventListener("click", async function(e) {
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.disabled = !bookingExtras.canSubmit();
+                    btn.disabled = caravelBooking ? false : !bookingExtras.canSubmit();
                     btn.innerText = isEn ? "Confirm & Book" : "Potwierdzam i rezerwuję";
                 }
             }
@@ -3327,6 +3339,7 @@ document.addEventListener("click", async function(e) {
 
        window.closeTermsModal = function() {
             bookingExtras.close();
+            if(window.Ride24CaravelConsent?.active())window.Ride24CaravelConsent.reset();
             document.getElementById("termsModal").style.display = "none";
         }
                 window.openEquipmentInfoModal = function() {
