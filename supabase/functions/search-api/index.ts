@@ -904,11 +904,12 @@ serve(async (req) => {
       pickupCriteria.country, pickupCriteria.city,
       pickupCriteria.locationName, pickupCriteria.displayName,
     ].join(" ");
-    if (/turkey|turcja|antalya|dalaman|istanbul|stambuł|izmir|kayseri|samsun|trabzon|\\b(?:AYT|DLM|IST|SAW|ADB|ASR|SZF|TZX)\\b/i.test(pickupHint)) {
+    if (/turkey|turcja|antalya|dalaman|istanbul|stambuł|izmir|kayseri|samsun|trabzon|(?:^|[^a-z0-9])(?:AYT|DLM|IST|SAW|ADB|ASR|SZF|TZX)(?:$|[^a-z0-9])/i.test(pickupHint)) {
       const bearer = req.headers.get("authorization") || "";
       if (bearer.startsWith("Bearer ")) {
         const { data: authData, error: authError } = await admin.auth.getUser(bearer.slice(7).trim());
         if (!authError && authData?.user?.id) {
+          const pilotUserId = authData.user.id;
           const { data: partnerRows, error: partnerError } = await admin
             .from("partners")
             .select("id,api_settings")
@@ -920,7 +921,7 @@ serve(async (req) => {
           if (!partnerError) {
             const pilot = (partnerRows || []).find((partner) =>
               partner.api_settings?.arvent_pilot?.enabled === true &&
-              partner.api_settings?.arvent_pilot?.client_id === authData.user.id &&
+              partner.api_settings?.arvent_pilot?.client_id === pilotUserId &&
               partner.api_settings?.arvent_certified !== true
             );
             if (pilot) {
