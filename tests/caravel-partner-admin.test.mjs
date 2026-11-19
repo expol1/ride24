@@ -26,13 +26,13 @@ function db(state = {}) {
 }
 async function client(docId = "caravel-en-v5", env = "production") {
   const b = body();
-  const meta = {document_id: docId, language: "en", version: 4, title: b.title, format: "clauses/v1",
+  const meta = {document_id: docId, language: "en", version: 5, title: b.title, format: "clauses/v1",
     content_hash: await computeCaravelTermsContentHash(b), published_at: "2026-11-17T10:00:00Z", withdrawn_at: null};
   return {environment: env, meta,
     async capabilities() { return {data: {api_version: "1.68.0"}}; },
     pinned: "1.67.0",
     async whoami() { return {data: {api_version: {pinned: this.pinned, latest: "1.68.0"}}}; },
-    async suppliers() { return {data: [{supplier_id: "acct_eur", status: "active", tax_inclusive: true, payment_models: ["pay_on_arrival"]},
+    async suppliers() { return {data: [{supplier_id: "acct_eur", status: "active", currency: "EUR", tax_inclusive: true, payment_models: ["pay_on_arrival"]},
       {supplier_id: "acct_other", status: "active", tax_inclusive: true, payment_models: ["prepaid"]}]}; },
     async locations() { return {data: [{supplier_id: "acct_eur", location_id: "1", type: "airport", name: "Athens Airport",
       address: {city: "Athens", region: "Attica", country: "GR"}, timezone: "Europe/Athens"}]}; },

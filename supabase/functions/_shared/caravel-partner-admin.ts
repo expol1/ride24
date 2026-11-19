@@ -66,7 +66,9 @@ async function refreshTerms(admin: Db, client: Client, supplierId: string, panel
   if (current.length !== 1) return {ok: false, code: "CARAVEL_TERMS_CURRENT_AMBIGUOUS_OR_MISSING"};
   if (!Number.isSafeInteger(fee)) return {ok: false, code: "CARAVEL_TERMS_REVIEW_FIELDS_REQUIRED"};
   // Free cancellation until pickup is read from the supplier's published policy (never typed in).
-  const policy = rec(((await client.reference("policies", supplierId)).data as Rec[])?.[0]);
+  // Caravel reference/policies returns an object (not always a single-element array).
+  const policyData = (await client.reference("policies", supplierId)).data;
+  const policy = rec(Array.isArray(policyData) ? policyData[0] : policyData);
   const c = rec(policy?.cancellation);
   const freeUntilPickup = c?.type === "free" || (c?.type === "free_until" && c?.free_until_hours_before_pickup === 0);
   return ingestCaravelProductionTerms({admin, client, input: {supplierId, language: "en", documentId: current[0].document_id,
