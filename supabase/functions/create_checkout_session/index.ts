@@ -92,13 +92,14 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       ...(isApi?{expires_at:Math.floor(Date.parse(booking.payment_deadline)/1000)}:{}),
       mode: "payment",
-      payment_method_types: ["card"],
+      // Do not pin "card": Stripe dynamically offers eligible methods such as BLIK
+      // according to the live payment-method configuration, currency and customer.
       line_items: [{
         price_data: {
           currency: "pln",
           product_data: {
-            name: "Ride24 – Auta z różnych zakątków świata",
-            description: `Rezerwacja: ${booking.reservation_code || booking.id}`,
+            name: "Opłata rezerwacyjna Ride24.pl",
+            description: `Rezerwacja: ${booking.reservation_code || booking.id}. Opłata nie obejmuje kosztu wynajmu samochodu.`,
           },
           unit_amount: Math.round(amount * 100),
         },
