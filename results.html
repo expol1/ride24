@@ -1203,8 +1203,11 @@ const basePrice = Number(priceTotal) || 0;
 const safeMarginPercent = Number.isFinite(Number(marginPercent)) ? Number(marginPercent) : 25;
 const verifiedCustomerPrice = Number.isFinite(exactCaravelTotal) && exactCaravelTotal > basePrice
     ? Number(exactCaravelTotal.toFixed(2)) : null;
-const finalPrice = verifiedCustomerPrice ?? Number((basePrice * (1 + safeMarginPercent / 100)).toFixed(2));
-const commission = Number((finalPrice - basePrice).toFixed(2));
+// AVIA/local/Arvent keep the original calculation to avoid any settlement drift.
+const commission = verifiedCustomerPrice !== null
+    ? Number((verifiedCustomerPrice - basePrice).toFixed(2))
+    : basePrice * (safeMarginPercent / 100);
+const finalPrice = verifiedCustomerPrice ?? (basePrice + commission);
 
 // 🔥 LIVE KURS (NBP)
 const rate = await getExchangeRate(currency, requireLiveRate);
@@ -1227,8 +1230,14 @@ localStorage.setItem("bookingFinalPrice", finalPrice);
 localStorage.setItem("bookingOnlinePln", commissionPLN);
 localStorage.setItem("bookingPickupPrice", partnerPart);
 localStorage.setItem("bookingCurrency", currency);
-localStorage.setItem("bookingFXCurrency", currency);
-localStorage.setItem("bookingFXRate", String(rate));
+if (verifiedCustomerPrice !== null) {
+    // Indicative only; Caravel server independently obtains the actual NBP rate.
+    localStorage.setItem("bookingFXCurrency", currency);
+    localStorage.setItem("bookingFXRate", String(rate));
+} else {
+    localStorage.removeItem("bookingFXCurrency");
+    localStorage.removeItem("bookingFXRate");
+}
 
 // 🔥 DEBUG
 console.log("💾 ZAPISANO CENY:", {
