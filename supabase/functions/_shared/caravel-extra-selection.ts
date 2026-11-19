@@ -82,7 +82,7 @@ export function caravelCheckExtraSelection(
   used.add(item.extra_id);
   if(item.mutually_exclusive_group)groups.add(item.mutually_exclusive_group);
  }
- if(lines===null)return {ok:true,priced:[],totalMinor:0};
+ if(lines===null) return choices.length === 0 ? {ok:true,priced:[],totalMinor:0} : {ok:false,reason:"CARAVEL_EXTRA_LINES_MISSING"};
  if(lines.length!==choices.length)return {ok:false,reason:"CARAVEL_EXTRAS_LINE_COUNT_MISMATCH"};
  let sum=0;
  for(const c of choices){
