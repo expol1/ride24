@@ -1401,6 +1401,63 @@
             #view-payments .payments-table .payment-message-cell{padding:28px 18px}
         }
 
+
+/* Profil: wizualne uporządkowanie niezależnych formularzy bez zmian w zapisie. */
+#view-profile .profile-page-header{margin-bottom:26px}
+#view-profile .profile-description{margin:8px 0 0;color:#64748b;font-size:13px;font-weight:500;line-height:1.55}
+#view-profile .profile-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);grid-template-areas:"owner invoice" "drivers drivers";align-items:start;gap:26px}
+#view-profile .profile-col{min-width:0;display:flex;flex-direction:column}
+#view-profile .profile-col:nth-child(1){grid-area:owner}
+#view-profile .profile-col:nth-child(2){grid-area:drivers}
+#view-profile .profile-col:nth-child(3){grid-area:invoice}
+#view-profile .section-heading{display:flex;align-items:center;gap:11px;margin:0 0 14px;font-size:17px;font-weight:800;color:#11244a;letter-spacing:-.25px}
+#view-profile .section-heading::before{content:"";display:inline-block;width:7px;height:22px;flex:0 0 7px;border-radius:999px;background:#84cc16}
+#view-profile .settings-card{flex:none;min-height:0;padding:26px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 9px 28px rgba(15,23,42,.045);gap:0}
+#view-profile .settings-card>div[style*="flex: 1"]{display:none}
+#view-profile .form-row{gap:16px}
+#view-profile .form-group{margin-bottom:17px;min-width:0}
+#view-profile .form-group label{display:block;margin-bottom:7px;color:#475569;font-size:12px;font-weight:700;letter-spacing:.1px}
+#view-profile .form-group input:not([type="checkbox"]){min-width:0;min-height:44px;padding:10px 13px;border:1px solid #dbe3ed;background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.025);color:#102442}
+#view-profile .form-group input:focus-visible{border-color:#2563eb;outline:3px solid rgba(37,99,235,.13);outline-offset:1px}
+#view-profile .form-group small{display:block;margin:8px 0 0;color:#64748b;line-height:1.55;font-size:11px}
+#view-profile .profile-actions{display:flex;align-items:center;justify-content:flex-end;margin-top:8px;padding-top:19px;border-top:1px solid #eef2f6}
+#view-profile .profile-actions .btn-primary,#view-profile .invoice-actions .btn-primary{padding:12px 20px;min-height:43px;border-radius:10px;font-weight:700;font-size:13px;box-shadow:0 5px 14px rgba(37,99,235,.12)}
+#view-profile .profile-col:nth-child(3) .settings-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px}
+#view-profile .profile-col:nth-child(3) .settings-card>.form-group{margin-bottom:17px}
+#view-profile .profile-col:nth-child(3) .invoice-field-full,#view-profile .profile-col:nth-child(3) .invoice-remember-row,#view-profile .profile-col:nth-child(3) .invoice-actions{grid-column:1/-1}
+#view-profile .invoice-remember-row{margin:0 0 12px}
+#view-profile .invoice-remember-label{color:#334155;display:inline-flex!important;align-items:center;flex-direction:row;gap:10px;font-size:13px!important;cursor:pointer}
+#view-profile .invoice-actions{margin:6px 0 0;padding-top:20px;border-top:1px solid #eef2f6;justify-content:flex-end;align-items:center;gap:9px}
+#view-profile .invoice-actions .btn-secondary{border-radius:9px;padding:11px 13px;font-size:12px;font-weight:700}
+#view-profile .invoice-actions .btn-cancel-soft{color:#b91c1c;border-color:#fecaca;background:#fff7f7}
+#view-profile #drivers-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:18px;margin:0 0 16px}
+#view-profile #drivers-list .driver-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:15px;margin:0;padding:20px;border:1px solid #e2e8f0;border-radius:13px;background:#f8fafc;box-shadow:none}
+#view-profile #drivers-list .driver-row .form-group{margin:0}
+#view-profile #drivers-list .btn-icon-remove{grid-column:1/-1;width:auto;min-height:36px;height:auto;padding:8px 13px;border:1px solid #fecaca;border-radius:9px;color:#b91c1c;background:#fff1f2;font-size:12px;justify-self:end}
+#view-profile #drivers-list .btn-icon-remove:hover{background:#fee2e2;color:#991b1b}
+#view-profile .profile-col:nth-child(2) .settings-card>.btn-secondary{align-self:flex-start;border-color:#bfdbfe;color:#1d4ed8;background:#eff6ff;border-radius:10px;padding:11px 15px;font-weight:750}
+#view-profile .profile-col:nth-child(2) .settings-card>.btn-secondary:hover{background:#dbeafe}
+@media(max-width:1150px){
+    #view-profile .profile-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"owner" "drivers" "invoice";gap:26px}
+}
+@media(max-width:768px){
+    #view-profile .profile-grid{gap:23px}
+    #view-profile .profile-page-header{margin-bottom:22px}
+    #view-profile .section-heading{font-size:16px;margin-bottom:12px}
+    #view-profile .settings-card{padding:19px;border-radius:15px}
+    #view-profile .form-row{grid-template-columns:1fr;gap:0}
+    #view-profile .profile-col:nth-child(3) .settings-card{grid-template-columns:1fr}
+    #view-profile .profile-col:nth-child(3) .settings-card>.form-group{grid-column:1/-1}
+    #view-profile #drivers-list{grid-template-columns:1fr;gap:12px}
+    #view-profile #drivers-list .driver-row{grid-template-columns:1fr;padding:16px;gap:13px}
+    #view-profile #drivers-list .btn-icon-remove{grid-column:1;justify-self:stretch}
+    #view-profile .profile-actions{justify-content:stretch}
+    #view-profile .profile-actions .btn-primary{width:100%}
+    #view-profile .invoice-actions{flex-direction:column;align-items:stretch}
+    #view-profile .invoice-actions .btn-primary,#view-profile .invoice-actions .btn-secondary{width:100%}
+    #view-profile .profile-col:nth-child(2) .settings-card>.btn-secondary{width:100%!important}
+}
+
 /* Booking details: preserve original information and keep the entire modal reachable at 100% zoom. */
 #bookingDetailsModal { padding: 16px; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
 #bookingDetailsModal .modal-content { box-sizing: border-box; width: min(100%, 520px); max-width: 520px !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; margin: auto; flex-shrink: 0; }
@@ -1992,7 +2049,12 @@ async>
             </div>
 
             <div id="view-profile" class="view-section">
-                <div class="page-header"><h1 class="page-title" data-pl="Profil" data-en="Profile">Profil</h1></div>
+                <div class="page-header profile-page-header">
+                    <div>
+                        <h1 class="page-title" data-pl="Profil" data-en="Profile">Profil</h1>
+                        <p class="profile-description" data-pl="Dane kierowców i informacje do rachunku w jednym miejscu." data-en="Driver details and billing information in one place.">Dane kierowców i informacje do rachunku w jednym miejscu.</p>
+                    </div>
+                </div>
 
                 <div class="profile-grid">
                     <div class="profile-col">
@@ -2028,7 +2090,7 @@ async>
                                 <input type="text" id="profile-country" value="PL" placeholder="PL" data-pl="PL" data-en="UK">
                             </div>
                             <div style="flex: 1;"></div>
-                            <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 20px;">
+                            <div class="profile-actions">
                                 <button type="button" class="btn-primary" onclick="saveProfile()" data-pl="Zapisz zmiany" data-en="Save Changes">Zapisz zmiany</button>
                             </div>
                         </div>
@@ -2043,14 +2105,14 @@ async>
                             <button type="button" class="btn-secondary" style="margin-top: 5px; width: max-content;" onclick="addDriverRow()" data-pl="+ Dodaj kierowcę" data-en="+ Add driver">+ Dodaj kierowcę</button>
 
                             <div style="flex: 1;"></div>
-                            <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+                            <div class="profile-actions">
                                 <button type="button" class="btn-primary" onclick="saveDrivers()" data-pl="Zapisz kierowców" data-en="Save drivers">Zapisz kierowców</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="profile-col">
-                        <h2 class="section-heading" data-pl="📄 Dane do rachunku" data-en="📄 Invoice details">📄 Dane do rachunku</h2>
+                        <h2 class="section-heading" data-pl="Dane do rachunku" data-en="Invoice details">Dane do rachunku</h2>
                         <div class="settings-card">
                             <div class="form-group">
                                 <label for="invoice-company" data-pl="Nazwa firmy" data-en="Company name">Nazwa firmy</label>
@@ -2062,7 +2124,7 @@ async>
                                 <input type="text" id="invoice-nip" value="" inputmode="numeric" maxlength="10">
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group invoice-field-full">
                                 <label for="invoice-street" data-pl="Ulica i numer" data-en="Street and number">Ulica i numer</label>
                                 <input type="text" id="invoice-street" value="">
                             </div>
