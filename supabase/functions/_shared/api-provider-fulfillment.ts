@@ -1,5 +1,5 @@
 import { aggregatorAvailability, aggregatorQuoteOptions, aggregatorBook, aggregatorStatus } from './renteon-aggregator.ts';
-import { arventSearch, arventCreateBooking, arventBookingStatus } from './arvent-kolaycar.ts';
+import { arventSearch, arventCreateBooking, arventBookingStatus, arventCancelBooking } from './arvent-kolaycar.ts';
 import { arventLicenseEligible } from './arvent-driver-eligibility.mjs';
 import { selectedServices, serviceCents } from './provider-services.mjs';
 import { DefiniteApiFailure } from './api-payment-flow.mjs';
@@ -164,6 +164,12 @@ export async function createPaidProvider(credentials:any,input:any) {
  }
  if(input?.provider&&input.provider!=='renteon_aggregator')fail('ADAPTER_NOT_READY');
  return aggregatorBook(credentials,input);
+}
+// Ride24-initiated cancellation after the supplier approval deadline. Only
+// Arvent uses it; the result is "cancelled" only after GET shows status 3.
+export async function cancelPaidProviderAfterTimeout(credentials:any,reference:string,prepared:any) {
+ if(prepared?.provider!=='arvent_kolaycar'||!arventPaymentApproved())fail('ADAPTER_NOT_READY');
+ return arventCancelBooking(credentials,reference,{reason:'Ride24: not approved within the agreed time limit'});
 }
 export async function readPaidProviderStatus(credentials:any,reference:string,prepared:any) {
  if(prepared?.provider==='arvent_kolaycar'){
