@@ -3338,10 +3338,10 @@ else if (booking.status === 'pending') {
     statusHtml = `<div class="status-tile pending" data-pl="⏳ Oczekująca" data-en="⏳ Pending">⏳ ${isEn ? 'Pending' : 'Oczekująca'}</div>`;
 }
 else if (booking.status === 'accepted') {
-    statusHtml = `<div class="status-tile accepted" data-pl="✅ Potwierdzona" data-en="✅ Accepted">✅ ${isEn ? 'Accepted' : 'Potwierdzona'}</div>`;
+    statusHtml = `<div class="status-tile accepted" data-pl="✅ Potwierdzona" data-en="✅ Confirmed">✅ ${isEn ? 'Confirmed' : 'Potwierdzona'}</div>`;
 }
 else if (booking.status === 'awaiting_payment') {
-    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Opłać" data-en="💳 Pay">💳 ${isEn ? 'Pay' : 'Opłać'}</div>`;
+    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Do opłacenia" data-en="💳 Awaiting payment">💳 ${isEn ? 'Awaiting payment' : 'Do opłacenia'}</div>`;
 
 }
 else if (booking.status === 'paid') {
@@ -3454,16 +3454,8 @@ else if (s === 'paid') {
     </button>`;
     }
 }
-else if (s === 'cancelled' || s === 'rejected' || s === 'expired' || s === 'payment_expired') {
-    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600; padding: 6px 0;" data-pl="Zamknięta" data-en="Closed">
-        ${isEn ? 'Closed' : 'Zamknięta'}
-    </span>`;
-}
-else {
-    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600;" data-pl="Zakończona" data-en="Completed">
-        ${isEn ? 'Completed' : 'Zakończona'}
-    </span>`;
-}
+// No additional actions for closed/unknown bookings.
+// Their precise status is already shown in the status tile above.
 actionsHtml += `</div>`;
 
                     const pickup = booking.pickup_location || "—";
@@ -4738,13 +4730,13 @@ function translateStatus(status, lang = null) {
 
     const map = {
         pending: { pl: "Oczekująca", en: "Pending" },
-        accepted: { pl: "Potwierdzona", en: "Accepted" },
-        awaiting_payment: { pl: "Oczekuje płatności", en: "Awaiting payment" },
+        accepted: { pl: "Potwierdzona", en: "Confirmed" },
+        awaiting_payment: { pl: "Do opłacenia", en: "Awaiting payment" },
         paid: { pl: "Opłacona", en: "Paid" },
         cancelled: { pl: "Anulowana", en: "Cancelled" },
         rejected: { pl: "Odrzucona", en: "Rejected" },
         expired: { pl: "Wygasła", en: "Expired" },
-        payment_expired: { pl: "Płatność wygasła", en: "Payment expired" }
+        payment_expired: { pl: "Wygasła", en: "Expired" }
     };
 
     return map[status] ? map[status][currentLang] : status;
@@ -4787,8 +4779,8 @@ window.loadPayments = async function() {
                 const refundDateValue = b.refund_completed_at ? new Date(b.refund_completed_at) : null;
                 const refundDatePl = refundDateValue ? refundDateValue.toLocaleDateString('pl-PL') : '';
                 const refundDateEn = refundDateValue ? refundDateValue.toLocaleDateString('en-GB') : '';
-                actions = `<div class="status-tile paid" data-pl="💸 Rozliczone ${refundDatePl ? `(${refundDatePl})` : ''}" data-en="💸 Refunded ${refundDateEn ? `(${refundDateEn})` : ''}">
-                    💸 ${isEn ? 'Refunded' : 'Rozliczone'} ${isEn ? (refundDateEn ? `(${refundDateEn})` : '') : (refundDatePl ? `(${refundDatePl})` : '')}
+                actions = `<div class="status-tile paid" data-pl="💸 Zwrócona ${refundDatePl ? `(${refundDatePl})` : ''}" data-en="💸 Refunded ${refundDateEn ? `(${refundDateEn})` : ''}">
+                    💸 ${isEn ? 'Refunded' : 'Zwrócona'} ${isEn ? (refundDateEn ? `(${refundDateEn})` : '') : (refundDatePl ? `(${refundDatePl})` : '')}
                 </div>`;
             }
 
@@ -4821,18 +4813,32 @@ window.loadPayments = async function() {
             }
             if (!actions) actions = "-";
 
-            // 🔥 PRZYPISANIE ODPOWIEDNIEGO KAFELKA DO STATUSU DLA KOLUMNY "STATUS"
+            // Status płatności: potwierdzony zwrot ma pierwszeństwo przed statusem rezerwacji.
+            // To wyłącznie mapowanie widoku – nie zmienia płatności ani zwrotów.
             let paymentStatusClass = "pending";
-            if (b.status === 'paid') paymentStatusClass = "paid";
-            else if (b.status === 'cancelled' || b.status === 'rejected') paymentStatusClass = "cancelled";
+            let paymentStatusPl = translateStatus(b.status, "pl");
+            let paymentStatusEn = translateStatus(b.status, "en");
+            if (b.refund_status === "completed") {
+                paymentStatusClass = "paid";
+                paymentStatusPl = "Zwrócona";
+                paymentStatusEn = "Refunded";
+            } else if (b.refund_status === "pending") {
+                paymentStatusClass = "awaiting_payment";
+                paymentStatusPl = "Zwrot w toku";
+                paymentStatusEn = "Refund pending";
+            } else if (b.status === "paid") {
+                paymentStatusClass = "paid";
+            } else if (b.status === "cancelled" || b.status === "rejected") {
+                paymentStatusClass = "cancelled";
+            }
 
             tbody.innerHTML += `
                 <tr>
                     <td><strong>#R24-${b.id.toString().slice(-4)}</strong></td>
                     <td><strong>${(b.online_payment_pln || 0).toFixed(2)} PLN</strong></td>
                     <td>
-                        <div class="status-tile ${paymentStatusClass}" data-pl="${translateStatus(b.status, 'pl')}" data-en="${translateStatus(b.status, 'en')}">
-                            ${translateStatus(b.status, localStorage.getItem("client_lang") === "en" ? "en" : "pl")}
+                        <div class="status-tile ${paymentStatusClass}" data-pl="${paymentStatusPl}" data-en="${paymentStatusEn}">
+                            ${isEn ? paymentStatusEn : paymentStatusPl}
                         </div>
                     </td>
                     <td>${actions}</td>
