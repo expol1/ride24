@@ -134,13 +134,13 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
   const selectedExtras=caravelSnapshotChoices(data.selected_extras ?? []);
   const breakdown=rec(data.price_breakdown);
   const extras=Array.isArray(breakdown?.extras)?breakdown.extras.map(rec):[];
-  if(!selectedExtras ||
-     (breakdown ? (!Number.isSafeInteger(breakdown.extras_minor) ||
+  if(!selectedExtras)fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
+  if(breakdown ? (!Number.isSafeInteger(breakdown.extras_minor) ||
        extras.length!==selectedExtras.length ||
        extras.some(x=>!x || typeof x.code!=="string" || !Number.isSafeInteger(x.amount_minor) ||
          !selectedExtras.some(e=>e.extra_id===x.extra_id && e.quantity===x.quantity)) ||
        extras.reduce((n,x)=>n+Number(x!.amount_minor),0)!==breakdown.extras_minor)
-       : selectedExtras.length>0))
+       : selectedExtras.length>0)
     fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
   const main = splitName(booking.main_driver_name), age = Number(booking.main_driver_age);
   if (!main || !Number.isInteger(age) || age < 18 || age > 99 || booking.add_driver_name || booking.add_driver_age ||
