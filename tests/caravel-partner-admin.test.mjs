@@ -76,7 +76,10 @@ test("Sync button: catalogue (pay-on-arrival suppliers only, new rows inactive) 
   assert.match(missing.body.message, /wymaga uzupełnienia/);
 });
 
-test("Activate button: atomic release with certification time and newest reviewed document; Deactivate without supplier", async () => {
+test("Activate button: atomic release with certification time and newest reviewed document; Deactivate without supplier", async (t) => {
+  const previousDeno = globalThis.Deno;
+  globalThis.Deno = {env: {get: () => "true"}};
+  t.after(() => { if (previousDeno === undefined) delete globalThis.Deno; else globalThis.Deno = previousDeno; });
   const d = db({caravel_reviewed_terms: [{document_id: "caravel-en-v5", content_hash: "a".repeat(64), approved_at: "x"}]});
   const r = await run("activate", d, await client());
   assert.equal(r.status, 200);
