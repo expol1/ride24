@@ -725,20 +725,49 @@ export function verifyCaravelQuotedExtras(
   catalog: Array<{extra_id?: unknown; code?: unknown; price_cap?: unknown; quantity?: unknown}>,
 ): {ok: true} | {ok: false; errors: string[]} {
   const errors: string[] = [];
-  const byId = new Map(catalog.map((c) => [String(c.extra_id), c]));
+  if (!Array.isArray(extraLines) || !Array.isArray(selection) || !Array.isArray(catalog))
+    return {ok: false, errors: ["EXTRA_SELECTION_UNVERIFIED"]};
+  if (extraLines.length > 30 || selection.length > 30 || catalog.length > 100)
+    return {ok: false, errors: ["EXTRA_SELECTION_TOO_LARGE"]};
+  const byId = new Map<string, Record<string, unknown>>();
+  const byCode = new Map<string, string>();
+  for (const raw of catalog) {
+    const item = rec(raw);
+    const id = item?.extra_id, code = item?.code;
+    if (!item || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(id) ||
+      typeof code !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(code) ||
+      byId.has(id) || byCode.has(code)) {
+      errors.push("EXTRA_CATALOG_UNVERIFIED"); continue;
+    }
+    byId.set(id, item);
+    byCode.set(code, id);
+  }
+  const selected = new Set<string>();
   const used = new Set<number>();
-  for (const sel of Array.isArray(selection) ? selection : []) {
-    const item = byId.get(sel?.extraId);
+  for (const sel of selection) {
+    if (!sel || typeof sel.extraId !== "string" || selected.has(sel.extraId)) {
+      errors.push("EXTRA_SELECTION_DUPLICATE"); continue;
+    }
+    selected.add(sel.extraId);
+    const item = byId.get(sel.extraId);
     if (!item) { errors.push("EXTRA_NOT_IN_CATALOGUE"); continue; }
     const max = rec(item.quantity)?.max;
-    if (!safeInt(sel.quantity) || sel.quantity < 1 || sel.quantity > 9 || (safeInt(max) && sel.quantity > (max as number))) errors.push("EXTRA_QUANTITY_INVALID");
-    const idx = extraLines.findIndex((l, i) => !used.has(i) && l.code === item.code);
-    if (idx < 0) { errors.push("SELECTED_EXTRA_NOT_PRICED"); continue; }
-    used.add(idx);
-    const line = extraLines[idx];
-    if (line.quantity !== sel.quantity) errors.push("EXTRA_QUANTITY_MISMATCH");
-    const cap = item.price_cap === null ? null : money(item.price_cap);
-    if (cap && line.totalMinor > cap.amount * sel.quantity) errors.push("EXTRA_ABOVE_PRICE_CAP");
+    if (!safeInt(max) || !safeInt(sel.quantity) || sel.quantity < 1 || sel.quantity > 9 ||
+      sel.quantity > Number(max)) errors.push("EXTRA_QUANTITY_INVALID");
+    const matches = extraLines.map((l, i) => ({l, i})).filter(x => x.l?.code === item.code);
+    if (matches.length !== 1 || used.has(matches[0]?.i)) {
+      errors.push(matches.length ? "EXTRA_LINE_DUPLICATE" : "SELECTED_EXTRA_NOT_PRICED");
+      continue;
+    }
+    const {l: line, i} = matches[0];
+    used.add(i);
+    if (!safeInt(line.quantity) || line.quantity !== sel.quantity ||
+      !safeInt(line.totalMinor) || line.totalMinor < 0) errors.push("EXTRA_QUANTITY_OR_AMOUNT_INVALID");
+    if (item.price_cap !== null && item.price_cap !== undefined) {
+      const cap = money(item.price_cap);
+      if (!cap || cap.amount < 0) errors.push("EXTRA_PRICE_CAP_UNVERIFIED");
+      else if (line.totalMinor > cap.amount * sel.quantity) errors.push("EXTRA_ABOVE_PRICE_CAP");
+    }
   }
   if (extraLines.some((_, i) => !used.has(i))) errors.push("UNSELECTED_EXTRA_PRICED");
   return errors.length ? {ok: false, errors: [...new Set(errors)]} : {ok: true};
