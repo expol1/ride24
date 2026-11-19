@@ -44,6 +44,13 @@ test('Caravel: server terms + exclusions shown, both confirmations required, ech
   assert.equal(d.getElementById('partnerTermsLink').style.display, 'none', 'supplier PDFs are comparison only');
   const box = d.getElementById('caravelConsent');
   assert.equal(box.hidden, false);
+  const disclosures = [...box.querySelectorAll('details')];
+  assert.equal(disclosures.length, 2, 'the binding terms and details are individually clickable');
+  assert.ok(disclosures.every(section => !section.open), 'lengthy legal text must be collapsed by default');
+  assert.match(disclosures[0].querySelector('summary').textContent, /Otwórz regulamin Caravel/);
+  assert.match(disclosures[1].querySelector('summary').textContent, /Ochrona, wyłączenia i opłaty/);
+  assert.match(box.querySelector('strong').textContent, /przeczytaj przed zaznaczeniem zgód/);
+  assert.match(box.textContent, /Pakiet Premium w cenie/);
   assert.match(box.textContent, /szyby, opony i koła, podwozie/);
   assert.match(box.textContent, /100\.00 EUR/);
   assert.match(box.textContent, /Stripe pobiera wyłącznie osobną opłatę rezerwacyjną Ride24/);

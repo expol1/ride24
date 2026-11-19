@@ -19,47 +19,114 @@
     try { return localStorage.getItem("client_lang") === "en"; } catch (e) { return false; }
   }
 
+  // Keep the binding terms and the provider's full disclosures reachable,
+  // but make the compact reservation panel match Ride24's clickable documents.
+  // The consent fields and server-verified acceptance payload are unchanged.
   function render(view) {
     var box = byId("caravelConsent");
     if (!box) return;
     var en = isEnglish();
-    box.innerHTML = "";
-    box.appendChild(text("strong", en ? "Caravel — rental terms and protection (read before payment)"
-      : "Caravel — warunki wynajmu i ochrony (przeczytaj przed płatnością)"));
-    var list = document.createElement("ul");
-    list.setAttribute("style", "margin:8px 0 10px 18px;padding:0");
-    (view.statements || []).forEach(function (s) { list.appendChild(text("li", s)); });
-    box.appendChild(list);
-    if (view.coverage && view.coverage.excluded && view.coverage.excluded.length) {
-      box.appendChild(text("p", (en ? "Not covered: " : "Nieobjęte ochroną: ") +
-        view.coverage.excluded.map(function (x) { return x.label; }).join(", "),
-        "margin:6px 0;font-weight:650;color:#7C2D12"));
+    box.replaceChildren();
+    box.setAttribute("style", "margin:12px 0;padding:12px 14px;border:1px solid #CBD5E1;border-radius:10px;background:#F8FAFC;color:#0F172A;font-size:13px;line-height:1.5");
+    var coverage = view.coverage || {};
+    var excluded = Array.isArray(coverage.excluded) ? coverage.excluded : [];
+    var statements = Array.isArray(view.statements) ? view.statements : [];
+    var money = view.money || {};
+    var termsData = view.terms || {};
+    var adminMinor = Number(coverage.damage_admin_fee_minor);
+    var hasAdminFee = Number.isSafeInteger(adminMinor) && adminMinor > 0;
+    var adminCurrency = coverage.damage_admin_fee_currency === "EUR" ? "EUR" : null;
+
+    var heading = text("strong", en
+      ? "Caravel — read the terms before accepting"
+      : "Caravel — przeczytaj przed zaznaczeniem zgód");
+    heading.setAttribute("style", "display:block;font-size:14px;color:#0F172A;margin-bottom:6px");
+    box.appendChild(heading);
+
+    // The amounts below come from the server's accepted quote, never browser calculations.
+    if (money.rental_at_pickup && money.ride24_fee) {
+      box.appendChild(text("p", en
+        ? "At pickup: " + money.rental_at_pickup + " to Caravel. Online: " + money.ride24_fee + " Ride24 reservation fee."
+        : "Przy odbiorze: " + money.rental_at_pickup + " dla Caravel. Online: " + money.ride24_fee + " opłaty rezerwacyjnej Ride24.",
+      "margin:5px 0;font-weight:600"));
     }
-    box.appendChild(text("p", (en ? "Binding document: " : "Wiążący dokument: ") + view.terms.title +
-      " · v" + view.terms.version + " · " + view.terms.language.toUpperCase() +
-      " · SHA-256 " + String(view.terms.content_hash).slice(0, 12) + "…", "margin:6px 0;font-size:12px;color:#475569"));
+    if (coverage.deposit_minor === 0 && coverage.excess_minor === 0) {
+      box.appendChild(text("p", en
+        ? "Premium included in the rental price — deposit 0, excess 0."
+        : "Pakiet Premium w cenie — kaucja 0, udział własny 0.",
+      "margin:5px 0;color:#166534;font-weight:700"));
+    }
+    if (excluded.length || hasAdminFee) {
+      var warning = en
+        ? "Important: Premium has coverage exclusions."
+        : "Ważne: pakiet Premium ma wyłączenia ochrony.";
+      if (hasAdminFee && adminCurrency) warning += en
+        ? " In case of damage or theft, the administration fee is " + (adminMinor / 100).toFixed(2) + " EUR per rental."
+        : " W razie szkody lub kradzieży obowiązuje opłata administracyjna " + (adminMinor / 100).toFixed(2).replace(".", ",") + " EUR za wynajem.";
+      box.appendChild(text("p", warning, "margin:7px 0;color:#92400E;font-weight:650"));
+    }
+
+    function disclosure(title, child) {
+      var details = document.createElement("details");
+      details.setAttribute("style", "margin:7px 0;border:1px solid #CBD5E1;border-radius:8px;background:#FFF;overflow:hidden");
+      var summary = text("summary", title, "padding:10px 12px;color:#1D4ED8;font-weight:700;cursor:pointer;list-style-position:inside");
+      details.appendChild(summary);
+      var area = document.createElement("div");
+      area.setAttribute("style", "padding:0 12px 12px;border-top:1px solid #E2E8F0;color:#334155");
+      area.appendChild(child);
+      details.appendChild(area);
+      box.appendChild(details);
+      return details;
+    }
+
+    // The binding clauses/v1 document remains exact, unmodified and accessible
+    // through a keyboard-operable native disclosure rather than an always-open scrollbox.
     var terms = document.createElement("div");
     terms.id = "caravelTermsBody";
-    terms.setAttribute("style", "max-height:260px;overflow:auto;border:1px solid #CBD5E1;border-radius:8px;padding:10px;background:#fff;font-size:12px;line-height:1.5");
+    terms.setAttribute("style", "max-height:330px;overflow:auto;border:1px solid #E2E8F0;border-radius:8px;padding:10px;background:#fff;font-size:12px;line-height:1.6;margin-top:10px");
     // Server-rendered from clauses/v1 text runs; every run is HTML-escaped server-side.
-    terms.innerHTML = view.terms.html;
-    box.appendChild(terms);
+    terms.innerHTML = termsData.html || "";
+    var termsContainer = document.createElement("div");
+    termsContainer.appendChild(text("p", (en ? "Binding document: " : "Dokument wiążący: ") +
+      String(termsData.title || "Terms & Conditions") + " · v" + String(termsData.version || "") +
+      " · " + String(termsData.language || "en").toUpperCase() +
+      " · SHA-256 " + String(termsData.content_hash || "").slice(0, 12) + "…",
+      "margin:8px 0;font-size:11px;color:#64748B"));
+    termsContainer.appendChild(terms);
+    disclosure(en ? "📄 Open Caravel rental terms" : "📄 Otwórz regulamin Caravel", termsContainer);
+
+    var description = document.createElement("div");
+    var list = document.createElement("ul");
+    list.setAttribute("style", "margin:10px 0 8px 18px;padding:0");
+    statements.forEach(function (s) { list.appendChild(text("li", s, "margin-bottom:5px")); });
+    description.appendChild(list);
+    if (excluded.length) {
+      description.appendChild(text("p", (en ? "Excluded from protection: " : "Wyłączenia ochrony: ") +
+        excluded.map(function (x) { return x.label; }).join(", ") + ".",
+        "margin:8px 0;color:#92400E;font-weight:600"));
+    }
+    disclosure(en ? "🛡️ Protection, exclusions and fees" : "🛡️ Ochrona, wyłączenia i opłaty", description);
+
+    box.appendChild(text("p", en
+      ? "Open and read both sections before ticking the boxes below."
+      : "Otwórz i przeczytaj obie sekcje przed zaznaczeniem zgód.",
+      "margin:9px 0 4px;color:#475569;font-size:12px"));
     function check(id, label) {
       var l = document.createElement("label");
-      l.setAttribute("style", "display:flex;gap:9px;align-items:flex-start;margin-top:10px;font-weight:650;cursor:pointer");
+      l.setAttribute("style", "display:flex;gap:9px;align-items:flex-start;margin-top:9px;font-weight:650;cursor:pointer");
       var c = document.createElement("input");
-      c.type = "checkbox"; c.id = id; c.setAttribute("style", "margin-top:4px");
+      c.type = "checkbox"; c.id = id; c.setAttribute("style", "margin-top:4px;flex-shrink:0");
       l.appendChild(c); l.appendChild(text("span", label));
       box.appendChild(l);
     }
     check("caravelTermsAccept", en
-      ? "I have read and accept Caravel's rental terms shown above (this exact version)."
-      : "Przeczytałem/am i akceptuję powyższy regulamin wynajmu Caravel (dokładnie tę wersję).");
-    check("caravelCoverageAck", view.coverage && view.coverage.excluded && view.coverage.excluded.length
-      ? (en ? "I understand the protection exclusions and the administration fee listed above."
-        : "Rozumiem wyłączenia ochrony oraz opłatę administracyjną wskazane powyżej.")
-      : (en ? "I understand that the rental price is paid to Caravel at pickup and Stripe charges only the Ride24 fee."
-        : "Rozumiem, że cenę wynajmu płacę Caravel przy odbiorze, a Stripe pobiera wyłącznie opłatę Ride24."));
+      ? "I have read and accept Caravel's rental terms (the version linked above)."
+      : "Przeczytałem/am i akceptuję regulamin wynajmu Caravel (wersję wskazaną wyżej).");
+    check("caravelCoverageAck", excluded.length
+      ? (en ? "I understand the protection exclusions and administration fee detailed above."
+        : "Rozumiem wyłączenia ochrony oraz opłatę administracyjną wskazane wyżej.")
+      : (en ? "I understand the payment split and protection terms shown above."
+        : "Rozumiem przedstawione warunki ochrony i podział płatności."));
     box.hidden = false;
   }
 
