@@ -11,7 +11,7 @@ const sql = (f) => readFile(new URL('../../supabase/migrations/' + f, import.met
 const CARAVEL = '78721481-7619-44df-a9b7-5faa344b69bb', AVIA = '91e04805-31da-4242-9e6f-b6075019d784';
 const HASH = 'a'.repeat(64);
 
-async function db({credentials = true, catalog = true, terms = true} = {}) {
+async function db({credentials = true, catalog = true, terms = true, termsVersion = 5, freeCancellation = true} = {}) {
   const p = new PGlite();
   await p.exec(`create role anon; create role authenticated; create role service_role;
   create table partners(id uuid primary key, api_provider text, api_enabled boolean, api_status text, provider_type text, active boolean, account_status text);
@@ -24,6 +24,7 @@ async function db({credentials = true, catalog = true, terms = true} = {}) {
   create table api_quotes(id uuid);`);
   await p.exec((await sql('20261118141251_caravel_atomic_pending_booking_release_closed_20261118.sql')));
   await p.exec(await sql('20261118170000_caravel_reviewed_terms_store.sql'));
+  await p.exec(await sql('20261118210000_caravel_reviewed_terms_key_clauses.sql'));
   await p.exec(await sql('20261118190000_caravel_release_switch.sql'));
   await p.query(`insert into partners values($1,'custom',false,'draft','api',true,'active'),($2,'renteon_aggregator',true,'synced','api',true,'active')`, [CARAVEL, AVIA]);
   await p.query(`insert into partner_locations(partner_id,external_id,is_api_managed,active) values($1,'AV-1',true,true)`, [AVIA]);
@@ -33,12 +34,12 @@ async function db({credentials = true, catalog = true, terms = true} = {}) {
   }
   if (credentials) await p.query(`insert into partner_api_credentials values($1,'https://api.caravelway.com','prod-key-fixture')`, [CARAVEL]);
   if (terms) await p.query(`insert into caravel_reviewed_terms(document_id,supplier_id,language,version,title,format,content_hash,published_at,body,
-    documented_excluded_codes,damage_admin_fee_minor,damage_admin_fee_currency,approved_by,approved_at)
-    values('caravel-en-v4','acct_eur','en',4,'Terms','clauses/v1',$1,now(),'{"title":"Terms","language":"en","clauses":[]}','[]',10000,'EUR','op',now())`, [HASH]);
+    documented_excluded_codes,damage_admin_fee_minor,damage_admin_fee_currency,exclusion_clause_refs,admin_fee_clause_ref,free_cancellation_until_pickup,approved_by,approved_at)
+    values('caravel-en-v5','acct_eur','en',$2,'Terms','clauses/v1',$1,now(),'{"title":"Terms","language":"en","clauses":[]}','["glass"]',10000,'EUR','["5.4"]','7.1',$3,'op',now())`, [HASH, termsVersion, freeCancellation]);
   return p;
 }
 const open = (p, patch = {}) => p.query(`select caravel_set_release(true,$1,$2,$3,'admin:test','certified run') as s`,
-  [patch.at ?? new Date(Date.now() - 3600000).toISOString(), patch.doc ?? 'caravel-en-v4', patch.hash ?? HASH]);
+  [patch.at ?? new Date(Date.now() - 3600000).toISOString(), patch.doc ?? 'caravel-en-v5', patch.hash ?? HASH]);
 const state = async (p) => ({
   gate: (await p.query('select certified, allow_customer_checkout, terms_document_id from caravel_release_control')).rows[0],
   partner: (await p.query('select api_provider, api_enabled, api_status from partners where id=$1', [CARAVEL])).rows[0],
@@ -48,8 +49,10 @@ const state = async (p) => ({
 });
 
 test('open fails closed without each piece of evidence and changes nothing', async () => {
-  for (const [opts, patch, code] of [[{terms: false}, {}, /REVIEWED_TERMS_REQUIRED/], [{credentials: false}, {}, /PRODUCTION_CREDENTIALS_REQUIRED/],
-    [{catalog: false}, {}, /CATALOG_NOT_SYNCED/], [{}, {hash: 'b'.repeat(64)}, /REVIEWED_TERMS_REQUIRED/],
+  for (const [opts, patch, code] of [[{terms: false}, {}, /REVIEWED_TERMS_V5_CONTRACT_REQUIRED/], [{credentials: false}, {}, /PRODUCTION_CREDENTIALS_REQUIRED/],
+    [{catalog: false}, {}, /CATALOG_NOT_SYNCED/],
+    [{termsVersion: 4}, {}, /REVIEWED_TERMS_V5_CONTRACT_REQUIRED/],
+    [{freeCancellation: false}, {}, /REVIEWED_TERMS_V5_CONTRACT_REQUIRED/], [{}, {hash: 'b'.repeat(64)}, /REVIEWED_TERMS_V5_CONTRACT_REQUIRED/],
     [{}, {at: new Date(Date.now() + 86400000).toISOString()}, /CERTIFICATION_EVIDENCE_REQUIRED/]]) {
     const p = await db(opts);
     try {
@@ -65,7 +68,7 @@ test('open activates Caravel atomically; close is a kill switch; AVIA untouched;
   try {
     await open(p);
     let s = await state(p);
-    assert.deepEqual(s.gate, {certified: true, allow_customer_checkout: true, terms_document_id: 'caravel-en-v4'});
+    assert.deepEqual(s.gate, {certified: true, allow_customer_checkout: true, terms_document_id: 'caravel-en-v5'});
     assert.deepEqual(s.partner, {api_provider: 'caravel', api_enabled: true, api_status: 'synced'});
     assert.equal((await p.query('select bool_and(active) a from partner_locations where partner_id=$1', [CARAVEL])).rows[0].a, true);
     await p.query(`select caravel_set_release(false,null,null,null,'admin:test','pause sales')`);

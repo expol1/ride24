@@ -45,7 +45,13 @@ BEGIN
     IF p_certified_at IS NULL OR p_certified_at > clock_timestamp()
       THEN RAISE EXCEPTION 'CARAVEL_CERTIFICATION_EVIDENCE_REQUIRED'; END IF;
     IF NOT EXISTS (SELECT 1 FROM public.caravel_reviewed_terms
-        WHERE document_id = p_document_id AND content_hash = p_content_hash)
+        WHERE document_id = p_document_id AND content_hash = p_content_hash
+          AND language = 'en' AND version >= 5 AND format = 'clauses/v1'
+          AND damage_admin_fee_minor = 10000 AND damage_admin_fee_currency = 'EUR'
+          AND free_cancellation_until_pickup IS TRUE
+          AND jsonb_array_length(documented_excluded_codes) > 0
+          AND jsonb_array_length(exclusion_clause_refs) > 0
+          AND admin_fee_clause_ref IS NOT NULL)
       THEN RAISE EXCEPTION 'CARAVEL_REVIEWED_TERMS_REQUIRED'; END IF;
     IF NOT EXISTS (SELECT 1 FROM public.partner_api_credentials
         WHERE partner_id = v_partner AND api_url = 'https://api.caravelway.com'
