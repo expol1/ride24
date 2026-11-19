@@ -22,7 +22,7 @@ test("supplier catalogue includes only independently priced pay-on-arrival extra
  const {catalog,unavailable}=caravelSafeExtraCatalog(records,sid);
  assert.deepEqual(catalog.map(x=>x.extra_id),["gps-1","seat-1"]);
  assert.equal(catalog[0].name_pl,"Nawigacja GPS");
- assert.equal(catalog[1].name_pl,"Fotelik dziecięcy");
+ assert.equal(catalog[1].name_pl,"Fotelik dziecięcy — Baby seat");
  assert.equal(catalog[1].max_quantity,2);
  assert.deepEqual(unavailable.map(x=>x.reason),["ADDITIONAL_DRIVER_DATA_REQUIRED","PAYMENT_METHOD_UNSUPPORTED"]);
 });
@@ -33,7 +33,7 @@ test("exact supplier quote lines, quantities, money and caps are required",()=>{
  const checked=caravelCheckExtraSelection(selected,catalog,lines,3);
  assert.equal(checked.ok,true);
  assert.equal(checked.totalMinor,2500);
- assert.deepEqual(checked.priced.map(x=>x.name_pl),["Nawigacja GPS","Fotelik dziecięcy"]);
+ assert.deepEqual(checked.priced.map(x=>x.name_pl),["Nawigacja GPS","Fotelik dziecięcy — Baby seat"]);
  for(const bad of [
   lines.slice(0,1),
   [lines[0],{...lines[1],quantity:1}],
@@ -61,4 +61,15 @@ test("reference identity and currency never leak across suppliers",()=>{
  assert.deepEqual(caravelSafeExtraCatalog(records,"different", "EUR").catalog,[]);
  assert.throws(()=>caravelSafeExtraCatalog([records[0],records[0]],sid),/IDENTITY/);
  assert.throws(()=>caravelSafeExtraCatalog(records,sid,"USD"),/REFERENCE_INVALID/);
+});
+
+test("three supplier child seats remain distinguishable in Polish without inventing age limits",()=>{
+ const one={...records[1],extra_id:"seat-a",code:"SEAT-A",name:"Baby seat"};
+ const two={...records[1],extra_id:"seat-b",code:"SEAT-B",name:"Child seat"};
+ const three={...records[1],extra_id:"seat-c",code:"SEAT-C",name:"Child seat"};
+ const {catalog}=caravelSafeExtraCatalog([one,two,three],sid);
+ assert.equal(new Set(catalog.map(x=>x.name_pl)).size,3);
+ assert.match(catalog[0].name_pl,/Baby seat/);
+ assert.match(catalog[1].name_pl,/SEAT-B/);
+ assert.match(catalog[2].name_pl,/SEAT-C/);
 });
