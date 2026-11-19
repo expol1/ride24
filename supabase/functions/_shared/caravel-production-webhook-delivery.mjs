@@ -24,6 +24,15 @@ export async function handleCaravelProductionDelivery({
     return {status: 503, accepted: false, reason: "SIGNING_SECRET_MISSING"};
   if (!await verifyCaravelSignature(signature, secrets, {method: "POST", path, body: rawBody}, {nowSecs}))
     return {status: 401, accepted: false, reason: "INVALID_SIGNATURE"};
+  // The signed delivery probe has no booking to validate or reconcile.
+  let envelope;
+  try { envelope = JSON.parse(rawBody); }
+  catch { return {status: 400, accepted: false, reason: "INVALID_SIGNED_EVENT"}; }
+  if (envelope?.type === "webhook.test") {
+    if (typeof envelope.event_id !== "string" || !ID.test(envelope.event_id))
+      return {status: 400, accepted: false, reason: "INVALID_TEST_EVENT"};
+    return {status: 200, accepted: true, reason: "SIGNED_TEST_RECEIVED"};
+  }
   const event = parseCaravelWebhookEvent(rawBody);
   if (!event || !ID.test(event.event_id) || !ID.test(event.booking_id) || !ID.test(event.operator_id) ||
       !ID.test(event.supplier_id ?? "") || event.api_version !== "1.67.0" ||
@@ -31,11 +40,6 @@ export async function handleCaravelProductionDelivery({
       !Number.isFinite(Date.parse(event.occurred_at)) ||
       (event.sequence !== null && event.sequence < 1))
     return {status: 400, accepted: false, reason: "INVALID_SIGNED_EVENT"};
-  if (event.type === "webhook.test") {
-    if (event.data.test !== true || !event.external_ref.startsWith("WEBHOOK-TEST-"))
-      return {status: 400, accepted: false, reason: "INVALID_TEST_EVENT"};
-    return {status: 200, accepted: true, reason: "SIGNED_TEST_RECEIVED"};
-  }
   if (typeof fetchBooking !== "function" || typeof record !== "function")
     return {status: 503, accepted: false, reason: "RECEIVER_NOT_CONFIGURED"};
   try {
