@@ -855,6 +855,14 @@ let query = db
                         suggestion = lang === 'pl' ? `Spróbuj wyszukać w całym kraju: <b>${escapeHtmlValue(loc.country)}</b>.` : `Try searching in the entire country: <b>${escapeHtmlValue(loc.country)}</b>.`;
                     }
 
+                    // Caravel CHQ office hours: 07:00–22:00; late collection requires
+                    // supplier confirmation, not a made-up Ride24 night surcharge.
+                    const lateChania = /chania|chq/i.test(String(loc.location_name || loc.name || ""))
+                        && Number(String(filters.pickup_time || "10:00").slice(0, 2)) >= 22;
+                    if (lateChania) suggestion = lang === 'pl'
+                        ? "Caravel: odbiór po 22:00 wymaga indywidualnego potwierdzenia wypożyczalni. Automatyczne oferty mogą być niedostępne. Spróbuj wcześniejszej godziny lub zapytaj Ride24."
+                        : "Caravel: pickup after 22:00 needs the rental company's individual confirmation. Automatic offers may be unavailable. Try an earlier time or contact Ride24.";
+
                     container.innerHTML = `
                         <div style="text-align:center; color:white; padding:50px; background: rgba(0,0,0,0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
                             <h3 style="font-size: 24px; margin-bottom: 10px;">${apiSearchIncomplete ? "Nie udało się potwierdzić dostępności w:" : "Brak dostępnych aut w:"} ${escapeHtmlValue(loc.name)}</h3>
