@@ -14,6 +14,7 @@
 import {renderCaravelTermsHtml} from "./caravel-terms-canonical.ts";
 import type {CaravelRelease} from "./caravel-release.ts";
 import {CARAVEL_PARTNER_ID} from "./caravel-release.ts";
+import {caravelSnapshotChoices} from "./caravel-extra-selection.ts";
 
 type Rec = Record<string, unknown>;
 const rec = (v: unknown): Rec | null => !!v && typeof v === "object" && !Array.isArray(v) ? v as Rec : null;
@@ -88,12 +89,25 @@ export function caravelQuoteFacts(row: unknown, release: CaravelRelease, nowMs =
   // reconciliation before any financial breakdown is shown.
   const rawBreakdown = data.price_breakdown;
   const bd = rec(rawBreakdown);
+  const choices = caravelSnapshotChoices(data.selected_extras ?? []);
+  if(!choices)return null;
   const feeItems = Array.isArray(bd?.fees) ? bd.fees.map(rec) : null;
+  const extraItems = Array.isArray(bd?.extras) ? bd.extras.map(rec) : [];
+  const extrasOk = extraItems.length === choices.length && extraItems.length <= 12 &&
+    extraItems.every(e=>e &&
+      typeof e.extra_id==="string" && typeof e.code==="string" && e.code.length<=128 &&
+      typeof e.name_pl==="string" && e.name_pl.length<=140 &&
+      typeof e.name_en==="string" && e.name_en.length<=140 &&
+      Number.isSafeInteger(e.quantity) && Number.isSafeInteger(e.amount_minor) && Number(e.amount_minor)>=0 &&
+      choices.some(c=>c.extra_id===e.extra_id && c.quantity===e.quantity)) &&
+    extraItems.reduce((sum,e)=>sum+Number(e!.amount_minor),0)===bd?.extras_minor;
   const validBreakdown = bd?.version === 1 && bd.currency === q.currency &&
     Number.isSafeInteger(bd.rental_minor) && (bd.rental_minor as number) >= 0 &&
     Number.isSafeInteger(bd.mandatory_fees_minor) && (bd.mandatory_fees_minor as number) >= 0 &&
-    bd.extras_minor === 0 && bd.total_minor === minor!.total &&
-    (bd.rental_minor as number) + (bd.mandatory_fees_minor as number) === minor!.total &&
+    Number.isSafeInteger(bd.extras_minor) && (bd.extras_minor as number)>=0 &&
+    extrasOk && bd.total_minor === minor!.total &&
+    (bd.rental_minor as number) + (bd.mandatory_fees_minor as number) +
+      (bd.extras_minor as number) === minor!.total &&
     feeItems !== null && feeItems.length <= 30 &&
     feeItems.every(x => x &&
       typeof x.type === "string" && /^[a-z][a-z0-9_]{0,39}$/.test(x.type) &&
@@ -102,6 +116,7 @@ export function caravelQuoteFacts(row: unknown, release: CaravelRelease, nowMs =
       Number.isSafeInteger(x.amount_minor) && (x.amount_minor as number) >= 0) &&
     feeItems.reduce((s,x) => s + Number(x!.amount_minor), 0) === bd.mandatory_fees_minor;
   if (rawBreakdown !== undefined && !validBreakdown) return null;
+  if (choices.length>0 && !validBreakdown) return null;
   if (Number(q.partner_net_total) !== Number(minor!.total) / 100) return null;
   return {quote: q, data, excludes: excludes as string[], covers: covers as string[], rentalMinor: minor!.total as number,
     breakdown: validBreakdown ? bd : null,
@@ -117,8 +132,9 @@ export type CaravelConsentView = {
     exclusion_clause_refs: string[]; admin_fee_clause_ref: string | null};
   money: {rental_at_pickup: string; rental_at_pickup_minor: number; rental_currency: string;
     ride24_fee: string; ride24_fee_currency: string; charged_by_stripe: "ride24_fee_only";
-    breakdown?: {rental_base:string; fee_total:string; partner_total:string;
-      fees:Array<{label:string; original_label:string; type:string; amount:string}>}};
+    breakdown?: {rental_base:string; fee_total:string; extras_total:string; partner_total:string;
+      fees:Array<{label:string; original_label:string; type:string; amount:string}>;
+      extras:Array<{extra_id:string;name:string;quantity:number;amount:string}>}};
   driver_age: number;
   statements: string[];
   /** Exactly what the client must echo back with accepted:true. */
@@ -136,7 +152,14 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
   const breakdown = bd ? {
     rental_base:money(Number(bd.rental_minor), f.currency),
     fee_total:money(Number(bd.mandatory_fees_minor), f.currency),
+    extras_total:money(Number(bd.extras_minor), f.currency),
     partner_total:at,
+    extras:(Array.isArray(bd.extras)?bd.extras:[]).map((x:unknown)=>{
+      const e=rec(x)!;return {
+        extra_id:String(e.extra_id),name:String(pl?e.name_pl:e.name_en),
+        quantity:Number(e.quantity),amount:money(Number(e.amount_minor),f.currency),
+      };
+    }),
     fees:(bd.fees as Array<{type:string;label:string;amount_minor:number}>).map(x => ({
       label:CARAVEL_FEE_NAMES[x.type]?.[lang] || x.label || (pl ? "Opłata Caravel" : "Caravel fee"),
       original_label:x.label,
