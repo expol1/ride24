@@ -3,6 +3,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {verifyApiPayment} from '../../supabase/functions/_shared/api-payment-flow.mjs';
+import {isCaravelBooking} from '../../supabase/functions/_shared/caravel-production-hold.mjs';
 const source=readFileSync(new URL('../../supabase/functions/stripe-webhook/index.ts',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
 async function run({eventType='checkout.session.completed',changes={},badSignature=false,recordError=false}={}) {
  const booking={id:'b1',client_id:'u1',provider_type:'api',online_payment_pln:12.34,stripe_session_id:'cs_test'};
@@ -10,7 +11,7 @@ async function run({eventType='checkout.session.completed',changes={},badSignatu
  metadata:{booking_id:'b1',client_id:'u1'},client_reference_id:'b1',payment_intent:'pi_test',...changes};
  const calls=[];let handler;
  const db={from(){return {select(){return this},eq(){return this},maybeSingle:async()=>({data:booking})}},rpc:async(name,args)=>{calls.push({name,args});return {error:recordError?{}:null}}};
- const ctx={Response,console:{log(){},warn(){},error(){}},verifyApiPayment,
+ const ctx={Response,console:{log(){},warn(){},error(){}},verifyApiPayment,isCaravelBooking,
  runApiPayment:async()=>{calls.push({name:'fulfill'})},
  Stripe:class{webhooks={constructEventAsync:async()=>{if(badSignature)throw Error('bad');return {id:'evt_test',type:eventType,data:{object:{id:'cs_test',metadata:{booking_id:'b1'}}}}}};checkout={sessions:{retrieve:async()=>{calls.push({name:'retrieve'});return session}}}},
  createClient:()=>db,Deno:{env:{get:()=> 'sk_test_fixture'},serve:h=>handler=h},fetch:async()=>{throw Error('API webhook must not use legacy voucher/email path')}};

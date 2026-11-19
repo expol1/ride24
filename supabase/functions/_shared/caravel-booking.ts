@@ -1,0 +1,429 @@
+/**
+ * Caravel booking bridge for the common Ride24 reservation flow (isolated).
+ *
+ * Ride24 dispatch hands every API partner the same ProviderBookingInput
+ * (shared provider-adapters.ts). This module turns that input plus the stored
+ * api_quotes.provider_quote_data into the documented quoted-create body
+ * (OpenAPI v1.67.0 CreateQuotedBookingRequest) and checks the Ride24 partner
+ * amount against Caravel's authoritative quote total, so that a changed price
+ * is never booked silently.
+ */
+import {CARAVEL_PROVIDER} from "./caravel-normalize.ts";
+import {checkCaravelLicenceEligibility} from "./caravel-premium.ts";
+import {evaluateCaravelPremiumForRide24, type CaravelApprovedExclusionReview}
+  from "./caravel-exclusion-policy.ts";
+import {verifyCaravelRide24PaymentContract} from "./caravel-payment-contract.ts";
+import type {CaravelQuotedBookingRequest} from "./caravel-sandbox-adapter.ts";
+
+type Json = Record<string, unknown>;
+
+/** Structural subset of shared ProviderBookingInput (provider-adapters.ts). */
+export type Ride24BookingInput = {
+  idempotency_key: string;
+  ride24_booking_id: string;
+  reservation_code?: string | null;
+  vehicle_group_id: string | null;
+  pickup_location_id?: string | null;
+  dropoff_location_id?: string | null;
+  main_driver?: {name?: string | null; age?: number | null} | null;
+  additional_driver?: {name?: string | null; age?: number | null} | null;
+  client_email?: string | null;
+  client_phone?: string | null;
+  currency?: string | null;
+  partner_discount_percent?: number | null;
+  partner_amount?: number | null;
+  quote_reference?: string | null;
+  provider_quote_data?: unknown;
+};
+
+export type CaravelBookingDraft = {
+  /** Spec quote_id: UUID. */
+  quoteId: string;
+  supplierId: string;
+  /** Spec external_ref: ^[A-Za-z0-9._-]{1,64}$, unique per supplier, immutable. */
+  externalRef: string;
+  /** Spec Idempotency-Key: client UUID. */
+  idempotencyKey: string;
+  mainDriver: {firstName: string; lastName: string; age: number};
+  contact: {email: string; phone: string | null};
+  expectedPartnerAmount: number;
+  currency: string;
+  /** Immutable Caravel API document id presented and accepted before Stripe. */
+  termsDocumentId: string | null;
+  /** Caravel-issued canonical hash; checked via contract §3.9 before production. */
+  termsContentHash: string | null;
+  termsLanguage: string | null;
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const PHONE = /^\+?[0-9 ().-]{5,32}$/;
+const EXTERNAL_REF = /^[A-Za-z0-9._-]{1,64}$/;
+
+/** Strict production-only preflight data, supplied from verified supplier records. */
+export type CaravelDraftOptions = {
+  environment?: "sandbox" | "production";
+  production?: {
+    certificationPassed: boolean;
+    termsVerifiedAndShownBeforePayment: boolean;
+    /** Backend-verified current document returned from reference/terms. */
+    currentTermsDocumentId: string;
+    /** Exact document shown and accepted by this customer before Stripe. */
+    termsDocumentIdShown: string;
+    /** From the same server-fetched authoritative terms metadata/document. */
+    currentTermsContentHash: string;
+    termsContentHashShown: string;
+    currentTermsLanguage: string;
+    termsLanguageShown: string;
+    /** Proof that the canonical digest algorithm from contract §3.9 passed. */
+    termsCanonicalHashVerified: boolean;
+    /** Current protection and final quoted deposit; must pass Ride24 policy. */
+    protection: unknown;
+    quoteDeposit: unknown;
+    /** Trusted Ride24 review of exact Caravel clauses/v1 exclusions. */
+    coverageReview?: CaravelApprovedExclusionReview;
+    /** Explicitly accepted disclosure, saved by Ride24 before charging Stripe. */
+    coverageDisclosureAcceptedBeforePayment?: boolean;
+    /** Exactly what the buyer saw beside Premium and the accepted terms. */
+    coverageExcludedCodesShown?: string[];
+    damageAdministrationFeeShownMinor?: number;
+    /** Licence rules and user evidence verified for this booking/supplier. */
+    licencePolicy: unknown;
+    licenceEvidence: unknown;
+  };
+};
+const isRecord = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
+const text = (v: unknown, max: number) =>
+  typeof v === "string" && v.trim() && v.trim().length <= max ? v.trim() : null;
+
+function splitName(value: unknown): {firstName: string; lastName: string} | null {
+  const full = text(value, 200);
+  if (!full) return null;
+  const parts = full.split(/\s+/);
+  if (parts.length < 2) return null;
+  return {firstName: parts.slice(0, -1).join(" "), lastName: parts[parts.length - 1]};
+}
+
+/**
+ * Partner amount in Ride24 = provider total after the partner discount (apiPriceTotals).
+ * For Caravel the discount must be 0: under pay_on_arrival Caravel collects exactly
+ * grand_total at the desk, and Ride24 charges only its own booking fee via Stripe.
+ */
+export function expectedPartnerAmount(totalMajor: number, discountPercent: number): number | null {
+  if (!Number.isFinite(totalMajor) || totalMajor <= 0 || !Number.isFinite(discountPercent) ||
+      discountPercent < 0 || discountPercent > 50) return null;
+  const exact = totalMajor * (1 - discountPercent / 100);
+  return Math.round((exact + Number.EPSILON) * 100) / 100;
+}
+
+export function buildCaravelBookingDraft(
+  input: Ride24BookingInput,
+  nowEpochMs: number,
+  options: CaravelDraftOptions = {},
+): {ok: true; draft: CaravelBookingDraft} | {ok: false; errors: string[]} {
+  const errors: string[] = [];
+  const environment = options?.environment ?? "sandbox";
+  if (environment !== "sandbox" && environment !== "production") errors.push("CARAVEL_ENVIRONMENT_INVALID");
+  if (environment === "production") {
+    const gate = options?.production;
+    if (gate?.certificationPassed !== true) errors.push("CARAVEL_CERTIFICATION_REQUIRED");
+    if (gate?.termsVerifiedAndShownBeforePayment !== true) errors.push("CARAVEL_TERMS_REQUIRED_BEFORE_PAYMENT");
+    const coverage = evaluateCaravelPremiumForRide24(
+      "premium",gate?.protection,gate?.quoteDeposit,gate?.coverageReview);
+    if(!isRecord(gate?.quoteDeposit)||!isRecord(gate.quoteDeposit.amount))
+      errors.push("CARAVEL_QUOTE_DEPOSIT_UNVERIFIED");
+    if ("errors" in coverage) errors.push(...coverage.errors);
+    // Unknown exclusions are never treated as none. For ANY documented
+    // exclusions the buyer must see/accept the actual policy and all codes.
+    const actualExclusions=isRecord(gate?.protection) ? gate.protection.excludes : null;
+    if (!Array.isArray(actualExclusions) ||
+        !actualExclusions.every((c:unknown)=>typeof c==="string"))
+      errors.push("PROTECTION_EXCLUSIONS_UNVERIFIED");
+    if (Array.isArray(actualExclusions) && actualExclusions.length>0 && !gate?.coverageReview)
+      errors.push("CARAVEL_EXCLUSION_DISCLOSURE_REVIEW_REQUIRED");
+    if(gate?.coverageReview){
+      const reviewed=gate.coverageReview;
+      if(reviewed.termsDocumentId!==gate.currentTermsDocumentId ||
+         reviewed.termsDocumentId!==gate.termsDocumentIdShown ||
+         reviewed.termsContentHash!==gate.currentTermsContentHash ||
+         reviewed.termsContentHash!==gate.termsContentHashShown)
+        errors.push("CARAVEL_DISCLOSURE_TERMS_VERSION_MISMATCH");
+      if(gate.coverageDisclosureAcceptedBeforePayment!==true)
+        errors.push("CARAVEL_COVERAGE_DISCLOSURE_ACCEPTANCE_REQUIRED");
+      const sameCodes=(a:unknown,b:unknown)=>
+        Array.isArray(a)&&Array.isArray(b)&&
+        a.every((x:unknown)=>typeof x==="string")&&
+        b.every((x:unknown)=>typeof x==="string")&&
+        a.length===b.length&&
+        [...a].sort().every((x:string,i:number)=>x===[...b].sort()[i]);
+      if(!sameCodes(gate.coverageExcludedCodesShown,reviewed.documentedExcludedCodes))
+        errors.push("CARAVEL_COVERAGE_EXCLUSIONS_NOT_SHOWN");
+      if(gate.damageAdministrationFeeShownMinor!==reviewed.damageAdministrationFeeMinor)
+        errors.push("CARAVEL_DAMAGE_FEE_NOT_SHOWN");
+    }
+    const licence = checkCaravelLicenceEligibility(gate?.licencePolicy, gate?.licenceEvidence);
+    if (!licence.ok && "errors" in licence) errors.push(...licence.errors);
+  }
+  const data = isRecord(input?.provider_quote_data) ? input.provider_quote_data : null;
+  if(environment==="production" && options.production?.coverageReview){
+    const review=options.production.coverageReview;
+    const qExclusions=data?.coverage_exclusions;
+    const pExclusions=isRecord(data?.protection)?data.protection.excludes:null;
+    const currentExclusions=isRecord(options.production.protection)
+      ?options.production.protection.excludes:null;
+    const same=(a:unknown,b:unknown)=>
+      Array.isArray(a)&&Array.isArray(b)&&
+      a.length===b.length&&
+      a.every((x:unknown)=>typeof x==="string")&&
+      b.every((x:unknown)=>typeof x==="string")&&
+      [...a].sort().every((x:string,i:number)=>x===[...b].sort()[i]);
+    if(data?.coverage_review_terms_document_id!==review.termsDocumentId ||
+       !same(qExclusions,review.documentedExcludedCodes) ||
+       !same(pExclusions,currentExclusions) ||
+       data?.damage_administration_fee_minor!==review.damageAdministrationFeeMinor)
+      errors.push("CARAVEL_QUOTE_COVERAGE_DISCLOSURE_CHANGED");
+  }
+  if(environment==="production"){
+    const collection=verifyCaravelRide24PaymentContract(data);
+    if("errors" in collection)errors.push(...collection.errors);
+  }
+  const rawQuoteTermsId = typeof data?.terms_document_id === "string" ? data.terms_document_id : null;
+  const docId = options?.production?.termsDocumentIdShown ?? null;
+  if (environment === "production") {
+    // Source of truth is server-fetched Caravel metadata, never browser-selected
+    // free text. The quote already stored before Stripe must carry exactly the
+    // document version that was shown to the customer and is still current.
+    const current = options?.production?.currentTermsDocumentId;
+    const validId = (v:unknown):v is string=>typeof v==="string" &&
+      /^[A-Za-z0-9._~-]{1,200}$/.test(v) && v!=="." && v!=="..";
+    if(!validId(current) || !validId(docId) || !validId(rawQuoteTermsId))
+      errors.push("CARAVEL_TERMS_DOCUMENT_ID_REQUIRED");
+    else if(current!==docId || rawQuoteTermsId!==docId)
+      errors.push("CARAVEL_TERMS_DOCUMENT_CHANGED_REQUOTE_REQUIRED");
+    const gate = options.production;
+    const hash=(v:unknown):v is string=>typeof v==="string" && /^[a-f0-9]{64}$/.test(v);
+    const lang=(v:unknown):v is string=>typeof v==="string" && /^[a-z]{2}(?:-[A-Z]{2})?$/.test(v);
+    if(gate?.termsCanonicalHashVerified!==true)
+      errors.push("CARAVEL_TERMS_CANONICAL_HASH_NOT_VERIFIED");
+    if(!hash(gate?.currentTermsContentHash) || !hash(gate?.termsContentHashShown) ||
+       !hash(data?.terms_content_hash))
+      errors.push("CARAVEL_TERMS_CONTENT_HASH_REQUIRED");
+    else if(gate.currentTermsContentHash!==gate.termsContentHashShown ||
+            data.terms_content_hash!==gate.currentTermsContentHash)
+      errors.push("CARAVEL_TERMS_CONTENT_HASH_CHANGED");
+    if(!lang(gate?.currentTermsLanguage) || !lang(gate?.termsLanguageShown) ||
+       !lang(data?.terms_language))
+      errors.push("CARAVEL_TERMS_LANGUAGE_REQUIRED");
+    else if(gate.currentTermsLanguage!==gate.termsLanguageShown ||
+            data.terms_language!==gate.currentTermsLanguage)
+      errors.push("CARAVEL_TERMS_LANGUAGE_CHANGED");
+  }
+  const amounts = data && isRecord(data.amounts) ? data.amounts : null;
+  if (!data || data.provider !== CARAVEL_PROVIDER) errors.push("CARAVEL_QUOTE_REQUIRED");
+  const quoteId = typeof data?.quote_id === "string" && UUID.test(data.quote_id) ? data.quote_id : null;
+  if (!quoteId || (input?.quote_reference && input.quote_reference !== quoteId)) errors.push("QUOTE_REFERENCE_MISMATCH");
+  if (data?.plan !== "premium") errors.push("PREMIUM_REQUIRED");
+  // vehicle_id is opaque. Caravel excludes the L2A group at our account scope;
+  // compare only exact opaque IDs against the quote, never an inferred code.
+  if (!text(data?.vehicle_id, 200) || data?.vehicle_id !== input?.vehicle_group_id) errors.push("VEHICLE_MISMATCH");
+  const supplierId = text(data?.supplier_id, 128);
+  if (!supplierId) errors.push("SUPPLIER_REQUIRED");
+  const expires = Date.parse(String(data?.expires_at ?? ""));
+  if (!Number.isFinite(expires) || !Number.isSafeInteger(nowEpochMs) || expires <= nowEpochMs) errors.push("QUOTE_EXPIRED");
+  const currency = typeof data?.currency === "string" ? data.currency : "";
+  if (!/^[A-Z]{3}$/.test(currency) || input?.currency !== currency) errors.push("CURRENCY_MISMATCH");
+  const total = typeof amounts?.total === "number" ? amounts.total : NaN;
+  if (Number(input?.partner_discount_percent ?? 0) !== 0) errors.push("PARTNER_DISCOUNT_NOT_ALLOWED");
+  const expected = expectedPartnerAmount(total, 0);
+  if (expected === null) errors.push("QUOTE_TOTAL_UNVERIFIED");
+  else if (typeof input?.partner_amount !== "number" || Math.abs(input.partner_amount - expected) > 0.009)
+    errors.push("PARTNER_AMOUNT_MISMATCH");
+  const ride24Id = text(input?.ride24_booking_id, 100);
+  // Only Caravel needs a UUID. Ride24's existing dispatcher supplies
+  // "ride24:<booking UUID>" to other providers; normalize here, never
+  // change shared provider adapters or their idempotency contracts.
+  const originalIdem = text(input?.idempotency_key, 100);
+  const normalizedIdem = ride24Id && UUID.test(ride24Id) && originalIdem === `ride24:${ride24Id}`
+    ? ride24Id : originalIdem;
+  const idem = normalizedIdem && UUID.test(normalizedIdem) ? normalizedIdem : null;
+  if (!idem) errors.push("IDEMPOTENCY_REQUIRED");
+  if (environment === "production" && idem && idem !== ride24Id)
+    errors.push("PRODUCTION_IDEMPOTENCY_MISMATCH");
+  if (environment === "production" && (!ride24Id || !UUID.test(ride24Id)))
+    errors.push("PRODUCTION_BOOKING_UUID_REQUIRED");
+  const prefix = environment === "production" ? "ride24-" : "ride24-sandbox-";
+  const externalRef = ride24Id ? `${prefix}${ride24Id}` : "";
+  if (!ride24Id || !EXTERNAL_REF.test(externalRef)) errors.push("BOOKING_ID_REQUIRED");
+  const name = splitName(input?.main_driver?.name);
+  const age = input?.main_driver?.age;
+  if (!name) errors.push("DRIVER_NAME_REQUIRED");
+  if (typeof age !== "number" || !Number.isSafeInteger(age) || age < 16 || age > 120) errors.push("DRIVER_AGE_REQUIRED");
+  // Spec: the booking's {age, role} multiset must equal the quote's priced drivers.
+  const priced = Array.isArray(data?.drivers) ? data.drivers : null;
+  if (!priced || priced.length !== 1 || !isRecord(priced[0]) || priced[0].role !== "main" || priced[0].age !== age)
+    errors.push("DRIVER_SET_CHANGED");
+  // Additional drivers are priced; the shared API path rejects them.
+  if (input?.additional_driver) errors.push("ADDITIONAL_DRIVER_NOT_SUPPORTED");
+  const email = text(input?.client_email, 254);
+  if (!email || !EMAIL.test(email)) errors.push("CONTACT_EMAIL_REQUIRED");
+  if (errors.length) return {ok: false, errors: [...new Set(errors)]};
+  const phone = text(input.client_phone, 32);
+  return {ok: true, draft: {
+    quoteId: quoteId!,
+    supplierId: supplierId!,
+    externalRef,
+    idempotencyKey: idem!,
+    mainDriver: {...name!, age: age as number},
+    contact: {email: email!, phone: phone && PHONE.test(phone) ? phone : null},
+    expectedPartnerAmount: expected!,
+    currency,
+    termsDocumentId: environment === "production" ? docId : null,
+    termsContentHash: environment === "production" ? options.production!.currentTermsContentHash : null,
+    termsLanguage: environment === "production" ? options.production!.currentTermsLanguage : null,
+  }};
+}
+
+/** Draft -> documented quoted-create body (strict request schema: documented fields only). */
+export function caravelQuotedBookingRequest(draft: CaravelBookingDraft): CaravelQuotedBookingRequest {
+  const customer: CaravelQuotedBookingRequest["customer"] = {
+    first_name: draft.mainDriver.firstName,
+    last_name: draft.mainDriver.lastName,
+    email: draft.contact.email,
+  };
+  if (draft.contact.phone) customer.phone = draft.contact.phone;
+  return {
+    quote_id: draft.quoteId,
+    external_ref: draft.externalRef,
+    drivers: [{first_name: draft.mainDriver.firstName, last_name: draft.mainDriver.lastName, age: draft.mainDriver.age, role: "main"}],
+    customer,
+    // Ride24 sells Caravel only under pay_on_arrival (sandbox permits every model, so it is always sent).
+    payment_model: "pay_on_arrival",
+  };
+}
+
+/**
+ * Caravel Booking.status (OpenAPI v1.67.0 §8.1: confirmed, pending, cancelled,
+ * no_show, completed; open list) -> Ride24 canonical status. Ride24 has no
+ * no_show/completed state, and unknown values are "unconfirmed" per the spec,
+ * so those return null and the booking goes to manual review.
+ */
+const STATUS: Readonly<Record<string, "pending" | "confirmed" | "cancelled">> = Object.freeze({
+  pending: "pending",
+  confirmed: "confirmed",
+  cancelled: "cancelled",
+});
+
+export function caravelCanonicalStatus(value: unknown): "pending" | "confirmed" | "cancelled" | null {
+  const key = typeof value === "string" ? value : "";
+  return Object.hasOwn(STATUS, key) ? STATUS[key] : null;
+}
+
+/** Read cancellation outcome from a cancelled Booking (spec: cancellation.fee; refund is always zero). */
+export function caravelCancellationFromApi(booking: unknown): {ok: true; feeMinor: number; currency: string; revision: number} | {ok: false; errors: string[]} {
+  const b = isRecord(booking) ? booking : {};
+  const c = isRecord(b.cancellation) ? b.cancellation : null;
+  const fee = c && isRecord(c.fee) ? c.fee : null;
+  const errors: string[] = [];
+  if (b.status !== "cancelled") errors.push("NOT_CANCELLED");
+  if (!fee || !Number.isSafeInteger(fee.amount) || (fee.amount as number) < 0 || typeof fee.currency !== "string" || !/^[A-Z]{3}$/.test(fee.currency))
+    errors.push("CANCELLATION_FEE_UNVERIFIED");
+  if (!Number.isSafeInteger(b.revision) || (b.revision as number) < 1) errors.push("REVISION_UNVERIFIED");
+  if (errors.length) return {ok: false, errors};
+  return {ok: true, feeMinor: fee!.amount as number, currency: fee!.currency as string, revision: b.revision as number};
+}
+
+export type CaravelStatusView = {
+  caravel: string;
+  /** Ride24 canonical status, or null when Ride24 has no equivalent / the value is unknown. */
+  ride24: "pending" | "confirmed" | "cancelled" | null;
+  terminal: boolean;
+  /** Needs a person: never auto-treated as confirmed or finished. */
+  review: boolean;
+  known: boolean;
+};
+
+/** Full lifecycle view; an unknown future status is never confirmed or terminal. */
+export function caravelBookingStatus(value: unknown): CaravelStatusView {
+  const v = typeof value === "string" ? value : "";
+  switch (v) {
+    case "pending": return {caravel: v, ride24: "pending", terminal: false, review: false, known: true};
+    case "confirmed": return {caravel: v, ride24: "confirmed", terminal: false, review: false, known: true};
+    case "cancelled": return {caravel: v, ride24: "cancelled", terminal: true, review: false, known: true};
+    case "no_show": return {caravel: v, ride24: null, terminal: true, review: true, known: true};
+    case "completed": return {caravel: v, ride24: null, terminal: true, review: true, known: true};
+    default: return {caravel: v || "missing", ride24: null, terminal: false, review: true, known: false};
+  }
+}
+
+/**
+ * Check a created booking against the quote it consumed: same quote_id, same
+ * grand_total and currency, confirmed, pay_on_arrival, zero deposit/excess.
+ */
+export function verifyCaravelBookingAgainstQuote(
+  booking: unknown,
+  quote: {quoteId: string; totalAmountMinor: number; currency: string},
+  options: {strictProductionPayment?: boolean} = {},
+): {ok: true; bookingId: string; revision: number} | {ok: false; errors: string[]} {
+  const b = isRecord(booking) ? booking : {};
+  const errors: string[] = [];
+  const price = isRecord(b.price) ? b.price : null;
+  const totals = price && isRecord(price.totals) ? price.totals : null;
+  const grand = totals && isRecord(totals.grand_total) ? totals.grand_total : null;
+  const protection = isRecord(b.protection) ? b.protection : null;
+  const payment = isRecord(b.payment) ? b.payment : null;
+  const zero = (m: unknown) => isRecord(m) && m.amount === 0;
+  if (typeof b.booking_id !== "string" || !UUID.test(b.booking_id)) errors.push("BOOKING_ID_MISSING");
+  if (!Number.isSafeInteger(b.revision) || (b.revision as number) < 1) errors.push("REVISION_MISSING");
+  if (b.quote_id !== quote?.quoteId) errors.push("QUOTE_ID_MISMATCH");
+  if (b.status !== "confirmed") errors.push("NOT_CONFIRMED");
+  if (!grand || grand.amount !== quote?.totalAmountMinor || grand.currency !== quote?.currency) errors.push("BOOKED_PRICE_DIFFERS_FROM_QUOTE");
+  if (!protection || !zero(protection.excess) || !zero(protection.deposit)) errors.push("BOOKED_PROTECTION_NOT_ZERO_RISK");
+  // Caravel certification sandbox responses may omit payment when the default
+  // pay_on_arrival model applies; preserve that documented tolerant behavior.
+  if (payment) {
+    if (payment.model !== "pay_on_arrival") errors.push("PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL");
+    const onArrival = isRecord(payment.amount_on_arrival) ? payment.amount_on_arrival.amount : undefined;
+    if (onArrival !== undefined && onArrival !== quote?.totalAmountMinor) errors.push("AMOUNT_ON_ARRIVAL_DIFFERS");
+  }
+  // The separate production-only Ride24 bridge requires explicit settlement
+  // proof. This check is opt-in and must not break sandbox certification.
+  if (options.strictProductionPayment === true) {
+    const exact = (m: unknown, amount: number) =>
+      isRecord(m) && m.amount === amount && m.currency === quote?.currency;
+    if (!protection || !exact(protection.deposit, 0) || !exact(protection.excess, 0))
+      errors.push("BOOKED_PROTECTION_NOT_ZERO_RISK");
+    if (!payment || payment.model !== "pay_on_arrival")
+      errors.push("PAYMENT_MODEL_NOT_PAY_ON_ARRIVAL");
+    if (!exact(payment?.amount_on_arrival, quote?.totalAmountMinor))
+      errors.push("AMOUNT_ON_ARRIVAL_DIFFERS");
+    if (!exact(payment?.amount_prepaid, 0))
+      errors.push("BOOKED_PREPAYMENT_NOT_ZERO");
+    // Caravel collects at the desk (who_collects.on_arrival = operator); Ride24 never collects rental.
+    const who = isRecord(payment?.who_collects) ? payment!.who_collects as Record<string, unknown> : null;
+    if (who && who.on_arrival !== undefined && who.on_arrival !== "operator")
+      errors.push("RENTAL_NOT_COLLECTED_BY_OPERATOR");
+    if (who && who.prepaid !== undefined && who.prepaid !== null && payment?.amount_prepaid &&
+        isRecord(payment.amount_prepaid) && (payment.amount_prepaid as Record<string, unknown>).amount !== 0)
+      errors.push("BOOKED_PREPAYMENT_NOT_ZERO");
+  }
+  if (errors.length) return {ok: false, errors};
+  return {ok: true, bookingId: b.booking_id as string, revision: b.revision as number};
+}
+
+export type CaravelErrorAction = "requote" | "refetch_then_retry" | "retry_same_key" | "stop";
+
+/**
+ * What the booking flow does on a Caravel error (documented codes, OpenAPI v1.67.0
+ * error catalogue). Unknown codes stop safely (certification: degrade generically).
+ */
+export function caravelErrorAction(error: unknown): {action: CaravelErrorAction; code: string; status: number | null} {
+  const e = isRecord(error) ? error : {};
+  const code = typeof e.code === "string" ? e.code : "UNKNOWN";
+  const status = typeof e.status === "number" ? e.status : null;
+  const requote = ["availability_changed", "price_changed", "quote_expired", "quote_consumed", "no_availability"];
+  const retry = ["idempotency_in_progress", "rate_limited", "service_unavailable"];
+  if (requote.includes(code)) return {action: "requote", code, status};
+  if (code === "revision_conflict") return {action: "refetch_then_retry", code, status};
+  if (retry.includes(code) || status === 429 || status === 503) return {action: "retry_same_key", code, status};
+  return {action: "stop", code, status};
+}

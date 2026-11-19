@@ -1,0 +1,250 @@
+# Caravel — wiążące wyjaśnienia techniczne dostawcy z 17.11.2026
+
+Źródło: pełna treść odpowiedzi e-mail Caravel przekazana przez Ride24.
+Nowsza odpowiedź zastępuje wcześniejsze domysły dotyczące L2A,
+dostaw webhooków i reprezentacji regulaminu.
+
+## 1. Webhooks — istotna zmiana procedury
+
+- Self-service sandbox **NIE dostarcza webhooków na URL**. Zdarzenia
+  utworzenia, aktualizacji i anulowania rezerwacji są przechowywane
+  w inspektorze konta Caravel z dokładnym body i nagłówkami.
+  Można je odtworzyć w izolowanym walidatorze używając rzeczywistego
+  sekretu podpisującego; w typowej certyfikacji nie ma konieczności
+  publicznego webhook receiver.
+- Dostawy na żywy endpoint **przed produkcją** są opcjonalne i wymagają
+  wcześniejszego zweryfikowania właścicielstwa URL według WEBHOOKS.md §7,
+  po czym Caravel włącza je tylko dla jednego dostawcy sandbox.
+- Portal nie pokazuje sekretu. Pierwsze `POST /v1/webhooks/test` z kluczem
+  o uprawnieniu `write:webhooks` tworzy sekret, jeżeli go jeszcze nie ma.
+  Rotacja przez `POST /v1/webhooks/secret/rotate` zwraca **nowy sekret
+  jednorazowo**. Nie wywoływać tych operacji bez przygotowanego
+  bezpiecznego i trwałego zapisu sekretu w Supabase Edge Secrets.
+  Nigdy nie umieszczać sekretu w GitHub, raportach, logach ani czacie.
+- Po rotacji Caravel może podpisywać starym i nowym kluczem. Kod
+  `verifyCaravelSignature` poprawnie dopuszcza dowolny pasujący
+  `v1=` z `X-Caravel-Signature` dla dostępnych kluczy. Gdy aktywny
+  poprzedni klucz, przechowywać go jako osobny sekret tylko w okresie
+  przejściowym, potem bezpiecznie wycofać.
+- Rejestracja publicznego HTTPS URL:
+  `PUT /v1/webhooks/endpoint` JSON `{"url":"https://..."}`,
+  kontrola przez `GET /v1/webhooks/endpoint`. URL bez credentials.
+
+### Certyfikacyjny HMAC self-test (bez sekretu konta)
+
+1. Przeczytać dokładnie bieżący
+   `fixtures/webhook-hmac-self-test.json` z paczki Caravel.
+2. HMAC-SHA256 na dosłownych polach wzorca i **jego własnym** sekrecie,
+   z `fixture.t` jako czasem obecnym, sprawdzić
+   `expected_signature_hex`.
+3. Weryfikator musi odrzucić `tamper_test.tampered_body`.
+4. `POST https://sandbox-api.caravelway.com/_certification/hmac-self-test`
+   z kluczem sandbox i JSON
+   `{"signature_hex":"<64 lower-case hex>","tampered_rejected":true}`.
+   Dopiero odpowiedź Caravel / portal potwierdza zaliczenie.
+5. **Nie jest to** `/_certification/start`. Okna 24h nie uruchamiać
+   automatycznie, dopóki warunki certyfikacji nie są spełnione.
+
+W kodzie: `buildCaravelHmacSelfTestSubmission()` buduje i sprawdza
+dane lokalnie z oficjalnego wzorca; `submitSandboxHmacSelfTest()`
+to jawne, sandbox-only zgłoszenie wyniku z kluczem na serwerze.
+Mockowane testy nie stanowią oficjalnego potwierdzenia.
+
+## 2. Grupa L2A
+
+Caravel potwierdził, że produkcyjny katalog Ride24 **nie będzie zawierał
+L2A**, więc nie trzeba implementować odrębnego filtra. Jedynym
+identyfikatorem grupy jest **opaque** `vehicle_id` na
+`GET /v1/reference/vehicles`; produkcyjne identyfikatory nie są takie
+same jak w sandbox. Nigdy nie parsować `vehicle_id` ani pola `name`
+w celu odgadywania grupy. Poprzedni spekulacyjny filtr L2A usunięto
+z izolowanego adaptera; ceny i ochrona nadal przechodzą niezależną
+weryfikację.
+
+## 3. Wiążące warunki najmu, data i wersja
+
+- `GET /v1/reference/terms` → lista **metadanych aktualnego**
+  dokumentu na język, BEZ treści:
+  `document_id`, `language`, `version`, `title`, `format`,
+  `content_hash`, `published_at`, `withdrawn_at`.
+- `GET /v1/reference/terms/{document_id}` → te same pola **oraz**
+  `body`, które dla formatu `clauses/v1` jest drzewem
+  ponumerowanych klauzul, zwykły tekst bez HTML.
+- Dokumenty są niezmienne. Nowa wersja oznacza nowy `document_id`,
+  wyższą `version` i `withdrawn_at` na starej. Numery klauzul
+  nadają się do cytowania.
+- Caravel wskazał aktualną wersję **EN v4, opublikowaną 17.11.2026**.
+  Numer wersji dotyczy regulaminu, NIE wersji Channel API.
+- `content_hash` to SHA-256 **kanonicznej reprezentacji** regulaminu,
+  zgodnie ze schematem i umową §3.9. Bez odczytania tych konkretnych
+  reguł nie wolno wymyślać algorytmu kanonizacji ani twierdzić,
+  że hash został zweryfikowany.
+- Na każdym sync odczytać bieżący `document_id`, wykrywać zmiany,
+  nie nadpisywać automatycznie wersji zaakceptowanych przez klientów.
+- Przed Stripe pokazać **pełny dokument Caravel pobrany z API**.
+  Zapisać dokładny `document_id` i potwierdzenie akceptacji do
+  każdej rezerwacji. Po zmianie `document_id` w czasie rezerwacji
+  zablokować stare warunki i wznowić proces z aktualnym dokumentem.
+- Stare `terms.pdf` i `rules.pdf` w Supabase istnieją i mogą być
+  użyte **jedynie jako materiał do porównania**, NIE jako
+  obowiązujący kontrakt, jeśli pochodzą spoza endpointu API.
+  Odrębny PDF do klienta można wygenerować z dokładnie tej samej,
+  zweryfikowanej treści `clauses/v1`, o ile nie zmienia klauzul.
+- W repo dodano odczyt listy i konkretnego dokumentu
+  `referenceTerms()` / `referenceTermsDocument()`. Dodano też
+  isolated `CaravelBookingDraft.termsDocumentId` i porównanie
+  identyfikatora pokazanego użytkownikowi z id w zapisanej wycenie
+  i aktualnym identyfikatorem z API. **To nie jest jeszcze wpięte
+  w wspólny formularz ani zapis do produkcyjnej tabeli `bookings`.**
+
+## 4. Rzeczywisty stan dostępu i testów
+
+- Testy mockowane oraz Ride24 API Compatibility QA potrafią działać
+  bez klucza Caravel; nie oznaczają certyfikacji.
+- 17.11.2026 uruchomiono przez etykietę PR test LIVE SANDBOX
+  w GitHub Actions. **Pierwszy wynik: FAILURE bez wywołań API**,
+  ponieważ repozytorium nie ma `CARAVEL_SANDBOX_API_KEY`
+  w Actions Secrets. To nie był błąd API Caravel.
+  Po naprawie workflow, kolejny przebieg
+  [44184521369](https://github.com/expol1/ride24/actions/runs/44184521369)
+  wykazał **SUCCESS ze wszystkimi etapami API SKIPPED**.
+  Powód jest zapisany jawnie w raporcie; test zewnętrzny NIE odbył się.
+  Istniejący klucz w Supabase Edge Secrets nie został przeniesiony
+  do GitHub i nie wolno go tam ujawniać w logach.
+- Nie robić `webhooks/test` ani `secret/rotate` w pośpiechu:
+  sekret pojawia się jeden raz i wymaga bezpiecznego zapisu.
+  Certyfikacyjny HMAC fixture używa **własnego testowego sekretu**,
+  więc nie trzeba do tej czynności rotować sekretu konta.
+
+## 5. Odrębny biznesowy NO-GO produkcyjny
+
+Caravel w wcześniejszym e-mailu potwierdził brak pokrycia
+**szyb, opon/kół i podwozia** w Premium i opłatę EUR100 przy
+szkodzie/kradzieży także w Premium. Dokument API v4 wymaga
+bezpośredniej weryfikacji. Dotychczasowe Ride24
+`REQUIRED_PREMIUM_COVERS` odrzuca takie oferty.
+Brak L2A nie usuwa wyłączeń ubezpieczenia.
+Uruchomienie ofert wymaga produktu zgodnego ze standardem Ride24
+albo odrębnej świadomej decyzji o zmianie standardu i uczciwym
+wyświetlaniu ochrony klientowi. Bez niej `api_enabled=false`.
+
+## 6. Trwały zapis regulaminu przy booking
+
+Projekt migracji (NIE WYKONANO):
+`docs/integrations/caravel-terms-booking-snapshot.sql`.
+Przed użyciem trzeba zintegrować z `create-booking-request` i
+`api_quotes`, zabezpieczyć zapisy wyłącznie po stronie serwera,
+zweryfikować RLS oraz testy wyświetlenia przed Stripe i na voucherze.
+
+
+## 7. Powiadomienia GitHub, czytelne skipy i wykrywanie zmian wersji — 17.11.2026
+
+- W podłączonym Gmailu Ride24 po przejrzeniu alertów przeniesiono do Kosza
+  15 starych powiadomień o nieudanych testach z gałęzi `claude/caravel-finish`.
+  Historia GitHub Actions i ich logi pozostały dostępne w repozytorium.
+  Zapisane wiadomości biznesowe Ride24 zachowano.
+- `.github/workflows/caravel-sandbox-live.yml` zmodyfikowano: przy braku
+  `CARAVEL_SANDBOX_API_KEY` test API jest **SKIPPED**, a nie FAILED.
+  Potwierdzony rzeczywisty run
+  [44184521369](https://github.com/expol1/ride24/actions/runs/44184521369):
+  job SUCCESS, krok `Explain missing sandbox credential` SUCCESS,
+  checkout, Node i `Live sandbox run` wszystkie SKIPPED. **Nie było
+  żadnego żądania do Caravel.** Etykieta wywołująca test została usunięta.
+- Nowy izolowany moduł `caravel-terms-version.ts` porównuje
+  bieżącą metadane `document_id` / `version` / `content_hash`
+  i `published_at` z ostatnio zweryfikowanym dokumentem osobno dla
+  `supplierId + language`. Nowy identyfikator z wyższą wersją oznacza
+  `new_version_requires_review`, a nie automatyczne zatwierdzenie.
+  Ten sam dokument ze zmienionym hashem/wersją powoduje twardy błąd.
+  Niedozwolony rollback wersji i pomieszanie supplierów jest blokowane.
+  Moduł jest **przygotowany i testowany, lecz nie jest jeszcze
+  podłączony do cyklicznej synchronizacji ani produkcyjnej bazy.**
+- Stały biznesowy blocker pozostaje: obecne Caravel Premium bez ochrony
+  szyb, kół i podwozia nie spełnia polityki Ride24. Nie aktywować.
+
+
+## 8. Aktualizacja integracyjna 18.11.2026 — wiążący regulamin przy wycenie
+
+- `fetchCaravelCurrentTermsForReview()` odczytuje listę metadanych i
+  następnie pełny `clauses/v1` po dokładnym `document_id`.
+  Sprawdza zgodność ID, języka, wersji, tytułu, formatu, hash,
+  czasu publikacji i `withdrawn_at`. Niezgodność oznacza
+  `CARAVEL_TERMS_LIST_DOCUMENT_MISMATCH` — brak dalszego procesu.
+- Funkcja **nie** twierdzi, że samodzielnie sprawdziła kanoniczny
+  SHA-256. Zwraca jawny znacznik
+  `canonicalHashIndependentlyVerified: false`. Kanonizacja
+  Caravel §3.9 pozostaje do odtworzenia z pełnego dokumentu.
+- `bindReviewedCaravelTermsToQuote()` dopuszcza przypięcie
+  `terms_document_id`, `terms_content_hash`, `terms_language`
+  do server-side `provider_quote_data` **tylko** przy niezmienionej,
+  wcześniej zweryfikowanej wersji oraz przy osobnym potwierdzeniu
+  canonical digest. Nie dopuszcza automatycznego zatwierdzenia nowej
+  wersji ani pomieszania dwóch dostawców, nie zmienia obiektu wejścia.
+  Jest to komponent odizolowany; kod produkcyjny wycen NIE wywołuje
+  go jeszcze.
+- `buildCaravelBookingDraft(..., {environment:"production"})`
+  wymaga już kompletnego i zgodnego tripletu (id, hash, language)
+  między przechowywaną wyceną, regulaminem pokazanym klientowi
+  oraz bieżącym stanem dokumentów z API; dodatkowo wymaga
+  `termsCanonicalHashVerified=true`. Jeżeli brakuje dowodu lub
+  wersje są różne, zwraca błąd i nie generuje rezerwacji.
+  Nie jest to aktywny endpoint produkcyjny.
+- Projekt migracji `caravel-terms-booking-snapshot.sql`
+  poprawiono do idempotentnego `DO` i warunku
+  all-or-none dla trzech pól; **NIE URUCHAMIANO** go.
+  Odczytane z aktualnej bazy uprawnienia: `bookings` i
+  `api_quotes` mają RLS; `authenticated` ma SELECT na
+  `bookings`, ale nie ma UPDATE/INSERT, a `service_role`
+  ma zapis. Nowe pola nie wymagają przyznawania zapisu klientom.
+- Publiczne URL Caravel z paczką i OpenAPI były niedostępne
+  z użytych narzędzi; w bibliotece plików nie znaleziono
+  kopii pakietu. Nie udawać, że zweryfikowano kanoniczny hash
+  albo pobrano rzeczywisty dokument EN v4.
+- Nadal nie ma klucza sandbox w GitHub Actions,
+  oficjalnego wyniku certyfikacji HMAC, uruchomionego
+  pełnego przebiegu certyfikacyjnego ani zgody na wyłączenia
+  szkód. `api_enabled=false`; nie scalać PR.
+
+
+## 9. 18.11.2026 — naprawa SQL, granice płatności i tożsamość rezerwacji
+
+- Naprawiono wcześniejszy, **uszkodzony projekt SQL** w
+  `docs/integrations/caravel-terms-booking-snapshot.sql`.
+  Poprzednia wersja miała przerwane ciągi regex w warunku CHECK
+  i powielone transakcje `COMMIT`. Obecnie zawiera jedną kompletną
+  transakcję, trzy nullable kolumny oraz warunek all-or-none.
+  Dodano `tests/caravel-terms-migration.test.mjs` do workflow Caravel,
+  który testuje strukturę; nie jest to zastępstwo pełnego walidatora
+  składni PostgreSQL lub testu migracji na bazie testowej.
+- Zwiększono ochronę w `CaravelClient.book()` produkcyjnym:
+  `X-Supplier-Id` jest obowiązkowy, a `external_ref` musi być
+  **dokładnie** `ride24-<Idempotency-Key UUID>`. Jest to dodatkowa
+  kontrola izolująca EUR i GBP oraz chroniąca przed rozbieżnością
+  numeru rezerwacji i klucza idempotencji. Alias sandbox zachowano.
+- Nowy czysto izolowany plik `caravel-terms-lifecycle.ts`:
+  `validateCaravelTermsBeforeStripe()` porównuje server-side
+  zapisany i zweryfikowany quote, wcześniej zaakceptowany
+  niezmienny dokument Caravel i potwierdzenie klienta. Zwraca
+  triplet dokument ID / język / SHA-256 do atomowego zapisu.
+  `validateCaravelTermsBeforeDispatch()` porównuje ten sam
+  triplet w rezerwacji po płatności z bieżącą wersją Caravel
+  i w przypadku różnicy zwraca `hold_for_manual_review`
+  zamiast zezwalać na wysłanie booking do dostawcy.
+  **Żadna z tych funkcji nie jest jeszcze połączona ze wspólnym
+  `create-booking-request`, Stripe ani `api-booking-dispatch`.**
+- Rozbudowano testy Caravel o odrzucenie zmian po płatności,
+  brak akceptacji klienta, brak niezależnego potwierdzenia
+  canonical hash, inny supplier, błędny klucz idempotencji,
+  brak `supplierId` i strukturę SQL. Oba workflow:
+  `Caravel sandbox adapter checks` i
+  `Ride24 API Compatibility QA` przeszły na commicie
+  `1c897eb6b4d16c0fb52c63f87bead828170c310b`.
+- Supabase read-only: `public.bookings` nadal ma RLS;
+  **zero** kolumn `caravel_terms_*` obecnie istnieje;
+  konto Caravel `api_provider=custom`, `api_enabled=false`.
+  Nie wykonywano żadnych migracji ani zmian produkcyjnych.
+- Pozostałe prawdziwe blokady: aktualny wiążący EN v4 z API,
+  kanonizacja SHA-256 wg Caravel §3.9, klucz sandbox do wykonania
+  realnych wywołań, HMAC i certyfikacja, poprawne wpięcie
+  mechanizmu regulaminów do całej ścieżki rezerwacji,
+  oraz niezgodne ze standardem Ride24 wyłączenia Premium.

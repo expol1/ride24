@@ -1,5 +1,6 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { arventLicenseYears } from "../_shared/arvent-driver-eligibility.mjs";
+import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { apiPaymentEnabled } from "../_shared/api-payment-runtime.ts";
@@ -945,6 +946,7 @@ serve(async (req) => {
           provider_type,
           api_provider,
           api_enabled,
+          api_provider,
           rental_terms_url,
           rental_rules_url,
           min_rental_days,
@@ -968,6 +970,22 @@ serve(async (req) => {
         { error: "Wybrana grupa pojazdów nie jest dostępna" },
         400,
       );
+    }
+
+    // Caravel is *Stripe-before-supplier*, while this generic handler
+    // immediately sends an API booking before Stripe. Refuse Caravel HERE,
+    // before claiming a quote or inserting any booking, until the dedicated
+    // flow + real clauses/v1 acceptance + certification are deployed.
+    // The UUID also catches today's Caravel account (api_provider=custom).
+    if (isCaravelBooking({
+      partner_id: car.partner_id,
+      partners: {api_provider: car.partner.api_provider},
+    })) {
+      return jsonResponse(req, {
+        error: "Oferty Caravel są chwilowo niedostępne. Wybierz inną ofertę.",
+        error_en: "Caravel reservations are not yet available.",
+        code: CARAVEL_PRE_CERTIFICATION_ERROR,
+      }, 409);
     }
 
     // A physical, named bank debit card is mandatory for AVIA Ride24 rentals

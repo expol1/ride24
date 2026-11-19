@@ -1,0 +1,100 @@
+-- APPLIED (SCHEMA ONLY) on 18 Nov 2026 in production Supabase via
+-- 20261118124748_caravel_booking_evidence_additive_20261118.
+-- The fields, claim CHECK and review index now exist. This does NOT mean
+-- the post-Stripe dispatcher, voucher flow or Caravel supplier API are live.
+-- Before enabling any booking: verified clauses/v1 canonical §3.9 hash,
+-- explicit customer terms/coverage consent, official HMAC + 24-hour supplier
+-- certification, production API secrets and full Ride24 E2E tests.
+--
+-- Sole designated Caravel partner (until a separately reviewed expansion):
+-- 78721481-7619-44df-a9b7-5faa344b69bb.
+--
+-- Existing non-Caravel rows keep all four fields NULL. No grants, RLS
+-- changes, service_role exposure or change to AVIA.
+-- Never constrain mutable cancelled/status/manual_review/api_booking_reference
+-- values in the claim CHECK: cancellation/reconciliation may happen while a
+-- supplier request is in flight. Their pre-claim safety is enforced by CAS.
+
+BEGIN;
+ALTER TABLE public.bookings
+ ADD COLUMN IF NOT EXISTS caravel_supplier_quote_id uuid,
+ ADD COLUMN IF NOT EXISTS caravel_supplier_id text,
+ ADD COLUMN IF NOT EXISTS caravel_stripe_payment_confirmed_at timestamptz,
+ ADD COLUMN IF NOT EXISTS caravel_supplier_dispatch_claimed_at timestamptz;
+
+COMMENT ON COLUMN public.bookings.caravel_supplier_quote_id IS
+ 'Immutable Caravel supplier quote UUID, snapshotted in same booking INSERT as accepted terms BEFORE Stripe.';
+COMMENT ON COLUMN public.bookings.caravel_supplier_id IS
+ 'Caravel supplier account scope, snapshotted by trusted server before Stripe.';
+COMMENT ON COLUMN public.bookings.caravel_stripe_payment_confirmed_at IS
+ 'Server-written only after Stripe-signed verified payment session matches amount, currency, booking and original checkout.';
+COMMENT ON COLUMN public.bookings.caravel_supplier_dispatch_claimed_at IS
+ 'Server-written atomically with Caravel-only api_status CAS from caravel_paid_awaiting_supplier; never automatically reset.';
+
+DO $caravel_claim$
+BEGIN
+ IF NOT EXISTS (
+  SELECT 1 FROM pg_constraint
+  WHERE conrelid='public.bookings'::regclass
+    AND conname='bookings_caravel_claim_consistency_chk'
+ ) THEN
+  ALTER TABLE public.bookings
+    ADD CONSTRAINT bookings_caravel_claim_consistency_chk
+    CHECK (
+      api_status IS DISTINCT FROM 'caravel_supplier_dispatch_claimed'
+      OR COALESCE((
+        partner_id = '78721481-7619-44df-a9b7-5faa344b69bb'::uuid
+        AND provider_type = 'api'
+        AND stripe_session_id IS NOT NULL
+        AND stripe_currency = 'pln'
+        AND stripe_amount_cents > 0
+        AND caravel_supplier_quote_id IS NOT NULL
+        AND caravel_supplier_id IS NOT NULL
+        AND caravel_supplier_id ~ '^[A-Za-z0-9_-]{1,128}$'
+        AND caravel_terms_document_id IS NOT NULL
+        AND caravel_terms_content_hash IS NOT NULL
+        AND caravel_terms_language IS NOT NULL
+        AND caravel_stripe_payment_confirmed_at IS NOT NULL
+        AND caravel_supplier_dispatch_claimed_at IS NOT NULL
+        AND caravel_supplier_dispatch_claimed_at >= caravel_stripe_payment_confirmed_at
+      ), FALSE)
+    );
+ END IF;
+END
+$caravel_claim$;
+
+-- Partial uniqueness is Caravel-only. It prevents duplicate review tickets
+-- when two workers encounter the SAME supplier outcome at once. It is not a
+-- new booking constraint, and other providers' reviews remain unchanged.
+CREATE UNIQUE INDEX IF NOT EXISTS booking_review_queue_caravel_supplier_review_uq
+ ON public.booking_review_queue (booking_id)
+ WHERE provider_key='caravel' AND provider_status='supplier_manual_review';
+COMMIT;
+
+-- Required integration semantics — NOT executable as a public SQL endpoint:
+-- 1. Stripe signature + session verified, UPDATE bookings by id AND
+--    status='awaiting_payment', with no cancelled_at, setting status='pending',
+--    api_status='caravel_paid_awaiting_supplier' and
+--    caravel_stripe_payment_confirmed_at=server now. NO voucher or email yet.
+-- 2. Authenticated SERVICE-ROLE dispatcher does a SINGLE filtered UPDATE:
+--    UPDATE bookings SET api_status='caravel_supplier_dispatch_claimed',
+--    caravel_supplier_dispatch_claimed_at=:server_now
+--    WHERE id=:booking_id AND status='pending'
+--      AND api_status='caravel_paid_awaiting_supplier'
+--      AND caravel_stripe_payment_confirmed_at IS NOT NULL
+--      AND cancelled_at IS NULL AND api_booking_reference IS NULL
+--      AND manual_review IS FALSE RETURNING ...;
+--    Exactly one row = winner, zero rows = do not call Caravel.
+-- 3. Freshly load quote, terms, supplier, protection/IDP evidence via service
+--    role. verifyCaravelClaimedPaidBooking MUST pass. Then single
+--    Idempotency-Key=Ride24 booking UUID, external_ref=ride24-{uuid}.
+-- 4. Only a provider-confirmed response with exact quote/payment becomes
+--    Ride24 status='paid', api_status='confirmed', api_booking_reference.
+--    ONLY THEN create voucher and send confirmation.
+-- 5. On unknown supplier response: keep claimed state and queue manual
+--    reconciliation/refund; NEVER automatically issue another booking.
+-- 6. All these writes require tested authorization and error handling.
+--    Do not use SECURITY DEFINER to bypass user policies.
+--
+-- Rollback requires approval and confirmation that NO Caravel booking uses
+-- this state; preserve payment/reconciliation evidence before any deletion.

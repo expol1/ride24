@@ -1,3 +1,4 @@
+import * as caravelHold from '../../supabase/functions/_shared/caravel-production-hold.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -49,6 +50,7 @@ function fixture(change=()=>{},flags={}){
  };
  const require=n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow
   :n.includes('arvent-driver-eligibility')?license
+  :n.includes('caravel-paid-fulfillment')?{caravelPaidFulfillmentApproved:()=>false}
   :n.includes('arvent-kolaycar')?arvent:n.includes('renteon-aggregator')?renteon
   :(()=>{throw Error('Unexpected import: '+n)})();
  const sandbox={exports:{},require,console,
@@ -178,6 +180,8 @@ test('checkout handler admits a validated Arvent quote without a Renteon calcula
     calls.push('extras');if(!verified)throw Error('unverified');}};
    if(name.includes('partner-api'))return {loadPartnerCredentials:async()=>({})};
    if(name.includes('payment-return'))return {};
+   if(name.includes('caravel-production-hold'))return caravelHold;
+   if(name.includes('caravel-release'))return {loadCaravelRelease:async()=>{throw Error('Arvent checkout entered Caravel release flow');}};
    throw Error('Unexpected import '+name);
   };
   vm.runInNewContext(compiled.outputText,{exports:{},require,Deno:{env:{get:()=>''}},Response,console});

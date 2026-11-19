@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import {
   corsHeaders,
   isUuid,
@@ -665,6 +666,18 @@ serve(async (req) => {
     const booking = normalizeBooking(rawBooking);
     if (bookingError || !booking) {
       return jsonResponse(req, { error: "Rezerwacja nie istnieje" }, 404);
+    }
+
+    // The generic API dispatcher is supplier-first; NEVER allow it to send
+    // Caravel bookings before Stripe or bypass the atomic paid dispatch path.
+    if (isCaravelBooking({
+      partner_id: booking.partner_id,
+      partners: {api_provider: booking.partner.api_provider},
+    })) {
+      return jsonResponse(req, {
+        error: "Caravel supplier dispatch requires its certified payment flow",
+        code: CARAVEL_PRE_CERTIFICATION_ERROR,
+      }, 409);
     }
 
     // All API providers use verified-payment fulfillment. Legacy pending rows

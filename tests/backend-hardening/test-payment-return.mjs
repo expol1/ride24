@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import {androidPaymentReturnUrl,paymentReturnBridgeUrl} from '../../supabase/functions/_shared/payment-return.mjs';
+import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from '../../supabase/functions/_shared/caravel-production-hold.mjs';
 
 const id='b2946bd3-c586-4ce5-ab11-d8f3a5a5f9f1';
 const base='https://zwyerdeuvyzgkgwglowr.supabase.co';
@@ -88,7 +89,9 @@ test('real checkout handler still ignores client amounts and authorizes the save
   const userClient={auth:{getUser:async()=>({data:{user:{id:'user-a'}},error:null})}};
   class Stripe {constructor(){this.checkout={sessions:{create:async data=>{calls.push(data);return {id:'cs_fixture',url:'https://checkout.stripe.com/fixture'};}}};}}
   const handler=captureHandler('supabase/functions/create_checkout_session/index.ts',{
-   Stripe,androidPaymentReturnUrl,Deno:{env:{get:name=>name==='SUPABASE_URL'?base:name}},
+   Stripe,androidPaymentReturnUrl,isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR,
+   loadCaravelRelease:async()=>({open:false,reason:'CARAVEL_NOT_CERTIFIED'}),
+   Deno:{env:{get:name=>name==='SUPABASE_URL'?base:name}},
    createClient:(_url,key,options)=>options?userClient:admin,
   });
   const request=new Request(`${base}/functions/v1/create_checkout_session`,{method:'POST',headers:{Authorization:'Bearer fixture-jwt','Content-Type':'application/json'},body:JSON.stringify({booking_id:id,amount:0.01,client:'android',return_app:'pl.ride24.client.test',language:'en'})});
@@ -99,4 +102,30 @@ test('real checkout handler still ignores client amounts and authorizes the save
   assert.equal(new URL(calls[0].success_url).searchParams.get('app'),'test');assert.equal(new URL(calls[0].cancel_url).searchParams.get('status'),'cancel');
   assert.equal(JSON.stringify(updates),JSON.stringify([{status:'awaiting_payment',stripe_session_id:'cs_fixture'}]));
  }
+});
+
+test('Caravel launch hold rejects a signed-in owner BEFORE creating a Stripe checkout',async()=>{
+ const calls=[];const updates=[];
+ const saved={id,client_id:'user-a',partner_id:'78721481-7619-44df-a9b7-5faa344b69bb',
+   partners:{api_provider:'custom'},status:'accepted',
+   online_payment_pln:7.86,reservation_code:'CARAVEL-HOLD'};
+ const admin={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:saved,error:null})})}),
+   update:data=>({eq:async()=>{updates.push(data);return {error:null};}})})};
+ const client={auth:{getUser:async()=>({data:{user:{id:'user-a'}},error:null})}};
+ class Stripe {constructor(){this.checkout={sessions:{create:async x=>{calls.push(x);return {id:'cs_unwanted'};}}};}}
+ const handler=captureHandler('supabase/functions/create_checkout_session/index.ts',{
+   Stripe,androidPaymentReturnUrl,isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR,
+   loadCaravelRelease:async()=>({open:false,reason:'CARAVEL_NOT_CERTIFIED'}),
+   Deno:{env:{get:name=>name==='SUPABASE_URL'?base:name}},
+   createClient:(_url,key,options)=>options?client:admin,
+ });
+ const request=new Request(`${base}/functions/v1/create_checkout_session`,{
+   method:'POST',headers:{Authorization:'Bearer fixture-jwt','Content-Type':'application/json'},
+   body:JSON.stringify({booking_id:id,amount:0.01}),
+ });
+ const response=await handler(request);
+ assert.equal(response.status,409);
+ assert.equal((await response.json()).error,'CARAVEL_CERTIFICATION_PENDING');
+ assert.equal(calls.length,0);
+ assert.equal(updates.length,0);
 });

@@ -1,4 +1,5 @@
 import Stripe from "npm:stripe@14.0.0";
+import {isCaravelBooking} from "../_shared/caravel-production-hold.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyApiPayment } from "../_shared/api-payment-flow.mjs";
 import { runApiPayment } from "../_shared/api-payment-runtime.ts";
@@ -6,6 +7,31 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY"), {
   apiVersion: "2023-10-16"
 });
 const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+// Uncertified Caravel payments must not issue vouchers or confirmations.
+// Signed Stripe events are durable payment evidence, not supplier bookings.
+async function holdUncertifiedCaravelPayment(bookingId,session,eventId) {
+ const reviewStatus=`caravel_payment_not_certified:${session.id}`;
+ const {data:exists,error:readError}=await supabase.from("booking_review_queue")
+   .select("id").eq("booking_id",bookingId).eq("provider_key","caravel")
+   .eq("provider_status",reviewStatus).limit(1).maybeSingle();
+ if(readError)return new Response("Caravel review lookup failed",{status:500});
+ if(!exists){
+   const {error}=await supabase.from("booking_review_queue").insert({
+     booking_id:bookingId,provider_key:"caravel",provider_status:reviewStatus,
+     api_response:JSON.stringify({event_id:eventId,session_id:session.id,
+       payment_intent:session.payment_intent,amount_total:session.amount_total,
+       currency:session.currency,payment_status:session.payment_status}),
+     resolved:false
+   });
+   if(error)return new Response("Caravel review write failed",{status:500});
+ }
+ const {error}=await supabase.from("bookings").update({
+   manual_review:true,api_status:"caravel_payment_not_certified",
+ }).eq("id",bookingId);
+ if(error)return new Response("Caravel review flag failed",{status:500});
+ console.warn("CARAVEL_PRE_CERTIFICATION_PAYMENT_HOLD",bookingId);
+ return new Response("OK - Caravel payment pending manual review",{status:200});
+}
 // Keep late payments for manual reconciliation; never reactivate or refund here.
 async function cancelledPayment(bookingId, session, eventId) {
   const reviewStatus = `payment_after_cancellation:${session.id}`;
@@ -97,10 +123,15 @@ Deno.serve(async (req)=>{
     console.log("💰 PAYMENT OK:", bookingId);
     // 🔒 IDEMPOTENCY
     const { data: existing, error: lookupError } = await supabase.from("bookings")
-      .select("status,cancelled_at").eq("id", bookingId).maybeSingle();
+      .select("partner_id,status,cancelled_at,partners!bookings_partner_id_fkey(api_provider)").eq("id", bookingId).maybeSingle();
     if (lookupError || !existing) return new Response("Booking lookup failed", { status: 500 });
     if (existing.status === "cancelled" || existing.cancelled_at != null) {
       return await cancelledPayment(bookingId, session, event.id);
+    }
+    // Only Caravel is diverted: all existing API/local partners remain
+    // on their verified supplier-first payment/voucher workflow.
+    if (isCaravelBooking(existing)) {
+      return await holdUncertifiedCaravelPayment(bookingId, session, event.id);
     }
     if (existing?.status === "paid") {
       const { data: voucher } = await supabase

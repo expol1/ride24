@@ -1,4 +1,8 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import {isCaravelBooking} from "../_shared/caravel-production-hold.mjs";
+import {loadCaravelRelease, type CaravelRelease} from "../_shared/caravel-release.ts";
+import {searchCaravelOffers} from "../_shared/caravel-search.ts";
+import {caravelProductionReadClient} from "../_shared/caravel-paid-fulfillment.ts";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
   corsHeaders,
@@ -834,6 +838,97 @@ async function searchPartner(
   return output;
 }
 
+// Caravel: real supplier quotes only while the release gate is open (certified,
+// checkout released, partner synced, reviewed + re-hashed terms). Same card shape
+// as other API partners; the rental is paid to Caravel at pickup, Stripe takes only
+// the separate Ride24 fee. Premium exclusions/admin fee are carried for the
+// mandatory pre-Stripe consent screen; "no credit card" is NOT claimed for Caravel.
+async function searchCaravelPartner(
+  admin: AdminClient,
+  pickupLocation: PartnerLocationRow,
+  pickupCriteria: LocationCriteria,
+  dropoffCriteria: LocationCriteria,
+  pickupDate: string,
+  returnDate: string,
+  pickupTime: string,
+  returnTime: string,
+  days: number,
+  quoteBudget: QuoteBudget,
+  platformMarginPercent: number,
+  release: CaravelRelease,
+): Promise<Record<string, unknown>[]> {
+  if (!release.open) return [];
+  const partner = pickupLocation.partners;
+  const dropoffLocation = await resolveDropoffLocation(admin, pickupLocation.partner_id, pickupLocation,
+    pickupCriteria, dropoffCriteria);
+  if (!dropoffLocation || !pickupLocation.external_id || !dropoffLocation.external_id) return [];
+  const maxOffers = Math.min(quoteBudget.remaining, 8);
+  if (maxOffers <= 0) return [];
+  const client = caravelProductionReadClient(await loadPartnerCredentials(admin, pickupLocation.partner_id));
+  let classes = new Map<string, CarClassRow>();
+  const currency = safeCurrency(partner.currency);
+  const {offers} = await searchCaravelOffers({
+    admin: admin as never, client, release,
+    pickup: {id: pickupLocation.id, external_id: pickupLocation.external_id},
+    dropoff: {id: dropoffLocation.id, external_id: dropoffLocation.external_id},
+    pickupDate, returnDate, pickupTime, returnTime, days, driverAge: 30, currency, maxOffers,
+    loadCarClasses: async (ids) => (classes = await loadCarClasses(admin, pickupLocation.partner_id, ids)),
+  });
+  const output: Record<string, unknown>[] = [];
+  const returnedLocations = dropoffLocation.id !== pickupLocation.id ? [pickupLocation, dropoffLocation] : [pickupLocation];
+  for (const offer of offers) {
+    const carClass = classes.get(offer.vehicleId);
+    if (!carClass || !reserveQuoteSlot(quoteBudget)) continue;
+    const rental = offer.rentalMinor / 100, customer = offer.customerMinor / 100;
+    const features: Record<string, unknown> = {
+      ...publicFeatures(carClass.features),
+      api_quote_id: offer.apiQuoteId,
+      api_pickup_external_id: pickupLocation.external_id,
+      api_dropoff_external_id: dropoffLocation.external_id,
+      // Clause 17 (EN v5): "No card is required for the Premium package" — claimed only
+      // when the reviewed binding terms say so; never inferred from supplier codes.
+      noCreditCard: release.terms.noCardRequired === true,
+      noCardHold: release.terms.noCardRequired === true,
+      caravel_free_cancellation_until_pickup: release.terms.freeCancellationUntilPickup === true,
+      caravel_consent_required: true,
+      caravel_protection: "premium_included",
+      caravel_deposit_minor: 0,
+      caravel_excess_minor: 0,
+      caravel_excluded_codes: offer.excludes,
+      caravel_damage_admin_fee_minor: offer.adminFeeMinor,
+      full_insurance: offer.excludes.length === 0,
+      category_not_model: true,
+    };
+    delete features.creditCardRequired; delete features.requiresCreditCard;
+    delete features.cardHoldRequired; delete features.requiresCardHold;
+    output.push({
+      ...carClass,
+      public_price: Number((rental / days).toFixed(2)),
+      partner_discount_percent: 0,
+      partner_net_price: Number((rental / days).toFixed(2)),
+      platform_margin_percent: platformMarginPercent,
+      final_customer_price: Number((customer / days).toFixed(2)),
+      features,
+      deposit_amount: 0,
+      seasonal_prices: [],
+      api_quote_id: offer.apiQuoteId,
+      api_managed: true,
+      partners: {
+        id: partner.id, company_name: partner.company_name, active: true, account_status: "active",
+        provider_type: "api", api_enabled: true, currency,
+        min_driver_age: partner.min_driver_age, max_driver_age: partner.max_driver_age,
+        min_rental_days: partner.min_rental_days,
+        partner_locations: returnedLocations.map((location) => ({
+          country: location.country, region: location.region, city: location.city,
+          location_name: location.location_name, active: true, contact_required: location.contact_required,
+          extra_fee: false, extra_fee_amount: null, return_fee_amount: 0,
+        })),
+      },
+    });
+  }
+  return output;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders(req) });
@@ -920,6 +1015,17 @@ serve(async (req) => {
       if (uniquePartners.size >= MAX_PARTNERS_PER_SEARCH) break;
     }
 
+    // Caravel is not certified yet. Even if somebody accidentally enables
+    // its account, no Caravel quote or offer may reach a customer.
+    // This also matches the partner UUID while api_provider remains custom.
+    let caravelRelease: CaravelRelease | null = null;
+    for (const [partnerId, location] of uniquePartners) {
+      if (isCaravelBooking({partner_id: partnerId, partners: location.partners})) {
+        caravelRelease ??= await loadCaravelRelease(admin);
+        if (!caravelRelease.open) uniquePartners.delete(partnerId);
+      }
+    }
+
     // Avoid generating external API quotes for durations below the partner's minimum.
     for (const [partnerId, location] of uniquePartners) {
       if (!meetsMinimumRental(duration, location.partners.min_rental_days)) {
@@ -933,6 +1039,11 @@ serve(async (req) => {
       MAX_PROVIDER_CONCURRENCY,
       async (pickupLocation) => {
         try {
+          if (caravelRelease?.open && isCaravelBooking({partner_id: pickupLocation.partner_id, partners: pickupLocation.partners})) {
+            return await searchCaravelPartner(admin, pickupLocation, pickupCriteria, dropoffCriteria,
+              pickupDate.text, returnDate.text, pickupTime, returnTime, days, quoteBudget, platformMarginPercent,
+              caravelRelease);
+          }
           return await searchPartner(
             admin,
             pickupLocation,

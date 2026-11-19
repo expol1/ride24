@@ -1,0 +1,16 @@
+{
+  "note": "Static self-test fixture for the X-Caravel-Signature webhook HMAC scheme (see WEBHOOKS.md §2 and §5): a fixed {t, method, path, body, secret} tuple with the signature our live signer produces for it, so you can certify your verifier offline. `path` is an illustrative receiver path standing in for the callback URL you register — it is covered by the signature, so run the self-test with this exact value rather than substituting your own. The secret is a self-test value, not a live credential. `data` is abbreviated here to four members: this fixture certifies the signature construction, not the booking shape — for that, see CHANNEL-API.md §5.1.",
+  "secret": "whsec_sandbox_fixture_5f8a2e91c3b74d0aa6e1f2c9d8b3a704",
+  "t": 1752480000,
+  "method": "POST",
+  "path": "/example/booking-events",
+  "body": "{\"event_id\":\"3f2a91c4-8e77-4c1b-9d2a-5b6e0f7a1c33\",\"type\":\"booking.confirmed\",\"occurred_at\":\"2026-07-14T08:00:00.000Z\",\"api_version\":\"1.1.1\",\"operator_id\":\"00000000-0000-4000-8000-000000000000\",\"booking_id\":\"9c1a4f22-0d5e-4b83-a7f1-2e6c8d40b915\",\"external_ref\":\"PARTNER-FIXTURE-0001\",\"revision\":1,\"sequence\":4187,\"data\":{\"booking_id\":\"9c1a4f22-0d5e-4b83-a7f1-2e6c8d40b915\",\"external_ref\":\"PARTNER-FIXTURE-0001\",\"status\":\"confirmed\",\"revision\":1}}",
+  "signed_payload": "1752480000.POST./example/booking-events.{\"event_id\":\"3f2a91c4-8e77-4c1b-9d2a-5b6e0f7a1c33\",\"type\":\"booking.confirmed\",\"occurred_at\":\"2026-07-14T08:00:00.000Z\",\"api_version\":\"1.1.1\",\"operator_id\":\"00000000-0000-4000-8000-000000000000\",\"booking_id\":\"9c1a4f22-0d5e-4b83-a7f1-2e6c8d40b915\",\"external_ref\":\"PARTNER-FIXTURE-0001\",\"revision\":1,\"sequence\":4187,\"data\":{\"booking_id\":\"9c1a4f22-0d5e-4b83-a7f1-2e6c8d40b915\",\"external_ref\":\"PARTNER-FIXTURE-0001\",\"status\":\"confirmed\",\"revision\":1}}",
+  "expected_signature_hex": "49d42e2772fee8254a847c813871f4ea752486a8dc5e1369bafa6b48fa9a82d6",
+  "header": "t=1752480000,v1=49d42e2772fee8254a847c813871f4ea752486a8dc5e1369bafa6b48fa9a82d6",
+  "tamper_test": {
+    "note": "Flip one field inside `data` (`data.revision` 1 → 2), keep the same header/signature, and confirm your verifier REJECTS it. The signature was computed over the ORIGINAL body's exact bytes; any change must invalidate it.",
+    "tampered_body": "{\"event_id\":\"3f2a91c4-8e77-4c1b-9d2a-5b6e0f7a1c33\",\"type\":\"booking.confirmed\",\"occurred_at\":\"2026-07-14T08:00:00.000Z\",\"api_version\":\"1.1.1\",\"operator_id\":\"00000000-0000-4000-8000-000000000000\",\"booking_id\":\"9c1a4f22-0d5e-4b83-a7f1-2e6c8d40b915\",\"external_ref\":\"PARTNER-FIXTURE-0001\",\"revision\":1,\"sequence\":4187,\"data\":{\"booking_id\":\"9c1a4f22-0d5e-4b83-a7f1-2e6c8d40b915\",\"external_ref\":\"PARTNER-FIXTURE-0001\",\"status\":\"confirmed\",\"revision\":2}}",
+    "expect": "reject — the same header (t + v1 signature) verified against tampered_body must fail"
+  }
+}
