@@ -205,3 +205,11 @@ test('Arvent public activation remains impossible with only supplier write and p
  const partnerLoader=adminSource.slice(adminSource.indexOf('async function getPartner('),adminSource.indexOf('async function getCredentials('));
  assert.match(partnerLoader,/api_settings/);
 });
+
+test('Arvent certification marker persists across later successful API catalog synchronizations',async()=>{
+ const adminSource=await readFile(new URL('../../supabase/functions/api-partner-admin/index.ts',import.meta.url),'utf8');
+ const sync=adminSource.slice(adminSource.indexOf('async function syncPartner('),adminSource.indexOf('function ensureCommerciallyActive('));
+ assert.match(sync,/partner\.api_provider === "arvent_kolaycar"/);
+ assert.match(sync,/partner\.api_settings\.arvent_certified === true/);
+ assert.match(sync,/\{ arvent_certified: true \}/);
+});
