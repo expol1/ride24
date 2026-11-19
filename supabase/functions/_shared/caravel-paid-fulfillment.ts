@@ -131,10 +131,9 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
     fail("CANCELLED_BEFORE_DISPATCH");
   const {data, totalMinor} = acceptedQuote(booking, quote);
   acceptedConsent(booking, data);
-  const selectedExtras=caravelSnapshotChoices(data.selected_extras ?? []);
+  const selectedExtras=caravelSnapshotChoices(data.selected_extras ?? []) ?? fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
   const breakdown=rec(data.price_breakdown);
   const extras=Array.isArray(breakdown?.extras)?breakdown.extras.map(rec):[];
-  if(!selectedExtras)fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
   if(breakdown ? (!Number.isSafeInteger(breakdown.extras_minor) ||
        extras.length!==selectedExtras.length ||
        extras.some(x=>!x || typeof x.code!=="string" || !Number.isSafeInteger(x.amount_minor) ||
