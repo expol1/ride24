@@ -40,6 +40,7 @@ test("terms ingest: production document re-hashed, clause refs checked, stored i
   assert.deepEqual(row.documented_excluded_codes, ["glass", "tyres_and_wheels", "undercarriage"]);
   assert.equal(row.admin_fee_clause_ref, "7.1");
   assert.equal(row.no_card_required, true, "clause 17 states no card is required");
+  assert.equal(row.key_clause_refs.premium_package, "5.3");
   assert.equal(row.key_clause_refs.post_return, "27.1");
   assert.equal(d.ops.filter((o) => o.table === "caravel_release_control").length, 0, "never approves the release");
   const again = await ingestCaravelProductionTerms({admin: d, client: c, input: input()});
