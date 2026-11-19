@@ -40,3 +40,17 @@ test("identity, immutable terms, excluded Premium coverage and both Ride24 locat
   "CARAVEL_RELEASE_GATE_CLOSED"
  ])assert.ok(sql.includes(token),token);
 });
+
+test("additional Caravel driver atomically matches supplier quote, owned profile and licence date",()=>{
+ const sql=readFileSync(new URL("../docs/integrations/caravel-second-driver-atomic-sql.sql",import.meta.url),"utf8");
+ assert.match(sql,/jsonb_array_length\(v_prov->'drivers'\) NOT IN \(1,2\)/);
+ assert.match(sql,/CARAVEL_MAIN_DRIVER_QUOTE_MISMATCH/);
+ assert.match(sql,/CARAVEL_ADDITIONAL_DRIVER_QUOTE_MISMATCH/);
+ assert.match(sql,/CARAVEL_ADDITIONAL_DRIVER_NOT_VERIFIED/);
+ assert.match(sql,/CARAVEL_UNQUOTED_ADDITIONAL_DRIVER/);
+ assert.match(sql,/FROM public\.drivers WHERE id=\(p_payload->>'additional_driver_id'\)::uuid/);
+ assert.match(sql,/AND user_id=p_client_id/);
+ assert.match(sql,/v_add\.license_since IS NULL OR v_add\.license_since > v_q\.start_date/);
+ assert.match(sql,/additional_driver_id,add_driver_name,add_driver_age,additional_driver_license_since/);
+ assert.match(sql,/current_user NOT IN \('service_role','postgres'\)/);
+});
