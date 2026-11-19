@@ -891,6 +891,9 @@ async function searchCaravelPartner(
       noCardHold: release.terms.noCardRequired === true,
       caravel_free_cancellation_until_pickup: release.terms.freeCancellationUntilPickup === true,
       caravel_consent_required: true,
+      caravel_customer_total_minor: offer.customerMinor,
+      caravel_partner_total_minor: offer.rentalMinor,
+      caravel_ride24_fee_minor: offer.feeMinor,
       caravel_protection: "premium_included",
       caravel_deposit_minor: 0,
       caravel_excess_minor: 0,
@@ -912,6 +915,8 @@ async function searchCaravelPartner(
       deposit_amount: 0,
       seasonal_prices: [],
       api_quote_id: offer.apiQuoteId,
+      // Supplier-verified *period totals* in minor units. The results page must
+      // not re-round per-day prices and calculate the Ride24 fee a second time.
       api_managed: true,
       partners: {
         id: partner.id, company_name: partner.company_name, active: true, account_status: "active",
