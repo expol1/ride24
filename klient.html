@@ -3121,7 +3121,7 @@ document.addEventListener("click", async function(e) {
                 const cardNotice = document.getElementById("aviaCardRequirement");
                 if (cardNotice) cardNotice.hidden =
                     car.partner_id !== "91e04805-31da-4242-9e6f-b6075019d784";
-                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,min_licence_years,provider_type,api_provider").eq("id", car.partner_id).single();
+                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,min_license_years,provider_type,api_provider").eq("id", car.partner_id).single();
                 const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
                 if (arventLicenseBlock) {
                     // Arvent may still be staged under api_provider=custom before launch.
@@ -3129,7 +3129,7 @@ document.addEventListener("click", async function(e) {
                         || car.partner_id === "bf29a373-c464-4cec-87a7-c3218ea1ea51");
                 }
 
-                const localLicenceYears = partner?.provider_type === "local" ? Number(partner.min_licence_years ?? 0) : 0;
+                const localLicenceYears = partner?.provider_type === "local" ? Number(partner.min_license_years ?? 0) : 0;
                 window.r24LocalMinLicenceYears = Number.isInteger(localLicenceYears) && localLicenceYears > 0 && localLicenceYears <= 50 ? localLicenceYears : 0;
                 const licenceInfo = document.getElementById("bookingDriverLicenceInfo");
                 if (licenceInfo) {
@@ -4289,7 +4289,7 @@ function calculateRefundPercent(pickupDate) {
         // Completed licence years on the local pickup calendar date, never rounded days/365.
         window.ride24LicenceYearsAtPickup = function(firstIssued, pickupDate) {
             const first = window.ride24LicenseDate(firstIssued);
-            if (!first || !/^\\d{4}-\\d{2}-\\d{2}$/.test(pickupDate || "") || pickupDate < first) return null;
+            if (!first || !/^\d{4}-\d{2}-\d{2}$/.test(pickupDate || "") || pickupDate < first) return null;
             const fy = Number(first.slice(0,4)), fm = Number(first.slice(5,7)), fd = Number(first.slice(8,10));
             const py = Number(pickupDate.slice(0,4)), pm = Number(pickupDate.slice(5,7)), pd = Number(pickupDate.slice(8,10));
             if (!Number.isInteger(py) || py < 1900 || pm < 1 || pm > 12 || pd < 1 || pd > 31) return null;
