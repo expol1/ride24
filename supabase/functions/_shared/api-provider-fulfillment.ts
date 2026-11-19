@@ -1,4 +1,3 @@
-import { serviceClient } from './ride24-security.ts';
 import { aggregatorAvailability, aggregatorQuoteOptions, aggregatorBook, aggregatorStatus } from './renteon-aggregator.ts';
 import { arventSearch, arventCreateBooking, arventBookingStatus } from './arvent-kolaycar.ts';
 import { arventLicenseEligible } from './arvent-driver-eligibility.mjs';
@@ -45,9 +44,9 @@ function servicesContract(model:any) {
    name:s.Name,additionalName:s.AdditionalName,mandatory:s.IsMandatory,prepaid:s.Prepaid,
    price:s.ServicePrice})).sort((a:any,b:any)=>a.id-b.id);
 }
-export async function revalidatePaidProvider(credentials:any,booking:any,quote:any) {
+export async function revalidatePaidProvider(credentials:any,booking:any,quote:any,admin:any=null) {
  if(!hasPaidFulfillmentAdapter(booking.partners.api_provider)
-   &&!await arventOwnerPilotBookingAllowed(serviceClient(),booking))
+   &&!(admin && await arventOwnerPilotBookingAllowed(admin,booking)))
   fail('ADAPTER_NOT_READY');
  if(booking.partners.api_provider==='arvent_kolaycar')
   return revalidatePaidArvent(credentials,booking,quote);
