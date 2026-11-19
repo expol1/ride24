@@ -360,6 +360,14 @@
         var general=byId("acceptTerms");if(general)general.checked=false;
         render(state.view);renderExtras();
         return true;
+      } catch(err) {
+        if(window.showToast)window.showToast(isEnglish()
+          ? "Caravel could not update the drivers. Please retry."
+          : "Nie udało się przeliczyć kierowców w Caravel. Spróbuj ponownie.","error");
+        var m=byId("driverSelect"),a=byId("additionalDriverSelect");
+        if(m)m.value=prevMain||"";
+        if(a)a.value=prevExtra||"none";
+        return false;
       } finally {state.busy=false;}
     },
     canSubmit: function () {
