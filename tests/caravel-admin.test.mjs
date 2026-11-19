@@ -74,8 +74,8 @@ function catalogClient(env = "production", supplier = {}) {
     async suppliers() { return {data: [{supplier_id: "acct_eur", status: "active", currency: "EUR", tax_inclusive: true, payment_models: ["pay_on_arrival"], ...supplier}]}; },
     async locations() { return {data: [loc("1"), loc("2"), loc("3", {timezone: "Mars/Olympus"})]}; },
     async vehicleClasses() { return {data: [veh("veh-a"), veh("veh-b")]}; },
-    async reference() { return {data: {mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"},
-      cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true}}; }};
+    async reference() { return {data: [{supplier_id: "acct_eur", mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"},
+      cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true}]}; }};
 }
 
 test("catalog sync: new rows INACTIVE, existing rows keep active flag, nothing deleted, no card claims", async () => {
