@@ -7,6 +7,7 @@ import ts from 'typescript';
 import * as contract from '../../supabase/functions/_shared/api-quote-contract.mjs';
 import * as readiness from '../../supabase/functions/_shared/api-readiness.mjs';
 import * as driverAge from '../../supabase/functions/_shared/driver-age.mjs';
+import * as arventLicense from '../../supabase/functions/_shared/arvent-driver-eligibility.mjs';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
 import * as durationRules from '../../supabase/functions/_shared/rental-duration.ts';
 import {normalizeLocations, assertSafeApiUrl} from '../../supabase/functions/_shared/partner-api.ts';
@@ -108,6 +109,7 @@ function setup() {
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
       if(specifier.includes('driver-age.mjs'))return driverAge;
+      if(specifier.includes('arvent-driver-eligibility.mjs'))return arventLicense;
       if(specifier.includes('rental-duration.ts'))return durationRules;
       if(specifier.includes('ride24-security'))return security;
       if(specifier.includes('booking-request'))return {readJsonObject:req=>req.json()};
