@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {issueVerifiedCaravelQuote}
  from "../supabase/functions/_shared/caravel-quote-issuance.ts";
+import {caravelLocalInstant} from "../supabase/functions/_shared/caravel-search.ts";
 import {assertApiQuoteContext}
  from "../supabase/functions/_shared/api-quote-contract.mjs";
 const NOW=Date.UTC(2026,10,18,11,30,0);
@@ -360,4 +361,11 @@ test("unavailable or zero global Ride24 fee fails before even requesting supplie
  const r=await issueVerifiedCaravelQuote(args(admin,c));
  assert.equal(r.ok,false);
  assert.equal(c.state.quotes,0);
+});
+
+// No Ride24-side 22:00 cutoff: the exact local time is sent to Caravel,
+// which is solely responsible for returning its real availability/pricing.
+test("Chania 22:30 pickup is a valid Europe/Athens instant; supplier availability still applies",()=>{
+ assert.equal(caravelLocalInstant("2026-12-03","22:30","Europe/Athens"),"2026-12-03T22:30:00+02:00");
+ assert.equal(caravelLocalInstant("2026-12-03","16:00","Europe/Athens"),"2026-12-03T16:00:00+02:00");
 });
