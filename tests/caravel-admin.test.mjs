@@ -72,13 +72,19 @@ const veh = (id, p = {}) => ({supplier_id: "acct_eur", vehicle_id: id, acriss: "
 function catalogClient(env = "production", supplier = {}) {
   return {environment: env,
     async suppliers() { return {data: [{supplier_id: "acct_eur", status: "active", currency: "EUR", tax_inclusive: true, payment_models: ["pay_on_arrival"], ...supplier}]}; },
+    async referenceTerms() { return (await termsClient()).referenceTerms(); },
+    async referenceTermsDocument() { return (await termsClient()).referenceTermsDocument(); },
     async locations() { return {data: [loc("1"), loc("2"), loc("3", {timezone: "Mars/Olympus"})]}; },
     async vehicleClasses() { return {data: [veh("veh-a"), veh("veh-b")]}; },
-    async reference() { return {data: [{supplier_id: "acct_eur", mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"},
+    async reference(kind) {
+      if (kind === "protections") return {data: ["veh-a","veh-b"].map(vehicle_id => ({
+        vehicle_id, supplier_id: "acct_eur", active: true, tier: "premium", pricing_type: "included", deposit: {amount: 0, currency: "EUR"}
+      }))};
+      return {data: [{supplier_id: "acct_eur", mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"},
       cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true}]}; }};
 }
 
-test("catalog sync: new rows INACTIVE, existing rows keep active flag, nothing deleted, no card claims", async () => {
+test("catalog sync: new rows INACTIVE, existing rows keep active flag, nothing deleted, verified Premium card conditions", async () => {
   const d = db({partner_locations: [{partner_id: PARTNER, is_api_managed: true, external_id: "1", active: true},
     {partner_id: PARTNER, is_api_managed: true, external_id: "old", active: true}], car_classes: []});
   const r = await syncCaravelCatalog({admin: d, client: catalogClient(), supplierId: "acct_eur"});
@@ -91,7 +97,7 @@ test("catalog sync: new rows INACTIVE, existing rows keep active flag, nothing d
   const ins = d.ops.find((o) => o.table === "partner_locations" && o.op === "insert");
   assert.equal(ins.rows[0].active, false);
   const cars = d.ops.find((o) => o.table === "car_classes" && o.op === "insert").rows;
-  assert.ok(cars.every((c) => c.active === false && c.features.noCreditCard === false && c.features.noCardHold === false));
+  assert.ok(cars.every((c) => c.active === false && c.features.noCreditCard === true && c.features.noCardHold === true));
   assert.ok(!d.ops.some((o) => o.op === "delete"));
 });
 
@@ -110,4 +116,14 @@ test("release switch wrapper: evidence and audit required before the atomic SQL 
   const ok = await setCaravelRelease({admin: d, open: false, actor: "admin:x", reason: "pause"});
   assert.equal(ok.ok, true); assert.equal(d.ops[0].rpc, "caravel_set_release");
   assert.equal(d.ops[0].args.p_document_id, null);
+});
+
+test("catalog refuses card badges without a matching zero-deposit Premium product", async () => {
+  const client = catalogClient();
+  const reference = client.reference;
+  client.reference = (kind) => kind === "protections" ? {data: []} : reference(kind);
+  const admin = db();
+  const result = await syncCaravelCatalog({admin, client, supplierId: "acct_eur"});
+  assert.equal(result.code, "CARAVEL_CATALOG_PREMIUM_DEPOSIT_UNVERIFIED");
+  assert.equal(admin.ops.length, 0);
 });
