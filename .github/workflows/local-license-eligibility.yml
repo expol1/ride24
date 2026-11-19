@@ -1,0 +1,32 @@
+name: Ride24 Local Licence Eligibility QA
+on:
+  pull_request:
+    paths:
+      - 'klient.html'
+      - 'partner-dashboard.html'
+      - 'assets/i18n/partner-panel.js'
+      - 'supabase/functions/create-booking-request/index.ts'
+      - 'supabase/functions/_shared/arvent-driver-eligibility.mjs'
+      - 'supabase/migrations/*local_partner_min_license_years.sql'
+      - 'tests/backend-hardening/test-local-driver-license-years.mjs'
+      - '.github/workflows/local-license-eligibility.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'klient.html'
+      - 'partner-dashboard.html'
+      - 'supabase/functions/create-booking-request/index.ts'
+      - 'supabase/migrations/*local_partner_min_license_years.sql'
+      - 'tests/backend-hardening/test-local-driver-license-years.mjs'
+      - '.github/workflows/local-license-eligibility.yml'
+  workflow_dispatch:
+jobs:
+  licence-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test local licence requirements and existing Arvent date semantics
+        run: node --test tests/backend-hardening/test-local-driver-license-years.mjs tests/backend-hardening/test-arvent-driver-eligibility.mjs

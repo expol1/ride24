@@ -18,8 +18,8 @@ const android=part('<div id="view-android"','<div id="view-bookings"');
 const bookings=part('<div id="view-bookings"','<div id="view-payments"');
 const payments=part('<div id="view-payments"','<div id="view-profile"');
 
-test('client dashboard, bookings and payments retain all original columns and data containers',()=>{
-    for(const [name,section,expected]of [['dashboard',dashboard,8],['bookings',bookings,8],['payments',payments,4]]){
+test('client dashboard, bookings and current three-column payments retain all data containers',()=>{
+    for(const [name,section,expected]of [['dashboard',dashboard,8],['bookings',bookings,8],['payments',payments,3]]){
         const head=section.match(/<thead>([\s\S]*?)<\/thead>/)?.[1];
         assert.ok(head,'Missing '+name+' table header');
         assert.equal((head.match(/<th\b/g)||[]).length,expected,name+' table lost a column');
@@ -27,7 +27,9 @@ test('client dashboard, bookings and payments retain all original columns and da
     for(const id of ['dashboard-bookings-tbody','bookings-tbody','payments-tbody'])
         assert.ok(html.includes('id="'+id+'"'),'Missing data container '+id);
     for(let i=1;i<=8;i++)assert.ok(bookingsCss.includes('tbody td:nth-child('+i+')'),'Missing mobile booking cell '+i);
-    for(let i=1;i<=4;i++)assert.ok(bookingsCss.includes('#view-payments .table-container tbody td:nth-child('+i+')'),'Missing mobile payment cell '+i);
+    assert.match(html, /#view-payments \.payments-table tbody tr\{/);
+    assert.match(html, /#view-payments \.payments-table \.payment-status-cell\{/);
+    assert.match(html, /@media\(max-width:720px\)/);
     assert.match(bookingsCss,/tr:has\(>td\[colspan\]\)/);
     assert.match(bookingsCss,/@media\(max-width:980px\)/);
 });
@@ -43,7 +45,9 @@ test('all actions still exist for every booking, payment and refund state',()=>{
     const paymentRenderer=part('window.loadPayments =','window.goToHome =');
     const paymentRow=paymentRenderer.match(/tbody\.innerHTML \+= `\s*<tr>([\s\S]*?)<\/tr>\s*`/)?.[1];
     assert.ok(paymentRow,'Missing payment row template');
-    assert.equal((paymentRow.match(/<td\b/g)||[]).length,4,'Generated payment row lost a field');
+    assert.equal((paymentRow.match(/<td\b/g)||[]).length,3,'Generated payment row must retain booking, amount and status/actions');
+    assert.match(paymentRow,/payment-status-actions/);
+    assert.match(paymentRenderer,/\$\{actionHtml\}/,'Refund/cancel action slot must remain');
     assert.match(paymentRenderer,/refund_status === "completed"/);
     assert.match(paymentRenderer,/refund_status === "pending"/);
 });
