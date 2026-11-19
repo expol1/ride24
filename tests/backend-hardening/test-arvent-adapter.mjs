@@ -27,9 +27,11 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    if(path.startsWith("/vehicles?"))return {success:true,resultCode:0,data:[{
     vehicleId:100,vehicleName:"Example Category",sippCode:"CDAR",
     currencyCode:"EUR",isAvailable:true,depositPrice:0,depositCreditCardRequired:false,
+    excess:0,rentalConditions:[{conditionCode:"7",conditionName:"Full Insurance"}],
     vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
    if(path.startsWith("/extras?"))return {success:true,resultCode:0,
     data:{vehicle:{vehicleId:100,sippCode:"CDAR",currencyCode:"EUR",isAvailable:true,
+     excess:0,rentalConditions:[{conditionCode:"7",conditionName:"Full Insurance"}],
      depositPrice:0,depositCreditCardRequired:false,vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,
      totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001",
      pickupLocationId:9,returnLocationId:9,

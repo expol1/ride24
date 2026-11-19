@@ -123,9 +123,26 @@ export function arventGroupRows(e) {
  }
  return [...groups.values()];
 }
+export function arventInsuranceIncluded(x) {
+ // Live Arvent returns an array of structured rentalConditions; some API
+ // versions serialize that array as JSON text. Do not trust text from an
+ // unrelated vehicle description or an undocumented 'fullCredit' flag.
+ // Arvent serializes excess as a decimal STRING (e.g. "0.00"), while
+ // other numeric API fields are JSON numbers. Accept only exact zero.
+ const zeroExcess=record(x)&&(num(x.excess)===0
+   ||(typeof x.excess==="string"&&/^0+(?:\.0+)?$/.test(x.excess.trim())));
+ if(!zeroExcess)return false;
+ let conditions=x.rentalConditions;
+ if(typeof conditions==="string") {
+  try {conditions=JSON.parse(conditions)}catch{return false}
+ }
+ return Array.isArray(conditions)&&conditions.some(c=>record(c)
+   &&str(c.conditionName,200).trim().toLowerCase()==="full insurance");
+}
 export function arventOfferMatchesTerms(x,currency="EUR") {
  // Fail closed: don't silently rewrite nonzero deposit, required card hold or mileage cap.
  return record(x)&&x.isAvailable===true&&str(x.currencyCode).toUpperCase()===currency.toUpperCase()
+  &&arventInsuranceIncluded(x)
   &&num(x.depositPrice)===0&&x.depositCreditCardRequired===false
   &&num(x.totalKMLimit)===0&&num(x.totalPrice)!==null&&x.totalPrice>0
   &&Boolean(str(x.reservationToken,500));
@@ -154,7 +171,7 @@ export function arventOfferRows(e,input) {
    features:{...c.features,
     min_license_years:num(x.vendorMinimumDrivingLicenseAge),
     minimum_driver_age:num(x.vendorMinimumDriverAge),
-    insurance_unverified:true},
+    insurance_unverified:false,full_insurance_included:true,insurance_excess_eur:0},
    provider_quote_data:{provider:ARVENT_PROVIDER,
     vehicle_id:id(x.vehicleId),sipp:c.external_id,
     total_amount:total,currency,pickup_location_id:input.pickup_location_id,
