@@ -867,13 +867,20 @@ async function searchCaravelPartner(
   const client = caravelProductionReadClient(await loadPartnerCredentials(admin, pickupLocation.partner_id));
   let classes = new Map<string, CarClassRow>();
   const currency = safeCurrency(partner.currency);
-  const {offers} = await searchCaravelOffers({
+  const {offers, rejected} = await searchCaravelOffers({
     admin: admin as never, client, release,
     pickup: {id: pickupLocation.id, external_id: pickupLocation.external_id},
     dropoff: {id: dropoffLocation.id, external_id: dropoffLocation.external_id},
     pickupDate, returnDate, pickupTime, returnTime, days, driverAge: 30, currency, maxOffers,
     loadCarClasses: async (ids) => (classes = await loadCarClasses(admin, pickupLocation.partner_id, ids)),
   });
+  if (!offers.length) {
+    // Structured, non-personal diagnostic; never fabricate after-hours offers.
+    // Lets us distinguish upstream no availability vs failed Premium quote checks.
+    console.info("Caravel: no verified offers", JSON.stringify({
+      pickup_time: pickupTime, return_time: returnTime, rejected,
+    }));
+  }
   const output: Record<string, unknown>[] = [];
   const returnedLocations = dropoffLocation.id !== pickupLocation.id ? [pickupLocation, dropoffLocation] : [pickupLocation];
   for (const offer of offers) {
