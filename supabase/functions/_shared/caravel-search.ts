@@ -57,6 +57,7 @@ export async function searchCaravelOffers(args: {
   const bump = (k: string) => { rejected[k] = (rejected[k] ?? 0) + 1; };
   const release = args.release;
   if (!release.open) return {offers: [], rejected: {CARAVEL_RELEASE_CLOSED: 1}};
+  const readyRelease: Extract<CaravelRelease, {open: true}> = release;
   if (args.client.environment !== "production") return {offers: [], rejected: {CARAVEL_PRODUCTION_ONLY: 1}};
   const supplierId = release.terms.supplierId;
   const locations = (await args.client.locations(200, supplierId)).data as Rec[];
@@ -119,8 +120,8 @@ export async function searchCaravelOffers(args: {
           drivers: [{age: args.driverAge, role: "main"}], extras: []},
         startDate: args.pickupDate, endDate: args.returnDate, pickupLocalTime: args.pickupTime,
         dropoffLocalTime: args.returnTime, rentalDays: args.days, nowEpochMs: args.nowMs ?? Date.now(),
-        reviewedTerms: release.snapshot, canonicalHashIndependentlyVerified: true, protection,
-        approvedExclusions: release.review, allowProductionQuoteIssuance: true,
+        reviewedTerms: readyRelease.snapshot, canonicalHashIndependentlyVerified: true, protection,
+        approvedExclusions: readyRelease.review, allowProductionQuoteIssuance: true,
       });
       if (!result.ok) { bump(String((result as Rec).reason ?? "QUOTE_REJECTED")); continue; }
       const ex = Array.isArray(protection.excludes) ? protection.excludes as string[] : [];
@@ -129,7 +130,7 @@ export async function searchCaravelOffers(args: {
         rentalMinor: result.partnerPayableMinor, feeMinor: result.ride24ReservationFeeMinor,
         customerMinor: result.customerTotalMinor, currency: args.currency, excludes: [...ex],
         covers: Array.isArray(protection.covers) ? [...protection.covers as string[]] : [],
-        adminFeeMinor: ex.length ? release.review.damageAdministrationFeeMinor : null};
+        adminFeeMinor: ex.length ? readyRelease.review.damageAdministrationFeeMinor : null};
     }
     return null;
   }
