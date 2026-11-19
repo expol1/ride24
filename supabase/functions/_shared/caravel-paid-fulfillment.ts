@@ -142,7 +142,10 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
        : selectedExtras.length>0)
     fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
   const main = splitName(booking.main_driver_name), age = Number(booking.main_driver_age);
-  const quotedDrivers=Array.isArray(data.drivers)?data.drivers.map(rec):[];
+  // Compatibility with old single-driver quotes that predate the driver
+  // snapshot. Two drivers always require both explicit verified provider roles.
+  const quotedDrivers=Array.isArray(data.drivers)?data.drivers.map(rec):
+    [{age,role:"main"} as Rec];
   const quotedAdditional=quotedDrivers.length===2?quotedDrivers[1]:null;
   const extra=quotedAdditional?splitName(booking.add_driver_name):null;
   const extraAge=Number(booking.add_driver_age);
@@ -243,8 +246,8 @@ export async function createPaidCaravel(credentials: unknown, prepared: Rec, opt
         if(!extra||typeof extra.first_name!=="string"||typeof extra.last_name!=="string"||
             !Number.isInteger(extra.age)||Number(extra.age)<18||Number(extra.age)>90)
           fail("CARAVEL_PREPARED_ADDITIONAL_DRIVER_INVALID");
-        return {first_name:extra.first_name as string,last_name:extra.last_name as string,
-          age:extra.age as number,role:"additional" as const};
+        return {first_name:extra!.first_name as string,last_name:extra!.last_name as string,
+          age:extra!.age as number,role:"additional" as const};
       })()]:[])],
     customer: customer as never, payment_model: "pay_on_arrival",
   }, prepared.idempotency_key as string, prepared.supplier_id as string);
