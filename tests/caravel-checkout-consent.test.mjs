@@ -63,6 +63,33 @@ test("consent view: verified terms, every exclusion, exact admin fee, money spli
   assert.match(en.statements.join(" "), /not full cover without exclusions/);
 });
 
+test("consent price breakdown translates provider fees and reconciles exact total",async()=>{
+ const release=await loadCaravelRelease(fakeDb(await releasedState()));
+ const row=await quoteRow({}, {price_breakdown:{
+   version:1,currency:"EUR",rental_minor:10000,mandatory_fees_minor:5000,
+   extras_minor:0,total_minor:15000,fees:[
+    {code:"fee-1",type:"young_driver",label:"Young driver 3 days",amount_minor:3300},
+    {code:"fee-2",type:"one_way",label:"One-way return",amount_minor:1700},
+   ],
+ }});
+ const v=buildCaravelConsentView(row,release,"pl",NOW);
+ assert.deepEqual(v.money.breakdown,{
+  rental_base:"100.00 EUR",fee_total:"50.00 EUR",partner_total:"150.00 EUR",
+  fees:[
+   {label:"Młody kierowca",original_label:"Young driver 3 days",type:"young_driver",amount:"33.00 EUR"},
+   {label:"Zwrot w innym punkcie",original_label:"One-way return",type:"one_way",amount:"17.00 EUR"},
+  ],
+ });
+ assert.equal(v.money.rental_at_pickup,"150.00 EUR");
+ assert.equal(v.money.ride24_fee,"15.00 EUR");
+ for(const broken of [
+  {version:1,currency:"EUR",rental_minor:10000,mandatory_fees_minor:4900,extras_minor:0,total_minor:15000,fees:[]},
+  {version:1,currency:"USD",rental_minor:15000,mandatory_fees_minor:0,extras_minor:0,total_minor:15000,fees:[]},
+ ]) {
+  const q=await quoteRow({}, {price_breakdown:broken});
+  assert.equal(buildCaravelConsentView(q,release,"pl",NOW),null,"incorrect breakdown must fail closed");
+ }
+});
 test("consent view refuses: release closed, quote of other terms version, prepayment, expiring or used quote", async () => {
   const release = await loadCaravelRelease(fakeDb(await releasedState()));
   assert.equal(buildCaravelConsentView(await quoteRow(), {open: false, reason: "x"}, "pl", NOW), null);
@@ -195,7 +222,7 @@ test("search-api / checkout / web wiring keeps every other partner path and fail
   const generic = readFileSync(new URL("../supabase/functions/create-booking-request/index.ts", import.meta.url), "utf8");
   assert.match(generic, /code: CARAVEL_PRE_CERTIFICATION_ERROR/, "generic handler still refuses Caravel");
   const html = readFileSync(new URL("../klient.html", import.meta.url), "utf8");
-  assert.match(html, /<script src="assets\/caravel-consent\.js"><\/script>/);
+  assert.match(html, /<script src="assets\/caravel-consent\.js(?:\?v=[^"]+)?"><\/script>/);
   assert.match(html, /id="caravelConsent" hidden/);
   assert.match(html, /window\.Ride24CaravelConsent\.canSubmit\(\)/);
 });

@@ -220,6 +220,30 @@ export async function issueVerifiedCaravelQuote(args:{
     parsed.extraLines.length!==0||
     parsed.quote.expiresAtEpochMs<args.nowEpochMs+10*60*1000)
    return reject("CARAVEL_QUOTE_PAYMENT_OR_VALIDITY_UNSAFE");
+ // Persist the verified fee lines from Caravel's authoritative quote.
+ // Never compute a parallel local-age, out-of-hours or one-way surcharge.
+ // The parser already checks line_items against totals.grand_total.
+ const feeLines=parsed.mandatoryCharges;
+ if(feeLines.length>30 || feeLines.some(f=>
+   !Number.isSafeInteger(f.amountMinor)||f.amountMinor<0||
+   f.currency!==parsed.quote.currency||
+   typeof f.category!=="string"||!/^[a-z][a-z0-9_]{0,39}$/.test(f.category)||
+   typeof f.label!=="string"||f.label.length>180||
+   typeof f.externalId!=="string"||f.externalId.length>128
+ ) || feeLines.reduce((sum,f)=>sum+f.amountMinor,0)!==parsed.quote.mandatoryFeesAmountMinor)
+   return reject("CARAVEL_QUOTE_FEE_LINES_UNVERIFIED");
+ const priceBreakdown={
+   version:1,
+   currency:parsed.quote.currency,
+   rental_minor:parsed.quote.rentalAmountMinor,
+   mandatory_fees_minor:parsed.quote.mandatoryFeesAmountMinor,
+   extras_minor:parsed.quote.extrasAmountMinor,
+   total_minor:parsed.quote.totalAmountMinor,
+   fees:feeLines.map(f=>({
+     code:f.externalId,label:f.label,type:f.category,
+     amount_minor:f.amountMinor,
+   })),
+ };
  const deposit=rec(api.deposit);
  const cover=evaluateCaravelPremiumForRide24(
    parsed.quote.plan,protection,deposit,args.approvedExclusions);
@@ -251,6 +275,9 @@ export async function issueVerifiedCaravelQuote(args:{
         pay_now:parsed.payNowMinor,pay_at_pickup:parsed.payAtPickupMinor,
       },
       payment_schedule_source:"supplier_agreement_pay_on_arrival",
+      // Verified supplier line items for the client's pre-payment summary.
+      // They are informational: the amount to collect stays grand_total.
+      price_breakdown:priceBreakdown,
       drivers:requested.drivers,
       ...(args.approvedExclusions?{
         coverage_review_terms_document_id:args.approvedExclusions.termsDocumentId,
