@@ -127,7 +127,11 @@ export function arventInsuranceIncluded(x) {
  // Live Arvent returns an array of structured rentalConditions; some API
  // versions serialize that array as JSON text. Do not trust text from an
  // unrelated vehicle description or an undocumented 'fullCredit' flag.
- if(!record(x)||num(x.excess)!==0)return false;
+ // Arvent serializes excess as a decimal STRING (e.g. "0.00"), while
+ // other numeric API fields are JSON numbers. Accept only exact zero.
+ const zeroExcess=record(x)&&(num(x.excess)===0
+   ||(typeof x.excess==="string"&&/^0+(?:\\.0+)?$/.test(x.excess.trim())));
+ if(!zeroExcess)return false;
  let conditions=x.rentalConditions;
  if(typeof conditions==="string") {
   try {conditions=JSON.parse(conditions)}catch{return false}
