@@ -2147,27 +2147,27 @@ async>
                         <h2 class="section-heading" data-pl="Dane do rachunku" data-en="Invoice details">Dane do rachunku</h2>
                         <div class="settings-card">
                             <div class="form-group">
-                                <label for="invoice-company" data-pl="Nazwa firmy" data-en="Company name">Nazwa firmy</label>
+                                <label for="invoice-company" data-pl="Nazwa firmy *" data-en="Company name *">Nazwa firmy *</label>
                                 <input type="text" id="invoice-company" value="">
                             </div>
 
                             <div class="form-group">
-                                <label for="invoice-nip" data-pl="NIP" data-en="Tax ID">NIP</label>
+                                <label for="invoice-nip" data-pl="NIP (opcjonalnie)" data-en="Tax ID (optional)">NIP (opcjonalnie)</label>
                                 <input type="text" id="invoice-nip" value="" inputmode="numeric" maxlength="10">
                             </div>
 
                             <div class="form-group invoice-field-full">
-                                <label for="invoice-street" data-pl="Ulica i numer" data-en="Street and number">Ulica i numer</label>
+                                <label for="invoice-street" data-pl="Ulica i numer *" data-en="Street and number *">Ulica i numer *</label>
                                 <input type="text" id="invoice-street" value="">
                             </div>
 
                             <div class="form-group">
-                                <label for="invoice-postal" data-pl="Kod pocztowy" data-en="Postal code">Kod pocztowy</label>
+                                <label for="invoice-postal" data-pl="Kod pocztowy *" data-en="Postal code *">Kod pocztowy *</label>
                                 <input type="text" id="invoice-postal" value="" inputmode="numeric" maxlength="6" placeholder="12-345">
                             </div>
 
                             <div class="form-group">
-                                <label for="invoice-city" data-pl="Miasto" data-en="City">Miasto</label>
+                                <label for="invoice-city" data-pl="Miasto *" data-en="City *">Miasto *</label>
                                 <input type="text" id="invoice-city" value="">
                             </div>
 
@@ -4466,15 +4466,15 @@ function calculateRefundPercent(pickupDate) {
             row.dataset.id = driverId;
             row.innerHTML = `
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label data-pl="Imię i nazwisko" data-en="Full name">Imię i nazwisko</label>
+                    <label data-pl="Imię i nazwisko *" data-en="Full name *">Imię i nazwisko *</label>
                     <input type="text" class="driver-name" placeholder="Jan Kowalski" value="${name}">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label data-pl="Wiek" data-en="Age">Wiek</label>
+                    <label data-pl="Wiek *" data-en="Age *">Wiek *</label>
                     <input type="number" class="driver-age" placeholder="30" min="18" value="${age}">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label data-pl="Telefon" data-en="Phone">Telefon</label>
+                    <label data-pl="Telefon *" data-en="Phone *">Telefon *</label>
                     <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
