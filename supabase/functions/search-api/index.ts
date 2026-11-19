@@ -896,7 +896,60 @@ serve(async (req) => {
     );
     if (locationError) throw new Error("Nie udało się odczytać lokalizacji API");
 
-    const locations = ((rawLocations || []) as unknown[])
+    // Restricted pre-certification Arvent pilot. Only the authenticated account
+    // explicitly allowlisted in the partner's server-side settings can see
+    // these unpublished live quotes. Normal anonymous searches are unchanged.
+    const pilotLocations: unknown[] = [];
+    const pickupHint = [
+      pickupCriteria.country, pickupCriteria.city,
+      pickupCriteria.locationName, pickupCriteria.displayName,
+    ].join(" ");
+    if (/turkey|turcja|antalya|dalaman|istanbul|stambuł|izmir|kayseri|samsun|trabzon|\\b(?:AYT|DLM|IST|SAW|ADB|ASR|SZF|TZX)\\b/i.test(pickupHint)) {
+      const bearer = req.headers.get("authorization") || "";
+      if (bearer.startsWith("Bearer ")) {
+        const { data: authData, error: authError } = await admin.auth.getUser(bearer.slice(7).trim());
+        if (!authError && authData?.user?.id) {
+          const { data: partnerRows, error: partnerError } = await admin
+            .from("partners")
+            .select("id,api_settings")
+            .eq("api_provider", "arvent_kolaycar")
+            .eq("api_enabled", false)
+            .eq("active", true)
+            .eq("account_status", "active")
+            .limit(10);
+          if (!partnerError) {
+            const pilot = (partnerRows || []).find((partner) =>
+              partner.api_settings?.arvent_pilot?.enabled === true &&
+              partner.api_settings?.arvent_pilot?.client_id === authData.user.id &&
+              partner.api_settings?.arvent_certified !== true
+            );
+            if (pilot) {
+              let pilotQuery = admin.from("partner_locations")
+                .select(`
+                  id,partner_id,external_id,country,region,city,location_name,type,active,
+                  extra_fee,extra_fee_amount,return_fee_amount,contact_required,
+                  partners!inner(
+                    id,company_name,provider_type,api_provider,api_enabled,
+                    discount_percent,currency,min_driver_age,max_driver_age,
+                    min_rental_days,active,account_status
+                  )
+                `)
+                .eq("partner_id", pilot.id)
+                .eq("active", true)
+                .eq("partners.api_provider", "arvent_kolaycar")
+                .eq("partners.api_enabled", false)
+                .eq("partners.active", true)
+                .eq("partners.account_status", "active");
+              pilotQuery = applyLocationFilter(pilotQuery, pickupCriteria);
+              const { data: pilotRows, error: pilotError } = await pilotQuery.limit(100);
+              if (!pilotError && Array.isArray(pilotRows)) pilotLocations.push(...pilotRows);
+            }
+          }
+        }
+      }
+    }
+
+    const locations = ([...(rawLocations || []), ...pilotLocations] as unknown[])
       .map((row: unknown) => normalizeLocationRow(row))
       .filter((row): row is PartnerLocationRow => Boolean(row));
     if (!locations.length) {
