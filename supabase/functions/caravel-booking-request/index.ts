@@ -8,6 +8,7 @@ import {requoteCaravelForDriverAge} from "../_shared/caravel-search.ts";
 import {caravelProductionReadClient} from "../_shared/caravel-paid-fulfillment.ts";
 import {loadPartnerCredentials} from "../_shared/partner-api.ts";
 import {CARAVEL_PARTNER_ID} from "../_shared/caravel-release.ts";
+import {caravelSafeExtraCatalog} from "../_shared/caravel-extra-selection.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", {headers: corsHeaders(req)});
@@ -21,9 +22,14 @@ serve(async (req) => {
     const body = await req.json().catch(() => null);
     const result = await handleCaravelBookingRequest({
       admin, userId: user.id, userEmail: user.email ?? null, exchangeRate: (c) => nbpRateStrict(c),
-      requote: async (quoteRow, driverAge, release) => {
+      requote: async (quoteRow, driverAge, release, selectedExtras) => {
         const client = caravelProductionReadClient(await loadPartnerCredentials(admin, CARAVEL_PARTNER_ID));
-        return requoteCaravelForDriverAge({admin, client, release, quoteRow, driverAge});
+        return requoteCaravelForDriverAge({admin, client, release, quoteRow, driverAge, selectedExtras});
+      },
+      extrasCatalog: async (release) => {
+        const client=caravelProductionReadClient(await loadPartnerCredentials(admin,CARAVEL_PARTNER_ID));
+        const response=await client.reference("extras",release.terms.supplierId);
+        return caravelSafeExtraCatalog(response.data,release.terms.supplierId,"EUR");
       },
     }, body);
     return jsonResponse(req, result.body, result.status);
