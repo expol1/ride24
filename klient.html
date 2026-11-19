@@ -3019,6 +3019,7 @@ if (!currentUser || !currentUser.id) {
             if (profileReady) {
                 await loadClientBookings();
                 await loadPayments();
+                window.r24ClientBookingsLoaded = true;
             } else {
                 window.showToast(localStorage.getItem("client_lang") === "en"
                     ? "Save the required profile details to unlock the panel."
@@ -4383,41 +4384,66 @@ function calculateRefundPercent(pickupDate) {
         };
 
         window.saveProfile = async function() {
-            if(!db || !currentUser) {
-                window.showToast(localStorage.getItem("client_lang") === "en" ? "Please log in first!" : "Zaloguj się najpierw!", "error");
+            const isEn = localStorage.getItem("client_lang") === "en";
+            if (!db || !currentUser?.id) {
+                window.showToast(isEn ? "Please log in first." : "Zaloguj się najpierw.", "error");
                 return;
             }
             const profileData = {
                 id: currentUser.id,
-                name: document.getElementById("profile-name").value,
-                email: currentUser.email, // 🔥 DODANE: Zapis e-maila do bazy!
-                age: document.getElementById("profile-age").value ? parseInt(document.getElementById("profile-age").value) : null,
-                age_updated_at: new Date().toISOString().split('T')[0],
-                phone: document.getElementById("profile-phone").value,
-                country: document.getElementById("profile-country").value,
-                license_since: window.ride24LicenseDate(document.getElementById("profile-license-since")?.value),
+                name: document.getElementById("profile-name").value.trim(),
+                email: currentUser.email,
+                age: document.getElementById("profile-age").value.trim()
+                    ? Number(document.getElementById("profile-age").value) : null,
+                age_updated_at: new Date().toISOString().slice(0, 10),
+                phone: document.getElementById("profile-phone").value.trim(),
+                country: document.getElementById("profile-country").value.trim(),
+                license_since: document.getElementById("profile-license-since")?.value || null
             };
-            if (document.getElementById("profile-license-since")?.value && !profileData.license_since) {
-                const isEn = localStorage.getItem("client_lang") === "en";
-                window.showToast(isEn ? "Enter a valid driving licence date (not in the future)." : "Podaj prawidłową datę prawa jazdy (nie z przyszłości).", "error");
+            const problems = clientProfileErrors(profileData, currentUser.email);
+            if (problems.length) {
+                window.r24ClientProfileProblems = problems;
+                window.r24RenderProfileProblems(true);
+                window.showToast(isEn
+                    ? "Complete all required profile fields before saving."
+                    : "Uzupełnij wszystkie wymagane dane profilu przed zapisem.", "error");
                 return;
             }
-
-            const { error } = await db.from("profiles").upsert(profileData);
-            if(error) {
-                const isEn = localStorage.getItem("client_lang") === "en";
-                alert((isEn ? "Profile save error: " : "Błąd przy zapisie profilu: ") + error.message);
-            } else {
-                const isEn = localStorage.getItem("client_lang") === "en";
-                window.showToast(isEn ? "Profile saved" : "Profil zapisany", "success");
-                await loadUserProfile();
-
+            const button = document.getElementById("profile-save-required");
+            if (button) button.disabled = true;
+            try {
+                // Only a fully validated profile is sent. A successful write alone does not unlock the panel.
+                const { data: persisted, error } = await db.from("profiles")
+                    .upsert(profileData, { onConflict: "id" })
+                    .select("id,name,age,phone,country,license_since")
+                    .single();
+                if (error || !persisted || persisted.id !== currentUser.id) {
+                    throw error || new Error("The profile write was not confirmed.");
+                }
+                const verified = await loadUserProfile();
+                if (!window.r24ApplyClientProfileGate(verified, false)) {
+                    throw new Error(isEn
+                        ? "The saved profile is still incomplete."
+                        : "Zapisany profil nadal jest niekompletny.");
+                }
+                const firstActivation = !window.r24ClientBookingsLoaded;
+                window.showToast(isEn ? "Profile saved — your panel is unlocked." : "Profil zapisany — panel odblokowany.", "success");
+                if (firstActivation) {
+                    await loadClientBookings();
+                    await loadPayments();
+                    window.r24ClientBookingsLoaded = true;
+                }
                 if (localStorage.getItem("autoOpenBooking") === "true") {
                     localStorage.removeItem("autoOpenBooking");
                     window.submitBooking();
                 }
+            } catch (err) {
+                console.error("Profile save / readback failed:", err);
+                window.showToast((isEn ? "Unable to verify saved profile: " : "Nie udało się potwierdzić zapisu profilu: ") + (err?.message || ""), "error");
+            } finally {
+                if (button) button.disabled = false;
             }
-        }
+        };
 
         window.addDriverRow = function(name = "", age = "", phone = "", driverId = "", licenseSince = "") {
             const list = document.getElementById('drivers-list');
