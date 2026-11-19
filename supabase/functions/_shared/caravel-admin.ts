@@ -137,7 +137,9 @@ export async function syncCaravelCatalog(args: {
   const tally = (list: Array<{ok: boolean; errors?: string[]}>) => list.reduce((acc: Record<string, number>, r) => {
     if (!r.ok) for (const e of r.errors ?? ["INVALID"]) acc[e] = (acc[e] ?? 0) + 1; return acc; }, {});
   const nl = (loc.data as unknown[]).map((l) => normalizeCaravelLocation(caravelLocationFromApi(l), sid));
-  const nv = (veh.data as unknown[]).map((v) => normalizeCaravelVehicleClass(caravelVehicleFromApi(v, pol.data), sid));
+  const policies = pol.data.filter((row) => row.supplier_id === sid);
+  if (policies.length !== 1) return {ok: false, code: "CARAVEL_SUPPLIER_POLICY_UNVERIFIED"};
+  const nv = (veh.data as unknown[]).map((v) => normalizeCaravelVehicleClass(caravelVehicleFromApi(v, policies[0]), sid));
   const okL = nl.filter((r) => r.ok).map((r) => (r as {value: Rec}).value);
   const okV = nv.filter((r) => r.ok).map((r) => (r as {value: Rec}).value);
   // "No credit card / no hold" is never claimed by the sync: unverified until Caravel confirms.
