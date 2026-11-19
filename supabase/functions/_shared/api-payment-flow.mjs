@@ -31,6 +31,14 @@ export async function advanceApiPayment(deps,id) {
     return await acceptResult(recovered,'unknown');
   }
   if(w.state==='provider_pending') {
+    // Use the immutable payment time. Polling refreshes updated_at on each pass.
+    // An overdue Arvent approval is a reconciliation case, never proof of failure.
+    const overdue=w.prepared_quote?.provider==='arvent_kolaycar'
+      && Date.now()-Date.parse(w.paid_at)>=60*60*1000;
+    if(overdue) {
+      await move('provider_pending','unknown',{last_error:'PROVIDER_RESPONSE_REQUIRES_REVIEW'});
+      return {state:'unknown'};
+    }
     const result=await deps.status(id,w);return await acceptResult(result,'provider_pending');
   }
   if(w.state==='refund_pending'||w.state==='refunding') {
@@ -61,7 +69,11 @@ export async function advanceApiPayment(deps,id) {
   if(!w)return {skipped:true};
   let result;
   try {result=await deps.create(id,prepared);}
-  catch {
+  catch(error) {
+    if(prepared.provider==='arvent_kolaycar'&&error instanceof DefiniteApiFailure&&error.message==='ARVENT_FAILED_BEFORE_SAVE'){
+      await move('dispatching','refund_pending',{last_error:error.message});
+      return {state:'refund_pending'};
+    }
     await move('dispatching','unknown',{last_error:'PROVIDER_CREATE_OUTCOME_UNKNOWN'});
     return {state:'unknown'};
   }

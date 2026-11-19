@@ -363,11 +363,12 @@ function closeRegSuccess() {
 }
         // Kursy służą do przeliczenia prowizji na PLN i wyłącznie wewnętrznego sortowania ofert.
 const exchangeRateCache = new Map([["PLN", 1]]);
-async function getExchangeRate(currency) {
+const verifiedRates = new Set(["PLN"]);
+async function getExchangeRate(currency, requireLive = false) {
     const normalized = String(currency || "EUR").trim().toUpperCase() === "TRL"
         ? "TRY"
         : String(currency || "EUR").trim().toUpperCase();
-    if (exchangeRateCache.has(normalized)) return exchangeRateCache.get(normalized);
+    if (exchangeRateCache.has(normalized) && (!requireLive || verifiedRates.has(normalized))) return exchangeRateCache.get(normalized);
 
     for (const table of ["A", "B"]) {
         try {
@@ -377,6 +378,7 @@ async function getExchangeRate(currency) {
             const data = await res.json();
             const rate = Number(data?.rates?.[0]?.mid);
             if (Number.isFinite(rate) && rate > 0) {
+                verifiedRates.add(normalized);
                 exchangeRateCache.set(normalized, rate);
                 return rate;
             }
@@ -385,6 +387,7 @@ async function getExchangeRate(currency) {
         }
     }
 
+    if (requireLive) return null;
     if (normalized === "USD") { exchangeRateCache.set(normalized, 4.0); return 4.0; }
     if (normalized === "EUR") { exchangeRateCache.set(normalized, 4.5); return 4.5; }
     return null;
@@ -801,6 +804,7 @@ let query = db
                 }));
 
                 function getSeasonPrice(car) {
+                    if (car.arvent_period_price) return car.arvent_period_price.total / days;
                     const pickupMonth = new Date(filters.pickup_date + "T00:00:00Z").getUTCMonth() + 1;
                     let publicPrice = Number(car.public_price) || 0;
                     const activeSeason = (car.seasonal_prices || []).find(s => {
@@ -928,14 +932,14 @@ const partnerNetPricePerDay = currentPublicPrice * (1 - (discountPerc / 100));
 const customerPricePerDay = partnerNetPricePerDay * (1 + (marginPerc / 100));
 
 // Sumy całkowite do wyświetlenia na karcie auta
-const baseTotal = Number((partnerNetPricePerDay * days).toFixed(2));
-const finalTotal = Number((customerPricePerDay * days).toFixed(2));
+const baseTotal = car.arvent_period_price?.pickup ?? Number((partnerNetPricePerDay * days).toFixed(2));
+const finalTotal = car.arvent_period_price?.total ?? Number((customerPricePerDay * days).toFixed(2));
 // Wyniki: pełne jednostki waluty bez miejsc dziesiętnych.
 // Kwoty rozliczeniowe (finalTotal i baseTotal) pozostają dokładne.
 const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-}).format(Math.round(finalTotal));
+    maximumFractionDigits: car.arvent_period_price ? 2 : 0
+}).format(finalTotal);
 
 // --- KONIEC LOGIKI ---
 
@@ -1050,7 +1054,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                         : "";
                     const imageLoading = index < 2 ? "eager" : "lazy";
                     const safeCarCode = escapeHtmlValue(car.class_code || classLetter);
-                    const safeCarTitle = escapeHtmlValue(car.description || car.example_model || car.model || car.class_code || "Car");
+                    const safeCarTitle = escapeHtmlValue((car.arvent_period_price && car.example_model) || car.description || car.example_model || car.model || car.class_code || "Car");
                     const safeCurrency = escapeHtmlValue(carCurrency);
 
                     row.innerHTML = `
@@ -1068,7 +1072,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     <div class="class-badge-box" style="background-color: ${bc.bg}; border-color: ${bc.border};">
         <span class="class-letter" style="color: ${bc.color};">${classLetter}</span>
         <span class="class-name-small" style="color: ${bc.color}; opacity: 0.9;">
-            ${classLetter === '0' ? (lang === 'pl' ? 'Skutery / ATV' : 'Scooters / ATV') : (classNames[classLetter] || 'Auto')}
+            ${classLetter === '0' ? (lang === 'pl' ? 'Skutery / ATV' : 'Scooters / ATV') : (car.arvent_period_price && classLetter === 'F' ? 'Van / Family' : classNames[classLetter] || 'Auto')}
         </span>
     </div>
 
@@ -1120,7 +1124,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     ${locationFeesByCar.get(car) > 0
         ? `<div class="price-info">${lang === 'pl' ? 'Opłaty za odbiór i zwrot' : 'Pickup and return fees'}: ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(locationFeesByCar.get(car))} ${safeCurrency}</div>`
         : ''}
-    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc})">
+    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc}, ${Boolean(car.arvent_period_price)})">
         ${labels.bookBtn}
     </button>
 </div>
@@ -1160,7 +1164,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
        // --- INTELIGENTNA REZERWACJA (UPROSZCZONA I BEZPIECZNA) ---
         let authMode = "login";
 
-        async function handleBooking(carId, priceTotal, currency, btnElement, apiQuoteId = "", marginPercent = 25) {
+        async function handleBooking(carId, priceTotal, currency, btnElement, apiQuoteId = "", marginPercent = 25, requireLiveRate = false) {
             const db = window.supabaseClient;
             
             // 🔥 1. ZAPISUJEMY KONTEKST OD RAZU PRZED CZYMKOLWIEK (Kluczowa poprawka)
@@ -1181,7 +1185,7 @@ const commission = basePrice * (safeMarginPercent / 100);
 const finalPrice = basePrice + commission;
 
 // 🔥 LIVE KURS (NBP)
-const rate = await getExchangeRate(currency);
+const rate = await getExchangeRate(currency, requireLiveRate);
 if (!Number.isFinite(rate) || rate <= 0) {
     alert((localStorage.getItem("lang") || "pl") === "pl"
         ? "Nie udało się pobrać kursu waluty. Spróbuj ponownie."

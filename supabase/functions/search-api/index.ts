@@ -786,11 +786,16 @@ async function searchPartner(
       features: mergedFeatures,
       mileage_limit: group.mileage_limit ?? carClass.mileage_limit,
       deposit_amount: group.deposit_amount ?? carClass.deposit_amount,
-      min_driver_age: carClass.min_driver_age,
+      min_driver_age: partner.api_provider==="arvent_kolaycar" && typeof group.features?.minimum_driver_age==="number"
+        ? Math.max(group.features.minimum_driver_age,Number(carClass.min_driver_age ?? partner.min_driver_age ?? 0))
+        : carClass.min_driver_age,
       driver_included: group.driver_included ?? carClass.driver_included,
       seasonal_prices: [],
       api_quote_id: quote.id,
       api_managed: true,
+      ...(partner.api_provider==="arvent_kolaycar" ? {
+        arvent_period_price:{pickup:partnerNetTotal,total:finalTotal},
+      } : {}),
       partners: {
         id: partner.id,
         company_name: partner.company_name,

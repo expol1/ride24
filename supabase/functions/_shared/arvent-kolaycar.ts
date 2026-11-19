@@ -87,7 +87,11 @@ function searchPath(input:SearchInput):string {
   throw Error("PARTNER_API_ERROR:ARVENT_LOCATION_ID_INVALID");
  if(String(input.currency||"EUR").toUpperCase()!=="EUR")
   throw Error("PARTNER_API_ERROR:ARVENT_CURRENCY_UNSUPPORTED");
- const time=(v:string|null|undefined)=>/^\d{2}:\d{2}$/.test(v||"")?v:"10:00";
+ const time=(value:string|null|undefined)=>{
+  const match=/^([01]\d|2[0-3]):([0-5]\d)(?::00)?$/.exec(value||"");
+  if(!match)throw Error("PARTNER_API_ERROR:ARVENT_TIME_INVALID");
+  return match[1]+":"+match[2];
+ };
  return ARVENT_PATHS.search+"?"+arventQuery({
   pickupLocationId:pickup,returnLocationId:dropoff,
   pickupDate:arventDate(input.pickup_date),returnDate:arventDate(input.return_date),
@@ -100,21 +104,28 @@ export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Pr
  return arventOfferRows(response,{...input,currency:"EUR"}) as ApiVehicleGroup[];
 }
 async function bookingContextFor(c:PartnerApiCredentials,reference:string):Promise<{
- client_email:string;partner_currency:unknown;partner_net_price_snapshot:unknown;
+ id:string;client_email:string;partner_currency:unknown;partner_net_price_snapshot:unknown;
  api_quote_id:string|null;start_date:string;end_date:string;pickup_time:string;return_time:string;
 }> {
  const admin=serviceClient();
- const {data,error}=await admin.from("bookings").select("client_email,partner_currency,partner_net_price_snapshot,api_quote_id,start_date,end_date,pickup_time,return_time")
+ const {data,error}=await admin.from("bookings").select("id,client_email,partner_currency,partner_net_price_snapshot,api_quote_id,start_date,end_date,pickup_time,return_time")
   .eq("partner_id",c.partner_id).eq("api_booking_reference",reference).limit(1).maybeSingle();
  if(error||typeof data?.client_email!=="string"||!data.client_email)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_EMAIL_NOT_FOUND");
  return data;
 }
+// Retain only the supplier evidence required for reconciliation.
+function statusEvidence(data:Record<string,unknown>){
+ const fields=["reservationNumber","agencyReservationReference","reservationStatusType","sippCode",
+  "currencyCode","totalPrice","depositPrice","depositCreditCardRequired","totalKMLimit",
+  "pickupLocationId","returnLocationId","pickupDate","returnDate"];
+ return sanitizePartnerPayload(Object.fromEntries(fields.map(key=>[key,data[key]])),4000);
+}
 function confirmedContract(d:Record<string,unknown>,expectedPrice:unknown):boolean {
  const wanted=Number(expectedPrice);
  return Number.isFinite(wanted)&&wanted>0
   &&typeof d.totalPrice==="number"&&Number.isFinite(d.totalPrice)
-  &&Math.abs(d.totalPrice-wanted)<=0.01
+  &&d.totalPrice===wanted
   &&d.currencyCode==="EUR"&&d.depositPrice===0
   &&d.depositCreditCardRequired===false&&d.totalKMLimit===0;
 }
@@ -123,10 +134,12 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
  const response=await request(c,ARVENT_PATHS.booking_status+"?"+arventQuery({
   reservationNumber:reference,customerEmail:booking.client_email}));
  const status=arventReservationStatus(response),d=supplierData(response) as Record<string,unknown>;
+ if(status.booking_reference!==reference)
+  throw Error("PARTNER_API_ERROR:ARVENT_REFERENCE_MISMATCH");
  const admin=serviceClient();
  const {data:quote,error:quoteError}=booking.api_quote_id
   ?await admin.from("api_quotes")
-    .select("pickup_location_external_id,dropoff_location_external_id")
+    .select("external_group_id,pickup_location_external_id,dropoff_location_external_id")
     .eq("id",booking.api_quote_id).eq("partner_id",c.partner_id).maybeSingle()
   :{data:null,error:null};
  const routeValid=!quoteError&&quote
@@ -137,13 +150,14 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
    pickup_time:booking.pickup_time,return_time:booking.return_time,
   });
  const verified=booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot)
-  &&routeValid===true;
+  &&routeValid===true&&typeof d.sippCode==="string"
+  &&d.sippCode.toUpperCase()===quote?.external_group_id;
  // If status is "approved" but supplier price/terms cannot be proved, do
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
  return {...status,status:status.status==="confirmed"&&!confirmed?"pending":status.status,
   needs_manual_review:status.needs_manual_review||(status.status==="confirmed"&&!confirmed),
-  provider_payload:sanitizePartnerPayload(d,12000)};
+  provider_payload:statusEvidence(d)};
 }
 // Supplier documentation only supports GET /reservations by supplier
 // reservationNumber + original customerEmail. It does NOT document a lookup
@@ -161,8 +175,9 @@ function allowSupplierMutation():void {
  if(Deno.env.get("ARVENT_KOLAYCAR_WRITE_ALLOWED")!=="true")
   throw Error("PARTNER_API_ERROR:ARVENT_WRITES_NOT_CERTIFIED");
 }
-export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingInput):Promise<Record<string,unknown>>{
- allowSupplierMutation();
+async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
+ if(input.pickup_location_id!==input.dropoff_location_id)
+  throw Error("PARTNER_API_ERROR:ARVENT_ONE_WAY_PAYMENT_UNVERIFIED");
  if(Number(input.partner_discount_percent??0)!==0||!Number.isFinite(input.partner_amount)
   ||(input.partner_amount??0)<=0||input.additional_driver)
   throw Error("PARTNER_API_ERROR:ARVENT_PRICING_OR_EXTRAS_UNSUPPORTED");
@@ -176,7 +191,7 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
   ||quote.sipp!==input.vehicle_group_id
   ||!/^\d+$/.test(supplierVehicleId)
   ||!Number.isFinite(Number(quote.total_amount))
-  ||Math.abs(Number(quote.total_amount)-Number(input.partner_amount))>0.01)
+  ||Number(quote.total_amount)!==input.partner_amount)
   throw Error("PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED");
  // Re-price with a newly issued token. Never use or persist an old reservationToken.
  const live=supplierData(await request(c,searchPath(input)));
@@ -186,7 +201,7 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
   &&arventOfferMatchesTerms(x,"EUR"));
  if(!current)throw Error("PARTNER_API_ERROR:ARVENT_OFFER_CHANGED");
  const actual=Number(current.totalPrice);
- if(Math.abs(actual-Number(input.partner_amount))>0.01)
+ if(actual!==input.partner_amount)
   throw Error("PARTNER_API_ERROR:ARVENT_PRICE_CHANGED");
  const extraData=supplierData(await request(c,ARVENT_PATHS.extras+"?"+arventQuery({
   reservationToken:current.reservationToken,languageCode:"EN"})));
@@ -200,7 +215,8 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  if(!pricedVehicle||String(pricedVehicle.vehicleId)!==supplierVehicleId
   ||String(pricedVehicle.sippCode||"").toUpperCase()!==input.vehicle_group_id
   ||!arventOfferMatchesTerms(pricedVehicle,"EUR")
-  ||Math.abs(Number(pricedVehicle.totalPrice)-actual)>0.01
+  ||pricedVehicle.totalPrice!==actual
+  ||pricedVehicle.reservationToken!==current.reservationToken
   ||!arventSavedRouteMatches({
     pickupLocationId:pricedVehicle.pickupLocationId,
     returnLocationId:pricedVehicle.returnLocationId,
@@ -208,17 +224,42 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
     returnDate:pricedVehicle.returnDateTime,
   },input))
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
- const required=((extraData as any).extras||[]).filter((x:any)=>x&&x.isRequired===true);
- if(required.some((x:any)=>!x.code||Number(x.price||0)!==0))
+ const age=input.main_driver.age;
+ for(const vehicle of [current,pricedVehicle]){
+  if(vehicle.vendorMinimumDrivingLicenseAge!==0
+    ||!Number.isInteger(vehicle.vendorMinimumDriverAge)||vehicle.vendorMinimumDriverAge<18
+    ||typeof age!=="number"||!Number.isInteger(age)||age<vehicle.vendorMinimumDriverAge)
+   throw Error("PARTNER_API_ERROR:ARVENT_DRIVER_ELIGIBILITY_UNVERIFIED");
+ }
+ const extras=(extraData as any).extras||[];
+ if(extras.some((item:any)=>typeof item?.isRequired!=="boolean"))
+  throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
+ const required=extras.filter((item:any)=>item.isRequired);
+ if(required.some((x:any)=>!x.code||x.price!==0))
   throw Error("PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNPRICED");
  const name=String(input.main_driver.name).trim().split(/\s+/);
  const first=name.shift()||"",surname=name.join(" ");
  if(!surname)throw Error("PARTNER_API_ERROR:ARVENT_SURNAME_REQUIRED");
- const payload=arventSavePayload({
+ return arventSavePayload({
   reservationToken:current.reservationToken,reference:input.reservation_code||input.ride24_booking_id,
   customer:{name:first,surname,email:input.client_email,phoneNumber:input.client_phone,birthDay:""},
   extras:required.map((x:any)=>({code:x.code,piece:1})),
  });
+}
+export async function arventVerifyCheckout(c:PartnerApiCredentials,input:BookingInput):Promise<void>{
+ await prepareReservation(c,input);
+}
+export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingInput):Promise<Record<string,unknown>>{
+ allowSupplierMutation();
+ if(Deno.env.get("ARVENT_STRIPE_FIRST_APPROVED")!=="true")
+  throw Error("PARTNER_API_ERROR:ARVENT_STRIPE_FIRST_UNAPPROVED");
+ let payload;
+ try {
+  payload=await prepareReservation(c,input);
+ } catch {
+  // All supplier calls above are reads. No SaveReservation was attempted.
+  throw Error("ARVENT_FAILED_BEFORE_SAVE");
+ }
  // This call creates a real supplier booking; only reachable after external certification.
  const result=await request(c,ARVENT_PATHS.booking_create,{method:"POST",body:payload});
  const status=arventReservationStatus(result);
@@ -226,28 +267,36 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_REFERENCE_MISSING");
  const d=supplierData(result) as Record<string,unknown>;
  const confirmedPrice=typeof d.totalPrice==="number"&&Number.isFinite(d.totalPrice)?d.totalPrice:null;
- const priceMismatch=confirmedPrice===null||Math.abs(confirmedPrice-Number(input.partner_amount))>0.01;
+ const priceMismatch=confirmedPrice===null||confirmedPrice!==input.partner_amount;
  // A confirmed status alone does not prove that the booking preserves the
  // no-deposit/no-card/unlimited-km contract and EUR payable amount.
- const termsMismatch=d.currencyCode!=="EUR"||d.depositPrice!==0
+ const termsMismatch=d.agencyReservationReference!==payload.agencyReservationReference
+  ||typeof d.sippCode!=="string"||d.sippCode.toUpperCase()!==input.vehicle_group_id
+  ||d.currencyCode!=="EUR"||d.depositPrice!==0
   ||d.depositCreditCardRequired!==false||d.totalKMLimit!==0;
  const routeMismatch=!arventSavedRouteMatches(d,input);
  return {...status,
   // Do not leak "confirmed" into generic handlers if money/terms mismatch.
   status:status.status==="confirmed"&&(priceMismatch||termsMismatch||routeMismatch)?"pending":status.status,
   needs_manual_review:status.needs_manual_review||priceMismatch||termsMismatch||routeMismatch,
-  provider_payload:sanitizePartnerPayload(d,12000),
+  provider_payload:statusEvidence(d),
   price_mismatch:priceMismatch,terms_mismatch:termsMismatch,route_mismatch:routeMismatch,
  };
 }
 export async function arventCancelBooking(c:PartnerApiCredentials,reference:string,body:Record<string,unknown>={}):Promise<Record<string,unknown>> {
  allowSupplierMutation();
- const email=(await bookingContextFor(c,reference)).client_email;
+ const booking=await bookingContextFor(c,reference);
+ const email=booking.client_email;
+ // All cancellation entry points share one durable claim per Ride24 booking.
+ // A previous attempt may have reached Arvent even if its HTTP response was lost.
+ const {error}=await serviceClient().from("arvent_cancel_attempts").insert({booking_id:booking.id});
+ if(error?.code==="23505")return arventBookingStatus(c,reference);
+ if(error)throw Error("PARTNER_API_ERROR:ARVENT_CANCEL_CLAIM_FAILED");
  const response=await request(c,ARVENT_PATHS.booking_cancel+"?"+arventQuery({
   reservationNumber:reference,customerEmail:email,cancelNote:typeof body.reason==="string"?body.reason:"Ride24 customer cancellation",
   languageCode:"EN",cancelReasonId:0,
  }),{method:"POST"});
  const parsed=arventReservationStatus(response);
  return {...parsed,status:parsed.status==="cancelled"?"cancelled":"pending",
-  provider_payload:sanitizePartnerPayload(supplierData(response),12000)};
+  provider_payload:statusEvidence(supplierData(response) as Record<string,unknown>)};
 }

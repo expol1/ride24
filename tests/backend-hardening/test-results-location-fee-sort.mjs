@@ -89,3 +89,27 @@ test('search actually reads selected return fee and uses new helpers before slic
     assert.match(html, /cars\.sort\(\(a, b\) => resultPricing\.compareByTotalPrice\(a, b, rankingPrices\)\)/);
     assert.ok(html.indexOf('cars.sort((a, b) => resultPricing.compareByTotalPrice') < html.indexOf('cars = cars.slice(0, PAGE_SIZE)'));
 });
+
+test('Arvent result uses the EUR period quote when supplier and display billing days differ',()=>{
+ const start=html.indexOf('const baseTotal = car.arvent_period_price');
+ const end=html.indexOf('// --- KONIEC LOGIKI',start);
+ assert.ok(start>0&&end>start);
+ const result=runInNewContext(html.slice(start,end)+';({baseTotal,finalTotal,displayTotal})',{
+  car:{arvent_period_price:{pickup:58.76,total:64.64}},lang:'en',days:3,
+  partnerNetPricePerDay:29.38,customerPricePerDay:32.318
+ });
+ assert.equal(result.baseTotal,58.76);
+ assert.equal(result.finalTotal,64.64);
+ assert.equal(result.displayTotal,'64.64');
+});
+test('Arvent checkout does not use an estimated currency rate cached by another provider',async()=>{
+ const source=html.slice(html.indexOf('const exchangeRateCache ='),html.indexOf('const classNames ='));
+ let online=false;
+ const rate=runInNewContext(source+';getExchangeRate',{
+  console:{error(){}},fetch:async()=>({ok:online,status:online?200:503,json:async()=>({rates:[{mid:4.3}]})})
+ });
+ assert.equal(await rate('EUR'),4.5);
+ assert.equal(await rate('EUR',true),null);
+ online=true;
+ assert.equal(await rate('EUR',true),4.3);
+});
