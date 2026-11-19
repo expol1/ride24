@@ -74,7 +74,7 @@ test("consent price breakdown translates provider fees and reconciles exact tota
  }});
  const v=buildCaravelConsentView(row,release,"pl",NOW);
  assert.deepEqual(v.money.breakdown,{
-  rental_base:"100.00 EUR",fee_total:"50.00 EUR",partner_total:"150.00 EUR",
+  rental_base:"100.00 EUR",fee_total:"50.00 EUR",extras_total:"0.00 EUR",partner_total:"150.00 EUR",extras:[],
   fees:[
    {label:"Młody kierowca",original_label:"Young driver 3 days",type:"young_driver",amount:"33.00 EUR"},
    {label:"Zwrot w innym punkcie",original_label:"One-way return",type:"one_way",amount:"17.00 EUR"},
