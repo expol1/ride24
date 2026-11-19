@@ -173,6 +173,27 @@ test('Caravel second driver selection requotes supplier, updates price and reset
  assert.equal(w.Ride24CaravelConsent.canSubmit(),false);
 });
 
+test('Caravel initial profile age 22 triggers supplier re-quote even without changing driver dropdown',async()=>{
+ const old=await view();
+ const newer={...old,api_quote_id:'5ea5e8db-7244-4416-ab7b-2632bd5f882a',
+   driver_age:22,money:{...old.money,customer_total:'198.00 EUR',
+     rental_at_pickup:'180.00 EUR',ride24_fee:'18.00 EUR',
+     ride24_fee_pln_minor:7740,ride24_fee_pln:'77.40 PLN'}};
+ const {w,calls}=await page([
+  {status:200,body:{success:true,consent:old}},
+  {status:200,body:{success:true,consent:newer}},
+ ]);
+ await w.Ride24CaravelConsent.prepare({partnerId:PARTNER,apiQuoteId:old.api_quote_id,
+   accessToken:'jwt',supabaseUrl:'u',supabaseKey:'k'});
+ assert.equal(w.Ride24CaravelConsent.requiresAgeRequote(22),true);
+ assert.equal(w.Ride24CaravelConsent.requiresAgeRequote(30),false);
+ assert.equal(await w.Ride24CaravelConsent.requoteDrivers({
+   driverId:null,additionalDriverId:null,force:true}),true);
+ assert.equal(calls[1].body.action,'drivers-requote');
+ assert.equal(w.Ride24CaravelConsent.requiresAgeRequote(22),false);
+ assert.match(w.document.getElementById('caravelConsent').textContent,/198.00 EUR/);
+});
+
 test('Caravel: unbookable quote shows the server message and blocks submission', async () => {
   const {w} = await page([{status: 409, body: {code: 'CARAVEL_CERTIFICATION_PENDING', error: 'Oferty Caravel są chwilowo niedostępne.'}}]);
   assert.equal(await w.Ride24CaravelConsent.prepare({partnerId: PARTNER, apiQuoteId: 'x', accessToken: 'jwt', supabaseUrl: 'u', supabaseKey: 'k'}), false);
