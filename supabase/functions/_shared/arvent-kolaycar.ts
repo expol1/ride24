@@ -18,6 +18,7 @@ type BookingInput=SearchInput&{
  partner_discount_percent?:number|null;partner_amount?:number|null;
  provider_quote_data?:unknown;
  additional_driver?:{name?:string|null;age?:number|null}|null;
+ supplier_note?:string|null;
 };
 
 const sessions=new Map<string,{token:string;until:number}>();
@@ -244,7 +245,8 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
  if(!surname)throw Error("PARTNER_API_ERROR:ARVENT_SURNAME_REQUIRED");
  return arventSavePayload({
   reservationToken:current.reservationToken,reference:input.reservation_code||input.ride24_booking_id,
-  customer:{name:first,surname,email:input.client_email,phoneNumber:input.client_phone,birthDay:""},
+  customer:{name:first,surname,email:input.client_email,phoneNumber:input.client_phone,birthDay:"",
+   note:typeof input.supplier_note==="string"?input.supplier_note:""},
   extras:required.map((x:any)=>({code:x.code,piece:1})),
  });
 }
@@ -294,11 +296,15 @@ export async function arventCancelBooking(c:PartnerApiCredentials,reference:stri
  const {error}=await serviceClient().from("arvent_cancel_attempts").insert({booking_id:booking.id});
  if(error?.code==="23505")return arventBookingStatus(c,reference);
  if(error)throw Error("PARTNER_API_ERROR:ARVENT_CANCEL_CLAIM_FAILED");
- const response=await request(c,ARVENT_PATHS.booking_cancel+"?"+arventQuery({
+ // supplierData() throws on a business failure, so a rejected cancellation is
+ // never read back as success. The live response shape of a successful
+ // cancellation is not documented, so the authoritative proof is the
+ // supplier's own reservation status (3=cancelled) read back by GET.
+ supplierData(await request(c,ARVENT_PATHS.booking_cancel+"?"+arventQuery({
   reservationNumber:reference,customerEmail:email,cancelNote:typeof body.reason==="string"?body.reason:"Ride24 customer cancellation",
   languageCode:"EN",cancelReasonId:0,
- }),{method:"POST"});
- const parsed=arventReservationStatus(response);
- return {...parsed,status:parsed.status==="cancelled"?"cancelled":"pending",
-  provider_payload:statusEvidence(supplierData(response) as Record<string,unknown>)};
+ }),{method:"POST"}));
+ const confirmed=await arventBookingStatus(c,reference);
+ return {...confirmed,status:confirmed.status==="cancelled"?"cancelled":"pending",
+  needs_manual_review:confirmed.status!=="cancelled"||confirmed.needs_manual_review===true};
 }

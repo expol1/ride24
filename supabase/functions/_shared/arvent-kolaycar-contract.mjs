@@ -232,7 +232,9 @@ export function arventSavePayload({reservationToken,reference,customer,extras=[]
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_INVALID");
  return {reservationToken,languageCode:"EN",
   customer:{name:str(customer.name),surname:str(customer.surname),phoneNumber:str(customer.phoneNumber,80),
-   email:str(customer.email,250),birthDay:arventDateOfBirth(customer.birthDay),personalNumber:"",address:"",note:""},
+   email:str(customer.email,250),birthDay:arventDateOfBirth(customer.birthDay),personalNumber:"",address:"",
+   // Optional partner-level operational note (api_settings.supplier_booking_note).
+   note:str(customer.note,250).replace(/[\u0000-\u001f\u007f]/g," ")},
   pricing:{paidAmount:0,extraAmount:0,specialDailyPrice:-1,specialOneWayFee:-1},
   payment:{paymentType:3,extraPricePayToDelivery:true,oneWayFeePayToDelivery:true},
   extras:extras.map(e=>({code:e.code,piece:e.piece})),

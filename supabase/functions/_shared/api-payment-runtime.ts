@@ -20,7 +20,7 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
  let booking:any,credentials:any;
  const get=()=>one(admin.from('api_booking_workflows').select('*').eq('booking_id',id).maybeSingle());
  const load=async()=>{
-   booking=await one(admin.from('bookings').select('*,partners!bookings_partner_id_fkey(api_provider,provider_type,rental_terms_url,rental_rules_url)').eq('id',id).maybeSingle());
+   booking=await one(admin.from('bookings').select('*,partners!bookings_partner_id_fkey(api_provider,provider_type,rental_terms_url,rental_rules_url,api_settings)').eq('id',id).maybeSingle());
    if(!booking||booking.provider_type!=='api')throw Error('API_BOOKING_NOT_FOUND');
    credentials=await loadPartnerCredentials(admin,booking.partner_id);return booking;
  };

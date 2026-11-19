@@ -10,7 +10,7 @@ const source=await readFile(new URL("../../supabase/functions/_shared/arvent-kol
 const transformed=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
 assert.equal(transformed.diagnostics?.length||0,0,"Arvent adapter must parse as TypeScript");
 
-function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false}={}){
+function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false,cancelResponse=null}={}){
  const calls=[];
  let cancellationClaimed=false;
  const transport={
@@ -51,7 +51,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
-   if(path.startsWith("/reservations/cancel?"))return {success:true,data:{reservationNumber:"A-1",reservationStatusType:3}};
+   if(path.startsWith("/reservations/cancel?"))return cancelResponse||{success:true,data:{reservationNumber:"A-1",reservationStatusType:3}};
    throw Error("Unexpected supplier endpoint "+path.split("?")[0]);
   },
  };
@@ -242,7 +242,24 @@ test("overlapping cancellations issue one supplier POST and then reconcile by GE
  const results=await Promise.all([a.arventCancelBooking(creds,"A-1"),a.arventCancelBooking(creds,"A-1")]);
  assert.ok(results.every(result=>result.status==="cancelled"));
  assert.equal(a.calls.filter(call=>call.path.startsWith("/reservations/cancel?")).length,1);
- assert.equal(a.calls.filter(call=>call.path.startsWith("/reservations?")).length,1);
+ // Both the claimant (read-back after POST) and the overlapping caller confirm by GET.
+ assert.equal(a.calls.filter(call=>call.path.startsWith("/reservations?")).length,2);
+});
+test("cancellation is confirmed only by supplier status 3 read back after the POST",async()=>{
+ // Undocumented success body without reservation data is still verified by GET.
+ const ok=setup({allowWrites:true,savedStatus:3,cancelResponse:{success:true,resultCode:0,data:true}});
+ const done=await ok.arventCancelBooking(creds,"A-1");
+ assert.equal(done.status,"cancelled");
+ assert.equal(done.booking_reference,"A-1");
+ // A cancel POST claiming success while the supplier still shows "approved" is not a cancellation.
+ const stale=setup({allowWrites:true,savedStatus:1,cancelResponse:{success:true,data:{reservationNumber:"A-1",reservationStatusType:3}}});
+ const pending=await stale.arventCancelBooking(creds,"A-1");
+ assert.equal(pending.status,"pending");
+ assert.equal(pending.needs_manual_review,true);
+ // A business failure is never read back as success and never retried.
+ const refused=setup({allowWrites:true,savedStatus:3,cancelResponse:{success:false,resultCode:5,data:null}});
+ await assert.rejects(refused.arventCancelBooking(creds,"A-1"),/ARVENT_BUSINESS_FAILURE/);
+ assert.equal(refused.calls.filter(call=>call.path.startsWith("/reservations/cancel?")).length,1);
 });
 test("checkout validates token-bound extras without saving a supplier booking",async()=>{
  const a=setup({requiredExtras:[{code:"INS",isRequired:true,price:5}]});
