@@ -3035,6 +3035,10 @@ document.addEventListener("click", async function(e) {
     if (arventLicenseBlock) arventLicenseBlock.hidden = true;
     const arventLicenseInput = document.getElementById("arventLicenseSince");
     if (arventLicenseInput) arventLicenseInput.value = "";
+    window.r24LocalMinLicenceYears = 0;
+    window.r24BookingLicencePeople = null;
+    const licenceNotice = document.getElementById("bookingDriverLicenceInfo");
+    if (licenceNotice) licenceNotice.hidden = true;
     const generalAck = document.getElementById("acceptTerms");
     if (generalAck) generalAck.checked = false;
 
@@ -3066,6 +3070,7 @@ document.addEventListener("click", async function(e) {
             .eq("user_id", currentUser.id);
 
         const isEn = localStorage.getItem("client_lang") === "en";
+        window.r24BookingLicencePeople = { owner: profileCheck, drivers: myDrivers || [] };
         const ownerText = isEn ? `Me (${profileCheck.name})` : `Ja (${profileCheck.name})`;
 
         let optionsHtml = `<option value="" data-pl="👤 Ja (${profileCheck.name})" data-en="👤 Me (${profileCheck.name})">👤 ${ownerText}</option>`;
@@ -3116,12 +3121,25 @@ document.addEventListener("click", async function(e) {
                 const cardNotice = document.getElementById("aviaCardRequirement");
                 if (cardNotice) cardNotice.hidden =
                     car.partner_id !== "91e04805-31da-4242-9e6f-b6075019d784";
-                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,api_provider").eq("id", car.partner_id).single();
+                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,min_licence_years,provider_type,api_provider").eq("id", car.partner_id).single();
                 const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
                 if (arventLicenseBlock) {
                     // Arvent may still be staged under api_provider=custom before launch.
                     arventLicenseBlock.hidden = !(partner?.api_provider === "arvent_kolaycar"
                         || car.partner_id === "bf29a373-c464-4cec-87a7-c3218ea1ea51");
+                }
+
+                const localLicenceYears = partner?.provider_type === "local" ? Number(partner.min_licence_years ?? 0) : 0;
+                window.r24LocalMinLicenceYears = Number.isInteger(localLicenceYears) && localLicenceYears > 0 && localLicenceYears <= 50 ? localLicenceYears : 0;
+                const licenceInfo = document.getElementById("bookingDriverLicenceInfo");
+                if (licenceInfo) {
+                    const years = window.r24LocalMinLicenceYears;
+                    licenceInfo.hidden = years === 0;
+                    if (years) {
+                        licenceInfo.dataset.pl = `Każdy kierowca musi mieć prawo jazdy od co najmniej ${years} lat w dniu odbioru.`;
+                        licenceInfo.dataset.en = `Every driver needs at least ${years} years of driving licence experience at pickup.`;
+                        licenceInfo.textContent = localStorage.getItem("client_lang") === "en" ? licenceInfo.dataset.en : licenceInfo.dataset.pl;
+                    }
                 }
 
                 const ageInfo = document.getElementById("bookingDriverAgeInfo");
@@ -3200,6 +3218,27 @@ document.addEventListener("click", async function(e) {
 
                 if (driverId && additionalDriverId && driverId === additionalDriverId) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
+                }
+
+                // Early feedback for local rentals; the server independently enforces the same rule.
+                const localMinLicenceYears = Number(window.r24LocalMinLicenceYears || 0);
+                if (localMinLicenceYears > 0 && window.r24BookingLicencePeople) {
+                    const people = window.r24BookingLicencePeople;
+                    const main = driverId ? people.drivers.find(d => d.id === driverId) : people.owner;
+                    const extra = additionalDriverId ? people.drivers.find(d => d.id === additionalDriverId) : null;
+                    for (const [person, role] of [[main, "main"], ...(additionalDriverId ? [[extra, "additional"]] : [])]) {
+                        const actualYears = window.ride24LicenceYearsAtPickup(person?.license_since, startDate);
+                        if (actualYears === null) {
+                            throw new Error(isEn
+                                ? `Enter the original driving licence date for the ${role} driver in Profile.`
+                                : `Uzupełnij datę pierwszego uzyskania prawa jazdy ${role === "main" ? "głównego" : "dodatkowego"} kierowcy w Profilu.`);
+                        }
+                        if (actualYears < localMinLicenceYears) {
+                            throw new Error(isEn
+                                ? `Each driver must have at least ${localMinLicenceYears} years of driving licence experience at pickup.`
+                                : `Każdy kierowca musi mieć co najmniej ${localMinLicenceYears} lat stażu prawa jazdy w dniu odbioru.`);
+                        }
+                    }
                 }
 
                 const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
@@ -4247,6 +4286,16 @@ function calculateRefundPercent(pickupDate) {
             return v;
         };
 
+        // Completed licence years on the local pickup calendar date, never rounded days/365.
+        window.ride24LicenceYearsAtPickup = function(firstIssued, pickupDate) {
+            const first = window.ride24LicenseDate(firstIssued);
+            if (!first || !/^\\d{4}-\\d{2}-\\d{2}$/.test(pickupDate || "") || pickupDate < first) return null;
+            const fy = Number(first.slice(0,4)), fm = Number(first.slice(5,7)), fd = Number(first.slice(8,10));
+            const py = Number(pickupDate.slice(0,4)), pm = Number(pickupDate.slice(5,7)), pd = Number(pickupDate.slice(8,10));
+            if (!Number.isInteger(py) || py < 1900 || pm < 1 || pm > 12 || pd < 1 || pd > 31) return null;
+            return py - fy - ((pm < fm || (pm === fm && pd < fd)) ? 1 : 0);
+        };
+
         window.saveProfile = async function() {
             if(!db || !currentUser) {
                 window.showToast(localStorage.getItem("client_lang") === "en" ? "Please log in first!" : "Zaloguj się najpierw!", "error");
@@ -4303,8 +4352,9 @@ function calculateRefundPercent(pickupDate) {
                     <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label data-pl="Prawo jazdy od" data-en="Licence since">Prawo jazdy od</label>
-                    <input type="date" class="driver-license-since" value="${window.ride24LicenseDate(licenseSince) || ""}">
+                    <label data-pl="Data pierwszego uzyskania prawa jazdy *" data-en="Date first granted a driving licence *">Data pierwszego uzyskania prawa jazdy *</label>
+                    <input type="date" class="driver-license-since" required autocomplete="off" value="${window.ride24LicenseDate(licenseSince) || ""}">
+                    <small data-pl="Podaj datę pierwszego uzyskania uprawnień, nie datę wydania nowego dokumentu." data-en="Enter the original entitlement date, not the date a replacement card was issued.">Podaj datę pierwszego uzyskania uprawnień, nie datę wydania nowego dokumentu.</small>
                 </div>
                 <button type="button" class="btn-icon-remove" onclick="removeDriver(this, '${driverId}')" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
             `;
@@ -4330,6 +4380,19 @@ function calculateRefundPercent(pickupDate) {
                 return;
             }
             const rows = document.querySelectorAll(".driver-entry");
+            // Validate every named additional driver BEFORE the existing replace-list operation.
+            // Historic rows with a missing date remain readable until the user edits/saves them.
+            for (const row of rows) {
+                if (!row.querySelector(".driver-name")?.value.trim()) continue;
+                const licenceInput = row.querySelector(".driver-license-since");
+                if (!window.ride24LicenseDate(licenceInput?.value)) {
+                    window.showToast(isEn
+                        ? "Enter the original driving licence date for every additional driver."
+                        : "Podaj datę pierwszego uzyskania prawa jazdy każdego dodatkowego kierowcy.", "error");
+                    licenceInput?.focus();
+                    return;
+                }
+            }
             const newDrivers = [];
             try {
                 await db.from("drivers").delete().eq("user_id", currentUser.id);
@@ -5030,6 +5093,7 @@ window.closeReviewModal = function() {
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--blue-dark); margin-bottom: 6px; display: block;" data-pl="Główny kierowca" data-en="Main driver">Główny kierowca</label>
                     <p id="bookingDriverAgeInfo" role="status" style="font-size:13px"></p>
+                    <p id="bookingDriverLicenceInfo" role="status" hidden style="font-size:13px;line-height:1.5;color:#475569"></p>
                     <select id="driverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
                 </div>
                 <div id="arventLicenseRequirement" hidden>
