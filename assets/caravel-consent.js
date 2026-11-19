@@ -43,8 +43,44 @@
     heading.setAttribute("style", "display:block;font-size:14px;color:#0F172A;margin-bottom:6px");
     box.appendChild(heading);
 
-    // The amounts below come from the server's accepted quote, never browser calculations.
-    if (money.rental_at_pickup && money.ride24_fee) {
+    // All fee rows and amounts are read from the signed-in user's server quote.
+    // Never calculate age, one-way or night rates in the browser.
+    var breakdown = money.breakdown;
+    if (breakdown && Array.isArray(breakdown.fees)) {
+      var pricePanel = document.createElement("section");
+      pricePanel.setAttribute("aria-label", en ? "Caravel itemised price" : "Rozliczenie Caravel");
+      pricePanel.setAttribute("style", "background:#fff;border:1px solid #CBD5E1;border-radius:8px;padding:10px 12px;margin:8px 0 10px");
+      pricePanel.appendChild(text("strong", en ? "Your price — supplier-confirmed" : "Twoja cena — potwierdzona przez Caravel",
+        "display:block;margin-bottom:8px;color:#0F172A"));
+      function priceRow(name, value, emphasise) {
+        var r = document.createElement("div");
+        r.setAttribute("style", "display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin:5px 0;" +
+          (emphasise ? "padding-top:7px;border-top:1px solid #E2E8F0;font-weight:800;" : ""));
+        var labelEl = text("span", name);
+        var valueEl = text("strong", value, "white-space:nowrap;font-variant-numeric:tabular-nums");
+        r.appendChild(labelEl); r.appendChild(valueEl);
+        pricePanel.appendChild(r);
+      }
+      priceRow(en ? "Rental incl. Premium" : "Wynajem z pakietem Premium", breakdown.rental_base);
+      breakdown.fees.forEach(function (fee) {
+        var name = fee.label;
+        if (fee.original_label && fee.original_label !== fee.label) name += " (" + fee.original_label + ")";
+        priceRow(name, fee.amount);
+      });
+      if (!breakdown.fees.length) {
+        pricePanel.appendChild(text("small", en
+          ? "No additional mandatory charges in this supplier quote."
+          : "Brak dodatkowych obowiązkowych dopłat w tej wycenie.",
+          "display:block;margin:4px 0;color:#64748B"));
+      }
+      priceRow(en ? "Pay Caravel at pickup" : "Do zapłaty Caravel przy odbiorze", breakdown.partner_total, true);
+      priceRow(en ? "Ride24 reservation fee — online" : "Opłata rezerwacyjna Ride24 — online", money.ride24_fee);
+      pricePanel.appendChild(text("small", en
+        ? "All listed surcharges are already included in the supplier total. They are not added a second time."
+        : "Wszystkie dopłaty są już zawarte w kwocie Caravel. Nie naliczamy ich drugi raz.",
+        "display:block;margin-top:8px;color:#475569"));
+      box.appendChild(pricePanel);
+    } else if (money.rental_at_pickup && money.ride24_fee) {
       box.appendChild(text("p", en
         ? "At pickup: " + money.rental_at_pickup + " to Caravel. Online: " + money.ride24_fee + " Ride24 reservation fee."
         : "Przy odbiorze: " + money.rental_at_pickup + " dla Caravel. Online: " + money.ride24_fee + " opłaty rezerwacyjnej Ride24.",
