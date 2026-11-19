@@ -45,6 +45,8 @@ export function caravelSafeExtraCatalog(raw:unknown,supplierId:string,currency="
   const qty=obj(e.quantity),max=qty?.max;
   const quantity=e.requires_quantity===true?max:1;
   const min=qty?.min;
+  const qtyNum=typeof quantity==="number"?quantity:NaN;
+  const minNum=typeof min==="number"?min:NaN;
   const category=typeof e.category==="string"&&/^[a-z][a-z0-9_]{0,45}$/.test(e.category)?e.category:"other";
   const exclusive=typeof e.mutually_exclusive_group==="string"&&ID.test(e.mutually_exclusive_group)?e.mutually_exclusive_group:null;
   let reason="";
@@ -53,7 +55,7 @@ export function caravelSafeExtraCatalog(raw:unknown,supplierId:string,currency="
   else if(e.payable!=="at_pickup")reason="PAYMENT_METHOD_UNSUPPORTED";
   else if(e.pricing_type!=="per_day"&&e.pricing_type!=="per_rental")reason="PRICING_UNVERIFIED";
   else if(unit===null||((e.price_cap!==null&&e.price_cap!==undefined)&&cap===null))reason="PRICE_UNVERIFIED";
-  else if(!Number.isInteger(quantity)||quantity<1||quantity>9 || (min!==undefined&&min!==null&&(!Number.isInteger(min)||min>1||min<0)))
+  else if(!Number.isInteger(qtyNum)||qtyNum<1||qtyNum>9 || (min!==undefined&&min!==null&&(!Number.isInteger(minNum)||minNum>1||minNum<0)))
     reason="QUANTITY_UNSUPPORTED";
   if(reason){unavailable.push({name,reason});continue;}
   catalog.push({extra_id:id,code,name_en:name,name_pl:PL[category]||name,category,
