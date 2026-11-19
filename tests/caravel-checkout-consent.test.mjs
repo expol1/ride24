@@ -43,6 +43,9 @@ test("consent view: verified terms, every exclusion, exact admin fee, money spli
   assert.equal(v.coverage.full_insurance_claim_allowed, false);
   assert.equal(v.coverage.damage_admin_fee_minor, 10000);
   assert.equal(v.money.rental_at_pickup, "150.00 EUR");
+  assert.equal(v.money.customer_total,"165.00 EUR");
+  assert.equal(v.money.customer_total_minor,16500);
+  assert.equal(v.money.ride24_fee_minor,1500);
   assert.equal(v.money.charged_by_stripe, "ride24_fee_only");
   const all = v.statements.join(" ");
   assert.match(all, /płacisz Caravel przy odbiorze/);
@@ -82,6 +85,8 @@ test("consent price breakdown translates provider fees and reconciles exact tota
  });
  assert.equal(v.money.rental_at_pickup,"150.00 EUR");
  assert.equal(v.money.ride24_fee,"15.00 EUR");
+ assert.equal(v.money.customer_total,"165.00 EUR");
+ assert.equal(buildCaravelConsentView(await quoteRow({final_total:164}),release,"pl",NOW),null,"gross must reconcile provider and platform charges");
  for(const broken of [
   {version:1,currency:"EUR",rental_minor:10000,mandatory_fees_minor:4900,extras_minor:0,total_minor:15000,fees:[]},
   {version:1,currency:"USD",rental_minor:15000,mandatory_fees_minor:0,extras_minor:0,total_minor:15000,fees:[]},
