@@ -15,7 +15,11 @@ async function page(responses) {
     <section id="caravelConsent" hidden></section>`, {runScripts: 'outside-only', url: 'https://ride24.pl/klient.html'});
   const calls = [];
   dom.window.fetch = async (url, opts) => {
-    const body = JSON.parse(opts.body); calls.push({url, body, auth: opts.headers.Authorization});
+    const body = JSON.parse(opts.body);
+    if (body.action === 'extras-catalog') return {
+      ok:true,status:200,json:async()=>({success:true,catalog:[],unavailable:[]}),
+    };
+    calls.push({url, body, auth: opts.headers.Authorization});
     const r = responses.shift();
     return {ok: r.status === 200, status: r.status, json: async () => r.body};
   };
