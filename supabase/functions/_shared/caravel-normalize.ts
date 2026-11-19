@@ -895,7 +895,7 @@ export function caravelExtrasCatalog(
 }
 
 // ---------------------------------------------------- sync row builders ----
-const LOCATION_TYPES = new Set(["airport", "city", "port", "station", "hotel"]);
+const CATALOG_LOCATION_TYPES: Record<string, string> = {airport: "airport", city: "city", port: "seaport", station: "railway_station", hotel: "hotel"};
 
 /**
  * Same column mapping as the existing API partner sync (api-partner-admin),
@@ -918,7 +918,7 @@ export function caravelSyncRows(
       region: l.region,
       city: l.city || null,
       location_name: l.location_name,
-      type: LOCATION_TYPES.has(String(l.type || "").toLowerCase()) ? String(l.type).toLowerCase() : "city",
+      type: CATALOG_LOCATION_TYPES[String(l.type || "").toLowerCase()] ?? "city",
       extra_fee: l.extra_fee === true,
       extra_fee_amount: l.extra_fee_amount ?? null,
       return_fee_amount: l.return_fee_amount ?? 0,
