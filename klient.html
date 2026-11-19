@@ -2302,7 +2302,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
-    <script src="assets/caravel-consent.js?v=20261119-second-driver-verified"></script>
+    <script src="assets/caravel-consent.js?v=20261119-profile-age-price"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
@@ -3198,6 +3198,13 @@ document.addEventListener("click", async function(e) {
             addSelect.title=isEn
                 ? "Choose a saved additional driver. Ride24 will ask Caravel to re-price before booking."
                 : "Wybierz zapisanego dodatkowego kierowcę. Przed rezerwacją potwierdzimy nową cenę w Caravel.";
+            // Initial search quotes Caravel for age 30. Show the actual saved
+            // main driver's price before collecting any consent or payment.
+            if (window.Ride24CaravelConsent.requiresAgeRequote(profileCheck.age)) {
+                await window.Ride24CaravelConsent.requoteDrivers({
+                    driverId: select.value || null, additionalDriverId: null, force: true
+                });
+            }
         } else {
             addSelect.disabled=false;
             await bookingExtras.start();

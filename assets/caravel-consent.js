@@ -293,6 +293,10 @@
     PARTNER: PARTNER,
     isCaravel: function (partnerId) { return partnerId === PARTNER; },
     active: function () { return state.active; },
+    requiresAgeRequote: function (age) {
+      return !!(state.active && state.view && Number.isInteger(Number(age)) &&
+        Number(state.view.driver_age) !== Number(age));
+    },
     reset: reset,
     /** Load and show the consent for the selected quote; hides supplier PDF links (comparison only). */
     prepare: async function (opts) {
@@ -336,7 +340,7 @@
       if (!state.active || !state.auth || !state.quoteId || state.busy) return false;
       var mainId=opts?.driverId||null, extraId=opts?.additionalDriverId||null;
       if(mainId && mainId===extraId) return false;
-      if(mainId===state.mainDriverId && extraId===state.additionalDriverId) return true;
+      if(mainId===state.mainDriverId && extraId===state.additionalDriverId && !opts?.force) return true;
       state.busy=true;
       var prevMain=state.mainDriverId, prevExtra=state.additionalDriverId;
       try {
@@ -344,6 +348,7 @@
           api_quote_id:state.quoteId,driver_id:mainId,additional_driver_id:extraId
         },state.auth.accessToken,state.auth.supabaseUrl,state.auth.supabaseKey);
         if (!r.ok || !r.body?.consent) {
+          if(opts?.force)state.submitLocked=true;
           if (window.showToast) window.showToast((isEnglish()?r.body?.error_en:r.body?.error)||
             (isEnglish()?"Caravel could not confirm the drivers and price.":"Caravel nie potwierdził kierowców i ceny."),"error");
           var m=byId("driverSelect"),a=byId("additionalDriverSelect");
@@ -355,12 +360,13 @@
         state.selected=(state.view.money?.breakdown?.extras||[]).map(function(x){
           return {extra_id:x.extra_id,quantity:x.quantity};
         });
-        state.mainDriverId=mainId;state.additionalDriverId=extraId;
+        state.mainDriverId=mainId;state.additionalDriverId=extraId;state.submitLocked=false;
         try {localStorage.setItem("selectedApiQuoteId",state.quoteId);}catch(e){}
         var general=byId("acceptTerms");if(general)general.checked=false;
         render(state.view);renderExtras();
         return true;
       } catch(err) {
+        if(opts?.force)state.submitLocked=true;
         if(window.showToast)window.showToast(isEnglish()
           ? "Caravel could not update the drivers. Please retry."
           : "Nie udało się przeliczyć kierowców w Caravel. Spróbuj ponownie.","error");
