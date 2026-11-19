@@ -71,8 +71,12 @@ serve(async (req) => {
           const credentials=await loadPartnerCredentials(admin,cart.partner_id);
           const prepared=await revalidatePaidProvider(credentials,cart,quote);
           await arventVerifyCheckout(credentials,prepared);
-        } catch {
-          return new Response(JSON.stringify({error:'ARVENT_QUOTE_UNVERIFIED'}),{status:409,headers:cors(req)});
+        } catch (e) {
+          // Expose only the stable internal reason code (no supplier payload or PII).
+          const raw=e instanceof Error?e.message:'';
+          const reason=/^(?:PARTNER_API_ERROR:)?([A-Z0-9_:]{3,80})$/.exec(raw)?.[1]||'UNKNOWN';
+          console.error('create_checkout_session arvent verify failed',booking.id,reason);
+          return new Response(JSON.stringify({error:'ARVENT_QUOTE_UNVERIFIED',reason}),{status:409,headers:cors(req)});
         }
       }
       if(booking.stripe_session_id) {
