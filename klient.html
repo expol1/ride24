@@ -2305,6 +2305,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/caravel-consent.js?v=20261119-avia-summary"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
+    import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
     document.getElementById('deleteModal').style.display = 'flex';
@@ -2773,6 +2774,51 @@ window.goToPayment = goToPayment;
             console.error("❌ BŁĄD KRYTYCZNY: Nie udało się utworzyć obiektu 'db'! Sprawdź plik supabaseConfig.js");
         }
         let currentUser = null;
+
+        // The UI is locked until the signed-in user's SAVED profile passes validation.
+        window.r24ClientProfileReady = false;
+        window.r24ClientProfileProblems = [];
+        window.r24RenderProfileProblems = function(shouldFocus = false) {
+            const errors = window.r24ClientProfileProblems || [];
+            const isEn = localStorage.getItem("client_lang") === "en";
+            const summary = document.getElementById("profile-setup-missing");
+            if (summary) summary.textContent = errors.length
+                ? (isEn ? "Required: " : "Do uzupełnienia: ") + errors.map(e => isEn ? e.en : e.pl).join(", ") + "."
+                : "";
+            document.querySelectorAll('#view-profile [aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
+            for (const item of errors) document.getElementById(item.id)?.setAttribute('aria-invalid', 'true');
+            if (shouldFocus && errors.length) {
+                const first = document.getElementById(errors[0].id);
+                if (first && !first.readOnly) first.focus({preventScroll:false});
+            }
+        };
+        window.r24ApplyClientProfileGate = function(savedProfile, shouldFocus = false) {
+            const problems = clientProfileErrors(savedProfile, currentUser?.email);
+            const ready = problems.length === 0;
+            window.r24ClientProfileReady = ready;
+            window.r24ClientProfileProblems = problems;
+            document.body.classList.remove("r24-profile-checking");
+            document.body.classList.toggle("r24-profile-incomplete", !ready);
+            for (const navId of ["dashboard","bookings","payments","android"]) {
+                const nav = document.getElementById("nav-" + navId);
+                if (!nav) continue;
+                if (ready) {
+                    nav.removeAttribute("aria-disabled");
+                    nav.removeAttribute("data-r24-locked");
+                } else {
+                    nav.setAttribute("aria-disabled", "true");
+                    nav.setAttribute("data-r24-locked", "true");
+                }
+            }
+            window.r24RenderProfileProblems(shouldFocus);
+            if (!ready) window.switchTab("profile");
+            return ready;
+        };
+        document.addEventListener("input", event => {
+            if (event.target?.closest?.("#view-profile") && event.target?.hasAttribute?.("aria-invalid")) {
+                event.target.removeAttribute("aria-invalid");
+            }
+        });
         let payments = [];
         // 🔥 LOYALTY SYSTEM CONFIG
 // 🔥 LOYALTY SYSTEM CONFIG (Z nowymi, pięknymi tłami)
@@ -2960,42 +3006,27 @@ if (!currentUser || !currentUser.id) {
 
             window.detectLang();
             window.setupInvoiceFieldHandlers();
-            await loadUserProfile();
-            await loadClientBookings();
-            await loadPayments();
-
-            // 🔥 BRAMKARZ V2 (Wiek + Telefon + Imię + Scroll UX)
-            const { data: profileCheck } = await db.from("profiles").select("name, phone, age").eq("id", currentUser.id).maybeSingle();
-            const isProfileIncomplete = !profileCheck || !profileCheck.name || !profileCheck.phone || !profileCheck.age;
-
-            if (isProfileIncomplete) {
-                window.showToast(localStorage.getItem("client_lang") === "en" ? "Please provide your phone number and age to continue!" : "Podaj swój telefon i wiek, aby móc rezerwować auta!", "error");
-                window.switchTab("profile");
-
-                setTimeout(() => {
-                    let firstMissing = null;
-                    const checkFields = [
-                        { val: profileCheck?.name, id: "profile-name" },
-                        { val: profileCheck?.phone, id: "profile-phone" },
-                        { val: profileCheck?.age, id: "profile-age" }
-                    ];
-
-                    checkFields.forEach(f => {
-                        if (!f.val) {
-                            const el = document.getElementById(f.id);
-                            if (el) {
-                                el.style.border = "2px solid var(--red)";
-                                if (!firstMissing) firstMissing = el;
-                            }
-                        }
-                    });
-
-                    if (firstMissing) firstMissing.scrollIntoView({ behavior: "smooth", block: "center" });
-                }, 150);
+            let profileCheck = null;
+            try {
+                profileCheck = await loadUserProfile();
+            } catch (profileError) {
+                console.error("Client profile verification failed:", profileError);
+                window.showToast(localStorage.getItem("client_lang") === "en"
+                    ? "Could not verify your profile. Refresh the page or try again."
+                    : "Nie udało się zweryfikować profilu. Odśwież stronę lub spróbuj ponownie.", "error");
+            }
+            const profileReady = window.r24ApplyClientProfileGate(profileCheck, false);
+            if (profileReady) {
+                await loadClientBookings();
+                await loadPayments();
+            } else {
+                window.showToast(localStorage.getItem("client_lang") === "en"
+                    ? "Save the required profile details to unlock the panel."
+                    : "Uzupełnij i zapisz dane podstawowe, aby odblokować panel.", "info");
             }
 
             if (localStorage.getItem("autoOpenBooking") === "true") {
-                if (!isProfileIncomplete) {
+                if (profileReady) {
                     localStorage.removeItem("autoOpenBooking");
                     setTimeout(() => {
                         window.showToast(localStorage.getItem("client_lang") === "en" ? "Complete your booking 👇" : "Dokończ rezerwację 👇", "success");
@@ -3050,6 +3081,11 @@ document.addEventListener("click", async function(e) {
            context:bookingQuoteContext, isApiBooking:()=>!!localStorage.getItem("selectedApiQuoteId"), isEn:()=>localStorage.getItem("client_lang")==="en"});
        window.submitBooking = function() {
     const isEn = localStorage.getItem("client_lang") === "en";
+    if (!window.r24ClientProfileReady) {
+        window.switchTab("profile");
+        window.showToast(isEn ? "Complete and save your profile before booking." : "Uzupełnij i zapisz profil przed rezerwacją.", "error");
+        return;
+    }
 
     const carClassId = localStorage.getItem("selectedCarId");
     if (!carClassId) {
@@ -3398,6 +3434,7 @@ document.addEventListener("click", async function(e) {
         }
 
        async function loadClientBookings() {
+            if (!window.r24ClientProfileReady) return;
             const dashTbody = document.getElementById('dashboard-bookings-tbody');
             const isEn = localStorage.getItem("client_lang") === "en";
             const bookTbody = document.getElementById('bookings-tbody');
@@ -4090,6 +4127,7 @@ function calculateRefundPercent(pickupDate) {
                 .select("*")
                 .eq("id", currentUser.id) // Używamy "id", bo tak jest w Twojej bazie
                 .maybeSingle();
+            if (error) throw error;
                 // 🔥 PSEUDO-AUTO AGE LOGIC (Premium SaaS)
             if(profile && profile.age && profile.age_updated_at) {
                 const today = new Date();
@@ -4118,8 +4156,8 @@ function calculateRefundPercent(pickupDate) {
                 if(document.getElementById("profile-age")) document.getElementById("profile-age").value = profile.age || "";
                 if(document.getElementById("profile-phone")) document.getElementById("profile-phone").value = profile.phone || "";
                 if(document.getElementById("profile-license-since")) document.getElementById("profile-license-since").value = profile.license_since || "";
-                // 🔥 FIX: Domyślnie ładuje "PL" jeśli baza zwróci null
-                if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "PL";
+                // Never assume residence country for incomplete accounts.
+                if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "";
 
                 const greeting = document.getElementById("topbar-greeting");
                 if(greeting) {
@@ -4132,6 +4170,8 @@ function calculateRefundPercent(pickupDate) {
                 }
             }
 
+            // Optional drivers are not loaded until the core account has been verified.
+            if (clientProfileErrors(profile, currentUser.email).length > 0) return profile;
             const { data: driversData } = await db
                 .from("drivers")
                 .select("*")
@@ -4147,6 +4187,7 @@ function calculateRefundPercent(pickupDate) {
                     });
                 }
             }
+            return profile;
         }
 
         function sanitizeInvoiceNip(value) {
@@ -4898,6 +4939,7 @@ window.cancelBooking = async function(id, currentStatus) {
             lang = lang === "en" ? "en" : "pl";
             localStorage.setItem("client_lang", lang);
             window.applyClientLanguage(document);
+            window.r24RenderProfileProblems?.();
 
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
             const activeBtn = document.getElementById('lang-' + lang);
@@ -4914,6 +4956,14 @@ window.cancelBooking = async function(id, currentStatus) {
         }
 
         window.switchTab = function(tabId) {
+            if (!window.r24ClientProfileReady && tabId !== "profile") {
+                tabId = "profile";
+                if (!document.body.classList.contains("r24-profile-checking")) {
+                    window.showToast(localStorage.getItem("client_lang") === "en"
+                        ? "Save your required profile details first."
+                        : "Najpierw zapisz wymagane dane profilu.", "info");
+                }
+            }
             if (tabId === 'android') {
                 localStorage.setItem('r24_client_android_tab_seen', '1');
                 const androidBadge = document.getElementById('clientAndroidNewBadge');
@@ -4927,7 +4977,7 @@ window.cancelBooking = async function(id, currentStatus) {
             const targetNav = document.getElementById('nav-' + tabId);
             if(targetNav) targetNav.classList.add('active');
 
-            if (tabId === "profile" && typeof window.loadInvoiceData === "function") {
+            if (tabId === "profile" && window.r24ClientProfileReady && typeof window.loadInvoiceData === "function") {
                 window.loadInvoiceData();
             }
         }
@@ -4974,6 +5024,7 @@ function translateStatus(status, lang = null) {
     return map[status] ? map[status][currentLang] : status;
 }
 window.loadPayments = async function() {
+    if (!window.r24ClientProfileReady) return;
     console.log("💰 loadPayments start");
     const isEn = localStorage.getItem("client_lang") === "en";
 
