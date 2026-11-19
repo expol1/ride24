@@ -67,3 +67,70 @@ Krzysztofa) z następującym potwierdzeniem:
 Kolejny krok: bezpieczny merge PR #121, kontrolowana migracja tabeli
 anulowań i przygotowanie aktualizacji dokumentów przy wyłączonych
 ofertach; następnie certyfikacja jednej rezerwacji i anulowania.
+
+## Aktualizacja wykonawcza 19.11.2026 — po pisemnej zgodzie Arvent
+
+### Zakończone (potwierdzone)
+- Arvent napisał: "We confirm that the proposed booking and payment process is
+  acceptable to Arvent. You may proceed with the final booking and cancellation
+  tests. Please ensure that reservations are only considered confirmed after
+  Arvent's approval." Ta zgoda dotyczy **Stripe-first** jako osobnej opłaty
+  Ride24, bez uznawania samej płatności lub statusu Received za zatwierdzenie.
+- PR **#121** został scalony do `main` jako
+  `18ac4e354e64af7811dae0581142a5e07ad68943`.
+  Ponowny pełny CI **312/312**:
+  <https://github.com/expol1/ride24/actions/runs/44499046154>.
+- Migracja `arvent_cancel_attempts` wdrożona w produkcyjnym Supabase.
+  Potwierdzono RLS, brak INSERT dla anon/authenticated, INSERT wyłącznie
+  dla service_role. Konto Arvent nie zostało aktywowane.
+- Świeży **read-only** request bezpośrednio z Supabase do live Arvent API:
+  auth HTTP 200; AYT, 16–18.02.2027, 10:00, EUR: **78 ofert**;
+  każda z brakiem depozytu/karty i nieograniczonym kilometrażem,
+  **55 z kodem SIPP**; każda z wymaganym stażem prawa jazdy od
+  **1 do 5 lat**. Brak taryf o stażu =0; dawny warunek
+  `min_license_years===0` nie pozwalałby zarezerwować żadnej z tych
+  ofert. Tymczasowe odpowiedzi pg_net, w tym Bearer, usunięto.
+- PR **#122** został scalony do `main` jako
+  `66814119f302093e301adcfac2c090acda177c40`.
+  Wdrożono izolowany dla Arvent formularz WWW z **datą pierwszego
+  uzyskania prawa jazdy** (nie nowej karty), walidację daty przed
+  stworzeniem zamówienia, ponowną kontrolę pełnych lat stażu przed
+  Stripe i przed supplier SaveReservation. Pozostali partnerzy
+  nie dostali nowego obowiązkowego pola.
+  CI pełne **317/317**:
+  <https://github.com/expol1/ride24/actions/runs/44501406282>;
+  pozostałe workflow obowiązkowych opłat, min. dni i UX także sukces.
+- Migracja dodająca opcjonalne pole
+  `public.bookings.main_driver_license_since date` wdrożona do
+  produkcyjnego Supabase; sprawdzone istnienie kolumny.
+
+### Nadal ZABLOKOWANE — nie uruchamiać sprzedaży
+- `api_provider='custom'`, `api_enabled=false`,
+  `api_status='draft'`, 86 nieaktywnych grup i 8 nieaktywnych lotnisk.
+- **Edge Functions na Supabase NIE zostały zaktualizowane** do nowych
+  commitów; nie wolno utożsamiać merge GitHub z aktualizacją pakietów
+  produkcyjnych. Wdrażać selektywnie, porównując z wersjami działającymi
+  dla AVIA/Caravel/Pegasus. Nie przełączać dwóch bramek
+  `ARVENT_KOLAYCAR_WRITE_ALLOWED` i `ARVENT_STRIPE_FIRST_APPROVED`
+  przed wspólną certyfikacją.
+- Wersjonowane, zaakceptowane PDF-y EN/TR nadal zawierają wcześniejszą
+  kolejność płatności. Zgoda Arvent to dowód handlowy, ale należy
+  sporządzić/zaakceptować aktualizację warunków widocznych klientowi
+  przed pierwszym Stripe charge.
+- Rzeczywiste **1× Stripe → 1× Arvent create → zatwierdzenie (1) →
+  voucher/e-mail → Arvent cancel (3) → uzgodniony refund** jeszcze
+  nie zostało przeprowadzone. Partner zezwala na końcowe testy;
+  do operacji na realnych płatnościach i rezerwacjach trzeba uzyskać
+  zgodę/plan kontrolowanej próby po stronie właściciela Ride24,
+  używając rzeczywistych, uprawnionych danych testowego kierowcy.
+- Wciąż trzeba sprawdzić, czy pole `birthDay` jest wymagane dla wybranej
+  taryfy, zweryfikować flagi `fullCredit`/`excess`, ubezpieczenie
+  w zwracanym pakiecie, płatne dodatki, one-way oraz semantykę statusu 6.
+- Brak źródeł aktualnie wydanej aplikacji Android w tym repo;
+  klient Android musi otrzymać pole daty pierwszego uzyskania
+  prawa jazdy albo nie może sprzedawać Arvent do chwili aktualizacji.
+  Obecny backend zablokuje taki niekompletny request przed opłatą.
+
+**Stan:** kod i obie migracje przygotowane; marketingowo i transakcyjnie
+Arvent pozostaje wyłączony. Nie deklarować ukończenia integracji
+produkcyjnej bez powyższej certyfikacji i wdrożenia Edge.
