@@ -222,7 +222,7 @@ test("search-api / checkout / web wiring keeps every other partner path and fail
   const generic = readFileSync(new URL("../supabase/functions/create-booking-request/index.ts", import.meta.url), "utf8");
   assert.match(generic, /code: CARAVEL_PRE_CERTIFICATION_ERROR/, "generic handler still refuses Caravel");
   const html = readFileSync(new URL("../klient.html", import.meta.url), "utf8");
-  assert.match(html, /<script src="assets\/caravel-consent\.js"><\/script>/);
+  assert.match(html, /<script src="assets\/caravel-consent\.js(?:\?v=[^"]+)?"><\/script>/);
   assert.match(html, /id="caravelConsent" hidden/);
   assert.match(html, /window\.Ride24CaravelConsent\.canSubmit\(\)/);
 });
