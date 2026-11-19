@@ -952,14 +952,15 @@ const caravelExact = car.partners?.api_provider === 'caravel'
     && Number.isSafeInteger(caravelNetMinor) && caravelNetMinor > 0
     && Number.isSafeInteger(caravelFeeMinor) && caravelFeeMinor > 0
     && caravelGrossMinor === caravelNetMinor + caravelFeeMinor;
-const baseTotal = caravelExact ? caravelNetMinor / 100
-    : (car.arvent_period_price?.pickup ?? Number((partnerNetPricePerDay * days).toFixed(2)));
-const finalTotal = caravelExact ? caravelGrossMinor / 100
-    : (car.arvent_period_price?.total ?? Number((customerPricePerDay * days).toFixed(2)));
+// Preserve the existing Arvent/local period-price contract and test boundary.
+const baseTotal = car.arvent_period_price?.pickup ?? Number((partnerNetPricePerDay * days).toFixed(2));
+const finalTotal = car.arvent_period_price?.total ?? Number((customerPricePerDay * days).toFixed(2));
+const verifiedBaseTotal = caravelExact ? caravelNetMinor / 100 : baseTotal;
+const verifiedFinalTotal = caravelExact ? caravelGrossMinor / 100 : finalTotal;
 const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     minimumFractionDigits: caravelExact ? 2 : 0,
     maximumFractionDigits: caravelExact || car.arvent_period_price ? 2 : 0
-}).format(finalTotal);
+}).format(verifiedFinalTotal);
 
 // --- KONIEC LOGIKI ---
 
@@ -1144,7 +1145,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     ${locationFeesByCar.get(car) > 0
         ? `<div class="price-info">${lang === 'pl' ? 'Opłaty za odbiór i zwrot' : 'Pickup and return fees'}: ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(locationFeesByCar.get(car))} ${safeCurrency}</div>`
         : ''}
-    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc}, ${Boolean(car.arvent_period_price)}, ${caravelExact ? finalTotal : 'null'})">
+    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${verifiedBaseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc}, ${Boolean(car.arvent_period_price)}, ${caravelExact ? verifiedFinalTotal : 'null'})">
         ${labels.bookBtn}
     </button>
 </div>
