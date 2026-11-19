@@ -24,8 +24,11 @@ test("additional-driver form rejects missing/invalid date BEFORE deleting any sa
   const end = client.indexOf("window.cancelBooking = ", start);
   assert.ok(start >= 0 && end > start);
   const fn = client.slice(start, end);
-  assert.ok(fn.indexOf("window.ride24LicenseDate(licenceInput?.value)") >= 0);
-  assert.ok(fn.indexOf("window.ride24LicenseDate(licenceInput?.value)") < fn.indexOf('db.from("drivers").delete()'));
+  // Full additional-driver validation now runs before an INSERT, and existing drivers
+  // are never removed until the new rows have been stored successfully.
+  assert.ok(fn.indexOf("additionalDriverErrors(candidate)") >= 0);
+  assert.ok(fn.indexOf("additionalDriverErrors(candidate)") < fn.indexOf(".insert(newDrivers)"));
+  assert.ok(fn.indexOf(".insert(newDrivers)") < fn.indexOf(".delete().eq(\"user_id\""));
   assert.match(client, /class="driver-license-since" required autocomplete="off"/);
 });
 
