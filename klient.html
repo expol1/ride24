@@ -2568,11 +2568,12 @@ const res = await fetch(supabaseUrl + "/functions/v1/create_checkout_session", {
   return true;
 }
 
-// "Economy — Hyundai i20 or similar" in the client's language.
+// Same layout as local partners: class letter + car model. Group (SIPP)
+// bookings name the offered example model: "Hyundai i20 lub podobny".
 window.ride24VehicleLabel = function(snap, carClass, isEn) {
   const similar = isEn ? "or similar" : "lub podobny";
-  const group = snap?.group_name, model = snap?.example_model;
-  if (group && model) return `${group} — ${model} ${similar}`;
+  if (snap?.example_model && snap?.group_name) return `${snap.example_model} ${similar}`;
+  if (snap?.example_model) return snap.example_model;
   const text = snap?.description || carClass?.description || "Auto";
   return isEn ? text : String(text).replace(/ or similar$/i, " lub podobny");
 };

@@ -68,28 +68,6 @@ test('existing supplier reference is reconciled by status without re-saving',asy
  assert.ok(!s.calls.includes('create'));
 });
 
-test('Arvent overdue approval enters manual review with original reference and no financial action',async()=>{
- const s=setup({row:{state:'provider_pending',provider_reference:'A-1',
-  paid_at:new Date(Date.now()-61*60000).toISOString(),prepared_quote:{provider:'arvent_kolaycar'}}});
- await advanceApiPayment(s.deps,'b');
- assert.equal(s.row.state,'unknown');
- assert.equal(s.row.provider_reference,'A-1');
- assert.equal(s.row.last_error,'ARVENT_APPROVAL_OVERDUE');
- assert.deepEqual(s.calls,[]);
-});
-
-test('overdue Arvent approval keeps read-only reconciliation: stays flagged while pending, confirms on approval',async()=>{
- const base={state:'unknown',provider_reference:'A-1',last_error:'ARVENT_APPROVAL_OVERDUE',
-  paid_at:new Date(Date.now()-61*60000).toISOString(),prepared_quote:{provider:'arvent_kolaycar'}};
- const waiting=setup({row:base,recovered:{status:'pending',booking_reference:'A-1'}});
- await advanceApiPayment(waiting.deps,'b');
- assert.equal(waiting.row.state,'unknown');assert.deepEqual(waiting.calls,['lookup']);
- const approved=setup({row:base,recovered:{status:'confirmed',booking_reference:'A-1'}});
- await advanceApiPayment(approved.deps,'b');
- assert.equal(approved.row.state,'confirmed');assert.deepEqual(approved.calls,['lookup','voucher-email-push']);
- assert.ok(!approved.calls.includes('create'));
-});
-
 test('definite Arvent failure before save qualifies for full refund, ambiguous transport failure does not',async()=>{
  for(const [error,expected] of [[new DefiniteApiFailure('ARVENT_FAILED_BEFORE_SAVE'),'refund_pending'],[Error('timeout'),'unknown']]){
   const s=setup({createError:error});
@@ -102,7 +80,7 @@ test('definite Arvent failure before save qualifies for full refund, ambiguous t
 const late={state:'provider_pending',provider_reference:'A-1',
  paid_at:new Date(Date.now()-25*3600000).toISOString(),
  prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2030-06-01',pickup_time:'10:00'}};
-test('Arvent not approved within 24h: cancelled at supplier first, then full refund',async()=>{
+test('Arvent not approved within 30 minutes: cancelled at supplier first, then full refund',async()=>{
  const s=setup({row:late});
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'refund_pending');assert.equal(s.row.last_error,'ARVENT_APPROVAL_TIMEOUT');
@@ -123,10 +101,10 @@ test('Arvent approval read at the deadline still confirms instead of cancelling'
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'confirmed');assert.ok(!s.calls.includes('cancel'));
 });
-test('Arvent approval deadline is 24h after payment, but at least 2h before local pickup',()=>{
+test('Arvent approval deadline is 30 minutes after payment, but at least 2h before local pickup',()=>{
  const paid='2026-11-19T14:40:00Z';
- assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2027-02-16',pickup_time:'10:00:00'}}),Date.parse('2026-11-20T14:40:00Z'));
- assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2026-11-20',pickup_time:'09:00'}}),Date.parse('2026-11-20T04:00:00Z'));
+ assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2027-02-16',pickup_time:'10:00:00'}}),Date.parse('2026-11-19T15:10:00Z'));
+ assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2026-11-19',pickup_time:'19:00'}}),Date.parse('2026-11-19T14:00:00Z'));
  assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'renteon_aggregator'}}),null);
 });
 test('other providers never use the Arvent approval timeout',async()=>{

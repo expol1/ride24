@@ -13,14 +13,15 @@ export function verifyApiPayment(booking, session, liveMode) {
 }
 export class DefiniteApiFailure extends Error {}
 
-// Arvent must approve (status 1) within 24h of payment, and never later than
-// 2h before the local pickup time (Turkey, UTC+3). Returns epoch ms or null.
-export const ARVENT_APPROVAL_HOURS=24;
+// Arvent must approve (status 1) within 30 minutes of payment (agreed with
+// Arvent 2026-11-19: manual approval, vehicle assigned within 30 min), and
+// never later than 2h before local pickup (Turkey, UTC+3). Epoch ms or null.
+export const ARVENT_APPROVAL_MINUTES=30;
 export function arventApprovalDeadline(w) {
   if(w?.prepared_quote?.provider!=='arvent_kolaycar')return null;
   const paid=Date.parse(w.paid_at);
   if(!Number.isFinite(paid))return null;
-  let deadline=paid+ARVENT_APPROVAL_HOURS*3600000;
+  let deadline=paid+ARVENT_APPROVAL_MINUTES*60000;
   const d=String(w.prepared_quote.pickup_date||''),t=String(w.prepared_quote.pickup_time||'');
   const pickup=/^\d{4}-\d{2}-\d{2}$/.test(d)&&/^\d{2}:\d{2}/.test(t)?Date.parse(d+'T'+t.slice(0,5)+':00+03:00'):NaN;
   if(Number.isFinite(pickup))deadline=Math.min(deadline,pickup-2*3600000);
@@ -68,15 +69,7 @@ export async function advanceApiPayment(deps,id) {
   }
   if(w.state==='provider_pending') {
     // Use the immutable payment time. Polling refreshes updated_at on each pass.
-    // An overdue Arvent approval is a reconciliation case, never proof of failure.
-    const overdue=w.prepared_quote?.provider==='arvent_kolaycar'
-      && Date.now()-Date.parse(w.paid_at)>=60*60*1000;
-    if(overdue) {
-      // Flag for review but keep READ-ONLY status reconciliation: supplier
-      // approval can legitimately arrive hours later (status 1) or be cancelled (3).
-      await move('provider_pending','unknown',{last_error:'ARVENT_APPROVAL_OVERDUE'});
-      return {state:'unknown'};
-    }
+    // Arvent approval timeout (30 min) is handled above, before this read.
     const result=await deps.status(id,w);return await acceptResult(result,'provider_pending');
   }
   if(w.state==='refund_pending'||w.state==='refunding') {
