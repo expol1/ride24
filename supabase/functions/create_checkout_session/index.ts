@@ -6,7 +6,7 @@ import { androidPaymentReturnUrl } from "../_shared/payment-return.mjs";
 import { apiPaymentEnabled } from "../_shared/api-payment-runtime.ts";
 import { arventVerifyCheckout } from "../_shared/arvent-kolaycar.ts";
 import { loadPartnerCredentials } from "../_shared/partner-api.ts";
-import { hasPaidFulfillmentAdapter, revalidatePaidProvider } from "../_shared/api-provider-fulfillment.ts";
+import { hasPaidFulfillmentAdapter, arventOwnerPilotBookingAllowed, revalidatePaidProvider } from "../_shared/api-provider-fulfillment.ts";
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -39,7 +39,7 @@ serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data: booking, error } = await admin.from("bookings")
-      .select("id,client_id,status,online_payment_pln,reservation_code,payment_deadline,provider_type,stripe_session_id,cancelled_at,api_quote_id,partners!bookings_partner_id_fkey(api_provider)")
+      .select("id,client_id,partner_id,status,online_payment_pln,reservation_code,payment_deadline,provider_type,stripe_session_id,cancelled_at,api_quote_id,partners!bookings_partner_id_fkey(api_provider)")
       .eq("id", bookingId).maybeSingle();
     if (error || !booking) return new Response(JSON.stringify({ error: "BOOKING_NOT_FOUND" }), { status: 404, headers: cors(req) });
     if (booking.client_id !== user.id) return new Response(JSON.stringify({ error: "FORBIDDEN" }), { status: 403, headers: cors(req) });
@@ -50,7 +50,9 @@ serve(async (req) => {
 
     const isApi=booking.provider_type==='api';
     if(isApi) {
-      if(!await apiPaymentEnabled(admin)||!hasPaidFulfillmentAdapter(booking.partners?.api_provider))
+      if(!await apiPaymentEnabled(admin)||
+        (!hasPaidFulfillmentAdapter(booking.partners?.api_provider)
+          && !await arventOwnerPilotBookingAllowed(admin,booking)))
         return new Response(JSON.stringify({error:'API_PAYMENT_FLOW_PAUSED'}),{status:503,headers:cors(req)});
       if(booking.cancelled_at||!booking.payment_deadline||Date.parse(booking.payment_deadline)<=Date.now())
         return new Response(JSON.stringify({error:'PAYMENT_DEADLINE_EXPIRED'}),{status:409,headers:cors(req)});
