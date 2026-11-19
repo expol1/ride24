@@ -4501,54 +4501,81 @@ function calculateRefundPercent(pickupDate) {
 
        window.saveDrivers = async function() {
             const isEn = localStorage.getItem("client_lang") === "en";
-            if(!db || !currentUser) {
-                window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
+            if (!db || !currentUser?.id || !window.r24ClientProfileReady) {
+                window.switchTab("profile");
+                window.showToast(isEn ? "Complete and save your required profile first." : "Najpierw zapisz wymagane dane profilu.", "error");
                 return;
             }
-            const rows = document.querySelectorAll(".driver-entry");
-            // Validate every named additional driver BEFORE the existing replace-list operation.
-            // Historic rows with a missing date remain readable until the user edits/saves them.
+            const rows = Array.from(document.querySelectorAll("#drivers-list .driver-entry"));
+            const newDrivers = [];
+            const existingIds = [];
+            const fieldSelector = {name:".driver-name", age:".driver-age", phone:".driver-phone", license_since:".driver-license-since"};
             for (const row of rows) {
-                if (!row.querySelector(".driver-name")?.value.trim()) continue;
-                const licenceInput = row.querySelector(".driver-license-since");
-                if (!window.ride24LicenseDate(licenceInput?.value)) {
-                    window.showToast(isEn
-                        ? "Enter the original driving licence date for every additional driver."
-                        : "Podaj datę pierwszego uzyskania prawa jazdy każdego dodatkowego kierowcy.", "error");
-                    licenceInput?.focus();
+                const candidate = {
+                    name: row.querySelector(".driver-name")?.value.trim() || "",
+                    age: row.querySelector(".driver-age")?.value.trim() || "",
+                    phone: row.querySelector(".driver-phone")?.value.trim() || "",
+                    license_since: row.querySelector(".driver-license-since")?.value || ""
+                };
+                const errors = additionalDriverErrors(candidate);
+                if (errors.length) {
+                    const firstError = errors[0];
+                    const field = row.querySelector(fieldSelector[firstError.field]);
+                    field?.setAttribute("aria-invalid", "true");
+                    field?.focus();
+                    window.showToast((isEn ? "Complete driver details: " : "Uzupełnij dane kierowcy: ") +
+                        errors.map(e => isEn ? e.en : e.pl).join(", "), "error");
                     return;
                 }
-            }
-            const newDrivers = [];
-            try {
-                await db.from("drivers").delete().eq("user_id", currentUser.id);
-                rows.forEach(row => {
-                    const name = row.querySelector(".driver-name").value;
-                    const age = row.querySelector(".driver-age").value;
-                    const phone = row.querySelector(".driver-phone").value;
-                    const licenseSince = window.ride24LicenseDate(row.querySelector(".driver-license-since")?.value);
-                    if(name) {
-                        newDrivers.push({
-                            user_id: currentUser.id,
-                            name: name,
-                            age: age ? parseInt(age) : null,
-                            age_updated_at: new Date().toISOString().split('T')[0], // 🔥 Stempel dla kierowcy
-                            phone: phone,
-                            license_since: licenseSince
-                        });
-                    }
+                if (row.dataset.id && /^[0-9a-f-]{36}$/i.test(row.dataset.id)) existingIds.push(row.dataset.id);
+                newDrivers.push({
+                    user_id: currentUser.id,
+                    name: candidate.name,
+                    age: Number(candidate.age),
+                    phone: candidate.phone,
+                    age_updated_at: new Date().toISOString().slice(0, 10),
+                    license_since: candidate.license_since
                 });
-                if(newDrivers.length > 0) {
-                    const { error } = await db.from("drivers").insert(newDrivers);
-                    if(error) throw error;
+            }
+            if (newDrivers.length === 0) {
+                window.showToast(isEn ? "There are no drivers to save." : "Nie ma kierowców do zapisania.", "info");
+                return;
+            }
+            const saveBtn = document.querySelector('#view-profile .profile-col[data-r24-optional-profile="drivers"] .profile-actions button');
+            if (saveBtn) saveBtn.disabled = true;
+            let createdIds = [];
+            try {
+                // Insert first: validation/server errors cannot destroy existing saved drivers.
+                const {data: created, error: insertError} = await db.from("drivers")
+                    .insert(newDrivers).select("id");
+                if (insertError || created?.length !== newDrivers.length) {
+                    throw insertError || new Error("Incomplete driver write");
                 }
-                window.showToast(isEn ? "Drivers list updated!" : "Lista kierowców została zaktualizowana!", "success");
+                createdIds = created.map(d => d.id);
+                if (existingIds.length) {
+                    const {data: removed, error: deleteError} = await db.from("drivers")
+                        .delete().eq("user_id", currentUser.id).in("id", existingIds).select("id");
+                    if (deleteError || removed?.length !== existingIds.length) {
+                        throw deleteError || new Error("Previous driver records were not fully replaced");
+                    }
+                }
+                window.showToast(isEn ? "All driver details saved." : "Zapisano kompletne dane kierowców.", "success");
                 await loadUserProfile();
             } catch (err) {
-                window.showToast(isEn ? "Error saving drivers." : "Błąd podczas zapisu.", "error");
+                console.error("Additional drivers save failed:", err);
+                if (createdIds.length) {
+                    const rollback = await db.from("drivers").delete()
+                        .eq("user_id", currentUser.id).in("id", createdIds);
+                    if (rollback.error) console.error("Driver rollback failed:", rollback.error);
+                }
+                window.showToast(isEn
+                    ? "Drivers were not fully saved. Your earlier entries were not intentionally changed."
+                    : "Nie udało się w pełni zapisać kierowców. Wcześniejsze wpisy nie zostały celowo zmienione.", "error");
+                await loadUserProfile().catch(console.error);
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
             }
-        }
-
+        };
 
         // --- REALNE ANULOWANIE / ODRZUCANIE REZERWACJI ---
        // --- NOWOCZESNE ANULOWANIE (SaaS Version) ---
