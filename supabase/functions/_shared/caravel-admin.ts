@@ -14,6 +14,7 @@
  *     (open = certification + reviewed terms + credentials + catalogue checks in one
  *     transaction; close = immediate kill switch). Every call is logged.
  */
+import {caravelPaidFulfillmentApproved} from "./caravel-paid-fulfillment.ts";
 import {fetchCaravelCurrentTermsForReview} from "./caravel-terms-version.ts";
 import {
   caravelLocationFromApi, normalizeCaravelLocation, caravelVehicleFromApi, normalizeCaravelVehicleClass, caravelSyncRows,
@@ -190,6 +191,8 @@ export async function setCaravelRelease(args: {admin: Db; open: boolean; certifi
   if (args.open && (!args.certifiedAt || !Number.isFinite(Date.parse(args.certifiedAt)) || !args.documentId ||
       !/^[0-9a-f]{64}$/.test(String(args.contentHash))))
     return {ok: false as const, code: "CARAVEL_RELEASE_EVIDENCE_REQUIRED"};
+  if (args.open && !caravelPaidFulfillmentApproved())
+    return {ok: false as const, code: "CARAVEL_PRODUCTION_FLAGS_DISABLED"};
   const {data, error} = await args.admin.rpc("caravel_set_release", {
     p_open: args.open, p_certified_at: args.open ? args.certifiedAt : null,
     p_document_id: args.open ? args.documentId : null, p_content_hash: args.open ? args.contentHash : null,
