@@ -45,11 +45,14 @@ function servicesContract(model:any) {
    price:s.ServicePrice})).sort((a:any,b:any)=>a.id-b.id);
 }
 export async function revalidatePaidProvider(credentials:any,booking:any,quote:any,admin:any=null) {
- if(!hasPaidFulfillmentAdapter(booking.partners.api_provider)
-   &&!(admin && await arventOwnerPilotBookingAllowed(admin,booking)))
-  fail('ADAPTER_NOT_READY');
- if(booking.partners.api_provider==='arvent_kolaycar')
-  return revalidatePaidArvent(credentials,booking,quote);
+ const globalReady=hasPaidFulfillmentAdapter(booking.partners.api_provider);
+ const ownerPilot=!globalReady&&admin
+   ? await arventOwnerPilotBookingAllowed(admin,booking):false;
+ if(!globalReady&&!ownerPilot)fail('ADAPTER_NOT_READY');
+ if(booking.partners.api_provider==='arvent_kolaycar') {
+  const prepared=await revalidatePaidArvent(credentials,booking,quote);
+  return ownerPilot ? {...prepared,arvent_owner_pilot_verified:true}:prepared;
+ }
  if(booking.cancelled_at || ['cancelled','rejected','expired','payment_expired'].includes(booking.status))fail('CANCELLED_BEFORE_DISPATCH');
  if(!quote)fail('ACCEPTED_QUOTE_REQUIRED');
  const raw=quote.raw_response,old=raw?.provider_quote_data,options=raw?.ride24_options;
@@ -165,7 +168,9 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
 }
 export async function createPaidProvider(credentials:any,input:any) {
  if(input?.provider==='arvent_kolaycar'){
-   // The supplier adapter itself rejects every non-pilot, unpaid write.
+   if(!arventPaymentApproved()&&input?.arvent_owner_pilot_verified!==true)
+     fail('ADAPTER_NOT_READY');
+   // The supplier adapter separately verifies this booking's real Stripe payment.
    try {
      return await arventCreateBooking(credentials,input);
    } catch(error) {
@@ -178,7 +183,8 @@ export async function createPaidProvider(credentials:any,input:any) {
 }
 export async function readPaidProviderStatus(credentials:any,reference:string,prepared:any) {
  if(prepared?.provider==='arvent_kolaycar'){
-  // Status polling is a read-only operation, including for certified pilots.
+  if(!arventPaymentApproved()&&prepared?.arvent_owner_pilot_verified!==true)
+    fail('ADAPTER_NOT_READY');
   const result=await arventBookingStatus(credentials,reference);
   return result.status==='cancelled'
    ?{...result,status:'rejected',definitive_rejection:true}
