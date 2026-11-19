@@ -12,9 +12,14 @@ Re-fetch production `GET /v1/reference/terms` and its document body, independent
 verify canonical SHA-256 and review exclusions, EUR 100 per-rental damage/theft admin fee,
 card policy, cancellation and post-return amounts before activation.
 
-**Webhook missing production deployment:** create and security-test a dedicated
-production HTTPS receiver with HMAC authentication (no Supabase JWT), durable event
-idempotency and verified supplier booking re-fetch. Store/rotate the provider signing secret
+**Production webhook prepared but NOT deployed:**
+`supabase/functions/caravel-production-webhook/index.ts` +
+`supabase/migrations/20261119081000_caravel_production_webhook_observation.sql`.
+Receiver verifies HMAC (no Supabase JWT), exact signed callback path and raw bytes;
+it re-fetches the supplier booking and records minimal metadata via a service-role-only
+atomic SQL function. Provider changes create a manual-review alert; they do not
+automatically cancel/refund a customer. Sequence gaps are logged for reconciliation.
+Deploy migration + function only after tests and secure signing secret setup. Store/rotate the provider signing secret
 server-side, verify the exact callback path, then register it with
 `PUT /v1/webhooks/endpoint`. Do **not** point production at the expiring sandbox probe
 or sandbox receiver. No endpoint URL may be given to Caravel before a tested production
@@ -72,3 +77,12 @@ vault secret `caravel_auto_sync_cron`. Redeploy `api-partner-admin` and `admin/i
 **Kill switch at any time:** `{"action":"release-close","reason":"…"}` — stops new offers,
 consent and checkout immediately (paid bookings continue in the shared workflow), logged.
 Or unset either server flag to stop supplier booking creation after payment.
+
+## Caravel production callback -- mandatory staged deployment
+
+- Configure Supabase Edge secrets `CARAVEL_PRODUCTION_WEBHOOK_SECRET` (and optional `_OLD` during rotation); never expose the value. Supplier creates its secret through its one-time API workflow. Verify this secret belongs to the production environment, not sandbox.
+- After review, apply the **Caravel-only** migration above. Verify RLS and that `anon`/`authenticated` cannot select the audit table or execute the RPC.
+- Deploy the dedicated function with `verify_jwt=false`. First test: unsigned POST returns 401; invalid body, tamper and replay rejected; missing signing secret returns 503. This endpoint does not require or accept Supabase client JWT.
+- Register the exact HTTPS URL `https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/caravel-production-webhook` using Caravel's `PUT /v1/webhooks/endpoint` **only after** its HTTPS receiver passes the checks. Confirm body schema against production OpenAPI; do not guess the request JSON.
+- Verify a real HMAC-signed event, duplicate, out-of-order revision, supplier GET and data in `caravel_production_webhook_events`. Review queue for non-confirmation events; check `sequence_gap=true`. Add periodic supplier reconciliation so a silent webhook outage is not missed.
+- No automated booking state changes or refunds are made by this receipt-only observer. The full reconciliation and controlled first booking remain a go-live requirement.
