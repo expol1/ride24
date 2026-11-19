@@ -49,6 +49,7 @@ const label = (code: string, lang: "pl" | "en") => CARAVEL_COVERAGE_LABELS[code]
 const CARAVEL_FEE_NAMES: Record<string, {pl:string;en:string}> = {
   young_driver: {pl:"Młody kierowca",en:"Young driver"},
   senior_driver: {pl:"Starszy kierowca",en:"Senior driver"},
+  additional_driver: {pl:"Dodatkowy kierowca",en:"Additional driver"},
   one_way: {pl:"Zwrot w innym punkcie",en:"One-way return"},
   out_of_hours: {pl:"Obsługa poza godzinami pracy",en:"Out-of-hours service"},
   premium_location: {pl:"Dopłata za lokalizację",en:"Premium location fee"},
@@ -78,7 +79,11 @@ export function caravelQuoteFacts(row: unknown, release: CaravelRelease, nowMs =
       data.terms_language !== release.terms.language || data.supplier_id !== release.terms.supplierId ||
       !Array.isArray(excludes) || !Array.isArray(covers) || !Number.isSafeInteger(minor?.total) ||
       minor?.pay_now !== 0 || minor?.pay_at_pickup !== minor?.total ||
-      !Array.isArray(drivers) || drivers.length !== 1 || !Number.isSafeInteger(rec(drivers[0])?.age) ||
+      !Array.isArray(drivers) || ![1,2].includes(drivers.length) ||
+      rec(drivers[0])?.role !== "main" || !Number.isSafeInteger(rec(drivers[0])?.age) ||
+      (drivers.length===2 && (rec(drivers[1])?.role!=="additional" ||
+        !Number.isSafeInteger(rec(drivers[1])?.age) ||
+        Number(rec(drivers[1])?.age)<18 || Number(rec(drivers[1])?.age)>90)) ||
       !Number.isFinite(Date.parse(q.expires_at)) || Date.parse(q.expires_at) <= nowMs + 10 * 60_000)
     return null;
   const fee = Number(q.commission_total);
@@ -120,7 +125,9 @@ export function caravelQuoteFacts(row: unknown, release: CaravelRelease, nowMs =
   if (Number(q.partner_net_total) !== Number(minor!.total) / 100) return null;
   return {quote: q, data, excludes: excludes as string[], covers: covers as string[], rentalMinor: minor!.total as number,
     breakdown: validBreakdown ? bd : null,
-    currency: String(q.currency), feeMajor: fee, driverAge: rec(drivers[0])!.age as number, adminFeeMinor: adminFee};
+    currency: String(q.currency), feeMajor: fee, driverAge: rec(drivers[0])!.age as number,
+    additionalDriverAge: drivers.length===2 ? rec(drivers[1])!.age as number : null,
+    adminFeeMinor: adminFee};
 }
 
 export type CaravelConsentView = {
@@ -138,6 +145,7 @@ export type CaravelConsentView = {
       fees:Array<{label:string; original_label:string; type:string; amount:string}>;
       extras:Array<{extra_id:string;name:string;quantity:number;amount:string}>}};
   driver_age: number;
+  additional_driver_age: number | null;
   statements: string[];
   /** Exactly what the client must echo back with accepted:true. */
   echo: {terms_document_id: string; terms_content_hash: string; terms_language: string;
@@ -220,7 +228,7 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
       customer_total: money(customerMinor, f.currency), customer_total_minor: customerMinor, ride24_fee_minor: ride24FeeMinor,
       ride24_fee: `${f.feeMajor.toFixed(2)} ${f.currency}`, ride24_fee_currency: f.currency, charged_by_stripe: "ride24_fee_only",
       ...(breakdown ? {breakdown} : {})},
-    driver_age: f.driverAge, statements,
+    driver_age: f.driverAge, additional_driver_age: f.additionalDriverAge, statements,
     echo: {terms_document_id: t.documentId, terms_content_hash: t.contentHash, terms_language: t.language,
       excluded_codes: [...f.excludes], damage_admin_fee_minor: f.excludes.length ? f.adminFeeMinor : null},
   };
@@ -230,6 +238,7 @@ export type CaravelBookingContext = {
   clientId: string; clientEmail: string; clientPhone: string; mainDriverName: string; mainDriverAge: number;
   pickupLocationId: string; dropoffLocationId: string; pickupLocationName: string; returnLocationName: string;
   pickupTime: string; returnTime: string; exchangeRate: number;
+  additionalDriver?: {id:string;name:string;age:number;licenseSince:string} | null;
 };
 
 /**
@@ -251,6 +260,14 @@ export function buildCaravelCommitPayload(row: unknown, release: CaravelRelease,
     return {ok: false, code: "CARAVEL_TERMS_CONSENT_STALE_OR_MISSING"};
   // The supplier priced this exact age; another age is a different price (requote).
   if (ctx.mainDriverAge !== f.driverAge) return {ok: false, code: "CARAVEL_DRIVER_AGE_REQUOTE_REQUIRED"};
+  if ((ctx.additionalDriver?.age ?? null)!==f.additionalDriverAge)
+    return {ok:false,code:"CARAVEL_ADDITIONAL_DRIVER_REQUOTE_REQUIRED"};
+  if (ctx.additionalDriver && (!UUID.test(ctx.additionalDriver.id) ||
+      !Number.isSafeInteger(ctx.additionalDriver.age) || ctx.additionalDriver.age<18 ||
+      ctx.additionalDriver.age>90 || ctx.additionalDriver.name.trim().split(/\s+/).length<2 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(ctx.additionalDriver.licenseSince) ||
+      ctx.additionalDriver.licenseSince>new Date(f.quote.start_date).toISOString().slice(0,10)))
+    return {ok:false,code:"CARAVEL_ADDITIONAL_DRIVER_INVALID"};
   if (!UUID.test(ctx.clientId) || !UUID.test(ctx.pickupLocationId) || !UUID.test(ctx.dropoffLocationId) ||
       !ctx.clientEmail.includes("@") || !ctx.clientPhone.trim() || ctx.mainDriverName.trim().split(/\s+/).length < 2 ||
       !(Number.isFinite(ctx.exchangeRate) && ctx.exchangeRate > 0))
@@ -267,6 +284,11 @@ export function buildCaravelCommitPayload(row: unknown, release: CaravelRelease,
     exchange_rate_snapshot: ctx.exchangeRate, online_payment_pln: online,
     main_driver_name: ctx.mainDriverName.trim(), main_driver_age: ctx.mainDriverAge,
     client_email: ctx.clientEmail.trim(), client_phone: ctx.clientPhone.trim(),
+    ...(ctx.additionalDriver ? {
+      additional_driver_id:ctx.additionalDriver.id, add_driver_name:ctx.additionalDriver.name.trim(),
+      add_driver_age:ctx.additionalDriver.age,
+      additional_driver_license_since:ctx.additionalDriver.licenseSince,
+    } : {}),
   };
   if (f.excludes.length) Object.assign(payload, {
     // Must equal the stored protection.excludes array exactly (SQL compares jsonb).

@@ -2302,7 +2302,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
-    <script src="assets/caravel-consent.js?v=20261119-server-pln-avia-final"></script>
+    <script src="assets/caravel-consent.js?v=20261119-second-driver-verified"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
@@ -3164,15 +3164,25 @@ document.addEventListener("click", async function(e) {
         };
         prefillLicense();
 
-        select.onchange = () => {
+        const requoteCaravelDrivers = async () => {
+            if (!window.Ride24CaravelConsent?.active()) return bookingExtras.refresh();
+            await window.Ride24CaravelConsent.requoteDrivers({
+                driverId: select.value || null,
+                additionalDriverId: addSelect.value && addSelect.value !== "none" ? addSelect.value : null
+            });
+        };
+        select.onchange = async () => {
             if (select.value === addSelect.value) addSelect.value = "none";
             prefillLicense();
-            if (!window.Ride24CaravelConsent?.active()) bookingExtras.refresh();
+            await requoteCaravelDrivers();
         };
-
-        addSelect.onchange = () => {
-            if (select.value === addSelect.value) select.value = "";
-            if (!window.Ride24CaravelConsent?.active()) bookingExtras.refresh();
+        addSelect.onchange = async () => {
+            if (addSelect.value && addSelect.value !== "none" && select.value === addSelect.value) {
+                addSelect.value = "none";
+                window.showToast(isEn ? "Choose a different additional driver." : "Wybierz innego kierowcę dodatkowego.", "error");
+                return;
+            }
+            await requoteCaravelDrivers();
         };
 
         await window.loadPartnerDocuments(carClassId);
@@ -3180,11 +3190,14 @@ document.addEventListener("click", async function(e) {
             bookingExtras.close();
             const price = document.getElementById("bookingPriceBreakdown");
             if(price) price.hidden=true;
-            addSelect.disabled=true;
+            addSelect.disabled=false;
+            // Additional driver must be an individually saved driver profile.
+            // The "Me" option has no driver id and cannot be a second driver.
+            addSelect.querySelectorAll('option[value=""]').forEach(opt => opt.remove());
             addSelect.value="none";
             addSelect.title=isEn
-                ? "Additional drivers are not yet confirmed in Caravel's booking API."
-                : "Dodatkowy kierowca wymaga potwierdzenia w API Caravel i nie jest dostępny online.";
+                ? "Choose a saved additional driver. Ride24 will ask Caravel to re-price before booking."
+                : "Wybierz zapisanego dodatkowego kierowcę. Przed rezerwacją potwierdzimy nową cenę w Caravel.";
         } else {
             addSelect.disabled=false;
             await bookingExtras.start();

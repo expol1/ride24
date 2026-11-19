@@ -98,6 +98,27 @@ test("revalidate: accepted terms + consent + unchanged fresh quote -> prepared b
   assert.ok(!state.calls.some((c) => c[0] === "book"));
 }));
 
+test("Caravel two-driver paid flow: identical roles, named second driver, no unquoted substitution",()=>withFlags(ON,async()=>{
+ const state=newState();
+ const b={...booking(),additional_driver_id:"9d9d9d9d-1111-4222-8333-444455556666",
+   add_driver_name:"Anna Nowak",add_driver_age:22,
+   additional_driver_license_since:"2020-05-01"};
+ const q=quoteRow();
+ q.raw_response.provider_quote_data.drivers=[{age:30,role:"main"},{age:22,role:"additional"}];
+ const prepared=await revalidatePaidCaravel(creds(),b,q,{factory:fakeFactory(state),nowMs:NOW});
+ const call=state.calls.find(c=>c[0]==="quote");
+ assert.deepEqual(call[3].drivers,[{age:30,role:"main"},{age:22,role:"additional"}]);
+ assert.deepEqual(prepared.additional_driver,{first_name:"Anna",last_name:"Nowak",age:22});
+ await createPaidCaravel(creds(),prepared,{factory:fakeFactory(state)});
+ const sent=state.calls.find(c=>c[0]==="book")[3].drivers;
+ assert.equal(sent.length,2);
+ assert.deepEqual(sent[1],{first_name:"Anna",last_name:"Nowak",age:22,role:"additional"});
+ await assert.rejects(()=>revalidatePaidCaravel(creds(),{...b,add_driver_age:23},q,
+   {factory:fakeFactory(newState()),nowMs:NOW}),/DRIVER_DETAILS_UNSUPPORTED/);
+ await assert.rejects(()=>revalidatePaidCaravel(creds(),booking(),q,
+   {factory:fakeFactory(newState()),nowMs:NOW}),/DRIVER_DETAILS_UNSUPPORTED/);
+}));
+
 for (const [name, mutate, code] of [
   ["missing consent", (b) => { b.caravel_coverage_accepted_at = null; }, /CONSENT_MISSING_OR_STALE/],
   ["consent for another terms hash", (b) => { b.caravel_terms_content_hash = "b".repeat(64); }, /CONSENT_MISSING_OR_STALE/],

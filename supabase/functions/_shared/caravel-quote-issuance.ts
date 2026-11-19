@@ -107,10 +107,10 @@ export async function issueVerifiedCaravelQuote(args:{
     typeof requested.protection_id!=="string"||!requested.protection_id||
     protection?.protection_id!==requested.protection_id||
     !Array.isArray(requested.extras)||
-    !Array.isArray(requested.drivers)||requested.drivers.length!==1||
+    !Array.isArray(requested.drivers)||![1,2].includes(requested.drivers.length)||
     requested.drivers[0]?.role!=="main"||
-    !Number.isSafeInteger(requested.drivers[0]?.age)||
-    requested.drivers[0].age<18||requested.drivers[0].age>90||
+    (requested.drivers.length===2 && requested.drivers[1]?.role!=="additional")||
+    requested.drivers.some(d=>!Number.isSafeInteger(d?.age)||d.age<18||d.age>90)||
     !requested.pickup.at.startsWith(args.startDate+"T"+args.pickupLocalTime)||
     !requested.dropoff.at.startsWith(args.endDate+"T"+args.dropoffLocalTime)||
     Date.parse(requested.pickup.at)>=Date.parse(requested.dropoff.at)||

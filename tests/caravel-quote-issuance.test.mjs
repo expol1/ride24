@@ -133,6 +133,19 @@ test("server verifies Caravel zero-prepay quote before saving standard Ride24 ap
   pickup_location:"Athens Airport",return_location:"Athens Airport",
  });
 });
+test("Caravel quotes the second driver explicitly before any payment",async()=>{
+ const admin=db(),c=client();
+ const drivers=[{age:30,role:"main"},{age:22,role:"additional"}];
+ c.state.expectedRequest={...selection(),drivers};
+ const r=await issueVerifiedCaravelQuote(args(admin,c,{quoteRequest:c.state.expectedRequest}));
+ assert.equal(r.ok,true,JSON.stringify(r));
+ assert.deepEqual(admin.state.quotes[0].raw_response.provider_quote_data.drivers,drivers);
+ assert.equal(admin.state.quotes[0].final_total,187.5);
+ const rejected=await issueVerifiedCaravelQuote(args(db(),client(),
+   {quoteRequest:{...selection(),drivers:[...drivers,{age:40,role:"additional"}]}}));
+ assert.equal(rejected.ok,false,"Ride24 limits online bookings to two verified drivers");
+});
+
 test("Caravel mandatory fees are already included in supplier grand total and saved as exact items",async()=>{
  const admin=db(),c=client();
  c.state.quote={...quote(),line_items:[

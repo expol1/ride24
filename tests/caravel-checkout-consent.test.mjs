@@ -134,7 +134,7 @@ async function requestState() {
   const s = await releasedState();
   s.api_quotes = [await quoteRow()];
   s.profiles = [{id: USER, name: "Jan Kowalski", phone: "+48000000000", age: 30}];
-  s.drivers = [{id: "9d9d9d9d-1111-4222-8333-444455556666", user_id: USER, name: "Anna Nowak", age: 22}];
+  s.drivers = [{id: "9d9d9d9d-1111-4222-8333-444455556666", user_id: USER, name: "Anna Nowak", age: 22, license_since:"2020-05-01"}];
   s.partner_locations = [{id: PICK, partner_id: PARTNER, external_id: "ath-airport", location_name: "Athens Airport", active: true, is_api_managed: true}];
   return s;
 }
@@ -162,7 +162,7 @@ test("endpoint: consent-view then book -> atomic RPC with verified payload; no F
   const stale = await handleCaravelBookingRequest(deps(s), {action: "book", api_quote_id: QROW, consent: {...consent, terms_content_hash: "c".repeat(64)}});
   assert.equal(stale.body.code, "CARAVEL_TERMS_CONSENT_STALE_OR_MISSING");
   const extra = await handleCaravelBookingRequest(deps(s), {action: "book", api_quote_id: QROW, consent, additional_driver_id: "x"});
-  assert.equal(extra.body.code, "CARAVEL_ADDITIONAL_DRIVER_UNSUPPORTED");
+  assert.equal(extra.body.code, "INVALID_ADDITIONAL_DRIVER");
   await assert.rejects(nbpRateStrict("EUR", async () => new Response("", {status: 500})), /FX_UNAVAILABLE/);
   assert.equal(await nbpRateStrict("EUR", async () => Response.json({rates: [{mid: 4.31}]})), 4.31);
 });
@@ -175,12 +175,49 @@ test("endpoint: other driver age -> server re-quotes and requires a fresh confir
   const consent = {...buildCaravelConsentView(s.api_quotes[0], await loadCaravelRelease(fakeDb(s)), "pl", NOW).echo, accepted: true, coverage_acknowledged: true};
   const r = await handleCaravelBookingRequest(deps(s, {requote: async (_q, age) => { assert.equal(age, 22); return {ok: true, apiQuoteId: fresh.id}; }}),
     {action: "book", api_quote_id: QROW, driver_id: "9d9d9d9d-1111-4222-8333-444455556666", consent});
-  assert.equal(r.status, 409); assert.equal(r.body.code, "CARAVEL_REQUOTED_FOR_DRIVER_AGE");
+  assert.equal(r.status, 409); assert.equal(r.body.code, "CARAVEL_REQUOTED_FOR_DRIVERS");
   assert.equal(r.body.api_quote_id, fresh.id);
   assert.equal(r.body.consent.money.rental_at_pickup, "180.00 EUR");
   assert.equal(r.body.consent.money.ride24_fee_pln, "77.40 PLN");
   assert.equal(r.body.consent.money.customer_total, "198.00 EUR");
   assert.equal((s.rpc ?? []).length, 0);
+});
+
+test("Caravel additional driver: authenticated saved licence, supplier age quote, atomic booking snapshot",async()=>{
+ const s=await requestState();
+ const extraId=s.drivers[0].id;
+ const fresh=await quoteRow({id:"5ea5e8db-7244-4416-ab7b-2632bd5f882a",
+   partner_net_total:170,final_total:187,commission_total:17},
+   {drivers:[{age:30,role:"main"},{age:22,role:"additional"}],
+    amounts_minor:{total:17000,pay_now:0,pay_at_pickup:17000}});
+ s.api_quotes.push(fresh);
+ const supplierQuote=async (_q,age,_rel,_extras,extraAge)=>{
+  assert.equal(age,30);assert.equal(extraAge,22);
+  return {ok:true,apiQuoteId:fresh.id};
+ };
+ const r=await handleCaravelBookingRequest(deps(s,{requote:supplierQuote}),
+   {action:"drivers-requote",api_quote_id:QROW,additional_driver_id:extraId});
+ assert.equal(r.status,200,JSON.stringify(r.body));
+ assert.equal(r.body.consent.additional_driver_age,22);
+ assert.equal(r.body.consent.money.customer_total,"187.00 EUR");
+ assert.equal(r.body.consent.money.ride24_fee_pln,"73.10 PLN");
+ const legal={...r.body.consent.echo,accepted:true,coverage_acknowledged:true};
+ const booked=await handleCaravelBookingRequest(deps(s),
+   {action:"book",api_quote_id:fresh.id,additional_driver_id:extraId,consent:legal});
+ assert.equal(booked.status,200,JSON.stringify(booked.body));
+ assert.equal(s.rpc.at(-1).args.p_payload.additional_driver_id,extraId);
+ assert.equal(s.rpc.at(-1).args.p_payload.add_driver_name,"Anna Nowak");
+ assert.equal(s.rpc.at(-1).args.p_payload.add_driver_age,22);
+ assert.equal(s.rpc.at(-1).args.p_payload.additional_driver_license_since,"2020-05-01");
+ const bad=await handleCaravelBookingRequest(deps(s),
+   {action:"book",api_quote_id:fresh.id,additional_driver_id:"77777777-7777-4777-8777-777777777777",consent:legal});
+ assert.equal(bad.status,400);
+ const mismatch=buildCaravelCommitPayload(fresh,await loadCaravelRelease(fakeDb(s)),legal,ctx(),NOW);
+ assert.equal(mismatch.code,"CARAVEL_ADDITIONAL_DRIVER_REQUOTE_REQUIRED");
+ s.drivers[0].license_since=null;
+ const missing=await handleCaravelBookingRequest(deps(s,{requote:supplierQuote}),
+   {action:"drivers-requote",api_quote_id:QROW,additional_driver_id:extraId});
+ assert.equal(missing.body.code,"CARAVEL_ADDITIONAL_DRIVER_INVALID");
 });
 
 test("local station time -> offset instant (Athens winter/summer, DST gap refused)", () => {

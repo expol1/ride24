@@ -142,8 +142,23 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
        : selectedExtras.length>0)
     fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
   const main = splitName(booking.main_driver_name), age = Number(booking.main_driver_age);
-  if (!main || !Number.isInteger(age) || age < 18 || age > 99 || booking.add_driver_name || booking.add_driver_age ||
-      typeof booking.client_email !== "string" || !booking.client_email.includes("@"))
+  // Compatibility with old single-driver quotes that predate the driver
+  // snapshot. Two drivers always require both explicit verified provider roles.
+  const quotedDrivers=Array.isArray(data.drivers)?data.drivers.map(rec):
+    [{age,role:"main"} as Rec];
+  const quotedAdditional=quotedDrivers.length===2?quotedDrivers[1]:null;
+  const extra=quotedAdditional?splitName(booking.add_driver_name):null;
+  const extraAge=Number(booking.add_driver_age);
+  if(!main||!Number.isInteger(age)||age<18||age>90||
+      quotedDrivers.length<1||quotedDrivers.length>2||
+      quotedDrivers[0]?.role!=="main"||quotedDrivers[0]?.age!==age||
+      (quotedAdditional && (quotedAdditional.role!=="additional"||quotedAdditional.age!==extraAge||
+        !extra||!Number.isInteger(extraAge)||extraAge<18||extraAge>90||
+        typeof booking.additional_driver_id!=="string"||!isUuid(booking.additional_driver_id)||
+        typeof booking.additional_driver_license_since!=="string"||
+        !/^\d{4}-\d{2}-\d{2}$/.test(booking.additional_driver_license_since)))||
+      (!quotedAdditional&&(booking.additional_driver_id||booking.add_driver_name||booking.add_driver_age))||
+      typeof booking.client_email!=="string"||!booking.client_email.includes("@"))
     fail("CARAVEL_DRIVER_DETAILS_UNSUPPORTED");
   const client = (opts.factory ?? defaultFactory)(productionKey(credentials), false);
   const supplierId = data.supplier_id as string;
@@ -160,7 +175,8 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
     pickup: {location_id: String(quote!.pickup_location_external_id), at: data.pickup_at as string},
     dropoff: {location_id: String(quote!.dropoff_location_external_id), at: data.dropoff_at as string},
     vehicle_id: data.vehicle_id as string, protection_id: data.protection_id as string, plan: "premium",
-    currency: data.currency as string, drivers: [{age, role: "main"}],
+    currency: data.currency as string, drivers: [{age, role: "main"},
+      ...(quotedAdditional?[{age:extraAge,role:"additional" as const}]:[])],
     extras:selectedExtras,
   };
   const suppliers = (await client.suppliers()).data as Rec[];
@@ -192,6 +208,7 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
     total_minor: totalMinor, currency: data.currency, partner_amount: totalMinor / 100,
     terms_document_id: data.terms_document_id, terms_content_hash: data.terms_content_hash,
     main_driver: {first_name: main!.first, last_name: main!.last, age},
+    additional_driver: quotedAdditional?{first_name:extra!.first,last_name:extra!.last,age:extraAge}:null,
     customer: {first_name: main!.first, last_name: main!.last, email: booking.client_email,
       ...(typeof booking.client_phone === "string" && booking.client_phone ? {phone: booking.client_phone} : {})},
   };
@@ -223,7 +240,15 @@ export async function createPaidCaravel(credentials: unknown, prepared: Rec, opt
   const main = rec(prepared.main_driver)!, customer = rec(prepared.customer)!;
   const response = await client.book({
     quote_id: prepared.quote_id as string, external_ref: prepared.external_ref as string,
-    drivers: [{first_name: main.first_name as string, last_name: main.last_name as string, age: main.age as number, role: "main"}],
+    drivers: [{first_name: main.first_name as string, last_name: main.last_name as string, age: main.age as number, role: "main"},
+      ...(prepared.additional_driver?[(function(){
+        const extra=rec(prepared.additional_driver);
+        if(!extra||typeof extra.first_name!=="string"||typeof extra.last_name!=="string"||
+            !Number.isInteger(extra.age)||Number(extra.age)<18||Number(extra.age)>90)
+          fail("CARAVEL_PREPARED_ADDITIONAL_DRIVER_INVALID");
+        return {first_name:extra!.first_name as string,last_name:extra!.last_name as string,
+          age:extra!.age as number,role:"additional" as const};
+      })()]:[])],
     customer: customer as never, payment_model: "pay_on_arrival",
   }, prepared.idempotency_key as string, prepared.supplier_id as string);
   return resultFromBooking(response.data, prepared);

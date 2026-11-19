@@ -22,9 +22,9 @@ serve(async (req) => {
     const body = await req.json().catch(() => null);
     const result = await handleCaravelBookingRequest({
       admin, userId: user.id, userEmail: user.email ?? null, exchangeRate: (c) => nbpRateStrict(c),
-      requote: async (quoteRow, driverAge, release, selectedExtras) => {
+      requote: async (quoteRow, driverAge, release, selectedExtras, additionalDriverAge) => {
         const client = caravelProductionReadClient(await loadPartnerCredentials(admin, CARAVEL_PARTNER_ID));
-        return requoteCaravelForDriverAge({admin, client, release, quoteRow, driverAge, selectedExtras});
+        return requoteCaravelForDriverAge({admin, client, release, quoteRow, driverAge, selectedExtras, additionalDriverAge});
       },
       extrasCatalog: async (release) => {
         if(!release.open)throw new Error("CARAVEL_RELEASE_CLOSED");

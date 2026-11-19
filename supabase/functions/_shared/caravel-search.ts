@@ -153,13 +153,17 @@ export async function requoteCaravelForDriverAge(args: {
   // deno-lint-ignore no-explicit-any
   admin: any;
   client: Pick<CaravelClient, "environment" | "quote" | "suppliers" | "referenceTerms" | "reference">;
-  release: CaravelRelease; quoteRow: Rec; driverAge: number; selectedExtras?:CaravelExtraChoice[]; nowMs?: number;
+  release: CaravelRelease; quoteRow: Rec; driverAge: number; selectedExtras?:CaravelExtraChoice[];
+  additionalDriverAge?:number|null; nowMs?: number;
 }): Promise<{ok: true; apiQuoteId: string} | {ok: false; reason: string}> {
   if (!args.release.open) return {ok: false, reason: "CARAVEL_RELEASE_CLOSED"};
   const q = args.quoteRow, data = rec(rec(q.raw_response)?.provider_quote_data), ctx = rec(rec(q.raw_response)?.ride24_context);
   const protection = rec(data?.protection);
   const requested = caravelSnapshotChoices(args.selectedExtras ?? data?.selected_extras ?? []);
   if(!requested) return {ok:false,reason:"CARAVEL_EXTRA_SELECTION_INVALID"};
+  if(args.additionalDriverAge!=null &&
+    (!Number.isSafeInteger(args.additionalDriverAge)||args.additionalDriverAge<18||args.additionalDriverAge>90))
+    return {ok:false,reason:"CARAVEL_ADDITIONAL_DRIVER_AGE_INVALID"};
   let extrasCatalog;
   if(requested.length){
     try{
@@ -183,7 +187,10 @@ export async function requoteCaravelForDriverAge(args: {
     quoteRequest: {pickup: {location_id: String(q.pickup_location_external_id), at: data.pickup_at},
       dropoff: {location_id: String(q.dropoff_location_external_id), at: data.dropoff_at},
       vehicle_id: String(data.vehicle_id), protection_id: String(data.protection_id), plan: "premium",
-      currency: String(data.currency), drivers: [{age: args.driverAge, role: "main"}], extras: requested},
+      currency: String(data.currency),
+      drivers: [{age:args.driverAge,role:"main"}, ...(args.additionalDriverAge == null ? []
+        : [{age:args.additionalDriverAge,role:"additional" as const}])],
+      extras: requested},
     ...(requested.length?{verifiedExtrasCatalog:extrasCatalog}:{}),
     startDate: start, endDate: end, pickupLocalTime: String(ctx.pickup_time).slice(0, 5),
     dropoffLocalTime: String(ctx.return_time).slice(0, 5), rentalDays: Number.isSafeInteger(data.rental_days) ? data.rental_days as number : days,
