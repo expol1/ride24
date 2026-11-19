@@ -1417,6 +1417,22 @@
         }
 
 
+
+/* Profile onboarding gate: isolate required details until saved and verified. */
+body.r24-profile-checking .view-section{display:none!important}
+body.r24-profile-checking #loyalty-card{visibility:hidden}
+body.r24-profile-incomplete .nav-item[data-r24-locked="true"]{opacity:.38;pointer-events:none;cursor:not-allowed}
+body.r24-profile-incomplete #loyalty-card,body.r24-profile-incomplete .badge-container,body.r24-profile-incomplete #r24-client-search-action{display:none!important}
+body.r24-profile-incomplete #view-profile .profile-col[data-r24-optional-profile]{display:none!important}
+#view-profile .r24-profile-setup{display:none;margin:0 0 24px;border:1px solid #c7d2fe;border-left:5px solid #2563eb;padding:19px 22px;background:#eff6ff;border-radius:13px;color:#1e3a8a}
+body.r24-profile-incomplete #view-profile .r24-profile-setup{display:block}
+#view-profile .r24-profile-setup strong{display:block;font-size:16px;font-weight:800;margin-bottom:6px}
+#view-profile .r24-profile-setup p{margin:5px 0 0;font-size:13px;line-height:1.6}
+#view-profile #profile-setup-missing{font-weight:700;color:#1d4ed8}
+body.r24-profile-incomplete #view-profile .profile-grid{grid-template-columns:minmax(0,650px)!important;grid-template-areas:"owner"!important;justify-content:center}
+#view-profile [aria-invalid="true"]{border-color:#dc2626!important;box-shadow:0 0 0 2px rgba(220,38,38,.08)!important}
+@media(max-width:768px){#view-profile .r24-profile-setup{padding:16px;margin-bottom:18px}body.r24-profile-incomplete #view-profile .profile-grid{grid-template-columns:minmax(0,1fr)!important}}
+
 /* Profil: wizualne uporządkowanie niezależnych formularzy bez zmian w zapisie. */
 #view-profile .profile-page-header{margin-bottom:26px}
 #view-profile .profile-description{margin:8px 0 0;color:#64748b;font-size:13px;font-weight:500;line-height:1.55}
@@ -1771,7 +1787,7 @@ async>
 <link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261115nav-compact-v3">
 <link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113-switch">
 </head>
-<body> <aside class="sidebar">
+<body class="r24-profile-checking"> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
     <img class="r24-full-logo" src="ride24-logo-green-20261019.png" style="height:42px;" alt="Logo"><img class="r24-compact-logo" src="r.png" alt="Ride24">
 </div>
@@ -1887,7 +1903,7 @@ async>
                     <span data-pl="Powiadomienia" data-en="Notifications">Powiadomienia</span>
                     <div class="badge badge-absolute" id="notification-badge" style="display:none;">0</div>
                 </div>
-                <span class="logout-btn" onclick="goToSearch()" style="background: #2563EB; border-color: #2563EB;" data-pl="Szukaj aut" data-en="Search cars">
+                <span id="r24-client-search-action" class="logout-btn" onclick="goToSearch()" style="background: #2563EB; border-color: #2563EB;" data-pl="Szukaj aut" data-en="Search cars">
                   Szukaj aut
                   </span>
                 <span class="logout-btn" onclick="logout()" data-pl="Wyloguj" data-en="Logout">
@@ -2067,51 +2083,52 @@ async>
                 <div class="page-header profile-page-header">
                     <div>
                         <h1 class="page-title" data-pl="Profil" data-en="Profile">Profil</h1>
-                        <p class="profile-description" data-pl="Dane kierowców i informacje do rachunku w jednym miejscu." data-en="Driver details and billing information in one place.">Dane kierowców i informacje do rachunku w jednym miejscu.</p>
+                        <p class="profile-description" data-pl="Najpierw uzupełnij i zapisz wymagane dane. Dodatkowi kierowcy i rachunki są opcjonalne." data-en="Complete and save the required details first. Additional drivers and billing are optional.">Najpierw uzupełnij i zapisz wymagane dane. Dodatkowi kierowcy i rachunki są opcjonalne.</p>
                     </div>
                 </div>
 
+                <section id="profile-setup-gate" class="r24-profile-setup" role="status" aria-live="polite"><strong data-pl="Dokończ profil, aby odblokować panel" data-en="Complete your profile to unlock the panel">Dokończ profil, aby odblokować panel</strong><p data-pl="Uzupełnij wymagane pola i zapisz profil, aby odblokować pozostałe funkcje." data-en="Complete the required fields and save your profile to unlock other features.">Uzupełnij wymagane pola i zapisz profil, aby odblokować pozostałe funkcje.</p><p id="profile-setup-missing"></p></section>
                 <div class="profile-grid">
                     <div class="profile-col">
                         <h2 class="section-heading" data-pl="Właściciel profilu" data-en="Profile owner">Właściciel profilu</h2>
                         <div class="settings-card">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label data-pl="Imię i nazwisko" data-en="Name">Imię i nazwisko</label>
-                                    <input type="text" id="profile-name" value="">
+                                    <label for="profile-name" data-pl="Imię i nazwisko *" data-en="First and last name *">Imię i nazwisko *</label>
+                                <input type="text" id="profile-name" value="" required autocomplete="name" maxlength="120">
                                 </div>
                                 <div class="form-group">
-                                    <label data-pl="Wiek" data-en="Age">Wiek</label>
-                                    <input type="number" id="profile-age" value="" min="18">
+                                    <label for="profile-age" data-pl="Wiek *" data-en="Age *">Wiek *</label>
+                                <input type="number" id="profile-age" value="" min="18" max="120" step="1" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label data-pl="Email" data-en="Email">Email</label>
-                                    <input type="email" id="profile-email" value="" readonly>
+                                    <label for="profile-email" data-pl="Email *" data-en="Email *">Email *</label>
+                                <input type="email" id="profile-email" value="" readonly required>
                                 </div>
                                <div class="form-group">
-                                    <label data-pl="Telefon" data-en="Phone">Telefon</label>
-                                    <input type="tel" id="profile-phone" value="" placeholder="+48 123 456 789" data-pl="+48 123 456 789" data-en="+44 123 456 789">
+                                    <label for="profile-phone" data-pl="Telefon *" data-en="Phone *">Telefon *</label>
+                                <input type="tel" id="profile-phone" value="" placeholder="+48 123 456 789" autocomplete="tel" required>
                                 </div>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="profile-license-since" data-pl="Data pierwszego uzyskania prawa jazdy" data-en="Date you first obtained your driving licence">Data pierwszego uzyskania prawa jazdy</label>
-                                <input type="date" id="profile-license-since" value="" autocomplete="off">
+                                <label for="profile-license-since" data-pl="Data pierwszego uzyskania prawa jazdy *" data-en="Original driving licence date *">Data pierwszego uzyskania prawa jazdy *</label>
+                                <input type="date" id="profile-license-since" value="" autocomplete="off" required>
                                 <small data-pl="Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni." data-en="The original entitlement date, not the date your current card was printed. Required by some rental companies.">Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni.</small>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label data-pl="Kraj zamieszkania" data-en="Country">Kraj zamieszkania</label>
-                                <input type="text" id="profile-country" value="PL" placeholder="PL" data-pl="PL" data-en="UK">
+                                <label for="profile-country" data-pl="Kraj zamieszkania *" data-en="Country of residence *">Kraj zamieszkania *</label>
+                                <input type="text" id="profile-country" value="" placeholder="PL" autocomplete="country-name" maxlength="80" required>
                             </div>
                             <div style="flex: 1;"></div>
                             <div class="profile-actions">
-                                <button type="button" class="btn-primary" onclick="saveProfile()" data-pl="Zapisz zmiany" data-en="Save Changes">Zapisz zmiany</button>
+                                <button type="button" class="btn-primary" id="profile-save-required" onclick="saveProfile()" data-pl="Zapisz profil" data-en="Save profile">Zapisz profil</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="profile-col">
+                    <div class="profile-col" data-r24-optional-profile="drivers">
                         <h2 class="section-heading" data-pl="Dodatkowi kierowcy" data-en="Additional drivers">Dodatkowi kierowcy</h2>
                         <div class="settings-card">
                             <div id="drivers-list" style="grid-column: span 2;">
@@ -2126,7 +2143,7 @@ async>
                         </div>
                     </div>
 
-                    <div class="profile-col">
+                    <div class="profile-col" data-r24-optional-profile="invoice">
                         <h2 class="section-heading" data-pl="Dane do rachunku" data-en="Invoice details">Dane do rachunku</h2>
                         <div class="settings-card">
                             <div class="form-group">
