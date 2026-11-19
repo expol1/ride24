@@ -7,6 +7,7 @@ import ts from 'typescript';
 import * as contract from '../../supabase/functions/_shared/api-quote-contract.mjs';
 import * as readiness from '../../supabase/functions/_shared/api-readiness.mjs';
 import * as driverAge from '../../supabase/functions/_shared/driver-age.mjs';
+import * as arventLicense from '../../supabase/functions/_shared/arvent-driver-eligibility.mjs';
 import * as caravelHold from '../../supabase/functions/_shared/caravel-production-hold.mjs';
 import * as options from '../../supabase/functions/_shared/booking-options.mjs';
 import * as durationRules from '../../supabase/functions/_shared/rental-duration.ts';
@@ -110,6 +111,7 @@ function setup() {
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
       if(specifier.includes('driver-age.mjs'))return driverAge;
+      if(specifier.includes('arvent-driver-eligibility.mjs'))return arventLicense;
       if(specifier.includes('caravel-production-hold.mjs'))return caravelHold;
       // Caravel release gate stays closed in these generic harnesses (production today).
       if(specifier.includes('caravel-release.ts'))return {loadCaravelRelease:async()=>({open:false,reason:'CARAVEL_NOT_CERTIFIED'})};

@@ -1,4 +1,5 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
+import { arventLicenseYears } from "../_shared/arvent-driver-eligibility.mjs";
 import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
@@ -25,6 +26,7 @@ type BookingBody = {
   return_time?: unknown;
   driver_id?: unknown;
   additional_driver_id?: unknown;
+  main_driver_license_since?: unknown;
   pickup_location?: unknown;
   return_location?: unknown;
   terms_accepted?: unknown;
@@ -262,7 +264,7 @@ function normalizePartner(value: unknown): PartnerRelation | null {
     email: cleanText(row.email, 254),
     provider_type: String(row.provider_type || "local") as "local" | "api",
     api_enabled: row.api_enabled === true,
-    api_provider: cleanText(row.api_provider, 100),
+    api_provider: cleanText(row.api_provider,80),
     rental_terms_url: cleanText(row.rental_terms_url, 2_000),
     rental_rules_url: cleanText(row.rental_rules_url, 2_000),
     min_rental_days: Number.isInteger(Number(row.min_rental_days)) && Number(row.min_rental_days) >= 1
@@ -391,7 +393,7 @@ function normalizeQuote(value: unknown): QuoteRow | null {
   };
 }
 
-async function exchangeRate(currency: string): Promise<number> {
+async function exchangeRate(currency: string, requireLive = false): Promise<number> {
   if (currency === "PLN") return 1;
 
   const tables = ["A", "B"] as const;
@@ -436,6 +438,7 @@ async function exchangeRate(currency: string): Promise<number> {
   }
 
   // Zachowujemy dotychczasowy awaryjny fallback wyłącznie dla EUR/USD.
+  if (requireLive) throw new Error("Nie udało się pobrać aktualnego kursu NBP");
   if (currency === "USD") return 4.0;
   if (currency === "EUR") return 4.5;
   throw new Error("Nie udało się pobrać kursu waluty partnera");
@@ -886,7 +889,7 @@ serve(async (req) => {
 
     const { data: rawProfile, error: profileError } = await admin
       .from("profiles")
-      .select("name, phone, age")
+      .select("name, phone, age, license_since")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -896,6 +899,10 @@ serve(async (req) => {
       MAX_DRIVER_NAME_LENGTH,
     );
     const profilePhone = cleanText(profile?.phone, 80);
+    // Licence date saved in the client's profile/driver list. Used only when
+    // the client (e.g. an Android build without the field) does not send one.
+    let savedMainDriverLicenseSince: string | null = typeof profile?.license_since === "string"
+      ? profile.license_since : null;
     const profileAge = finiteNumber(profile?.age);
 
     if (
@@ -937,6 +944,7 @@ serve(async (req) => {
           currency,
           email,
           provider_type,
+          api_provider,
           api_enabled,
           api_provider,
           rental_terms_url,
@@ -1012,7 +1020,7 @@ serve(async (req) => {
     if (driverIds.length > 0) {
       const { data: rawDrivers, error: driversError } = await admin
         .from("drivers")
-        .select("id, user_id, name, age")
+        .select("id, user_id, name, age, license_since")
         .in("id", driverIds);
 
       const drivers = (rawDrivers || [])
@@ -1052,6 +1060,8 @@ serve(async (req) => {
         }
         mainDriverName = name;
         mainDriverAge = age;
+        savedMainDriverLicenseSince = typeof mainDriver.license_since === "string"
+          ? mainDriver.license_since : null;
       }
 
       if (additionalDriver) {
@@ -1076,6 +1086,28 @@ serve(async (req) => {
       const limits = driverAgeLimits(car, car.partner);
       const range = limits.max === null ? `${limits.min}+` : `${limits.min}–${limits.max}`;
       return jsonResponse(req, {code:"DRIVER_AGE_NOT_ALLOWED", error:`Wymagany wiek każdego kierowcy: ${range} lat.`, error_en:`Each driver must meet the age requirement: ${range}.`}, 400);
+    }
+
+    // This field is required ONLY for Arvent; existing partners unchanged.
+    // Use the date the main driver FIRST obtained the driving licence.
+    const isArventBooking = car.partner.api_provider === "arvent_kolaycar";
+    const mainDriverLicenseSince = !isArventBooking ? null
+      : typeof body.main_driver_license_since === "string" && body.main_driver_license_since
+      ? body.main_driver_license_since : savedMainDriverLicenseSince;
+    // Arvent reservations require the main driver's first name AND surname.
+    if (isArventBooking && String(mainDriverName || "").trim().split(/\s+/).length < 2) {
+      return jsonResponse(req,{
+        code:"ARVENT_DRIVER_SURNAME_REQUIRED",
+        error:"Podaj imię i nazwisko głównego kierowcy (w profilu lub na liście kierowców).",
+        error_en:"Enter the main driver's first name and surname (in your profile or driver list)."
+      },400);
+    }
+    if (isArventBooking && arventLicenseYears(mainDriverLicenseSince,startDate.text) === null) {
+      return jsonResponse(req,{
+        code:"ARVENT_LICENSE_DATE_REQUIRED",
+        error:"Podaj prawidłową datę pierwszego uzyskania prawa jazdy głównego kierowcy.",
+        error_en:"Provide the main driver's original driving licence issue date."
+      },400);
     }
 
     let baseTotal: number;
@@ -1206,7 +1238,7 @@ serve(async (req) => {
     const currency = safeCurrency(
       apiQuoteCurrency || car.partner.currency || "EUR",
     );
-    const rate = await exchangeRate(currency);
+    const rate = await exchangeRate(currency, car.partner.api_provider === "arvent_kolaycar");
     let onlinePaymentPln = Number(
       (commission * rate * (1 - discountPercent / 100)).toFixed(2),
     );
@@ -1380,7 +1412,24 @@ serve(async (req) => {
       500,
     );
 
+    // What the client actually booked (group + example car), independent of
+    // later catalogue changes or deactivation. Display only.
+    const { data: carDisplay } = await admin.from("car_classes")
+      .select("class_code, description, example_model, transmission").eq("id", car.id).maybeSingle();
+    const offered = car.partner.provider_type === "api" && isRecord(quoteClaim?.row.raw_response)
+      && isRecord(quoteClaim?.row.raw_response.ride24_display) ? quoteClaim?.row.raw_response.ride24_display : null;
+    const pick = (key: string, max: number) => cleanText(offered?.[key], max) || cleanText((carDisplay as Record<string, unknown> | null)?.[key], max) || null;
+    const vehicleSnapshot = {
+      class_code: pick("class_code", 2),
+      group_name: cleanText(offered?.group_name, 60) || null,
+      example_model: pick("example_model", 120),
+      description: pick("description", 200),
+      transmission: pick("transmission", 30),
+      sipp: cleanText(offered?.sipp, 8) || null,
+    };
+
     const insertPayload = {
+      vehicle_snapshot: vehicleSnapshot,
       ...(pricingItemsSnapshot ? {pricing_items_snapshot:pricingItemsSnapshot} : {}),
       car_class_id: car.id,
       partner_id: car.partner_id,
@@ -1398,6 +1447,7 @@ serve(async (req) => {
       client_email: cleanText(user.email, 254),
       main_driver_name: mainDriverName,
       main_driver_age: mainDriverAge,
+      ...(isArventBooking ? { main_driver_license_since: mainDriverLicenseSince } : {}),
       add_driver_name: additionalDriverName,
       add_driver_age: additionalDriverAge,
       driver_id: driverId,

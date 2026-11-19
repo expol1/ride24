@@ -6,7 +6,9 @@ import { androidPaymentReturnUrl } from "../_shared/payment-return.mjs";
 import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import {loadCaravelRelease} from "../_shared/caravel-release.ts";
 import { apiPaymentEnabled } from "../_shared/api-payment-runtime.ts";
-import { hasPaidFulfillmentAdapter } from "../_shared/api-provider-fulfillment.ts";
+import { arventVerifyCheckout } from "../_shared/arvent-kolaycar.ts";
+import { loadPartnerCredentials } from "../_shared/partner-api.ts";
+import { hasPaidFulfillmentAdapter, revalidatePaidProvider } from "../_shared/api-provider-fulfillment.ts";
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -67,6 +69,28 @@ serve(async (req) => {
       const {data:w,error:we}=await admin.from('api_booking_workflows').select('paid_at,state').eq('booking_id',booking.id).maybeSingle();
       if(we||w?.paid_at||(w&&!['awaiting_payment'].includes(w.state)))
         return new Response(JSON.stringify({error:'PAYMENT_NOT_ALLOWED'}),{status:409,headers:cors(req)});
+      if(booking.partners?.api_provider==='arvent_kolaycar') {
+        // Bind the server-owned SIPP quote before returning even a reused Stripe URL.
+        const {data:cart,error:cartError}=await admin.from('bookings')
+          .select('*,partners!bookings_partner_id_fkey(api_provider,rental_terms_url,rental_rules_url)')
+          .eq('id',booking.id).eq('client_id',user.id).maybeSingle();
+        const {data:quote,error:quoteError}=await admin.from('api_quotes').select('*')
+          .eq('id',booking.api_quote_id).eq('booking_id',booking.id).maybeSingle();
+        if(cartError||quoteError||!cart||cart.partners?.api_provider!=='arvent_kolaycar'||!quote
+          ||!(Date.parse(quote.expires_at)>Date.now()))
+          return new Response(JSON.stringify({error:'ACCEPTED_QUOTE_REQUIRED'}),{status:409,headers:cors(req)});
+        try {
+          const credentials=await loadPartnerCredentials(admin,cart.partner_id);
+          const prepared=await revalidatePaidProvider(credentials,cart,quote);
+          await arventVerifyCheckout(credentials,prepared);
+        } catch (e) {
+          // Expose only the stable internal reason code (no supplier payload or PII).
+          const raw=e instanceof Error?e.message:'';
+          const reason=/^(?:PARTNER_API_ERROR:)?([A-Z0-9_:]{3,80})$/.exec(raw)?.[1]||'UNKNOWN';
+          console.error('create_checkout_session arvent verify failed',booking.id,reason);
+          return new Response(JSON.stringify({error:'ARVENT_QUOTE_UNVERIFIED',reason}),{status:409,headers:cors(req)});
+        }
+      }
       if(booking.stripe_session_id) {
         const old=await stripe.checkout.sessions.retrieve(booking.stripe_session_id);
         if(old.status==='open'&&old.amount_total===Math.round(amount*100)&&old.currency==='pln')
@@ -76,20 +100,22 @@ serve(async (req) => {
       const {data:q,error:qe}=await admin.from('api_quotes').select('raw_response,booking_id,expires_at').eq('id',booking.api_quote_id).maybeSingle();
       if(q?.expires_at&&Date.parse(q.expires_at)<=Date.now())return new Response(JSON.stringify({error:'QUOTE_EXPIRED'}),{status:409,headers:cors(req)});
       if(Date.parse(booking.payment_deadline)-Date.now()<30*60*1000)return new Response(JSON.stringify({error:'PAYMENT_DEADLINE_TOO_CLOSE'}),{status:409,headers:cors(req)});
-      if(qe||q?.booking_id!==booking.id||!q?.raw_response?.ride24_options||!q?.raw_response?.provider_quote_data?.calculated)
+      if(qe||q?.booking_id!==booking.id||(booking.partners?.api_provider!=='arvent_kolaycar'
+          &&(!q?.raw_response?.ride24_options||!q?.raw_response?.provider_quote_data?.calculated)))
         return new Response(JSON.stringify({error:'ACCEPTED_QUOTE_REQUIRED'}),{status:409,headers:cors(req)});
     }
 
     const session = await stripe.checkout.sessions.create({
       ...(isApi?{expires_at:Math.floor(Date.parse(booking.payment_deadline)/1000)}:{}),
       mode: "payment",
-      payment_method_types: ["card"],
+      // Do not pin "card": Stripe dynamically offers eligible methods such as BLIK
+      // according to the live payment-method configuration, currency and customer.
       line_items: [{
         price_data: {
           currency: "pln",
           product_data: {
-            name: "Ride24 – Auta z różnych zakątków świata",
-            description: `Rezerwacja: ${booking.reservation_code || booking.id}`,
+            name: "Opłata rezerwacyjna Ride24.pl",
+            description: `Rezerwacja: ${booking.reservation_code || booking.id}. Opłata nie obejmuje kosztu wynajmu samochodu.`,
           },
           unit_amount: Math.round(amount * 100),
         },

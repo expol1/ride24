@@ -56,6 +56,7 @@ type PartnerRow = {
   api_provider: string | null;
   api_enabled: boolean | null;
   api_status: string | null;
+  api_settings?: Record<string, unknown> | null;
   api_last_test_at: string | null;
   api_last_sync_at: string | null;
   api_last_error: string | null;
@@ -396,7 +397,7 @@ async function getPartner(admin: AdminClient, partnerId: string): Promise<Partne
   const { data, error } = await admin
     .from("partners")
     .select(
-      "id, company_name, provider_type, api_provider, api_enabled, api_status, api_last_test_at, api_last_sync_at, api_last_error, discount_percent, currency, active, account_status",
+      "id, company_name, provider_type, api_provider, api_enabled, api_status, api_settings, api_last_test_at, api_last_sync_at, api_last_error, discount_percent, currency, active, account_status",
     )
     .eq("id", partnerId)
     .maybeSingle();
@@ -919,7 +920,13 @@ async function syncPartner(
       api_status: nextStatus,
       api_last_sync_at: now,
       api_last_error: null,
-      api_settings: { configured: true, status: nextStatus },
+      api_settings: { configured: true, status: nextStatus,
+        // Syncing available groups does not invalidate a successful
+        // independently audited Arvent booking/cancellation certification.
+        ...(partner.api_provider === "arvent_kolaycar" &&
+            isRecord(partner.api_settings) &&
+            partner.api_settings.arvent_certified === true
+          ? { arvent_certified: true } : {}) },
     }).eq("id", partner.id);
     if (partnerUpdateError) {
       throw new Error("Nie udało się zapisać wyniku synchronizacji partnera");
@@ -944,7 +951,19 @@ function ensureCommerciallyActive(partner: PartnerRow): void {
 }
 
 async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise<void> {
-  if (partner.api_provider === "arvent_kolaycar") throw new Error("Arvent kolayCAR: aktywacja zablokowana do certyfikacji Stripe, warunków wynajmu i anulowania");
+  if (partner.api_provider === "arvent_kolaycar") {
+    // NEVER allow a pre-certification public launch, including while
+    // one-off production test writes are enabled. A durable manual
+    // certification marker is set ONLY AFTER the approved live booking,
+    // supplier status 1, voucher, cancellation and refund are verified.
+    const certified = isRecord(partner.api_settings)
+      && partner.api_settings.arvent_certified === true;
+    const approved = Deno.env.get("ARVENT_STRIPE_FIRST_APPROVED") === "true";
+    const writes = Deno.env.get("ARVENT_KOLAYCAR_WRITE_ALLOWED") === "true";
+    if (!certified || !approved || !writes) {
+      throw new Error("Arvent: publiczna aktywacja wymaga certyfikacji testowej rezerwacji, anulowania i autoryzacji Stripe-first");
+    }
+  }
   if (partner.api_provider === "renteon_aggregator") {
     // No live sales before written provider rate confirmation, verified booking
     // cancellation support and a successful live-price test.
@@ -961,7 +980,8 @@ async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise
     api_enabled: true,
     api_status: "active",
     api_last_error: null,
-    api_settings: { configured: true, status: "active" },
+    api_settings: { configured: true, status: "active",
+      ...(partner.api_provider === "arvent_kolaycar" ? { arvent_certified: true } : {}) },
   }).eq("id", partner.id);
   if (error) throw new Error("Nie udało się aktywować partnera API");
 }

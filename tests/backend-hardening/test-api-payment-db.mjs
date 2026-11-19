@@ -175,3 +175,17 @@ test('late Stripe payment on cancelled legacy supplier reference is held for rec
   assert.equal((await p.query('select count(*)::int as n from payments')).rows[0].n,1);
  }finally {await p.close();}
 });
+
+test('Arvent cancellation migration restricts claims and enforces exactly one row per booking',async()=>{
+ const p=await db();
+ try {
+  const sql=await readFile(new URL('../../supabase/migrations/20261118171000_arvent_cancel_attempts.sql',import.meta.url),'utf8');
+  await p.exec(sql);
+  for(const role of ['anon','authenticated']){
+   const {rows}=await p.query("select has_table_privilege($1,'arvent_cancel_attempts','INSERT') as allowed",[role]);
+   assert.equal(rows[0].allowed,false);
+  }
+  await p.query('insert into arvent_cancel_attempts(booking_id) values ($1)',[b]);
+  await assert.rejects(p.query('insert into arvent_cancel_attempts(booking_id) values ($1)',[b]),e=>e.code==='23505');
+ }finally{await p.close();}
+});

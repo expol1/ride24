@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import {
  supplierData,arventDate,arventQuery,arventLocationRows,arventGroupRows,
  arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventDateOfBirth,arventSavePayload,arventSavedRouteMatches,
- ARVENT_PATHS, ARVENT_INITIAL_AIRPORT_IATAS,
+ ARVENT_PATHS, ARVENT_INITIAL_AIRPORT_IATAS, arventSubmissionAllowed,
 } from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 
 const ok=data=>({success:true,resultCode:0,data});
 const example={
  vehicleId:100,vehicleName:"Example Vehicle",sippCode:"CDAR",currencyCode:"EUR",
  isAvailable:true,depositPrice:0,depositCreditCardRequired:false,totalKMLimit:0,
+ excess:0,rentalConditions:[{conditionCode:"7",conditionName:"Full Insurance"}],
  totalPrice:150,pricePerDay:75,reservationToken:"00000000-0000-4000-8000-000000000001",
  vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:1,
 };
@@ -55,7 +56,9 @@ test("catalog has no fabricated prices",()=>{
 test("rejects supplier deposit, credit card, capped mileage or TRY quotes",()=>{
  for(const mutation of [
   {depositPrice:2000},{depositCreditCardRequired:true},{totalKMLimit:300},
-  {currencyCode:"TRY"},{reservationToken:""},{totalPrice:0}
+  {currencyCode:"TRY"},{reservationToken:""},{totalPrice:0},
+  {excess:500},{excess:null},{rentalConditions:[]},
+  {rentalConditions:[{conditionCode:"10",conditionName:"Third Party Liability"}]}
  ]) assert.equal(arventOfferMatchesTerms({...example,...mutation},"EUR"),false,JSON.stringify(mutation));
  assert.equal(arventOfferMatchesTerms(example,"EUR"),true);
  const output=arventOfferRows(ok([{...example,depositPrice:2000}]),search);
@@ -236,4 +239,53 @@ test("Istanbul supplier typo and Turkish city variants normalize to Ride24 names
   "Istanbul Airport (IST)","Istanbul Sabiha Gökçen Airport (SAW)"
  ]);
  assert.ok(rows.every(x=>x.city==="Istanbul"&&x.country==="Turkey"));
+});
+
+test("Arvent insurance is verified ONLY by returned Full Insurance condition and exact zero excess",()=>{
+ for(const conditions of [
+  [{conditionCode:"7",conditionName:"Full Insurance"}],
+  JSON.stringify([{conditionCode:"7",conditionName:"Full Insurance"}])
+ ]) {
+  assert.equal(arventOfferMatchesTerms({...example,rentalConditions:conditions,excess:"0.00"},"EUR"),true);
+ }
+ for(const conditions of [
+  null,[],[],[{}],[{conditionName:"Basic Cover"}],
+  [{conditionName:"Not Full Insurance"}],"invalid-json"
+ ]) {
+  assert.equal(arventOfferMatchesTerms({...example,rentalConditions:conditions},"EUR"),false,String(conditions));
+ }
+ const [selected]=arventOfferRows(ok([example]),search);
+ assert.equal(selected.features.full_insurance_included,true);
+ assert.equal(selected.features.insurance_unverified,false);
+ assert.equal(selected.features.insurance_excess_eur,0);
+});
+test("optional partner supplier note is forwarded as a single-line customer note only",()=>{
+ const base={reservationToken:"00000000-0000-4000-8000-000000000001",reference:"R24-1",
+  customer:{name:"A",surname:"B",email:"a@example.invalid",phoneNumber:"+48000"}};
+ assert.equal(arventSavePayload(base).customer.note,"");
+ const noted=arventSavePayload({...base,customer:{...base.customer,note:"TEST \u2013 Do not process.\nCancelled by the company."}});
+ assert.equal(noted.customer.note,"TEST \u2013 Do not process. Cancelled by the company.");
+ assert.equal(arventSavePayload({...base,customer:{...base.customer,note:"x".repeat(400)}}).customer.note.length,250);
+ assert.equal(noted.pricing.paidAmount,0);
+ assert.equal(noted.payment.paymentType,3);
+});
+
+test("same-day pickup may be submitted only 10:00-17:00 Turkey time; later dates 24/7",()=>{
+ const at=iso=>Date.parse(iso);
+ // 16:00 TR (13:00Z) same day, pickup 23:00: allowed.
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T13:00:00Z")),true);
+ // 16:00 TR, pickup 01:00 tomorrow: allowed (different date).
+ assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T13:00:00Z")),true);
+ // 20:00 TR (17:00Z) same day: not allowed; tomorrow: allowed.
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T17:00:00Z")),false);
+ assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T17:00:00Z")),true);
+ // Boundaries: 09:59 no, 10:00 yes, 16:59 yes, 17:00 no (TR).
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T06:59:00Z")),false);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T07:00:00Z")),true);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T13:59:00Z")),true);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T14:00:00Z")),false);
+ // Turkish date rolls over at 21:00Z: 22:00Z on the 19th is already the 20th in TR.
+ assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T22:00:00Z")),false);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T22:00:00Z")),false);
+ assert.equal(arventSubmissionAllowed("bad",at("2026-11-19T12:00:00Z")),false);
 });

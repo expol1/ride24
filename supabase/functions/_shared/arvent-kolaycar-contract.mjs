@@ -123,9 +123,26 @@ export function arventGroupRows(e) {
  }
  return [...groups.values()];
 }
+export function arventInsuranceIncluded(x) {
+ // Live Arvent returns an array of structured rentalConditions; some API
+ // versions serialize that array as JSON text. Do not trust text from an
+ // unrelated vehicle description or an undocumented 'fullCredit' flag.
+ // Arvent serializes excess as a decimal STRING (e.g. "0.00"), while
+ // other numeric API fields are JSON numbers. Accept only exact zero.
+ const zeroExcess=record(x)&&(num(x.excess)===0
+   ||(typeof x.excess==="string"&&/^0+(?:\.0+)?$/.test(x.excess.trim())));
+ if(!zeroExcess)return false;
+ let conditions=x.rentalConditions;
+ if(typeof conditions==="string") {
+  try {conditions=JSON.parse(conditions)}catch{return false}
+ }
+ return Array.isArray(conditions)&&conditions.some(c=>record(c)
+   &&str(c.conditionName,200).trim().toLowerCase()==="full insurance");
+}
 export function arventOfferMatchesTerms(x,currency="EUR") {
  // Fail closed: don't silently rewrite nonzero deposit, required card hold or mileage cap.
  return record(x)&&x.isAvailable===true&&str(x.currencyCode).toUpperCase()===currency.toUpperCase()
+  &&arventInsuranceIncluded(x)
   &&num(x.depositPrice)===0&&x.depositCreditCardRequired===false
   &&num(x.totalKMLimit)===0&&num(x.totalPrice)!==null&&x.totalPrice>0
   &&Boolean(str(x.reservationToken,500));
@@ -154,7 +171,7 @@ export function arventOfferRows(e,input) {
    features:{...c.features,
     min_license_years:num(x.vendorMinimumDrivingLicenseAge),
     minimum_driver_age:num(x.vendorMinimumDriverAge),
-    insurance_unverified:true},
+    insurance_unverified:false,full_insurance_included:true,insurance_excess_eur:0},
    provider_quote_data:{provider:ARVENT_PROVIDER,
     vehicle_id:id(x.vehicleId),sipp:c.external_id,
     total_amount:total,currency,pickup_location_id:input.pickup_location_id,
@@ -215,7 +232,9 @@ export function arventSavePayload({reservationToken,reference,customer,extras=[]
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_INVALID");
  return {reservationToken,languageCode:"EN",
   customer:{name:str(customer.name),surname:str(customer.surname),phoneNumber:str(customer.phoneNumber,80),
-   email:str(customer.email,250),birthDay:arventDateOfBirth(customer.birthDay),personalNumber:"",address:"",note:""},
+   email:str(customer.email,250),birthDay:arventDateOfBirth(customer.birthDay),personalNumber:"",address:"",
+   // Optional partner-level operational note (api_settings.supplier_booking_note).
+   note:str(customer.note,250).replace(/[\u0000-\u001f\u007f]/g," ")},
   pricing:{paidAmount:0,extraAmount:0,specialDailyPrice:-1,specialOneWayFee:-1},
   payment:{paymentType:3,extraPricePayToDelivery:true,oneWayFeePayToDelivery:true},
   extras:extras.map(e=>({code:e.code,piece:e.piece})),
@@ -242,10 +261,24 @@ export function arventSavedRouteMatches(saved, expected) {
  const startTime=/^(\d{2}):(\d{2})/.exec(str(expected.pickup_time,16));
  const endTime=/^(\d{2}):(\d{2})/.exec(str(expected.return_time,16));
  return Boolean(start&&end&&startTime&&endTime
+   &&idString(expected.pickup_location_id)&&idString(expected.dropoff_location_id)
    &&idString(saved.pickupLocationId)===idString(expected.pickup_location_id)
    &&idString(saved.returnLocationId)===idString(expected.dropoff_location_id)
    &&start.date===str(expected.pickup_date,10)
    &&end.date===str(expected.return_date,10)
    &&start.time===startTime[1]+":"+startTime[2]
    &&end.time===endTime[1]+":"+endTime[2]);
+}
+
+// Arvent policy (2026-11-19): a reservation whose pickup is on the SAME
+// Turkish calendar day may only be submitted 10:00-17:00 Turkey time
+// (UTC+3, no DST). Pickup tomorrow or later: 24/7. Pickup service is 24/7.
+export function arventSubmissionAllowed(pickupDate,nowMs=Date.now()) {
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(pickupDate||"")))return false;
+ const tr=new Date(nowMs+3*3600000);
+ const today=tr.toISOString().slice(0,10);
+ if(pickupDate>today)return true;
+ if(pickupDate<today)return false;
+ const minutes=tr.getUTCHours()*60+tr.getUTCMinutes();
+ return minutes>=10*60&&minutes<17*60;
 }

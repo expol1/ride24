@@ -1973,6 +1973,11 @@ async>
                                 </div>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
+                                <label for="profile-license-since" data-pl="Data pierwszego uzyskania prawa jazdy" data-en="Date you first obtained your driving licence">Data pierwszego uzyskania prawa jazdy</label>
+                                <input type="date" id="profile-license-since" value="" autocomplete="off">
+                                <small data-pl="Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni." data-en="The original entitlement date, not the date your current card was printed. Required by some rental companies.">Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni.</small>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label data-pl="Kraj zamieszkania" data-en="Country">Kraj zamieszkania</label>
                                 <input type="text" id="profile-country" value="PL" placeholder="PL" data-pl="PL" data-en="UK">
                             </div>
@@ -2551,12 +2556,62 @@ const res = await fetch(supabaseUrl + "/functions/v1/create_checkout_session", {
 
   if (!data.url) {
     console.error("❌ BRAK URL:", data);
-    alert(isEn ? "Payment error." : "Błąd płatności.");
-    return;
+    window.ride24PaymentRedirect?.(false);
+    const offerChanged = data?.error === "ARVENT_QUOTE_UNVERIFIED" || data?.error === "QUOTE_EXPIRED";
+    alert(offerChanged
+      ? (isEn ? "The supplier's offer has changed or expired. Nothing was charged. Please search again."
+              : "Oferta dostawcy zmieniła się lub wygasła. Nic nie zostało pobrane. Wyszukaj ponownie.")
+      : (isEn ? "Payment error." : "Błąd płatności."));
+    return false;
   }
 
   window.location.href = data.url;
+  return true;
 }
+
+// Same layout as local partners: class letter + car model. Group (SIPP)
+// bookings name the offered example model: "Hyundai i20 lub podobny".
+window.ride24VehicleLabel = function(snap, carClass, isEn) {
+  const similar = isEn ? "or similar" : "lub podobny";
+  if (snap?.example_model && snap?.group_name) return `${snap.example_model} ${similar}`;
+  if (snap?.example_model) return snap.example_model;
+  const text = snap?.description || carClass?.description || "Auto";
+  return isEn ? text : String(text).replace(/ or similar$/i, " lub podobny");
+};
+
+// Return from Stripe: tell the client what happens next, then drop the flag from the URL.
+(function ride24PaymentReturnNotice() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("payment");
+    if (!result) return;
+    const isEn = localStorage.getItem("client_lang") === "en";
+    const msg = result === "success"
+      ? (isEn ? "Payment received. Your booking is now with the rental company for confirmation; the voucher follows by email."
+              : "Płatność przyjęta. Rezerwacja czeka na potwierdzenie wypożyczalni – voucher wyślemy e-mailem.")
+      : (isEn ? "Payment was not completed. You can pay again from My bookings."
+              : "Płatność nie została dokończona. Możesz opłacić ją ponownie w Moich rezerwacjach.");
+    const show = () => window.showToast ? window.showToast(msg, result === "success" ? "success" : "info") : null;
+    if (document.readyState === "complete") setTimeout(show, 800); else window.addEventListener("load", () => setTimeout(show, 800));
+    params.delete("payment");
+    const q = params.toString();
+    history.replaceState(null, "", location.pathname + (q ? "?" + q : "") + location.hash);
+  } catch (_) {}
+})();
+
+// Full-screen "redirecting to payment" notice while the server rechecks the offer.
+window.ride24PaymentRedirect = function(show) {
+  let el = document.getElementById("r24-payment-redirect");
+  if (!show) { if (el) el.remove(); return; }
+  if (el) return;
+  const isEn = localStorage.getItem("client_lang") === "en";
+  el = document.createElement("div");
+  el.id = "r24-payment-redirect";
+  el.setAttribute("role", "status");
+  el.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.72);color:#fff;font:600 17px Inter,sans-serif;text-align:center;padding:24px";
+  el.textContent = isEn ? "Checking the offer and redirecting to secure payment…" : "Sprawdzamy ofertę i przekierowujemy do bezpiecznej płatności…";
+  document.body.appendChild(el);
+};
 
 window.goToPayment = goToPayment;
 
@@ -2868,6 +2923,10 @@ document.addEventListener("click", async function(e) {
     if (cardNotice) cardNotice.hidden = true;
     const cardAck = document.getElementById("aviaDebitCardConfirm");
     if (cardAck) cardAck.checked = false;
+    const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+    if (arventLicenseBlock) arventLicenseBlock.hidden = true;
+    const arventLicenseInput = document.getElementById("arventLicenseSince");
+    if (arventLicenseInput) arventLicenseInput.value = "";
     const generalAck = document.getElementById("acceptTerms");
     if (generalAck) generalAck.checked = false;
 
@@ -2882,7 +2941,7 @@ document.addEventListener("click", async function(e) {
 
         const { data: profileCheck } = await db
             .from("profiles")
-            .select("name, phone, age")
+            .select("name, phone, age, license_since")
             .eq("id", currentUser.id)
             .maybeSingle();
 
@@ -2914,8 +2973,18 @@ document.addEventListener("click", async function(e) {
         select.innerHTML = optionsHtml;
         addSelect.innerHTML = `<option value="none" data-pl="Brak" data-en="None">${isEn ? "None" : "Brak"}</option>` + optionsHtml;
 
+        // Prefill the licence date saved for the selected main driver (still editable).
+        const prefillLicense = () => {
+            const input = document.getElementById("arventLicenseSince");
+            if (!input) return;
+            const chosen = select.value ? (myDrivers || []).find(d => d.id === select.value) : null;
+            input.value = window.ride24LicenseDate(chosen ? chosen.license_since : profileCheck.license_since) || "";
+        };
+        prefillLicense();
+
         select.onchange = () => {
             if (select.value === addSelect.value) addSelect.value = "none";
+            prefillLicense();
             bookingExtras.refresh();
         };
 
@@ -2939,7 +3008,13 @@ document.addEventListener("click", async function(e) {
                 const cardNotice = document.getElementById("aviaCardRequirement");
                 if (cardNotice) cardNotice.hidden =
                     car.partner_id !== "91e04805-31da-4242-9e6f-b6075019d784";
-                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age").eq("id", car.partner_id).single();
+                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,api_provider").eq("id", car.partner_id).single();
+                const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+                if (arventLicenseBlock) {
+                    // Arvent may still be staged under api_provider=custom before launch.
+                    arventLicenseBlock.hidden = !(partner?.api_provider === "arvent_kolaycar"
+                        || car.partner_id === "bf29a373-c464-4cec-87a7-c3218ea1ea51");
+                }
 
                 const ageInfo = document.getElementById("bookingDriverAgeInfo");
                 if (ageInfo) {
@@ -3019,6 +3094,16 @@ document.addEventListener("click", async function(e) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
                 }
 
+                const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+                const arventLicenseSince = arventLicenseBlock && !arventLicenseBlock.hidden
+                    ? document.getElementById("arventLicenseSince")?.value : null;
+                if (arventLicenseBlock && !arventLicenseBlock.hidden &&
+                    (!/^\d{4}-\d{2}-\d{2}$/.test(arventLicenseSince || "") ||
+                     arventLicenseSince > new Date().toISOString().slice(0, 10))) {
+                    throw new Error(isEn
+                        ? "Enter the original issue date of the main driver's driving licence."
+                        : "Podaj datę pierwszego uzyskania prawa jazdy głównego kierowcy.");
+                }
                 const pricingPayload = bookingExtras.payload();
                 const caravelResult = caravelBooking ? await window.Ride24CaravelConsent.book({
                     accessToken: session.access_token, supabaseUrl, supabaseKey, driverId, additionalDriverId }) : null;
@@ -3040,6 +3125,7 @@ document.addEventListener("click", async function(e) {
                         return_location: returnName,
                         driver_id: driverId,
                         additional_driver_id: additionalDriverId,
+                        ...(arventLicenseSince ? { main_driver_license_since: arventLicenseSince } : {}),
                         terms_accepted: true,
                         avia_personal_debit_card_acknowledged:
                             !!(document.getElementById("aviaCardRequirement") &&
@@ -3072,8 +3158,14 @@ document.addEventListener("click", async function(e) {
                     "bookingPickupPrice", "bookingCurrency", "bookingContext", "autoOpenBooking"
                 ].forEach(key => localStorage.removeItem(key));
 
-                if (typeof loadClientBookings === "function") await loadClientBookings();
-                if (result.payment_required && result.booking?.id) await goToPayment(null, result.booking.id);
+                // Paid API bookings go straight to Stripe; the list is refreshed only if that fails.
+                if (result.payment_required && result.booking?.id) {
+                    window.ride24PaymentRedirect(true);
+                    let redirected = false;
+                    try { redirected = await goToPayment(null, result.booking.id); }
+                    finally { if (!redirected) window.ride24PaymentRedirect(false); }
+                    if (!redirected && typeof loadClientBookings === "function") await loadClientBookings();
+                } else if (typeof loadClientBookings === "function") await loadClientBookings();
             } catch (err) {
                 console.error("BOOKING ERROR:", err);
                 window.showToast(err?.message || (isEn ? "Booking error." : "Błąd rezerwacji."), "error");
@@ -3137,6 +3229,8 @@ document.addEventListener("click", async function(e) {
     status,
     partner_response_deadline,
     payment_deadline,
+    api_status,
+    vehicle_snapshot,
     refund_status,
     receipt_generated,
 refund_completed_at,
@@ -3237,8 +3331,13 @@ if (badge) {
 
                 // Generowanie tabel
                 for (const booking of clientBookings) {
-                    const carName = booking.car_classes?.description || "Auto";
-                    const carClassCode = booking.car_classes?.class_code || "?";
+                    // Booked group as offered (snapshot), then the current class row.
+                    const snap = booking.vehicle_snapshot || {};
+                    const carName = window.ride24VehicleLabel(snap, booking.car_classes, isEn);
+                    const carClassCode = snap.class_code || booking.car_classes?.class_code || "?";
+                    // Paid API booking still waiting for the rental company's approval.
+                    const awaitingSupplier = booking.status === 'pending'
+                        && ['payment_provider_pending', 'payment_unknown'].includes(booking.api_status);
 
                     // 🔥 FIX 4: Zmienne ładujące dane prosto z zagnieżdżonych relacji
                     const finalPrice = booking.final_price_snapshot || 0;
@@ -3248,14 +3347,17 @@ if (badge) {
 
 
 // --- DYNAMICZNE STATUSY (PREMIUM TILES) ---
-if (booking.status === 'pending') {
+if (awaitingSupplier) {
+    statusHtml = `<div class="status-tile pending" data-pl="💳 Opłacona – czeka na potwierdzenie" data-en="💳 Paid – awaiting confirmation">💳 ${isEn ? 'Paid – awaiting confirmation' : 'Opłacona – czeka na potwierdzenie'}</div>`;
+}
+else if (booking.status === 'pending') {
     statusHtml = `<div class="status-tile pending" data-pl="⏳ Oczekująca" data-en="⏳ Pending">⏳ ${isEn ? 'Pending' : 'Oczekująca'}</div>`;
 }
 else if (booking.status === 'accepted') {
-    statusHtml = `<div class="status-tile accepted" data-pl="✅ Potwierdzona" data-en="✅ Accepted">✅ ${isEn ? 'Accepted' : 'Potwierdzona'}</div>`;
+    statusHtml = `<div class="status-tile accepted" data-pl="✅ Potwierdzona" data-en="✅ Confirmed">✅ ${isEn ? 'Confirmed' : 'Potwierdzona'}</div>`;
 }
 else if (booking.status === 'awaiting_payment') {
-    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Opłać" data-en="💳 Pay">💳 ${isEn ? 'Pay' : 'Opłać'}</div>`;
+    statusHtml = `<div class="status-tile awaiting_payment" data-pl="💳 Do opłacenia" data-en="💳 Awaiting payment">💳 ${isEn ? 'Awaiting payment' : 'Do opłacenia'}</div>`;
 
 }
 else if (booking.status === 'paid') {
@@ -3276,7 +3378,19 @@ let actionsHtml = `<div style="display:flex;flex-direction:column;gap:8px; align
 
 const s = booking.status;
 
-if (s === 'pending') {
+if (awaitingSupplier) {
+    // Paid: the supplier decides; an automatic full refund follows if it does not confirm in time.
+    actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;" data-pl="Potwierdzenie wypożyczalni do:" data-en="Rental company confirms by:">
+        ${isEn ? 'Rental company confirms by:' : 'Potwierdzenie wypożyczalni do:'}
+    </span>`;
+    actionsHtml += `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="font-size:13px; margin-top:0; color:var(--orange);">
+        ⌛ --:--:--
+    </span>`;
+    actionsHtml += `<span style="font-size:11px; color:var(--gray); max-width:220px;" data-pl="Voucher wyślemy e-mailem po potwierdzeniu. Bez potwierdzenia zwrócimy całą opłatę." data-en="We email the voucher after confirmation. Without confirmation the full fee is refunded.">
+        ${isEn ? 'We email the voucher after confirmation. Without confirmation the full fee is refunded.' : 'Voucher wyślemy e-mailem po potwierdzeniu. Bez potwierdzenia zwrócimy całą opłatę.'}
+    </span>`;
+}
+else if (s === 'pending') {
     actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
         ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
     </button>`;
@@ -3356,16 +3470,8 @@ else if (s === 'paid') {
     </button>`;
     }
 }
-else if (s === 'cancelled' || s === 'rejected' || s === 'expired' || s === 'payment_expired') {
-    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600; padding: 6px 0;" data-pl="Zamknięta" data-en="Closed">
-        ${isEn ? 'Closed' : 'Zamknięta'}
-    </span>`;
-}
-else {
-    actionsHtml += `<span style="font-size:12px; color:var(--gray); font-weight:600;" data-pl="Zakończona" data-en="Completed">
-        ${isEn ? 'Completed' : 'Zakończona'}
-    </span>`;
-}
+// No additional actions for closed/unknown bookings.
+// Their precise status is already shown in the status tile above.
 actionsHtml += `</div>`;
 
                     const pickup = booking.pickup_location || "—";
@@ -3819,6 +3925,7 @@ function calculateRefundPercent(pickupDate) {
                 if(document.getElementById("profile-name")) document.getElementById("profile-name").value = profile.name || "";
                 if(document.getElementById("profile-age")) document.getElementById("profile-age").value = profile.age || "";
                 if(document.getElementById("profile-phone")) document.getElementById("profile-phone").value = profile.phone || "";
+                if(document.getElementById("profile-license-since")) document.getElementById("profile-license-since").value = profile.license_since || "";
                 // 🔥 FIX: Domyślnie ładuje "PL" jeśli baza zwróci null
                 if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "PL";
 
@@ -3843,7 +3950,7 @@ function calculateRefundPercent(pickupDate) {
                 list.innerHTML = "";
                 if(driversData && driversData.length > 0) {
                     driversData.forEach(driver => {
-                        window.addDriverRow(driver.name, driver.age, driver.phone, driver.id);
+                        window.addDriverRow(driver.name, driver.age, driver.phone, driver.id, driver.license_since || "");
 
                     });
                 }
@@ -4022,6 +4129,16 @@ function calculateRefundPercent(pickupDate) {
         }
 
 
+        // Original driving-licence date: YYYY-MM-DD, not in the future, after 1900.
+        window.ride24LicenseDate = function(value) {
+            const v = typeof value === "string" ? value.trim() : "";
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+            const t = Date.parse(v + "T00:00:00Z");
+            if (!Number.isFinite(t) || new Date(t).toISOString().slice(0, 10) !== v) return null;
+            if (v < "1900-01-01" || v > new Date().toISOString().slice(0, 10)) return null;
+            return v;
+        };
+
         window.saveProfile = async function() {
             if(!db || !currentUser) {
                 window.showToast(localStorage.getItem("client_lang") === "en" ? "Please log in first!" : "Zaloguj się najpierw!", "error");
@@ -4035,7 +4152,13 @@ function calculateRefundPercent(pickupDate) {
                 age_updated_at: new Date().toISOString().split('T')[0],
                 phone: document.getElementById("profile-phone").value,
                 country: document.getElementById("profile-country").value,
+                license_since: window.ride24LicenseDate(document.getElementById("profile-license-since")?.value),
             };
+            if (document.getElementById("profile-license-since")?.value && !profileData.license_since) {
+                const isEn = localStorage.getItem("client_lang") === "en";
+                window.showToast(isEn ? "Enter a valid driving licence date (not in the future)." : "Podaj prawidłową datę prawa jazdy (nie z przyszłości).", "error");
+                return;
+            }
 
             const { error } = await db.from("profiles").upsert(profileData);
             if(error) {
@@ -4053,7 +4176,7 @@ function calculateRefundPercent(pickupDate) {
             }
         }
 
-        window.addDriverRow = function(name = "", age = "", phone = "", driverId = "") {
+        window.addDriverRow = function(name = "", age = "", phone = "", driverId = "", licenseSince = "") {
             const list = document.getElementById('drivers-list');
             const row = document.createElement('div');
             row.className = 'driver-row driver-entry';
@@ -4070,6 +4193,10 @@ function calculateRefundPercent(pickupDate) {
                 <div class="form-group" style="margin-bottom: 0;">
                     <label data-pl="Telefon" data-en="Phone">Telefon</label>
                     <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label data-pl="Prawo jazdy od" data-en="Licence since">Prawo jazdy od</label>
+                    <input type="date" class="driver-license-since" value="${window.ride24LicenseDate(licenseSince) || ""}">
                 </div>
                 <button type="button" class="btn-icon-remove" onclick="removeDriver(this, '${driverId}')" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
             `;
@@ -4102,13 +4229,15 @@ function calculateRefundPercent(pickupDate) {
                     const name = row.querySelector(".driver-name").value;
                     const age = row.querySelector(".driver-age").value;
                     const phone = row.querySelector(".driver-phone").value;
+                    const licenseSince = window.ride24LicenseDate(row.querySelector(".driver-license-since")?.value);
                     if(name) {
                         newDrivers.push({
                             user_id: currentUser.id,
                             name: name,
                             age: age ? parseInt(age) : null,
                             age_updated_at: new Date().toISOString().split('T')[0], // 🔥 Stempel dla kierowcy
-                            phone: phone
+                            phone: phone,
+                            license_since: licenseSince
                         });
                     }
                 });
@@ -4617,13 +4746,13 @@ function translateStatus(status, lang = null) {
 
     const map = {
         pending: { pl: "Oczekująca", en: "Pending" },
-        accepted: { pl: "Potwierdzona", en: "Accepted" },
-        awaiting_payment: { pl: "Oczekuje płatności", en: "Awaiting payment" },
+        accepted: { pl: "Potwierdzona", en: "Confirmed" },
+        awaiting_payment: { pl: "Do opłacenia", en: "Awaiting payment" },
         paid: { pl: "Opłacona", en: "Paid" },
         cancelled: { pl: "Anulowana", en: "Cancelled" },
         rejected: { pl: "Odrzucona", en: "Rejected" },
         expired: { pl: "Wygasła", en: "Expired" },
-        payment_expired: { pl: "Płatność wygasła", en: "Payment expired" }
+        payment_expired: { pl: "Wygasła", en: "Expired" }
     };
 
     return map[status] ? map[status][currentLang] : status;
@@ -4666,8 +4795,8 @@ window.loadPayments = async function() {
                 const refundDateValue = b.refund_completed_at ? new Date(b.refund_completed_at) : null;
                 const refundDatePl = refundDateValue ? refundDateValue.toLocaleDateString('pl-PL') : '';
                 const refundDateEn = refundDateValue ? refundDateValue.toLocaleDateString('en-GB') : '';
-                actions = `<div class="status-tile paid" data-pl="💸 Rozliczone ${refundDatePl ? `(${refundDatePl})` : ''}" data-en="💸 Refunded ${refundDateEn ? `(${refundDateEn})` : ''}">
-                    💸 ${isEn ? 'Refunded' : 'Rozliczone'} ${isEn ? (refundDateEn ? `(${refundDateEn})` : '') : (refundDatePl ? `(${refundDatePl})` : '')}
+                actions = `<div class="status-tile paid" data-pl="💸 Zwrócona ${refundDatePl ? `(${refundDatePl})` : ''}" data-en="💸 Refunded ${refundDateEn ? `(${refundDateEn})` : ''}">
+                    💸 ${isEn ? 'Refunded' : 'Zwrócona'} ${isEn ? (refundDateEn ? `(${refundDateEn})` : '') : (refundDatePl ? `(${refundDatePl})` : '')}
                 </div>`;
             }
 
@@ -4700,18 +4829,32 @@ window.loadPayments = async function() {
             }
             if (!actions) actions = "-";
 
-            // 🔥 PRZYPISANIE ODPOWIEDNIEGO KAFELKA DO STATUSU DLA KOLUMNY "STATUS"
+            // Status płatności: potwierdzony zwrot ma pierwszeństwo przed statusem rezerwacji.
+            // To wyłącznie mapowanie widoku – nie zmienia płatności ani zwrotów.
             let paymentStatusClass = "pending";
-            if (b.status === 'paid') paymentStatusClass = "paid";
-            else if (b.status === 'cancelled' || b.status === 'rejected') paymentStatusClass = "cancelled";
+            let paymentStatusPl = translateStatus(b.status, "pl");
+            let paymentStatusEn = translateStatus(b.status, "en");
+            if (b.refund_status === "completed") {
+                paymentStatusClass = "paid";
+                paymentStatusPl = "Zwrócona";
+                paymentStatusEn = "Refunded";
+            } else if (b.refund_status === "pending") {
+                paymentStatusClass = "awaiting_payment";
+                paymentStatusPl = "Zwrot w toku";
+                paymentStatusEn = "Refund pending";
+            } else if (b.status === "paid") {
+                paymentStatusClass = "paid";
+            } else if (b.status === "cancelled" || b.status === "rejected") {
+                paymentStatusClass = "cancelled";
+            }
 
             tbody.innerHTML += `
                 <tr>
                     <td><strong>#R24-${b.id.toString().slice(-4)}</strong></td>
                     <td><strong>${(b.online_payment_pln || 0).toFixed(2)} PLN</strong></td>
                     <td>
-                        <div class="status-tile ${paymentStatusClass}" data-pl="${translateStatus(b.status, 'pl')}" data-en="${translateStatus(b.status, 'en')}">
-                            ${translateStatus(b.status, localStorage.getItem("client_lang") === "en" ? "en" : "pl")}
+                        <div class="status-tile ${paymentStatusClass}" data-pl="${paymentStatusPl}" data-en="${paymentStatusEn}">
+                            ${isEn ? paymentStatusEn : paymentStatusPl}
                         </div>
                     </td>
                     <td>${actions}</td>
@@ -4792,6 +4935,15 @@ window.closeReviewModal = function() {
                     <label style="font-size: 13px; font-weight: 700; color: var(--blue-dark); margin-bottom: 6px; display: block;" data-pl="Główny kierowca" data-en="Main driver">Główny kierowca</label>
                     <p id="bookingDriverAgeInfo" role="status" style="font-size:13px"></p>
                     <select id="driverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
+                </div>
+                <div id="arventLicenseRequirement" hidden>
+                    <label for="arventLicenseSince" style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;"
+                        data-pl="Data pierwszego uzyskania prawa jazdy głównego kierowcy"
+                        data-en="Date main driver first obtained their driving licence">Data pierwszego uzyskania prawa jazdy głównego kierowcy</label>
+                    <input type="date" id="arventLicenseSince" autocomplete="off"
+                        style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                    <small data-pl="Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu."
+                           data-en="Use the original licence entitlement date, not the date your replacement card was printed.">Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu.</small>
                 </div>
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>

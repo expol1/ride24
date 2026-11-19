@@ -105,8 +105,11 @@ Deno.serve(async (req)=>{
       }
     }
   }
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
+  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+    const notified = event.data.object;
+    const session = await stripe.checkout.sessions.retrieve(notified.id);
+    if (session.payment_status !== "paid" || session.status !== "complete") return new Response("Payment not yet confirmed", {status:200});
+    if (session.livemode !== true || session.currency !== "pln" || session.mode !== "payment") return new Response("Payment mode mismatch", {status:400});
     const bookingId = session.metadata?.booking_id || session.client_reference_id;
     if (!bookingId) {
       console.error("❌ NO BOOKING ID");
@@ -114,6 +117,9 @@ Deno.serve(async (req)=>{
         status: 400
       });
     }
+    const {data:binding,error:bindingError}=await supabase.from("bookings").select("id,client_id,stripe_session_id,online_payment_pln").eq("id",bookingId).maybeSingle();
+    if(bindingError||!binding)return new Response("Booking binding unavailable",{status:500});
+    if(session.id!==binding.stripe_session_id||session.metadata?.booking_id!==binding.id||session.metadata?.client_id!==binding.client_id||session.client_reference_id!==binding.id||session.amount_total!==Math.round(Number(binding.online_payment_pln)*100))return new Response("Payment binding mismatch",{status:400});
     console.log("💰 PAYMENT OK:", bookingId);
     // 🔒 IDEMPOTENCY
     const { data: existing, error: lookupError } = await supabase.from("bookings")

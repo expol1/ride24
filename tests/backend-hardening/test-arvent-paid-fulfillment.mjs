@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import ts from 'typescript';
 import * as services from '../../supabase/functions/_shared/provider-services.mjs';
 import * as flow from '../../supabase/functions/_shared/api-payment-flow.mjs';
+import * as license from '../../supabase/functions/_shared/arvent-driver-eligibility.mjs';
 
 const source=await readFile(new URL('../../supabase/functions/_shared/api-provider-fulfillment.ts',import.meta.url),'utf8');
 const result=ts.transpileModule(source,{compilerOptions:{
@@ -17,7 +18,7 @@ function fixture(change=()=>{},flags={}){
   partner_terms_snapshot:'terms',partner_rules_snapshot:'rules',
   partners:{api_provider:'arvent_kolaycar',rental_terms_url:'terms',rental_rules_url:'rules'},
   start_date:'2027-02-16',end_date:'2027-02-18',pickup_time:'10:00:00',return_time:'10:00:00',
-  main_driver_name:'Example Customer',main_driver_age:30,add_driver_name:null,
+  main_driver_name:'Example Customer',main_driver_age:30,main_driver_license_since:'2024-01-01',add_driver_name:null,
   client_email:'example@example.invalid',client_phone:'+48000000000'};
  const provider_quote_data={provider:'arvent_kolaycar',vehicle_id:'10',sipp:'CDAR',
   total_amount:100,pickup_location_id:'12',dropoff_location_id:'12'};
@@ -27,7 +28,7 @@ function fixture(change=()=>{},flags={}){
   start_date:'2027-02-16',end_date:'2027-02-18',
   raw_response:{provider_quote_data}};
  const fresh={external_id:'CDAR',currency:'EUR',deposit_amount:0,public_price_total:100,
-  features:{minimum_driver_age:21},
+  features:{minimum_driver_age:21,min_license_years:0},
   provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'15',sipp:'CDAR',
    total_amount:100,currency:'EUR'}};
  const state={booking,quote,fresh,live:[fresh],status:{status:'pending',
@@ -47,6 +48,7 @@ function fixture(change=()=>{},flags={}){
   aggregatorStatus:async()=>{throw Error('Wrong provider routing')}
  };
  const require=n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow
+  :n.includes('arvent-driver-eligibility')?license
   :n.includes('caravel-paid-fulfillment')?{caravelPaidFulfillmentApproved:()=>false}
   :n.includes('arvent-kolaycar')?arvent:n.includes('renteon-aggregator')?renteon
   :(()=>{throw Error('Unexpected import: '+n)})();
@@ -92,6 +94,10 @@ test('new supplier price, category, deposit, driver or documents reject before c
   group:s=>s.fresh.external_id='MDAR',
   deposit:s=>s.fresh.deposit_amount=250,
   currency:s=>s.fresh.currency='TRY',
+  licence:s=>s.fresh.features.min_license_years=4,
+  missing_licence:s=>delete s.booking.main_driver_license_since,
+  forged_future_licence:s=>s.booking.main_driver_license_since='2030-01-01',
+  unknown_age:s=>delete s.fresh.features.minimum_driver_age,
   age:s=>s.booking.main_driver_age=19,
   docs:s=>s.booking.partners.rental_rules_url='different',
   owner:s=>s.quote.booking_id='other',
@@ -144,4 +150,67 @@ test('numeric Supabase money values may be decimal strings but never NaN/null',a
   await assert.rejects(invalid.revalidatePaidProvider({},invalid.booking,invalid.quote),
    flow.DefiniteApiFailure);
  }
+});
+
+test('checkout handler admits a validated Arvent quote without a Renteon calculation and blocks failed preflight',async()=>{
+ const file=new URL('../../supabase/functions/create_checkout_session/index.ts',import.meta.url);
+ const compiled=ts.transpileModule(await readFile(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}});
+ for(const verified of [false,true]){
+  const calls=[];
+  const cart={id:'b',partner_id:'p',client_id:'u',status:'awaiting_payment',api_quote_id:'q',
+   provider_type:'api',online_payment_pln:35,payment_deadline:new Date(Date.now()+44*60000).toISOString(),
+   partners:{api_provider:'arvent_kolaycar'}};
+  const quote={booking_id:'b',expires_at:cart.payment_deadline,raw_response:{provider_quote_data:{provider:'arvent_kolaycar'}}};
+  const admin={auth:{getUser:async()=>({data:{user:{id:'u'}}})},
+   from(table){return {writing:false,select(){return this.writing?Promise.resolve({data:[{id:'b'}]}):this;},
+    eq(){return this;},is(){return this;},update(){this.writing=true;return this;},
+    async maybeSingle(){return {data:table==='bookings'?cart:table==='api_quotes'?quote:null};}};}};
+  let handler;
+  const require=name=>{
+   if(name.includes('http/server'))return {serve:fn=>handler=fn};
+   if(name.includes('supabase-js'))return {createClient:()=>admin};
+   if(name.includes('esm.sh/stripe'))return {default:class {checkout={sessions:{create:async request=>{
+    calls.push('stripe');assert.equal(request.line_items[0].price_data.unit_amount,3500);
+    return {id:'cs_mock',url:'https://example.invalid/checkout'};}}};}};
+   if(name.includes('api-payment-runtime'))return {apiPaymentEnabled:async()=>true};
+   if(name.includes('api-provider-fulfillment'))return {hasPaidFulfillmentAdapter:()=>true,
+    revalidatePaidProvider:async()=>{calls.push('revalidate');return {};}};
+   if(name.includes('arvent-kolaycar'))return {arventVerifyCheckout:async()=>{
+    calls.push('extras');if(!verified)throw Error('unverified');}};
+   if(name.includes('partner-api'))return {loadPartnerCredentials:async()=>({})};
+   if(name.includes('payment-return'))return {};
+   throw Error('Unexpected import '+name);
+  };
+  vm.runInNewContext(compiled.outputText,{exports:{},require,Deno:{env:{get:()=>''}},Response,console});
+  const res=await handler(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer test'},
+   body:JSON.stringify({booking_id:'b'})}));
+  assert.equal(res.status,verified?200:409);
+  assert.deepEqual(calls,verified?['revalidate','extras','stripe']:['revalidate','extras']);
+ }
+});
+
+test('Arvent supplier licence tenure of two years permits a duly eligible driver',async()=>{
+ const f=fixture(s=>{s.fresh.features.min_license_years=2},approved);
+ const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
+ assert.equal(prepared.main_driver.license_first_issued,'2024-01-01');
+ assert.equal(prepared.partner_amount,100);
+});
+
+test('Arvent public activation remains impossible with only supplier write and payment approval flags',async()=>{
+ const adminSource=await readFile(new URL('../../supabase/functions/api-partner-admin/index.ts',import.meta.url),'utf8');
+ const activate=adminSource.slice(adminSource.indexOf('async function activatePartner('),adminSource.indexOf('async function deactivatePartner('));
+ assert.match(activate,/arvent_certified\s*===\s*true/);
+ assert.match(activate,/ARVENT_STRIPE_FIRST_APPROVED/);
+ assert.match(activate,/ARVENT_KOLAYCAR_WRITE_ALLOWED/);
+ assert.match(activate,/if \(!certified \|\| !approved \|\| !writes\)/);
+ const partnerLoader=adminSource.slice(adminSource.indexOf('async function getPartner('),adminSource.indexOf('async function getCredentials('));
+ assert.match(partnerLoader,/api_settings/);
+});
+
+test('Arvent certification marker persists across later successful API catalog synchronizations',async()=>{
+ const adminSource=await readFile(new URL('../../supabase/functions/api-partner-admin/index.ts',import.meta.url),'utf8');
+ const sync=adminSource.slice(adminSource.indexOf('async function syncPartner('),adminSource.indexOf('function ensureCommerciallyActive('));
+ assert.match(sync,/partner\.api_provider === "arvent_kolaycar"/);
+ assert.match(sync,/partner\.api_settings\.arvent_certified === true/);
+ assert.match(sync,/\{ arvent_certified: true \}/);
 });
