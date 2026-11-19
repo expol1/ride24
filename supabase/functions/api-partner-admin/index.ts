@@ -903,7 +903,13 @@ async function syncPartner(
       api_status: nextStatus,
       api_last_sync_at: now,
       api_last_error: null,
-      api_settings: { configured: true, status: nextStatus },
+      api_settings: { configured: true, status: nextStatus,
+        // Syncing available groups does not invalidate a successful
+        // independently audited Arvent booking/cancellation certification.
+        ...(partner.api_provider === "arvent_kolaycar" &&
+            isRecord(partner.api_settings) &&
+            partner.api_settings.arvent_certified === true
+          ? { arvent_certified: true } : {}) },
     }).eq("id", partner.id);
     if (partnerUpdateError) {
       throw new Error("Nie udało się zapisać wyniku synchronizacji partnera");
