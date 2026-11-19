@@ -131,6 +131,7 @@ export type CaravelConsentView = {
     damage_admin_fee_minor: number | null; damage_admin_fee_currency: "EUR" | null;
     exclusion_clause_refs: string[]; admin_fee_clause_ref: string | null};
   money: {rental_at_pickup: string; rental_at_pickup_minor: number; rental_currency: string;
+    customer_total: string; customer_total_minor: number; ride24_fee_minor: number;
     ride24_fee: string; ride24_fee_currency: string; charged_by_stripe: "ride24_fee_only";
     breakdown?: {rental_base:string; fee_total:string; extras_total:string; partner_total:string;
       fees:Array<{label:string; original_label:string; type:string; amount:string}>;
@@ -148,6 +149,11 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
   const t = release.terms;
   const pl = lang === "pl";
   const at = money(f.rentalMinor, f.currency);
+  const ride24FeeMinor = Math.round(f.feeMajor * 100);
+  const customerMinor = f.rentalMinor + ride24FeeMinor;
+  // Keep the summary consistent with the exact gross stored in api_quotes.
+  if (!Number.isSafeInteger(customerMinor) ||
+      Math.round(Number(f.quote.final_total) * 100) !== customerMinor) return null;
   const bd = f.breakdown;
   const breakdown = bd ? {
     rental_base:money(Number(bd.rental_minor), f.currency),
@@ -210,6 +216,7 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
       damage_admin_fee_currency: f.excludes.length ? "EUR" : null,
       exclusion_clause_refs: t.exclusionClauseRefs, admin_fee_clause_ref: t.adminFeeClauseRef},
     money: {rental_at_pickup: at, rental_at_pickup_minor: f.rentalMinor, rental_currency: f.currency,
+      customer_total: money(customerMinor, f.currency), customer_total_minor: customerMinor, ride24_fee_minor: ride24FeeMinor,
       ride24_fee: `${f.feeMajor.toFixed(2)} ${f.currency}`, ride24_fee_currency: f.currency, charged_by_stripe: "ride24_fee_only",
       ...(breakdown ? {breakdown} : {})},
     driver_age: f.driverAge, statements,
