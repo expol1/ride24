@@ -15,6 +15,7 @@
  */
 import {loadCaravelRelease, CARAVEL_PARTNER_ID, type CaravelRelease} from "./caravel-release.ts";
 import {buildCaravelConsentView, buildCaravelCommitPayload, caravelQuoteFacts} from "./caravel-consent.ts";
+import {caravelSnapshotChoices,type CaravelExtra,type CaravelExtraChoice} from "./caravel-extra-selection.ts";
 
 type Rec = Record<string, unknown>;
 type Db = {from(table: string): any; rpc(name: string, args: Rec): any};
@@ -29,7 +30,9 @@ export type CaravelRequestDeps = {
   exchangeRate: (currency: string) => Promise<number>;
   release?: CaravelRelease; nowMs?: number;
   /** Re-issue the same selection for another main-driver age (production client). */
-  requote?: (quoteRow: Rec, driverAge: number, release: CaravelRelease) => Promise<{ok: true; apiQuoteId: string} | {ok: false; reason: string}>;
+  requote?: (quoteRow: Rec, driverAge: number, release: CaravelRelease, selections?:CaravelExtraChoice[]) => Promise<{ok: true; apiQuoteId: string} | {ok: false; reason: string}>;
+  /** Authenticated read-only supplier catalog; caller verifies supplier identity. */
+  extrasCatalog?: (release:CaravelRelease) => Promise<{catalog:CaravelExtra[];unavailable:Array<{name:string;reason:string}>}>;
 };
 export type CaravelRequestResult = {status: number; body: Rec};
 const out = (status: number, body: Rec): CaravelRequestResult => ({status, body});
@@ -62,7 +65,7 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
   const body = rec(input);
   const action = body?.action;
   const lang = body?.lang === "en" ? "en" : "pl";
-  if (!body || (action !== "consent-view" && action !== "book")) return out(400, {code: "BAD_REQUEST"});
+  if (!body || !["consent-view","book","extras-catalog","extras-requote"].includes(String(action))) return out(400, {code: "BAD_REQUEST"});
   const release = deps.release ?? await loadCaravelRelease(deps.admin);
   if ("reason" in release) return out(409, {code: "CARAVEL_CERTIFICATION_PENDING", reason: release.reason,
     error: "Oferty Caravel są chwilowo niedostępne. Wybierz inną ofertę.", error_en: "Caravel reservations are not yet available."});
@@ -73,6 +76,30 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
   if (action === "consent-view") {
     const view = buildCaravelConsentView(quote, release, lang, now);
     return view ? out(200, {success: true, consent: view}) : out(409, {code: "CARAVEL_QUOTE_EXPIRED"});
+  }
+  if (action === "extras-catalog") {
+    if (!deps.extrasCatalog) return out(503,{code:"CARAVEL_EXTRAS_NOT_AVAILABLE"});
+    try {
+      const extra = await deps.extrasCatalog(release);
+      return out(200,{success:true,catalog:extra.catalog,unavailable:extra.unavailable});
+    } catch {
+      return out(503,{code:"CARAVEL_EXTRAS_REFERENCE_UNAVAILABLE",
+        error:"Nie można pobrać katalogu dodatków Caravel. Wybór nie jest dostępny.",
+        error_en:"Caravel extras catalog is temporarily unavailable."});
+    }
+  }
+  if (action === "extras-requote") {
+    const choices=caravelSnapshotChoices(body.extras);
+    if(!choices || !deps.requote) return out(400,{code:"CARAVEL_EXTRA_SELECTION_INVALID"});
+    const facts=caravelQuoteFacts(quote,release,now);
+    if(!facts)return out(409,{code:"CARAVEL_QUOTE_EXPIRED"});
+    const response=await deps.requote(quote as Rec,facts.driverAge,release,choices);
+    const next=response.ok ? await loadQuote(deps.admin,response.apiQuoteId):null;
+    const view=next?buildCaravelConsentView(next,release,lang,now):null;
+    return view?out(200,{success:true,consent:view,api_quote_id:view.api_quote_id}):
+      out(409,{code:"CARAVEL_EXTRA_QUOTE_UNAVAILABLE",
+        error:"Nie udało się potwierdzić dodatków i ceny u Caravel. Nic nie zostało dodane.",
+        error_en:"Caravel could not confirm your extras and price. No extras were added."});
   }
 
   // --- book ---
