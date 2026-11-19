@@ -14,7 +14,7 @@
  * Fails closed with 409 while the release gate is closed.
  */
 import {loadCaravelRelease, CARAVEL_PARTNER_ID, type CaravelRelease} from "./caravel-release.ts";
-import {buildCaravelConsentView, buildCaravelCommitPayload, caravelQuoteFacts} from "./caravel-consent.ts";
+import {buildCaravelConsentView, buildCaravelCommitPayload, caravelQuoteFacts, type CaravelConsentView} from "./caravel-consent.ts";
 import {caravelSnapshotChoices,type CaravelExtra,type CaravelExtraChoice} from "./caravel-extra-selection.ts";
 
 type Rec = Record<string, unknown>;
@@ -53,6 +53,25 @@ export async function nbpRateStrict(currency: string, fetcher: typeof fetch = fe
   throw new Error("CARAVEL_FX_UNAVAILABLE");
 }
 
+/** Display the same NBP-converted Ride24 booking fee as the other partners.
+ * Preview only: the actual PLN amount is independently captured by the
+ * atomic Caravel booking after customer confirmation.
+ */
+async function withPlnPreview(view: CaravelConsentView | null, deps: CaravelRequestDeps): Promise<CaravelConsentView | null> {
+  if (!view) return null;
+  try {
+    const rate = await deps.exchangeRate(view.money.ride24_fee_currency);
+    if (!Number.isFinite(rate) || rate <= 0 || rate >= 1000) return null;
+    const minor = Math.round(view.money.ride24_fee_minor * rate);
+    if (!Number.isSafeInteger(minor) || minor <= 0) return null;
+    return {...view, money: {...view.money,
+      ride24_fee_pln_minor: minor, ride24_fee_pln: `${(minor / 100).toFixed(2)} PLN`}};
+  } catch { return null; }
+}
+const unavailablePln = () => out(503, {code:"CARAVEL_FX_UNAVAILABLE",
+  error:"Nie udało się pobrać kursu PLN. Spróbuj ponownie przed rezerwacją.",
+  error_en:"PLN exchange rate is unavailable. Please retry before booking."});
+
 async function loadQuote(admin: Db, id: unknown) {
   if (typeof id !== "string" || !UUID.test(id)) return null;
   const {data, error} = await admin.from("api_quotes")
@@ -75,7 +94,9 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
     return out(409, {code: "CARAVEL_QUOTE_EXPIRED", error: "Oferta wygasła. Wyszukaj ponownie.", error_en: "The offer expired. Please search again."});
   if (action === "consent-view") {
     const view = buildCaravelConsentView(quote, release, lang, now);
-    return view ? out(200, {success: true, consent: view}) : out(409, {code: "CARAVEL_QUOTE_EXPIRED"});
+    if (!view) return out(409, {code: "CARAVEL_QUOTE_EXPIRED"});
+    const priced = await withPlnPreview(view, deps);
+    return priced ? out(200, {success:true, consent:priced}) : unavailablePln();
   }
   if (action === "extras-catalog") {
     if (!deps.extrasCatalog) return out(503,{code:"CARAVEL_EXTRAS_NOT_AVAILABLE"});
@@ -96,8 +117,11 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
     const response=await deps.requote(quote as Rec,facts.driverAge,release,choices);
     const next=response.ok ? await loadQuote(deps.admin,response.apiQuoteId):null;
     const view=next?buildCaravelConsentView(next,release,lang,now):null;
-    return view?out(200,{success:true,consent:view,api_quote_id:view.api_quote_id}):
-      out(409,{code:"CARAVEL_EXTRA_QUOTE_UNAVAILABLE",
+    const priced=view?await withPlnPreview(view,deps):null;
+    return priced?out(200,{success:true,consent:priced,api_quote_id:priced.api_quote_id}):
+      out(view?503:409,view?{code:"CARAVEL_FX_UNAVAILABLE",
+        error:"Nie udało się przeliczyć opłaty Ride24 na PLN. Spróbuj ponownie.",
+        error_en:"The Ride24 fee could not be converted to PLN. Please retry."}:{code:"CARAVEL_EXTRA_QUOTE_UNAVAILABLE",
         error:"Nie udało się potwierdzić dodatków i ceny u Caravel. Nic nie zostało dodane.",
         error_en:"Caravel could not confirm your extras and price. No extras were added."});
   }
@@ -123,7 +147,8 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
       ? await deps.requote(quote as Rec, age, release) : null;
     const fresh = again && again.ok ? await loadQuote(deps.admin, again.apiQuoteId) : null;
     const view = fresh ? buildCaravelConsentView(fresh, release, lang, now) : null;
-    return out(409, view ? {code: "CARAVEL_REQUOTED_FOR_DRIVER_AGE", api_quote_id: view.api_quote_id, consent: view,
+    const priced = view ? await withPlnPreview(view, deps) : null;
+    return out(409, priced ? {code: "CARAVEL_REQUOTED_FOR_DRIVER_AGE", api_quote_id: priced.api_quote_id, consent: priced,
         error: "Cena została przeliczona dla wieku kierowcy. Sprawdź nową cenę i warunki, a następnie potwierdź ponownie.",
         error_en: "The price was recalculated for the driver's age. Review the new price and terms, then confirm again."}
       : {code: "CARAVEL_DRIVER_AGE_NOT_OFFERED", error: "Ta oferta nie jest dostępna dla wieku tego kierowcy.",

@@ -57,24 +57,17 @@
       row.appendChild(text(kind === "total" ? "strong" : "span", value));
       pricePanel.appendChild(row);
     }
-    // PLN is a PREVIEW from the NBP rate retrieved on the results screen.
-    // The actual payable PLN is recalculated and saved server-side when booking.
+    // The server supplies the Ride24 fee in PLN. Never put a long EUR
+    // fallback message inside the amount column (it breaks the modal layout).
     function onlineFee() {
-      var fallback = money.ride24_fee || "";
-      try {
-        var rate = Number(localStorage.getItem("bookingFXRate"));
-        var currency = localStorage.getItem("bookingFXCurrency");
-        var minor = Number(money.ride24_fee_minor);
-        if (currency === money.ride24_fee_currency &&
-            Number.isFinite(rate) && rate > 0 && rate < 1000 &&
-            Number.isSafeInteger(minor) && minor > 0) {
-          var estimate = new Intl.NumberFormat(en ? "en-US" : "pl-PL", {
-            minimumFractionDigits: 2, maximumFractionDigits: 2
-          }).format(Math.round(minor * rate) / 100);
-          return (en ? "approx. " : "ok. ") + estimate + " PLN (" + fallback + ")";
-        }
-      } catch (err) { /* no local preview; the server quote still controls pricing */ }
-      return fallback + (en ? " — converted to PLN at booking" : " — przeliczenie na PLN przy rezerwacji");
+      var minor = Number(money.ride24_fee_pln_minor);
+      if (Number.isSafeInteger(minor) && minor > 0 && typeof money.ride24_fee_pln === "string") {
+        return new Intl.NumberFormat(en ? "en-US" : "pl-PL", {
+          style: "currency", currency: "PLN", minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(minor / 100);
+      }
+      return en ? "PLN unavailable" : "— zł";
     }
     if (breakdown && Array.isArray(breakdown.fees)) {
       priceRow(en ? "Car rental" : "Wynajem samochodu", breakdown.rental_base, "item");
@@ -85,15 +78,15 @@
         if (extra && extra.name) priceRow(extra.name + (extra.quantity > 1 ? " × " + extra.quantity : ""), extra.amount, "item");
       });
     }
-    priceRow(en ? "Total price (as in search)" : "Cena całkowita (jak w wyszukiwarce)",
+    priceRow(en ? "Total" : "Łącznie",
       money.customer_total, "total");
-    priceRow(en ? "Ride24 online after confirmation" : "Ride24 online po potwierdzeniu",
+    priceRow(en ? "Online after confirmation" : "Online po potwierdzeniu",
       onlineFee(), "payment");
-    priceRow(en ? "Caravel at pickup" : "Caravel przy odbiorze",
+    priceRow(en ? "Pay to Caravel at pickup" : "Do zapłaty partnerowi",
       breakdown && breakdown.partner_total ? breakdown.partner_total : money.rental_at_pickup, "payment");
     pricePanel.appendChild(text("small", en
-      ? "PLN is an estimate from the search rate. The exact PLN charge is confirmed at booking. Caravel collects the rental at pickup; no surcharge is counted twice."
-      : "Kwota PLN jest orientacyjna według kursu z wyszukiwania. Dokładna płatność w PLN zostanie potwierdzona przy rezerwacji. Caravel pobiera wynajem przy odbiorze; dopłat nie naliczamy drugi raz.",
+      ? "Online fee is shown in PLN at the current exchange rate; the final amount is confirmed before payment. Rental and extras are paid to Caravel at pickup."
+      : "Płatność online w PLN według bieżącego kursu. Ostateczna kwota zostanie potwierdzona przed płatnością. Wynajem i dodatki płacisz Caravel przy odbiorze.",
       "margin-top:10px;color:#64748B"));
     box.appendChild(pricePanel);
 
@@ -336,7 +329,7 @@
       return true;
     },
     canSubmit: function () {
-      return !!(!state.busy && !state.submitLocked && state.view && byId("caravelTermsAccept") && byId("caravelTermsAccept").checked &&
+      return !!(!state.busy && !state.submitLocked && state.view && Number(state.view.money?.ride24_fee_pln_minor) > 0 && byId("caravelTermsAccept") && byId("caravelTermsAccept").checked &&
         byId("caravelCoverageAck") && byId("caravelCoverageAck").checked);
     },
     /** Exactly what was shown, echoed for server verification. */

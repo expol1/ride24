@@ -29,7 +29,13 @@ async function page(responses, catalogResponse = {success:true,catalog:[],unavai
   dom.window.eval(script);
   return {dom, w: dom.window, calls};
 }
-const view = async (patch = {}) => buildCaravelConsentView(await quoteRow(patch), await loadCaravelRelease(fakeDb(await releasedState())), 'pl', NOW);
+const view = async (patch = {}) => {
+  const v = buildCaravelConsentView(await quoteRow(patch), await loadCaravelRelease(fakeDb(await releasedState())), 'pl', NOW);
+  const minor=Math.round(v.money.ride24_fee_minor*4.3);
+  v.money.ride24_fee_pln_minor=minor;
+  v.money.ride24_fee_pln=(minor/100).toFixed(2)+' PLN';
+  return v;
+};
 
 test('non-Caravel partner: block stays hidden, PDF links untouched (AVIA and others unchanged)', async () => {
   const {w, calls} = await page([]);
@@ -92,10 +98,10 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
  assert.match(s.textContent,/Wynajem samochodu.*100\.00 EUR/);
  assert.match(s.textContent,/Młody kierowca.*33\.00 EUR/);
  assert.match(s.textContent,/Zwrot w innym punkcie.*17\.00 EUR/);
- assert.match(s.textContent,/Cena całkowita \(jak w wyszukiwarce\).*165\.00 EUR/);
- assert.match(s.textContent,/Caravel przy odbiorze.*150\.00 EUR/);
- assert.match(s.textContent,/Ride24 online po potwierdzeniu.*15\.00 EUR/);
- assert.match(s.textContent,/nie naliczamy drugi raz/);
+ assert.match(s.textContent,/Łącznie.*165\.00 EUR/);
+ assert.match(s.textContent,/Do zapłaty partnerowi.*150\.00 EUR/);
+ assert.match(s.textContent,/Online po potwierdzeniu.*64,50/);
+ assert.match(s.textContent,/Ostateczna kwota/);
  assert.equal(w.Ride24CaravelConsent.canSubmit(),false);
  doc.getElementById('caravelTermsAccept').checked=true;
  doc.getElementById('caravelCoverageAck').checked=true;
@@ -106,7 +112,7 @@ test('Caravel: voluntary GPS switch requests an exact new supplier quote, resets
   const old=await view();
   const newId='5ea5e8db-7244-4416-ab7b-2632bd5f882a';
   const updated={...old,api_quote_id:newId,money:{...old.money,
-    rental_at_pickup:'171.00 EUR',customer_total:'188.10 EUR',customer_total_minor:18810,ride24_fee:'17.10 EUR',ride24_fee_minor:1710,breakdown:{
+    rental_at_pickup:'171.00 EUR',customer_total:'188.10 EUR',customer_total_minor:18810,ride24_fee:'17.10 EUR',ride24_fee_minor:1710,ride24_fee_pln_minor:7353,ride24_fee_pln:'73.53 PLN',breakdown:{
       rental_base:'150.00 EUR',fee_total:'0.00 EUR',extras_total:'21.00 EUR',partner_total:'171.00 EUR',
       fees:[],extras:[{extra_id:'gps-1',name:'Nawigacja GPS',quantity:1,amount:'21.00 EUR'}],
     }}};
