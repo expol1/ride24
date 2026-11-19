@@ -2867,6 +2867,10 @@ document.addEventListener("click", async function(e) {
     if (cardNotice) cardNotice.hidden = true;
     const cardAck = document.getElementById("aviaDebitCardConfirm");
     if (cardAck) cardAck.checked = false;
+    const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+    if (arventLicenseBlock) arventLicenseBlock.hidden = true;
+    const arventLicenseInput = document.getElementById("arventLicenseSince");
+    if (arventLicenseInput) arventLicenseInput.value = "";
     const generalAck = document.getElementById("acceptTerms");
     if (generalAck) generalAck.checked = false;
 
@@ -2938,7 +2942,13 @@ document.addEventListener("click", async function(e) {
                 const cardNotice = document.getElementById("aviaCardRequirement");
                 if (cardNotice) cardNotice.hidden =
                     car.partner_id !== "91e04805-31da-4242-9e6f-b6075019d784";
-                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age").eq("id", car.partner_id).single();
+                const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,api_provider").eq("id", car.partner_id).single();
+                const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+                if (arventLicenseBlock) {
+                    // Arvent may still be staged under api_provider=custom before launch.
+                    arventLicenseBlock.hidden = !(partner?.api_provider === "arvent_kolaycar"
+                        || car.partner_id === "bf29a373-c464-4cec-87a7-c3218ea1ea51");
+                }
 
                 const ageInfo = document.getElementById("bookingDriverAgeInfo");
                 if (ageInfo) {
@@ -3006,6 +3016,16 @@ document.addEventListener("click", async function(e) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
                 }
 
+                const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+                const arventLicenseSince = arventLicenseBlock && !arventLicenseBlock.hidden
+                    ? document.getElementById("arventLicenseSince")?.value : null;
+                if (arventLicenseBlock && !arventLicenseBlock.hidden &&
+                    (!/^\d{4}-\d{2}-\d{2}$/.test(arventLicenseSince || "") ||
+                     arventLicenseSince > new Date().toISOString().slice(0, 10))) {
+                    throw new Error(isEn
+                        ? "Enter the original issue date of the main driver's driving licence."
+                        : "Podaj datę pierwszego uzyskania prawa jazdy głównego kierowcy.");
+                }
                 const pricingPayload = bookingExtras.payload();
                 const response = await fetch(supabaseUrl + "/functions/v1/create-booking-request", {
                     method: "POST",
@@ -3024,6 +3044,7 @@ document.addEventListener("click", async function(e) {
                         return_location: returnName,
                         driver_id: driverId,
                         additional_driver_id: additionalDriverId,
+                        ...(arventLicenseSince ? { main_driver_license_since: arventLicenseSince } : {}),
                         terms_accepted: true,
                         avia_personal_debit_card_acknowledged:
                             !!(document.getElementById("aviaCardRequirement") &&
@@ -4776,6 +4797,15 @@ window.closeReviewModal = function() {
                     <label style="font-size: 13px; font-weight: 700; color: var(--blue-dark); margin-bottom: 6px; display: block;" data-pl="Główny kierowca" data-en="Main driver">Główny kierowca</label>
                     <p id="bookingDriverAgeInfo" role="status" style="font-size:13px"></p>
                     <select id="driverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
+                </div>
+                <div id="arventLicenseRequirement" hidden>
+                    <label for="arventLicenseSince" style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;"
+                        data-pl="Data pierwszego uzyskania prawa jazdy głównego kierowcy"
+                        data-en="Date main driver first obtained their driving licence">Data pierwszego uzyskania prawa jazdy głównego kierowcy</label>
+                    <input type="date" id="arventLicenseSince" autocomplete="off"
+                        style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                    <small data-pl="Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu."
+                           data-en="Use the original licence entitlement date, not the date your replacement card was printed.">Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu.</small>
                 </div>
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
