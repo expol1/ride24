@@ -32,3 +32,38 @@
 6. Dopiero po podpisaniu wyniku certyfikacji dopuścić sprawdzone lotniska i grupy, monitorować kolejkę i pierwsze rezerwacje. Przy problemie zatrzymać nową sprzedaż Arvent, zachowując obsługę już pobranych płatności i istniejących rezerwacji.
 
 Żadnego wdrożenia, publicznej aktywacji, rzeczywistego zapisu Arvent ani operacji finansowej nie przeprowadzono w ramach audytu.
+
+## Aktualizacja 19.11.2026 — zgoda Arvent na kolejność Stripe-first
+
+Właściciel Ride24 przekazał pisemną wiadomość partnera (adresowaną do
+Krzysztofa) z następującym potwierdzeniem:
+
+> "We confirm that the proposed booking and payment process is acceptable
+> to Arvent. You may proceed with the final booking and cancellation tests.
+> Please ensure that reservations are only considered confirmed after
+> Arvent's approval."
+
+**Konsekwencje**:
+- Otwarty punkt zgody partnera na proces `Stripe (opłata Ride24) →
+  kontrola dostępności i ceny → zapis rezerwacji Arvent → potwierdzenie
+  dopiero po statusie zatwierdzonym przez Arvent` został **potwierdzony
+  na poziomie komunikacji partnera**.
+- Nie traktować `Received (0)`, HTTP 200 ani samej zapłaty Stripe jako
+  zatwierdzenia; voucher potwierdzający dopiero przy zweryfikowanym
+  `Approved (1)`.
+- Wiadomość **nie zmienia automatycznie** istniejących wersjonowanych
+  regulaminów EN/TR, w których opisano wcześniejszą kolejność opłaty.
+  Przed pierwszą transakcją trzeba uzgodnić/jasno udokumentować aneks
+  lub nową zaakceptowaną wersję warunków dla klientów i zachować historię.
+- Zgoda na testy ze strony Arvent nie zastępuje osobnej kontroli po
+  stronie Ride24 dla realnej płatności, stworzenia i anulowania
+  rezerwacji w systemie produkcyjnym.
+- Brak potwierdzenia stażu prawa jazdy, DOB, pokrycia ubezpieczenia dla
+  konkretnych taryf, dodatków, opłat one-way i statusu `6` nadal
+  wymaga ograniczenia zakresu ofert/wyjaśnienia przed sprzedażą.
+- Dwie bramki serwerowe pozostają wyłączone; publiczna widoczność
+  Arvent pozostaje wyłączona do zakończenia certyfikacji.
+
+Kolejny krok: bezpieczny merge PR #121, kontrolowana migracja tabeli
+anulowań i przygotowanie aktualizacji dokumentów przy wyłączonych
+ofertach; następnie certyfikacja jednej rezerwacji i anulowania.
