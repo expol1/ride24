@@ -38,7 +38,7 @@ async function client(docId = "caravel-en-v5", env = "production") {
       address: {city: "Athens", region: "Attica", country: "GR"}, timezone: "Europe/Athens"}]}; },
     async vehicleClasses() { return {data: [{supplier_id: "acct_eur", vehicle_id: "veh-a", acriss: "CDMR", name: "Group", display_name: "VW Golf or similar",
       seats: 5, large_bags: 1, small_bags: 2, transmission: "manual", fuel: "diesel", air_conditioning: true, min_driver_age: 21, max_driver_age: 75, images: []}]}; },
-    async reference() { return {data: {mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"}, cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true}}; },
+    async reference() { return {data: [{supplier_id: "acct_eur", mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"}, cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true}]}; },
     async referenceTerms() { return {data: [meta]}; },
     async referenceTermsDocument() { return {data: {...meta, body: b}}; }};
 }
