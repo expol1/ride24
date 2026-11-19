@@ -49,6 +49,7 @@ const label = (code: string, lang: "pl" | "en") => CARAVEL_COVERAGE_LABELS[code]
 const CARAVEL_FEE_NAMES: Record<string, {pl:string;en:string}> = {
   young_driver: {pl:"Młody kierowca",en:"Young driver"},
   senior_driver: {pl:"Starszy kierowca",en:"Senior driver"},
+  additional_driver: {pl:"Dodatkowy kierowca",en:"Additional driver"},
   one_way: {pl:"Zwrot w innym punkcie",en:"One-way return"},
   out_of_hours: {pl:"Obsługa poza godzinami pracy",en:"Out-of-hours service"},
   premium_location: {pl:"Dopłata za lokalizację",en:"Premium location fee"},
