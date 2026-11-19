@@ -130,7 +130,7 @@ export function arventInsuranceIncluded(x) {
  // Arvent serializes excess as a decimal STRING (e.g. "0.00"), while
  // other numeric API fields are JSON numbers. Accept only exact zero.
  const zeroExcess=record(x)&&(num(x.excess)===0
-   ||(typeof x.excess==="string"&&/^0+(?:\\.0+)?$/.test(x.excess.trim())));
+   ||(typeof x.excess==="string"&&/^0+(?:\.0+)?$/.test(x.excess.trim())));
  if(!zeroExcess)return false;
  let conditions=x.rentalConditions;
  if(typeof conditions==="string") {
