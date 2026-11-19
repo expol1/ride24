@@ -81,14 +81,12 @@
       "margin-top:10px;color:#64748B"));
     box.appendChild(pricePanel);
 
-    var heading = text("strong", en ? "Caravel rental terms" : "Warunki wynajmu Caravel");
-    heading.className = "caravel-legal-heading";
-    box.appendChild(heading);
     if (coverage.deposit_minor === 0 && coverage.excess_minor === 0) {
-      box.appendChild(text("p", en
+      var premiumNote = text("div", en
         ? "Premium included in the rental price — deposit 0, excess 0."
-        : "Pakiet Premium w cenie — kaucja 0, udział własny 0.",
-      "margin:5px 0;color:#166534;font-weight:700"));
+        : "Pakiet Premium w cenie — kaucja 0, udział własny 0.");
+      premiumNote.className = "caravel-premium-note";
+      box.appendChild(premiumNote);
     }
     if (excluded.length || hasAdminFee) {
       var warning = en
@@ -97,8 +95,14 @@
       if (hasAdminFee && adminCurrency) warning += en
         ? " In case of damage or theft, the administration fee is " + (adminMinor / 100).toFixed(2) + " EUR per rental."
         : " W razie szkody lub kradzieży obowiązuje opłata administracyjna " + (adminMinor / 100).toFixed(2).replace(".", ",") + " EUR za wynajem.";
-      box.appendChild(text("p", warning, "margin:7px 0;color:#92400E;font-weight:650"));
+      var warningNote = text("p", warning);
+      warningNote.className = "caravel-warning-note";
+      box.appendChild(warningNote);
     }
+
+    var heading = text("strong", en ? "Caravel rental terms" : "Warunki wynajmu Caravel");
+    heading.className = "caravel-legal-heading";
+    box.appendChild(heading);
 
     function disclosure(title, child) {
       var details = document.createElement("details");
