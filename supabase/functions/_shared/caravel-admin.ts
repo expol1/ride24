@@ -14,6 +14,7 @@
  *     (open = certification + reviewed terms + credentials + catalogue checks in one
  *     transaction; close = immediate kill switch). Every call is logged.
  */
+import {caravelPaidFulfillmentApproved} from "./caravel-paid-fulfillment.ts";
 import {fetchCaravelCurrentTermsForReview} from "./caravel-terms-version.ts";
 import {
   caravelLocationFromApi, normalizeCaravelLocation, caravelVehicleFromApi, normalizeCaravelVehicleClass, caravelSyncRows,
@@ -118,7 +119,7 @@ export async function ingestCaravelProductionTerms(args: {
 }
 
 export async function syncCaravelCatalog(args: {
-  admin: Db; client: Pick<CaravelClient, "environment" | "suppliers" | "locations" | "vehicleClasses" | "reference">;
+  admin: Db; client: Pick<CaravelClient, "environment" | "suppliers" | "locations" | "vehicleClasses" | "reference" | "referenceTerms" | "referenceTermsDocument">;
   supplierId: string; partnerId?: string;
   /** Only when sales are already released: new rows go live immediately (AVIA-like). */
   activateNew?: boolean;
@@ -142,8 +143,23 @@ export async function syncCaravelCatalog(args: {
   const nv = (veh.data as unknown[]).map((v) => normalizeCaravelVehicleClass(caravelVehicleFromApi(v, policies[0]), sid));
   const okL = nl.filter((r) => r.ok).map((r) => (r as {value: Rec}).value);
   const okV = nv.filter((r) => r.ok).map((r) => (r as {value: Rec}).value);
-  // "No credit card / no hold" is never claimed by the sync: unverified until Caravel confirms.
-  const rows = caravelSyncRows(partnerId, okL as never, okV as never, new Map());
+  const [{document}, protections] = await Promise.all([
+    fetchCaravelCurrentTermsForReview(args.client, sid, "en"), args.client.reference("protections", sid),
+  ]);
+  const paymentClause = clauseIndex(document.body as unknown as Rec).get(CARAVEL_V5_KEY_CLAUSES.no_card) ?? "";
+  if (!/\bno card is required for the premium package\b/i.test(paymentClause))
+    return {ok: false, code: "CARAVEL_PREMIUM_CARD_TERMS_UNVERIFIED"};
+  const verifiedFlags = new Map<string, {noCreditCard: boolean; noCardHold: boolean}>();
+  for (const protection of protections.data) {
+    const deposit = rec(protection.deposit);
+    if (protection.supplier_id === sid && typeof protection.vehicle_id === "string" &&
+        protection.active === true && protection.tier === "premium" && protection.pricing_type === "included" &&
+        deposit?.currency === "EUR" && deposit.amount === 0)
+      verifiedFlags.set(protection.vehicle_id, {noCreditCard: true, noCardHold: true});
+  }
+  if (okV.some((v) => !verifiedFlags.has(String(v.external_id))))
+    return {ok: false, code: "CARAVEL_CATALOG_PREMIUM_DEPOSIT_UNVERIFIED"};
+  const rows = caravelSyncRows(partnerId, okL as never, okV as never, verifiedFlags);
   async function merge(table: string, incoming: Rec[]) {
     const {data, error} = await args.admin.from(table).select("external_id").eq("partner_id", partnerId).eq("is_api_managed", true);
     if (error) throw new Error("CARAVEL_CATALOG_READ_FAILED");
@@ -175,6 +191,8 @@ export async function setCaravelRelease(args: {admin: Db; open: boolean; certifi
   if (args.open && (!args.certifiedAt || !Number.isFinite(Date.parse(args.certifiedAt)) || !args.documentId ||
       !/^[0-9a-f]{64}$/.test(String(args.contentHash))))
     return {ok: false as const, code: "CARAVEL_RELEASE_EVIDENCE_REQUIRED"};
+  if (args.open && !caravelPaidFulfillmentApproved())
+    return {ok: false as const, code: "CARAVEL_PRODUCTION_FLAGS_DISABLED"};
   const {data, error} = await args.admin.rpc("caravel_set_release", {
     p_open: args.open, p_certified_at: args.open ? args.certifiedAt : null,
     p_document_id: args.open ? args.documentId : null, p_content_hash: args.open ? args.contentHash : null,

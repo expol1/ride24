@@ -16,6 +16,7 @@
  * never be reused for a new version.
  */
 import {ingestCaravelProductionTerms, syncCaravelCatalog, setCaravelRelease, CARAVEL_PARTNER_ID} from "./caravel-admin.ts";
+import {caravelPaidFulfillmentApproved} from "./caravel-paid-fulfillment.ts";
 import {loadCaravelRelease} from "./caravel-release.ts";
 import type {CaravelClient} from "./caravel-sandbox-adapter.ts";
 
@@ -97,7 +98,7 @@ export async function handleCaravelPartnerAction(args: {
     await admin.from("partner_api_credentials").update({last_test_at: new Date().toISOString(), last_test_ok: suppliers.length > 0,
       last_error: suppliers.length ? null : "CARAVEL_NO_PAY_ON_ARRIVAL_SUPPLIER"}).eq("partner_id", CARAVEL_PARTNER_ID);
     return suppliers.length
-      ? ok(`Caravel: połączenie poprawne (API przypięte ${pinned}, serwer ${String(rec(caps.data)?.api_version ?? "?")}, dostawców: ${suppliers.length})`)
+      ? ok(`Caravel: połączenie poprawne (API przypięte ${pinned}, serwer ${String(rec(caps.data)?.api_version ?? "?")}, dostawców: ${suppliers.length}). Przełączniki rezerwacji produkcyjnych: ${caravelPaidFulfillmentApproved() ? "włączone" : "wyłączone"}`)
       : no("Caravel: brak dostawcy z płatnością przy odbiorze");
   }
   if (action === "sync") {

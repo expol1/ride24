@@ -38,7 +38,11 @@ async function client(docId = "caravel-en-v5", env = "production") {
       address: {city: "Athens", region: "Attica", country: "GR"}, timezone: "Europe/Athens"}]}; },
     async vehicleClasses() { return {data: [{supplier_id: "acct_eur", vehicle_id: "veh-a", acriss: "CDMR", name: "Group", display_name: "VW Golf or similar",
       seats: 5, large_bags: 1, small_bags: 2, transmission: "manual", fuel: "diesel", air_conditioning: true, min_driver_age: 21, max_driver_age: 75, images: []}]}; },
-    async reference() { return {data: [{supplier_id: "acct_eur", mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"}, cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true}]}; },
+    async reference(kind) {
+      if (kind === "protections") return {data: ["veh-a","veh-b"].map(vehicle_id => ({
+        vehicle_id, supplier_id: "acct_eur", active: true, tier: "premium", pricing_type: "included", deposit: {amount: 0, currency: "EUR"}
+      }))};
+      return {data: [{supplier_id: "acct_eur", mileage: {type: "unlimited", source: "operator_default"}, fuel: {type: "full_to_full"}, cancellation: {type: "free"}, deposit_payment_methods: [], tax_inclusive: true}]}; },
     async referenceTerms() { return {data: [meta]}; },
     async referenceTermsDocument() { return {data: {...meta, body: b}}; }};
 }
@@ -72,7 +76,10 @@ test("Sync button: catalogue (pay-on-arrival suppliers only, new rows inactive) 
   assert.match(missing.body.message, /wymaga uzupełnienia/);
 });
 
-test("Activate button: atomic release with certification time and newest reviewed document; Deactivate without supplier", async () => {
+test("Activate button: atomic release with certification time and newest reviewed document; Deactivate without supplier", async (t) => {
+  const previousDeno = globalThis.Deno;
+  globalThis.Deno = {env: {get: () => "true"}};
+  t.after(() => { if (previousDeno === undefined) delete globalThis.Deno; else globalThis.Deno = previousDeno; });
   const d = db({caravel_reviewed_terms: [{document_id: "caravel-en-v5", content_hash: "a".repeat(64), approved_at: "x"}]});
   const r = await run("activate", d, await client());
   assert.equal(r.status, 200);
