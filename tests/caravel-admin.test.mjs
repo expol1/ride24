@@ -22,19 +22,19 @@ function db(state = {}) {
 }
 async function termsClient(patch = {}, env = "production") {
   const b = body();
-  const meta = {document_id: "caravel-en-v5", language: "en", version: 4, title: b.title, format: "clauses/v1",
+  const meta = {document_id: "caravel-en-v5", language: "en", version: 5, title: b.title, format: "clauses/v1",
     content_hash: await computeCaravelTermsContentHash(b), published_at: "2026-11-17T10:00:00Z", withdrawn_at: null, ...patch};
   return {environment: env, async referenceTerms() { return {data: [meta]}; },
     async referenceTermsDocument() { return {data: {...meta, body: b}}; }, meta};
 }
 const input = (p = {}) => ({supplierId: "acct_eur", language: "en", documentId: "caravel-en-v5",
   excludedCodes: ["undercarriage", "glass", "tyres_and_wheels"], damageAdminFeeMinor: 10000,
-  exclusionClauseRefs: ["5.4"], adminFeeClauseRef: "7.1", approvedBy: "admin:test", ...p});
+  exclusionClauseRefs: ["5.4"], adminFeeClauseRef: "7.1", approvedBy: "admin:test", freeCancellationUntilPickup: true, ...p});
 
 test("terms ingest: production document re-hashed, clause refs checked, stored immutably with sorted codes", async () => {
   const c = await termsClient(); const d = db();
   const r = await ingestCaravelProductionTerms({admin: d, client: c, input: input(), nowIso: "2026-12-01T09:00:00Z"});
-  assert.equal(r.ok, true); assert.equal(r.alreadyStored, false); assert.equal(r.version, 4);
+  assert.equal(r.ok, true); assert.equal(r.alreadyStored, false); assert.equal(r.version, 5);
   const row = d.ops[0].rows[0];
   assert.equal(row.content_hash, c.meta.content_hash);
   assert.deepEqual(row.documented_excluded_codes, ["glass", "tyres_and_wheels", "undercarriage"]);
@@ -54,8 +54,10 @@ test("terms ingest refuses: sandbox, not current doc, forged hash, missing claus
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({documentId: "caravel-en-v4"})})).code, "CARAVEL_TERMS_NOT_CURRENT_DOCUMENT");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient({content_hash: "a".repeat(64)}), input: input()})).code, "CARAVEL_TERMS_CONTENT_HASH_MISMATCH");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({exclusionClauseRefs: ["9.9"]})})).code, "CARAVEL_CLAUSE_REFERENCE_NOT_IN_DOCUMENT");
-  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({damageAdminFeeMinor: 15000})})).code, "CARAVEL_ADMIN_FEE_NOT_STATED_IN_CLAUSE");
+  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({damageAdminFeeMinor: 15000})})).code, "CARAVEL_PRODUCTION_CONTRACT_NOT_VERIFIED");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({adminFeeClauseRef: null})})).code, "CARAVEL_ADMIN_FEE_CLAUSE_REQUIRED");
+  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient({version: 4}), input: input()})).code, "CARAVEL_TERMS_V5_REQUIRED");
+  assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({freeCancellationUntilPickup: false})})).code, "CARAVEL_PRODUCTION_CONTRACT_NOT_VERIFIED");
   assert.equal((await ingestCaravelProductionTerms({admin: d, client: await termsClient(), input: input({excludedCodes: ["Glass!"]})})).code, "CARAVEL_TERMS_INGEST_INPUT_INVALID");
   assert.equal(d.ops.length, 0, "nothing written on refusal");
 });
@@ -96,6 +98,7 @@ test("catalog sync refuses sandbox and suppliers that are not pay-on-arrival / t
   assert.equal((await syncCaravelCatalog({admin: db(), client: catalogClient("sandbox"), supplierId: "acct_eur"})).code, "CARAVEL_PRODUCTION_ONLY");
   assert.equal((await syncCaravelCatalog({admin: db(), client: catalogClient("production", {payment_models: ["prepaid"]}), supplierId: "acct_eur"})).code, "CARAVEL_SUPPLIER_NOT_SELLABLE");
   assert.equal((await syncCaravelCatalog({admin: db(), client: catalogClient("production", {tax_inclusive: false}), supplierId: "acct_eur"})).code, "CARAVEL_SUPPLIER_NOT_SELLABLE");
+  assert.equal((await syncCaravelCatalog({admin: db(), client: catalogClient("production", {currency: "GBP"}), supplierId: "acct_eur"})).code, "CARAVEL_SUPPLIER_NOT_SELLABLE");
 });
 
 test("release switch wrapper: evidence and audit required before the atomic SQL function is called", async () => {

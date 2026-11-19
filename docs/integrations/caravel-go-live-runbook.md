@@ -1,8 +1,29 @@
 # Caravel go-live runbook (admin tools ready; NOTHING here has been executed)
 
-Prerequisites from Caravel: certification verdict PASS for the hosted run, production
-approval + key, current EN v4 terms in the production API, written answers on exclusions,
-admin fee, card at pickup, payment model (see `caravel-message-2026-11-18.md`).
+**Update 19 Nov 2026:** Ermis confirms production approval and released one-time production key.
+The owner must reveal it from https://sandbox-api.caravelway.com/portal/login → Production access
+within **14 days** of the release notification; never send it in chat, email, GitHub or logs.
+Store it in the existing protected Ride24 partner API configuration (service-side only).
+
+Account contract: **Caravel Rent a Car only, Premium only, EUR including VAT,
+net supplier rate, pay on arrival, free cancellation through pickup**, API pinned to
+certified v1.67.0. **Current production terms are EN v5**, not the withdrawn v4.
+Re-fetch production `GET /v1/reference/terms` and its document body, independently
+verify canonical SHA-256 and review exclusions, EUR 100 per-rental damage/theft admin fee,
+card policy, cancellation and post-return amounts before activation.
+
+**Webhook missing production deployment:** create and security-test a dedicated
+production HTTPS receiver with HMAC authentication (no Supabase JWT), durable event
+idempotency and verified supplier booking re-fetch. Store/rotate the provider signing secret
+server-side, verify the exact callback path, then register it with
+`PUT /v1/webhooks/endpoint`. Do **not** point production at the expiring sandbox probe
+or sandbox receiver. No endpoint URL may be given to Caravel before a tested production
+receiver is deployed. A real webhook delivery and reconciliation are launch gates.
+
+Production approval alone does NOT authorize test bookings, opening Ride24 offers,
+or a supplier booking write. Before the first real booking, deploy and test the
+Caravel-only webhook, receive and verify a live callback, complete the key/terms/catalogue
+setup and run the monitored release checklist.
 
 **Admin panel stays as simple as AVIA:** everything is done in the existing
 Partners → "Konfiguracja Partnera API" modal. Choose provider *Caravel Channel API*, save the

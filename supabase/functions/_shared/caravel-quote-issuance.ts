@@ -98,7 +98,7 @@ export async function issueVerifiedCaravelQuote(args:{
  const requested=args.quoteRequest;
  const protection=rec(args.protection);
  if(!requested||requested.plan!=="premium"||
-    requested.currency!=="EUR"&&requested.currency!=="GBP"||
+    requested.currency!=="EUR"||
     !requested.pickup?.location_id||!requested.dropoff?.location_id||
     typeof requested.vehicle_id!=="string"||!requested.vehicle_id||
     typeof requested.protection_id!=="string"||!requested.protection_id||

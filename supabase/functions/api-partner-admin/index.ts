@@ -497,7 +497,7 @@ async function saveConfiguration(
     AUTH_TYPES,
     "Nieprawidłowy typ autoryzacji API",
   );
-  const discount = cleanDiscount(body.discount_percent, partner.discount_percent);
+  const discount = provider === "caravel" ? 0 : cleanDiscount(body.discount_percent, partner.discount_percent);
   const currency = cleanCurrency(body.currency, partner.currency);
   const previousCurrency = cleanCurrency(partner.currency, "EUR");
   const timeoutMs = cleanTimeout(body.timeout_ms, previousCredentials?.timeout_ms);
@@ -510,6 +510,7 @@ async function saveConfiguration(
     // exact on-arrival price; the Ride24 fee is added separately).
     if (partner.id !== CARAVEL_PARTNER_ID) throw new Error("Caravel jest dostępny tylko dla partnera Caravel");
     if (apiUrl !== "https://api.caravelway.com") throw new Error("Caravel wymaga adresu https://api.caravelway.com");
+    if (currency !== "EUR") throw new Error("Caravel produkcyjnie obsługuje wyłącznie EUR");
     if (authType !== "custom_headers") throw new Error("Caravel wymaga autoryzacji API Key");
     body.endpoints = {};
     body.extra_headers = {};

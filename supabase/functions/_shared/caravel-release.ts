@@ -35,12 +35,13 @@ export function reviewedTermsFromRow(row: unknown): CaravelReviewedTerms | null 
   const r = rec(row);
   const codes = r?.documented_excluded_codes, refs = r?.exclusion_clause_refs;
   if (!r || typeof r.document_id !== "string" || typeof r.supplier_id !== "string" || typeof r.language !== "string" ||
-      !Number.isSafeInteger(r.version) || typeof r.title !== "string" || r.format !== "clauses/v1" ||
+      !Number.isSafeInteger(r.version) || (r.version as number) < 5 || r.language !== "en" || typeof r.title !== "string" || r.format !== "clauses/v1" ||
       typeof r.content_hash !== "string" || !/^[0-9a-f]{64}$/.test(r.content_hash) ||
       typeof r.published_at !== "string" || !rec(r.body) ||
       !Array.isArray(codes) || !codes.every((c) => typeof c === "string" && /^[a-z0-9_]{1,80}$/.test(c)) ||
       !Number.isSafeInteger(r.damage_admin_fee_minor) || (r.damage_admin_fee_minor as number) < 0 ||
-      r.damage_admin_fee_currency !== "EUR" || !Array.isArray(refs) || !refs.every((c) => typeof c === "string") ||
+      r.damage_admin_fee_currency !== "EUR" || r.damage_admin_fee_minor !== 10000 ||
+      r.free_cancellation_until_pickup !== true || !Array.isArray(refs) || !refs.every((c) => typeof c === "string") ||
       (r.admin_fee_clause_ref != null && typeof r.admin_fee_clause_ref !== "string"))
     return null;
   return {documentId: r.document_id, supplierId: r.supplier_id, language: r.language, version: r.version as number,

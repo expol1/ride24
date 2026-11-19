@@ -73,6 +73,8 @@ export async function ingestCaravelProductionTerms(args: {
       !Number.isSafeInteger(i.damageAdminFeeMinor) || i.damageAdminFeeMinor < 0 || i.damageAdminFeeMinor > 500000 ||
       !Array.isArray(i.exclusionClauseRefs) || typeof i.approvedBy !== "string" || !i.approvedBy.trim())
     return {ok: false, code: "CARAVEL_TERMS_INGEST_INPUT_INVALID"};
+  if (i.language !== "en" || i.damageAdminFeeMinor !== 10000 || i.freeCancellationUntilPickup !== true)
+    return {ok: false, code: "CARAVEL_PRODUCTION_CONTRACT_NOT_VERIFIED"};
   if (i.excludedCodes.length && !i.exclusionClauseRefs.length) return {ok: false, code: "CARAVEL_EXCLUSION_CLAUSE_REQUIRED"};
   if (i.damageAdminFeeMinor > 0 && !i.adminFeeClauseRef) return {ok: false, code: "CARAVEL_ADMIN_FEE_CLAUSE_REQUIRED"};
   let fetched;
@@ -80,6 +82,8 @@ export async function ingestCaravelProductionTerms(args: {
   catch (e) { return {ok: false, code: String((e as Error)?.message || "CARAVEL_TERMS_FETCH_FAILED").slice(0, 80)}; }
   const doc = fetched.document as unknown as Rec;
   if (doc.document_id !== i.documentId) return {ok: false, code: "CARAVEL_TERMS_NOT_CURRENT_DOCUMENT"};
+  if (doc.language !== "en" || !Number.isSafeInteger(doc.version) || (doc.version as number) < 5)
+    return {ok: false, code: "CARAVEL_TERMS_V5_REQUIRED"};
   const clauses = clauseIndex(rec(doc.body)!);
   if (!i.exclusionClauseRefs.every((r) => clauses.has(r)) || (i.adminFeeClauseRef && !clauses.has(i.adminFeeClauseRef)))
     return {ok: false, code: "CARAVEL_CLAUSE_REFERENCE_NOT_IN_DOCUMENT"};
@@ -125,7 +129,7 @@ export async function syncCaravelCatalog(args: {
   const sid = args.supplierId;
   const suppliers = (await args.client.suppliers()).data as Rec[];
   const s = suppliers.find((x) => x.supplier_id === sid);
-  if (!s || s.status !== "active" || s.tax_inclusive !== true || !Array.isArray(s.payment_models) ||
+  if (!s || s.status !== "active" || s.currency !== "EUR" || s.tax_inclusive !== true || !Array.isArray(s.payment_models) ||
       !(s.payment_models as unknown[]).includes("pay_on_arrival"))
     return {ok: false, code: "CARAVEL_SUPPLIER_NOT_SELLABLE"};
   const [loc, veh, pol] = await Promise.all([args.client.locations(200, sid), args.client.vehicleClasses(200, sid),

@@ -42,7 +42,7 @@ const no = (error: string, status = 409): CaravelAdminResult => ({status, body: 
 async function sellableSuppliers(client: Client): Promise<string[]> {
   return ((await client.suppliers()).data as Rec[])
     .filter((s) => s.status === "active" && s.tax_inclusive === true && Array.isArray(s.payment_models) &&
-      (s.payment_models as unknown[]).includes("pay_on_arrival"))
+      (s.payment_models as unknown[]).includes("pay_on_arrival") && s.currency === "EUR")
     .map((s) => String(s.supplier_id));
 }
 
