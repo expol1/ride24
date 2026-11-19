@@ -1,6 +1,4 @@
 // Production Caravel HMAC webhook: no Supabase JWT, but mandatory signature.
-// NOT DEPLOYED. Deploy with verify_jwt=false only after configuring the current
-// Caravel webhook signing secret and the restricted durable RPC.
 import {serve} from "https://deno.land/std@0.224.0/http/server.ts";
 import {serviceClient} from "../_shared/ride24-security.ts";
 import {loadPartnerCredentials} from "../_shared/partner-api.ts";
@@ -32,10 +30,11 @@ serve(async(req)=>{
     const all=new Uint8Array(len);let offset=0;
     for(const bytes of parts){all.set(bytes,offset);offset+=bytes.length;}
     const rawBody=new TextDecoder("utf-8",{fatal:true,ignoreBOM:true}).decode(all);
-    const secrets=[Deno.env.get("CARAVEL_PRODUCTION_WEBHOOK_SECRET"),Deno.env.get("CARAVEL_PRODUCTION_WEBHOOK_SECRET_OLD")]
-      .filter((s):s is string=>typeof s==="string"&&s.length>0);
     let db:ReturnType<typeof serviceClient>|null=null;
     const admin=()=> db ?? (db=serviceClient());
+    if (!req.headers.get("X-Caravel-Signature")) return respond(401,{accepted:false,reason:"INVALID_SIGNATURE"});
+    const {data:secrets,error:keyError}=await admin().rpc("caravel_webhook_keys");
+    if (keyError || !Array.isArray(secrets) || !secrets.length) throw Error("SIGNING_KEYS_UNAVAILABLE");
     let client:ReturnType<typeof caravelProductionReadClient>|null=null;
     const supplier=async()=>{
       if(client)return client;
