@@ -102,6 +102,19 @@ test('Arvent result uses the EUR period quote when supplier and display billing 
  assert.equal(result.finalTotal,64.64);
  assert.equal(result.displayTotal,'64.64');
 });
+test('Caravel results display exact 49.31 EUR gross, separate from 47.41 EUR pickup and 1.90 EUR fee',()=>{
+ const start=html.indexOf('const baseTotal = car.arvent_period_price');
+ const end=html.indexOf('// --- KONIEC LOGIKI',start);
+ assert.ok(start>0&&end>start);
+ const result=runInNewContext(html.slice(start,end)+';({verifiedBaseTotal,verifiedFinalTotal,displayTotal})',{
+  car:{partners:{api_provider:'caravel'},features:{caravel_partner_total_minor:4741,
+    caravel_customer_total_minor:4931,caravel_ride24_fee_minor:190}},
+  lang:'pl',days:1,partnerNetPricePerDay:47.41,customerPricePerDay:49.3064
+ });
+ assert.equal(result.verifiedBaseTotal,47.41);
+ assert.equal(result.verifiedFinalTotal,49.31);
+ assert.equal(result.displayTotal,'49,31');
+});
 test('Arvent checkout does not use an estimated currency rate cached by another provider',async()=>{
  const source=html.slice(html.indexOf('const exchangeRateCache ='),html.indexOf('const classNames ='));
  let online=false;
