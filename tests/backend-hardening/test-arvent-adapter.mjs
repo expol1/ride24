@@ -249,7 +249,7 @@ test("checkout validates token-bound extras without saving a supplier booking",a
 });
 
 test("positive supplier driving-licence tenure is checked before SaveReservation",async()=>{
- const approved=setup({allowWrites:true,licenseYears:5});
+ const approved=setup({allowWrites:true,licenseYears:10});
  await assert.rejects(()=>approved.arventCreateBooking(creds,syntheticBooking),/ARVENT_FAILED_BEFORE_SAVE/);
  assert.equal(approved.calls.filter(c=>c.path==="/reservations/save").length,0);
  const eligible=setup({allowWrites:true,licenseYears:2,savedStatus:1});
