@@ -44,6 +44,16 @@ export const CARAVEL_COVERAGE_LABELS: Readonly<Record<string, {pl: string; en: s
   towing_and_recovery: {pl: "holowanie", en: "towing and recovery"},
 });
 const label = (code: string, lang: "pl" | "en") => CARAVEL_COVERAGE_LABELS[code]?.[lang] ?? code;
+// Only provider-returned, already reconciled amounts are shown to the customer.
+const CARAVEL_FEE_NAMES: Record<string, {pl:string;en:string}> = {
+  young_driver: {pl:"Młody kierowca",en:"Young driver"},
+  senior_driver: {pl:"Starszy kierowca",en:"Senior driver"},
+  one_way: {pl:"Zwrot w innym punkcie",en:"One-way return"},
+  out_of_hours: {pl:"Obsługa poza godzinami pracy",en:"Out-of-hours service"},
+  premium_location: {pl:"Dopłata za lokalizację",en:"Premium location fee"},
+  delivery: {pl:"Dostawa lub odbiór",en:"Delivery or collection"},
+};
+
 const money = (minor: number, currency: string) => `${(minor / 100).toFixed(2)} ${currency}`;
 
 export type CaravelQuoteRow = {
@@ -74,7 +84,27 @@ export function caravelQuoteFacts(row: unknown, release: CaravelRelease, nowMs =
   if (!Number.isFinite(fee) || fee <= 0) return null;
   const adminFee = Number.isSafeInteger(data.damage_administration_fee_minor) ? data.damage_administration_fee_minor as number : null;
   if (excludes.length > 0 && adminFee === null) return null;
+  // Legacy quotes may have no detailed lines; new quotes must have a complete
+  // reconciliation before any financial breakdown is shown.
+  const rawBreakdown = data.price_breakdown;
+  const bd = rec(rawBreakdown);
+  const feeItems = Array.isArray(bd?.fees) ? bd.fees.map(rec) : null;
+  const validBreakdown = bd?.version === 1 && bd.currency === q.currency &&
+    Number.isSafeInteger(bd.rental_minor) && (bd.rental_minor as number) >= 0 &&
+    Number.isSafeInteger(bd.mandatory_fees_minor) && (bd.mandatory_fees_minor as number) >= 0 &&
+    bd.extras_minor === 0 && bd.total_minor === minor!.total &&
+    (bd.rental_minor as number) + (bd.mandatory_fees_minor as number) === minor!.total &&
+    feeItems !== null && feeItems.length <= 30 &&
+    feeItems.every(x => x &&
+      typeof x.type === "string" && /^[a-z][a-z0-9_]{0,39}$/.test(x.type) &&
+      typeof x.label === "string" && x.label.length <= 180 &&
+      typeof x.code === "string" && x.code.length <= 128 &&
+      Number.isSafeInteger(x.amount_minor) && (x.amount_minor as number) >= 0) &&
+    feeItems.reduce((s,x) => s + Number(x!.amount_minor), 0) === bd.mandatory_fees_minor;
+  if (rawBreakdown !== undefined && !validBreakdown) return null;
+  if (Number(q.partner_net_total) !== minor!.total / 100) return null;
   return {quote: q, data, excludes: excludes as string[], covers: covers as string[], rentalMinor: minor!.total as number,
+    breakdown: validBreakdown ? bd : null,
     currency: String(q.currency), feeMajor: fee, driverAge: rec(drivers[0])!.age as number, adminFeeMinor: adminFee};
 }
 
@@ -86,7 +116,9 @@ export type CaravelConsentView = {
     damage_admin_fee_minor: number | null; damage_admin_fee_currency: "EUR" | null;
     exclusion_clause_refs: string[]; admin_fee_clause_ref: string | null};
   money: {rental_at_pickup: string; rental_at_pickup_minor: number; rental_currency: string;
-    ride24_fee: string; ride24_fee_currency: string; charged_by_stripe: "ride24_fee_only"};
+    ride24_fee: string; ride24_fee_currency: string; charged_by_stripe: "ride24_fee_only";
+    breakdown?: {rental_base:string; fee_total:string; partner_total:string;
+      fees:Array<{label:string; original_label:string; type:string; amount:string}>}};
   driver_age: number;
   statements: string[];
   /** Exactly what the client must echo back with accepted:true. */
@@ -100,6 +132,18 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
   const t = release.terms;
   const pl = lang === "pl";
   const at = money(f.rentalMinor, f.currency);
+  const bd = f.breakdown;
+  const breakdown = bd ? {
+    rental_base:money(Number(bd.rental_minor), f.currency),
+    fee_total:money(Number(bd.mandatory_fees_minor), f.currency),
+    partner_total:at,
+    fees:(bd.fees as Array<{type:string;label:string;amount_minor:number}>).map(x => ({
+      label:CARAVEL_FEE_NAMES[x.type]?.[lang] || x.label || (pl ? "Opłata Caravel" : "Caravel fee"),
+      original_label:x.label,
+      type:x.type,
+      amount:money(x.amount_minor, f.currency),
+    })),
+  } : undefined;
   const ref = (k: string, fallback = "") => t.keyClauseRefs?.[k] ? (pl ? ` (pkt ${t.keyClauseRefs[k]})` : ` (clause ${t.keyClauseRefs[k]})`) : fallback;
   const statements = [
     pl ? `Rezerwujesz kategorię pojazdu, nie konkretny model.` : `You are booking a vehicle category, not a specific model.`,
@@ -143,7 +187,8 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
       damage_admin_fee_currency: f.excludes.length ? "EUR" : null,
       exclusion_clause_refs: t.exclusionClauseRefs, admin_fee_clause_ref: t.adminFeeClauseRef},
     money: {rental_at_pickup: at, rental_at_pickup_minor: f.rentalMinor, rental_currency: f.currency,
-      ride24_fee: `${f.feeMajor.toFixed(2)} ${f.currency}`, ride24_fee_currency: f.currency, charged_by_stripe: "ride24_fee_only"},
+      ride24_fee: `${f.feeMajor.toFixed(2)} ${f.currency}`, ride24_fee_currency: f.currency, charged_by_stripe: "ride24_fee_only",
+      ...(breakdown ? {breakdown} : {})},
     driver_age: f.driverAge, statements,
     echo: {terms_document_id: t.documentId, terms_content_hash: t.contentHash, terms_language: t.language,
       excluded_codes: [...f.excludes], damage_admin_fee_minor: f.excludes.length ? f.adminFeeMinor : null},
