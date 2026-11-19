@@ -1076,6 +1076,14 @@ serve(async (req) => {
     const mainDriverLicenseSince = !isArventBooking ? null
       : typeof body.main_driver_license_since === "string" && body.main_driver_license_since
       ? body.main_driver_license_since : savedMainDriverLicenseSince;
+    // Arvent reservations require the main driver's first name AND surname.
+    if (isArventBooking && String(mainDriverName || "").trim().split(/\s+/).length < 2) {
+      return jsonResponse(req,{
+        code:"ARVENT_DRIVER_SURNAME_REQUIRED",
+        error:"Podaj imię i nazwisko głównego kierowcy (w profilu lub na liście kierowców).",
+        error_en:"Enter the main driver's first name and surname (in your profile or driver list)."
+      },400);
+    }
     if (isArventBooking && arventLicenseYears(mainDriverLicenseSince,startDate.text) === null) {
       return jsonResponse(req,{
         code:"ARVENT_LICENSE_DATE_REQUIRED",
@@ -1386,7 +1394,24 @@ serve(async (req) => {
       500,
     );
 
+    // What the client actually booked (group + example car), independent of
+    // later catalogue changes or deactivation. Display only.
+    const { data: carDisplay } = await admin.from("car_classes")
+      .select("class_code, description, example_model, transmission").eq("id", car.id).maybeSingle();
+    const offered = car.partner.provider_type === "api" && isRecord(quoteClaim?.row.raw_response)
+      && isRecord(quoteClaim?.row.raw_response.ride24_display) ? quoteClaim?.row.raw_response.ride24_display : null;
+    const pick = (key: string, max: number) => cleanText(offered?.[key], max) || cleanText((carDisplay as Record<string, unknown> | null)?.[key], max) || null;
+    const vehicleSnapshot = {
+      class_code: pick("class_code", 2),
+      group_name: cleanText(offered?.group_name, 60) || null,
+      example_model: pick("example_model", 120),
+      description: pick("description", 200),
+      transmission: pick("transmission", 30),
+      sipp: cleanText(offered?.sipp, 8) || null,
+    };
+
     const insertPayload = {
+      vehicle_snapshot: vehicleSnapshot,
       ...(pricingItemsSnapshot ? {pricing_items_snapshot:pricingItemsSnapshot} : {}),
       car_class_id: car.id,
       partner_id: car.partner_id,

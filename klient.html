@@ -2555,12 +2555,62 @@ const res = await fetch(supabaseUrl + "/functions/v1/create_checkout_session", {
 
   if (!data.url) {
     console.error("❌ BRAK URL:", data);
-    alert(isEn ? "Payment error." : "Błąd płatności.");
-    return;
+    window.ride24PaymentRedirect?.(false);
+    const offerChanged = data?.error === "ARVENT_QUOTE_UNVERIFIED" || data?.error === "QUOTE_EXPIRED";
+    alert(offerChanged
+      ? (isEn ? "The supplier's offer has changed or expired. Nothing was charged. Please search again."
+              : "Oferta dostawcy zmieniła się lub wygasła. Nic nie zostało pobrane. Wyszukaj ponownie.")
+      : (isEn ? "Payment error." : "Błąd płatności."));
+    return false;
   }
 
   window.location.href = data.url;
+  return true;
 }
+
+// Same layout as local partners: class letter + car model. Group (SIPP)
+// bookings name the offered example model: "Hyundai i20 lub podobny".
+window.ride24VehicleLabel = function(snap, carClass, isEn) {
+  const similar = isEn ? "or similar" : "lub podobny";
+  if (snap?.example_model && snap?.group_name) return `${snap.example_model} ${similar}`;
+  if (snap?.example_model) return snap.example_model;
+  const text = snap?.description || carClass?.description || "Auto";
+  return isEn ? text : String(text).replace(/ or similar$/i, " lub podobny");
+};
+
+// Return from Stripe: tell the client what happens next, then drop the flag from the URL.
+(function ride24PaymentReturnNotice() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("payment");
+    if (!result) return;
+    const isEn = localStorage.getItem("client_lang") === "en";
+    const msg = result === "success"
+      ? (isEn ? "Payment received. Your booking is now with the rental company for confirmation; the voucher follows by email."
+              : "Płatność przyjęta. Rezerwacja czeka na potwierdzenie wypożyczalni – voucher wyślemy e-mailem.")
+      : (isEn ? "Payment was not completed. You can pay again from My bookings."
+              : "Płatność nie została dokończona. Możesz opłacić ją ponownie w Moich rezerwacjach.");
+    const show = () => window.showToast ? window.showToast(msg, result === "success" ? "success" : "info") : null;
+    if (document.readyState === "complete") setTimeout(show, 800); else window.addEventListener("load", () => setTimeout(show, 800));
+    params.delete("payment");
+    const q = params.toString();
+    history.replaceState(null, "", location.pathname + (q ? "?" + q : "") + location.hash);
+  } catch (_) {}
+})();
+
+// Full-screen "redirecting to payment" notice while the server rechecks the offer.
+window.ride24PaymentRedirect = function(show) {
+  let el = document.getElementById("r24-payment-redirect");
+  if (!show) { if (el) el.remove(); return; }
+  if (el) return;
+  const isEn = localStorage.getItem("client_lang") === "en";
+  el = document.createElement("div");
+  el.id = "r24-payment-redirect";
+  el.setAttribute("role", "status");
+  el.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.72);color:#fff;font:600 17px Inter,sans-serif;text-align:center;padding:24px";
+  el.textContent = isEn ? "Checking the offer and redirecting to secure payment…" : "Sprawdzamy ofertę i przekierowujemy do bezpiecznej płatności…";
+  document.body.appendChild(el);
+};
 
 window.goToPayment = goToPayment;
 
@@ -3092,8 +3142,14 @@ document.addEventListener("click", async function(e) {
                     "bookingPickupPrice", "bookingCurrency", "bookingContext", "autoOpenBooking"
                 ].forEach(key => localStorage.removeItem(key));
 
-                if (typeof loadClientBookings === "function") await loadClientBookings();
-                if (result.payment_required && result.booking?.id) await goToPayment(null, result.booking.id);
+                // Paid API bookings go straight to Stripe; the list is refreshed only if that fails.
+                if (result.payment_required && result.booking?.id) {
+                    window.ride24PaymentRedirect(true);
+                    let redirected = false;
+                    try { redirected = await goToPayment(null, result.booking.id); }
+                    finally { if (!redirected) window.ride24PaymentRedirect(false); }
+                    if (!redirected && typeof loadClientBookings === "function") await loadClientBookings();
+                } else if (typeof loadClientBookings === "function") await loadClientBookings();
             } catch (err) {
                 console.error("BOOKING ERROR:", err);
                 window.showToast(err?.message || (isEn ? "Booking error." : "Błąd rezerwacji."), "error");
@@ -3157,6 +3213,8 @@ document.addEventListener("click", async function(e) {
     status,
     partner_response_deadline,
     payment_deadline,
+    api_status,
+    vehicle_snapshot,
     refund_status,
     receipt_generated,
 refund_completed_at,
@@ -3257,8 +3315,13 @@ if (badge) {
 
                 // Generowanie tabel
                 for (const booking of clientBookings) {
-                    const carName = booking.car_classes?.description || "Auto";
-                    const carClassCode = booking.car_classes?.class_code || "?";
+                    // Booked group as offered (snapshot), then the current class row.
+                    const snap = booking.vehicle_snapshot || {};
+                    const carName = window.ride24VehicleLabel(snap, booking.car_classes, isEn);
+                    const carClassCode = snap.class_code || booking.car_classes?.class_code || "?";
+                    // Paid API booking still waiting for the rental company's approval.
+                    const awaitingSupplier = booking.status === 'pending'
+                        && ['payment_provider_pending', 'payment_unknown'].includes(booking.api_status);
 
                     // 🔥 FIX 4: Zmienne ładujące dane prosto z zagnieżdżonych relacji
                     const finalPrice = booking.final_price_snapshot || 0;
@@ -3268,7 +3331,10 @@ if (badge) {
 
 
 // --- DYNAMICZNE STATUSY (PREMIUM TILES) ---
-if (booking.status === 'pending') {
+if (awaitingSupplier) {
+    statusHtml = `<div class="status-tile pending" data-pl="💳 Opłacona – czeka na potwierdzenie" data-en="💳 Paid – awaiting confirmation">💳 ${isEn ? 'Paid – awaiting confirmation' : 'Opłacona – czeka na potwierdzenie'}</div>`;
+}
+else if (booking.status === 'pending') {
     statusHtml = `<div class="status-tile pending" data-pl="⏳ Oczekująca" data-en="⏳ Pending">⏳ ${isEn ? 'Pending' : 'Oczekująca'}</div>`;
 }
 else if (booking.status === 'accepted') {
@@ -3296,7 +3362,19 @@ let actionsHtml = `<div style="display:flex;flex-direction:column;gap:8px; align
 
 const s = booking.status;
 
-if (s === 'pending') {
+if (awaitingSupplier) {
+    // Paid: the supplier decides; an automatic full refund follows if it does not confirm in time.
+    actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;" data-pl="Potwierdzenie wypożyczalni do:" data-en="Rental company confirms by:">
+        ${isEn ? 'Rental company confirms by:' : 'Potwierdzenie wypożyczalni do:'}
+    </span>`;
+    actionsHtml += `<span class="timer-badge countdown-timer" data-deadline="${booking.partner_response_deadline || ''}" style="font-size:13px; margin-top:0; color:var(--orange);">
+        ⌛ --:--:--
+    </span>`;
+    actionsHtml += `<span style="font-size:11px; color:var(--gray); max-width:220px;" data-pl="Voucher wyślemy e-mailem po potwierdzeniu. Bez potwierdzenia zwrócimy całą opłatę." data-en="We email the voucher after confirmation. Without confirmation the full fee is refunded.">
+        ${isEn ? 'We email the voucher after confirmation. Without confirmation the full fee is refunded.' : 'Voucher wyślemy e-mailem po potwierdzeniu. Bez potwierdzenia zwrócimy całą opłatę.'}
+    </span>`;
+}
+else if (s === 'pending') {
     actionsHtml += `<button class="action-btn-premium btn-cancel-soft" onclick="window.cancelBooking('${booking.id}', '${booking.status}')" style="padding:4px 8px; font-size:11px; margin-top:4px; min-width:auto; width:auto;" data-pl="Wycofaj wniosek" data-en="Withdraw request">
         ${isEn ? 'Withdraw request' : 'Wycofaj wniosek'}
     </button>`;

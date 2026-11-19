@@ -211,8 +211,9 @@ test("customer SIPP group cannot be swapped for a different supplier vehicle cat
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,0);
 });
 
-test("changed or absent saved SIPP cannot confirm in either adapter path",async()=>{
- for(const savedSipp of ["EDMR",null]){
+test("changed saved SIPP cannot confirm in either adapter path",async()=>{
+ // Absent sippCode is the real live Arvent shape and is covered separately.
+ for(const savedSipp of ["EDMR"]){
   const a=setup({allowWrites:true,savedStatus:1,savedSipp});
   for(const result of [await a.arventCreateBooking(creds,syntheticBooking),await a.arventBookingStatus(creds,"A-1")]){
    assert.equal(result.status,"pending");
@@ -230,6 +231,14 @@ test("mandatory supplement without explicit zero price blocks supplier POST",asy
   await assert.rejects(a.arventCreateBooking(creds,syntheticBooking),/ARVENT_FAILED_BEFORE_SAVE/);
   assert.equal(a.calls.some(x=>x.path==="/reservations/save"),false);
  }
+});
+test("live reservation responses without sippCode confirm only on matching money, route and terms",async()=>{
+ const a=setup({allowWrites:true,licenseYears:2,savedStatus:1,savedSipp:null});
+ assert.equal((await a.arventCreateBooking(creds,syntheticBooking)).status,"confirmed");
+ assert.equal((await a.arventBookingStatus(creds,"A-1")).status,"confirmed");
+ const other=setup({allowWrites:true,licenseYears:2,savedStatus:1,savedSipp:"PDAR"});
+ assert.equal((await other.arventCreateBooking(creds,syntheticBooking)).status,"pending");
+ assert.equal((await other.arventBookingStatus(creds,"A-1")).status,"pending");
 });
 test("a one-cent increase cannot confirm a supplier booking",async()=>{
  const a=setup({allowWrites:true,savedStatus:1,savedPrice:100.01});

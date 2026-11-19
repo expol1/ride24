@@ -1,7 +1,7 @@
-import { advanceApiPayment } from './api-payment-flow.mjs';
+import { advanceApiPayment, arventApprovalDeadline } from './api-payment-flow.mjs';
 import { assertVoucherCompleted } from './api-voucher-confirmation.mjs';
 import { loadPartnerCredentials, sanitizePartnerPayload } from './partner-api.ts';
-import { revalidatePaidProvider,createPaidProvider,readPaidProviderStatus } from './api-provider-fulfillment.ts';
+import { revalidatePaidProvider,createPaidProvider,readPaidProviderStatus,cancelPaidProviderAfterTimeout } from './api-provider-fulfillment.ts';
 
 async function one(query:any) {const {data,error}=await query; if(error)throw Error('API_WORKFLOW_DB_ERROR');return data;}
 export async function apiPaymentEnabled(admin:any) {
@@ -45,6 +45,7 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
      await load();return readPaidProviderStatus(credentials,w.provider_reference,w.prepared_quote);
    },
    status:async(_id:string,w:any)=>{await load();return readPaidProviderStatus(credentials,w.provider_reference,w.prepared_quote);},
+   cancel:async(_id:string,w:any)=>{await load();return cancelPaidProviderAfterTimeout(credentials,w.provider_reference,w.prepared_quote);},
    finalize:async()=>{
      const ok=await rpc('api_finalize_confirmed',{p_booking_id:id});
      if(ok) {
@@ -82,7 +83,9 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
  };
  const result=await advanceApiPayment(deps,id);
  const w=await get();
- if(w?.state==='provider_pending')await one(admin.from('bookings').update({api_status:'payment_provider_pending',api_booking_reference:w.provider_reference}).eq('id',id).eq('status','pending').select('id'));
+ if(w?.state==='provider_pending')await one(admin.from('bookings').update({api_status:'payment_provider_pending',api_booking_reference:w.provider_reference,
+   // Shown to the client as the supplier decision deadline (Arvent only).
+   ...(arventApprovalDeadline(w)!==null?{partner_response_deadline:new Date(arventApprovalDeadline(w)!).toISOString()}:{})}).eq('id',id).eq('status','pending').select('id'));
  if(w?.state==='unknown') {
    await one(admin.from('api_booking_workflows').update({updated_at:new Date().toISOString()}).eq('booking_id',id).eq('state','unknown').select('booking_id'));
    await one(admin.from('bookings').update({manual_review:true,api_status:'payment_unknown',

@@ -5,6 +5,7 @@ import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
  arventLocationRows, arventGroupRows, arventOfferRows,
  arventOfferMatchesTerms, arventReservationStatus, arventSavePayload, arventSavedRouteMatches,
+ arventSubmissionAllowed,
 } from "./arvent-kolaycar-contract.mjs";
 
 type SearchInput={
@@ -102,6 +103,10 @@ function searchPath(input:SearchInput):string {
  });
 }
 export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Promise<ApiVehicleGroup[]>{
+ // Same-day pickup outside 10:00-17:00 Turkey time: no offers. The same
+ // search runs again before SaveReservation, so a paid booking that crosses
+ // the window is refunded before anything is sent to Arvent.
+ if(!arventSubmissionAllowed(input.pickup_date))return [];
  const response=await request(c,searchPath(input));
  return arventOfferRows(response,{...input,currency:"EUR"}) as ApiVehicleGroup[];
 }
@@ -122,6 +127,16 @@ function statusEvidence(data:Record<string,unknown>){
   "currencyCode","totalPrice","depositPrice","depositCreditCardRequired","totalKMLimit",
   "pickupLocationId","returnLocationId","pickupDate","returnDate"];
  return sanitizePartnerPayload(Object.fromEntries(fields.map(key=>[key,data[key]])),4000);
+}
+// Live Arvent reservation responses (save and GET /reservations, verified
+// 2026-11-19 on 17BFA78FB3F6) do NOT include sippCode. The SIPP group is
+// bound earlier: the reservationToken comes from the exact offer whose SIPP,
+// price and terms were rechecked immediately before SaveReservation. A
+// sippCode that IS returned must still match; only its absence is tolerated.
+function sippConsistent(d:Record<string,unknown>,expected:unknown):boolean {
+ if(typeof expected!=="string"||!/^[A-Z]{4}$/.test(expected))return false;
+ if(d.sippCode===undefined||d.sippCode===null||d.sippCode==="")return true;
+ return typeof d.sippCode==="string"&&d.sippCode.toUpperCase()===expected;
 }
 function confirmedContract(d:Record<string,unknown>,expectedPrice:unknown):boolean {
  const wanted=Number(expectedPrice);
@@ -152,8 +167,7 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
    pickup_time:booking.pickup_time,return_time:booking.return_time,
   });
  const verified=booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot)
-  &&routeValid===true&&typeof d.sippCode==="string"
-  &&d.sippCode.toUpperCase()===quote?.external_group_id;
+  &&routeValid===true&&sippConsistent(d,quote?.external_group_id);
  // If status is "approved" but supplier price/terms cannot be proved, do
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
@@ -185,6 +199,8 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   throw Error("PARTNER_API_ERROR:ARVENT_PRICING_OR_EXTRAS_UNSUPPORTED");
  if(!input.vehicle_group_id||!input.main_driver?.name||!input.client_email||!input.client_phone)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
+ if(!arventSubmissionAllowed(input.pickup_date))
+  throw Error("PARTNER_API_ERROR:ARVENT_SAME_DAY_SUBMISSION_CLOSED");
  const quote=input.provider_quote_data as Record<string,unknown>|null;
  // Ride24 sells ACRISS/SIPP groups like AVIA. Keep the chosen supplier
  // vehicleId only in the private quote payload; never present it as a category.
@@ -275,7 +291,7 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  // A confirmed status alone does not prove that the booking preserves the
  // no-deposit/no-card/unlimited-km contract and EUR payable amount.
  const termsMismatch=d.agencyReservationReference!==payload.agencyReservationReference
-  ||typeof d.sippCode!=="string"||d.sippCode.toUpperCase()!==input.vehicle_group_id
+  ||!sippConsistent(d,input.vehicle_group_id)
   ||d.currencyCode!=="EUR"||d.depositPrice!==0
   ||d.depositCreditCardRequired!==false||d.totalKMLimit!==0;
  const routeMismatch=!arventSavedRouteMatches(d,input);

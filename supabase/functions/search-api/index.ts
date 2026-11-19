@@ -733,6 +733,15 @@ async function searchPartner(
           pickup_location_external_id: pickupLocation.external_id || null,
           dropoff_location_external_id: dropoffLocation.external_id || null,
           provider_quote_data: group.provider_quote_data || {},
+          // Display-only copy of the offered group, snapshotted on the booking.
+          ride24_display: {
+            class_code: /^[A-F]$/.test(group.class_code) ? group.class_code : carClass.class_code,
+            group_name: typeof group.features?.category_name === "string" ? group.features.category_name : null,
+            example_model: group.example_model || carClass.example_model || null,
+            description: group.description || carClass.description || null,
+            transmission: group.transmission || carClass.transmission || null,
+            sipp: typeof group.features?.sipp === "string" ? group.features.sipp : null,
+          },
           ride24_context: apiQuoteContext({ pickupTime, returnTime,
             pickupName: pickupLocation.location_name, returnName: dropoffLocation.location_name }),
         }, 80_000),

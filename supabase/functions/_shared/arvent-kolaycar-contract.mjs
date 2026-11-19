@@ -269,3 +269,16 @@ export function arventSavedRouteMatches(saved, expected) {
    &&start.time===startTime[1]+":"+startTime[2]
    &&end.time===endTime[1]+":"+endTime[2]);
 }
+
+// Arvent policy (2026-11-19): a reservation whose pickup is on the SAME
+// Turkish calendar day may only be submitted 10:00-17:00 Turkey time
+// (UTC+3, no DST). Pickup tomorrow or later: 24/7. Pickup service is 24/7.
+export function arventSubmissionAllowed(pickupDate,nowMs=Date.now()) {
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(pickupDate||"")))return false;
+ const tr=new Date(nowMs+3*3600000);
+ const today=tr.toISOString().slice(0,10);
+ if(pickupDate>today)return true;
+ if(pickupDate<today)return false;
+ const minutes=tr.getUTCHours()*60+tr.getUTCMinutes();
+ return minutes>=10*60&&minutes<17*60;
+}
