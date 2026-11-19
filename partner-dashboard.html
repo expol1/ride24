@@ -923,7 +923,18 @@
     font-weight:700;
 }
 
-        /* RIDE24 MOBILE: seasonal minimum & settings stay inside the viewport.
+        
+/* Only the local partner licence-years field; never shown on API accounts. */
+#view-settings #localLicenceExperienceSetting small {
+    display:block; margin-top:7px; color:#64748b; font-size:12px; line-height:1.55;
+}
+#view-settings #localLicenceExperienceSetting input {
+    width:100%; border:1px solid #cbd5e1; border-radius:9px; padding:10px 12px;
+    background:#fff; color:#10213f;
+}
+#view-settings #localLicenceExperienceSetting[hidden] { display:none !important; }
+
+/* RIDE24 MOBILE: seasonal minimum & settings stay inside the viewport.
            Keep desktop layout and all booking logic untouched. */
         @media (max-width: 768px) {
             #view-settings .r24-driver-age-row { grid-template-columns:minmax(0,1fr); gap:14px; }
@@ -1796,6 +1807,11 @@ async>
             <input type="number" id="partner-max-age" min="18" max="120" step="1">
             <small data-pl="Puste pole oznacza brak górnego limitu." data-en="Leave blank for no upper age limit.">Leave blank for no upper age limit.</small>
         </div>
+    </div>
+    <div id="localLicenceExperienceSetting" class="form-group" hidden style="grid-column: span 2;">
+        <label for="partner-min-license-years" data-pl="Minimalny staż prawa jazdy (lata)" data-en="Minimum driving licence experience (years)">Minimalny staż prawa jazdy (lata)</label>
+        <input type="number" id="partner-min-license-years" inputmode="numeric" min="0" max="50" step="1" placeholder="0" style="max-width:180px">
+        <small data-pl="Dotyczy każdego kierowcy. Staż liczony w dniu odbioru. Puste pole lub 0 oznacza brak wymogu." data-en="Applies to every driver, measured on pickup date. Blank or 0 means no minimum.">Dotyczy każdego kierowcy. Staż liczony w dniu odbioru. Puste pole lub 0 oznacza brak wymogu.</small>
     </div>
     <div class="r24-min-days-setting">
         <div class="r24-min-days-header">
@@ -3058,6 +3074,7 @@ console.log("API status:", partnerData.api_status);
     rental_rules_url,
     min_driver_age,
     max_driver_age,
+    min_license_years,
     min_rental_days,
     seasonal_min_rental_days,
     seasonal_min_rental_months,
@@ -3102,6 +3119,10 @@ console.log("API status:", partnerData.api_status);
                 }
                 if(data.emergency_phone) document.getElementById("partnerEmergency").value = data.emergency_phone;
                 document.getElementById("partner-max-age").value = data.max_driver_age ?? "";
+                const localLicenceWrap = document.getElementById("localLicenceExperienceSetting");
+                if (localLicenceWrap) localLicenceWrap.hidden = data.provider_type !== "local";
+                const licenceYearsInput = document.getElementById("partner-min-license-years");
+                if (licenceYearsInput) licenceYearsInput.value = data.provider_type === "local" ? (data.min_license_years ?? "") : "";
                 if(data.min_driver_age){
     document.getElementById("partner-min-age").value = data.min_driver_age;
 }
@@ -3194,6 +3215,16 @@ console.log("API status:", partnerData.api_status);
                 const minAgeInput = document.getElementById("partner-min-age").value;
 
 const maxAgeInput = document.getElementById("partner-max-age").value;
+const licenceYearsInput = document.getElementById("partner-min-license-years");
+const isLocalPartner = partnerData?.provider_type === "local";
+const minLicenseRaw = licenceYearsInput?.value.trim() ?? "";
+const minLicenseYears = minLicenseRaw === "" ? null : Number(minLicenseRaw);
+if (isLocalPartner && minLicenseRaw !== "" &&
+    (!Number.isInteger(minLicenseYears) || minLicenseYears < 0 || minLicenseYears > 50)) {
+    window.showToast(partnerText("Staż prawa jazdy musi wynosić od 0 do 50 lat.", "Driving licence experience must be between 0 and 50 years."), "error");
+    if (btn) { btn.disabled = false; partnerLabel(btn, "Zapisz zmiany", "Save Changes"); }
+    return;
+}
 const ageValid = value => value === '' || (Number.isInteger(Number(value)) && Number(value) >= 18 && Number(value) <= 120);
 if (!ageValid(minAgeInput) || !ageValid(maxAgeInput) || (maxAgeInput && Number(maxAgeInput) < Number(minAgeInput || 21))) {
     window.showToast(partnerText("Podaj poprawny zakres wieku (18–120 lat).", "Enter a valid age range (18–120)."), "error");
@@ -3213,6 +3244,7 @@ const updateData = {
     min_rental_days: minRentalDays,
     seasonal_min_rental_days: seasonalDays,
     seasonal_min_rental_months: seasonalMonths,
+    ...(isLocalPartner ? { min_license_years: minLicenseYears } : {}),
     profile_completed: true
 };
 
