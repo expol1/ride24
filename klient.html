@@ -1417,6 +1417,22 @@
         }
 
 
+
+/* Profile onboarding gate: isolate required details until saved and verified. */
+body.r24-profile-checking .view-section{display:none!important}
+body.r24-profile-checking #loyalty-card{visibility:hidden}
+body.r24-profile-incomplete .nav-item[data-r24-locked="true"]{opacity:.38;pointer-events:none;cursor:not-allowed}
+body.r24-profile-incomplete #loyalty-card,body.r24-profile-incomplete .badge-container,body.r24-profile-incomplete #r24-client-search-action{display:none!important}
+body.r24-profile-incomplete #view-profile .profile-col[data-r24-optional-profile]{display:none!important}
+#view-profile .r24-profile-setup{display:none;margin:0 0 24px;border:1px solid #c7d2fe;border-left:5px solid #2563eb;padding:19px 22px;background:#eff6ff;border-radius:13px;color:#1e3a8a}
+body.r24-profile-incomplete #view-profile .r24-profile-setup{display:block}
+#view-profile .r24-profile-setup strong{display:block;font-size:16px;font-weight:800;margin-bottom:6px}
+#view-profile .r24-profile-setup p{margin:5px 0 0;font-size:13px;line-height:1.6}
+#view-profile #profile-setup-missing{font-weight:700;color:#1d4ed8}
+body.r24-profile-incomplete #view-profile .profile-grid{grid-template-columns:minmax(0,650px)!important;grid-template-areas:"owner"!important;justify-content:center}
+#view-profile [aria-invalid="true"]{border-color:#dc2626!important;box-shadow:0 0 0 2px rgba(220,38,38,.08)!important}
+@media(max-width:768px){#view-profile .r24-profile-setup{padding:16px;margin-bottom:18px}body.r24-profile-incomplete #view-profile .profile-grid{grid-template-columns:minmax(0,1fr)!important}}
+
 /* Profil: wizualne uporządkowanie niezależnych formularzy bez zmian w zapisie. */
 #view-profile .profile-page-header{margin-bottom:26px}
 #view-profile .profile-description{margin:8px 0 0;color:#64748b;font-size:13px;font-weight:500;line-height:1.55}
@@ -1771,7 +1787,7 @@ async>
 <link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261115nav-compact-v3">
 <link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113-switch">
 </head>
-<body> <aside class="sidebar">
+<body class="r24-profile-checking"> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
     <img class="r24-full-logo" src="ride24-logo-green-20261019.png" style="height:42px;" alt="Logo"><img class="r24-compact-logo" src="r.png" alt="Ride24">
 </div>
@@ -1887,7 +1903,7 @@ async>
                     <span data-pl="Powiadomienia" data-en="Notifications">Powiadomienia</span>
                     <div class="badge badge-absolute" id="notification-badge" style="display:none;">0</div>
                 </div>
-                <span class="logout-btn" onclick="goToSearch()" style="background: #2563EB; border-color: #2563EB;" data-pl="Szukaj aut" data-en="Search cars">
+                <span id="r24-client-search-action" class="logout-btn" onclick="goToSearch()" style="background: #2563EB; border-color: #2563EB;" data-pl="Szukaj aut" data-en="Search cars">
                   Szukaj aut
                   </span>
                 <span class="logout-btn" onclick="logout()" data-pl="Wyloguj" data-en="Logout">
@@ -2067,51 +2083,52 @@ async>
                 <div class="page-header profile-page-header">
                     <div>
                         <h1 class="page-title" data-pl="Profil" data-en="Profile">Profil</h1>
-                        <p class="profile-description" data-pl="Dane kierowców i informacje do rachunku w jednym miejscu." data-en="Driver details and billing information in one place.">Dane kierowców i informacje do rachunku w jednym miejscu.</p>
+                        <p class="profile-description" data-pl="Najpierw uzupełnij i zapisz wymagane dane. Dodatkowi kierowcy i rachunki są opcjonalne." data-en="Complete and save the required details first. Additional drivers and billing are optional.">Najpierw uzupełnij i zapisz wymagane dane. Dodatkowi kierowcy i rachunki są opcjonalne.</p>
                     </div>
                 </div>
 
+                <section id="profile-setup-gate" class="r24-profile-setup" role="status" aria-live="polite"><strong data-pl="Dokończ profil, aby odblokować panel" data-en="Complete your profile to unlock the panel">Dokończ profil, aby odblokować panel</strong><p data-pl="Uzupełnij wymagane pola i zapisz profil, aby odblokować pozostałe funkcje." data-en="Complete the required fields and save your profile to unlock other features.">Uzupełnij wymagane pola i zapisz profil, aby odblokować pozostałe funkcje.</p><p id="profile-setup-missing"></p></section>
                 <div class="profile-grid">
                     <div class="profile-col">
                         <h2 class="section-heading" data-pl="Właściciel profilu" data-en="Profile owner">Właściciel profilu</h2>
                         <div class="settings-card">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label data-pl="Imię i nazwisko" data-en="Name">Imię i nazwisko</label>
-                                    <input type="text" id="profile-name" value="">
+                                    <label for="profile-name" data-pl="Imię i nazwisko *" data-en="First and last name *">Imię i nazwisko *</label>
+                                <input type="text" id="profile-name" value="" required autocomplete="name" maxlength="120">
                                 </div>
                                 <div class="form-group">
-                                    <label data-pl="Wiek" data-en="Age">Wiek</label>
-                                    <input type="number" id="profile-age" value="" min="18">
+                                    <label for="profile-age" data-pl="Wiek *" data-en="Age *">Wiek *</label>
+                                <input type="number" id="profile-age" value="" min="18" max="120" step="1" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label data-pl="Email" data-en="Email">Email</label>
-                                    <input type="email" id="profile-email" value="" readonly>
+                                    <label for="profile-email" data-pl="Email *" data-en="Email *">Email *</label>
+                                <input type="email" id="profile-email" value="" readonly required>
                                 </div>
                                <div class="form-group">
-                                    <label data-pl="Telefon" data-en="Phone">Telefon</label>
-                                    <input type="tel" id="profile-phone" value="" placeholder="+48 123 456 789" data-pl="+48 123 456 789" data-en="+44 123 456 789">
+                                    <label for="profile-phone" data-pl="Telefon *" data-en="Phone *">Telefon *</label>
+                                <input type="tel" id="profile-phone" value="" placeholder="+48 123 456 789" autocomplete="tel" required>
                                 </div>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label for="profile-license-since" data-pl="Data pierwszego uzyskania prawa jazdy" data-en="Date you first obtained your driving licence">Data pierwszego uzyskania prawa jazdy</label>
-                                <input type="date" id="profile-license-since" value="" autocomplete="off">
+                                <label for="profile-license-since" data-pl="Data pierwszego uzyskania prawa jazdy *" data-en="Original driving licence date *">Data pierwszego uzyskania prawa jazdy *</label>
+                                <input type="date" id="profile-license-since" value="" autocomplete="off" required>
                                 <small data-pl="Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni." data-en="The original entitlement date, not the date your current card was printed. Required by some rental companies.">Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni.</small>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label data-pl="Kraj zamieszkania" data-en="Country">Kraj zamieszkania</label>
-                                <input type="text" id="profile-country" value="PL" placeholder="PL" data-pl="PL" data-en="UK">
+                                <label for="profile-country" data-pl="Kraj zamieszkania *" data-en="Country of residence *">Kraj zamieszkania *</label>
+                                <input type="text" id="profile-country" value="" placeholder="PL" autocomplete="country-name" maxlength="80" required>
                             </div>
                             <div style="flex: 1;"></div>
                             <div class="profile-actions">
-                                <button type="button" class="btn-primary" onclick="saveProfile()" data-pl="Zapisz zmiany" data-en="Save Changes">Zapisz zmiany</button>
+                                <button type="button" class="btn-primary" id="profile-save-required" onclick="saveProfile()" data-pl="Zapisz profil" data-en="Save profile">Zapisz profil</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="profile-col">
+                    <div class="profile-col" data-r24-optional-profile="drivers">
                         <h2 class="section-heading" data-pl="Dodatkowi kierowcy" data-en="Additional drivers">Dodatkowi kierowcy</h2>
                         <div class="settings-card">
                             <div id="drivers-list" style="grid-column: span 2;">
@@ -2126,31 +2143,31 @@ async>
                         </div>
                     </div>
 
-                    <div class="profile-col">
+                    <div class="profile-col" data-r24-optional-profile="invoice">
                         <h2 class="section-heading" data-pl="Dane do rachunku" data-en="Invoice details">Dane do rachunku</h2>
                         <div class="settings-card">
                             <div class="form-group">
-                                <label for="invoice-company" data-pl="Nazwa firmy" data-en="Company name">Nazwa firmy</label>
+                                <label for="invoice-company" data-pl="Nazwa firmy *" data-en="Company name *">Nazwa firmy *</label>
                                 <input type="text" id="invoice-company" value="">
                             </div>
 
                             <div class="form-group">
-                                <label for="invoice-nip" data-pl="NIP" data-en="Tax ID">NIP</label>
+                                <label for="invoice-nip" data-pl="NIP (opcjonalnie)" data-en="Tax ID (optional)">NIP (opcjonalnie)</label>
                                 <input type="text" id="invoice-nip" value="" inputmode="numeric" maxlength="10">
                             </div>
 
                             <div class="form-group invoice-field-full">
-                                <label for="invoice-street" data-pl="Ulica i numer" data-en="Street and number">Ulica i numer</label>
+                                <label for="invoice-street" data-pl="Ulica i numer *" data-en="Street and number *">Ulica i numer *</label>
                                 <input type="text" id="invoice-street" value="">
                             </div>
 
                             <div class="form-group">
-                                <label for="invoice-postal" data-pl="Kod pocztowy" data-en="Postal code">Kod pocztowy</label>
+                                <label for="invoice-postal" data-pl="Kod pocztowy *" data-en="Postal code *">Kod pocztowy *</label>
                                 <input type="text" id="invoice-postal" value="" inputmode="numeric" maxlength="6" placeholder="12-345">
                             </div>
 
                             <div class="form-group">
-                                <label for="invoice-city" data-pl="Miasto" data-en="City">Miasto</label>
+                                <label for="invoice-city" data-pl="Miasto *" data-en="City *">Miasto *</label>
                                 <input type="text" id="invoice-city" value="">
                             </div>
 
@@ -2288,6 +2305,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/caravel-consent.js?v=20261119-gross-pln-seat-variants"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
+    import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
     document.getElementById('deleteModal').style.display = 'flex';
@@ -2756,6 +2774,51 @@ window.goToPayment = goToPayment;
             console.error("❌ BŁĄD KRYTYCZNY: Nie udało się utworzyć obiektu 'db'! Sprawdź plik supabaseConfig.js");
         }
         let currentUser = null;
+
+        // The UI is locked until the signed-in user's SAVED profile passes validation.
+        window.r24ClientProfileReady = false;
+        window.r24ClientProfileProblems = [];
+        window.r24RenderProfileProblems = function(shouldFocus = false) {
+            const errors = window.r24ClientProfileProblems || [];
+            const isEn = localStorage.getItem("client_lang") === "en";
+            const summary = document.getElementById("profile-setup-missing");
+            if (summary) summary.textContent = errors.length
+                ? (isEn ? "Required: " : "Do uzupełnienia: ") + errors.map(e => isEn ? e.en : e.pl).join(", ") + "."
+                : "";
+            document.querySelectorAll('#view-profile [aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
+            for (const item of errors) document.getElementById(item.id)?.setAttribute('aria-invalid', 'true');
+            if (shouldFocus && errors.length) {
+                const first = document.getElementById(errors[0].id);
+                if (first && !first.readOnly) first.focus({preventScroll:false});
+            }
+        };
+        window.r24ApplyClientProfileGate = function(savedProfile, shouldFocus = false) {
+            const problems = clientProfileErrors(savedProfile, currentUser?.email);
+            const ready = problems.length === 0;
+            window.r24ClientProfileReady = ready;
+            window.r24ClientProfileProblems = problems;
+            document.body.classList.remove("r24-profile-checking");
+            document.body.classList.toggle("r24-profile-incomplete", !ready);
+            for (const navId of ["dashboard","bookings","payments","android"]) {
+                const nav = document.getElementById("nav-" + navId);
+                if (!nav) continue;
+                if (ready) {
+                    nav.removeAttribute("aria-disabled");
+                    nav.removeAttribute("data-r24-locked");
+                } else {
+                    nav.setAttribute("aria-disabled", "true");
+                    nav.setAttribute("data-r24-locked", "true");
+                }
+            }
+            window.r24RenderProfileProblems(shouldFocus);
+            if (!ready) window.switchTab("profile");
+            return ready;
+        };
+        document.addEventListener("input", event => {
+            if (event.target?.closest?.("#view-profile") && event.target?.hasAttribute?.("aria-invalid")) {
+                event.target.removeAttribute("aria-invalid");
+            }
+        });
         let payments = [];
         // 🔥 LOYALTY SYSTEM CONFIG
 // 🔥 LOYALTY SYSTEM CONFIG (Z nowymi, pięknymi tłami)
@@ -2943,42 +3006,28 @@ if (!currentUser || !currentUser.id) {
 
             window.detectLang();
             window.setupInvoiceFieldHandlers();
-            await loadUserProfile();
-            await loadClientBookings();
-            await loadPayments();
-
-            // 🔥 BRAMKARZ V2 (Wiek + Telefon + Imię + Scroll UX)
-            const { data: profileCheck } = await db.from("profiles").select("name, phone, age").eq("id", currentUser.id).maybeSingle();
-            const isProfileIncomplete = !profileCheck || !profileCheck.name || !profileCheck.phone || !profileCheck.age;
-
-            if (isProfileIncomplete) {
-                window.showToast(localStorage.getItem("client_lang") === "en" ? "Please provide your phone number and age to continue!" : "Podaj swój telefon i wiek, aby móc rezerwować auta!", "error");
-                window.switchTab("profile");
-
-                setTimeout(() => {
-                    let firstMissing = null;
-                    const checkFields = [
-                        { val: profileCheck?.name, id: "profile-name" },
-                        { val: profileCheck?.phone, id: "profile-phone" },
-                        { val: profileCheck?.age, id: "profile-age" }
-                    ];
-
-                    checkFields.forEach(f => {
-                        if (!f.val) {
-                            const el = document.getElementById(f.id);
-                            if (el) {
-                                el.style.border = "2px solid var(--red)";
-                                if (!firstMissing) firstMissing = el;
-                            }
-                        }
-                    });
-
-                    if (firstMissing) firstMissing.scrollIntoView({ behavior: "smooth", block: "center" });
-                }, 150);
+            let profileCheck = null;
+            try {
+                profileCheck = await loadUserProfile();
+            } catch (profileError) {
+                console.error("Client profile verification failed:", profileError);
+                window.showToast(localStorage.getItem("client_lang") === "en"
+                    ? "Could not verify your profile. Refresh the page or try again."
+                    : "Nie udało się zweryfikować profilu. Odśwież stronę lub spróbuj ponownie.", "error");
+            }
+            const profileReady = window.r24ApplyClientProfileGate(profileCheck, false);
+            if (profileReady) {
+                await loadClientBookings();
+                await loadPayments();
+                window.r24ClientBookingsLoaded = true;
+            } else {
+                window.showToast(localStorage.getItem("client_lang") === "en"
+                    ? "Save the required profile details to unlock the panel."
+                    : "Uzupełnij i zapisz dane podstawowe, aby odblokować panel.", "info");
             }
 
             if (localStorage.getItem("autoOpenBooking") === "true") {
-                if (!isProfileIncomplete) {
+                if (profileReady) {
                     localStorage.removeItem("autoOpenBooking");
                     setTimeout(() => {
                         window.showToast(localStorage.getItem("client_lang") === "en" ? "Complete your booking 👇" : "Dokończ rezerwację 👇", "success");
@@ -3033,6 +3082,11 @@ document.addEventListener("click", async function(e) {
            context:bookingQuoteContext, isApiBooking:()=>!!localStorage.getItem("selectedApiQuoteId"), isEn:()=>localStorage.getItem("client_lang")==="en"});
        window.submitBooking = function() {
     const isEn = localStorage.getItem("client_lang") === "en";
+    if (!window.r24ClientProfileReady) {
+        window.switchTab("profile");
+        window.showToast(isEn ? "Complete and save your profile before booking." : "Uzupełnij i zapisz profil przed rezerwacją.", "error");
+        return;
+    }
 
     const carClassId = localStorage.getItem("selectedCarId");
     if (!carClassId) {
@@ -3381,6 +3435,7 @@ document.addEventListener("click", async function(e) {
         }
 
        async function loadClientBookings() {
+            if (!window.r24ClientProfileReady) return;
             const dashTbody = document.getElementById('dashboard-bookings-tbody');
             const isEn = localStorage.getItem("client_lang") === "en";
             const bookTbody = document.getElementById('bookings-tbody');
@@ -4073,6 +4128,7 @@ function calculateRefundPercent(pickupDate) {
                 .select("*")
                 .eq("id", currentUser.id) // Używamy "id", bo tak jest w Twojej bazie
                 .maybeSingle();
+            if (error) throw error;
                 // 🔥 PSEUDO-AUTO AGE LOGIC (Premium SaaS)
             if(profile && profile.age && profile.age_updated_at) {
                 const today = new Date();
@@ -4101,8 +4157,8 @@ function calculateRefundPercent(pickupDate) {
                 if(document.getElementById("profile-age")) document.getElementById("profile-age").value = profile.age || "";
                 if(document.getElementById("profile-phone")) document.getElementById("profile-phone").value = profile.phone || "";
                 if(document.getElementById("profile-license-since")) document.getElementById("profile-license-since").value = profile.license_since || "";
-                // 🔥 FIX: Domyślnie ładuje "PL" jeśli baza zwróci null
-                if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "PL";
+                // Never assume residence country for incomplete accounts.
+                if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "";
 
                 const greeting = document.getElementById("topbar-greeting");
                 if(greeting) {
@@ -4115,6 +4171,8 @@ function calculateRefundPercent(pickupDate) {
                 }
             }
 
+            // Optional drivers are not loaded until the core account has been verified.
+            if (clientProfileErrors(profile, currentUser.email).length > 0) return profile;
             const { data: driversData } = await db
                 .from("drivers")
                 .select("*")
@@ -4130,6 +4188,7 @@ function calculateRefundPercent(pickupDate) {
                     });
                 }
             }
+            return profile;
         }
 
         function sanitizeInvoiceNip(value) {
@@ -4214,6 +4273,11 @@ function calculateRefundPercent(pickupDate) {
 
         window.saveInvoiceData = async function() {
             const isEn = localStorage.getItem("client_lang") === "en";
+            if (!window.r24ClientProfileReady) {
+                window.switchTab("profile");
+                window.showToast(isEn ? "Save your required profile first." : "Najpierw zapisz wymagane dane profilu.", "error");
+                return;
+            }
 
             if (!db || !currentUser) {
                 window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
@@ -4252,6 +4316,14 @@ function calculateRefundPercent(pickupDate) {
                 city: cityInput ? cityInput.value.trim() : "",
                 updated_at: new Date().toISOString()
             };
+            const invoiceErrors = invoiceProfileErrors(payload);
+            if (invoiceErrors.length) {
+                const missingText = invoiceErrors.map(item => isEn ? item.en : item.pl).join(", ");
+                for (const item of invoiceErrors) document.getElementById(item.id)?.setAttribute("aria-invalid", "true");
+                document.getElementById(invoiceErrors[0].id)?.focus();
+                window.showToast((isEn ? "Complete invoice details: " : "Uzupełnij dane rachunku: ") + missingText, "error");
+                return;
+            }
 
             const { error } = await db
                 .from("user_invoice_profiles")
@@ -4274,6 +4346,7 @@ function calculateRefundPercent(pickupDate) {
 
         window.deleteInvoiceData = async function() {
             const isEn = localStorage.getItem("client_lang") === "en";
+            if (!window.r24ClientProfileReady) return;
 
             if (!db || !currentUser) {
                 window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
@@ -4325,41 +4398,66 @@ function calculateRefundPercent(pickupDate) {
         };
 
         window.saveProfile = async function() {
-            if(!db || !currentUser) {
-                window.showToast(localStorage.getItem("client_lang") === "en" ? "Please log in first!" : "Zaloguj się najpierw!", "error");
+            const isEn = localStorage.getItem("client_lang") === "en";
+            if (!db || !currentUser?.id) {
+                window.showToast(isEn ? "Please log in first." : "Zaloguj się najpierw.", "error");
                 return;
             }
             const profileData = {
                 id: currentUser.id,
-                name: document.getElementById("profile-name").value,
-                email: currentUser.email, // 🔥 DODANE: Zapis e-maila do bazy!
-                age: document.getElementById("profile-age").value ? parseInt(document.getElementById("profile-age").value) : null,
-                age_updated_at: new Date().toISOString().split('T')[0],
-                phone: document.getElementById("profile-phone").value,
-                country: document.getElementById("profile-country").value,
-                license_since: window.ride24LicenseDate(document.getElementById("profile-license-since")?.value),
+                name: document.getElementById("profile-name").value.trim(),
+                email: currentUser.email,
+                age: document.getElementById("profile-age").value.trim()
+                    ? Number(document.getElementById("profile-age").value) : null,
+                age_updated_at: new Date().toISOString().slice(0, 10),
+                phone: document.getElementById("profile-phone").value.trim(),
+                country: document.getElementById("profile-country").value.trim(),
+                license_since: document.getElementById("profile-license-since")?.value || null
             };
-            if (document.getElementById("profile-license-since")?.value && !profileData.license_since) {
-                const isEn = localStorage.getItem("client_lang") === "en";
-                window.showToast(isEn ? "Enter a valid driving licence date (not in the future)." : "Podaj prawidłową datę prawa jazdy (nie z przyszłości).", "error");
+            const problems = clientProfileErrors(profileData, currentUser.email);
+            if (problems.length) {
+                window.r24ClientProfileProblems = problems;
+                window.r24RenderProfileProblems(true);
+                window.showToast(isEn
+                    ? "Complete all required profile fields before saving."
+                    : "Uzupełnij wszystkie wymagane dane profilu przed zapisem.", "error");
                 return;
             }
-
-            const { error } = await db.from("profiles").upsert(profileData);
-            if(error) {
-                const isEn = localStorage.getItem("client_lang") === "en";
-                alert((isEn ? "Profile save error: " : "Błąd przy zapisie profilu: ") + error.message);
-            } else {
-                const isEn = localStorage.getItem("client_lang") === "en";
-                window.showToast(isEn ? "Profile saved" : "Profil zapisany", "success");
-                await loadUserProfile();
-
+            const button = document.getElementById("profile-save-required");
+            if (button) button.disabled = true;
+            try {
+                // Only a fully validated profile is sent. A successful write alone does not unlock the panel.
+                const { data: persisted, error } = await db.from("profiles")
+                    .upsert(profileData, { onConflict: "id" })
+                    .select("id,name,age,phone,country,license_since")
+                    .single();
+                if (error || !persisted || persisted.id !== currentUser.id) {
+                    throw error || new Error("The profile write was not confirmed.");
+                }
+                const verified = await loadUserProfile();
+                if (!window.r24ApplyClientProfileGate(verified, false)) {
+                    throw new Error(isEn
+                        ? "The saved profile is still incomplete."
+                        : "Zapisany profil nadal jest niekompletny.");
+                }
+                const firstActivation = !window.r24ClientBookingsLoaded;
+                window.showToast(isEn ? "Profile saved — your panel is unlocked." : "Profil zapisany — panel odblokowany.", "success");
+                if (firstActivation) {
+                    await loadClientBookings();
+                    await loadPayments();
+                    window.r24ClientBookingsLoaded = true;
+                }
                 if (localStorage.getItem("autoOpenBooking") === "true") {
                     localStorage.removeItem("autoOpenBooking");
                     window.submitBooking();
                 }
+            } catch (err) {
+                console.error("Profile save / readback failed:", err);
+                window.showToast((isEn ? "Unable to verify saved profile: " : "Nie udało się potwierdzić zapisu profilu: ") + (err?.message || ""), "error");
+            } finally {
+                if (button) button.disabled = false;
             }
-        }
+        };
 
         window.addDriverRow = function(name = "", age = "", phone = "", driverId = "", licenseSince = "") {
             const list = document.getElementById('drivers-list');
@@ -4368,15 +4466,15 @@ function calculateRefundPercent(pickupDate) {
             row.dataset.id = driverId;
             row.innerHTML = `
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label data-pl="Imię i nazwisko" data-en="Full name">Imię i nazwisko</label>
+                    <label data-pl="Imię i nazwisko *" data-en="Full name *">Imię i nazwisko *</label>
                     <input type="text" class="driver-name" placeholder="Jan Kowalski" value="${name}">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label data-pl="Wiek" data-en="Age">Wiek</label>
+                    <label data-pl="Wiek *" data-en="Age *">Wiek *</label>
                     <input type="number" class="driver-age" placeholder="30" min="18" value="${age}">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label data-pl="Telefon" data-en="Phone">Telefon</label>
+                    <label data-pl="Telefon *" data-en="Phone *">Telefon *</label>
                     <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
@@ -4403,54 +4501,81 @@ function calculateRefundPercent(pickupDate) {
 
        window.saveDrivers = async function() {
             const isEn = localStorage.getItem("client_lang") === "en";
-            if(!db || !currentUser) {
-                window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
+            if (!db || !currentUser?.id || !window.r24ClientProfileReady) {
+                window.switchTab("profile");
+                window.showToast(isEn ? "Complete and save your required profile first." : "Najpierw zapisz wymagane dane profilu.", "error");
                 return;
             }
-            const rows = document.querySelectorAll(".driver-entry");
-            // Validate every named additional driver BEFORE the existing replace-list operation.
-            // Historic rows with a missing date remain readable until the user edits/saves them.
+            const rows = Array.from(document.querySelectorAll("#drivers-list .driver-entry"));
+            const newDrivers = [];
+            const existingIds = [];
+            const fieldSelector = {name:".driver-name", age:".driver-age", phone:".driver-phone", license_since:".driver-license-since"};
             for (const row of rows) {
-                if (!row.querySelector(".driver-name")?.value.trim()) continue;
-                const licenceInput = row.querySelector(".driver-license-since");
-                if (!window.ride24LicenseDate(licenceInput?.value)) {
-                    window.showToast(isEn
-                        ? "Enter the original driving licence date for every additional driver."
-                        : "Podaj datę pierwszego uzyskania prawa jazdy każdego dodatkowego kierowcy.", "error");
-                    licenceInput?.focus();
+                const candidate = {
+                    name: row.querySelector(".driver-name")?.value.trim() || "",
+                    age: row.querySelector(".driver-age")?.value.trim() || "",
+                    phone: row.querySelector(".driver-phone")?.value.trim() || "",
+                    license_since: row.querySelector(".driver-license-since")?.value || ""
+                };
+                const errors = additionalDriverErrors(candidate);
+                if (errors.length) {
+                    const firstError = errors[0];
+                    const field = row.querySelector(fieldSelector[firstError.field]);
+                    field?.setAttribute("aria-invalid", "true");
+                    field?.focus();
+                    window.showToast((isEn ? "Complete driver details: " : "Uzupełnij dane kierowcy: ") +
+                        errors.map(e => isEn ? e.en : e.pl).join(", "), "error");
                     return;
                 }
-            }
-            const newDrivers = [];
-            try {
-                await db.from("drivers").delete().eq("user_id", currentUser.id);
-                rows.forEach(row => {
-                    const name = row.querySelector(".driver-name").value;
-                    const age = row.querySelector(".driver-age").value;
-                    const phone = row.querySelector(".driver-phone").value;
-                    const licenseSince = window.ride24LicenseDate(row.querySelector(".driver-license-since")?.value);
-                    if(name) {
-                        newDrivers.push({
-                            user_id: currentUser.id,
-                            name: name,
-                            age: age ? parseInt(age) : null,
-                            age_updated_at: new Date().toISOString().split('T')[0], // 🔥 Stempel dla kierowcy
-                            phone: phone,
-                            license_since: licenseSince
-                        });
-                    }
+                if (row.dataset.id && /^[0-9a-f-]{36}$/i.test(row.dataset.id)) existingIds.push(row.dataset.id);
+                newDrivers.push({
+                    user_id: currentUser.id,
+                    name: candidate.name,
+                    age: Number(candidate.age),
+                    phone: candidate.phone,
+                    age_updated_at: new Date().toISOString().slice(0, 10),
+                    license_since: candidate.license_since
                 });
-                if(newDrivers.length > 0) {
-                    const { error } = await db.from("drivers").insert(newDrivers);
-                    if(error) throw error;
+            }
+            if (newDrivers.length === 0) {
+                window.showToast(isEn ? "There are no drivers to save." : "Nie ma kierowców do zapisania.", "info");
+                return;
+            }
+            const saveBtn = document.querySelector('#view-profile .profile-col[data-r24-optional-profile="drivers"] .profile-actions button');
+            if (saveBtn) saveBtn.disabled = true;
+            let createdIds = [];
+            try {
+                // Insert first: validation/server errors cannot destroy existing saved drivers.
+                const {data: created, error: insertError} = await db.from("drivers")
+                    .insert(newDrivers).select("id");
+                if (insertError || created?.length !== newDrivers.length) {
+                    throw insertError || new Error("Incomplete driver write");
                 }
-                window.showToast(isEn ? "Drivers list updated!" : "Lista kierowców została zaktualizowana!", "success");
+                createdIds = created.map(d => d.id);
+                if (existingIds.length) {
+                    const {data: removed, error: deleteError} = await db.from("drivers")
+                        .delete().eq("user_id", currentUser.id).in("id", existingIds).select("id");
+                    if (deleteError || removed?.length !== existingIds.length) {
+                        throw deleteError || new Error("Previous driver records were not fully replaced");
+                    }
+                }
+                window.showToast(isEn ? "All driver details saved." : "Zapisano kompletne dane kierowców.", "success");
                 await loadUserProfile();
             } catch (err) {
-                window.showToast(isEn ? "Error saving drivers." : "Błąd podczas zapisu.", "error");
+                console.error("Additional drivers save failed:", err);
+                if (createdIds.length) {
+                    const rollback = await db.from("drivers").delete()
+                        .eq("user_id", currentUser.id).in("id", createdIds);
+                    if (rollback.error) console.error("Driver rollback failed:", rollback.error);
+                }
+                window.showToast(isEn
+                    ? "Drivers were not fully saved. Your earlier entries were not intentionally changed."
+                    : "Nie udało się w pełni zapisać kierowców. Wcześniejsze wpisy nie zostały celowo zmienione.", "error");
+                await loadUserProfile().catch(console.error);
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
             }
-        }
-
+        };
 
         // --- REALNE ANULOWANIE / ODRZUCANIE REZERWACJI ---
        // --- NOWOCZESNE ANULOWANIE (SaaS Version) ---
@@ -4881,6 +5006,7 @@ window.cancelBooking = async function(id, currentStatus) {
             lang = lang === "en" ? "en" : "pl";
             localStorage.setItem("client_lang", lang);
             window.applyClientLanguage(document);
+            window.r24RenderProfileProblems?.();
 
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
             const activeBtn = document.getElementById('lang-' + lang);
@@ -4897,6 +5023,14 @@ window.cancelBooking = async function(id, currentStatus) {
         }
 
         window.switchTab = function(tabId) {
+            if (!window.r24ClientProfileReady && tabId !== "profile") {
+                tabId = "profile";
+                if (!document.body.classList.contains("r24-profile-checking")) {
+                    window.showToast(localStorage.getItem("client_lang") === "en"
+                        ? "Save your required profile details first."
+                        : "Najpierw zapisz wymagane dane profilu.", "info");
+                }
+            }
             if (tabId === 'android') {
                 localStorage.setItem('r24_client_android_tab_seen', '1');
                 const androidBadge = document.getElementById('clientAndroidNewBadge');
@@ -4910,7 +5044,7 @@ window.cancelBooking = async function(id, currentStatus) {
             const targetNav = document.getElementById('nav-' + tabId);
             if(targetNav) targetNav.classList.add('active');
 
-            if (tabId === "profile" && typeof window.loadInvoiceData === "function") {
+            if (tabId === "profile" && window.r24ClientProfileReady && typeof window.loadInvoiceData === "function") {
                 window.loadInvoiceData();
             }
         }
@@ -4957,6 +5091,7 @@ function translateStatus(status, lang = null) {
     return map[status] ? map[status][currentLang] : status;
 }
 window.loadPayments = async function() {
+    if (!window.r24ClientProfileReady) return;
     console.log("💰 loadPayments start");
     const isEn = localStorage.getItem("client_lang") === "en";
 

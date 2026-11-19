@@ -8,6 +8,8 @@ on:
       - 'assets/css/client-android-showcase.css'
       - 'assets/app-promo/client-app-screen-20261029.svg'
       - 'tests/backend-hardening/test-client-panel-ux.mjs'
+      - 'tests/backend-hardening/test-client-profile-required.mjs'
+      - 'assets/js/client-profile-required.mjs'
       - '.github/workflows/client-panel-ux.yml'
   pull_request:
     paths:
@@ -16,6 +18,8 @@ on:
       - 'assets/css/client-android-showcase.css'
       - 'assets/app-promo/client-app-screen-20261029.svg'
       - 'tests/backend-hardening/test-client-panel-ux.mjs'
+      - 'tests/backend-hardening/test-client-profile-required.mjs'
+      - 'assets/js/client-profile-required.mjs'
   workflow_dispatch:
 jobs:
   check:
@@ -28,4 +32,4 @@ jobs:
       - name: Install isolated test dependencies
         run: npm ci --prefix tests/backend-hardening
       - name: Ensure responsive client views retain every booking and payment function
-        run: node --test tests/backend-hardening/test-client-panel-ux.mjs
+        run: node --test tests/backend-hardening/test-client-panel-ux.mjs tests/backend-hardening/test-client-profile-required.mjs
