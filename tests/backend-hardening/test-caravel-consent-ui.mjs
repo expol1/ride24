@@ -10,14 +10,17 @@ import {buildCaravelConsentView} from '../../supabase/functions/_shared/caravel-
 import {fakeDb, releasedState, quoteRow, PARTNER, NOW} from '../fixtures/caravel/checkout-fixtures.mjs';
 
 const script = await readFile(new URL('../../assets/caravel-consent.js', import.meta.url), 'utf8');
-async function page(responses) {
+async function page(responses, catalogResponse = {success:true,catalog:[],unavailable:[]}) {
   const dom = new JSDOM(`<a id="partnerTermsLink" style="display:block"></a><a id="partnerRulesLink" style="display:block"></a>
-    <section id="caravelConsent" hidden></section>`, {runScripts: 'outside-only', url: 'https://ride24.pl/klient.html'});
+    <section id="caravelConsent" hidden></section>
+    <section id="bookingExtrasPicker" hidden></section><section id="bookingExtrasTotal" hidden></section>
+    <section id="equipmentLegacyInfo"></section>
+    <input id="acceptTerms" type="checkbox"><button id="confirmBookingBtn"></button>`, {runScripts: 'outside-only', url: 'https://ride24.pl/klient.html'});
   const calls = [];
   dom.window.fetch = async (url, opts) => {
     const body = JSON.parse(opts.body);
     if (body.action === 'extras-catalog') return {
-      ok:true,status:200,json:async()=>({success:true,catalog:[],unavailable:[]}),
+      ok:true,status:200,json:async()=>catalogResponse,
     };
     calls.push({url, body, auth: opts.headers.Authorization});
     const r = responses.shift();
@@ -92,6 +95,43 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
  doc.getElementById('caravelCoverageAck').checked=true;
  assert.equal(w.Ride24CaravelConsent.canSubmit(),true);
 });
+
+test('Caravel: voluntary GPS switch requests an exact new supplier quote, resets acceptance and updates amounts', async () => {
+  const old=await view();
+  const newId='5ea5e8db-7244-4416-ab7b-2632bd5f882a';
+  const updated={...old,api_quote_id:newId,money:{...old.money,
+    rental_at_pickup:'171.00 EUR',breakdown:{
+      rental_base:'150.00 EUR',fee_total:'0.00 EUR',extras_total:'21.00 EUR',partner_total:'171.00 EUR',
+      fees:[],extras:[{extra_id:'gps-1',name:'Nawigacja GPS',quantity:1,amount:'21.00 EUR'}],
+    }}};
+  const catalog={success:true,catalog:[{
+    extra_id:'gps-1',code:'EQ-GPS',name_pl:'Nawigacja GPS',name_en:'GPS',currency:'EUR',
+    unit_minor:700,price_cap_minor:null,max_quantity:1,pricing_type:'per_day',
+  }],unavailable:[]};
+  const {w,calls}=await page([
+    {status:200,body:{success:true,consent:old}},
+    {status:200,body:{success:true,consent:updated,api_quote_id:newId}},
+  ],catalog);
+  const d=w.document;
+  await w.Ride24CaravelConsent.prepare({partnerId:PARTNER,apiQuoteId:old.api_quote_id,
+    accessToken:'jwt',supabaseUrl:'https://example.invalid',supabaseKey:'k'});
+  d.getElementById('acceptTerms').checked=true;
+  d.getElementById('caravelTermsAccept').checked=true;
+  d.getElementById('caravelCoverageAck').checked=true;
+  const toggle=d.querySelector('#bookingExtrasPicker input[role="switch"]');
+  assert.ok(toggle,'selected Caravel equipment must be accessible in the shared Ride24 modal');
+  toggle.checked=true;
+  toggle.dispatchEvent(new w.Event('change',{bubbles:true}));
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(calls[1].body.action,'extras-requote');
+  assert.deepEqual(calls[1].body.extras,[{extra_id:'gps-1',quantity:1}]);
+  assert.equal(w.localStorage.getItem('selectedApiQuoteId'),newId);
+  assert.match(d.getElementById('caravelConsent').textContent,/Nawigacja GPS/);
+  assert.match(d.getElementById('caravelConsent').textContent,/171.00 EUR/);
+  assert.equal(d.getElementById('acceptTerms').checked,false);
+  assert.equal(w.Ride24CaravelConsent.canSubmit(),false,'changed supplier quote always clears the legal consent');
+});
+
 test('Caravel: unbookable quote shows the server message and blocks submission', async () => {
   const {w} = await page([{status: 409, body: {code: 'CARAVEL_CERTIFICATION_PENDING', error: 'Oferty Caravel są chwilowo niedostępne.'}}]);
   assert.equal(await w.Ride24CaravelConsent.prepare({partnerId: PARTNER, apiQuoteId: 'x', accessToken: 'jwt', supabaseUrl: 'u', supabaseKey: 'k'}), false);
