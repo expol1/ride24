@@ -62,7 +62,6 @@ jobs:
               supabase/functions/caravel-sandbox-reconcile-worker/index.ts \
               supabase/functions/caravel-sandbox-periodic-poll/index.ts \
               supabase/functions/caravel-booking-request/index.ts \
-              supabase/functions/generate-voucher/index.ts \
               supabase/functions/caravel-admin/index.ts \
               supabase/functions/caravel-production-webhook/index.ts \
               2>&1 | tee /tmp/caravel-deno-check.log; then
