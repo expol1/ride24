@@ -6,7 +6,7 @@
 (function () {
   "use strict";
   var PARTNER = "78721481-7619-44df-a9b7-5faa344b69bb";
-  var state = { active: false, view: null, quoteId: null, selected: [], catalog: [], unavailable: [], catalogError: null, busy: false, auth: null };
+  var state = { active: false, view: null, quoteId: null, selected: [], catalog: [], unavailable: [], catalogError: null, busy: false, submitLocked: false, auth: null };
 
   function byId(id) { return document.getElementById(id); }
   function text(tag, value, style) {
@@ -209,8 +209,9 @@
         toggle.onchange=function(){chooseExtra(e.extra_id,toggle.checked?1:0);};
         var switchBox=document.createElement("span");switchBox.className="r24-extra-switch";
         switchBox.appendChild(toggle);
-        switchBox.appendChild(text("span"," ","r24-extra-switch-track"));
-        switchBox.appendChild(text("span",toggle.checked?(en?"Yes":"Tak"):(en?"No":"Nie"),"r24-extra-switch-value"));
+        var track=document.createElement("span");track.className="r24-extra-switch-track";track.appendChild(text("span",""));
+        var value=text("span",toggle.checked?(en?"Yes":"Tak"):(en?"No":"Nie"));value.className="r24-extra-switch-value";
+        switchBox.appendChild(track);switchBox.appendChild(value);
         row.appendChild(switchBox);
       } else {
         var select=document.createElement("select");select.disabled=state.busy;
@@ -255,22 +256,25 @@
          (isEnglish()?response.body?.error_en:response.body?.error)||
          (isEnglish()?"Extras are not available at this price.":"Dodatki nie są dostępne w tej cenie."));
       state.view=response.body.consent;state.quoteId=state.view.api_quote_id;state.selected=selected;
+      state.submitLocked=false;state.catalogError=null;
       localStorage.setItem("selectedApiQuoteId",state.quoteId);
       var accept=byId("acceptTerms");if(accept)accept.checked=false;
     }catch(error){
       state.catalogError=error.message||"CARAVEL_EXTRA_REQUOTE_FAILED";
-      // A failed change cannot silently submit a previous quote.
-      state.view=null;
+      // Customer may retry, but cannot submit a previous quote without a fresh
+      // successful price check; the previous choice is never silently changed.
+      state.submitLocked=true;
+      var accepted=byId("acceptTerms");if(accepted)accepted.checked=false;
     }finally{
       state.busy=false;
       if(state.view)render(state.view);
       renderExtras();
-      if(button)button.disabled=!state.view;
+      if(button)button.disabled=!state.view || state.submitLocked;
     }
   }
 
   function reset() {
-    state = { active: false, view: null, quoteId: null, selected: [], catalog: [], unavailable: [], catalogError: null, busy: false, auth: null };
+    state = { active: false, view: null, quoteId: null, selected: [], catalog: [], unavailable: [], catalogError: null, busy: false, submitLocked: false, auth: null };
     var picker=byId("bookingExtrasPicker");if(picker){picker.replaceChildren();picker.hidden=true;}
     var totals=byId("bookingExtrasTotal");if(totals){totals.replaceChildren();totals.hidden=true;}
     var box = byId("caravelConsent");
@@ -317,7 +321,7 @@
       return true;
     },
     canSubmit: function () {
-      return !!(!state.busy && state.view && byId("caravelTermsAccept") && byId("caravelTermsAccept").checked &&
+      return !!(!state.busy && !state.submitLocked && state.view && byId("caravelTermsAccept") && byId("caravelTermsAccept").checked &&
         byId("caravelCoverageAck") && byId("caravelCoverageAck").checked);
     },
     /** Exactly what was shown, echoed for server verification. */
@@ -335,8 +339,11 @@
       if (r.body && r.body.code === "CARAVEL_REQUOTED_FOR_DRIVER_AGE" && r.body.consent) {
         // New price for the real driver age: show it and require a fresh confirmation.
         state.view = r.body.consent; state.quoteId = r.body.consent.api_quote_id;
+        state.selected=(state.view.money?.breakdown?.extras||[]).map(function(x){
+          return {extra_id:x.extra_id,quantity:x.quantity};
+        });
         try { localStorage.setItem("selectedApiQuoteId", state.quoteId); } catch (e) {}
-        render(state.view);
+        render(state.view);renderExtras();
       }
       return r;
     }
