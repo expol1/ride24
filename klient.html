@@ -4273,6 +4273,11 @@ function calculateRefundPercent(pickupDate) {
 
         window.saveInvoiceData = async function() {
             const isEn = localStorage.getItem("client_lang") === "en";
+            if (!window.r24ClientProfileReady) {
+                window.switchTab("profile");
+                window.showToast(isEn ? "Save your required profile first." : "Najpierw zapisz wymagane dane profilu.", "error");
+                return;
+            }
 
             if (!db || !currentUser) {
                 window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
@@ -4311,6 +4316,14 @@ function calculateRefundPercent(pickupDate) {
                 city: cityInput ? cityInput.value.trim() : "",
                 updated_at: new Date().toISOString()
             };
+            const invoiceErrors = invoiceProfileErrors(payload);
+            if (invoiceErrors.length) {
+                const missingText = invoiceErrors.map(item => isEn ? item.en : item.pl).join(", ");
+                for (const item of invoiceErrors) document.getElementById(item.id)?.setAttribute("aria-invalid", "true");
+                document.getElementById(invoiceErrors[0].id)?.focus();
+                window.showToast((isEn ? "Complete invoice details: " : "Uzupełnij dane rachunku: ") + missingText, "error");
+                return;
+            }
 
             const { error } = await db
                 .from("user_invoice_profiles")
@@ -4333,6 +4346,7 @@ function calculateRefundPercent(pickupDate) {
 
         window.deleteInvoiceData = async function() {
             const isEn = localStorage.getItem("client_lang") === "en";
+            if (!window.r24ClientProfileReady) return;
 
             if (!db || !currentUser) {
                 window.showToast(isEn ? "Login required!" : "Wymagane logowanie!", "error");
