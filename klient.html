@@ -1356,6 +1356,51 @@
         @media(max-width:560px){.booking-extra-row{padding:11px;gap:9px}.equipment-info-box{padding:18px!important}.equipment-info-actions{bottom:-18px}}
         #termsModal .modal-box,.equipment-info-box {max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;}
     
+
+        /* Płatności: osobny, elegancki widok (bez wpływu na pozostałe tabele). */
+        #view-payments .payments-page-header{margin-bottom:22px}
+        #view-payments .payments-description{margin:7px 0 0;color:#64748b;font-size:13px;font-weight:500;line-height:1.6}
+        #view-payments .payments-panel{margin:0;background:#fff;border:1px solid #e2e8f0;border-radius:18px;max-height:none;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,.045)}
+        #view-payments .payments-table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0}
+        #view-payments .payments-table th{padding:19px 26px;background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:10px;font-weight:800;letter-spacing:.75px}
+        #view-payments .payments-table th:nth-child(1){width:25%}
+        #view-payments .payments-table th:nth-child(2){width:24%}
+        #view-payments .payments-table th:nth-child(3){width:51%}
+        #view-payments .payments-table td{padding:20px 26px;background:#fff;border-bottom:1px solid #eef2f6;vertical-align:middle}
+        #view-payments .payments-table tbody tr:last-child td{border-bottom:0}
+        #view-payments .payments-table tbody tr:hover td{background:#fbfdf9}
+        #view-payments .payment-id{color:#14213d;font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;white-space:nowrap}
+        #view-payments .payment-amount{color:#0f172a;font-size:17px;font-weight:800;font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+        #view-payments .payment-currency{color:#64748b;font-size:12px;font-weight:700;margin-left:4px}
+        #view-payments .payment-status-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 18px}
+        #view-payments .payment-action{margin-left:auto}
+        #view-payments .payment-action .action-btn-premium{min-height:39px;border-radius:10px;font-size:12px!important;font-weight:700;padding:9px 14px!important;white-space:nowrap}
+        #view-payments .payments-table .status-tile{border-radius:999px;padding:8px 12px;box-shadow:none;font-size:12px;font-weight:700;letter-spacing:0;gap:8px}
+        #view-payments .payments-table .status-tile::before{content:'';width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:currentColor;opacity:.78}
+        #view-payments .payments-table .status-tile.refunded,#view-payments .payments-table .status-tile.paid{background:#f0fdf4;color:#166534;border-color:#bbf7d0}
+        #view-payments .payments-table .status-tile.cancelled{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+        #view-payments .payments-table .status-tile.expired{background:#fff7ed;color:#9a3412;border-color:#fed7aa}
+        #view-payments .payments-table .status-tile.awaiting_payment{background:#fffbeb;color:#92400e;border-color:#fde68a}
+        #view-payments .payments-table .status-tile.pending{background:#f1f5f9;color:#475569;border-color:#e2e8f0}
+        #view-payments .payments-table .payment-message-cell{padding:30px 22px;text-align:center;color:#64748b;font-weight:600}
+        @media(max-width:720px){
+            #view-payments .payments-page-header{margin-bottom:18px}
+            #view-payments .payments-panel{margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+            #view-payments .payments-table,#view-payments .payments-table tbody{display:block}
+            #view-payments .payments-table thead{display:none}
+            #view-payments .payments-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:18px;margin-bottom:12px;border:1px solid #e2e8f0;border-radius:15px;background:#fff;box-shadow:0 4px 18px rgba(15,23,42,.04)}
+            #view-payments .payments-table td{display:block;min-width:0;padding:0;border:0}
+            #view-payments .payments-table tbody tr:hover td{background:transparent}
+            #view-payments .payments-table .payment-reference{align-self:center}
+            #view-payments .payments-table .payment-money{align-self:center;text-align:right}
+            #view-payments .payments-table .payment-status-cell{grid-column:1/-1;margin-top:15px;padding-top:14px;border-top:1px solid #f1f5f9}
+            #view-payments .payment-amount{font-size:16px}
+            #view-payments .payment-status-actions{gap:12px}
+            #view-payments .payment-action{margin-left:0}
+            #view-payments .payments-table tbody tr.payment-message-row{display:block;padding:0}
+            #view-payments .payments-table .payment-message-cell{padding:28px 18px}
+        }
+
 /* Booking details: preserve original information and keep the entire modal reachable at 100% zoom. */
 #bookingDetailsModal { padding: 16px; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
 #bookingDetailsModal .modal-content { box-sizing: border-box; width: min(100%, 520px); max-width: 520px !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; margin: auto; flex-shrink: 0; }
@@ -1925,22 +1970,23 @@ async>
             </div>
 
             <div id="view-payments" class="view-section">
-                <div class="page-header">
-                    <h1 class="page-title" data-pl="Płatności" data-en="Payments">Płatności</h1>
+                <div class="page-header payments-page-header">
+                    <div>
+                        <h1 class="page-title" data-pl="Płatności" data-en="Payments">Płatności</h1>
+                        <p class="payments-description" data-pl="Opłaty online i informacje o zwrotach." data-en="Online charges and refund information.">Opłaty online i informacje o zwrotach.</p>
+                    </div>
                 </div>
 
-                <div class="table-container">
-                    <table>
+                <div class="table-container payments-panel">
+                    <table class="payments-table">
                         <thead>
                             <tr>
-                                <th data-pl="ID Rezerwacji" data-en="Booking ID">ID Rezerwacji</th>
-                                <th data-pl="Opłacono online" data-en="Paid online">Opłacono online</th>
-                                <th data-pl="Status" data-en="Status">Status</th>
-                                <th data-pl="Akcje" data-en="Actions">Akcje</th>
+                                <th data-pl="Rezerwacja" data-en="Booking">Rezerwacja</th>
+                                <th data-pl="Opłata online" data-en="Online charge">Opłata online</th>
+                                <th data-pl="Status i działania" data-en="Status and actions">Status i działania</th>
                             </tr>
                         </thead>
-                        <tbody id="payments-tbody">
-                            </tbody>
+                        <tbody id="payments-tbody"></tbody>
                     </table>
                 </div>
             </div>
@@ -4748,7 +4794,7 @@ window.loadPayments = async function() {
     const tbody = document.getElementById("payments-tbody");
     if (!tbody) return;
 
-    tbody.innerHTML = `<tr><td colspan="4" data-pl="Ładowanie..." data-en="Loading...">${isEn ? "Loading..." : "Ładowanie..."}</td></tr>`;
+    tbody.innerHTML = `<tr class="payment-message-row"><td colspan="3" class="payment-message-cell" data-pl="Ładowanie..." data-en="Loading...">${isEn ? "Loading..." : "Ładowanie..."}</td></tr>`;
 
     try {
         const { data, error } = await db
@@ -4763,7 +4809,7 @@ window.loadPayments = async function() {
         console.log("💰 PAYMENTS:", data);
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" data-pl="Brak płatności" data-en="No payments">${isEn ? "No payments" : "Brak płatności"}</td></tr>`;
+            tbody.innerHTML = `<tr class="payment-message-row"><td colspan="3" class="payment-message-cell" data-pl="Brak płatności" data-en="No payments">${isEn ? "No payments" : "Brak płatności"}</td></tr>`;
             return;
         }
 
@@ -4773,25 +4819,10 @@ window.loadPayments = async function() {
 
             let actions = "";
 
-// 🟢 1. ZWROT ZAKOŃCZONY (NAJWYŻSZY PRIORYTET)
-// 🟢 1. ZWROT ZAKOŃCZONY
-            if (b.refund_status === "completed") {
-                const refundDateValue = b.refund_completed_at ? new Date(b.refund_completed_at) : null;
-                const refundDatePl = refundDateValue ? refundDateValue.toLocaleDateString('pl-PL') : '';
-                const refundDateEn = refundDateValue ? refundDateValue.toLocaleDateString('en-GB') : '';
-                actions = `<div class="status-tile paid" data-pl="💸 Zwrócona ${refundDatePl ? `(${refundDatePl})` : ''}" data-en="💸 Refunded ${refundDateEn ? `(${refundDateEn})` : ''}">
-                    💸 ${isEn ? 'Refunded' : 'Zwrócona'} ${isEn ? (refundDateEn ? `(${refundDateEn})` : '') : (refundDatePl ? `(${refundDatePl})` : '')}
-                </div>`;
+// Wykonany lub oczekujący zwrot pokazujemy tylko jako status.
+            if (b.refund_status === "completed" || b.refund_status === "pending") {
+                // Klient nie ma tutaj dodatkowego działania.
             }
-
-            // 🟠 2. ZWROT W TOKU
-            else if (b.refund_status === "pending") {
-                actions = `<div class="status-tile awaiting_payment" data-pl="⏳ Zwrot w toku" data-en="⏳ Refund pending">
-                    ⏳ ${isEn ? 'Refund pending' : 'Zwrot w toku'}
-                </div>`;
-            }
-
-            // 🔵 3. PRZYCISK ZWROTU
             else if (b.status === "paid") {
                 const refundPercent = calculateRefundPercent(b.start_date);
 
@@ -4811,7 +4842,7 @@ window.loadPayments = async function() {
                     `;
                 }
             }
-            if (!actions) actions = "-";
+            // Brak akcji: nie powtarzamy statusu.
 
             // Status płatności: potwierdzony zwrot ma pierwszeństwo przed statusem rezerwacji.
             // To wyłącznie mapowanie widoku – nie zmienia płatności ani zwrotów.
@@ -4819,7 +4850,7 @@ window.loadPayments = async function() {
             let paymentStatusPl = translateStatus(b.status, "pl");
             let paymentStatusEn = translateStatus(b.status, "en");
             if (b.refund_status === "completed") {
-                paymentStatusClass = "paid";
+                paymentStatusClass = "refunded";
                 paymentStatusPl = "Zwrócona";
                 paymentStatusEn = "Refunded";
             } else if (b.refund_status === "pending") {
@@ -4830,25 +4861,28 @@ window.loadPayments = async function() {
                 paymentStatusClass = "paid";
             } else if (b.status === "cancelled" || b.status === "rejected") {
                 paymentStatusClass = "cancelled";
+            } else if (b.status === "expired" || b.status === "payment_expired") {
+                paymentStatusClass = "expired";
             }
 
+            const actionHtml = actions ? '<div class="payment-action">' + actions + '</div>' : "";
             tbody.innerHTML += `
                 <tr>
-                    <td><strong>#R24-${b.id.toString().slice(-4)}</strong></td>
-                    <td><strong>${(b.online_payment_pln || 0).toFixed(2)} PLN</strong></td>
-                    <td>
-                        <div class="status-tile ${paymentStatusClass}" data-pl="${paymentStatusPl}" data-en="${paymentStatusEn}">
-                            ${isEn ? paymentStatusEn : paymentStatusPl}
+                    <td class="payment-reference"><span class="payment-id">#R24-${b.id.toString().slice(-4)}</span></td>
+                    <td class="payment-money"><span class="payment-amount">${(b.online_payment_pln || 0).toFixed(2)}</span><span class="payment-currency">PLN</span></td>
+                    <td class="payment-status-cell">
+                        <div class="payment-status-actions">
+                            <span class="status-tile ${paymentStatusClass}" data-pl="${paymentStatusPl}" data-en="${paymentStatusEn}">${isEn ? paymentStatusEn : paymentStatusPl}</span>
+                            ${actionHtml}
                         </div>
                     </td>
-                    <td>${actions}</td>
                 </tr>
             `;
         });
 
     } catch (err) {
         console.error("❌ loadPayments error:", err);
-        tbody.innerHTML = `<tr><td colspan="4" data-pl="Błąd ładowania" data-en="Loading error">${isEn ? "Loading error" : "Błąd ładowania"}</td></tr>`;
+        tbody.innerHTML = `<tr class="payment-message-row"><td colspan="3" class="payment-message-cell" data-pl="Błąd ładowania" data-en="Loading error">${isEn ? "Loading error" : "Błąd ładowania"}</td></tr>`;
     }
 };
 window.goToHome = function() {
