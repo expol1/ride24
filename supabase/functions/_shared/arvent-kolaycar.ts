@@ -171,10 +171,29 @@ export async function arventLookupByAgencyReference(
 ):Promise<Record<string,unknown>|null>{
  throw Error("PARTNER_API_ERROR:ARVENT_AGENCY_LOOKUP_UNSUPPORTED");
 }
-function allowSupplierMutation():void {
- // Different from api_enabled: explicit server-side provider certification gate.
- if(Deno.env.get("ARVENT_KOLAYCAR_WRITE_ALLOWED")!=="true")
+async function allowSupplierMutation(c:PartnerApiCredentials,bookingId:string):Promise<boolean> {
+ // Public bookings keep both existing release gates; the pilot is account-only.
+ if(Deno.env.get("ARVENT_KOLAYCAR_WRITE_ALLOWED")==="true"
+   &&Deno.env.get("ARVENT_STRIPE_FIRST_APPROVED")==="true")return false;
+ if(!/^[0-9a-f-]{36}$/i.test(bookingId))
   throw Error("PARTNER_API_ERROR:ARVENT_WRITES_NOT_CERTIFIED");
+ const admin=serviceClient();
+ const [partnerResult,bookingResult,workflowResult]=await Promise.all([
+  admin.from("partners").select("api_provider,api_enabled,api_settings").eq("id",c.partner_id).maybeSingle(),
+  admin.from("bookings").select("id,client_id").eq("id",bookingId).eq("partner_id",c.partner_id).maybeSingle(),
+  admin.from("api_booking_workflows").select("paid_at,payment_intent").eq("booking_id",bookingId).maybeSingle(),
+ ]);
+ const p=partnerResult.data,b=bookingResult.data,w=workflowResult.data;
+ const conf=p?.api_settings;
+ if(partnerResult.error||bookingResult.error||workflowResult.error
+   ||p?.api_provider!=="arvent_kolaycar"||p.api_enabled!==false
+   ||conf?.arvent_pilot?.enabled!==true
+   ||conf?.arvent_pilot?.client_id!==b?.client_id
+   ||conf?.arvent_certified===true
+   ||conf?.arvent_stripe_first_partner_approved!==true
+   ||!w?.paid_at||!w?.payment_intent)
+  throw Error("PARTNER_API_ERROR:ARVENT_WRITES_NOT_CERTIFIED");
+ return true;
 }
 async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
  if(input.pickup_location_id!==input.dropoff_location_id)
@@ -252,9 +271,7 @@ export async function arventVerifyCheckout(c:PartnerApiCredentials,input:Booking
  await prepareReservation(c,input);
 }
 export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingInput):Promise<Record<string,unknown>>{
- allowSupplierMutation();
- if(Deno.env.get("ARVENT_STRIPE_FIRST_APPROVED")!=="true")
-  throw Error("PARTNER_API_ERROR:ARVENT_STRIPE_FIRST_UNAPPROVED");
+ const ownerPilot=await allowSupplierMutation(c,input.ride24_booking_id);
  let payload;
  try {
   payload=await prepareReservation(c,input);
@@ -262,7 +279,11 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
   // All supplier calls above are reads. No SaveReservation was attempted.
   throw Error("ARVENT_FAILED_BEFORE_SAVE");
  }
- // This call creates a real supplier booking; only reachable after external certification.
+ // Mark approved, paid owner-only pilot unambiguously for the supplier.
+ if(ownerPilot) {
+  const reference=input.reservation_code||input.ride24_booking_id;
+  payload.customer.note=`#${reference} | TEST - Do not process. The reservation will be cancelled by the company.`;
+ }
  const result=await request(c,ARVENT_PATHS.booking_create,{method:"POST",body:payload});
  const status=arventReservationStatus(result);
  if(!status.booking_reference)
@@ -286,8 +307,8 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  };
 }
 export async function arventCancelBooking(c:PartnerApiCredentials,reference:string,body:Record<string,unknown>={}):Promise<Record<string,unknown>> {
- allowSupplierMutation();
  const booking=await bookingContextFor(c,reference);
+ await allowSupplierMutation(c,booking.id);
  const email=booking.client_email;
  // All cancellation entry points share one durable claim per Ride24 booking.
  // A previous attempt may have reached Arvent even if its HTTP response was lost.
