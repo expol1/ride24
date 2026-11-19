@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
  supplierData,arventDate,arventQuery,arventLocationRows,arventGroupRows,
  arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventDateOfBirth,arventSavePayload,arventSavedRouteMatches,
- ARVENT_PATHS, ARVENT_INITIAL_AIRPORT_IATAS,
+ ARVENT_PATHS, ARVENT_INITIAL_AIRPORT_IATAS, arventSubmissionAllowed,
 } from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 
 const ok=data=>({success:true,resultCode:0,data});
@@ -268,4 +268,24 @@ test("optional partner supplier note is forwarded as a single-line customer note
  assert.equal(arventSavePayload({...base,customer:{...base.customer,note:"x".repeat(400)}}).customer.note.length,250);
  assert.equal(noted.pricing.paidAmount,0);
  assert.equal(noted.payment.paymentType,3);
+});
+
+test("same-day pickup may be submitted only 10:00-17:00 Turkey time; later dates 24/7",()=>{
+ const at=iso=>Date.parse(iso);
+ // 16:00 TR (13:00Z) same day, pickup 23:00: allowed.
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T13:00:00Z")),true);
+ // 16:00 TR, pickup 01:00 tomorrow: allowed (different date).
+ assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T13:00:00Z")),true);
+ // 20:00 TR (17:00Z) same day: not allowed; tomorrow: allowed.
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T17:00:00Z")),false);
+ assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T17:00:00Z")),true);
+ // Boundaries: 09:59 no, 10:00 yes, 16:59 yes, 17:00 no (TR).
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T06:59:00Z")),false);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T07:00:00Z")),true);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T13:59:00Z")),true);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T14:00:00Z")),false);
+ // Turkish date rolls over at 21:00Z: 22:00Z on the 19th is already the 20th in TR.
+ assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T22:00:00Z")),false);
+ assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T22:00:00Z")),false);
+ assert.equal(arventSubmissionAllowed("bad",at("2026-11-19T12:00:00Z")),false);
 });

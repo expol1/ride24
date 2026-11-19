@@ -5,6 +5,7 @@ import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
  arventLocationRows, arventGroupRows, arventOfferRows,
  arventOfferMatchesTerms, arventReservationStatus, arventSavePayload, arventSavedRouteMatches,
+ arventSubmissionAllowed,
 } from "./arvent-kolaycar-contract.mjs";
 
 type SearchInput={
@@ -102,6 +103,10 @@ function searchPath(input:SearchInput):string {
  });
 }
 export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Promise<ApiVehicleGroup[]>{
+ // Same-day pickup outside 10:00-17:00 Turkey time: no offers. The same
+ // search runs again before SaveReservation, so a paid booking that crosses
+ // the window is refunded before anything is sent to Arvent.
+ if(!arventSubmissionAllowed(input.pickup_date))return [];
  const response=await request(c,searchPath(input));
  return arventOfferRows(response,{...input,currency:"EUR"}) as ApiVehicleGroup[];
 }
@@ -194,6 +199,8 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   throw Error("PARTNER_API_ERROR:ARVENT_PRICING_OR_EXTRAS_UNSUPPORTED");
  if(!input.vehicle_group_id||!input.main_driver?.name||!input.client_email||!input.client_phone)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
+ if(!arventSubmissionAllowed(input.pickup_date))
+  throw Error("PARTNER_API_ERROR:ARVENT_SAME_DAY_SUBMISSION_CLOSED");
  const quote=input.provider_quote_data as Record<string,unknown>|null;
  // Ride24 sells ACRISS/SIPP groups like AVIA. Keep the chosen supplier
  // vehicleId only in the private quote payload; never present it as a category.
