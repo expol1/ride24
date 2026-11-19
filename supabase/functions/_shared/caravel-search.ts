@@ -55,9 +55,11 @@ export async function searchCaravelOffers(args: {
 }): Promise<{offers: CaravelSearchOffer[]; rejected: Record<string, number>}> {
   const rejected: Record<string, number> = {};
   const bump = (k: string) => { rejected[k] = (rejected[k] ?? 0) + 1; };
-  if (!args.release.open) return {offers: [], rejected: {CARAVEL_RELEASE_CLOSED: 1}};
+  const release = args.release;
+  if (!release.open) return {offers: [], rejected: {CARAVEL_RELEASE_CLOSED: 1}};
+  const readyRelease: Extract<CaravelRelease, {open: true}> = release;
   if (args.client.environment !== "production") return {offers: [], rejected: {CARAVEL_PRODUCTION_ONLY: 1}};
-  const supplierId = args.release.terms.supplierId;
+  const supplierId = release.terms.supplierId;
   const locations = (await args.client.locations(200, supplierId)).data as Rec[];
   const tz = (id: string) => {
     const l = locations.find((x) => x.location_id === id);
@@ -67,42 +69,78 @@ export async function searchCaravelOffers(args: {
   const pickupAt = ptz ? caravelLocalInstant(args.pickupDate, args.pickupTime, ptz) : null;
   const dropoffAt = dtz ? caravelLocalInstant(args.returnDate, args.returnTime, dtz) : null;
   if (!pickupAt || !dropoffAt) return {offers: [], rejected: {CARAVEL_LOCATION_TIMEZONE_UNKNOWN: 1}};
+  // The stable aliases retain the validated string types in async quote tasks.
+  const verifiedPickupAt: string = pickupAt, verifiedDropoffAt: string = dropoffAt;
   const rows = (await args.client.availability({pickup_location_id: args.pickup.external_id,
     dropoff_location_id: args.dropoff.external_id, pickup: pickupAt, dropoff: dropoffAt,
     driver_age: args.driverAge, currency: args.currency}, supplierId)).data as Rec[];
+  if (!rows.length) return {offers: [], rejected: {CARAVEL_SUPPLIER_NO_AVAILABILITY: 1}};
   const offers: CaravelSearchOffer[] = [];
-  const seen = new Set<string>();
   const classes = await args.loadCarClasses([...new Set(rows.map((r) => r.vehicle_id).filter((v): v is string => typeof v === "string"))]);
+
+  // Scope the supplier metadata to this SINGLE search: each offer still checks
+  // the terms hash, but we don't make 2 redundant GETs per vehicle.
+  // Rejected/missing reference data remains fail-closed for the whole request.
+  let suppliersOnce: ReturnType<CaravelClient["suppliers"]> | undefined;
+  let termsOnce: ReturnType<CaravelClient["referenceTerms"]> | undefined;
+  const quoteClient: Pick<CaravelClient, "environment" | "quote" | "suppliers" | "referenceTerms"> = {
+    environment: args.client.environment,
+    quote: (...a) => args.client.quote(...a),
+    suppliers: () => (suppliersOnce ??= args.client.suppliers()),
+    referenceTerms: (id) => {
+      if (id !== supplierId) throw new Error("CARAVEL_TERMS_SUPPLIER_MISMATCH");
+      return (termsOnce ??= args.client.referenceTerms(id));
+    },
+  };
+
+  // Preserve each vehicle's Premium alternatives. A quote rejection may allow
+  // retrying another provider-supported Premium protection for the same group.
+  type Candidate = {vehicleId: string; classId: string; protections: Rec[]};
+  const groups = new Map<string, Candidate>();
   for (const row of rows) {
-    if (offers.length >= args.maxOffers) break;
     const vehicleId = typeof row.vehicle_id === "string" ? row.vehicle_id : "";
-    if (row.plan !== "premium" || !vehicleId || seen.has(vehicleId)) { bump("NOT_PREMIUM_ROW"); continue; }
+    if (row.plan !== "premium" || !vehicleId) { bump("NOT_PREMIUM_ROW"); continue; }
     const klass = classes.get(vehicleId);
     if (!klass || klass.active === false) { bump("CATEGORY_NOT_SYNCED"); continue; }
-    const pick = selectCaravelPremiumProtection(row, args.release.review);
+    const pick = selectCaravelPremiumProtection(row, release.review);
     if (!pick) { bump("PREMIUM_POLICY_NOT_MET"); continue; }
-    const protection = pick.protection;
-    const result = await issueVerifiedCaravelQuote({
-      admin: args.admin, client: args.client as never,
-      idempotencyKey: (args.idempotencyKey ?? (() => crypto.randomUUID()))(), supplierId, carClassId: klass.id,
-      pickupLocationId: args.pickup.id, dropoffLocationId: args.dropoff.id,
-      quoteRequest: {pickup: {location_id: args.pickup.external_id, at: pickupAt},
-        dropoff: {location_id: args.dropoff.external_id, at: dropoffAt}, vehicle_id: vehicleId,
-        protection_id: String(protection.protection_id), plan: "premium", currency: args.currency,
-        drivers: [{age: args.driverAge, role: "main"}], extras: []},
-      startDate: args.pickupDate, endDate: args.returnDate, pickupLocalTime: args.pickupTime,
-      dropoffLocalTime: args.returnTime, rentalDays: args.days, nowEpochMs: args.nowMs ?? Date.now(),
-      reviewedTerms: args.release.snapshot, canonicalHashIndependentlyVerified: true, protection,
-      approvedExclusions: args.release.review, allowProductionQuoteIssuance: true,
-    });
-    if (!result.ok) { bump(String((result as Rec).code ?? (result as Rec).reason ?? "QUOTE_REJECTED")); continue; }
-    seen.add(vehicleId);
-    const ex = Array.isArray(protection.excludes) ? (protection.excludes as string[]) : [];
-    offers.push({carClassId: klass.id, apiQuoteId: result.apiQuoteId, vehicleId, supplierQuoteId: result.providerQuoteId,
-      expiresAt: result.expiresAt, rentalMinor: result.partnerPayableMinor, feeMinor: result.ride24ReservationFeeMinor,
-      customerMinor: result.customerTotalMinor, currency: args.currency, excludes: [...ex],
-      covers: Array.isArray(protection.covers) ? [...protection.covers as string[]] : [],
-      adminFeeMinor: ex.length ? args.release.review.damageAdministrationFeeMinor : null});
+    if (!groups.has(vehicleId)) groups.set(vehicleId, {vehicleId, classId: klass.id, protections: []});
+    groups.get(vehicleId)!.protections.push(pick.protection as Rec);
+  }
+
+  async function quoteVehicle(group: Candidate): Promise<CaravelSearchOffer | null> {
+    for (const protection of group.protections) {
+      const result = await issueVerifiedCaravelQuote({
+        admin: args.admin, client: quoteClient,
+        idempotencyKey: (args.idempotencyKey ?? (() => crypto.randomUUID()))(), supplierId,
+        carClassId: group.classId, pickupLocationId: args.pickup.id, dropoffLocationId: args.dropoff.id,
+        quoteRequest: {pickup: {location_id: args.pickup.external_id, at: verifiedPickupAt},
+          dropoff: {location_id: args.dropoff.external_id, at: verifiedDropoffAt}, vehicle_id: group.vehicleId,
+          protection_id: String(protection.protection_id), plan: "premium", currency: args.currency,
+          drivers: [{age: args.driverAge, role: "main"}], extras: []},
+        startDate: args.pickupDate, endDate: args.returnDate, pickupLocalTime: args.pickupTime,
+        dropoffLocalTime: args.returnTime, rentalDays: args.days, nowEpochMs: args.nowMs ?? Date.now(),
+        reviewedTerms: readyRelease.snapshot, canonicalHashIndependentlyVerified: true, protection,
+        approvedExclusions: readyRelease.review, allowProductionQuoteIssuance: true,
+      });
+      if (!result.ok) { bump(String((result as Rec).reason ?? "QUOTE_REJECTED")); continue; }
+      const ex = Array.isArray(protection.excludes) ? protection.excludes as string[] : [];
+      return {carClassId: group.classId, apiQuoteId: result.apiQuoteId, vehicleId: group.vehicleId,
+        supplierQuoteId: result.providerQuoteId, expiresAt: result.expiresAt,
+        rentalMinor: result.partnerPayableMinor, feeMinor: result.ride24ReservationFeeMinor,
+        customerMinor: result.customerTotalMinor, currency: args.currency, excludes: [...ex],
+        covers: Array.isArray(protection.covers) ? [...protection.covers as string[]] : [],
+        adminFeeMinor: ex.length ? readyRelease.review.damageAdministrationFeeMinor : null};
+    }
+    return null;
+  }
+
+  // At most 2 supplier quote writes in flight. This reduces serial latency
+  // without a request burst or changing another API partner's concurrency.
+  const candidates = [...groups.values()];
+  for (let i = 0; i < candidates.length && offers.length < args.maxOffers; i += 2) {
+    const batch = await Promise.all(candidates.slice(i, i + 2).map(quoteVehicle));
+    for (const offer of batch) if (offer && offers.length < args.maxOffers) offers.push(offer);
   }
   return {offers, rejected};
 }

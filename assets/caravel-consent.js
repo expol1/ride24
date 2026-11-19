@@ -57,6 +57,25 @@
       row.appendChild(text(kind === "total" ? "strong" : "span", value));
       pricePanel.appendChild(row);
     }
+    // PLN is a PREVIEW from the NBP rate retrieved on the results screen.
+    // The actual payable PLN is recalculated and saved server-side when booking.
+    function onlineFee() {
+      var fallback = money.ride24_fee || "";
+      try {
+        var rate = Number(localStorage.getItem("bookingFXRate"));
+        var currency = localStorage.getItem("bookingFXCurrency");
+        var minor = Number(money.ride24_fee_minor);
+        if (currency === money.ride24_fee_currency &&
+            Number.isFinite(rate) && rate > 0 && rate < 1000 &&
+            Number.isSafeInteger(minor) && minor > 0) {
+          var estimate = new Intl.NumberFormat(en ? "en-US" : "pl-PL", {
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+          }).format(Math.round(minor * rate) / 100);
+          return (en ? "approx. " : "ok. ") + estimate + " PLN (" + fallback + ")";
+        }
+      } catch (err) { /* no local preview; the server quote still controls pricing */ }
+      return fallback + (en ? " — converted to PLN at booking" : " — przeliczenie na PLN przy rezerwacji");
+    }
     if (breakdown && Array.isArray(breakdown.fees)) {
       priceRow(en ? "Car rental" : "Wynajem samochodu", breakdown.rental_base, "item");
       breakdown.fees.forEach(function (fee) {
@@ -65,19 +84,16 @@
       (Array.isArray(breakdown.extras) ? breakdown.extras : []).forEach(function (extra) {
         if (extra && extra.name) priceRow(extra.name + (extra.quantity > 1 ? " × " + extra.quantity : ""), extra.amount, "item");
       });
-      // This is Caravel's exact amount payable at pickup (not including Ride24's
-      // separate Stripe fee). We must never fabricate a combined amount.
-      priceRow(en ? "Rental total (Caravel)" : "Łącznie za wynajem (Caravel)", breakdown.partner_total, "total");
-      priceRow(en ? "Online after confirmation — Ride24" : "Online po potwierdzeniu — Ride24", money.ride24_fee, "payment");
-      priceRow(en ? "Pay the rental company" : "Do zapłaty partnerowi", breakdown.partner_total, "payment");
-    } else {
-      priceRow(en ? "Rental total (Caravel)" : "Łącznie za wynajem (Caravel)", money.rental_at_pickup, "total");
-      priceRow(en ? "Online after confirmation — Ride24" : "Online po potwierdzeniu — Ride24", money.ride24_fee, "payment");
-      priceRow(en ? "Pay the rental company" : "Do zapłaty partnerowi", money.rental_at_pickup, "payment");
     }
+    priceRow(en ? "Total price (as in search)" : "Cena całkowita (jak w wyszukiwarce)",
+      money.customer_total, "total");
+    priceRow(en ? "Ride24 online after confirmation" : "Ride24 online po potwierdzeniu",
+      onlineFee(), "payment");
+    priceRow(en ? "Caravel at pickup" : "Caravel przy odbiorze",
+      breakdown && breakdown.partner_total ? breakdown.partner_total : money.rental_at_pickup, "payment");
     pricePanel.appendChild(text("small", en
-      ? "Caravel collects the rental at pickup; Ride24's reservation fee is separate. Surcharges are included in Caravel's total, never charged twice."
-      : "Caravel pobiera należność przy odbiorze, a Ride24 osobną opłatę rezerwacyjną. Dopłaty są już w kwocie Caravel. Nie naliczamy ich drugi raz.",
+      ? "PLN is an estimate from the search rate. The exact PLN charge is confirmed at booking. Caravel collects the rental at pickup; no surcharge is counted twice."
+      : "Kwota PLN jest orientacyjna według kursu z wyszukiwania. Dokładna płatność w PLN zostanie potwierdzona przy rezerwacji. Caravel pobiera wynajem przy odbiorze; dopłat nie naliczamy drugi raz.",
       "margin-top:10px;color:#64748B"));
     box.appendChild(pricePanel);
 

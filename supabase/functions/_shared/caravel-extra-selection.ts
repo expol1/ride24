@@ -58,11 +58,22 @@ export function caravelSafeExtraCatalog(raw:unknown,supplierId:string,currency="
   else if(!Number.isInteger(qtyNum)||qtyNum<1||qtyNum>9 || (min!==undefined&&min!==null&&(!Number.isInteger(minNum)||minNum>1||minNum<0)))
     reason="QUANTITY_UNSUPPORTED";
   if(reason){unavailable.push({name,reason});continue;}
-  catalog.push({extra_id:id,code,name_en:name,name_pl:PL[category]||name,category,
+  // Do not collapse the supplier's different age/size-specific child seats
+  // into one generic "Fotelik dziecięcy". Preserve exact provider naming.
+  const basePL=PL[category]||name;
+  const detail=(category==="child_seat"||category==="booster_seat") &&
+    name.toLocaleLowerCase()!==basePL.toLocaleLowerCase() ? `${basePL} — ${name}` : basePL;
+  catalog.push({extra_id:id,code,name_en:name,name_pl:detail.slice(0,140),category,
    pricing_type:e.pricing_type as CaravelExtra["pricing_type"],unit_minor:unit!,
    price_cap_minor:cap,currency,max_quantity:quantity as number,payable:"at_pickup",
    mutually_exclusive_group:exclusive});
  }
+ // Last-resort disambiguation when supplier descriptions themselves are equal:
+ // code comes from this exact supplier catalog, never guessed from a vehicle age.
+ const names=new Map<string,number>();
+ for(const e of catalog)names.set(e.name_pl,(names.get(e.name_pl)||0)+1);
+ for(const e of catalog)if((names.get(e.name_pl)||0)>1)
+   e.name_pl=(e.name_pl.slice(0,Math.max(1,139-e.code.length))+` (${e.code})`).slice(0,140);
  return {catalog,unavailable};
 }
 export function caravelCheckExtraSelection(
