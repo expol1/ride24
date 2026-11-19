@@ -804,6 +804,10 @@ let query = db
                 }));
 
                 function getSeasonPrice(car) {
+                    // Caravel's server-verified full-period price prevents per-day rounding drift.
+                    const cm = Number(car.features?.caravel_customer_total_minor);
+                    if (car.partners?.api_provider === "caravel" && Number.isSafeInteger(cm) && cm > 0)
+                        return cm / 100 / days;
                     if (car.arvent_period_price) return car.arvent_period_price.total / days;
                     const pickupMonth = new Date(filters.pickup_date + "T00:00:00Z").getUTCMonth() + 1;
                     let publicPrice = Number(car.public_price) || 0;
@@ -931,14 +935,22 @@ const partnerNetPricePerDay = currentPublicPrice * (1 - (discountPerc / 100));
 // Cena dla klienta (Twoje netto + Twoja marża)
 const customerPricePerDay = partnerNetPricePerDay * (1 + (marginPerc / 100));
 
-// Sumy całkowite do wyświetlenia na karcie auta
-const baseTotal = car.arvent_period_price?.pickup ?? Number((partnerNetPricePerDay * days).toFixed(2));
-const finalTotal = car.arvent_period_price?.total ?? Number((customerPricePerDay * days).toFixed(2));
-// Wyniki: pełne jednostki waluty bez miejsc dziesiętnych.
-// Kwoty rozliczeniowe (finalTotal i baseTotal) pozostają dokładne.
+// Caravel: supplier-confirmed complete period totals, with the Ride24 fee only once.
+const caravelGrossMinor = Number(car.features?.caravel_customer_total_minor);
+const caravelNetMinor = Number(car.features?.caravel_partner_total_minor);
+const caravelFeeMinor = Number(car.features?.caravel_ride24_fee_minor);
+const caravelExact = car.partners?.api_provider === 'caravel'
+    && Number.isSafeInteger(caravelGrossMinor) && caravelGrossMinor > 0
+    && Number.isSafeInteger(caravelNetMinor) && caravelNetMinor > 0
+    && Number.isSafeInteger(caravelFeeMinor) && caravelFeeMinor > 0
+    && caravelGrossMinor === caravelNetMinor + caravelFeeMinor;
+const baseTotal = caravelExact ? caravelNetMinor / 100
+    : (car.arvent_period_price?.pickup ?? Number((partnerNetPricePerDay * days).toFixed(2)));
+const finalTotal = caravelExact ? caravelGrossMinor / 100
+    : (car.arvent_period_price?.total ?? Number((customerPricePerDay * days).toFixed(2)));
 const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: car.arvent_period_price ? 2 : 0
+    minimumFractionDigits: caravelExact ? 2 : 0,
+    maximumFractionDigits: caravelExact || car.arvent_period_price ? 2 : 0
 }).format(finalTotal);
 
 // --- KONIEC LOGIKI ---
@@ -1124,7 +1136,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
     ${locationFeesByCar.get(car) > 0
         ? `<div class="price-info">${lang === 'pl' ? 'Opłaty za odbiór i zwrot' : 'Pickup and return fees'}: ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(locationFeesByCar.get(car))} ${safeCurrency}</div>`
         : ''}
-    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc}, ${Boolean(car.arvent_period_price)})">
+    <button class="btn-book" onclick="handleBooking('${safeCarId}', ${baseTotal}, '${safeCurrency}', this, '${safeQuoteId}', ${marginPerc}, ${Boolean(car.arvent_period_price)}, ${caravelExact ? finalTotal : 'null'})">
         ${labels.bookBtn}
     </button>
 </div>
@@ -1164,7 +1176,7 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
        // --- INTELIGENTNA REZERWACJA (UPROSZCZONA I BEZPIECZNA) ---
         let authMode = "login";
 
-        async function handleBooking(carId, priceTotal, currency, btnElement, apiQuoteId = "", marginPercent = 25, requireLiveRate = false) {
+        async function handleBooking(carId, priceTotal, currency, btnElement, apiQuoteId = "", marginPercent = 25, requireLiveRate = false, exactCaravelTotal = null) {
             const db = window.supabaseClient;
             
             // 🔥 1. ZAPISUJEMY KONTEKST OD RAZU PRZED CZYMKOLWIEK (Kluczowa poprawka)
@@ -1179,10 +1191,10 @@ const basePrice = Number(priceTotal) || 0;
 
 // Globalna marża Ride24 zapisana przy wybranej ofercie
 const safeMarginPercent = Number.isFinite(Number(marginPercent)) ? Number(marginPercent) : 25;
-const commission = basePrice * (safeMarginPercent / 100);
-
-// 👉 CENA DLA KLIENTA (informacyjna)
-const finalPrice = basePrice + commission;
+const verifiedCustomerPrice = Number.isFinite(exactCaravelTotal) && exactCaravelTotal > basePrice
+    ? Number(exactCaravelTotal.toFixed(2)) : null;
+const finalPrice = verifiedCustomerPrice ?? Number((basePrice * (1 + safeMarginPercent / 100)).toFixed(2));
+const commission = Number((finalPrice - basePrice).toFixed(2));
 
 // 🔥 LIVE KURS (NBP)
 const rate = await getExchangeRate(currency, requireLiveRate);
@@ -1205,6 +1217,8 @@ localStorage.setItem("bookingFinalPrice", finalPrice);
 localStorage.setItem("bookingOnlinePln", commissionPLN);
 localStorage.setItem("bookingPickupPrice", partnerPart);
 localStorage.setItem("bookingCurrency", currency);
+localStorage.setItem("bookingFXCurrency", currency);
+localStorage.setItem("bookingFXRate", String(rate));
 
 // 🔥 DEBUG
 console.log("💾 ZAPISANO CENY:", {
