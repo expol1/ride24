@@ -52,7 +52,7 @@ BEGIN
           AND jsonb_array_length(documented_excluded_codes) > 0
           AND jsonb_array_length(exclusion_clause_refs) > 0
           AND admin_fee_clause_ref IS NOT NULL)
-      THEN RAISE EXCEPTION 'CARAVEL_REVIEWED_TERMS_REQUIRED'; END IF;
+      THEN RAISE EXCEPTION 'CARAVEL_REVIEWED_TERMS_V5_CONTRACT_REQUIRED'; END IF;
     IF NOT EXISTS (SELECT 1 FROM public.partner_api_credentials
         WHERE partner_id = v_partner AND api_url = 'https://api.caravelway.com'
           AND nullif(api_key,'') IS NOT NULL)
