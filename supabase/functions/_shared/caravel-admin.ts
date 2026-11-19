@@ -49,7 +49,7 @@ export type TermsIngestInput = {
   approvedBy: string;
   /**
    * Key clauses shown to the customer (Caravel EN v5, 18 Nov 2026): no_card (17),
-   * post_return (27.1), fines (7.4), cancellation (13), premium_package (5.2).
+   * post_return (27.1), fines (7.4), cancellation (13), premium_package (5.3).
    * Defaults to those numbers; each must exist in the document.
    */
   keyClauseRefs?: Partial<Record<CaravelKeyClause, string>>;
@@ -58,7 +58,7 @@ export type TermsIngestInput = {
 };
 export type CaravelKeyClause = "no_card" | "post_return" | "fines" | "cancellation" | "premium_package";
 export const CARAVEL_V5_KEY_CLAUSES: Readonly<Record<CaravelKeyClause, string>> = Object.freeze({
-  no_card: "17", post_return: "27.1", fines: "7.4", cancellation: "13", premium_package: "5.2",
+  no_card: "17", post_return: "27.1", fines: "7.4", cancellation: "13", premium_package: "5.3",
 });
 
 export async function ingestCaravelProductionTerms(args: {
