@@ -150,6 +150,8 @@ test("endpoint: consent-view then book -> atomic RPC with verified payload; no F
   const s = await requestState();
   const view = await handleCaravelBookingRequest(deps(s), {action: "consent-view", api_quote_id: QROW, lang: "en"});
   assert.equal(view.status, 200);
+  assert.equal(view.body.consent.money.ride24_fee_pln_minor,6450,'15 EUR x 4.30 PLN, from server quote');
+  assert.equal(view.body.consent.money.ride24_fee_pln,'64.50 PLN');
   const consent = {...view.body.consent.echo, accepted: true, coverage_acknowledged: true};
   const r = await handleCaravelBookingRequest(deps(s), {action: "book", api_quote_id: QROW, consent});
   assert.equal(r.status, 200); assert.equal(r.body.payment_required, true);
@@ -176,6 +178,8 @@ test("endpoint: other driver age -> server re-quotes and requires a fresh confir
   assert.equal(r.status, 409); assert.equal(r.body.code, "CARAVEL_REQUOTED_FOR_DRIVER_AGE");
   assert.equal(r.body.api_quote_id, fresh.id);
   assert.equal(r.body.consent.money.rental_at_pickup, "180.00 EUR");
+  assert.equal(r.body.consent.money.ride24_fee_pln, "77.40 PLN");
+  assert.equal(r.body.consent.money.customer_total, "198.00 EUR");
   assert.equal((s.rpc ?? []).length, 0);
 });
 
