@@ -78,13 +78,13 @@ function db(){
 }
 function client(){
  const state={quotes:0,supplierLists:0,termsLists:0,
-   supplier:supplier(),quote:quote(),activeTerms:[terms()]};
+   supplier:supplier(),quote:quote(),activeTerms:[terms()],expectedRequest:selection()};
  return {state,environment:"sandbox",
   async suppliers(){state.supplierLists++;return {data:[state.supplier]};},
   async referenceTerms(id){state.termsLists++;assert.equal(id,"acct_eur");
    return {data:state.activeTerms};},
   async quote(req,idempotency,supplierId){
-   assert.deepEqual(req,selection());
+   assert.deepEqual(req,state.expectedRequest);
    assert.equal(idempotency,IDENTITY);
    assert.equal(supplierId,"acct_eur");
    state.quotes++;return {data:state.quote};
@@ -145,7 +145,7 @@ test("Caravel mandatory fees are already included in supplier grand total and sa
  assert.equal(result.ride24ReservationFeeMinor,3750,"Ride24 fee remains separate");
  const saved=admin.state.quotes[0].raw_response.provider_quote_data.price_breakdown;
  assert.deepEqual(saved,{version:1,currency:"EUR",rental_minor:10000,mandatory_fees_minor:5000,
-  extras_minor:0,total_minor:15000,fees:[
+  extras_minor:0,total_minor:15000,extras:[],fees:[
    {code:"fee-1",label:"Young driver 3 days",type:"young_driver",amount_minor:3300},
    {code:"fee-2",label:"One-way return",type:"one_way",amount_minor:1700},
   ]});
@@ -155,7 +155,49 @@ test("Caravel no-fee quote records an explicit zero-fee price breakdown",async()
  const result=await issueVerifiedCaravelQuote(args(admin,c));
  assert.equal(result.ok,true,JSON.stringify(result));
  assert.deepEqual(admin.state.quotes[0].raw_response.provider_quote_data.price_breakdown,
-   {version:1,currency:"EUR",rental_minor:15000,mandatory_fees_minor:0,extras_minor:0,total_minor:15000,fees:[]});
+   {version:1,currency:"EUR",rental_minor:15000,mandatory_fees_minor:0,extras_minor:0,total_minor:15000,extras:[],fees:[]});
+});
+test("selected provider GPS extra is quoted once and persisted in itemized supplier total",async()=>{
+ const admin=db(),c=client();
+ c.state.expectedRequest={...selection(),extras:[{extra_id:"gps-1",quantity:1}]};
+ c.state.quote={...quote(),totals:{grand_total:money(18000),pay_now:money(),pay_at_pickup:money(18000)},
+  line_items:[{kind:"base_rate",total:money(15000)},
+    {kind:"extra",code:"EQ-GPS",quantity:1,total:money(3000)}]};
+ const catalog=[{extra_id:"gps-1",code:"EQ-GPS",name_pl:"Nawigacja GPS",name_en:"GPS",
+  unit_minor:1000,price_cap_minor:null,pricing_type:"per_day",currency:"EUR",
+  category:"navigation",max_quantity:1,payable:"at_pickup",mutually_exclusive_group:null}];
+ const r=await issueVerifiedCaravelQuote(args(admin,c,{
+  quoteRequest:c.state.expectedRequest,verifiedExtrasCatalog:catalog,
+ }));
+ assert.equal(r.ok,true,JSON.stringify(r));
+ assert.equal(r.partnerPayableMinor,18000);
+ assert.equal(r.ride24ReservationFeeMinor,4500);
+ const data=admin.state.quotes[0].raw_response.provider_quote_data;
+ assert.deepEqual(data.selected_extras,[{extra_id:"gps-1",quantity:1}]);
+ assert.equal(data.price_breakdown.extras_minor,3000);
+ assert.deepEqual(data.price_breakdown.extras,[{
+  extra_id:"gps-1",code:"EQ-GPS",quantity:1,name_pl:"Nawigacja GPS",name_en:"GPS",amount_minor:3000,
+ }]);
+ assert.equal(data.amounts_minor.pay_at_pickup,18000);
+});
+test("missing or changed optional extra price fails before creating Ride24 quote",async()=>{
+ for(const item of [
+  {kind:"extra",code:"WRONG-CODE",quantity:1,total:money(3000)},
+  {kind:"extra",code:"EQ-GPS",quantity:1,total:money(3001)},
+ ]) {
+  const admin=db(),c=client();
+  c.state.expectedRequest={...selection(),extras:[{extra_id:"gps-1",quantity:1}]};
+  c.state.quote={...quote(),totals:{grand_total:money(18000),pay_now:money(),pay_at_pickup:money(18000)},
+   line_items:[{kind:"base_rate",total:money(15000)},item]};
+  const catalog=[{extra_id:"gps-1",code:"EQ-GPS",name_pl:"Nawigacja GPS",name_en:"GPS",
+   unit_minor:1000,price_cap_minor:null,pricing_type:"per_day",currency:"EUR",
+   category:"navigation",max_quantity:1,payable:"at_pickup",mutually_exclusive_group:null}];
+  const result=await issueVerifiedCaravelQuote(args(admin,c,{
+   quoteRequest:c.state.expectedRequest,verifiedExtrasCatalog:catalog,
+  }));
+  assert.equal(result.ok,false,JSON.stringify(result));
+  assert.equal(admin.state.quotes.length,0);
+ }
 });
 test("no external supplier contact without independently verified terms or approved server selection",async()=>{
  for(const patch of [

@@ -9,6 +9,7 @@
 import {issueVerifiedCaravelQuote} from "./caravel-quote-issuance.ts";
 import {selectCaravelPremiumProtection} from "./caravel-normalize.ts";
 import type {CaravelClient} from "./caravel-sandbox-adapter.ts";
+import {caravelSafeExtraCatalog,caravelSnapshotChoices,type CaravelExtraChoice} from "./caravel-extra-selection.ts";
 import type {CaravelRelease} from "./caravel-release.ts";
 
 type Rec = Record<string, unknown>;
@@ -113,12 +114,21 @@ export async function searchCaravelOffers(args: {
 export async function requoteCaravelForDriverAge(args: {
   // deno-lint-ignore no-explicit-any
   admin: any;
-  client: Pick<CaravelClient, "environment" | "quote" | "suppliers" | "referenceTerms">;
-  release: CaravelRelease; quoteRow: Rec; driverAge: number; nowMs?: number;
+  client: Pick<CaravelClient, "environment" | "quote" | "suppliers" | "referenceTerms" | "reference">;
+  release: CaravelRelease; quoteRow: Rec; driverAge: number; selectedExtras?:CaravelExtraChoice[]; nowMs?: number;
 }): Promise<{ok: true; apiQuoteId: string} | {ok: false; reason: string}> {
   if (!args.release.open) return {ok: false, reason: "CARAVEL_RELEASE_CLOSED"};
   const q = args.quoteRow, data = rec(rec(q.raw_response)?.provider_quote_data), ctx = rec(rec(q.raw_response)?.ride24_context);
   const protection = rec(data?.protection);
+  const requested = caravelSnapshotChoices(args.selectedExtras ?? data?.selected_extras ?? []);
+  if(!requested) return {ok:false,reason:"CARAVEL_EXTRA_SELECTION_INVALID"};
+  let extrasCatalog;
+  if(requested.length){
+    try{
+      const raw=(await args.client.reference("extras",args.release.terms.supplierId)).data;
+      extrasCatalog=caravelSafeExtraCatalog(raw,args.release.terms.supplierId,String(data?.currency)).catalog;
+    }catch{return {ok:false,reason:"CARAVEL_EXTRAS_CATALOG_UNAVAILABLE"};}
+  }
   if (!data || !protection || typeof data.pickup_at !== "string" || typeof data.dropoff_at !== "string" || !ctx)
     return {ok: false, reason: "CARAVEL_REQUOTE_CONTEXT_MISSING"};
   const {data: locs} = await args.admin.from("partner_locations").select("id,external_id")
@@ -135,7 +145,8 @@ export async function requoteCaravelForDriverAge(args: {
     quoteRequest: {pickup: {location_id: String(q.pickup_location_external_id), at: data.pickup_at},
       dropoff: {location_id: String(q.dropoff_location_external_id), at: data.dropoff_at},
       vehicle_id: String(data.vehicle_id), protection_id: String(data.protection_id), plan: "premium",
-      currency: String(data.currency), drivers: [{age: args.driverAge, role: "main"}], extras: []},
+      currency: String(data.currency), drivers: [{age: args.driverAge, role: "main"}], extras: requested},
+    ...(requested.length?{verifiedExtrasCatalog:extrasCatalog}:{}),
     startDate: start, endDate: end, pickupLocalTime: String(ctx.pickup_time).slice(0, 5),
     dropoffLocalTime: String(ctx.return_time).slice(0, 5), rentalDays: Number.isSafeInteger(data.rental_days) ? data.rental_days as number : days,
     nowEpochMs: args.nowMs ?? Date.now(), reviewedTerms: args.release.snapshot, canonicalHashIndependentlyVerified: true,

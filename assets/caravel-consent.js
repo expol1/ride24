@@ -6,7 +6,7 @@
 (function () {
   "use strict";
   var PARTNER = "78721481-7619-44df-a9b7-5faa344b69bb";
-  var state = { active: false, view: null, quoteId: null };
+  var state = { active: false, view: null, quoteId: null, selected: [], catalog: [], unavailable: [], catalogError: null, busy: false, submitLocked: false, auth: null };
 
   function byId(id) { return document.getElementById(id); }
   function text(tag, value, style) {
@@ -66,6 +66,9 @@
         var name = fee.label;
         if (fee.original_label && fee.original_label !== fee.label) name += " (" + fee.original_label + ")";
         priceRow(name, fee.amount);
+      });
+      (breakdown.extras || []).forEach(function (extra) {
+        priceRow(extra.name + (extra.quantity > 1 ? " × " + extra.quantity : ""),extra.amount);
       });
       if (!breakdown.fees.length) {
         pricePanel.appendChild(text("small", en
@@ -176,8 +179,104 @@
     return { ok: response.ok, status: response.status, body: body };
   }
 
+  // Uses the same Ride24 equipment modal and genuine price re-quoting.
+  // No browser-side price maths; the catalog unit price is indicative.
+  function renderExtras() {
+    var picker=byId("bookingExtrasPicker"), total=byId("bookingExtrasTotal"),legacy=byId("equipmentLegacyInfo");
+    if(!picker||!total)return;
+    picker.replaceChildren();total.replaceChildren();
+    picker.hidden=false;total.hidden=false;
+    if(legacy)legacy.hidden=true;
+    var en=isEnglish();
+    if(state.catalogError)picker.appendChild(text("p",state.catalogError,"color:#9A3412"));
+    if(!state.catalog.length&&!state.catalogError)picker.appendChild(text("p",
+      en?"Caravel has no verified voluntary extras available for online booking.":"Caravel nie udostępnia obecnie zweryfikowanych dodatków do rezerwacji online."));
+    state.catalog.forEach(function(e){
+      var row=document.createElement("label");
+      row.className="booking-extra-row";
+      var left=document.createElement("span");
+      left.appendChild(text("strong",en?e.name_en:e.name_pl));
+      var price=(e.unit_minor/100).toFixed(2).replace(".",en?".":",")+" "+e.currency;
+      left.appendChild(text("small",price+(e.pricing_type==="per_day"?(en?" / day":" / dzień"):(en?" / rental":" / wynajem"))));
+      if(e.price_cap_minor!=null)left.appendChild(text("small",en?"Price cap may apply; final supplier quote below.":"Możliwy limit ceny; ostateczna wycena poniżej."));
+      row.appendChild(left);
+      var existing=state.selected.find(function(x){return x.extra_id===e.extra_id;});
+      if(e.max_quantity===1){
+        var toggle=document.createElement("input");toggle.type="checkbox";toggle.className="r24-extra-switch-input";
+        toggle.setAttribute("role","switch");
+        toggle.setAttribute("aria-label",en?e.name_en:e.name_pl);
+        toggle.checked=!!existing;toggle.disabled=state.busy;
+        toggle.onchange=function(){chooseExtra(e.extra_id,toggle.checked?1:0);};
+        var switchBox=document.createElement("span");switchBox.className="r24-extra-switch";
+        switchBox.appendChild(toggle);
+        var track=document.createElement("span");track.className="r24-extra-switch-track";track.appendChild(text("span",""));
+        var value=text("span",toggle.checked?(en?"Yes":"Tak"):(en?"No":"Nie"));value.className="r24-extra-switch-value";
+        switchBox.appendChild(track);switchBox.appendChild(value);
+        row.appendChild(switchBox);
+      } else {
+        var select=document.createElement("select");select.disabled=state.busy;
+        select.setAttribute("aria-label",en?e.name_en:e.name_pl);
+        for(var i=0;i<=e.max_quantity;i++){
+          var option=document.createElement("option");option.value=String(i);option.textContent=String(i);
+          select.appendChild(option);
+        }
+        select.value=String(existing?.quantity||0);
+        select.onchange=function(){chooseExtra(e.extra_id,Number(select.value));};
+        row.appendChild(select);
+      }
+      picker.appendChild(row);
+    });
+    if(state.unavailable.length)picker.appendChild(text("small",en
+      ?"Other services require individual confirmation and cannot be booked online."
+      :"Pozostałe usługi wymagają potwierdzenia partnera i nie mogą być rezerwowane online.",
+      "display:block;margin-top:10px;color:#64748B"));
+    var p=state.view?.money?.breakdown;
+    total.appendChild(text("strong",en?"Your Caravel extras":"Twoje dodatki Caravel"));
+    (p?.extras||[]).forEach(function(x){var line=document.createElement("div");
+      line.className="booking-price-row";
+      line.appendChild(text("span",x.name+" × "+x.quantity));
+      line.appendChild(text("strong",x.amount));total.appendChild(line);});
+    if(p)total.appendChild(text("p",(en?"To pay Caravel at pickup: ":"Do zapłaty Caravel przy odbiorze: ")+p.partner_total,
+      "font-weight:750;margin:10px 0"));
+    total.appendChild(text("small",en?"Only Caravel's confirmed quote is binding.":"Wiążąca jest wyłącznie wycena potwierdzona przez Caravel."));
+  }
+  async function chooseExtra(id,qty){
+    if(state.busy||!state.auth||!state.view)return;
+    var selected=state.selected.filter(function(x){return x.extra_id!==id;});
+    if(qty>0)selected.push({extra_id:id,quantity:qty});
+    state.busy=true;
+    var button=byId("confirmBookingBtn");if(button)button.disabled=true;
+    var picker=byId("bookingExtrasPicker");
+    if(picker)picker.appendChild(text("p",isEnglish()?"Verifying new supplier price…":"Potwierdzamy nową cenę u Caravel…"));
+    try{
+      var auth=state.auth;
+      var response=await call("extras-requote",{api_quote_id:state.quoteId,extras:selected},
+         auth.accessToken,auth.supabaseUrl,auth.supabaseKey);
+      if(!response.ok||!response.body?.consent)throw new Error(
+         (isEnglish()?response.body?.error_en:response.body?.error)||
+         (isEnglish()?"Extras are not available at this price.":"Dodatki nie są dostępne w tej cenie."));
+      state.view=response.body.consent;state.quoteId=state.view.api_quote_id;state.selected=selected;
+      state.submitLocked=false;state.catalogError=null;
+      localStorage.setItem("selectedApiQuoteId",state.quoteId);
+      var accept=byId("acceptTerms");if(accept)accept.checked=false;
+    }catch(error){
+      state.catalogError=error.message||"CARAVEL_EXTRA_REQUOTE_FAILED";
+      // Customer may retry, but cannot submit a previous quote without a fresh
+      // successful price check; the previous choice is never silently changed.
+      state.submitLocked=true;
+      var accepted=byId("acceptTerms");if(accepted)accepted.checked=false;
+    }finally{
+      state.busy=false;
+      if(state.view)render(state.view);
+      renderExtras();
+      if(button)button.disabled=!state.view || state.submitLocked;
+    }
+  }
+
   function reset() {
-    state = { active: false, view: null, quoteId: null };
+    state = { active: false, view: null, quoteId: null, selected: [], catalog: [], unavailable: [], catalogError: null, busy: false, submitLocked: false, auth: null };
+    var picker=byId("bookingExtrasPicker");if(picker){picker.replaceChildren();picker.hidden=true;}
+    var totals=byId("bookingExtrasTotal");if(totals){totals.replaceChildren();totals.hidden=true;}
     var box = byId("caravelConsent");
     if (box) { box.hidden = true; box.innerHTML = ""; }
   }
@@ -208,11 +307,21 @@
         return false;
       }
       state.view = r.body.consent; state.quoteId = r.body.consent.api_quote_id;
+      state.auth = {accessToken:opts.accessToken,supabaseUrl:opts.supabaseUrl,supabaseKey:opts.supabaseKey};
+      var catalog=await call("extras-catalog",{api_quote_id:state.quoteId},opts.accessToken,opts.supabaseUrl,opts.supabaseKey);
+      if(catalog.ok && catalog.body && Array.isArray(catalog.body.catalog)) {
+        state.catalog=catalog.body.catalog;
+        state.unavailable=Array.isArray(catalog.body.unavailable)?catalog.body.unavailable:[];
+      } else {
+        state.catalogError=isEnglish()?"Extras catalog is temporarily unavailable.":"Katalog dodatków jest chwilowo niedostępny.";
+      }
+      state.selected=(state.view.money?.breakdown?.extras || []).map(function(x){return {extra_id:x.extra_id,quantity:x.quantity};});
       render(state.view);
+      renderExtras();
       return true;
     },
     canSubmit: function () {
-      return !!(state.view && byId("caravelTermsAccept") && byId("caravelTermsAccept").checked &&
+      return !!(!state.busy && !state.submitLocked && state.view && byId("caravelTermsAccept") && byId("caravelTermsAccept").checked &&
         byId("caravelCoverageAck") && byId("caravelCoverageAck").checked);
     },
     /** Exactly what was shown, echoed for server verification. */
@@ -230,8 +339,11 @@
       if (r.body && r.body.code === "CARAVEL_REQUOTED_FOR_DRIVER_AGE" && r.body.consent) {
         // New price for the real driver age: show it and require a fresh confirmation.
         state.view = r.body.consent; state.quoteId = r.body.consent.api_quote_id;
+        state.selected=(state.view.money?.breakdown?.extras||[]).map(function(x){
+          return {extra_id:x.extra_id,quantity:x.quantity};
+        });
         try { localStorage.setItem("selectedApiQuoteId", state.quoteId); } catch (e) {}
-        render(state.view);
+        render(state.view);renderExtras();
       }
       return r;
     }

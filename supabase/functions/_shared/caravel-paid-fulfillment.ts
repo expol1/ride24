@@ -23,6 +23,7 @@
 import {CaravelClient, CARAVEL_BASE_URLS, isUuid, type CaravelQuoteRequest} from "./caravel-sandbox-adapter.ts";
 import {verifyCaravelBookingAgainstQuote, caravelBookingStatus} from "./caravel-booking.ts";
 import {caravelQuoteFromApi} from "./caravel-normalize.ts";
+import {caravelSnapshotChoices} from "./caravel-extra-selection.ts";
 import {DefiniteApiFailure} from "./api-payment-flow.mjs";
 
 type Rec = Record<string, unknown>;
@@ -130,6 +131,16 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
     fail("CANCELLED_BEFORE_DISPATCH");
   const {data, totalMinor} = acceptedQuote(booking, quote);
   acceptedConsent(booking, data);
+  const selectedExtras=caravelSnapshotChoices(data.selected_extras ?? []) ?? fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
+  const breakdown=rec(data.price_breakdown);
+  const extras=Array.isArray(breakdown?.extras)?breakdown.extras.map(rec):[];
+  if(breakdown ? (!Number.isSafeInteger(breakdown.extras_minor) ||
+       extras.length!==selectedExtras.length ||
+       extras.some(x=>!x || typeof x.code!=="string" || !Number.isSafeInteger(x.amount_minor) ||
+         !selectedExtras.some(e=>e.extra_id===x.extra_id && e.quantity===x.quantity)) ||
+       extras.reduce((n,x)=>n+Number(x!.amount_minor),0)!==breakdown.extras_minor)
+       : selectedExtras.length>0)
+    fail("CARAVEL_ACCEPTED_EXTRAS_INVALID");
   const main = splitName(booking.main_driver_name), age = Number(booking.main_driver_age);
   if (!main || !Number.isInteger(age) || age < 18 || age > 99 || booking.add_driver_name || booking.add_driver_age ||
       typeof booking.client_email !== "string" || !booking.client_email.includes("@"))
@@ -150,6 +161,7 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
     dropoff: {location_id: String(quote!.dropoff_location_external_id), at: data.dropoff_at as string},
     vehicle_id: data.vehicle_id as string, protection_id: data.protection_id as string, plan: "premium",
     currency: data.currency as string, drivers: [{age, role: "main"}],
+    extras:selectedExtras,
   };
   const suppliers = (await client.suppliers()).data as Rec[];
   const supplier = suppliers.find((s) => s.supplier_id === supplierId);
@@ -165,6 +177,13 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
       parsed.value.quote.expiresAtEpochMs < (opts.nowMs ?? Date.now()) + 60_000)
     fail("PROVIDER_PRICE_OR_TERMS_CHANGED");
   if ("errors" in parsed) throw new DefiniteApiFailure("PROVIDER_PRICE_OR_TERMS_CHANGED");
+  // Provider must quote exactly the same optional services at exactly the
+  // accepted prices. No late substitution or silent omission after Stripe.
+  if(parsed.value.extraLines.length!==extras.length ||
+     parsed.value.quote.extrasAmountMinor!==(breakdown?.extras_minor ?? 0) ||
+     extras.some(x=>!parsed.value.extraLines.some(l=>l.code===x!.code &&
+       l.quantity===x!.quantity && l.totalMinor===x!.amount_minor)))
+    fail("PROVIDER_EXTRAS_CHANGED_AFTER_PAYMENT");
   const key = await caravelBookingUuid(String(booking.id), "book");
   return {
     provider: "caravel", idempotency_key: key, external_ref: `ride24-${key}`,

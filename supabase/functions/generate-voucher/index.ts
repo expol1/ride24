@@ -1,4 +1,5 @@
 import { appendVoucherPricing, validateVoucherPricing } from "../_shared/voucher-booking-items.mjs";
+import { caravelVoucherPricing } from "../_shared/caravel-voucher-pricing.mjs";
 import {isCaravelVoucherBooking,isCaravelVoucherAllowed} from "../_shared/caravel-voucher-confirmation-guard.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {
@@ -49,6 +50,7 @@ type BookingRow = {
   id: string;
   client_id: string;
   partner_id: string | null;
+  api_quote_id: string | null;
   provider_type: string | null;
   api_provider: string | null;
   api_status: string | null;
@@ -274,6 +276,7 @@ function normalizeBooking(value: unknown): BookingRow | null {
     id: value.id,
     client_id: value.client_id,
     partner_id: isUuid(value.partner_id) ? value.partner_id : null,
+    api_quote_id: isUuid(value.api_quote_id) ? value.api_quote_id : null,
     provider_type: cleanText(value.provider_type, 60) || null,
     api_provider: cleanText(firstRecord(value.partners)?.api_provider, 60) || null,
     api_status: cleanText(value.api_status, 100) || null,
@@ -831,6 +834,7 @@ async function loadBooking(
       id,
       client_id,
       partner_id,
+      api_quote_id,
       main_driver_name,
       status,
       provider_type,
@@ -885,7 +889,24 @@ async function loadBooking(
     .maybeSingle();
 
   if (error) throw new Error("VOUCHER_BOOKING_LOOKUP_FAILED");
-  return normalizeBooking(data);
+  const booked=normalizeBooking(data);
+  if(booked?.api_provider==="caravel" && !booked.pricing_items_snapshot) {
+    if(!booked.api_quote_id) throw new Error("CARAVEL_VOUCHER_QUOTE_NOT_FOUND");
+    const {data:q,error:qe}=await admin.from("api_quotes")
+      .select("id,partner_id,booking_id,external_quote_reference,partner_net_total,commission_total,final_total,currency,raw_response")
+      .eq("id",booked.api_quote_id).eq("booking_id",booked.id).eq("partner_id",booked.partner_id)
+      .maybeSingle();
+    if(qe||!q) throw new Error("CARAVEL_VOUCHER_QUOTE_NOT_FOUND");
+    const quoted=q.raw_response?.provider_quote_data;
+    const selected=quoted?.selected_extras;
+    if(quoted?.price_breakdown) {
+      booked.pricing_items_snapshot=validateVoucherPricing(caravelVoucherPricing(booked,q));
+    } else if(Array.isArray(selected) && selected.length>0) {
+      // Never generate a voucher that quietly drops a selected supplier extra.
+      throw new Error("CARAVEL_VOUCHER_SELECTED_EXTRAS_MISSING");
+    }
+  }
+  return booked;
 }
 
 async function hasPaidPayment(
