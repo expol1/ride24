@@ -194,3 +194,14 @@ test('Arvent supplier licence tenure of two years permits a duly eligible driver
  assert.equal(prepared.main_driver.license_first_issued,'2024-01-01');
  assert.equal(prepared.partner_amount,100);
 });
+
+test('Arvent public activation remains impossible with only supplier write and payment approval flags',async()=>{
+ const adminSource=await readFile(new URL('../../supabase/functions/api-partner-admin/index.ts',import.meta.url),'utf8');
+ const activate=adminSource.slice(adminSource.indexOf('async function activatePartner('),adminSource.indexOf('async function deactivatePartner('));
+ assert.match(activate,/arvent_certified\s*===\s*true/);
+ assert.match(activate,/ARVENT_STRIPE_FIRST_APPROVED/);
+ assert.match(activate,/ARVENT_KOLAYCAR_WRITE_ALLOWED/);
+ assert.match(activate,/if \(!certified \|\| !approved \|\| !writes\)/);
+ const partnerLoader=adminSource.slice(adminSource.indexOf('async function getPartner('),adminSource.indexOf('async function getCredentials('));
+ assert.match(partnerLoader,/api_settings/);
+});
