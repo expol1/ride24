@@ -51,6 +51,7 @@ type PartnerRelation = {
   min_rental_days: number;
   min_driver_age: number | null;
   max_driver_age: number | null;
+  min_license_years: number | null;
 };
 
 type CarRow = {
@@ -257,6 +258,7 @@ function normalizePartner(value: unknown): PartnerRelation | null {
   return {
     min_driver_age: row.min_driver_age == null ? null : finiteNumber(row.min_driver_age),
     max_driver_age: row.max_driver_age == null ? null : finiteNumber(row.max_driver_age),
+    min_license_years: row.min_license_years == null ? null : finiteNumber(row.min_license_years),
     id: row.id,
     active: row.active === true,
     account_status: cleanText(row.account_status, 50),
@@ -951,7 +953,8 @@ serve(async (req) => {
           rental_rules_url,
           min_rental_days,
           min_driver_age,
-          max_driver_age
+          max_driver_age,
+          min_license_years
         )
       `)
       .eq("id", body.car_class_id)
@@ -1013,6 +1016,7 @@ serve(async (req) => {
     let mainDriverAge = profileAge;
     let additionalDriverName: string | null = null;
     let additionalDriverAge: number | null = null;
+    let savedAdditionalDriverLicenseSince: string | null = null;
 
     const driverIds = [driverId, additionalDriverId]
       .filter((id): id is string => Boolean(id));
@@ -1079,6 +1083,8 @@ serve(async (req) => {
         }
         additionalDriverName = name;
         additionalDriverAge = age;
+        savedAdditionalDriverLicenseSince = typeof additionalDriver.license_since === "string"
+          ? additionalDriver.license_since : null;
       }
     }
 
@@ -1088,12 +1094,57 @@ serve(async (req) => {
       return jsonResponse(req, {code:"DRIVER_AGE_NOT_ALLOWED", error:`Wymagany wiek każdego kierowcy: ${range} lat.`, error_en:`Each driver must meet the age requirement: ${range}.`}, 400);
     }
 
-    // This field is required ONLY for Arvent; existing partners unchanged.
-    // Use the date the main driver FIRST obtained the driving licence.
+    // Arvent keeps its existing supplier-specific rule and optional submitted date.
     const isArventBooking = car.partner.api_provider === "arvent_kolaycar";
-    const mainDriverLicenseSince = !isArventBooking ? null
-      : typeof body.main_driver_license_since === "string" && body.main_driver_license_since
-      ? body.main_driver_license_since : savedMainDriverLicenseSince;
+    const mainDriverLicenseSince = isArventBooking
+      ? (typeof body.main_driver_license_since === "string" && body.main_driver_license_since
+        ? body.main_driver_license_since : savedMainDriverLicenseSince)
+      : savedMainDriverLicenseSince;
+
+    // Local partner rule is opt-in: unset/zero has NO effect on existing bookings.
+    // Measure completed calendar years at pickup for BOTH drivers.
+    // Shared helper performs date validation; this does not change Arvent checks.
+    const localMinLicenseYears = car.partner.provider_type === "local"
+      && Number.isInteger(car.partner.min_license_years)
+      && Number(car.partner.min_license_years) >= 1
+      && Number(car.partner.min_license_years) <= 50
+      ? Number(car.partner.min_license_years) : 0;
+    if (localMinLicenseYears > 0) {
+      const mainYears = arventLicenseYears(mainDriverLicenseSince, startDate.text);
+      if (mainYears === null) {
+        return jsonResponse(req, {
+          code: "LOCAL_MAIN_DRIVER_LICENSE_DATE_REQUIRED",
+          error: "Uzupełnij datę pierwszego uzyskania prawa jazdy głównego kierowcy w Profilu.",
+          error_en: "Enter the main driver's original driving licence date in Profile.",
+        }, 400);
+      }
+      if (mainYears < localMinLicenseYears) {
+        return jsonResponse(req, {
+          code: "LOCAL_MAIN_DRIVER_LICENSE_TOO_SHORT",
+          min_license_years: localMinLicenseYears,
+          error: `Główny kierowca musi mieć prawo jazdy od co najmniej ${localMinLicenseYears} lat w dniu odbioru.`,
+          error_en: `The main driver must have at least ${localMinLicenseYears} years of driving licence experience at pickup.`,
+        }, 400);
+      }
+      if (additionalDriverId) {
+        const additionalYears = arventLicenseYears(savedAdditionalDriverLicenseSince, startDate.text);
+        if (additionalYears === null) {
+          return jsonResponse(req, {
+            code: "LOCAL_ADDITIONAL_DRIVER_LICENSE_DATE_REQUIRED",
+            error: "Uzupełnij datę pierwszego uzyskania prawa jazdy dodatkowego kierowcy w Profilu.",
+            error_en: "Enter the additional driver's original driving licence date in Profile.",
+          }, 400);
+        }
+        if (additionalYears < localMinLicenseYears) {
+          return jsonResponse(req, {
+            code: "LOCAL_ADDITIONAL_DRIVER_LICENSE_TOO_SHORT",
+            min_license_years: localMinLicenseYears,
+            error: `Dodatkowy kierowca musi mieć prawo jazdy od co najmniej ${localMinLicenseYears} lat w dniu odbioru.`,
+            error_en: `The additional driver must have at least ${localMinLicenseYears} years of driving licence experience at pickup.`,
+          }, 400);
+        }
+      }
+    }
     // Arvent reservations require the main driver's first name AND surname.
     if (isArventBooking && String(mainDriverName || "").trim().split(/\s+/).length < 2) {
       return jsonResponse(req,{
@@ -1447,7 +1498,10 @@ serve(async (req) => {
       client_email: cleanText(user.email, 254),
       main_driver_name: mainDriverName,
       main_driver_age: mainDriverAge,
-      ...(isArventBooking ? { main_driver_license_since: mainDriverLicenseSince } : {}),
+      ...(isArventBooking || localMinLicenseYears > 0 ? { main_driver_license_since: mainDriverLicenseSince } : {}),
+      ...(car.partner.provider_type === "local" && savedAdditionalDriverLicenseSince
+        ? { additional_driver_license_since: savedAdditionalDriverLicenseSince } : {}),
+      ...(localMinLicenseYears > 0 ? { min_license_years_snapshot: localMinLicenseYears } : {}),
       add_driver_name: additionalDriverName,
       add_driver_age: additionalDriverAge,
       driver_id: driverId,
