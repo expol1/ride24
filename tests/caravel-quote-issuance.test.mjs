@@ -132,6 +132,31 @@ test("server verifies Caravel zero-prepay quote before saving standard Ride24 ap
   pickup_location:"Athens Airport",return_location:"Athens Airport",
  });
 });
+test("Caravel mandatory fees are already included in supplier grand total and saved as exact items",async()=>{
+ const admin=db(),c=client();
+ c.state.quote={...quote(),line_items:[
+  {kind:"base_rate",total:money(10000)},
+  {kind:"fee",code:"FEE-YOUNG",fee_id:"fee-1",type:"young_driver",label:"Young driver 3 days",total:money(3300)},
+  {kind:"fee",code:"FEE-ONEWAY",fee_id:"fee-2",type:"one_way",label:"One-way return",total:money(1700)},
+ ]};
+ const result=await issueVerifiedCaravelQuote(args(admin,c));
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.equal(result.partnerPayableMinor,15000,"Caravel grand total remains the only rental amount");
+ assert.equal(result.ride24ReservationFeeMinor,3750,"Ride24 fee remains separate");
+ const saved=admin.state.quotes[0].raw_response.provider_quote_data.price_breakdown;
+ assert.deepEqual(saved,{version:1,currency:"EUR",rental_minor:10000,mandatory_fees_minor:5000,
+  extras_minor:0,total_minor:15000,fees:[
+   {code:"fee-1",label:"Young driver 3 days",type:"young_driver",amount_minor:3300},
+   {code:"fee-2",label:"One-way return",type:"one_way",amount_minor:1700},
+  ]});
+});
+test("Caravel no-fee quote records an explicit zero-fee price breakdown",async()=>{
+ const admin=db(),c=client();
+ const result=await issueVerifiedCaravelQuote(args(admin,c));
+ assert.equal(result.ok,true,JSON.stringify(result));
+ assert.deepEqual(admin.state.quotes[0].raw_response.provider_quote_data.price_breakdown,
+   {version:1,currency:"EUR",rental_minor:15000,mandatory_fees_minor:0,extras_minor:0,total_minor:15000,fees:[]});
+});
 test("no external supplier contact without independently verified terms or approved server selection",async()=>{
  for(const patch of [
   {canonicalHashIndependentlyVerified:false},
