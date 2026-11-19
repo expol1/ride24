@@ -14,7 +14,8 @@ const respond = (status:number, body:Record<string,unknown>) => new Response(JSO
     "X-Content-Type-Options":"nosniff"},
 });
 serve(async(req)=>{
-  if(req.method!=="POST" || new URL(req.url).pathname!==CARAVEL_PRODUCTION_WEBHOOK_PATH)
+  const route = new URL(req.url).pathname;
+  if(req.method!=="POST" || (route!==CARAVEL_PRODUCTION_WEBHOOK_PATH && route!=="/caravel-production-webhook"))
     return respond(405,{accepted:false,reason:"METHOD_OR_PATH_INVALID"});
   const advertised=Number(req.headers.get("content-length")??"0");
   if(!Number.isFinite(advertised)||advertised<0||advertised>MAX_BYTES)
@@ -42,7 +43,7 @@ serve(async(req)=>{
       return client;
     };
     const result=await handleCaravelProductionDelivery({
-      method:req.method,path:new URL(req.url).pathname,rawBody,
+      method:req.method,path:CARAVEL_PRODUCTION_WEBHOOK_PATH,rawBody,
       signature:req.headers.get("X-Caravel-Signature"),secrets,
       fetchBooking:async(bookingId:string,supplierId:string)=>
         (await (await supplier()).bookingStatusSandbox(bookingId,supplierId)).data,

@@ -19,6 +19,7 @@ export async function handleCaravelProductionDelivery({
     return {status: 405, accepted: false, reason: "METHOD_OR_PATH_INVALID"};
   if (typeof rawBody !== "string" || encoder.encode(rawBody).byteLength > MAX_BYTES)
     return {status: 413, accepted: false, reason: "BODY_TOO_LARGE"};
+  if (!signature) return {status: 401, accepted: false, reason: "INVALID_SIGNATURE"};
   if (!Array.isArray(secrets) || !secrets.some(s => typeof s === "string" && s.length > 0))
     return {status: 503, accepted: false, reason: "SIGNING_SECRET_MISSING"};
   if (!await verifyCaravelSignature(signature, secrets, {method: "POST", path, body: rawBody}, {nowSecs}))
@@ -30,6 +31,11 @@ export async function handleCaravelProductionDelivery({
       !Number.isFinite(Date.parse(event.occurred_at)) ||
       (event.sequence !== null && event.sequence < 1))
     return {status: 400, accepted: false, reason: "INVALID_SIGNED_EVENT"};
+  if (event.type === "webhook.test") {
+    if (event.data.test !== true || !event.external_ref.startsWith("WEBHOOK-TEST-"))
+      return {status: 400, accepted: false, reason: "INVALID_TEST_EVENT"};
+    return {status: 200, accepted: true, reason: "SIGNED_TEST_RECEIVED"};
+  }
   if (typeof fetchBooking !== "function" || typeof record !== "function")
     return {status: 503, accepted: false, reason: "RECEIVER_NOT_CONFIGURED"};
   try {

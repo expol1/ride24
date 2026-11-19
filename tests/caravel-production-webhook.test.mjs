@@ -57,3 +57,12 @@ test("duplicate reports success; durable store failure returns retriable 503",as
   assert.equal((await invoke({record:async()=>{throw Error("db down")}})).result.status,503);
   assert.equal((await invoke({record:async()=>({accepted:true})})).result.status,503);
 });
+
+test("signed supplier self-test acknowledges without booking I/O",async()=>{
+  const sample={...event(),type:"webhook.test",external_ref:"WEBHOOK-TEST-123",data:{test:true}};
+  const fail=()=>{throw Error("unexpected booking operation")};
+  const options={event:sample,fetchBooking:fail,record:fail};
+  assert.equal((await invoke(options)).result.status,200);
+  assert.equal((await invoke({...options,signature:null})).result.status,401);
+  assert.equal((await invoke({...options,event:{...sample,data:{}}})).result.status,400);
+});
