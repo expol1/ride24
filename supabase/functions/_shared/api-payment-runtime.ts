@@ -31,7 +31,7 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
      .update({state:'revalidating',updated_at:new Date().toISOString()}).eq('booking_id',id).eq('state',w.state).eq('updated_at',w.updated_at).select('*').maybeSingle()),
    revalidate:async()=>{
      await load();const q=await one(admin.from('api_quotes').select('*').eq('id',booking.api_quote_id).maybeSingle());
-     return revalidatePaidProvider(credentials,booking,q,admin);
+     return revalidatePaidProvider(credentials,booking,q);
    },
    claimDispatch:async(_id:string,prepared:any)=>rpc('api_claim_paid_dispatch',{p_booking_id:id,p_prepared:prepared}),
    create:async(_id:string,prepared:any)=>{

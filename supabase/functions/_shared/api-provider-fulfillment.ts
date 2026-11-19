@@ -19,18 +19,6 @@ export function hasPaidFulfillmentAdapter(provider:unknown) {
  return provider==='renteon_aggregator'
   ||(provider==='arvent_kolaycar'&&arventPaymentApproved());
 }
-// The pilot is not public activation: it requires a matching authenticated
-// Ride24 booking and a partner-stored, revocable one-account allowlist.
-export async function arventOwnerPilotBookingAllowed(admin:any,booking:any):Promise<boolean> {
- if(booking?.partners?.api_provider!=='arvent_kolaycar'
-   ||typeof booking?.client_id!=='string'||typeof booking?.partner_id!=='string')return false;
- const {data:p,error}=await admin.from('partners')
-   .select('api_provider,api_enabled,api_settings').eq('id',booking.partner_id).maybeSingle();
- const a=p?.api_settings;
- return !error&&p?.api_provider==='arvent_kolaycar'&&p.api_enabled===false
-   &&a?.arvent_pilot?.enabled===true&&a.arvent_pilot.client_id===booking.client_id
-   &&a.arvent_certified!==true&&a.arvent_stripe_first_partner_approved===true;
-}
 const fail=(code:string):never=>{throw new DefiniteApiFailure(code);};
 const stable=(v:any):string=>JSON.stringify(v==null?null:Array.isArray(v)?v.map(x=>JSON.parse(stable(x))):typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,JSON.parse(stable(v[k]))])):v);
 function terms(offer:any) {
@@ -44,15 +32,10 @@ function servicesContract(model:any) {
    name:s.Name,additionalName:s.AdditionalName,mandatory:s.IsMandatory,prepaid:s.Prepaid,
    price:s.ServicePrice})).sort((a:any,b:any)=>a.id-b.id);
 }
-export async function revalidatePaidProvider(credentials:any,booking:any,quote:any,admin:any=null) {
- const globalReady=hasPaidFulfillmentAdapter(booking.partners.api_provider);
- const ownerPilot=!globalReady&&admin
-   ? await arventOwnerPilotBookingAllowed(admin,booking):false;
- if(!globalReady&&!ownerPilot)fail('ADAPTER_NOT_READY');
- if(booking.partners.api_provider==='arvent_kolaycar') {
-  const prepared=await revalidatePaidArvent(credentials,booking,quote);
-  return ownerPilot ? {...prepared,arvent_owner_pilot_verified:true}:prepared;
- }
+export async function revalidatePaidProvider(credentials:any,booking:any,quote:any) {
+ if(!hasPaidFulfillmentAdapter(booking.partners.api_provider))fail('ADAPTER_NOT_READY');
+ if(booking.partners.api_provider==='arvent_kolaycar')
+  return revalidatePaidArvent(credentials,booking,quote);
  if(booking.cancelled_at || ['cancelled','rejected','expired','payment_expired'].includes(booking.status))fail('CANCELLED_BEFORE_DISPATCH');
  if(!quote)fail('ACCEPTED_QUOTE_REQUIRED');
  const raw=quote.raw_response,old=raw?.provider_quote_data,options=raw?.ride24_options;
@@ -168,9 +151,7 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
 }
 export async function createPaidProvider(credentials:any,input:any) {
  if(input?.provider==='arvent_kolaycar'){
-   if(!arventPaymentApproved()&&input?.arvent_owner_pilot_verified!==true)
-     fail('ADAPTER_NOT_READY');
-   // The supplier adapter separately verifies this booking's real Stripe payment.
+   if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
    try {
      return await arventCreateBooking(credentials,input);
    } catch(error) {
@@ -183,8 +164,7 @@ export async function createPaidProvider(credentials:any,input:any) {
 }
 export async function readPaidProviderStatus(credentials:any,reference:string,prepared:any) {
  if(prepared?.provider==='arvent_kolaycar'){
-  if(!arventPaymentApproved()&&prepared?.arvent_owner_pilot_verified!==true)
-    fail('ADAPTER_NOT_READY');
+  if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
   const result=await arventBookingStatus(credentials,reference);
   return result.status==='cancelled'
    ?{...result,status:'rejected',definitive_rejection:true}

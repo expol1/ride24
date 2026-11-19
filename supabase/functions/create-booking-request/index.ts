@@ -1092,21 +1092,8 @@ serve(async (req) => {
 
     if (car.partner.provider_type === "api") {
       if (!await apiPaymentEnabled(admin)) return jsonResponse(req, {error:"Rezerwacje API są chwilowo wstrzymane podczas weryfikacji płatności.",code:"API_PAYMENT_FLOW_PAUSED"},503);
-      let ownerPilotAllowed = false;
-      if (car.partner.api_provider === "arvent_kolaycar" && car.partner.api_enabled !== true) {
-        const { data: pilotPartner, error: pilotError } = await admin.from("partners")
-          .select("api_settings,api_enabled")
-          .eq("id", car.partner_id)
-          .maybeSingle();
-        const settings = pilotPartner?.api_settings;
-        ownerPilotAllowed = !pilotError && pilotPartner?.api_enabled === false
-          && settings?.arvent_pilot?.enabled === true
-          && settings?.arvent_pilot?.client_id === user.id
-          && settings?.arvent_stripe_first_partner_approved === true
-          && settings?.arvent_certified !== true;
-      }
       if (
-        (car.partner.api_enabled !== true && !ownerPilotAllowed)
+        car.partner.api_enabled !== true
         || !isUuid(body.api_quote_id)
       ) {
         return jsonResponse(
