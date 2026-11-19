@@ -16,6 +16,7 @@
 import type {CaravelClient,CaravelQuoteRequest}
   from "./caravel-sandbox-adapter.ts";
 import {caravelQuoteFromApi} from "./caravel-normalize.ts";
+import {caravelCheckExtraSelection,caravelSnapshotChoices,type CaravelExtra} from "./caravel-extra-selection.ts";
 import {verifyCaravelRide24PaymentContract}
   from "./caravel-payment-contract.ts";
 import {evaluateCaravelPremiumForRide24,
@@ -64,6 +65,8 @@ export async function issueVerifiedCaravelQuote(args:{
  /** Trusted Ride24 location primary keys, never provider-side IDs from browser. */
  pickupLocationId:string;dropoffLocationId:string;
  quoteRequest:CaravelQuoteRequest;
+ /** Server-read supplier extras reference; required when any extra is selected. */
+ verifiedExtrasCatalog?:CaravelExtra[];
  /** Trusted Ride24 location/date mapping for the same request. */
  startDate:string;endDate:string;
  /** Server checked local times; canonical names are reloaded from DB. */
@@ -103,7 +106,7 @@ export async function issueVerifiedCaravelQuote(args:{
     typeof requested.vehicle_id!=="string"||!requested.vehicle_id||
     typeof requested.protection_id!=="string"||!requested.protection_id||
     protection?.protection_id!==requested.protection_id||
-    (requested.extras?.length??0)!==0||
+    !Array.isArray(requested.extras)||
     !Array.isArray(requested.drivers)||requested.drivers.length!==1||
     requested.drivers[0]?.role!=="main"||
     !Number.isSafeInteger(requested.drivers[0]?.age)||
@@ -115,6 +118,15 @@ export async function issueVerifiedCaravelQuote(args:{
     !Number.isFinite(Date.parse(requested.dropoff.at))||
     args.startDate>=args.endDate)
    return reject("CARAVEL_QUOTE_SELECTION_UNVERIFIED");
+ const selectedExtras=caravelSnapshotChoices(requested.extras||[]);
+ if(!selectedExtras) return reject("CARAVEL_EXTRA_SELECTION_INVALID");
+ if(selectedExtras.length>0){
+   const catalog=args.verifiedExtrasCatalog;
+   if(!Array.isArray(catalog)||catalog.length>50) return reject("CARAVEL_EXTRAS_CATALOG_NOT_VERIFIED");
+   const known=new Map(catalog.map(x=>[x.extra_id,x]));
+   if(selectedExtras.some(x=>!known.has(x.extra_id)||x.quantity>known.get(x.extra_id)!.max_quantity))
+     return reject("CARAVEL_EXTRA_SELECTION_INVALID");
+ }
  let p:DbResult,c:DbResult,pickup:DbResult,dropoff:DbResult;
  try{
   p=await args.admin.from("partners").select(
@@ -217,9 +229,13 @@ export async function issueVerifiedCaravelQuote(args:{
     parsed.rentalDays!==args.rentalDays||
     parsed.quote.depositAmountMinor!==0||
     parsed.quote.excessAmountMinor!==0||
-    parsed.extraLines.length!==0||
     parsed.quote.expiresAtEpochMs<args.nowEpochMs+10*60*1000)
    return reject("CARAVEL_QUOTE_PAYMENT_OR_VALIDITY_UNSAFE");
+ // Exact optional extras must be priced in the same supplier quote. Missing,
+ // changed or unselected lines abort quote issuance before it reaches Ride24.
+ const extrasCheck=caravelCheckExtraSelection(selectedExtras,args.verifiedExtrasCatalog||[],parsed.extraLines,parsed.rentalDays);
+ if(!extrasCheck.ok||extrasCheck.totalMinor!==parsed.quote.extrasAmountMinor)
+   return reject("CARAVEL_EXTRAS_PRICE_NOT_VERIFIED");
  // Persist the verified fee lines from Caravel's authoritative quote.
  // Never compute a parallel local-age, out-of-hours or one-way surcharge.
  // The parser already checks line_items against totals.grand_total.
@@ -242,6 +258,10 @@ export async function issueVerifiedCaravelQuote(args:{
    fees:feeLines.map(f=>({
      code:f.externalId,label:f.label,type:f.category,
      amount_minor:f.amountMinor,
+   })),
+   extras:extrasCheck.priced.map(e=>({
+     extra_id:e.extra_id,code:e.code,quantity:e.quantity,
+     name_pl:e.name_pl,name_en:e.name_en,amount_minor:e.total_minor,
    })),
  };
  const deposit=rec(api.deposit);
@@ -278,6 +298,7 @@ export async function issueVerifiedCaravelQuote(args:{
       // Verified supplier line items for the client's pre-payment summary.
       // They are informational: the amount to collect stays grand_total.
       price_breakdown:priceBreakdown,
+      selected_extras:selectedExtras.map(e=>({extra_id:e.extra_id,quantity:e.quantity})),
       drivers:requested.drivers,
       ...(args.approvedExclusions?{
         coverage_review_terms_document_id:args.approvedExclusions.termsDocumentId,
