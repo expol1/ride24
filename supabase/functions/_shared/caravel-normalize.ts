@@ -761,8 +761,8 @@ export function verifyCaravelQuotedExtras(
     }
     const {l: line, i} = matches[0];
     used.add(i);
-    if (!safeInt(line.quantity) || line.quantity !== sel.quantity ||
-      !safeInt(line.totalMinor) || line.totalMinor < 0) errors.push("EXTRA_QUANTITY_OR_AMOUNT_INVALID");
+    if (!safeInt(line.quantity) || line.quantity !== sel.quantity) errors.push("EXTRA_QUANTITY_MISMATCH");
+    if (!safeInt(line.totalMinor) || line.totalMinor < 0) errors.push("EXTRA_AMOUNT_UNVERIFIED");
     if (item.price_cap !== null && item.price_cap !== undefined) {
       const cap = money(item.price_cap);
       if (!cap || cap.amount < 0) errors.push("EXTRA_PRICE_CAP_UNVERIFIED");
