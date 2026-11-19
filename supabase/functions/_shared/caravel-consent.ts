@@ -132,7 +132,8 @@ export type CaravelConsentView = {
     exclusion_clause_refs: string[]; admin_fee_clause_ref: string | null};
   money: {rental_at_pickup: string; rental_at_pickup_minor: number; rental_currency: string;
     customer_total: string; customer_total_minor: number; ride24_fee_minor: number;
-    ride24_fee: string; ride24_fee_currency: string; charged_by_stripe: "ride24_fee_only";
+    ride24_fee: string; ride24_fee_currency: string; ride24_fee_pln?: string;
+    ride24_fee_pln_minor?: number; charged_by_stripe: "ride24_fee_only";
     breakdown?: {rental_base:string; fee_total:string; extras_total:string; partner_total:string;
       fees:Array<{label:string; original_label:string; type:string; amount:string}>;
       extras:Array<{extra_id:string;name:string;quantity:number;amount:string}>}};
