@@ -305,7 +305,7 @@ test("Caravel voluntary extras: exact provider quote lines must match selected c
     [lines,[...selection,selection[0]],catalog,"EXTRA_SELECTION_DUPLICATE"],
     [[...lines,lines[0]],selection,catalog,"EXTRA_LINE_DUPLICATE"],
     [lines,[selection[0]],catalog,"UNSELECTED_EXTRA_PRICED"],
-    [[{code:"SEAT",quantity:1,totalMinor:3000},lines[1]],selection,catalog,"EXTRA_QUANTITY_OR_AMOUNT_INVALID"],
+    [[{code:"SEAT",quantity:1,totalMinor:3000},lines[1]],selection,catalog,"EXTRA_QUANTITY_MISMATCH"],
     [[lines[0],{code:"GPS",quantity:1,totalMinor:4001}],selection,catalog,"EXTRA_ABOVE_PRICE_CAP"],
     [lines,selection,[...catalog,catalog[0]],"EXTRA_CATALOG_UNVERIFIED"],
     [lines,[{extraId:"seat1",quantity:3},selection[1]],catalog,"EXTRA_QUANTITY_INVALID"],
