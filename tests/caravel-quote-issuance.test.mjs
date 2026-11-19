@@ -136,7 +136,8 @@ test("server verifies Caravel zero-prepay quote before saving standard Ride24 ap
 test("Caravel quotes the second driver explicitly before any payment",async()=>{
  const admin=db(),c=client();
  const drivers=[{age:30,role:"main"},{age:22,role:"additional"}];
- const r=await issueVerifiedCaravelQuote(args(admin,c,{quoteRequest:{...selection(),drivers}}));
+ c.state.expectedRequest={...selection(),drivers};
+ const r=await issueVerifiedCaravelQuote(args(admin,c,{quoteRequest:c.state.expectedRequest}));
  assert.equal(r.ok,true,JSON.stringify(r));
  assert.deepEqual(admin.state.quotes[0].raw_response.provider_quote_data.drivers,drivers);
  assert.equal(admin.state.quotes[0].final_total,187.5);
