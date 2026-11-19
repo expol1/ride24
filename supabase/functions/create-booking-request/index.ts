@@ -1394,7 +1394,24 @@ serve(async (req) => {
       500,
     );
 
+    // What the client actually booked (group + example car), independent of
+    // later catalogue changes or deactivation. Display only.
+    const { data: carDisplay } = await admin.from("car_classes")
+      .select("class_code, description, example_model, transmission").eq("id", car.id).maybeSingle();
+    const offered = car.partner.provider_type === "api" && isRecord(quoteClaim?.row.raw_response)
+      && isRecord(quoteClaim?.row.raw_response.ride24_display) ? quoteClaim?.row.raw_response.ride24_display : null;
+    const pick = (key: string, max: number) => cleanText(offered?.[key], max) || cleanText((carDisplay as Record<string, unknown> | null)?.[key], max) || null;
+    const vehicleSnapshot = {
+      class_code: pick("class_code", 2),
+      group_name: cleanText(offered?.group_name, 60) || null,
+      example_model: pick("example_model", 120),
+      description: pick("description", 200),
+      transmission: pick("transmission", 30),
+      sipp: cleanText(offered?.sipp, 8) || null,
+    };
+
     const insertPayload = {
+      vehicle_snapshot: vehicleSnapshot,
       ...(pricingItemsSnapshot ? {pricing_items_snapshot:pricingItemsSnapshot} : {}),
       car_class_id: car.id,
       partner_id: car.partner_id,
