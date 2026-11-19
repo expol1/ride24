@@ -943,6 +943,9 @@ const partnerNetPricePerDay = currentPublicPrice * (1 - (discountPerc / 100));
 // Cena dla klienta (Twoje netto + Twoja marża)
 const customerPricePerDay = partnerNetPricePerDay * (1 + (marginPerc / 100));
 
+// Preserve the existing Arvent/local period-price contract and test boundary.
+const baseTotal = car.arvent_period_price?.pickup ?? Number((partnerNetPricePerDay * days).toFixed(2));
+const finalTotal = car.arvent_period_price?.total ?? Number((customerPricePerDay * days).toFixed(2));
 // Caravel: supplier-confirmed complete period totals, with the Ride24 fee only once.
 const caravelGrossMinor = Number(car.features?.caravel_customer_total_minor);
 const caravelNetMinor = Number(car.features?.caravel_partner_total_minor);
@@ -952,9 +955,7 @@ const caravelExact = car.partners?.api_provider === 'caravel'
     && Number.isSafeInteger(caravelNetMinor) && caravelNetMinor > 0
     && Number.isSafeInteger(caravelFeeMinor) && caravelFeeMinor > 0
     && caravelGrossMinor === caravelNetMinor + caravelFeeMinor;
-// Preserve the existing Arvent/local period-price contract and test boundary.
-const baseTotal = car.arvent_period_price?.pickup ?? Number((partnerNetPricePerDay * days).toFixed(2));
-const finalTotal = car.arvent_period_price?.total ?? Number((customerPricePerDay * days).toFixed(2));
+
 const verifiedBaseTotal = caravelExact ? caravelNetMinor / 100 : baseTotal;
 const verifiedFinalTotal = caravelExact ? caravelGrossMinor / 100 : finalTotal;
 const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
