@@ -134,3 +134,91 @@ ofertach; następnie certyfikacja jednej rezerwacji i anulowania.
 **Stan:** kod i obie migracje przygotowane; marketingowo i transakcyjnie
 Arvent pozostaje wyłączony. Nie deklarować ukończenia integracji
 produkcyjnej bez powyższej certyfikacji i wdrożenia Edge.
+
+## Release preparation 19.11.2026 — controlled €10 supplier pilot
+
+**Scope authorized:** Arvent approved the Ride24 Stripe-first process, with
+final confirmation **only after verified Arvent approval**, and permitted
+one live creation and cancellation test. Ride24 owner agreed to conduct
+a real Stripe payment **after** Arvent creates a special €10 live-rate
+offer. No supplier booking or Stripe payment was initiated during
+this technical release work.
+
+**Verified live EUR source:** authenticated GET for AYT, 16–18 February
+2027 at 10:00 returned 78 offers, 55 with valid SIPP; all 78 were
+reported no deposit/no credit-card hold/unlimited KM, `excess="0.00"`
+and a structured `rentalConditions[].conditionName="Full Insurance"`.
+Driving-licence requirements were positive (1–5 years). A token-bound
+`/extras` returned the same Full Insurance and excess data plus
+`extras:null`. `fullCredit=false` is an ambiguous field and is
+**not** equated with absence of vehicle insurance. Temporary live
+authentication/offer/extras responses were deleted from pg_net.
+
+**Code:** merged <https://github.com/expol1/ride24/pull/125> to preserve
+the stronger production Stripe webhook's verified session/amount/customer
+binding in GitHub. Merged
+<https://github.com/expol1/ride24/pull/126> for fail-closed
+`Full Insurance` **and exact zero-excess** checks at search, pricing
+and final token-bound pre-save revalidation. Final PR CI: **320/320**.
+The live Arvent excess is the decimal string `"0.00"`, which the
+strict check explicitly allows; missing/nonzero excess is rejected.
+
+**Supabase Edge, deployed ACTIVE, using exact existing package sources
+with only Arvent insurance contract and necessary esm.sh-to-npm imports
+changed for successful Supabase bundling:**
+- `search-api` v81;
+- `create-booking-request` v38;
+- `create_checkout_session` v91 and alias `create-checkout` v61;
+- `stripe-webhook` v94 (existing live payment-binding guards preserved;
+  shared API payment flow had also been aligned in v93);
+- `api-booking-dispatch` v38;
+- `api-booking-status-sync` v33;
+- `client-cancel-booking` v32;
+- `api-partner-admin` v38 (public certification guard preserved).
+All listed production bundles were accepted by Supabase and expose
+the same current Arvent contract source as `main`. JWT verification
+settings were preserved. `booking-options` did not embed the Arvent
+contract and was not touched, nor were unrelated partners or vouchers.
+
+**Important bundler note:** the first attempt to deploy search-api
+failed because `https://esm.sh/@supabase/supabase-js@2.119.2`
+was unreachable from the remote bundler. The successful packages
+replaced only those import paths with official
+`npm:@supabase/supabase-js@2` **at package construction time**,
+while preserving all other production files and the existing
+`deno.json`. That deployment-time import normalization must be
+maintained or codified for reproducibility. No code secrets were
+printed or stored in GitHub.
+
+**Production state after release preparation:**
+`api_provider=arvent_kolaycar`, `commission=0`,
+`discount_percent=0`, EUR; `api_enabled=false`,
+`api_status=draft`, `api_settings.arvent_certified=false`.
+86 inactive SIPP groups, 8 inactive airports, 0 bookings, 0 quotes.
+Full public launch remains guarded independently from API write
+permission.
+
+**Customer documents:** new v1.4 EN/TR amendments to Rental Terms
+and Customer Rental Policy and v1.2 B2B payment-sequence amendment
+were drafted from the existing original PDFs for partner approval.
+The accepted v1.3 PDFs are **not yet replaced in Supabase Storage**,
+because the draft is not a signed/approved revision. Do not charge a
+pilot customer while contradictory customer terms are presented.
+
+**Remaining steps before one 10 EUR test:** Arvent creates a real
+EUR 10.00 test tariff in the agreed SIPP/location/date window; fetch
+and verify full insurance, zero excess, age/licence tenure, no deposit
+or card, zero undisclosed extras and exact 10.00 total. Finalize the
+customer-facing payment-order amendment and safe **test-only access**
+without public activation. Check disabled production gates
+`ARVENT_KOLAYCAR_WRITE_ALLOWED` and
+`ARVENT_STRIPE_FIRST_APPROVED` via Edge Secrets; enable only in a
+controlled one-booking window after all prerequisites. Verify the
+correct user licence date (and supplier DOB requirement), Stripe PLN
+fee, a single supplier SaveReservation, status 0/1 progression,
+final voucher/email, one cancellation to status 3 and agreed refund.
+No such mutation, full Android APK parity or secret inspection
+was performed in this session.
+
+**Do not set `arvent_certified=true` or globally activate Arvent
+before the controlled pilot completes successfully.**
