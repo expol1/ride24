@@ -1,5 +1,6 @@
 import { aggregatorAvailability, aggregatorQuoteOptions, aggregatorBook, aggregatorStatus } from './renteon-aggregator.ts';
 import { arventSearch, arventCreateBooking, arventBookingStatus } from './arvent-kolaycar.ts';
+import { arventLicenseEligible } from './arvent-driver-eligibility.mjs';
 import { selectedServices, serviceCents } from './provider-services.mjs';
 import { DefiniteApiFailure } from './api-payment-flow.mjs';
 
@@ -120,9 +121,13 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  if(!match)fail(live.some((offer:any)=>offer.external_id===sipp)
    ?'PROVIDER_PRICE_OR_TERMS_CHANGED':'PROVIDER_UNAVAILABLE');
  if(pickup!==dropoff)fail('ARVENT_ONE_WAY_PAYMENT_UNVERIFIED');
- // Ride24 currently stores age only. A supplier licence-tenure requirement
- // cannot be satisfied by inferring years of driving from the driver's age.
- if(match.features?.min_license_years!==0)fail('ARVENT_LICENCE_TENURE_UNVERIFIED');
+ // Supplier requires the actual length of licence tenure. Validate
+ // a first-issued date self-declared by the selected main driver; never
+ // infer tenure from age and never allow a missing/future issue date.
+ const minLicenceYears=match.features?.min_license_years;
+ if(!arventLicenseEligible(booking.main_driver_license_since,
+     booking.start_date,minLicenceYears))
+   fail('ARVENT_LICENCE_TENURE_UNVERIFIED');
  const age=Number(booking.main_driver_age);
  const minAge=match.features?.minimum_driver_age;
  if(!Number.isInteger(age)||age<18
@@ -138,7 +143,8 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
    ride24_booking_id:booking.id,reservation_code:booking.reservation_code,
    vehicle_group_id:sipp,...input,partner_amount:net/100,
    partner_discount_percent:0,provider_quote_data:match.provider_quote_data,
-   main_driver:{name:booking.main_driver_name,age},
+   main_driver:{name:booking.main_driver_name,age,
+     license_first_issued:booking.main_driver_license_since},
    additional_driver:null,
    client_email:booking.client_email,client_phone:booking.client_phone,
  };
