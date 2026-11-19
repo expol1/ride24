@@ -3177,7 +3177,11 @@ document.addEventListener("click", async function(e) {
             await requoteCaravelDrivers();
         };
         addSelect.onchange = async () => {
-            if (select.value === addSelect.value) select.value = "";
+            if (addSelect.value && addSelect.value !== "none" && select.value === addSelect.value) {
+                addSelect.value = "none";
+                window.showToast(isEn ? "Choose a different additional driver." : "Wybierz innego kierowcę dodatkowego.", "error");
+                return;
+            }
             await requoteCaravelDrivers();
         };
 
@@ -3187,6 +3191,9 @@ document.addEventListener("click", async function(e) {
             const price = document.getElementById("bookingPriceBreakdown");
             if(price) price.hidden=true;
             addSelect.disabled=false;
+            // Additional driver must be an individually saved driver profile.
+            // The "Me" option has no driver id and cannot be a second driver.
+            addSelect.querySelectorAll('option[value=""]').forEach(opt => opt.remove());
             addSelect.value="none";
             addSelect.title=isEn
                 ? "Choose a saved additional driver. Ride24 will ask Caravel to re-price before booking."
