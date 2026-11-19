@@ -28,6 +28,9 @@ export async function advanceApiPayment(deps,id) {
     // Lookup is read-only. An empty/unsupported lookup is NOT proof of absence.
     const recovered=await deps.recover(id,w).catch(()=>null);
     if(!recovered)return {state:'unknown'};
+    // Still awaiting Arvent approval: stay flagged instead of bouncing states.
+    if(w.last_error==='ARVENT_APPROVAL_OVERDUE'&&recovered.status==='pending'&&recovered.needs_manual_review!==true)
+      return {state:'unknown'};
     return await acceptResult(recovered,'unknown');
   }
   if(w.state==='provider_pending') {
@@ -36,7 +39,9 @@ export async function advanceApiPayment(deps,id) {
     const overdue=w.prepared_quote?.provider==='arvent_kolaycar'
       && Date.now()-Date.parse(w.paid_at)>=60*60*1000;
     if(overdue) {
-      await move('provider_pending','unknown',{last_error:'PROVIDER_RESPONSE_REQUIRES_REVIEW'});
+      // Flag for review but keep READ-ONLY status reconciliation: supplier
+      // approval can legitimately arrive hours later (status 1) or be cancelled (3).
+      await move('provider_pending','unknown',{last_error:'ARVENT_APPROVAL_OVERDUE'});
       return {state:'unknown'};
     }
     const result=await deps.status(id,w);return await acceptResult(result,'provider_pending');

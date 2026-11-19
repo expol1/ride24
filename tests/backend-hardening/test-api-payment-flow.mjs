@@ -73,8 +73,19 @@ test('Arvent overdue approval enters manual review with original reference and n
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'unknown');
  assert.equal(s.row.provider_reference,'A-1');
- assert.equal(s.row.last_error,'PROVIDER_RESPONSE_REQUIRES_REVIEW');
+ assert.equal(s.row.last_error,'ARVENT_APPROVAL_OVERDUE');
  assert.deepEqual(s.calls,[]);
+});
+
+test('overdue Arvent approval keeps read-only reconciliation: stays flagged while pending, confirms on approval',async()=>{
+ const base={state:'unknown',provider_reference:'A-1',last_error:'ARVENT_APPROVAL_OVERDUE',prepared_quote:{provider:'arvent_kolaycar'}};
+ const waiting=setup({row:base,recovered:{status:'pending',booking_reference:'A-1'}});
+ await advanceApiPayment(waiting.deps,'b');
+ assert.equal(waiting.row.state,'unknown');assert.deepEqual(waiting.calls,['lookup']);
+ const approved=setup({row:base,recovered:{status:'confirmed',booking_reference:'A-1'}});
+ await advanceApiPayment(approved.deps,'b');
+ assert.equal(approved.row.state,'confirmed');assert.deepEqual(approved.calls,['lookup','voucher-email-push']);
+ assert.ok(!approved.calls.includes('create'));
 });
 
 test('definite Arvent failure before save qualifies for full refund, ambiguous transport failure does not',async()=>{

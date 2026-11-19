@@ -123,6 +123,16 @@ function statusEvidence(data:Record<string,unknown>){
   "pickupLocationId","returnLocationId","pickupDate","returnDate"];
  return sanitizePartnerPayload(Object.fromEntries(fields.map(key=>[key,data[key]])),4000);
 }
+// Live Arvent reservation responses (save and GET /reservations, verified
+// 2026-11-19 on 17BFA78FB3F6) do NOT include sippCode. The SIPP group is
+// bound earlier: the reservationToken comes from the exact offer whose SIPP,
+// price and terms were rechecked immediately before SaveReservation. A
+// sippCode that IS returned must still match; only its absence is tolerated.
+function sippConsistent(d:Record<string,unknown>,expected:unknown):boolean {
+ if(typeof expected!=="string"||!/^[A-Z]{4}$/.test(expected))return false;
+ if(d.sippCode===undefined||d.sippCode===null||d.sippCode==="")return true;
+ return typeof d.sippCode==="string"&&d.sippCode.toUpperCase()===expected;
+}
 function confirmedContract(d:Record<string,unknown>,expectedPrice:unknown):boolean {
  const wanted=Number(expectedPrice);
  return Number.isFinite(wanted)&&wanted>0
@@ -152,8 +162,7 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
    pickup_time:booking.pickup_time,return_time:booking.return_time,
   });
  const verified=booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot)
-  &&routeValid===true&&typeof d.sippCode==="string"
-  &&d.sippCode.toUpperCase()===quote?.external_group_id;
+  &&routeValid===true&&sippConsistent(d,quote?.external_group_id);
  // If status is "approved" but supplier price/terms cannot be proved, do
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
@@ -275,7 +284,7 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  // A confirmed status alone does not prove that the booking preserves the
  // no-deposit/no-card/unlimited-km contract and EUR payable amount.
  const termsMismatch=d.agencyReservationReference!==payload.agencyReservationReference
-  ||typeof d.sippCode!=="string"||d.sippCode.toUpperCase()!==input.vehicle_group_id
+  ||!sippConsistent(d,input.vehicle_group_id)
   ||d.currencyCode!=="EUR"||d.depositPrice!==0
   ||d.depositCreditCardRequired!==false||d.totalKMLimit!==0;
  const routeMismatch=!arventSavedRouteMatches(d,input);
