@@ -25,7 +25,7 @@ bezpieczne reguły realizacji płatności.
 
 | Funkcja | Wersja po wdrożeniu | Zakres |
 |---|---:|---|
-| `api-partner-admin` | 36 | Adapter oraz certyfikacja wymagana do publikacji |
+| `api-partner-admin` | 37 | Adapter, certyfikacja wymagana do publikacji i zachowanie wyniku certyfikacji po późniejszym sync |
 | `search-api` | 80 | Znormalizowane oferty i pełna kwota okresu |
 | `create-booking-request` | 37 | Prawo jazdy i zaakceptowana wycena |
 | `create_checkout_session` | 90 | Weryfikacja przed Stripe |
@@ -73,9 +73,9 @@ i zawiera pole `arventLicenseSince` oraz
 
 ### Kontrola kodu
 
-- PR #121, #122 i #123 scalone do `main`.
-- Testy API na ostatnim PR #123: **318/318 przechodzi**:
-  <https://github.com/expol1/ride24/actions/runs/44505699130>.
+- PR #121, #122, #123 i #124 scalone do `main`.
+- Testy API na ostatnim PR #124: **319/319 przechodzi**:
+  <https://github.com/expol1/ride24/actions/runs/44507130013>.
 - Aktywacja administracyjna Arvent wymaga **wszystkich** warunków:
   `ARVENT_KOLAYCAR_WRITE_ALLOWED=true`,
   `ARVENT_STRIPE_FIRST_APPROVED=true`,
@@ -118,9 +118,12 @@ i zawiera pole `arventLicenseSince` oraz
    Zablokować ponawianie supplier POST po niejednoznacznym timeout.
 7. Wyłączyć okno testowe. Po kompletnej certyfikacji i sprawdzeniu
    dokumentów/UI Android ustawić
+   po rzeczywistym sync katalogu ustawić
    `api_settings.arvent_certified=true` świadomą decyzją
-   właściciela; wykonać rzeczywisty sync katalogu oraz
-   dopiero potem administracyjną aktywację publicznej sprzedaży.
+   właściciela; dopiero wtedy administracyjnie aktywować
+   publiczną sprzedaż. Kolejne synchronizacje zachowują
+   certyfikację, ale aktualizacja konfiguracji API może wymagać
+   ponownej weryfikacji.
    Bez tego testu i zgody nie zmieniać `api_enabled=false`.
 
 ## Nadal do zweryfikowania przed pełną publiczną sprzedażą
