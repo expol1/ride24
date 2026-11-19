@@ -4,12 +4,13 @@ import {readFile} from "node:fs/promises";
 import vm from "node:vm";
 import ts from "typescript";
 import * as contract from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
+import * as license from "../../supabase/functions/_shared/arvent-driver-eligibility.mjs";
 
 const source=await readFile(new URL("../../supabase/functions/_shared/arvent-kolaycar.ts",import.meta.url),"utf8");
 const transformed=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
 assert.equal(transformed.diagnostics?.length||0,0,"Arvent adapter must parse as TypeScript");
 
-function setup({allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false}={}){
+function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false}={}){
  const calls=[];
  let cancellationClaimed=false;
  const transport={
@@ -26,10 +27,10 @@ function setup({allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",
    if(path.startsWith("/vehicles?"))return {success:true,resultCode:0,data:[{
     vehicleId:100,vehicleName:"Example Category",sippCode:"CDAR",
     currencyCode:"EUR",isAvailable:true,depositPrice:0,depositCreditCardRequired:false,
-    vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:0,totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
+    vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
    if(path.startsWith("/extras?"))return {success:true,resultCode:0,
     data:{vehicle:{vehicleId:100,sippCode:"CDAR",currencyCode:"EUR",isAvailable:true,
-     depositPrice:0,depositCreditCardRequired:false,vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:0,totalKMLimit:0,
+     depositPrice:0,depositCreditCardRequired:false,vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,
      totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001",
      pickupLocationId:9,returnLocationId:9,
      pickupDateTime:"2030-12-16T10:00:00",returnDateTime:"2030-12-17T10:00:00"},
@@ -68,6 +69,7 @@ function setup({allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",
  const require=name=>name==="./partner-api.ts"?transport:
   name==="./ride24-security.ts"?supabase:
   name==="./arvent-kolaycar-contract.mjs"?contract:
+  name==="./arvent-driver-eligibility.mjs"?license:
   (()=>{throw Error("Unexpected import "+name)})();
  const sandbox={exports:{},require,Deno:{env:{get:key=>allowWrites&&["ARVENT_KOLAYCAR_WRITE_ALLOWED","ARVENT_STRIPE_FIRST_APPROVED"].includes(key)?"true":undefined}},URLSearchParams,URL,console};
  vm.runInNewContext(transformed.outputText,sandbox);
@@ -137,7 +139,7 @@ test("unsupported agency-reference lookup never sends an invented supplier reque
 });
 const syntheticBooking={...input,partner_discount_percent:0,partner_amount:100,
  idempotency_key:"ride24:synthetic",ride24_booking_id:"R24-XYZ",reservation_code:"R24-XYZ",
- vehicle_group_id:"CDAR",main_driver:{name:"Example Customer",age:30},client_email:"example@example.com",
+ vehicle_group_id:"CDAR",main_driver:{name:"Example Customer",age:30,license_first_issued:"2024-01-01"},client_email:"example@example.com",
  client_phone:"000000000",provider_quote_data:{provider:"arvent_kolaycar",vehicle_id:"100",sipp:"CDAR",total_amount:100}};
 test("approved status 1 only clears review after price and contract verification",async()=>{
  const a=setup({allowWrites:true,savedStatus:1});
@@ -244,4 +246,14 @@ test("checkout validates token-bound extras without saving a supplier booking",a
  const a=setup({requiredExtras:[{code:"INS",isRequired:true,price:5}]});
  await assert.rejects(a.arventVerifyCheckout(creds,syntheticBooking),/REQUIRED_EXTRAS/);
  assert.equal(a.calls.some(call=>call.path==="/reservations/save"),false);
+});
+
+test("positive supplier driving-licence tenure is checked before SaveReservation",async()=>{
+ const approved=setup({allowWrites:true,licenseYears:5});
+ await assert.rejects(()=>approved.arventCreateBooking(creds,syntheticBooking),/ARVENT_FAILED_BEFORE_SAVE/);
+ assert.equal(approved.calls.filter(c=>c.path==="/reservations/save").length,0);
+ const eligible=setup({allowWrites:true,licenseYears:2,savedStatus:1});
+ const confirmed=await eligible.arventCreateBooking(creds,syntheticBooking);
+ assert.equal(confirmed.status,"confirmed");
+ assert.equal(eligible.calls.filter(c=>c.path==="/reservations/save").length,1);
 });
