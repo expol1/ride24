@@ -1,4 +1,5 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
+import { arventLicenseYears } from "../_shared/arvent-driver-eligibility.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { apiPaymentEnabled } from "../_shared/api-payment-runtime.ts";
@@ -24,6 +25,7 @@ type BookingBody = {
   return_time?: unknown;
   driver_id?: unknown;
   additional_driver_id?: unknown;
+  main_driver_license_since?: unknown;
   pickup_location?: unknown;
   return_location?: unknown;
   terms_accepted?: unknown;
@@ -1062,6 +1064,19 @@ serve(async (req) => {
       return jsonResponse(req, {code:"DRIVER_AGE_NOT_ALLOWED", error:`Wymagany wiek każdego kierowcy: ${range} lat.`, error_en:`Each driver must meet the age requirement: ${range}.`}, 400);
     }
 
+    // This field is required ONLY for Arvent; existing partners unchanged.
+    // Use the date the main driver FIRST obtained the driving licence.
+    const isArventBooking = car.partner.api_provider === "arvent_kolaycar";
+    const mainDriverLicenseSince = isArventBooking && typeof body.main_driver_license_since === "string"
+      ? body.main_driver_license_since : null;
+    if (isArventBooking && arventLicenseYears(mainDriverLicenseSince,startDate.text) === null) {
+      return jsonResponse(req,{
+        code:"ARVENT_LICENSE_DATE_REQUIRED",
+        error:"Podaj prawidłową datę pierwszego uzyskania prawa jazdy głównego kierowcy.",
+        error_en:"Provide the main driver's original driving licence issue date."
+      },400);
+    }
+
     let baseTotal: number;
     let commission: number;
     let finalTotal: number;
@@ -1382,6 +1397,7 @@ serve(async (req) => {
       client_email: cleanText(user.email, 254),
       main_driver_name: mainDriverName,
       main_driver_age: mainDriverAge,
+      ...(isArventBooking ? { main_driver_license_since: mainDriverLicenseSince } : {}),
       add_driver_name: additionalDriverName,
       add_driver_age: additionalDriverAge,
       driver_id: driverId,
