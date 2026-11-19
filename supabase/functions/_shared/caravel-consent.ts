@@ -102,7 +102,7 @@ export function caravelQuoteFacts(row: unknown, release: CaravelRelease, nowMs =
       Number.isSafeInteger(x.amount_minor) && (x.amount_minor as number) >= 0) &&
     feeItems.reduce((s,x) => s + Number(x!.amount_minor), 0) === bd.mandatory_fees_minor;
   if (rawBreakdown !== undefined && !validBreakdown) return null;
-  if (Number(q.partner_net_total) !== minor!.total / 100) return null;
+  if (Number(q.partner_net_total) !== Number(minor!.total) / 100) return null;
   return {quote: q, data, excludes: excludes as string[], covers: covers as string[], rentalMinor: minor!.total as number,
     breakdown: validBreakdown ? bd : null,
     currency: String(q.currency), feeMajor: fee, driverAge: rec(drivers[0])!.age as number, adminFeeMinor: adminFee};
