@@ -55,9 +55,10 @@ export async function searchCaravelOffers(args: {
 }): Promise<{offers: CaravelSearchOffer[]; rejected: Record<string, number>}> {
   const rejected: Record<string, number> = {};
   const bump = (k: string) => { rejected[k] = (rejected[k] ?? 0) + 1; };
-  if (!args.release.open) return {offers: [], rejected: {CARAVEL_RELEASE_CLOSED: 1}};
+  const release = args.release;
+  if (!release.open) return {offers: [], rejected: {CARAVEL_RELEASE_CLOSED: 1}};
   if (args.client.environment !== "production") return {offers: [], rejected: {CARAVEL_PRODUCTION_ONLY: 1}};
-  const supplierId = args.release.terms.supplierId;
+  const supplierId = release.terms.supplierId;
   const locations = (await args.client.locations(200, supplierId)).data as Rec[];
   const tz = (id: string) => {
     const l = locations.find((x) => x.location_id === id);
@@ -67,6 +68,8 @@ export async function searchCaravelOffers(args: {
   const pickupAt = ptz ? caravelLocalInstant(args.pickupDate, args.pickupTime, ptz) : null;
   const dropoffAt = dtz ? caravelLocalInstant(args.returnDate, args.returnTime, dtz) : null;
   if (!pickupAt || !dropoffAt) return {offers: [], rejected: {CARAVEL_LOCATION_TIMEZONE_UNKNOWN: 1}};
+  // The stable aliases retain the validated string types in async quote tasks.
+  const verifiedPickupAt: string = pickupAt, verifiedDropoffAt: string = dropoffAt;
   const rows = (await args.client.availability({pickup_location_id: args.pickup.external_id,
     dropoff_location_id: args.dropoff.external_id, pickup: pickupAt, dropoff: dropoffAt,
     driver_age: args.driverAge, currency: args.currency}, supplierId)).data as Rec[];
@@ -98,7 +101,7 @@ export async function searchCaravelOffers(args: {
     if (row.plan !== "premium" || !vehicleId) { bump("NOT_PREMIUM_ROW"); continue; }
     const klass = classes.get(vehicleId);
     if (!klass || klass.active === false) { bump("CATEGORY_NOT_SYNCED"); continue; }
-    const pick = selectCaravelPremiumProtection(row, args.release.review);
+    const pick = selectCaravelPremiumProtection(row, release.review);
     if (!pick) { bump("PREMIUM_POLICY_NOT_MET"); continue; }
     if (!groups.has(vehicleId)) groups.set(vehicleId, {vehicleId, classId: klass.id, protections: []});
     groups.get(vehicleId)!.protections.push(pick.protection as Rec);
@@ -110,23 +113,23 @@ export async function searchCaravelOffers(args: {
         admin: args.admin, client: quoteClient,
         idempotencyKey: (args.idempotencyKey ?? (() => crypto.randomUUID()))(), supplierId,
         carClassId: group.classId, pickupLocationId: args.pickup.id, dropoffLocationId: args.dropoff.id,
-        quoteRequest: {pickup: {location_id: args.pickup.external_id, at: pickupAt},
-          dropoff: {location_id: args.dropoff.external_id, at: dropoffAt}, vehicle_id: group.vehicleId,
+        quoteRequest: {pickup: {location_id: args.pickup.external_id, at: verifiedPickupAt},
+          dropoff: {location_id: args.dropoff.external_id, at: verifiedDropoffAt}, vehicle_id: group.vehicleId,
           protection_id: String(protection.protection_id), plan: "premium", currency: args.currency,
           drivers: [{age: args.driverAge, role: "main"}], extras: []},
         startDate: args.pickupDate, endDate: args.returnDate, pickupLocalTime: args.pickupTime,
         dropoffLocalTime: args.returnTime, rentalDays: args.days, nowEpochMs: args.nowMs ?? Date.now(),
-        reviewedTerms: args.release.snapshot, canonicalHashIndependentlyVerified: true, protection,
-        approvedExclusions: args.release.review, allowProductionQuoteIssuance: true,
+        reviewedTerms: release.snapshot, canonicalHashIndependentlyVerified: true, protection,
+        approvedExclusions: release.review, allowProductionQuoteIssuance: true,
       });
-      if (!result.ok) { bump(String(result.reason ?? "QUOTE_REJECTED")); continue; }
+      if (!result.ok) { bump(String((result as Rec).reason ?? "QUOTE_REJECTED")); continue; }
       const ex = Array.isArray(protection.excludes) ? protection.excludes as string[] : [];
       return {carClassId: group.classId, apiQuoteId: result.apiQuoteId, vehicleId: group.vehicleId,
         supplierQuoteId: result.providerQuoteId, expiresAt: result.expiresAt,
         rentalMinor: result.partnerPayableMinor, feeMinor: result.ride24ReservationFeeMinor,
         customerMinor: result.customerTotalMinor, currency: args.currency, excludes: [...ex],
         covers: Array.isArray(protection.covers) ? [...protection.covers as string[]] : [],
-        adminFeeMinor: ex.length ? args.release.review.damageAdministrationFeeMinor : null};
+        adminFeeMinor: ex.length ? release.review.damageAdministrationFeeMinor : null};
     }
     return null;
   }
