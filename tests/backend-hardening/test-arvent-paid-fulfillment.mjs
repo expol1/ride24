@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import ts from 'typescript';
 import * as services from '../../supabase/functions/_shared/provider-services.mjs';
 import * as flow from '../../supabase/functions/_shared/api-payment-flow.mjs';
+import * as license from '../../supabase/functions/_shared/arvent-driver-eligibility.mjs';
 
 const source=await readFile(new URL('../../supabase/functions/_shared/api-provider-fulfillment.ts',import.meta.url),'utf8');
 const result=ts.transpileModule(source,{compilerOptions:{
@@ -17,7 +18,7 @@ function fixture(change=()=>{},flags={}){
   partner_terms_snapshot:'terms',partner_rules_snapshot:'rules',
   partners:{api_provider:'arvent_kolaycar',rental_terms_url:'terms',rental_rules_url:'rules'},
   start_date:'2027-02-16',end_date:'2027-02-18',pickup_time:'10:00:00',return_time:'10:00:00',
-  main_driver_name:'Example Customer',main_driver_age:30,add_driver_name:null,
+  main_driver_name:'Example Customer',main_driver_age:30,main_driver_license_since:'2024-01-01',add_driver_name:null,
   client_email:'example@example.invalid',client_phone:'+48000000000'};
  const provider_quote_data={provider:'arvent_kolaycar',vehicle_id:'10',sipp:'CDAR',
   total_amount:100,pickup_location_id:'12',dropoff_location_id:'12'};
@@ -47,6 +48,7 @@ function fixture(change=()=>{},flags={}){
   aggregatorStatus:async()=>{throw Error('Wrong provider routing')}
  };
  const require=n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow
+  :n.includes('arvent-driver-eligibility')?license
   :n.includes('arvent-kolaycar')?arvent:n.includes('renteon-aggregator')?renteon
   :(()=>{throw Error('Unexpected import: '+n)})();
  const sandbox={exports:{},require,console,
@@ -91,7 +93,9 @@ test('new supplier price, category, deposit, driver or documents reject before c
   group:s=>s.fresh.external_id='MDAR',
   deposit:s=>s.fresh.deposit_amount=250,
   currency:s=>s.fresh.currency='TRY',
-  licence:s=>s.fresh.features.min_license_years=2,
+  licence:s=>s.fresh.features.min_license_years=4,
+  missing_licence:s=>delete s.booking.main_driver_license_since,
+  forged_future_licence:s=>s.booking.main_driver_license_since='2030-01-01',
   unknown_age:s=>delete s.fresh.features.minimum_driver_age,
   age:s=>s.booking.main_driver_age=19,
   docs:s=>s.booking.partners.rental_rules_url='different',
@@ -182,4 +186,11 @@ test('checkout handler admits a validated Arvent quote without a Renteon calcula
   assert.equal(res.status,verified?200:409);
   assert.deepEqual(calls,verified?['revalidate','extras','stripe']:['revalidate','extras']);
  }
+});
+
+test('Arvent supplier licence tenure of two years permits a duly eligible driver',async()=>{
+ const f=fixture(s=>{s.fresh.features.min_license_years=2},approved);
+ const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
+ assert.equal(prepared.main_driver.license_first_issued,'2024-01-01');
+ assert.equal(prepared.partner_amount,100);
 });

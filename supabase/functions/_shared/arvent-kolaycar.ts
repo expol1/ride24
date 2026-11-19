@@ -1,3 +1,4 @@
+import { arventLicenseEligible } from "./arvent-driver-eligibility.mjs";
 import { partnerApiRequest, sanitizePartnerPayload, type PartnerApiCredentials, type ApiLocation, type ApiVehicleGroup } from "./partner-api.ts";
 import { serviceClient } from "./ride24-security.ts";
 import {
@@ -12,7 +13,7 @@ type SearchInput={
 };
 type BookingInput=SearchInput&{
  idempotency_key:string;ride24_booking_id:string;reservation_code?:string|null;
- vehicle_group_id:string|null;main_driver?:{name?:string|null;age?:number|null}|null;
+ vehicle_group_id:string|null;main_driver?:{name?:string|null;age?:number|null;license_first_issued?:string|null}|null;
  client_email?:string|null;client_phone?:string|null;
  partner_discount_percent?:number|null;partner_amount?:number|null;
  provider_quote_data?:unknown;
@@ -226,7 +227,8 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
  const age=input.main_driver.age;
  for(const vehicle of [current,pricedVehicle]){
-  if(vehicle.vendorMinimumDrivingLicenseAge!==0
+  if(!arventLicenseEligible(input.main_driver?.license_first_issued,
+       input.pickup_date,vehicle.vendorMinimumDrivingLicenseAge)
     ||!Number.isInteger(vehicle.vendorMinimumDriverAge)||vehicle.vendorMinimumDriverAge<18
     ||typeof age!=="number"||!Number.isInteger(age)||age<vehicle.vendorMinimumDriverAge)
    throw Error("PARTNER_API_ERROR:ARVENT_DRIVER_ELIGIBILITY_UNVERIFIED");
