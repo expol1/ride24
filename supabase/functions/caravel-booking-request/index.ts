@@ -27,6 +27,7 @@ serve(async (req) => {
         return requoteCaravelForDriverAge({admin, client, release, quoteRow, driverAge, selectedExtras});
       },
       extrasCatalog: async (release) => {
+        if(!release.open)throw new Error("CARAVEL_RELEASE_CLOSED");
         const client=caravelProductionReadClient(await loadPartnerCredentials(admin,CARAVEL_PARTNER_ID));
         const response=await client.reference("extras",release.terms.supplierId);
         return caravelSafeExtraCatalog(response.data,release.terms.supplierId,"EUR");
