@@ -13,8 +13,8 @@ const P = (t, mark) => [mark ? {text: t, mark} : {text: t}];
 export const body = () => ({title: "Caravel Rental Terms", language: "en", clauses: [
   {number: "4", heading: "Driving licence", paragraphs: [P("A licence issued in the EU/EEA is accepted.")]},
   {number: "5", heading: "Protection packages", paragraphs: [], clauses: [
-    {number: "5.2", heading: "Premium", paragraphs: [P("Deposit 0, excess 0. The damage administration fee in 7.1 still applies.")]},
-    {number: "5.3", heading: "Medium", paragraphs: [P("The damage administration fee in 7.1 still applies.")]},
+    {number: "5.3", heading: "Premium", paragraphs: [P("Deposit 0, excess 0. The damage administration fee in 7.1 still applies.")]},
+    {number: "5.2", heading: "Medium", paragraphs: [P("The damage administration fee in 7.1 still applies.")]},
     {number: "5.4", heading: "What CDW / Super CDW does NOT cover (all packages)",
       paragraphs: [P("Premium excludes glass, tyres and wheels and undercarriage, mirrors, interior, roof, keys. Ferry and cross-border travel are not permitted.")]}]},
   {number: "7", heading: "Charges", paragraphs: [], clauses: [
@@ -30,7 +30,7 @@ export async function termsRow(patch = {}) {
     format: "clauses/v1", content_hash: await computeCaravelTermsContentHash(b), published_at: "2026-11-17T10:00:00Z", body: b,
     documented_excluded_codes: ["glass", "tyres_and_wheels", "undercarriage"], damage_admin_fee_minor: 10000,
     damage_admin_fee_currency: "EUR", exclusion_clause_refs: ["5.4"], admin_fee_clause_ref: "7.1",
-    key_clause_refs: {no_card: "17", post_return: "27.1", fines: "7.4", cancellation: "13", premium_package: "5.2"},
+    key_clause_refs: {no_card: "17", post_return: "27.1", fines: "7.4", cancellation: "13", premium_package: "5.3"},
     no_card_required: true, free_cancellation_until_pickup: true,
     approved_by: "ride24-operator", approved_at: "2026-12-01T09:00:00Z", ...patch};
 }
