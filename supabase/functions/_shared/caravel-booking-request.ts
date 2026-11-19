@@ -30,7 +30,8 @@ export type CaravelRequestDeps = {
   exchangeRate: (currency: string) => Promise<number>;
   release?: CaravelRelease; nowMs?: number;
   /** Re-issue the same selection for another main-driver age (production client). */
-  requote?: (quoteRow: Rec, driverAge: number, release: CaravelRelease, selections?:CaravelExtraChoice[]) => Promise<{ok: true; apiQuoteId: string} | {ok: false; reason: string}>;
+  requote?: (quoteRow: Rec, driverAge: number, release: CaravelRelease, selections?:CaravelExtraChoice[],
+    additionalDriverAge?:number|null) => Promise<{ok: true; apiQuoteId: string} | {ok: false; reason: string}>;
   /** Authenticated read-only supplier catalog; caller verifies supplier identity. */
   extrasCatalog?: (release:CaravelRelease) => Promise<{catalog:CaravelExtra[];unavailable:Array<{name:string;reason:string}>}>;
 };
@@ -84,7 +85,7 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
   const body = rec(input);
   const action = body?.action;
   const lang = body?.lang === "en" ? "en" : "pl";
-  if (!body || !["consent-view","book","extras-catalog","extras-requote"].includes(String(action))) return out(400, {code: "BAD_REQUEST"});
+  if (!body || !["consent-view","book","extras-catalog","extras-requote","drivers-requote"].includes(String(action))) return out(400, {code: "BAD_REQUEST"});
   const release = deps.release ?? await loadCaravelRelease(deps.admin);
   if ("reason" in release) return out(409, {code: "CARAVEL_CERTIFICATION_PENDING", reason: release.reason,
     error: "Oferty Caravel są chwilowo niedostępne. Wybierz inną ofertę.", error_en: "Caravel reservations are not yet available."});
@@ -114,7 +115,7 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
     if(!choices || !deps.requote) return out(400,{code:"CARAVEL_EXTRA_SELECTION_INVALID"});
     const facts=caravelQuoteFacts(quote,release,now);
     if(!facts)return out(409,{code:"CARAVEL_QUOTE_EXPIRED"});
-    const response=await deps.requote(quote as Rec,facts.driverAge,release,choices);
+    const response=await deps.requote(quote as Rec,facts.driverAge,release,choices,facts.additionalDriverAge);
     const next=response.ok ? await loadQuote(deps.admin,response.apiQuoteId):null;
     const view=next?buildCaravelConsentView(next,release,lang,now):null;
     const priced=view?await withPlnPreview(view,deps):null;
@@ -126,34 +127,61 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
         error_en:"Caravel could not confirm your extras and price. No extras were added."});
   }
 
-  // --- book ---
+  // --- driver selection / booking ---
+  // Resolve every driver against the authenticated user's saved records.
+  // A second driver must have a valid original licence date; never pass just
+  // a priced toggle to the supplier without a real person.
   const {data: profile} = await deps.admin.from("profiles").select("name,phone,age").eq("id", deps.userId).maybeSingle();
-  let name = clean(rec(profile)?.name, 120), age = Number(rec(profile)?.age);
-  const phone = clean(rec(profile)?.phone, 80), email = clean(deps.userEmail, 254);
-  if (body.additional_driver_id) return out(400, {code: "CARAVEL_ADDITIONAL_DRIVER_UNSUPPORTED",
-    error: "Dodatkowy kierowca nie jest jeszcze obsługiwany dla Caravel.", error_en: "Additional drivers are not yet supported for Caravel."});
-  if (body.driver_id != null && body.driver_id !== "") {
-    if (typeof body.driver_id !== "string" || !UUID.test(body.driver_id)) return out(400, {code: "INVALID_DRIVER"});
-    const {data: d} = await deps.admin.from("drivers").select("id,user_id,name,age").eq("id", body.driver_id).maybeSingle();
-    if (!rec(d) || rec(d)!.user_id !== deps.userId) return out(403, {code: "INVALID_DRIVER"});
-    name = clean(rec(d)!.name, 120); age = Number(rec(d)!.age);
+  let name = clean(rec(profile)?.name,120), age = Number(rec(profile)?.age);
+  const phone = clean(rec(profile)?.phone,80), email = clean(deps.userEmail,254);
+  const mainId = body.driver_id == null || body.driver_id === "" ? null : body.driver_id;
+  const additionalId = body.additional_driver_id == null || body.additional_driver_id === "" ? null : body.additional_driver_id;
+  if (mainId && (typeof mainId !== "string" || !UUID.test(mainId))) return out(400,{code:"INVALID_DRIVER"});
+  if (additionalId && (typeof additionalId !== "string" || !UUID.test(additionalId) || additionalId===mainId))
+    return out(400,{code:"INVALID_ADDITIONAL_DRIVER"});
+  if (mainId) {
+    const {data: d} = await deps.admin.from("drivers").select("id,user_id,name,age").eq("id",mainId).maybeSingle();
+    if (!rec(d) || rec(d)!.user_id!==deps.userId) return out(403,{code:"INVALID_DRIVER"});
+    name=clean(rec(d)!.name,120);age=Number(rec(d)!.age);
   }
-  if (!name || !phone || !email || !Number.isInteger(age)) return out(400, {code: "PROFILE_INCOMPLETE",
-    error: "Uzupełnij profil przed rezerwacją", error_en: "Complete your profile before booking"});
-  const facts = caravelQuoteFacts(quote, release, now)!;
-  if (age !== facts.driverAge) {
-    // Caravel prices the driver's age band: never book on another age's price.
-    const again = deps.requote && Number.isInteger(age) && age >= 18 && age <= 90
-      ? await deps.requote(quote as Rec, age, release) : null;
-    const fresh = again && again.ok ? await loadQuote(deps.admin, again.apiQuoteId) : null;
-    const view = fresh ? buildCaravelConsentView(fresh, release, lang, now) : null;
-    const priced = view ? await withPlnPreview(view, deps) : null;
-    return out(409, priced ? {code: "CARAVEL_REQUOTED_FOR_DRIVER_AGE", api_quote_id: priced.api_quote_id, consent: priced,
-        error: "Cena została przeliczona dla wieku kierowcy. Sprawdź nową cenę i warunki, a następnie potwierdź ponownie.",
-        error_en: "The price was recalculated for the driver's age. Review the new price and terms, then confirm again."}
-      : {code: "CARAVEL_DRIVER_AGE_NOT_OFFERED", error: "Ta oferta nie jest dostępna dla wieku tego kierowcy.",
-        error_en: "This offer is not available for this driver's age."});
+  let additional: {id:string;name:string;age:number;licenseSince:string}|null = null;
+  if (additionalId) {
+    const {data:d}=await deps.admin.from("drivers").select("id,user_id,name,age,license_since")
+      .eq("id",additionalId).maybeSingle();
+    const row=rec(d), name2=clean(row?.name,120), age2=Number(row?.age);
+    const licence=typeof row?.license_since==="string"?row.license_since:"";
+    if(!row||row.user_id!==deps.userId||!name2||name2.split(/\s+/).length<2||
+        !Number.isInteger(age2)||age2<18||age2>90||!/^\d{4}-\d{2}-\d{2}$/.test(licence)||
+        licence>String(quote.start_date))
+      return out(400,{code:"CARAVEL_ADDITIONAL_DRIVER_INVALID",
+        error:"Uzupełnij dane i datę pierwszego uzyskania prawa jazdy dodatkowego kierowcy w Profilu.",
+        error_en:"Complete the additional driver's name, age and first driving licence date in Profile."});
+    additional={id:additionalId as string,name:name2,age:age2,licenseSince:licence};
   }
+  if(!name||name.split(/\s+/).length<2||!phone||!email||!Number.isInteger(age)||age<18||age>90)
+    return out(400,{code:"PROFILE_INCOMPLETE",
+      error:"Uzupełnij profil głównego kierowcy przed rezerwacją",
+      error_en:"Complete the main driver's profile before booking"});
+  const facts=caravelQuoteFacts(quote,release,now)!;
+  if (action==="drivers-requote" || age!==facts.driverAge ||
+      (additional?.age??null)!==facts.additionalDriverAge) {
+    const again=deps.requote ? await deps.requote(quote as Rec,age,release,undefined,additional?.age??null) : null;
+    const fresh=again?.ok ? await loadQuote(deps.admin,again.apiQuoteId) : null;
+    const view=fresh ? buildCaravelConsentView(fresh,release,lang,now) : null;
+    const priced=view ? await withPlnPreview(view,deps) : null;
+    if(!priced) return out(409,{code:"CARAVEL_DRIVER_QUOTE_UNAVAILABLE",
+      error:"Nie udało się potwierdzić wyceny dla wybranych kierowców u Caravel. Rezerwacja nie została utworzona.",
+      error_en:"Caravel could not confirm the selected drivers' price. No booking was created."});
+    return out(action==="drivers-requote"?200:409,{
+      success:action==="drivers-requote",code:"CARAVEL_REQUOTED_FOR_DRIVERS",
+      api_quote_id:priced.api_quote_id,consent:priced,
+      error:"Zmieniono kierowców i przeliczono cenę. Sprawdź i zaakceptuj nowe podsumowanie.",
+      error_en:"Driver selection and price changed. Review and accept the new summary."});
+  }
+  // A quote for two drivers cannot be booked without the second person's data.
+  if (facts.additionalDriverAge !== (additional?.age??null))
+    return out(409,{code:"CARAVEL_ADDITIONAL_DRIVER_MISMATCH"});
+
   const ctxRaw = rec(rec(quote.raw_response)?.ride24_context);
   const pickupTime = clean(ctxRaw?.pickup_time, 8), returnTime = clean(ctxRaw?.return_time, 8);
   const locs = await deps.admin.from("partner_locations").select("id,external_id,location_name,active,is_api_managed")
@@ -171,7 +199,7 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
     clientId: deps.userId, clientEmail: email, clientPhone: phone, mainDriverName: name, mainDriverAge: age,
     pickupLocationId: String(pick.id), dropoffLocationId: String(drop.id),
     pickupLocationName: String(pick.location_name), returnLocationName: String(drop.location_name),
-    pickupTime, returnTime, exchangeRate: rate}, now);
+    pickupTime, returnTime, exchangeRate: rate, additionalDriver:additional}, now);
   if ("code" in built) {
     const msg: Record<string, [string, string]> = {
       CARAVEL_TERMS_CONSENT_STALE_OR_MISSING: ["Regulamin lub warunki ochrony zmieniły się albo nie zostały zaakceptowane. Przeczytaj je ponownie.",
