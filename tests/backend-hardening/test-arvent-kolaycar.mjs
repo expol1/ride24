@@ -259,3 +259,13 @@ test("Arvent insurance is verified ONLY by returned Full Insurance condition and
  assert.equal(selected.features.insurance_unverified,false);
  assert.equal(selected.features.insurance_excess_eur,0);
 });
+test("optional partner supplier note is forwarded as a single-line customer note only",()=>{
+ const base={reservationToken:"00000000-0000-4000-8000-000000000001",reference:"R24-1",
+  customer:{name:"A",surname:"B",email:"a@example.invalid",phoneNumber:"+48000"}};
+ assert.equal(arventSavePayload(base).customer.note,"");
+ const noted=arventSavePayload({...base,customer:{...base.customer,note:"TEST \u2013 Do not process.\nCancelled by the company."}});
+ assert.equal(noted.customer.note,"TEST \u2013 Do not process. Cancelled by the company.");
+ assert.equal(arventSavePayload({...base,customer:{...base.customer,note:"x".repeat(400)}}).customer.note.length,250);
+ assert.equal(noted.pricing.paidAmount,0);
+ assert.equal(noted.payment.paymentType,3);
+});

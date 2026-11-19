@@ -147,6 +147,9 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
      license_first_issued:booking.main_driver_license_since},
    additional_driver:null,
    client_email:booking.client_email,client_phone:booking.client_phone,
+   // Partner-level operational note forwarded to Arvent's reservation note.
+   supplier_note:typeof booking.partners?.api_settings?.supplier_booking_note==='string'
+     ?booking.partners.api_settings.supplier_booking_note.slice(0,250):'',
  };
 }
 export async function createPaidProvider(credentials:any,input:any) {
