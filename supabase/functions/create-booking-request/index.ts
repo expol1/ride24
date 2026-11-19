@@ -888,7 +888,7 @@ serve(async (req) => {
 
     const { data: rawProfile, error: profileError } = await admin
       .from("profiles")
-      .select("name, phone, age")
+      .select("name, phone, age, license_since")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -898,6 +898,10 @@ serve(async (req) => {
       MAX_DRIVER_NAME_LENGTH,
     );
     const profilePhone = cleanText(profile?.phone, 80);
+    // Licence date saved in the client's profile/driver list. Used only when
+    // the client (e.g. an Android build without the field) does not send one.
+    let savedMainDriverLicenseSince: string | null = typeof profile?.license_since === "string"
+      ? profile.license_since : null;
     const profileAge = finiteNumber(profile?.age);
 
     if (
@@ -998,7 +1002,7 @@ serve(async (req) => {
     if (driverIds.length > 0) {
       const { data: rawDrivers, error: driversError } = await admin
         .from("drivers")
-        .select("id, user_id, name, age")
+        .select("id, user_id, name, age, license_since")
         .in("id", driverIds);
 
       const drivers = (rawDrivers || [])
@@ -1038,6 +1042,8 @@ serve(async (req) => {
         }
         mainDriverName = name;
         mainDriverAge = age;
+        savedMainDriverLicenseSince = typeof mainDriver.license_since === "string"
+          ? mainDriver.license_since : null;
       }
 
       if (additionalDriver) {
@@ -1067,8 +1073,9 @@ serve(async (req) => {
     // This field is required ONLY for Arvent; existing partners unchanged.
     // Use the date the main driver FIRST obtained the driving licence.
     const isArventBooking = car.partner.api_provider === "arvent_kolaycar";
-    const mainDriverLicenseSince = isArventBooking && typeof body.main_driver_license_since === "string"
-      ? body.main_driver_license_since : null;
+    const mainDriverLicenseSince = !isArventBooking ? null
+      : typeof body.main_driver_license_since === "string" && body.main_driver_license_since
+      ? body.main_driver_license_since : savedMainDriverLicenseSince;
     if (isArventBooking && arventLicenseYears(mainDriverLicenseSince,startDate.text) === null) {
       return jsonResponse(req,{
         code:"ARVENT_LICENSE_DATE_REQUIRED",

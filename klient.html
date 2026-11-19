@@ -1973,6 +1973,11 @@ async>
                                 </div>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
+                                <label for="profile-license-since" data-pl="Data pierwszego uzyskania prawa jazdy" data-en="Date you first obtained your driving licence">Data pierwszego uzyskania prawa jazdy</label>
+                                <input type="date" id="profile-license-since" value="" autocomplete="off">
+                                <small data-pl="Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni." data-en="The original entitlement date, not the date your current card was printed. Required by some rental companies.">Data pierwszego uzyskania uprawnień (nie data wydania obecnego dokumentu). Wymagana przez część wypożyczalni.</small>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
                                 <label data-pl="Kraj zamieszkania" data-en="Country">Kraj zamieszkania</label>
                                 <input type="text" id="profile-country" value="PL" placeholder="PL" data-pl="PL" data-en="UK">
                             </div>
@@ -2885,7 +2890,7 @@ document.addEventListener("click", async function(e) {
 
         const { data: profileCheck } = await db
             .from("profiles")
-            .select("name, phone, age")
+            .select("name, phone, age, license_since")
             .eq("id", currentUser.id)
             .maybeSingle();
 
@@ -2917,8 +2922,18 @@ document.addEventListener("click", async function(e) {
         select.innerHTML = optionsHtml;
         addSelect.innerHTML = `<option value="none" data-pl="Brak" data-en="None">${isEn ? "None" : "Brak"}</option>` + optionsHtml;
 
+        // Prefill the licence date saved for the selected main driver (still editable).
+        const prefillLicense = () => {
+            const input = document.getElementById("arventLicenseSince");
+            if (!input) return;
+            const chosen = select.value ? (myDrivers || []).find(d => d.id === select.value) : null;
+            input.value = window.ride24LicenseDate(chosen ? chosen.license_since : profileCheck.license_since) || "";
+        };
+        prefillLicense();
+
         select.onchange = () => {
             if (select.value === addSelect.value) addSelect.value = "none";
+            prefillLicense();
             bookingExtras.refresh();
         };
 
@@ -3824,6 +3839,7 @@ function calculateRefundPercent(pickupDate) {
                 if(document.getElementById("profile-name")) document.getElementById("profile-name").value = profile.name || "";
                 if(document.getElementById("profile-age")) document.getElementById("profile-age").value = profile.age || "";
                 if(document.getElementById("profile-phone")) document.getElementById("profile-phone").value = profile.phone || "";
+                if(document.getElementById("profile-license-since")) document.getElementById("profile-license-since").value = profile.license_since || "";
                 // 🔥 FIX: Domyślnie ładuje "PL" jeśli baza zwróci null
                 if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "PL";
 
@@ -3848,7 +3864,7 @@ function calculateRefundPercent(pickupDate) {
                 list.innerHTML = "";
                 if(driversData && driversData.length > 0) {
                     driversData.forEach(driver => {
-                        window.addDriverRow(driver.name, driver.age, driver.phone, driver.id);
+                        window.addDriverRow(driver.name, driver.age, driver.phone, driver.id, driver.license_since || "");
 
                     });
                 }
@@ -4027,6 +4043,16 @@ function calculateRefundPercent(pickupDate) {
         }
 
 
+        // Original driving-licence date: YYYY-MM-DD, not in the future, after 1900.
+        window.ride24LicenseDate = function(value) {
+            const v = typeof value === "string" ? value.trim() : "";
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+            const t = Date.parse(v + "T00:00:00Z");
+            if (!Number.isFinite(t) || new Date(t).toISOString().slice(0, 10) !== v) return null;
+            if (v < "1900-01-01" || v > new Date().toISOString().slice(0, 10)) return null;
+            return v;
+        };
+
         window.saveProfile = async function() {
             if(!db || !currentUser) {
                 window.showToast(localStorage.getItem("client_lang") === "en" ? "Please log in first!" : "Zaloguj się najpierw!", "error");
@@ -4040,7 +4066,13 @@ function calculateRefundPercent(pickupDate) {
                 age_updated_at: new Date().toISOString().split('T')[0],
                 phone: document.getElementById("profile-phone").value,
                 country: document.getElementById("profile-country").value,
+                license_since: window.ride24LicenseDate(document.getElementById("profile-license-since")?.value),
             };
+            if (document.getElementById("profile-license-since")?.value && !profileData.license_since) {
+                const isEn = localStorage.getItem("client_lang") === "en";
+                window.showToast(isEn ? "Enter a valid driving licence date (not in the future)." : "Podaj prawidłową datę prawa jazdy (nie z przyszłości).", "error");
+                return;
+            }
 
             const { error } = await db.from("profiles").upsert(profileData);
             if(error) {
@@ -4058,7 +4090,7 @@ function calculateRefundPercent(pickupDate) {
             }
         }
 
-        window.addDriverRow = function(name = "", age = "", phone = "", driverId = "") {
+        window.addDriverRow = function(name = "", age = "", phone = "", driverId = "", licenseSince = "") {
             const list = document.getElementById('drivers-list');
             const row = document.createElement('div');
             row.className = 'driver-row driver-entry';
@@ -4075,6 +4107,10 @@ function calculateRefundPercent(pickupDate) {
                 <div class="form-group" style="margin-bottom: 0;">
                     <label data-pl="Telefon" data-en="Phone">Telefon</label>
                     <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label data-pl="Prawo jazdy od" data-en="Licence since">Prawo jazdy od</label>
+                    <input type="date" class="driver-license-since" value="${window.ride24LicenseDate(licenseSince) || ""}">
                 </div>
                 <button type="button" class="btn-icon-remove" onclick="removeDriver(this, '${driverId}')" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
             `;
@@ -4107,13 +4143,15 @@ function calculateRefundPercent(pickupDate) {
                     const name = row.querySelector(".driver-name").value;
                     const age = row.querySelector(".driver-age").value;
                     const phone = row.querySelector(".driver-phone").value;
+                    const licenseSince = window.ride24LicenseDate(row.querySelector(".driver-license-since")?.value);
                     if(name) {
                         newDrivers.push({
                             user_id: currentUser.id,
                             name: name,
                             age: age ? parseInt(age) : null,
                             age_updated_at: new Date().toISOString().split('T')[0], // 🔥 Stempel dla kierowcy
-                            phone: phone
+                            phone: phone,
+                            license_since: licenseSince
                         });
                     }
                 });
