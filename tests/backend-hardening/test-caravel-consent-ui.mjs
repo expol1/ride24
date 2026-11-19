@@ -56,7 +56,7 @@ test('Caravel: server terms + exclusions shown, both confirmations required, ech
   assert.ok(disclosures.every(section => !section.open), 'lengthy legal text must be collapsed by default');
   assert.match(disclosures[0].querySelector('summary').textContent, /Otwórz regulamin Caravel/);
   assert.match(disclosures[1].querySelector('summary').textContent, /Ochrona, wyłączenia i opłaty/);
-  assert.match(box.querySelector('strong').textContent, /przeczytaj przed zaznaczeniem zgód/);
+  assert.match(box.querySelector('.caravel-legal-heading').textContent, /Warunki wynajmu Caravel/);
   assert.match(box.textContent, /Pakiet Premium w cenie/);
   assert.match(box.textContent, /szyby, opony i koła, podwozie/);
   assert.match(box.textContent, /100\.00 EUR/);
@@ -75,7 +75,8 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
  const v=await view();
  v.money.breakdown={rental_base:'100.00 EUR',fee_total:'50.00 EUR',partner_total:'150.00 EUR',
   fees:[
-   {type:'young_driver',label:'Młody kierowca',original_label:'Young driver 3 days',amount:'33.00 EUR'},
+   {type:'airport_tax',label:'Airport TAX',amount:'0.00 EUR'},
+    {type:'young_driver',label:'Młody kierowca',original_label:'Young driver 3 days',amount:'33.00 EUR'},
    {type:'one_way',label:'Zwrot w innym punkcie',original_label:'One-way return',amount:'17.00 EUR'},
   ]};
  const {w}=await page([{status:200,body:{success:true,consent:v}}]);
@@ -84,11 +85,16 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
  const b=doc.getElementById('caravelConsent');
  const s=b.querySelector('section[aria-label="Rozliczenie Caravel"]');
  assert.ok(s,'visible summary must not be hidden in legal details');
- assert.match(s.textContent,/Wynajem z pakietem Premium.*100\.00 EUR/);
+  assert.equal(s.querySelector('h4').textContent, 'Podsumowanie ceny');
+  assert.equal(s.classList.contains('booking-price-breakdown'), true, 'Caravel must use the same layout class as AVIA');
+  assert.doesNotMatch(s.textContent,/Airport TAX/, 'zero price rows are hidden, not charged');
+  assert.doesNotMatch(s.textContent,/Young driver 3 days/, 'do not duplicate the original supplier label');
+ assert.match(s.textContent,/Wynajem samochodu.*100\.00 EUR/);
  assert.match(s.textContent,/Młody kierowca.*33\.00 EUR/);
  assert.match(s.textContent,/Zwrot w innym punkcie.*17\.00 EUR/);
- assert.match(s.textContent,/Do zapłaty Caravel przy odbiorze.*150\.00 EUR/);
- assert.match(s.textContent,/Opłata rezerwacyjna Ride24.*15\.00 EUR/);
+ assert.match(s.textContent,/Łącznie za wynajem \(Caravel\).*150\.00 EUR/);
+  assert.match(s.textContent,/Do zapłaty partnerowi.*150\.00 EUR/);
+ assert.match(s.textContent,/Online po potwierdzeniu — Ride24.*15\.00 EUR/);
  assert.match(s.textContent,/Nie naliczamy ich drugi raz/);
  assert.equal(w.Ride24CaravelConsent.canSubmit(),false);
  doc.getElementById('caravelTermsAccept').checked=true;
