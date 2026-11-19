@@ -71,7 +71,7 @@ serve(async (req) => {
           return new Response(JSON.stringify({error:'ACCEPTED_QUOTE_REQUIRED'}),{status:409,headers:cors(req)});
         try {
           const credentials=await loadPartnerCredentials(admin,cart.partner_id);
-          const prepared=await revalidatePaidProvider(credentials,cart,quote);
+          const prepared=await revalidatePaidProvider(credentials,cart,quote,admin);
           await arventVerifyCheckout(credentials,prepared);
         } catch {
           return new Response(JSON.stringify({error:'ARVENT_QUOTE_UNVERIFIED'}),{status:409,headers:cors(req)});
