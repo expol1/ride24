@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildCaravelOffer, buildCaravelOfferFromApi, caravelExtraFromApi, caravelExtrasCatalog, caravelLocationFromApi,
   caravelMileageFromPolicies, caravelQuoteFromApi, caravelSyncRows, caravelVehicleFromApi, minorToMajor,
-  normalizeCaravelLocation, normalizeCaravelVehicleClass, ride24StandardPayload,
+  normalizeCaravelLocation, normalizeCaravelVehicleClass, ride24StandardPayload, verifyCaravelQuotedExtras,
 } from "../supabase/functions/_shared/caravel-normalize.ts";
 // Real shared Ride24 code (read-only use): the Caravel output must pass unchanged.
 import {normalizeGroups, normalizeLocations} from "../supabase/functions/_shared/partner-api.ts";
@@ -291,4 +291,29 @@ test("minor units convert per ISO currency exponent and fail closed otherwise", 
   assert.equal(minorToMajor(100, "XXX"), null);
   assert.equal(minorToMajor(1.5, "EUR"), null);
   assert.equal(minorToMajor(-1, "EUR"), null);
+});
+
+test("Caravel voluntary extras: exact provider quote lines must match selected catalogue IDs, never double-charge",()=>{
+  const catalog=[
+    {extra_id:"seat1",code:"SEAT",quantity:{max:2},price_cap:null},
+    {extra_id:"gps1",code:"GPS",quantity:{max:1},price_cap:eur(4000)},
+  ];
+  const selection=[{extraId:"seat1",quantity:2},{extraId:"gps1",quantity:1}];
+  const lines=[{code:"SEAT",quantity:2,totalMinor:3000},{code:"GPS",quantity:1,totalMinor:4000}];
+  assert.deepEqual(verifyCaravelQuotedExtras(lines,selection,catalog),{ok:true});
+  const cases=[
+    [lines,[...selection,selection[0]],catalog,"EXTRA_SELECTION_DUPLICATE"],
+    [[...lines,lines[0]],selection,catalog,"EXTRA_LINE_DUPLICATE"],
+    [lines,[selection[0]],catalog,"UNSELECTED_EXTRA_PRICED"],
+    [[{code:"SEAT",quantity:1,totalMinor:3000},lines[1]],selection,catalog,"EXTRA_QUANTITY_OR_AMOUNT_INVALID"],
+    [[lines[0],{code:"GPS",quantity:1,totalMinor:4001}],selection,catalog,"EXTRA_ABOVE_PRICE_CAP"],
+    [lines,selection,[...catalog,catalog[0]],"EXTRA_CATALOG_UNVERIFIED"],
+    [lines,[{extraId:"seat1",quantity:3},selection[1]],catalog,"EXTRA_QUANTITY_INVALID"],
+    [lines,selection,[catalog[0],{...catalog[1],price_cap:eur(-1)}],"EXTRA_PRICE_CAP_UNVERIFIED"],
+  ];
+  for(const [quoted,chosen,available,error] of cases){
+    const check=verifyCaravelQuotedExtras(quoted,chosen,available);
+    assert.equal(check.ok,false,error);
+    assert.ok(check.errors.includes(error),JSON.stringify(check));
+  }
 });
