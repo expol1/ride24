@@ -1,0 +1,13 @@
+# Ride24 — owner approval required for sensitive code paths.
+# These entries request review; enforce them with repository rules requiring code-owner review.
+* @expol1
+/supabase/migrations/ @expol1
+/supabase/functions/stripe-webhook/ @expol1
+/supabase/functions/create_checkout_session/ @expol1
+/supabase/functions/payment-return/ @expol1
+/supabase/functions/admin-refund/ @expol1
+/supabase/functions/create-booking-request/ @expol1
+/supabase/functions/api-booking-dispatch/ @expol1
+/supabase/functions/search-api/ @expol1
+/supabase/functions/booking-options/ @expol1
+/.github/workflows/ @expol1
