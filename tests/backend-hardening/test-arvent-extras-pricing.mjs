@@ -1,0 +1,57 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {arventBillingMode,arventPricedExtrasCatalog,arventSelectedExtrasQuote,arventBookingTotals}
+ from '../../supabase/functions/_shared/arvent-extras-pricing.mjs';
+
+const extras=[
+ {code:'1',name:'GPS',price_eur:4.5,billing_type:'day',quantity_increasable:false,required:false},
+ {code:'2',name:'Ek Sürücü',price_eur:7,billing_type:'rental',quantity_increasable:false,required:false},
+ {code:'6',name:'Infant seat',price_eur:5,billing_type:'1',quantity_increasable:true,max_quantity:2,required:false},
+];
+test('Arvent never guesses numeric extraRentalType: explicit supplier map required',()=>{
+ assert.equal(arventBillingMode('1'),null);
+ assert.equal(arventBillingMode(1),null);
+ assert.equal(arventBillingMode('1',{'1':'day'}),'day');
+ assert.equal(arventBillingMode('per_day'),'day');
+ assert.equal(arventBillingMode('once'),'rental');
+ assert.equal(arventBillingMode('UNSPECIFIED'),null);
+ assert.ok(arventPricedExtrasCatalog(extras,{'1':'day'},false).every(x=>x.bookable===false));
+});
+test('Arvent server quote adds GPS by rental day, infant seats by declared quantity and one extra driver',()=>{
+ const q=arventSelectedExtrasQuote({items:extras,
+  selections:[{id:'1',quantity:1},{id:'6',quantity:2},{id:'2',quantity:1}],
+  additionalDriverId:'secondary-driver',billedDays:3,certified:true,certifiedMap:{'1':'day'}});
+ assert.equal(q.total_cents,5050); // GPS 13.50 + two seats x 3 x 5 = 30 + driver 7
+ assert.deepEqual(q.selected,[{code:'1',piece:1},{code:'2',piece:1},{code:'6',piece:2}]);
+ assert.deepEqual(q.items.map(x=>x.total_cents),[1350,700,3000]);
+ const totals=arventBookingTotals({rentalCents:8475,ride24FeeCents:339,extrasCents:q.total_cents,
+  loyaltyPercent:0,nbpRate:4.4559});
+ assert.equal(totals.partner_cents,13525);
+ assert.equal(totals.gross_cents,13864);
+ assert.equal(totals.commission_cents,339);
+ assert.equal(totals.online_pln_cents,1511);
+});
+test('Arvent rejects a second driver with no saved identity and rejects the same person without the supplier service',()=>{
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:1}],certified:true,
+  billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[],certified:true,
+  additionalDriverId:'a',billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:2}],
+  additionalDriverId:'b',certified:true,billedDays:3}),/NOT_PRICED/);
+});
+test('Arvent invalid amounts, duplicate, unknown or unpriced options never calculate totals',()=>{
+ for(const selections of [
+  [{id:'1',quantity:2}], [{id:'6',quantity:3}], [{id:'X',quantity:1}],
+  [{id:'1',quantity:1},{id:'1',quantity:1}]
+ ])assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections,certified:true,
+  billedDays:3,certifiedMap:{'1':'day'}}));
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,
+  selections:[{id:'6',quantity:1}],certified:true,billedDays:3}),/NOT_PRICED/);
+});
+test('Arvent mandatory services are added automatically; unknown price blocks payment',()=>{
+ const req=[{code:'27',name:'Required equipment',price_eur:4,billing_type:'rental',
+  quantity_increasable:false,required:true}];
+ assert.equal(arventSelectedExtrasQuote({items:req,selections:[],certified:true,billedDays:5}).total_cents,400);
+ assert.throws(()=>arventSelectedExtrasQuote({items:[{...req[0],price_eur:null}],
+  selections:[],certified:true,billedDays:5}),/REQUIRED_EXTRA_UNPRICED/);
+});
