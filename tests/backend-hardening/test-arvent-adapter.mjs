@@ -306,6 +306,9 @@ test("Arvent status 1 cannot confirm a different Ride24 agency reference, despit
  const ok=await setup({savedStatus:1,savedGetAgencyRef:"R24-XYZ"}).arventBookingStatus(creds,"A-1");
  assert.equal(ok.status,"confirmed");
  assert.equal(ok.agency_reference_verified,true);
+ const missing=await setup({savedStatus:1,savedGetAgencyRef:null}).arventBookingStatus(creds,"A-1");
+ assert.equal(missing.status,"confirmed");
+ assert.equal(missing.agency_reference_verified,null);
  const mismatch=await setup({savedStatus:1,savedGetAgencyRef:"R24-OTHER"}).arventBookingStatus(creds,"A-1");
  assert.equal(mismatch.status,"pending");
  assert.equal(mismatch.needs_manual_review,true);
