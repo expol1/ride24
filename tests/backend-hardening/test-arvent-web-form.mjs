@@ -29,7 +29,7 @@ function setup({quote={},rate=4.2345,loyalty=0,rateFails=false}={}){
   async rpc(name){calls.push(name);return {data:loyalty,error:null};},
  };
  const require=n=>{
-  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');}};
+  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}]};
   if(n.includes('driver-age'))return driverAge;
   if(n.includes('http/server'))return {serve:f=>handler=f};
   if(n.includes('ride24-security'))return {authenticatedUser:async()=>({id:'user-1'}),corsHeaders:()=>({}),enforceRateLimit:async()=>{},
@@ -61,6 +61,7 @@ test('Arvent without extras gets the server price summary: 88.14 = 84.75 rental 
  assert.equal(a.pay_on_pickup,84.75);
  assert.equal(a.billed_days,3);
  assert.deepEqual(a.extras,[]);assert.deepEqual(a.mandatory_fees,[]);
+ assert.deepEqual(a.extra_catalog,[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}]);
  assert.equal(a.category.sipp,'EDMR');
  // Same single formula as the booking request: commission x NBP rate x (1 - loyalty%).
  assert.equal(a.online_pln,contract.apiOnlinePaymentPln(3.39,4.2345,0));
@@ -100,4 +101,11 @@ test('booking request uses the same fee formula, saved licence date of the selec
  // Stripe charges exactly the stored online_payment_pln of the created booking.
  assert.match(checkout,/const amount = Number\(booking\.online_payment_pln \|\| 0\);/);
  assert.match(checkout,/unit_amount: Math\.round\(amount \* 100\)/);
+});
+
+
+test('Arvent supplier global catalog never becomes selectable as an offer-priced extra',async()=>{
+ const r=await setup().call({extras:[{id:'1',quantity:1}]});
+ assert.equal(r.status,400);
+ assert.equal(r.body.code,'ARVENT_EXTRAS_UNAVAILABLE');
 });
