@@ -173,7 +173,7 @@ test('booking request uses the same fee formula, saved licence date of the selec
  const src=await readFile(new URL('../../supabase/functions/create-booking-request/index.ts',import.meta.url),'utf8');
  assert.match(src,/let onlinePaymentPln = apiOnlinePaymentPln\(commission, rate, discountPercent\);/);
  assert.match(src,/\? \(savedMainDriverLicenseSince\s*\n\s*\|\| \(typeof body\.main_driver_license_since/);
- assert.match(src,/isArventBooking && additionalDriverId\)[\s\S]{0,120}ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE/);
+ assert.match(src,/isArventBooking && additionalDriverId && body\.pricing_version !== 2\)[\s\S]{0,150}ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE/);
  const checkout=await readFile(new URL('../../supabase/functions/create_checkout_session/index.ts',import.meta.url),'utf8');
  // Stripe charges exactly the stored online_payment_pln of the created booking.
  assert.match(checkout,/const amount = Number\(booking\.online_payment_pln \|\| 0\);/);
@@ -183,6 +183,6 @@ test('booking request uses the same fee formula, saved licence date of the selec
 
 test('Arvent supplier global catalog never becomes selectable as an offer-priced extra',async()=>{
  const r=await setup().call({extras:[{id:'1',quantity:1}]});
- assert.equal(r.status,400);
+ assert.equal(r.status,409);
  assert.equal(r.body.code,'ARVENT_EXTRAS_UNAVAILABLE');
 });
