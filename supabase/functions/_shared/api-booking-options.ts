@@ -2,10 +2,18 @@ import { BookingOptionsError, priceFingerprint, quoteChanged, pricedExtrasEnable
 import { assertApiQuoteContext } from './api-quote-contract.mjs';
 import { loadPartnerCredentials } from './partner-api.ts';
 import { aggregatorQuoteOptions } from './renteon-aggregator.ts';
+import { arventFetchExtrasCatalog } from './arvent-kolaycar.ts';
 import { providerPricingSnapshot, providerServiceCatalog, unconfirmedServicePrice, serviceNames } from './provider-services.mjs';
 import { customerPricing } from './booking-items.mjs';
 import { exchangeRate } from './booking-exchange-rate.ts';
 import { rentalDuration } from './rental-duration.ts';
+
+// Arvent catalogue data is purely informational until the offer-bound /extras
+// endpoint supplies approved prices and quantities. Never mix it with Renteon.
+export async function readArventExtrasCatalog(admin:any,partnerId:string) {
+ const credentials=await loadPartnerCredentials(admin,partnerId);
+ return arventFetchExtrasCatalog(credentials);
+}
 
 export async function makeApiBookingOptions(admin:any,user:any,car:any,partner:any,body:any,ages:number[]) {
  if(!await pricedExtrasEnabled(admin))throw new BookingOptionsError('API_OPTIONS_PAUSED','Wycena dodatków jest chwilowo niedostępna. Spróbuj ponownie później.','Options pricing is temporarily unavailable. Try again later.');
