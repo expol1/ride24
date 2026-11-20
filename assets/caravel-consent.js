@@ -80,20 +80,20 @@
     priceRow(en ? "Car rental" : "Wynajem samochodu", breakdown?.customer_rental || money.customer_total);
     if (breakdown && Array.isArray(breakdown.fees)) {
       breakdown.fees.forEach(function (fee) {
-        if (fee && fee.label) priceRow(fee.label + (en ? " (mandatory)" : " (obowiązkowa)"), fee.amount);
+        if (!fee) return;
+        if (fee.type === "one_way") {
+          // Show a separate one-way row only for a positive, supplier-verified fee.
+          // This amount is already included in the partner total; display only.
+          if (typeof fee.amount === "string" && /^\\d+\\.\\d{2} EUR$/.test(fee.amount) && Number.parseFloat(fee.amount) > 0) {
+            priceRow(en ? "Return to a different location" : "Zwrot w innym miejscu", fee.amount);
+          }
+          return;
+        }
+        if (fee.label) priceRow(fee.label + (en ? " (mandatory)" : " (obowiązkowa)"), fee.amount);
       });
       (Array.isArray(breakdown.extras) ? breakdown.extras : []).forEach(function (extra) {
         if (extra && extra.name) priceRow(extraName(extra.name, en) + (extra.quantity >= 1 && extra.extra_id !== state.driverService?.extra_id ? " × " + extra.quantity : ""), extra.amount);
       });
-    }
-    if (state.view?.different_return_location) {
-      var oneWayFees = breakdown && Array.isArray(breakdown.fees) ? breakdown.fees.filter(function (fee) {
-        return fee && /^(one_way|oneway|different_dropoff|dropoff_location|return_location)$/i.test(String(fee.type || ""));
-      }) : [];
-      // Supplier fee is already included in the confirmed total and displayed above.
-      // Show only the requested informational line, never add it to the total.
-      priceRow(en ? "Return to a different location" : "Zwrot w innym miejscu",
-        oneWayFees.length ? (en ? "included above" : "ujęto powyżej") : (en ? "included in price" : "w cenie"));
     }
     priceRow(en ? "Online after confirmation" : "Online po potwierdzeniu",
       onlineFee());
