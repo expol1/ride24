@@ -30,7 +30,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const selectable = available.filter(x => x && x.bookable === true);
         const additional = el('additionalDriverSelect');
         const allowExtraDriver = selectable.some(x => x.code === '2');
-        window.r24ArventExtraDriverAllowed = allowExtraDriver;
+        if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = allowExtraDriver;
         if (additional) {
             additional.disabled = !allowExtraDriver;
             if (!allowExtraDriver) additional.value = 'none';
@@ -58,10 +58,11 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             const detail=node('span');
             detail.append(node('strong',code==='2'?label('Dodatkowy kierowca','Additional driver'):name));
             if (priced && typeof priced.price_eur==='number'){
-                detail.append(node('small',label('Kwota przekazana przez API: ','Amount reported by API: ')
+                detail.append(node('small',label('Cena z API: ','Supplier rate: ')
                     +money(Math.round(priced.price_eur*100),'EUR')
-                    +label(' — sposób naliczania i zamówienia do potwierdzenia.',
-                        ' — billing and booking conditions still require confirmation.')));
+                    +(priced.bookable===true
+                      ? (priced.billing==='day' ? label(' / doba',' / day') : label(' / wynajem',' / rental'))
+                      :label(' — zasady naliczania wymagają potwierdzenia.',' — billing terms still require confirmation.'))));
             } else {
                 detail.append(node('small',priced
                     ?label('API nie podało poprawnej ceny; zamówienie niedostępne.','No valid price in API; online booking unavailable.')
