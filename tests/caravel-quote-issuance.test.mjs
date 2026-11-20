@@ -158,6 +158,7 @@ test("Caravel mandatory fees are already included in supplier grand total and sa
  assert.equal(result.partnerPayableMinor,15000,"Caravel grand total remains the only rental amount");
  assert.equal(result.ride24ReservationFeeMinor,3750,"Ride24 fee remains separate");
  const saved=admin.state.quotes[0].raw_response.provider_quote_data.price_breakdown;
+ assert.deepEqual(result.mandatoryFees,saved.fees);
  assert.deepEqual(saved,{version:1,currency:"EUR",rental_minor:10000,mandatory_fees_minor:5000,
   extras_minor:0,total_minor:15000,extras:[],fees:[
    {code:"YOUNG_DRIVER",label:"Young driver 3 days",type:"young_driver",amount_minor:3300},
@@ -381,4 +382,12 @@ test("unavailable or zero global Ride24 fee fails before even requesting supplie
 test("Chania 22:30 pickup is a valid Europe/Athens instant; supplier availability still applies",()=>{
  assert.equal(caravelLocalInstant("2026-12-03","22:30","Europe/Athens"),"2026-12-03T22:30:00+02:00");
  assert.equal(caravelLocalInstant("2026-12-03","16:00","Europe/Athens"),"2026-12-03T16:00:00+02:00");
+});
+
+test("fee lines distinguish supplier pickup and return and retain new service names", async()=>{
+ const {caravelFeeLabel}=await import("../supabase/functions/_shared/caravel-fee-label.ts");
+ assert.equal(caravelFeeLabel("out_of_hours","Out of hours (pickup)","pl"),"Odbiór poza godzinami pracy");
+ assert.equal(caravelFeeLabel("out_of_hours","Out of hours (dropoff)","pl"),"Zwrot poza godzinami pracy");
+ assert.equal(caravelFeeLabel("one_way","One way","pl"),"Zwrot w innym punkcie");
+ assert.equal(caravelFeeLabel("operator_fee","Special location","en"),"Special location");
 });

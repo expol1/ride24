@@ -6,6 +6,7 @@
  * the global platform margin, terms bound to the quote, api_quotes row written).
  * Returns ONLY quotes that passed issuance; the card is built by search-api.
  */
+import type {CaravelQuoteIssueResult} from "./caravel-quote-issuance.ts";
 import {issueVerifiedCaravelQuote} from "./caravel-quote-issuance.ts";
 import {selectCaravelPremiumProtection} from "./caravel-normalize.ts";
 import type {CaravelClient} from "./caravel-sandbox-adapter.ts";
@@ -39,6 +40,7 @@ export function caravelLocalInstant(date: string, time: string, timeZone: string
 export type CaravelSearchOffer = {
   carClassId: string; apiQuoteId: string; vehicleId: string; supplierQuoteId: string; expiresAt: string;
   rentalMinor: number; feeMinor: number; customerMinor: number; currency: string;
+  mandatoryFees: Extract<CaravelQuoteIssueResult,{ok:true}>["mandatoryFees"];
   excludes: string[]; covers: string[]; adminFeeMinor: number | null;
 };
 
@@ -128,7 +130,7 @@ export async function searchCaravelOffers(args: {
       return {carClassId: group.classId, apiQuoteId: result.apiQuoteId, vehicleId: group.vehicleId,
         supplierQuoteId: result.providerQuoteId, expiresAt: result.expiresAt,
         rentalMinor: result.partnerPayableMinor, feeMinor: result.ride24ReservationFeeMinor,
-        customerMinor: result.customerTotalMinor, currency: args.currency, excludes: [...ex],
+        mandatoryFees: result.mandatoryFees, customerMinor: result.customerTotalMinor, currency: args.currency, excludes: [...ex],
         covers: Array.isArray(protection.covers) ? [...protection.covers as string[]] : [],
         adminFeeMinor: ex.length ? readyRelease.review.damageAdministrationFeeMinor : null};
     }
