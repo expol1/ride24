@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { arventCatalogRows, arventOfferExtrasRows } from '../../supabase/functions/_shared/arvent-kolaycar-contract.mjs';
+import { arventCatalogRows, arventOfferExtrasRows, arventSavePayload } from '../../supabase/functions/_shared/arvent-kolaycar-contract.mjs';
 
 test('Arvent global extras catalog parses actual supplier codes and names only', () => {
  const result=arventCatalogRows({success:true,resultCode:0,data:[
@@ -47,4 +47,32 @@ test('Arvent absent extras and ambiguous pricing never become a confirmed charge
  assert.throws(()=>arventOfferExtrasRows([{code:'2'},{code:'2'}]),/DUPLICATE_OR_CODE/);
  assert.throws(()=>arventOfferExtrasRows({extras:[]}),/EXTRAS_SHAPE/);
  assert.throws(()=>arventOfferExtrasRows([{code:'',price:5}]),/DUPLICATE_OR_CODE/);
+});
+
+test('Arvent exact two-decimal supplier prices accept JSON number or decimal text, never estimates',()=>{
+ const rows=arventOfferExtrasRows([
+  {code:2,name:'Ek Sürücü',price:'4.99',isRequired:false},
+  {code:6,name:'Bebek Koltuğu',price:0,isRequired:false},
+  {code:18,name:'Wi-Fi',price:'100.00',isRequired:false},
+  {code:40,name:'GPS',price:'4,99',isRequired:false},
+  {code:41,name:'GPS',price:2.555,isRequired:false},
+  {code:42,name:'GPS',price:-3,isRequired:false},
+  {code:43,name:'GPS',price:'1e2',isRequired:false}
+ ]);
+ assert.deepEqual(rows.map(x=>x.price_eur),[4.99,0,100,null,null,null,null]);
+ assert.ok(rows.every(x=>x.booking_confirmed===false));
+});
+
+test('Arvent SaveReservation extra codes and quantities are bounded, unique, single extra driver',()=>{
+ const base={reservationToken:'11111111-1111-4111-8111-111111111111',
+  reference:'RIDE24-TEST',
+  customer:{name:'Anna',surname:'Nowak',email:'anna@example.invalid',phoneNumber:'000000000'}};
+ const valid=arventSavePayload({...base,extras:[{code:'2',piece:1},{code:'6',piece:2}]});
+ assert.deepEqual(valid.extras,[{code:'2',piece:1},{code:'6',piece:2}]);
+ for(const extras of [
+  [{code:'2',piece:2}], [{code:'6',piece:11}],
+  [{code:'6',piece:1},{code:'6',piece:2}], [{code:'6',piece:0}],
+  [{code:'6',piece:1.5}], [{code:'',piece:1}],
+  Array.from({length:21},(_,i)=>({code:String(i+1),piece:1}))
+ ]) assert.throws(()=>arventSavePayload({...base,extras}),/ARVENT_EXTRAS_INVALID/);
 });
