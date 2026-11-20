@@ -5,10 +5,14 @@ import vm from "node:vm";
 import ts from "typescript";
 import * as contract from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 import * as license from "../../supabase/functions/_shared/arvent-driver-eligibility.mjs";
+import * as arventExtrasPricing from "../../supabase/functions/_shared/arvent-extras-pricing.mjs";
 
 const source=await readFile(new URL("../../supabase/functions/_shared/arvent-kolaycar.ts",import.meta.url),"utf8");
 const transformed=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
 assert.equal(transformed.diagnostics?.length||0,0,"Arvent adapter must parse as TypeScript");
+const durationSource=await readFile(new URL("../../supabase/functions/_shared/rental-duration.ts",import.meta.url),"utf8");
+const durationCompiled=ts.transpileModule(durationSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+const durationSandbox={exports:{}};vm.runInNewContext(durationCompiled,durationSandbox);
 
 function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false,cancelResponse=null}={}){
  const calls=[];
@@ -72,6 +76,8 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
   name==="./ride24-security.ts"?supabase:
   name==="./arvent-kolaycar-contract.mjs"?contract:
   name==="./arvent-driver-eligibility.mjs"?license:
+  name==="./arvent-extras-pricing.mjs"?arventExtrasPricing:
+  name==="./rental-duration.ts"?durationSandbox.exports:
   (()=>{throw Error("Unexpected import "+name)})();
  const sandbox={exports:{},require,Deno:{env:{get:key=>allowWrites&&["ARVENT_KOLAYCAR_WRITE_ALLOWED","ARVENT_STRIPE_FIRST_APPROVED"].includes(key)?"true":undefined}},URLSearchParams,URL,console};
  vm.runInNewContext(transformed.outputText,sandbox);
