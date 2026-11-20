@@ -52,10 +52,10 @@ serve(async(req: Request)=>{
       // Read-only preview of the server quote; the booking request recomputes it.
       if(!isUuid(body.api_quote_id)) throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła. Wyszukaj ponownie.','The offer expired. Please search again.',409);
       const {data:q,error:qe}=await admin.from('api_quotes')
-        .select('id,partner_id,car_class_id,booking_id,start_date,end_date,pickup_location_external_id,dropoff_location_external_id,partner_net_total,commission_total,final_total,currency,expires_at,raw_response')
+        .select('id,partner_id,car_class_id,booking_id,used_at,start_date,end_date,pickup_location_external_id,dropoff_location_external_id,partner_net_total,commission_total,final_total,currency,expires_at,raw_response')
         .eq('id',body.api_quote_id).maybeSingle();
       const start=date(body.start_date), end=date(body.end_date);
-      if(qe||!q||q.partner_id!==car.partner_id||q.car_class_id!==car.id||q.booking_id
+      if(qe||!q||q.partner_id!==car.partner_id||q.car_class_id!==car.id||q.booking_id||q.used_at||q.currency!=='EUR'
         ||q.start_date!==start||q.end_date!==end||!(Date.parse(q.expires_at)>Date.now()))
         throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła lub zmieniła się. Wyszukaj ponownie.','The offer expired or changed. Please search again.',409);
       // Do not query supplier offers for a different time or pickup/return
