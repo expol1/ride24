@@ -59,6 +59,9 @@ export async function advanceApiPayment(deps,id) {
     if(deadline!==null&&Date.now()>=deadline&&deps.cancel) {
       if(w.state==='provider_pending') {
         const current=await deps.status(id,w).catch(()=>null);
+        // Never cancel blind: a failed status GET could conceal a freshly
+        // approved booking. Stay provider_pending and retry the read next tick.
+        if(!current)return {state:'provider_pending',retry:true};
         if(current?.status==='confirmed'&&current.needs_manual_review!==true)return await acceptResult(current,'provider_pending');
         if(current?.needs_manual_review===true){
           // A supplier approval with mismatched price, route, extra or Ride24
@@ -68,6 +71,13 @@ export async function advanceApiPayment(deps,id) {
           return {state:'unknown'};
         }
         if(current?.status==='rejected'&&current.definitive_rejection===true)return await acceptResult(current,'provider_pending');
+        // Only an explicitly observed pending request can be cancelled
+        // automatically at the approval deadline. Any other response needs
+        // reconciliation instead of a supplier POST.
+        if(current.status!=='pending'){
+          await move('provider_pending','unknown',{last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+          return {state:'unknown'};
+        }
         w=await move('provider_pending','unknown',{last_error:'ARVENT_TIMEOUT_CANCELLING'});
         if(!w)return {skipped:true};
       }
