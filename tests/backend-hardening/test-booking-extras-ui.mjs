@@ -148,14 +148,17 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   const {ui}=setup();
   globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
     pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)',
-    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,mandatory_fees:[],extras:[],
+    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],
     total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75}});
   await ui.start();
   const box=document.getElementById('bookingPriceBreakdown');
   assert.equal(box.hidden,false);
   const picker=document.getElementById('bookingExtrasPicker');
   assert.equal(picker.hidden,false);
-  assert.match(picker.textContent,/Extras cannot currently be ordered online/);
+  assert.match(picker.textContent,/Rental company extras catalogue/);
+  assert.match(picker.textContent,/GPS/);
+  assert.match(picker.textContent,/Infant seat/);
+  assert.match(picker.textContent,/Price and online booking unavailable/);
   assert.equal(picker.querySelectorAll('input,select').length,0);
   const text=box.textContent;
   for(const part of ['Price summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay at pickup','EDMR'])assert.ok(text.includes(part),part);
@@ -170,44 +173,37 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
 });
 
 
-test('Arvent shows the standard confirmation layout without a misleading extras tile', async () => {
+test('Arvent extras catalogue tile is visible; other partners keep their normal selectable extras tile', async () => {
   const source = await readFile(new URL('../../klient.html', import.meta.url), 'utf8');
   const start = source.indexOf('window.ride24ArventFormMode = function(on) {');
   const stop = source.indexOf('window.ride24ArventGoToProfile = function', start);
-  assert.ok(start > 0 && stop > start, 'Arvent form mode is present');
+  assert.ok(start > 0 && stop > start);
   const dom = new JSDOM(`<div id="termsModal">
     <div class="r24-extras-callout"><button type="button" class="docs-extra-item">
-      <span class="r24-extras-copy"><strong>Wybierz dodatki do wynajmu</strong></span>
+      <span class="r24-extras-copy"><strong>Wybierz dodatki do wynajmu</strong>
+        <small>Zobacz dostępne usługi i ich aktualną cenę.</small></span>
       <span class="r24-extras-action">Sprawdź</span>
     </button></div>
-    <p id="arventExtrasInfo" hidden>Dodatki: brak możliwości zamówienia online w tej ofercie.</p>
+    <p id="arventExtrasInfo" hidden></p>
     <section id="bookingPriceBreakdown"></section><div class="docs-container"></div>
-  </div>`);
+  </div><div id="equipmentInfoModal"><h3>Wybierz dodatki do wynajmu</h3></div>`);
   const win = dom.window;
-  vm.runInNewContext(source.slice(start, stop), {window: win, document: win.document, localStorage: {getItem: () => 'pl'}});
-  const callout = win.document.querySelector('.r24-extras-callout');
-  const button = callout.querySelector('button');
-  const info = win.document.querySelector('#arventExtrasInfo');
-  const price = win.document.querySelector('#bookingPriceBreakdown');
-  const docs = win.document.querySelector('.docs-container');
-
+  vm.runInNewContext(source.slice(start, stop), {window:win,document:win.document,localStorage:{getItem:()=> 'pl'}});
+  const callout=win.document.querySelector('.r24-extras-callout');
+  const title=callout.querySelector('strong');
+  const note=callout.querySelector('small');
+  const docs=win.document.querySelector('.docs-container');
+  const price=win.document.querySelector('#bookingPriceBreakdown');
   win.ride24ArventFormMode(true);
-  assert.equal(callout.hidden, true);
-  assert.equal(callout.style.display, 'none');
-  assert.equal(callout.style.getPropertyPriority('display'), 'important');
-  assert.equal(info.hidden, false);
-  assert.equal(docs.nextElementSibling, price);
-  assert.match(info.textContent, /brak możliwości zamówienia online/);
-
-  // Repeat mode switch and then open a non-Arvent/local booking.
-  win.ride24ArventFormMode(true);
+  assert.equal(callout.hidden,false);
+  assert.equal(callout.style.getPropertyValue('display'),'');
+  assert.equal(title.textContent,'Katalog dodatków do wynajmu');
+  assert.match(note.textContent,/Sprawdź usługi partnera/);
+  assert.equal(docs.nextElementSibling,price);
   win.ride24ArventFormMode(false);
-  assert.equal(callout.hidden, false);
-  assert.equal(callout.style.getPropertyValue('display'), '');
-  assert.equal(info.hidden, true);
-  assert.equal(button.disabled, false);
-  assert.equal(button.querySelector('strong').textContent, 'Wybierz dodatki do wynajmu');
-  assert.equal(button.querySelector('.r24-extras-action').textContent, 'Sprawdź');
-  assert.equal(docs.nextElementSibling, price);
-  assert.equal(win.document.querySelectorAll('.r24-extras-callout').length, 1);
+  assert.equal(callout.hidden,false);
+  assert.equal(title.textContent,'Wybierz dodatki do wynajmu');
+  assert.equal(note.textContent,'Zobacz dostępne usługi i ich aktualną cenę.');
+  assert.equal(callout.querySelector('button').disabled,false);
+  assert.equal(win.document.querySelectorAll('.r24-extras-callout').length,1);
 });
