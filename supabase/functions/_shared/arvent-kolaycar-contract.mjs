@@ -66,9 +66,16 @@ export function arventOfferExtrasRows(raw) {
   if(!code||seen.has(code))throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_DUPLICATE_OR_CODE");
   seen.add(code);
   const name=str(x.name??x.extraName??x.title??x.description,120);
-  const price=typeof x.price==="number" && Number.isFinite(x.price) && x.price>=0
-   && x.price<=100000 && Math.abs(x.price*100-Math.round(x.price*100))<0.00001
-   ? x.price : null;
+  // Suppliers may serialize decimal EUR amounts as JSON numbers or strings.
+  // Accept only nonnegative EUR prices exact to 2 decimals; never round an
+  // ambiguous value into a purported supplier quotation.
+  const rawPrice=x.price;
+  const numeric=typeof rawPrice==="number"?rawPrice:
+    typeof rawPrice==="string" && /^(0|[1-9][0-9]{0,5})(?:\\.[0-9]{1,2})?$/.test(rawPrice.trim())
+      ? Number(rawPrice.trim()):Number.NaN;
+  const price=Number.isFinite(numeric)&&numeric>=0&&numeric<=100000
+    &&Math.abs(numeric*100-Math.round(numeric*100))<0.00001
+      ? Math.round(numeric*100)/100 : null;
   items.push({
    code, name: name && !/[<>]/.test(name) ? name : code,
    price_eur:price,
@@ -279,7 +286,15 @@ export function arventSavePayload({reservationToken,reference,customer,extras=[]
  if(!str(reference,150)||!record(customer)||!str(customer.name)||!str(customer.surname)
     ||!str(customer.email)||!str(customer.phoneNumber))
   throw Error("PARTNER_API_ERROR:ARVENT_CUSTOMER_INCOMPLETE");
- if(!Array.isArray(extras)||extras.some(e=>!record(e)||!str(e.code,200)||!Number.isInteger(e.piece)||e.piece<1))
+ // One extra code per reservation, bounded quantities. In particular one
+ // additional driver (code 2) is the absolute maximum for this integration;
+ // a future paid driver must also be independently certified by the supplier.
+ const extraCodes=Array.isArray(extras)?extras.map(e=>str(e?.code,60)):[];
+ if(!Array.isArray(extras)||extras.length>20||extras.some((e,i)=>
+    !record(e)||!extraCodes[i]||!Number.isInteger(e.piece)
+    ||e.piece<1||e.piece>10
+    ||(extraCodes[i]==="2"&&e.piece!==1))
+    ||new Set(extraCodes).size!==extraCodes.length)
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_INVALID");
  return {reservationToken,languageCode:"EN",
   customer:{name:str(customer.name),surname:str(customer.surname),phoneNumber:str(customer.phoneNumber,80),
