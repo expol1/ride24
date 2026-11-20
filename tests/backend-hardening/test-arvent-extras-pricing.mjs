@@ -54,4 +54,7 @@ test('Arvent mandatory services are added automatically; unknown price blocks pa
  assert.equal(arventSelectedExtrasQuote({items:req,selections:[],certified:true,billedDays:5}).total_cents,400);
  assert.throws(()=>arventSelectedExtrasQuote({items:[{...req[0],price_eur:null}],
   selections:[],certified:true,billedDays:5}),/REQUIRED_EXTRA_UNPRICED/);
+ assert.throws(()=>arventSelectedExtrasQuote({items:[{code:'2',name:'Ek Sürücü',price_eur:0,
+  billing_type:'rental',quantity_increasable:false,required:true}],
+  selections:[],certified:true,billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
 });
