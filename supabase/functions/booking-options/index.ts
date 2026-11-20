@@ -144,7 +144,10 @@ serve(async(req: Request)=>{
           'Nie można potwierdzić ilości, ceny lub kierowcy dla wybranych dodatków.',
           'The selected extras quantity, price or driver could not be verified.',409);
       }
-      const needsPriceSnapshot=extraQuote.items.length>0;
+      // Zero-price mandatory supplier equipment is already included in the
+      // vehicle-only SaveReservation. Do not mint a v2 paid-options quote for
+      // free mandatory items when the partner has not certified paid extras.
+      const needsPriceSnapshot=selected.length>0 || extraQuote.total_cents>0;
       if(needsPriceSnapshot){
         snapshot=arventOptionsSnapshot({rentalCents:Math.round(rental*100),
           ride24FeeCents:Math.round(fee*100),extraQuote,days:duration.billedDays,
