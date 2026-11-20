@@ -48,7 +48,10 @@ test("cannot store unverified or wrong-supplier provider GET",async()=>{
   assert.equal((await invoke({fetchBooking:async()=>({...fetched(event()),revision:1})})).result.status,503);
 });
 test("invalid signed event version, missing supplier, bad event shape are rejected",async()=>{
-  assert.equal((await invoke({event:{...event(),api_version:"1.68.0"}})).result.status,400);
+  // Caravel delivers events as 1.68.0 while REST stays pinned to 1.67.0 (seen live 20 Nov 2026).
+  assert.equal((await invoke({event:{...event(),api_version:"1.68.0"}})).result.accepted,true);
+  for (const v of ["1.66.0","2.0.0","1.68","x"])
+    assert.equal((await invoke({event:{...event(),api_version:v}})).result.status,400,v);
   assert.equal((await invoke({event:{...event(),supplier_id:null}})).result.status,400);
   assert.equal((await invoke({event:{...event(),revision:0}})).result.status,400);
 });
@@ -73,7 +76,7 @@ test("rejected signed event is described without personal data (diagnostic log)"
     operator_id: "op_1", booking_id: "79049f00-7c48-4b2f-b3be-43ca577e133c", external_ref: "ride24-x", revision: 1,
     data: {booking_id: "79049f00-7c48-4b2f-b3be-43ca577e133c", customer: {email: "secret@example.test", name: "Jan Kowalski"}}};
   const d = describeSignedEvent(envelope, {...envelope, sequence: null, supplier_id: null});
-  assert.deepEqual(d.failed, ["supplier_id", "api_version"]);
+  assert.deepEqual(d.failed, ["supplier_id"]);
   assert.equal(d.api_version, "1.68.0");
   assert.deepEqual(d.data_keys, ["booking_id", "customer"]);
   assert.equal(d.data_booking_id_matches, true);

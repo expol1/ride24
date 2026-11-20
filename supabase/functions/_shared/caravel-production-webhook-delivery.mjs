@@ -9,6 +9,10 @@ import {verifyCaravelSignature, parseCaravelWebhookEvent} from "./caravel-webhoo
 export const CARAVEL_PRODUCTION_WEBHOOK_PATH = "/functions/v1/caravel-production-webhook";
 const MAX_BYTES = 32768;
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
+// Caravel signs events in the account's current API version (seen live: 1.68.0)
+// even though REST calls stay pinned to 1.67.0. The envelope is only used for
+// ids; the booking itself is always re-fetched with the pinned version.
+const SUPPORTED_EVENT_VERSION = /^1\.(6[7-9]|[7-9][0-9])\.[0-9]{1,3}$/;
 const encoder = new TextEncoder();
 const rec = (x) => x && typeof x === "object" && !Array.isArray(x) ? x : null;
 
@@ -26,7 +30,7 @@ export function describeSignedEvent(envelope, event) {
     if (!ID.test(event.booking_id)) failed.push("booking_id");
     if (!ID.test(event.operator_id)) failed.push("operator_id");
     if (!ID.test(event.supplier_id ?? "")) failed.push("supplier_id");
-    if (event.api_version !== "1.67.0") failed.push("api_version");
+    if (!SUPPORTED_EVENT_VERSION.test(event.api_version)) failed.push("api_version");
     if (typeof event.external_ref !== "string" || event.external_ref.length > 150) failed.push("external_ref");
     if (!Number.isFinite(Date.parse(event.occurred_at))) failed.push("occurred_at");
     if (event.sequence !== null && event.sequence < 1) failed.push("sequence");
@@ -65,7 +69,7 @@ export async function handleCaravelProductionDelivery({
   }
   const event = parseCaravelWebhookEvent(rawBody);
   if (!event || !ID.test(event.event_id) || !ID.test(event.booking_id) || !ID.test(event.operator_id) ||
-      !ID.test(event.supplier_id ?? "") || event.api_version !== "1.67.0" ||
+      !ID.test(event.supplier_id ?? "") || !SUPPORTED_EVENT_VERSION.test(event.api_version) ||
       typeof event.external_ref !== "string" || event.external_ref.length > 150 ||
       !Number.isFinite(Date.parse(event.occurred_at)) ||
       (event.sequence !== null && event.sequence < 1))
