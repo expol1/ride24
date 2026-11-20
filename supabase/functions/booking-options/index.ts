@@ -1,11 +1,11 @@
-import { makeApiBookingOptions, readArventExtrasCatalog } from "../_shared/api-booking-options.ts";
+import { makeApiBookingOptions, readArventExtrasCatalog, readArventOfferExtras } from "../_shared/api-booking-options.ts";
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse, publicErrorMessage, serviceClient } from "../_shared/ride24-security.ts";
 import { readJsonObject } from "../_shared/booking-request.ts";
 import { exchangeRate } from "../_shared/booking-exchange-rate.ts";
 import { BookingOptionsError, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext } from "../_shared/booking-options.mjs";
-import { apiOnlinePaymentPln, assertApiPricingCompatible, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
+import { apiOnlinePaymentPln, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 
 function date(value: unknown): string {
@@ -52,12 +52,15 @@ serve(async(req: Request)=>{
       // Read-only preview of the server quote; the booking request recomputes it.
       if(!isUuid(body.api_quote_id)) throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła. Wyszukaj ponownie.','The offer expired. Please search again.',409);
       const {data:q,error:qe}=await admin.from('api_quotes')
-        .select('id,partner_id,car_class_id,booking_id,start_date,end_date,partner_net_total,commission_total,final_total,currency,expires_at,raw_response')
+        .select('id,partner_id,car_class_id,booking_id,start_date,end_date,pickup_location_external_id,dropoff_location_external_id,partner_net_total,commission_total,final_total,currency,expires_at,raw_response')
         .eq('id',body.api_quote_id).maybeSingle();
       const start=date(body.start_date), end=date(body.end_date);
       if(qe||!q||q.partner_id!==car.partner_id||q.car_class_id!==car.id||q.booking_id
         ||q.start_date!==start||q.end_date!==end||!(Date.parse(q.expires_at)>Date.now()))
         throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła lub zmieniła się. Wyszukaj ponownie.','The offer expired or changed. Please search again.',409);
+      // Do not query supplier offers for a different time or pickup/return
+      // than the Ride24 quote. This also protects against tampered form data.
+      assertApiQuoteContext(q.raw_response,body);
       const rental=Number(q.partner_net_total), fee=Number(q.commission_total), total=Number(q.final_total);
       if(![rental,fee,total].every(v=>Number.isFinite(v)&&v>=0)||total<=0||Math.abs(rental+fee-total)>0.05)
         throw new BookingOptionsError('QUOTE_EXPIRED','Nie można potwierdzić ceny. Wyszukaj ponownie.','The price cannot be confirmed. Please search again.',409);
@@ -73,14 +76,18 @@ serve(async(req: Request)=>{
       const display=q.raw_response?.ride24_display||{};
       // Read-only catalogue: names and codes are NOT priced for this offer.
       // Failure must not block a normal Arvent vehicle booking.
-      const extraCatalog=await readArventExtrasCatalog(admin,car.partner_id).catch(()=>[]);
+      const [extraCatalog,offerExtras]=await Promise.all([
+        readArventExtrasCatalog(admin,car.partner_id).catch(()=>[]),
+        readArventOfferExtras(admin,car.partner_id,q,body)
+          .catch(()=>({status:'unavailable',items:[]}))
+      ]);
       return jsonResponse(req,{enabled:false,arvent:{
         api_quote_id:q.id, currency, billed_days:duration.billedDays,
         start_date:start, end_date:end, pickup_time:time(body.pickup_time).slice(0,5), return_time:time(body.return_time).slice(0,5),
         pickup_location:typeof body.pickup_location==='string'?body.pickup_location.slice(0,250):'',
         return_location:typeof body.return_location==='string'?body.return_location.slice(0,250):'',
         category:{class_code:display.class_code??null,group_name:display.group_name??null,example_model:display.example_model??null,sipp:display.sipp??null},
-        rental_total:rental, mandatory_fees:[], extras:[], extra_catalog:extraCatalog, total,
+        rental_total:rental, mandatory_fees:[], extras:[], extra_catalog:extraCatalog, offer_extras:offerExtras, total,
         ride24_fee:fee, loyalty_discount_percent:discount, exchange_rate:rate,
         online_pln:apiOnlinePaymentPln(fee,rate,discount), pay_on_pickup:rental,
         expires_at:q.expires_at,
