@@ -1486,6 +1486,27 @@ body.r24-profile-incomplete #view-profile .profile-grid{grid-template-columns:mi
 #bookingDetailsModal { padding: 16px; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
 #bookingDetailsModal .modal-content { box-sizing: border-box; width: min(100%, 520px); max-width: 520px !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; margin: auto; flex-shrink: 0; }
 #bookingDetailsModal #bookingDetailsBody { overflow-wrap: anywhere; }
+
+#bookingDetailsModal .r24-caravel-booking-documents,
+#bookingDetailsModal .r24-caravel-booking-drivers{margin:14px 0 18px;padding:14px 0;border-bottom:1px solid #475569}
+#bookingDetailsModal .r24-caravel-booking-documents h4,
+#bookingDetailsModal .r24-caravel-booking-drivers h4{color:#f8fafc;font-size:15px;margin:0 0 12px}
+#bookingDetailsModal .r24-caravel-booking-drivers p{color:#e2e8f0;margin:6px 0}
+#bookingDetailsModal .r24-caravel-document-btn{display:block;width:100%;margin:9px 0;padding:12px;color:white;background:#1e293b;border:1px solid #475569;border-radius:10px;cursor:pointer;font-weight:600;text-align:left}
+#bookingDetailsModal .r24-caravel-document-btn:hover{background:#334155}
+#bookingDetailsModal .r24-caravel-booked-pricing .r24-client-price-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:start;gap:8px;padding:10px 0;border-bottom:1px solid #334155}
+#bookingDetailsModal .r24-caravel-booked-pricing .r24-client-price-row strong{white-space:nowrap;font-variant-numeric:tabular-nums;text-align:right;color:#f8fafc}
+#bookingDetailsModal .r24-caravel-booked-pricing .r24-client-price-row>span{overflow-wrap:anywhere}
+#bookingDetailsModal .r24-caravel-booking-note{font-size:12px;line-height:1.5;color:#cbd5e1;margin:14px 0 0}
+.r24-caravel-document-modal{width:min(92vw,780px);max-height:85dvh;padding:0;border:1px solid #475569;border-radius:14px;background:#f8fafc;color:#0f172a;box-shadow:0 16px 56px #0008}
+.r24-caravel-document-modal::backdrop{background:#000a}
+.r24-caravel-document-head{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:16px;background:#1e40af;color:white;padding:14px 20px}
+.r24-caravel-document-head h3{font-size:16px;color:white;margin:0}
+.r24-caravel-document-head button{border:0;background:transparent;color:white;font-size:30px;cursor:pointer}
+.r24-caravel-document-body{padding:20px 24px;max-height:calc(85dvh - 68px);overflow-y:auto;white-space:pre-wrap;line-height:1.55}
+.r24-caravel-term-clause{border-top:1px solid #cbd5e1;padding-top:12px;margin-top:14px}
+.r24-caravel-term-clause h4{margin:0 0 8px;font-size:14px}
+
 @media (max-width: 600px) { #bookingDetailsModal { padding: 10px; } #bookingDetailsModal .modal-content { padding: 20px; max-height: calc(100dvh - 20px); } }
 </style>
     <!-- TrustBox script -->
@@ -2295,6 +2316,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
+    <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
@@ -2430,6 +2452,30 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
             body.appendChild(priceSection);
             window.openClientPriceBreakdown(bookingId, priceSection);
             document.getElementById("bookingDetailsModal").style.display = "flex";
+            // Customer-only, read-only archived Caravel quote + accepted terms.
+            const booked=window.ride24BookingsById?.[bookingId];
+            if(booked?.partner_id==='78721481-7619-44df-a9b7-5faa344b69bb'){
+                const loading=document.createElement('p');
+                loading.textContent=isEn?'Loading confirmed Caravel booking details…'
+                    :'Pobieranie potwierdzonych szczegółów Caravel…';
+                loading.className='r24-price-legacy';
+                priceSection.replaceChildren(loading);
+                db.functions.invoke('client-caravel-booking-details',{body:{booking_id:bookingId}})
+                  .then(({data,error})=>{
+                      if(!priceSection.isConnected || document.getElementById('bookingDetailsModal')?.style.display!=='flex')return;
+                      if(error||!data?.success||!window.Ride24CaravelBookingDetails?.render(data.details,priceSection,isEn))
+                          throw new Error('CARAVEL_DETAILS_UNAVAILABLE');
+                  }).catch(()=>{
+                      if(!priceSection.isConnected || document.getElementById('bookingDetailsModal')?.style.display!=='flex')return;
+                      window.openClientPriceBreakdown(bookingId,priceSection);
+                      const message=document.createElement('p');
+                      message.className='r24-price-legacy';
+                      message.textContent=isEn
+                        ? 'Could not load booked Caravel extras or archived terms. Retry or contact Ride24.'
+                        : 'Nie udało się pobrać zamówionych dodatków i regulaminu Caravel. Spróbuj ponownie lub skontaktuj się z Ride24.';
+                      priceSection.prepend(message);
+                  });
+            }
         };
 
         window.openClientPriceBreakdown = function(id, inlineTarget = null) {
@@ -3489,6 +3535,8 @@ document.addEventListener("click", async function(e) {
             .from("bookings")
             .select(`
     id,
+    partner_id,
+    caravel_terms_document_id,
     created_at,
     start_date,
     end_date,
