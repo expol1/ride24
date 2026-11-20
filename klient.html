@@ -3160,38 +3160,20 @@ document.addEventListener("click", async function(e) {
            const btn = document.getElementById("confirmBookingBtn");
            window.r24ArventForm = !!on;
            if (note) note.hidden = !on;
-           // Arvent-only: no priced extras are supplied by kolayCAR at present.
-           // Do not offer a misleading "Choose extras" action. Restore the standard
-           // selectable tile unchanged whenever the booking is not Arvent.
-           if (callout) callout.hidden = false;
-           if (extrasInfo) extrasInfo.hidden = true;
-           const extrasButton = callout?.querySelector("button.docs-extra-item");
-           const extrasTitle = extrasButton?.querySelector(".r24-extras-copy strong");
-           const extrasDescription = extrasButton?.querySelector(".r24-extras-copy small");
-           const extrasAction = extrasButton?.querySelector(".r24-extras-action");
-           if (extrasButton) {
-               extrasButton.disabled = !!on;
-               extrasButton.style.cursor = on ? "default" : "";
-               extrasButton.setAttribute("aria-disabled", on ? "true" : "false");
+           // Arvent-only: no priced extras exist for this offer. Suppress the
+           // whole interactive extras tile rather than leaving a misleading CTA.
+           // Restore the unmodified standard tile when another partner is shown.
+           if (callout) {
+               callout.hidden = !!on;
+               if (on) callout.style.setProperty("display", "none", "important");
+               else callout.style.removeProperty("display");
            }
-           if (extrasTitle) {
-               extrasTitle.dataset.pl = on ? "Dodatki niedostępne online" : "Wybierz dodatki do wynajmu";
-               extrasTitle.dataset.en = on ? "Extras unavailable online" : "Choose rental extras";
-               extrasTitle.textContent = isEn ? extrasTitle.dataset.en : extrasTitle.dataset.pl;
-           }
-           if (extrasDescription) {
-               extrasDescription.dataset.pl = on ? "W tej ofercie nie można zamówić dodatkowego wyposażenia." : "Zobacz dostępne usługi i ich aktualną cenę.";
-               extrasDescription.dataset.en = on ? "No additional equipment can be ordered for this offer." : "See available services and their current prices.";
-               extrasDescription.textContent = isEn ? extrasDescription.dataset.en : extrasDescription.dataset.pl;
-           }
-           if (extrasAction) extrasAction.hidden = !!on;
+           if (extrasInfo) extrasInfo.hidden = !on;
            if (licence) licence.readOnly = !!on;
            if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
-           if (price && docs) {
-               // Arvent: price summary before the documents and the consent.
-               if (on && price.nextElementSibling !== docs) docs.before(price);
-               if (!on && docs.nextElementSibling !== price) docs.after(price);
-           }
+           // Same order as every standard Ride24 booking: documents, price, consent.
+           // Also restores order when reopening after an older Arvent form.
+           if (price && docs && docs.nextElementSibling !== price) docs.after(price);
            if (btn) {
                btn.dataset.pl = on ? "Potwierdzam i przechodzę do płatności Ride24" : "Potwierdzam i rezerwuję";
                btn.dataset.en = on ? "Confirm and continue to Ride24 payment" : "Confirm & Book";
@@ -5538,11 +5520,11 @@ window.closeReviewModal = function() {
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
-                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#92400E" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>
+                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#64748B" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>
                 </div>
             </div>
 
-    <p id="arventExtrasInfo" hidden style="margin:0 0 14px;padding:10px 12px;border-radius:10px;background:#F1F5F9;color:#334155;font-size:13px" data-pl="Dodatki: w tej ofercie nie ma dodatków do zamówienia online. Rezerwacja obejmuje wybraną kategorię auta z pełnym ubezpieczeniem i warunkami Arvent." data-en="Extras: this offer has no extras that can be ordered online. The booking covers the selected car category with full insurance and Arvent's terms.">Dodatki: w tej ofercie nie ma dodatków do zamówienia online. Rezerwacja obejmuje wybraną kategorię auta z pełnym ubezpieczeniem i warunkami Arvent.</p>
+    <p id="arventExtrasInfo" hidden role="status" style="margin:0 0 14px;padding:10px 12px;border-radius:10px;background:#F8FAFC;border:1px solid #E2E8F0;color:#475569;font-size:13px;line-height:1.5" data-pl="Dodatki: brak możliwości zamówienia online w tej ofercie." data-en="Extras: not available to order online for this offer.">Dodatki: brak możliwości zamówienia online w tej ofercie.</p>
     <!-- Extras are a primary booking step, not another legal document. Presentation only. -->
     <div class="r24-extras-callout">
         <button type="button" class="docs-extra-item" onclick="openEquipmentInfoModal()"
