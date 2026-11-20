@@ -260,7 +260,7 @@ export async function issueVerifiedCaravelQuote(args:{
      amount_minor:f.amountMinor,
    })),
    extras:extrasCheck.priced.map(e=>({
-     extra_id:e.extra_id,code:e.code,quantity:e.quantity,
+     extra_id:e.extra_id,code:e.code,quantity:e.quantity,billed_quantity:e.billed_quantity,
      name_pl:e.name_pl,name_en:e.name_en,amount_minor:e.total_minor,
    })),
  };
@@ -298,6 +298,7 @@ export async function issueVerifiedCaravelQuote(args:{
       // Verified supplier line items for the client's pre-payment summary.
       // They are informational: the amount to collect stays grand_total.
       price_breakdown:priceBreakdown,
+      driver_service_id:args.verifiedExtrasCatalog?.find(e=>e.category==="additional_driver" && selectedExtras.some(x=>x.extra_id===e.extra_id))?.extra_id ?? null,
       selected_extras:selectedExtras.map(e=>({extra_id:e.extra_id,quantity:e.quantity})),
       drivers:requested.drivers,
       ...(args.approvedExclusions?{

@@ -79,7 +79,7 @@ test('Caravel: server terms + exclusions shown, both confirmations required, ech
 
 test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, no double-charge',async()=>{
  const v=await view();
- v.money.breakdown={rental_base:'100.00 EUR',fee_total:'50.00 EUR',partner_total:'150.00 EUR',
+ v.money.breakdown={rental_base:'100.00 EUR',customer_rental:'115.00 EUR',fee_total:'50.00 EUR',partner_total:'150.00 EUR',
   fees:[
    {type:'airport_tax',label:'Airport TAX',amount:'0.00 EUR'},
     {type:'young_driver',label:'Młody kierowca',original_label:'Young driver 3 days',amount:'33.00 EUR'},
@@ -95,12 +95,12 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
   assert.equal(s.classList.contains('booking-price-breakdown'), true, 'Caravel must use the same layout class as AVIA');
   assert.doesNotMatch(s.textContent,/Airport TAX/, 'zero price rows are hidden, not charged');
   assert.doesNotMatch(s.textContent,/Young driver 3 days/, 'do not duplicate the original supplier label');
- assert.match(s.textContent,/Wynajem samochodu.*100\.00 EUR/);
+ assert.match(s.textContent,/Wynajem samochodu.*115\.00 EUR/);
  assert.match(s.textContent,/Młody kierowca.*33\.00 EUR/);
  assert.match(s.textContent,/Zwrot w innym punkcie.*17\.00 EUR/);
- assert.match(s.textContent,/Łącznie.*165\.00 EUR/);
+ assert.doesNotMatch(s.textContent,/Łącznie/);
  assert.match(s.textContent,/Do zapłaty partnerowi.*150\.00 EUR/);
- assert.match(s.textContent,/Online po potwierdzeniu.*64,50/);
+ assert.match(s.textContent,/Opłata rezerwacyjna Ride24 online.*64,50/);
  assert.match(s.textContent,/Ostateczna kwota/);
  assert.equal(w.Ride24CaravelConsent.canSubmit(),false);
  doc.getElementById('caravelTermsAccept').checked=true;
@@ -113,7 +113,7 @@ test('Caravel: voluntary GPS switch requests an exact new supplier quote, resets
   const newId='5ea5e8db-7244-4416-ab7b-2632bd5f882a';
   const updated={...old,api_quote_id:newId,money:{...old.money,
     rental_at_pickup:'171.00 EUR',customer_total:'188.10 EUR',customer_total_minor:18810,ride24_fee:'17.10 EUR',ride24_fee_minor:1710,ride24_fee_pln_minor:7353,ride24_fee_pln:'73.53 PLN',breakdown:{
-      rental_base:'150.00 EUR',fee_total:'0.00 EUR',extras_total:'21.00 EUR',partner_total:'171.00 EUR',
+      rental_base:'150.00 EUR',customer_rental:'167.10 EUR',fee_total:'0.00 EUR',extras_total:'21.00 EUR',partner_total:'171.00 EUR',
       fees:[],extras:[{extra_id:'gps-1',name:'Nawigacja GPS',quantity:1,amount:'21.00 EUR'}],
     }}};
   const catalog={success:true,catalog:[{
@@ -140,7 +140,7 @@ test('Caravel: voluntary GPS switch requests an exact new supplier quote, resets
   assert.equal(w.localStorage.getItem('selectedApiQuoteId'),newId);
   assert.match(d.getElementById('caravelConsent').textContent,/Nawigacja GPS/);
   assert.match(d.getElementById('caravelConsent').textContent,/171.00 EUR/);
-  assert.match(d.getElementById('caravelConsent').textContent,/188.10 EUR/);
+  assert.match(d.getElementById('caravelConsent').textContent,/167.10 EUR/);
   assert.equal(d.getElementById('acceptTerms').checked,false);
   assert.equal(w.Ride24CaravelConsent.canSubmit(),false,'changed supplier quote always clears the legal consent');
 });

@@ -401,10 +401,12 @@ export function caravelQuoteFromApi(data: unknown, protection: unknown, supplier
     sums[kind as keyof typeof sums] += total.amount;
     if (kind === "extra") extraLines.push({code: String((l as Json).code ?? ""), quantity: Number((l as Json).quantity), totalMinor: total.amount});
     if (kind === "fee") {
+      const code = String(l?.code ?? "").toLowerCase();
+      const category = l?.type ?? (/^[a-z][a-z0-9_]{0,39}$/.test(code) ? code : "fee");
       charges.push({
         externalId: String((l as Json).fee_id ?? (l as Json).code ?? ""),
         label: String((l as Json).label ?? ""),
-        category: String((l as Json).type ?? ""),
+        category: String(category),
         amountMinor: total.amount,
         currency: total.currency,
       });

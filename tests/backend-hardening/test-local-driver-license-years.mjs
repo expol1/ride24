@@ -27,8 +27,8 @@ test("additional-driver form rejects missing/invalid date BEFORE deleting any sa
   // Full additional-driver validation now runs before an INSERT, and existing drivers
   // are never removed until the new rows have been stored successfully.
   assert.ok(fn.indexOf("additionalDriverErrors(candidate)") >= 0);
-  assert.ok(fn.indexOf("additionalDriverErrors(candidate)") < fn.indexOf(".insert(newDrivers)"));
-  assert.ok(fn.indexOf(".insert(newDrivers)") < fn.indexOf(".delete().eq(\"user_id\""));
+  assert.ok(fn.indexOf("additionalDriverErrors(candidate)") < fn.indexOf(".upsert(newDrivers"));
+  assert.doesNotMatch(fn, /\.delete\(/);
   assert.match(client, /class="driver-license-since" required autocomplete="off"/);
 });
 

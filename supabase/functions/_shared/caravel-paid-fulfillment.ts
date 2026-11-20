@@ -198,7 +198,7 @@ export async function revalidatePaidCaravel(credentials: unknown, booking: Rec, 
   if(parsed.value.extraLines.length!==extras.length ||
      parsed.value.quote.extrasAmountMinor!==(breakdown?.extras_minor ?? 0) ||
      extras.some(x=>!parsed.value.extraLines.some(l=>l.code===x!.code &&
-       l.quantity===x!.quantity && l.totalMinor===x!.amount_minor)))
+       l.quantity===(x!.billed_quantity ?? x!.quantity) && l.totalMinor===x!.amount_minor)))
     fail("PROVIDER_EXTRAS_CHANGED_AFTER_PAYMENT");
   const key = await caravelBookingUuid(String(booking.id), "book");
   return {

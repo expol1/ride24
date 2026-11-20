@@ -69,18 +69,16 @@
       }
       return en ? "PLN unavailable" : "— zł";
     }
+    priceRow(en ? "Car rental" : "Wynajem samochodu", breakdown?.customer_rental || money.customer_total, "rental");
     if (breakdown && Array.isArray(breakdown.fees)) {
-      priceRow(en ? "Car rental" : "Wynajem samochodu", breakdown.rental_base, "item");
       breakdown.fees.forEach(function (fee) {
-        if (fee && fee.label) priceRow(fee.label, fee.amount, "item");
+        if (fee && fee.label) priceRow(fee.label + (en ? " (mandatory)" : " (obowiązkowa)"), fee.amount, "item");
       });
       (Array.isArray(breakdown.extras) ? breakdown.extras : []).forEach(function (extra) {
-        if (extra && extra.name) priceRow(extra.name + (extra.quantity > 1 ? " × " + extra.quantity : ""), extra.amount, "item");
+        if (extra && extra.name) priceRow(extra.name + (extra.quantity > 1 ? " × " + extra.quantity : ""), extra.amount, "extra");
       });
     }
-    priceRow(en ? "Total" : "Łącznie",
-      money.customer_total, "total");
-    priceRow(en ? "Online after confirmation" : "Online po potwierdzeniu",
+    priceRow(en ? "Ride24 online fee" : "Opłata rezerwacyjna Ride24 online",
       onlineFee(), "payment");
     priceRow(en ? "Pay to Caravel at pickup" : "Do zapłaty partnerowi",
       breakdown && breakdown.partner_total ? breakdown.partner_total : money.rental_at_pickup, "payment");
@@ -225,6 +223,7 @@
         var select=document.createElement("select");select.disabled=state.busy;
         select.setAttribute("aria-label",en?e.name_en:e.name_pl);
         for(var i=0;i<=e.max_quantity;i++){
+          if(i>0 && i<(e.min_quantity||1))continue;
           var option=document.createElement("option");option.value=String(i);option.textContent=String(i);
           select.appendChild(option);
         }
@@ -234,10 +233,6 @@
       }
       picker.appendChild(row);
     });
-    if(state.unavailable.length)picker.appendChild(text("small",en
-      ?"Other services require individual confirmation and cannot be booked online."
-      :"Pozostałe usługi wymagają potwierdzenia partnera i nie mogą być rezerwowane online.",
-      "display:block;margin-top:10px;color:#64748B"));
     var p=state.view?.money?.breakdown;
     total.appendChild(text("strong",en?"Your Caravel extras":"Twoje dodatki Caravel"));
     (p?.extras||[]).forEach(function(x){var line=document.createElement("div");
@@ -253,6 +248,8 @@
     var selected=state.selected.filter(function(x){return x.extra_id!==id;});
     if(qty>0)selected.push({extra_id:id,quantity:qty});
     state.busy=true;
+    renderExtras();
+    lockDriverControls(true);
     var button=byId("confirmBookingBtn");if(button)button.disabled=true;
     var picker=byId("bookingExtrasPicker");
     if(picker)picker.appendChild(text("p",isEnglish()?"Verifying new supplier price…":"Potwierdzamy nową cenę u Caravel…"));
@@ -264,6 +261,7 @@
          (isEnglish()?response.body?.error_en:response.body?.error)||
          (isEnglish()?"Extras are not available at this price.":"Dodatki nie są dostępne w tej cenie."));
       state.view=response.body.consent;state.quoteId=state.view.api_quote_id;state.selected=selected;
+      rememberDrivers();
       state.submitLocked=false;state.catalogError=null;
       localStorage.setItem("selectedApiQuoteId",state.quoteId);
       var accept=byId("acceptTerms");if(accept)accept.checked=false;
@@ -274,13 +272,22 @@
       state.submitLocked=true;
       var accepted=byId("acceptTerms");if(accepted)accepted.checked=false;
     }finally{
-      state.busy=false;
+      state.busy=false;lockDriverControls(false);
       if(state.view)render(state.view);
       renderExtras();
       if(button)button.disabled=!state.view || state.submitLocked;
     }
   }
 
+  function rememberDrivers(){
+    try {sessionStorage.setItem("caravelDriverChoice",JSON.stringify({quote:state.quoteId,main:state.mainDriverId,extra:state.additionalDriverId}));} catch(e){}
+  }
+  function lockDriverControls(locked){
+    ["driverSelect","additionalDriverSelect","caravelDriverProfile"].forEach(function(id){
+      var el=byId(id);
+      if(el)el.disabled=locked || (id!=="driverSelect" && !state.driverService);
+    });
+  }
   function reset() {
     state = { active: false, view: null, quoteId: null, selected: [], catalog: [], unavailable: [], catalogError: null, busy: false, submitLocked: false, auth: null, mainDriverId:null, additionalDriverId:null };
     var picker=byId("bookingExtrasPicker");if(picker){picker.replaceChildren();picker.hidden=true;}
@@ -297,6 +304,14 @@
       return !!(state.active && state.view && Number.isInteger(Number(age)) &&
         Number(state.view.driver_age) !== Number(age));
     },
+    savedDrivers: function(){
+      try {var draft=JSON.parse(sessionStorage.getItem("caravelDriverChoice"));
+        return draft?.quote===state.quoteId ? draft : null;
+      }catch(e){return null;}
+    },
+    hasAdditionalDriver: function(){return state.view?.additional_driver_age!=null;},
+    driverService: function(){return state.driverService || null;},
+    isBusy: function(){return state.busy;},
     reset: reset,
     /** Load and show the consent for the selected quote; hides supplier PDF links (comparison only). */
     prepare: async function (opts) {
@@ -325,6 +340,7 @@
       var catalog=await call("extras-catalog",{api_quote_id:state.quoteId},opts.accessToken,opts.supabaseUrl,opts.supabaseKey);
       if(catalog.ok && catalog.body && Array.isArray(catalog.body.catalog)) {
         state.catalog=catalog.body.catalog;
+        state.driverService=catalog.body.driver_service || null;
         state.unavailable=Array.isArray(catalog.body.unavailable)?catalog.body.unavailable:[];
       } else {
         state.catalogError=isEnglish()?"Extras catalog is temporarily unavailable.":"Katalog dodatków jest chwilowo niedostępny.";
@@ -342,6 +358,7 @@
       if(mainId && mainId===extraId) return false;
       if(mainId===state.mainDriverId && extraId===state.additionalDriverId && !opts?.force) return true;
       state.busy=true;
+      lockDriverControls(true);renderExtras();
       var prevMain=state.mainDriverId, prevExtra=state.additionalDriverId;
       try {
         var r=await call("drivers-requote",{
@@ -360,7 +377,7 @@
         state.selected=(state.view.money?.breakdown?.extras||[]).map(function(x){
           return {extra_id:x.extra_id,quantity:x.quantity};
         });
-        state.mainDriverId=mainId;state.additionalDriverId=extraId;state.submitLocked=false;
+        state.mainDriverId=mainId;state.additionalDriverId=extraId;rememberDrivers();state.submitLocked=false;
         try {localStorage.setItem("selectedApiQuoteId",state.quoteId);}catch(e){}
         var general=byId("acceptTerms");if(general)general.checked=false;
         render(state.view);renderExtras();
@@ -374,7 +391,7 @@
         if(m)m.value=prevMain||"";
         if(a)a.value=prevExtra||"none";
         return false;
-      } finally {state.busy=false;}
+      } finally {state.busy=false;lockDriverControls(false);renderExtras();}
     },
     canSubmit: function () {
       return !!(!state.busy && !state.submitLocked && state.view && Number(state.view.money?.ride24_fee_pln_minor) > 0 && byId("caravelTermsAccept") && byId("caravelTermsAccept").checked &&

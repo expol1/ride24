@@ -150,7 +150,7 @@ test("Caravel mandatory fees are already included in supplier grand total and sa
  const admin=db(),c=client();
  c.state.quote={...quote(),line_items:[
   {kind:"base_rate",total:money(10000)},
-  {kind:"fee",code:"FEE-YOUNG",fee_id:"fee-1",type:"young_driver",label:"Young driver 3 days",total:money(3300)},
+  {kind:"fee",code:"YOUNG_DRIVER",label:"Young driver 3 days",total:money(3300)},
   {kind:"fee",code:"FEE-ONEWAY",fee_id:"fee-2",type:"one_way",label:"One-way return",total:money(1700)},
  ]};
  const result=await issueVerifiedCaravelQuote(args(admin,c));
@@ -160,7 +160,7 @@ test("Caravel mandatory fees are already included in supplier grand total and sa
  const saved=admin.state.quotes[0].raw_response.provider_quote_data.price_breakdown;
  assert.deepEqual(saved,{version:1,currency:"EUR",rental_minor:10000,mandatory_fees_minor:5000,
   extras_minor:0,total_minor:15000,extras:[],fees:[
-   {code:"fee-1",label:"Young driver 3 days",type:"young_driver",amount_minor:3300},
+   {code:"YOUNG_DRIVER",label:"Young driver 3 days",type:"young_driver",amount_minor:3300},
    {code:"fee-2",label:"One-way return",type:"one_way",amount_minor:1700},
   ]});
 });
@@ -190,7 +190,7 @@ test("selected provider GPS extra is quoted once and persisted in itemized suppl
  assert.deepEqual(data.selected_extras,[{extra_id:"gps-1",quantity:1}]);
  assert.equal(data.price_breakdown.extras_minor,3000);
  assert.deepEqual(data.price_breakdown.extras,[{
-  extra_id:"gps-1",code:"EQ-GPS",quantity:1,name_pl:"Nawigacja GPS",name_en:"GPS",amount_minor:3000,
+  extra_id:"gps-1",code:"EQ-GPS",quantity:1,billed_quantity:1,name_pl:"Nawigacja GPS",name_en:"GPS",amount_minor:3000,
  }]);
  assert.equal(data.amounts_minor.pay_at_pickup,18000);
 });
