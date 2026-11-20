@@ -77,6 +77,23 @@ test("all four cells of each partner row share a single left-to-right gradient",
   assert.match(html,/Brak aktywnych aut lub lokalizacji/);
 });
 
+test("readiness backgrounds remain saturated across the full row and grey stays neutral",()=>{
+  const block=html.slice(html.indexOf("/* Baza Partnerów"),html.indexOf("/* RIDE24_PARTNER_CONTACT_DIALOG_START"));
+  const variants=[
+    ["agreement","#fbd75e","#fff3c7"],
+    ["setup","#c4c4c4","#f0f0f0"],
+    ["ready","#80e89e","#dcf9e5"]
+  ];
+  for(const [key,left,right] of variants){
+    const rule=new RegExp("tr\\.r24-partner-row--"+key+"\\s*\\{\\s*background:linear-gradient\\(90deg,([^;]+);");
+    const match=block.match(rule);
+    assert.ok(match,"Missing gradient: "+key);
+    assert.ok(match[1].includes(left+" 0%"),"Distinct visible left edge: "+key);
+    assert.ok(match[1].includes(right+" 100%"),"Tint must remain at right edge: "+key);
+  }
+  assert.ok(!block.includes("#94a3b8") && !block.includes("#f1f5f9") && !block.includes("rgba(148,163,184"),"Blue-grey color must not return");
+});
+
 test("read-only queries render correct classes for unsigned, incomplete, local and API partners",async()=>{
   const f=createFixture();
   await f.logic.loadPartnersData();
