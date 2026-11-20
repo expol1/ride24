@@ -84,7 +84,7 @@
         if (fee.type === "one_way") {
           // Show a separate one-way row only for a positive, supplier-verified fee.
           // This amount is already included in the partner total; display only.
-          if (typeof fee.amount === "string" && /^\\d+\\.\\d{2} EUR$/.test(fee.amount) && Number.parseFloat(fee.amount) > 0) {
+          if (typeof fee.amount === "string" && /^\d+\.\d{2} EUR$/.test(fee.amount) && Number.parseFloat(fee.amount) > 0) {
             priceRow(en ? "Return to a different location" : "Zwrot w innym miejscu", fee.amount);
           }
           return;
