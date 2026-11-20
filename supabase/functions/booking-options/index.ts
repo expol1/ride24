@@ -90,6 +90,14 @@ serve(async(req: Request)=>{
             ]).has(code))throw new BookingOptionsError('QUOTE_EXPIRED',
               'Oferta lub jej cena zmieniła się. Wyszukaj ponownie.',
               'The offer or its price has changed. Search again.',409);
+            if([
+              'PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNVERIFIED',
+              'PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNPRICED',
+              'PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE',
+              'PARTNER_API_ERROR:ARVENT_EXTRAS_DUPLICATE_OR_CODE'
+            ].includes(code))throw new BookingOptionsError('ARVENT_EXTRAS_PRICE_UNVERIFIED',
+              'Dostawca nie potwierdził pełnej ceny oferty z dodatkami. Nie pobierzemy opłaty za niepełną rezerwację.',
+              'The supplier has not confirmed the complete price including extras. We will not charge for an incomplete booking.',409);
             // A missing/temporarily unavailable extras endpoint must not
             // disable booking the vehicle without any selected extras.
             return {status:'unavailable',items:[]};

@@ -3,7 +3,7 @@ import { partnerApiRequest, sanitizePartnerPayload, type PartnerApiCredentials, 
 import { serviceClient } from "./ride24-security.ts";
 import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
- arventLocationRows, arventGroupRows, arventOfferRows, arventCatalogRows, arventOfferExtrasRows,
+ arventLocationRows, arventGroupRows, arventOfferRows, arventCatalogRows, arventOfferExtrasRows, arventAssertVehicleOnlyExtrasSafe,
  arventOfferMatchesTerms, arventReservationStatus, arventSavePayload, arventSavedRouteMatches,
  arventLeadTimeAllowed,
 } from "./arvent-kolaycar-contract.mjs";
@@ -153,6 +153,7 @@ export async function arventReadOfferExtras(c:PartnerApiCredentials,input:Search
    pickupDate:priced.pickupDateTime,returnDate:priced.returnDateTime,
   },input))
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
+ arventAssertVehicleOnlyExtrasSafe((data as any).extras);
  const items=arventOfferExtrasRows((data as any).extras);
  return {status:items.length?"present":"none",items};
 }
