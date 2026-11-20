@@ -31,7 +31,7 @@ function fixture(change=()=>{},flags={}){
   raw_response:{provider_quote_data}};
  const fresh={external_id:'CDAR',currency:'EUR',deposit_amount:0,public_price_total:100,
   features:{minimum_driver_age:21,min_license_years:0},
-  provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'15',sipp:'CDAR',
+  provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'10',sipp:'CDAR',
    total_amount:100,currency:'EUR'}};
  const state={booking,quote,fresh,live:[fresh],status:{status:'pending',
   booking_reference:'A-1',needs_manual_review:false},throws:false};
@@ -74,13 +74,13 @@ test('two explicit production gates are required before Arvent accepts paid fulf
   assert.equal(f.calls.length,0);
  }
 });
-test('same SIPP group with another cheaper vehicle is safe only at identical EUR price',async()=>{
+test('same supplier vehicleId, SIPP group and EUR amount is safe for Arvent revalidation',async()=>{
  const f=fixture(()=>{},approved);
  assert.equal(f.hasPaidFulfillmentAdapter('arvent_kolaycar'),true);
  const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
  assert.equal(prepared.provider,'arvent_kolaycar');
  assert.equal(prepared.vehicle_group_id,'CDAR');
- assert.equal(prepared.provider_quote_data.vehicle_id,'15');
+ assert.equal(prepared.provider_quote_data.vehicle_id,'10');
  assert.equal(prepared.partner_amount,100);
  assert.equal(prepared.pickup_location_id,'12');
  assert.equal(prepared.pickup_time,'10:00');
@@ -89,6 +89,13 @@ test('same SIPP group with another cheaper vehicle is safe only at identical EUR
  assert.equal(result.status,'pending');
  assert.equal(result.needs_manual_review,false);
  assert.equal(f.calls.at(-1).stage,'create');
+});
+test('Arvent cannot silently replace an unavailable supplier vehicleId with another car of same SIPP and price',async()=>{
+ const f=fixture(s=>s.fresh.provider_quote_data.vehicle_id='15',approved);
+ await assert.rejects(f.revalidatePaidProvider({},f.booking,f.quote),
+  e=>e instanceof flow.DefiniteApiFailure
+    &&e.message==='ARVENT_VEHICLE_SUBSTITUTION_UNVERIFIED');
+ assert.deepEqual(f.calls.map(x=>x.stage),['search']);
 });
 test('new supplier price, category, deposit, driver or documents reject before creating booking',async()=>{
  const cases={
