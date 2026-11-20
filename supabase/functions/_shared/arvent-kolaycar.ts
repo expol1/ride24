@@ -132,7 +132,7 @@ export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Pr
 // A new ephemeral reservationToken never leaves this server function.
 export async function arventReadOfferExtras(c:PartnerApiCredentials,input:SearchInput,
  quote:{vehicle_id:string;sipp:string;total_amount:number}):Promise<
- {status:"none"|"present";items:ReturnType<typeof arventOfferExtrasRows>}> {
+ {status:"none"|"present";items:ReturnType<typeof arventOfferExtrasRows>;billed_days:number|null}> {
  const vehicleId=String(quote?.vehicle_id||"");
  const sipp=String(quote?.sipp||"").toUpperCase();
  const amount=Number(quote?.total_amount);
@@ -163,7 +163,13 @@ export async function arventReadOfferExtras(c:PartnerApiCredentials,input:Search
  // options route applies the certified billing map to the offer-bound items.
  // A vehicle-only SaveReservation still rejects unpriced mandatory items.
  const items=arventOfferExtrasRows((data as any).extras);
- return {status:items.length?"present":"none",items};
+ const sourceDays=Number(vehicle.rentalDuration);
+ const pricedDays=Number(priced.rentalDuration);
+ const validDays=(x:number)=>Number.isInteger(x)&&x>=1&&x<=366;
+ if(validDays(sourceDays)&&validDays(pricedDays)&&sourceDays!==pricedDays)
+  throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
+ const billedDays=validDays(pricedDays)?pricedDays:validDays(sourceDays)?sourceDays:null;
+ return {status:items.length?"present":"none",items,billed_days:billedDays};
 }
 
 async function bookingContextFor(c:PartnerApiCredentials,reference:string):Promise<{
@@ -327,11 +333,18 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
    arventAssertVehicleOnlyExtrasSafe((extraData as any).extras);
  }
  const duration=rentalDuration(input.pickup_date,input.return_date,input.pickup_time,input.return_time);
+ const vehicleDays=Number(current.rentalDuration),confirmedDays=Number(pricedVehicle.rentalDuration);
+ const validDays=(n:number)=>Number.isInteger(n)&&n>=1&&n<=366;
+ if(validDays(vehicleDays)&&validDays(confirmedDays)&&vehicleDays!==confirmedDays)
+  throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
+ const supplierDays=validDays(confirmedDays)?confirmedDays:validDays(vehicleDays)?vehicleDays:null;
+ if(accepted.some(x=>x.billing==="day"&&x.total_cents>0)&&supplierDays===null)
+  throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_BILLING_DAYS_UNVERIFIED");
  const extrasQuote=accepted.length
     ?arventSelectedExtrasQuote({items:arventOfferExtrasRows(extras),
        selections:accepted.filter(x=>!x.required).map(x=>({id:x.code,quantity:x.quantity})),
        additionalDriverId:input.additional_driver?"provided":null,
-       billedDays:duration.billedDays,certified:true,certifiedMap:input.extra_billing_map||{}})
+       billedDays:supplierDays??duration.billedDays,certified:true,certifiedMap:input.extra_billing_map||{}})
     :{items:required.map((x:any)=>({code:String(x.code),quantity:1,total_cents:0,required:true})),
        total_cents:0,selected:required.map((x:any)=>({code:String(x.code),piece:1}))};
  if(accepted.length){
