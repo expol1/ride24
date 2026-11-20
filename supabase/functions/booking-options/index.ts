@@ -131,11 +131,20 @@ serve(async(req: Request)=>{
           'Arvent must confirm how the additional driver is registered.',409);
       const readyItems=effectiveItems.map((x:any)=>({...x,
         bookable:x.bookable && (x.code!=='2'||settings.arvent_additional_driver_certified===true)}));
+      const supplierDays=offerExtras.billed_days;
+      const hasChargedDaily=readyItems.some((x:any)=>x.billing==='day'&&x.price_eur>0
+         && (x.required || selected.some((chosen:any)=>chosen?.id===x.code)));
+      if(hasChargedDaily && (!Number.isInteger(supplierDays)||supplierDays<1||supplierDays>366))
+        throw new BookingOptionsError('ARVENT_EXTRAS_BILLING_DAYS_UNVERIFIED',
+          'Arvent nie potwierdził liczby dób naliczania dodatków. Nie pobierzemy opłaty.',
+          'Arvent did not confirm how many days to bill extras. No charge will be taken.',409);
+      const priceDays=Number.isInteger(supplierDays)&&supplierDays>=1&&supplierDays<=366
+          ?supplierDays:duration.billedDays;
       let savedQuoteId=q.id, quoteFingerprint:null|string=null, snapshot:any=null;
       let extraQuote:{items:any[];total_cents:number;selected:any[]}|null=null;
       try {
         extraQuote=arventSelectedExtrasQuote({items:readyItems,selections:selected,
-          billedDays:duration.billedDays,certified,
+          billedDays:priceDays,certified,
           certifiedMap:typeMap,additionalDriverId:body.additional_driver_id||null});
       } catch(e) {
         const code=e instanceof Error?e.message:'';
@@ -150,7 +159,7 @@ serve(async(req: Request)=>{
       const needsPriceSnapshot=selected.length>0 || extraQuote.total_cents>0;
       if(needsPriceSnapshot){
         snapshot=arventOptionsSnapshot({rentalCents:Math.round(rental*100),
-          ride24FeeCents:Math.round(fee*100),extraQuote,days:duration.billedDays,
+          ride24FeeCents:Math.round(fee*100),extraQuote,days:priceDays,
           loyaltyPercent:discount,nbpRate:rate});
         const binding={user_id:user.id,driver_id:body.driver_id||null,
           additional_driver_id:body.additional_driver_id||null,ages:driverAges,selections:selected};
@@ -184,7 +193,7 @@ serve(async(req: Request)=>{
       return jsonResponse(req,{enabled:needsPriceSnapshot,
         ...(needsPriceSnapshot?{api_quote_id:savedQuoteId,fingerprint:quoteFingerprint}:{}),
         arvent:{
-        api_quote_id:savedQuoteId, currency, billed_days:duration.billedDays,
+        api_quote_id:savedQuoteId, currency, billed_days:priceDays,
         start_date:start, end_date:end, pickup_time:time(body.pickup_time).slice(0,5), return_time:time(body.return_time).slice(0,5),
         pickup_location:typeof body.pickup_location==='string'?body.pickup_location.slice(0,250):'',
         return_location:typeof body.return_location==='string'?body.return_location.slice(0,250):'',
