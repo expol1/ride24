@@ -79,7 +79,21 @@ serve(async(req: Request)=>{
       const [extraCatalog,offerExtras]=await Promise.all([
         readArventExtrasCatalog(admin,car.partner_id).catch(()=>[]),
         readArventOfferExtras(admin,car.partner_id,q,body)
-          .catch(()=>({status:'unavailable',items:[]}))
+          .catch((error:unknown)=>{
+            // A mismatched/changed offer is NOT merely "unpriced extras".
+            // Stop before Stripe rather than presenting an obsolete quote.
+            const code=error instanceof Error?error.message:'';
+            if(new Set([
+              'PARTNER_API_ERROR:ARVENT_OFFER_CHANGED',
+              'PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED',
+              'PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED'
+            ]).has(code))throw new BookingOptionsError('QUOTE_EXPIRED',
+              'Oferta lub jej cena zmieniła się. Wyszukaj ponownie.',
+              'The offer or its price has changed. Search again.',409);
+            // A missing/temporarily unavailable extras endpoint must not
+            // disable booking the vehicle without any selected extras.
+            return {status:'unavailable',items:[]};
+          })
       ]);
       return jsonResponse(req,{enabled:false,arvent:{
         api_quote_id:q.id, currency, billed_days:duration.billedDays,
