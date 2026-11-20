@@ -143,3 +143,20 @@ test('customer refund tiers match UTC database rules at 60, 59, 30, 29 days',asy
   assert.equal(calculate('invalid'),0);
 });
 
+
+test('Arvent: server summary shown without extras picker; booking may continue without extras',async()=>{
+  const {ui}=setup();
+  globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
+    pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)',
+    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,mandatory_fees:[],extras:[],
+    total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75}});
+  await ui.start();
+  const box=document.getElementById('bookingPriceBreakdown');
+  assert.equal(box.hidden,false);
+  assert.equal(document.getElementById('bookingExtrasPicker').hidden,true);
+  const text=box.textContent;
+  for(const part of ['Booking summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay Arvent at pickup','EDMR'])assert.ok(text.includes(part),part);
+  assert.ok(/14\.35/.test(text));
+  assert.equal(ui.canSubmit(),true);
+  assert.deepEqual(ui.payload(),{});
+});

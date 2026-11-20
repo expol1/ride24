@@ -102,3 +102,9 @@ export function assertApiOptionsQuote(raw,body,userId,ages) {
    ||s.partner_cents+s.commission_cents!==s.gross_cents||s.total_cents!==s.gross_cents-s.loyalty_discount_cents)fail();
  return s;
 }
+
+// Ride24 online fee in PLN for an API quote: commission x NBP rate x (1 - loyalty%).
+// The ONLY formula: create-booking-request stores it and the Arvent preview shows it.
+export function apiOnlinePaymentPln(commission, rate, discountPercent) {
+  return Number((commission * rate * (1 - discountPercent / 100)).toFixed(2));
+}

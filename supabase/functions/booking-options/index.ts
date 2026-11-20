@@ -5,7 +5,7 @@ import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse,
 import { readJsonObject } from "../_shared/booking-request.ts";
 import { exchangeRate } from "../_shared/booking-exchange-rate.ts";
 import { BookingOptionsError, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext } from "../_shared/booking-options.mjs";
-import { assertApiPricingCompatible, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
+import { apiOnlinePaymentPln, assertApiPricingCompatible, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 
 function date(value: unknown): string {
@@ -41,6 +41,47 @@ serve(async(req: Request)=>{
           throw new BookingOptionsError('DRIVER_AGE_NOT_ALLOWED',`Wymagany wiek każdego kierowcy: ${range} lat.`,`Each driver must meet the age requirement: ${range}.`,400);
         }
       }
+    }
+    if(partner.provider_type==='api' && partner.api_provider==='arvent_kolaycar') {
+      // Arvent: no Ride24/online extras and no additional driver (not in SaveReservation).
+      if(body.additional_driver_id) throw new BookingOptionsError('ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE',
+        'Dodatkowy kierowca niedostępny w rezerwacji online Arvent.','An additional driver is not available in Arvent online bookings.',400);
+      if((Array.isArray(body.extras) && body.extras.length) || body.pricing_version===2) throw new BookingOptionsError('ARVENT_EXTRAS_UNAVAILABLE',
+        'Dodatki nie są dostępne do zamówienia online w tej ofercie.','Extras cannot be ordered online for this offer.',400);
+      await assertApiPricingCompatible(admin, car.partner_id);
+      // Read-only preview of the server quote; the booking request recomputes it.
+      if(!isUuid(body.api_quote_id)) throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła. Wyszukaj ponownie.','The offer expired. Please search again.',409);
+      const {data:q,error:qe}=await admin.from('api_quotes')
+        .select('id,partner_id,car_class_id,booking_id,start_date,end_date,partner_net_total,commission_total,final_total,currency,expires_at,raw_response')
+        .eq('id',body.api_quote_id).maybeSingle();
+      const start=date(body.start_date), end=date(body.end_date);
+      if(qe||!q||q.partner_id!==car.partner_id||q.car_class_id!==car.id||q.booking_id
+        ||q.start_date!==start||q.end_date!==end||!(Date.parse(q.expires_at)>Date.now()))
+        throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła lub zmieniła się. Wyszukaj ponownie.','The offer expired or changed. Please search again.',409);
+      const rental=Number(q.partner_net_total), fee=Number(q.commission_total), total=Number(q.final_total);
+      if(![rental,fee,total].every(v=>Number.isFinite(v)&&v>=0)||total<=0||Math.abs(rental+fee-total)>0.05)
+        throw new BookingOptionsError('QUOTE_EXPIRED','Nie można potwierdzić ceny. Wyszukaj ponownie.','The price cannot be confirmed. Please search again.',409);
+      const {data:loyalty,error:le}=await admin.rpc('calculate_loyalty_discount',{p_user_id:user.id});
+      if(le) throw new Error('Nie udało się obliczyć rabatu');
+      const loyaltyValue=Number(Array.isArray(loyalty)?loyalty[0]:loyalty);
+      const discount=Math.max(0,Math.min(20,Number.isFinite(loyaltyValue)?loyaltyValue:0));
+      const currency=String(q.currency||'EUR').toUpperCase();
+      let rate:number;
+      try { rate=await exchangeRate(currency,true); }
+      catch { throw new BookingOptionsError('EXCHANGE_RATE_UNAVAILABLE','Nie udało się pobrać aktualnego kursu NBP. Spróbuj ponownie za chwilę.','The current NBP exchange rate is unavailable. Please try again shortly.',503); }
+      const duration=rentalDuration(start,end,time(body.pickup_time),time(body.return_time));
+      const display=q.raw_response?.ride24_display||{};
+      return jsonResponse(req,{enabled:false,arvent:{
+        api_quote_id:q.id, currency, billed_days:duration.billedDays,
+        start_date:start, end_date:end, pickup_time:time(body.pickup_time).slice(0,5), return_time:time(body.return_time).slice(0,5),
+        pickup_location:typeof body.pickup_location==='string'?body.pickup_location.slice(0,250):'',
+        return_location:typeof body.return_location==='string'?body.return_location.slice(0,250):'',
+        category:{class_code:display.class_code??null,group_name:display.group_name??null,example_model:display.example_model??null,sipp:display.sipp??null},
+        rental_total:rental, mandatory_fees:[], extras:[], total,
+        ride24_fee:fee, loyalty_discount_percent:discount, exchange_rate:rate,
+        online_pln:apiOnlinePaymentPln(fee,rate,discount), pay_on_pickup:rental,
+        expires_at:q.expires_at,
+      }});
     }
     if(partner.provider_type==='api') {
       if(partner.api_provider==='renteon_aggregator' && body.api_quote_id) {

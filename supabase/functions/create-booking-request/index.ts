@@ -3,7 +3,7 @@ import { arventLicenseYears } from "../_shared/arvent-driver-eligibility.mjs";
 import { arventLeadTimeAllowed, ARVENT_MIN_LEAD_MESSAGE } from "../_shared/arvent-kolaycar-contract.mjs";
 import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
-import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
+import { apiOnlinePaymentPln, assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { apiPaymentEnabled } from "../_shared/api-payment-runtime.ts";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
@@ -1097,10 +1097,23 @@ serve(async (req) => {
 
     // Arvent keeps its existing supplier-specific rule and optional submitted date.
     const isArventBooking = car.partner.api_provider === "arvent_kolaycar";
+    // Arvent: the date saved for the SELECTED main driver (owner or saved driver)
+    // always wins, so a form can never apply another person's date. A typed date
+    // is used only when that person has none saved yet (older app builds).
     const mainDriverLicenseSince = isArventBooking
-      ? (typeof body.main_driver_license_since === "string" && body.main_driver_license_since
-        ? body.main_driver_license_since : savedMainDriverLicenseSince)
+      ? (savedMainDriverLicenseSince
+        || (typeof body.main_driver_license_since === "string" && body.main_driver_license_since
+          ? body.main_driver_license_since : null))
       : savedMainDriverLicenseSince;
+    // Arvent online reservations carry only the main driver (SaveReservation has
+    // no additional-driver field); never take payment for a driver we would drop.
+    if (isArventBooking && additionalDriverId) {
+      return jsonResponse(req, {
+        code: "ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE",
+        error: "Dodatkowy kierowca niedostępny w rezerwacji online Arvent.",
+        error_en: "An additional driver is not available in Arvent online bookings.",
+      }, 400);
+    }
 
     // Local partner rule is opt-in: unset/zero has NO effect on existing bookings.
     // Measure completed calendar years at pickup for BOTH drivers.
@@ -1165,8 +1178,8 @@ serve(async (req) => {
     if (isArventBooking && arventLicenseYears(mainDriverLicenseSince,startDate.text) === null) {
       return jsonResponse(req,{
         code:"ARVENT_LICENSE_DATE_REQUIRED",
-        error:"Podaj prawidłową datę pierwszego uzyskania prawa jazdy głównego kierowcy.",
-        error_en:"Provide the main driver's original driving licence issue date."
+        error:"Uzupełnij w profilu datę pierwszego uzyskania prawa jazdy głównego kierowcy.",
+        error_en:"Add the main driver's original driving-licence date in your profile."
       },400);
     }
 
@@ -1299,9 +1312,7 @@ serve(async (req) => {
       apiQuoteCurrency || car.partner.currency || "EUR",
     );
     const rate = await exchangeRate(currency, car.partner.api_provider === "arvent_kolaycar");
-    let onlinePaymentPln = Number(
-      (commission * rate * (1 - discountPercent / 100)).toFixed(2),
-    );
+    let onlinePaymentPln = apiOnlinePaymentPln(commission, rate, discountPercent);
 
     if (
       !Number.isFinite(rate)
