@@ -31,6 +31,15 @@ test('Arvent server quote adds GPS by rental day, infant seats by declared quant
  assert.equal(totals.commission_cents,339);
  assert.equal(totals.online_pln_cents,1511);
 });
+test('Arvent cannot infer a multi-unit cap from the supplier increasable flag alone',()=>{
+ const item={code:'6',name:'Infant seat',price_eur:5,billing_type:'day',
+  quantity_increasable:true,required:false};
+ const [normalized]=arventPricedExtrasCatalog([item],{},true);
+ assert.equal(normalized.max_quantity,1);
+ assert.throws(()=>arventSelectedExtrasQuote({items:[item],selections:[{id:'6',quantity:2}],
+  billedDays:3,certified:true}),/NOT_PRICED/);
+});
+
 test('Arvent rejects a second driver with no saved identity and rejects the same person without the supplier service',()=>{
  assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:1}],certified:true,
   billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
