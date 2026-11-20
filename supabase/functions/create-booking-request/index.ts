@@ -1105,14 +1105,24 @@ serve(async (req) => {
         || (typeof body.main_driver_license_since === "string" && body.main_driver_license_since
           ? body.main_driver_license_since : null))
       : savedMainDriverLicenseSince;
-    // Arvent online reservations carry only the main driver (SaveReservation has
-    // no additional-driver field); never take payment for a driver we would drop.
-    if (isArventBooking && additionalDriverId) {
+    // Arvent's separately priced code 2 is bound to a saved additional
+    // driver only through a signed server quote (pricing_version 2).
+    // Keep older clients and unpriced drivers blocked.
+    if (isArventBooking && additionalDriverId && body.pricing_version !== 2) {
       return jsonResponse(req, {
         code: "ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE",
         error: "Dodatkowy kierowca jest niedostępny w tej ofercie.",
         error_en: "An additional driver is not available for this offer.",
       }, 400);
+    }
+
+    if (isArventBooking && additionalDriverId &&
+        arventLicenseYears(savedAdditionalDriverLicenseSince,startDate.text) === null) {
+      return jsonResponse(req,{
+        code:"ARVENT_EXTRA_DRIVER_LICENSE_DATE_REQUIRED",
+        error:"Uzupełnij datę pierwszego uzyskania prawa jazdy dodatkowego kierowcy w jego profilu.",
+        error_en:"Enter the additional driver's original licence date in the saved driver profile."
+      },400);
     }
 
     // Local partner rule is opt-in: unset/zero has NO effect on existing bookings.
@@ -1433,6 +1443,18 @@ serve(async (req) => {
       const raw=quoteClaim?.row.raw_response;
       pricingItemsSnapshot=assertApiOptionsQuote(raw,body,user.id,
         [mainDriverAge,...(additionalDriverAge!==null?[additionalDriverAge]:[])]);
+      if(isArventBooking && pricingItemsSnapshot) {
+        const accepted=raw?.ride24_options?.arvent_extra;
+        // Arvent selected quotes must have a supplier-bound extras breakdown
+        // produced by booking-options, not just an arbitrary Renteon snapshot.
+        if(!accepted || accepted.pricing_certified!==true ||
+            !Array.isArray(accepted.selected) ||
+            !Number.isSafeInteger(accepted.rental_cents) ||
+            !Number.isSafeInteger(accepted.extras_cents) ||
+            accepted.rental_cents+accepted.extras_cents!==pricingItemsSnapshot.partner_cents ||
+            (additionalDriverId && !accepted.selected.some((x:any)=>x.code==="2" && x.quantity===1)))
+          throw quoteChanged();
+      }
       if(pricingItemsSnapshot) {
         const p=pricingItemsSnapshot;
         if(p.currency!==currency || p.exchange_rate!==rate || p.partner_cents!==Math.round(baseTotal*100)
@@ -1519,7 +1541,7 @@ serve(async (req) => {
       main_driver_name: mainDriverName,
       main_driver_age: mainDriverAge,
       ...(isArventBooking || localMinLicenseYears > 0 ? { main_driver_license_since: mainDriverLicenseSince } : {}),
-      ...(car.partner.provider_type === "local" && savedAdditionalDriverLicenseSince
+      ...((car.partner.provider_type === "local" || (isArventBooking && additionalDriverId)) && savedAdditionalDriverLicenseSince
         ? { additional_driver_license_since: savedAdditionalDriverLicenseSince } : {}),
       ...(localMinLicenseYears > 0 ? { min_license_years_snapshot: localMinLicenseYears } : {}),
       add_driver_name: additionalDriverName,
