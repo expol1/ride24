@@ -32,6 +32,27 @@ export function supplierData(e) {
   throw Error("PARTNER_API_ERROR:ARVENT_BUSINESS_FAILURE");
  return e.data;
 }
+// Supplier's global catalogue, not a price quote. These names may be shown
+// for discovery, but MUST NEVER become selectable or payable until /extras
+// prices them for the user's exact reservationToken.
+export function arventCatalogRows(response) {
+ const data=supplierData(response);
+ const rows=Array.isArray(data)?data:
+   record(data)&&Array.isArray(data.extras)?data.extras:
+   record(data)&&Array.isArray(data.items)?data.items:null;
+ if(!rows)throw Error("PARTNER_API_ERROR:ARVENT_CATALOG_SHAPE");
+ const seen=new Set(),result=[];
+ for(const item of rows.slice(0,250)){
+  if(!record(item))continue;
+  const code=str(item.code??item.extraCode??item.extraId,60);
+  const name=str(item.name??item.extraName??item.title??item.description,120);
+  if(!code||!name||/[<>\\x00-\\x1f]/.test(name)||seen.has(code))continue;
+  seen.add(code);
+  result.push({code,name});
+ }
+ return result;
+}
+
 export function arventDate(v) {
  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(str(v,12));
  if(!m)throw Error("PARTNER_API_ERROR:ARVENT_DATE_INVALID");
