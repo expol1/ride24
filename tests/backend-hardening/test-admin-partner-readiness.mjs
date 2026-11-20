@@ -91,7 +91,7 @@ test("readiness backgrounds remain saturated across the full row and grey stays 
     assert.ok(match[1].includes(left+" 0%"),"Distinct visible left edge: "+key);
     assert.ok(match[1].includes(right+" 100%"),"Tint must remain at right edge: "+key);
   }
-  assert.doesNotMatch(block,/#94a3b8|#f1f5f9|rgba\\(148,163,184/);
+  assert.ok(!block.includes("#94a3b8") && !block.includes("#f1f5f9") && !block.includes("rgba(148,163,184"),"Blue-grey color must not return");
 });
 
 test("read-only queries render correct classes for unsigned, incomplete, local and API partners",async()=>{
