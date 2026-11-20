@@ -178,11 +178,11 @@ export async function arventReadOfferExtras(c:PartnerApiCredentials,input:Search
 }
 
 async function bookingContextFor(c:PartnerApiCredentials,reference:string):Promise<{
- id:string;client_email:string;partner_currency:unknown;partner_net_price_snapshot:unknown;
+ id:string;reservation_code:string|null;client_email:string;partner_currency:unknown;partner_net_price_snapshot:unknown;
  api_quote_id:string|null;start_date:string;end_date:string;pickup_time:string;return_time:string;
 }> {
  const admin=serviceClient();
- const {data,error}=await admin.from("bookings").select("id,client_email,partner_currency,partner_net_price_snapshot,api_quote_id,start_date,end_date,pickup_time,return_time")
+ const {data,error}=await admin.from("bookings").select("id,reservation_code,client_email,partner_currency,partner_net_price_snapshot,api_quote_id,start_date,end_date,pickup_time,return_time")
   .eq("partner_id",c.partner_id).eq("api_booking_reference",reference).limit(1).maybeSingle();
  if(error||typeof data?.client_email!=="string"||!data.client_email)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_EMAIL_NOT_FOUND");
@@ -235,13 +235,21 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
   });
  const expectedExtras=quote?.raw_response?.ride24_options?.arvent_extra?.selected||[];
  const extrasVerified=arventReceiptExtrasMatch(d.reservationExtras??d.extras,expectedExtras);
+ // Supplier reservationNumber and original customer email identify a record.
+ // If Arvent also echoes the Ride24 agency reference it must match exactly,
+ // including on cancellation paths (which can trigger a Stripe refund).
+ const supplierAgency=typeof d.agencyReservationReference==="string"
+  ?d.agencyReservationReference.trim():null;
+ const agencyMismatch=!!supplierAgency&&(!booking.reservation_code
+  ||supplierAgency!==booking.reservation_code);
  const verified=booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot)
-  &&routeValid===true&&sippConsistent(d,quote?.external_group_id)&&extrasVerified;
+  &&routeValid===true&&sippConsistent(d,quote?.external_group_id)&&extrasVerified&&!agencyMismatch;
  // If status is "approved" but supplier price/terms cannot be proved, do
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
  return {...status,status:status.status==="confirmed"&&!confirmed?"pending":status.status,
-  needs_manual_review:status.needs_manual_review||(status.status==="confirmed"&&!confirmed),
+  needs_manual_review:status.needs_manual_review||agencyMismatch||(status.status==="confirmed"&&!confirmed),
+  agency_reference_verified:!agencyMismatch,
   // Money, EUR, zero deposit/card hold, unlimited km, route, times and SIPP
   // match the paid booking (independent of the supplier status code).
   terms_verified:verified===true,
