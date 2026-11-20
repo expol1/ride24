@@ -14,7 +14,7 @@ const durationSource=await readFile(new URL("../../supabase/functions/_shared/re
 const durationCompiled=ts.transpileModule(durationSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const durationSandbox={exports:{}};vm.runInNewContext(durationCompiled,durationSandbox);
 
-function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false,cancelResponse=null}={}){
+function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,supplierDays=null,extrasDays=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false,cancelResponse=null}={}){
  const calls=[];
  let cancellationClaimed=false;
  const transport={
@@ -32,12 +32,12 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
     vehicleId:100,vehicleName:"Example Category",sippCode:"CDAR",
     currencyCode:"EUR",isAvailable:true,depositPrice:0,depositCreditCardRequired:false,
     excess:0,rentalConditions:[{conditionCode:"7",conditionName:"Full Insurance"}],
-    vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
+    vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,totalPrice:100,rentalDuration:supplierDays,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
    if(path.startsWith("/extras?"))return {success:true,resultCode:0,
     data:{vehicle:{vehicleId:100,sippCode:"CDAR",currencyCode:"EUR",isAvailable:true,
      excess:0,rentalConditions:[{conditionCode:"7",conditionName:"Full Insurance"}],
      depositPrice:0,depositCreditCardRequired:false,vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,
-     totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001",
+     totalPrice:100,rentalDuration:extrasDays,reservationToken:"00000000-0000-4000-8000-000000000001",
      pickupLocationId:9,returnLocationId:9,
      pickupDateTime:"2030-12-16T10:00:00",returnDateTime:"2030-12-17T10:00:00"},
      extras:requiredExtras}};
@@ -153,6 +153,15 @@ test("mismatched group or price cannot access offer extras nor create a booking"
  }
 });
 
+test("supplier-confirmed rental duration determines day-based billing; disagreement blocks the quote",async()=>{
+ const a=setup({supplierDays:3,extrasDays:3,requiredExtras:[{code:2,name:"Extra driver",
+   price:7,extraRentalType:1,extraQuantityIncreasable:false,isRequired:false}]});
+ const preview=await a.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100});
+ assert.equal(preview.billed_days,3);
+ const changed=setup({supplierDays:3,extrasDays:4,requiredExtras:[]});
+ await assert.rejects(()=>changed.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100}),
+   /ARVENT_EXTRAS_QUOTE_CHANGED/);
+});
 test("server guard prevents any supplier creation or cancellation in unapproved environment",async()=>{
  const a=setup();
  await assert.rejects(()=>a.arventCreateBooking(creds,{...input,partner_discount_percent:0,
