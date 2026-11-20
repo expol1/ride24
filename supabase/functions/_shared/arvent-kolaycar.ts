@@ -210,7 +210,7 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
  const admin=serviceClient();
  const {data:quote,error:quoteError}=booking.api_quote_id
   ?await admin.from("api_quotes")
-    .select("external_group_id,pickup_location_external_id,dropoff_location_external_id")
+    .select("external_group_id,pickup_location_external_id,dropoff_location_external_id,raw_response")
     .eq("id",booking.api_quote_id).eq("partner_id",c.partner_id).maybeSingle()
   :{data:null,error:null};
  const routeValid=!quoteError&&quote
@@ -220,8 +220,10 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
    pickup_date:booking.start_date,return_date:booking.end_date,
    pickup_time:booking.pickup_time,return_time:booking.return_time,
   });
+ const expectedExtras=quote?.raw_response?.ride24_options?.arvent_extra?.selected||[];
+ const extrasVerified=arventReceiptExtrasMatch(d.reservationExtras??d.extras,expectedExtras);
  const verified=booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot)
-  &&routeValid===true&&sippConsistent(d,quote?.external_group_id);
+  &&routeValid===true&&sippConsistent(d,quote?.external_group_id)&&extrasVerified;
  // If status is "approved" but supplier price/terms cannot be proved, do
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
@@ -230,6 +232,7 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
   // Money, EUR, zero deposit/card hold, unlimited km, route, times and SIPP
   // match the paid booking (independent of the supplier status code).
   terms_verified:verified===true,
+  extras_verified:extrasVerified===true,
   provider_payload:statusEvidence(d)};
 }
 // Supplier documentation only supports GET /reservations by supplier
@@ -387,12 +390,17 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
   ||d.currencyCode!=="EUR"||d.depositPrice!==0
   ||d.depositCreditCardRequired!==false||d.totalKMLimit!==0;
  const routeMismatch=!arventSavedRouteMatches(d,input);
+ // A supplier reference is insufficient proof that payable equipment or an
+ // additional driver was accepted. Missing reservationExtras means review.
+ const expectedExtras=Array.isArray(input.extra_selections)?input.extra_selections:[];
+ const extrasMismatch=!arventReceiptExtrasMatch(d.reservationExtras??d.extras,expectedExtras);
  return {...status,
-  // Do not leak "confirmed" into generic handlers if money/terms mismatch.
-  status:status.status==="confirmed"&&(priceMismatch||termsMismatch||routeMismatch)?"pending":status.status,
-  needs_manual_review:status.needs_manual_review||priceMismatch||termsMismatch||routeMismatch,
+  // Do not leak "confirmed" into generic handlers without full verification.
+  status:status.status==="confirmed"&&(priceMismatch||termsMismatch||routeMismatch||extrasMismatch)?"pending":status.status,
+  needs_manual_review:status.needs_manual_review||priceMismatch||termsMismatch||routeMismatch||extrasMismatch,
   provider_payload:statusEvidence(d),
   price_mismatch:priceMismatch,terms_mismatch:termsMismatch,route_mismatch:routeMismatch,
+  extras_mismatch:extrasMismatch,
  };
 }
 export async function arventCancelBooking(c:PartnerApiCredentials,reference:string,body:Record<string,unknown>={}):Promise<Record<string,unknown>> {
