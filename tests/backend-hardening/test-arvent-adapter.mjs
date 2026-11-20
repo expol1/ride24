@@ -359,6 +359,24 @@ test("overlapping cancellations issue one supplier POST and then reconcile by GE
  // Both the claimant (read-back after POST) and the overlapping caller confirm by GET.
  assert.equal(a.calls.filter(call=>call.path.startsWith("/reservations?")).length,2);
 });
+test("Arvent status 3 requires exact supplier price, deposit, route and agency reference before refund",async()=>{
+ const ok=await setup({savedStatus:3,savedPrice:100,savedDeposit:0,savedPickupLocation:9,
+  savedGetAgencyRef:"R24-XYZ"}).arventBookingStatus(creds,"A-1");
+ assert.equal(ok.status,"cancelled");
+ assert.equal(ok.needs_manual_review,false);
+ for(const mismatch of [
+  {savedPrice:101},
+  {savedDeposit:50},
+  {savedPickupLocation:10},
+  {savedGetAgencyRef:"R24-OTHER"}
+ ]){
+  const a=setup({savedStatus:3,...mismatch});
+  const result=await a.arventBookingStatus(creds,"A-1");
+  assert.equal(result.status,"cancelled",JSON.stringify(mismatch));
+  assert.equal(result.needs_manual_review,true,JSON.stringify(mismatch));
+  assert.equal(result.terms_verified,false,JSON.stringify(mismatch));
+ }
+});
 test("cancellation is confirmed only by supplier status 3 read back after the POST",async()=>{
  // Undocumented success body without reservation data is still verified by GET.
  const ok=setup({allowWrites:true,savedStatus:3,cancelResponse:{success:true,resultCode:0,data:true}});
