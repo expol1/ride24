@@ -158,7 +158,7 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.match(picker.textContent,/Extras cannot currently be ordered online/);
   assert.equal(picker.querySelectorAll('input,select').length,0);
   const text=box.textContent;
-  for(const part of ['Price summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay rental company at pickup','EDMR'])assert.ok(text.includes(part),part);
+  for(const part of ['Price summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay at pickup','EDMR'])assert.ok(text.includes(part),part);
   assert.ok(/14\.35/.test(text));
   assert.doesNotMatch(text,/Arvent|Stripe/);
   assert.equal(box.querySelectorAll('h4').length,1);
@@ -170,30 +170,44 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
 });
 
 
-test('Arvent alone disables misleading extras action; switching to local restores normal picker', async () => {
+test('Arvent shows the standard confirmation layout without a misleading extras tile', async () => {
   const source = await readFile(new URL('../../klient.html', import.meta.url), 'utf8');
   const start = source.indexOf('window.ride24ArventFormMode = function(on) {');
   const stop = source.indexOf('window.ride24ArventGoToProfile = function', start);
   assert.ok(start > 0 && stop > start, 'Arvent form mode is present');
   const dom = new JSDOM(`<div id="termsModal">
     <div class="r24-extras-callout"><button type="button" class="docs-extra-item">
-      <span class="r24-extras-copy"><strong data-pl="Wybierz dodatki do wynajmu" data-en="Choose rental extras">Wybierz dodatki do wynajmu</strong>
-      <small data-pl="Zobacz dostępne usługi i ich aktualną cenę." data-en="See available services and their current prices.">Zobacz dostępne usługi i ich aktualną cenę.</small></span>
+      <span class="r24-extras-copy"><strong>Wybierz dodatki do wynajmu</strong></span>
       <span class="r24-extras-action">Sprawdź</span>
     </button></div>
+    <p id="arventExtrasInfo" hidden>Dodatki: brak możliwości zamówienia online w tej ofercie.</p>
     <section id="bookingPriceBreakdown"></section><div class="docs-container"></div>
   </div>`);
   const win = dom.window;
   vm.runInNewContext(source.slice(start, stop), {window: win, document: win.document, localStorage: {getItem: () => 'pl'}});
-  const button = win.document.querySelector('.docs-extra-item');
-  const title = button.querySelector('strong');
-  const action = button.querySelector('.r24-extras-action');
+  const callout = win.document.querySelector('.r24-extras-callout');
+  const button = callout.querySelector('button');
+  const info = win.document.querySelector('#arventExtrasInfo');
+  const price = win.document.querySelector('#bookingPriceBreakdown');
+  const docs = win.document.querySelector('.docs-container');
+
   win.ride24ArventFormMode(true);
-  assert.equal(button.disabled, true);
-  assert.equal(title.textContent, 'Dodatki niedostępne online');
-  assert.equal(action.hidden, true);
+  assert.equal(callout.hidden, true);
+  assert.equal(callout.style.display, 'none');
+  assert.equal(callout.style.getPropertyPriority('display'), 'important');
+  assert.equal(info.hidden, false);
+  assert.equal(price.nextElementSibling, docs);
+  assert.match(info.textContent, /brak możliwości zamówienia online/);
+
+  // Repeat mode switch and then open a non-Arvent/local booking.
+  win.ride24ArventFormMode(true);
   win.ride24ArventFormMode(false);
+  assert.equal(callout.hidden, false);
+  assert.equal(callout.style.getPropertyValue('display'), '');
+  assert.equal(info.hidden, true);
   assert.equal(button.disabled, false);
-  assert.equal(title.textContent, 'Wybierz dodatki do wynajmu');
-  assert.equal(action.hidden, false);
+  assert.equal(button.querySelector('strong').textContent, 'Wybierz dodatki do wynajmu');
+  assert.equal(button.querySelector('.r24-extras-action').textContent, 'Sprawdź');
+  assert.equal(docs.nextElementSibling, price);
+  assert.equal(win.document.querySelectorAll('.r24-extras-callout').length, 1);
 });
