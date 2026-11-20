@@ -25,12 +25,13 @@ export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = 
       typeof x.price_eur==="number" && Number.isFinite(x.price_eur) &&
       x.price_eur>=0 && x.price_eur<=100000 &&
       Math.abs(x.price_eur*100-Math.round(x.price_eur*100))<1e-6;
-    // Supplier says whether multiple units are allowed. Ride24 caps at ten
-    // for request safety; this is not advertised as a supplier maximum.
+    // The supplier's ability to increase quantity does not identify its
+    // ceiling. Permit more than one only with an explicit offer-bound maximum.
+    // The platform's ten-unit cap is an additional safeguard, never an
+    // invented supplier entitlement.
     const maxQuantity=x.code==="2" ? 1 :
-      x.quantity_increasable===true
-        ? Math.min(Number.isInteger(x.max_quantity)&&x.max_quantity>=1?x.max_quantity:10,10)
-        : 1;
+      x.quantity_increasable===true && Number.isInteger(x.max_quantity) && x.max_quantity>=1
+        ? Math.min(x.max_quantity,10) : 1;
     return {...x, billing:mode, max_quantity:maxQuantity,
       bookable:certified===true && valid && (mode!==null || x.price_eur===0)};
   });
