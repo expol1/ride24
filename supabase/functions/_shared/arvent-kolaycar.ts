@@ -159,10 +159,15 @@ export async function arventReadOfferExtras(c:PartnerApiCredentials,input:Search
    pickupDate:priced.pickupDateTime,returnDate:priced.returnDateTime,
   },input))
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
- // Do not decide mandatory-item billing here. The Arvent-only booking
- // options route applies the certified billing map to the offer-bound items.
- // A vehicle-only SaveReservation still rejects unpriced mandatory items.
- const items=arventOfferExtrasRows((data as any).extras);
+ // The supplier must explicitly state whether each offer-bound
+ // service is mandatory. Never treat a missing flag as "optional" and
+ // accidentally show a total that excludes a required charge.
+ const rawExtras=(data as any).extras;
+ if(Array.isArray(rawExtras)&&rawExtras.some((x:any)=>typeof x?.isRequired!=="boolean"))
+   throw Error("PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNVERIFIED");
+ // Mandatory payable extras are totalled by the certified Arvent-only
+ // booking-options engine, rather than suppressed in the read-only lookup.
+ const items=arventOfferExtrasRows(rawExtras);
  const sourceDays=Number(vehicle.rentalDuration);
  const pricedDays=Number(priced.rentalDuration);
  const validDays=(x:number)=>Number.isInteger(x)&&x>=1&&x<=366;
