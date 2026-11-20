@@ -19,12 +19,24 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
     function renderArvent(box, picker, total, a) {
         if (total) total.hidden = true;
         el('equipmentLegacyInfo').hidden = true;
-        // Only extras the supplier actually prices for this offer could be listed;
-        // the server sends none today, so nothing can be selected or charged.
+        // The global /extras/list catalogue is NOT an offer-specific price list.
+        // Show all real supplier catalogue entries without buttons or prices;
+        // no selection may be added to booking or payment until /extras prices it.
         picker.hidden = false;
-        picker.append(node('p', label(
-            'W tej ofercie dodatki nie są dostępne do zamówienia online. Rezerwacja obejmuje wybraną kategorię auta bez dodatków.',
-            'Extras cannot currently be ordered online for this offer. The booking covers the selected car category without extras.')));
+        const catalog = Array.isArray(a.extra_catalog) ? a.extra_catalog : [];
+        picker.append(node('p', catalog.length ? label(
+            'Katalog dodatków wypożyczalni. API nie udostępnia jeszcze cen ani możliwości zamówienia tych usług w tej ofercie.',
+            'Rental company extras catalogue. The API does not yet supply prices or online booking for these services in this offer.') : label(
+            'Dostawca nie udostępnił jeszcze katalogu dodatków do wyświetlenia dla tej oferty.',
+            'The supplier has not made its extras catalogue available for this offer.')));
+        for (const extra of catalog) {
+            if (!extra || typeof extra.name !== 'string' || !extra.name.trim()) continue;
+            const item = node('div'); item.className = 'booking-extra-row';
+            const detail = node('span');
+            detail.append(node('strong', extra.name));
+            detail.append(node('small', label('Cena i zamówienie online niedostępne', 'Price and online booking unavailable')));
+            item.append(detail); picker.append(item);
+        }
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
         box.append(node('h4', label('Podsumowanie ceny', 'Price summary')));

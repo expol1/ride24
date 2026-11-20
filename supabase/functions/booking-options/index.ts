@@ -1,4 +1,4 @@
-import { makeApiBookingOptions } from "../_shared/api-booking-options.ts";
+import { makeApiBookingOptions, readArventExtrasCatalog } from "../_shared/api-booking-options.ts";
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse, publicErrorMessage, serviceClient } from "../_shared/ride24-security.ts";
@@ -71,13 +71,16 @@ serve(async(req: Request)=>{
       catch { throw new BookingOptionsError('EXCHANGE_RATE_UNAVAILABLE','Nie udało się pobrać aktualnego kursu NBP. Spróbuj ponownie za chwilę.','The current NBP exchange rate is unavailable. Please try again shortly.',503); }
       const duration=rentalDuration(start,end,time(body.pickup_time),time(body.return_time));
       const display=q.raw_response?.ride24_display||{};
+      // Read-only catalogue: names and codes are NOT priced for this offer.
+      // Failure must not block a normal Arvent vehicle booking.
+      const extraCatalog=await readArventExtrasCatalog(admin,car.partner_id).catch(()=>[]);
       return jsonResponse(req,{enabled:false,arvent:{
         api_quote_id:q.id, currency, billed_days:duration.billedDays,
         start_date:start, end_date:end, pickup_time:time(body.pickup_time).slice(0,5), return_time:time(body.return_time).slice(0,5),
         pickup_location:typeof body.pickup_location==='string'?body.pickup_location.slice(0,250):'',
         return_location:typeof body.return_location==='string'?body.return_location.slice(0,250):'',
         category:{class_code:display.class_code??null,group_name:display.group_name??null,example_model:display.example_model??null,sipp:display.sipp??null},
-        rental_total:rental, mandatory_fees:[], extras:[], total,
+        rental_total:rental, mandatory_fees:[], extras:[], extra_catalog:extraCatalog, total,
         ride24_fee:fee, loyalty_discount_percent:discount, exchange_rate:rate,
         online_pln:apiOnlinePaymentPln(fee,rate,discount), pay_on_pickup:rental,
         expires_at:q.expires_at,

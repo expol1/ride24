@@ -3160,15 +3160,32 @@ document.addEventListener("click", async function(e) {
            const btn = document.getElementById("confirmBookingBtn");
            window.r24ArventForm = !!on;
            if (note) note.hidden = !on;
-           // Arvent-only: no priced extras exist for this offer. Suppress the
-           // whole interactive extras tile rather than leaving a misleading CTA.
-           // Restore the unmodified standard tile when another partner is shown.
+           // Arvent: retain the standard extras section, but distinguish
+           // supplier catalogue entries from offer-priced/bookable extras.
+           // All other partners retain the original title and picker behavior.
            if (callout) {
-               callout.hidden = !!on;
-               if (on) callout.style.setProperty("display", "none", "important");
-               else callout.style.removeProperty("display");
+               callout.hidden = false;
+               callout.style.removeProperty("display");
            }
-           if (extrasInfo) extrasInfo.hidden = !on;
+           if (extrasInfo) extrasInfo.hidden = true;
+           const extrasTitle = callout?.querySelector(".r24-extras-copy strong");
+           const extrasDescription = callout?.querySelector(".r24-extras-copy small");
+           const equipmentHeading = document.querySelector("#equipmentInfoModal h3");
+           if (extrasTitle) {
+               extrasTitle.dataset.pl = on ? "Katalog dodatków do wynajmu" : "Wybierz dodatki do wynajmu";
+               extrasTitle.dataset.en = on ? "Rental extras catalogue" : "Choose rental extras";
+               extrasTitle.textContent = isEn ? extrasTitle.dataset.en : extrasTitle.dataset.pl;
+           }
+           if (extrasDescription) {
+               extrasDescription.dataset.pl = on ? "Sprawdź usługi partnera i ich dostępność online." : "Zobacz dostępne usługi i ich aktualną cenę.";
+               extrasDescription.dataset.en = on ? "See supplier services and their online availability." : "See available services and their current prices.";
+               extrasDescription.textContent = isEn ? extrasDescription.dataset.en : extrasDescription.dataset.pl;
+           }
+           if (equipmentHeading) {
+               equipmentHeading.dataset.pl = on ? "Katalog dodatków" : "Wybierz dodatki do wynajmu";
+               equipmentHeading.dataset.en = on ? "Extras catalogue" : "Choose rental extras";
+               equipmentHeading.textContent = isEn ? equipmentHeading.dataset.en : equipmentHeading.dataset.pl;
+           }
            if (licence) licence.readOnly = !!on;
            if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
            // Same order as every standard Ride24 booking: documents, price, consent.
