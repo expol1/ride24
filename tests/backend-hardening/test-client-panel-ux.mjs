@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import ts from 'typescript';
+import {JSDOM} from 'jsdom';
 
 const read = path => readFileSync(new URL('../../' + path,import.meta.url),'utf8');
 const html=read('klient.html');
@@ -225,4 +226,42 @@ test('account deletion request checks persisted update and admin verifies Auth p
     }
     const controls=read('supabase/functions/admin-client-controls/index.ts');
     assert.doesNotMatch(controls,/action:"delete",reason:"Administrator deleted eligible client"/,'Must not create orphan audit row after user removal');
+});
+
+
+test('profile desktop keeps owner + billing in one stack and additional drivers beside them',()=>{
+    const dom=new JSDOM(html);
+    const profile=dom.window.document.querySelector('#view-profile');
+    assert.ok(profile,'Missing client profile');
+    const grid=profile.querySelector('.profile-grid');
+    const direct=[...grid.children];
+    assert.equal(direct.length,2,'Desktop must have exactly two independent columns');
+    assert.ok(direct[0].classList.contains('profile-main-stack'),'Owner and invoice share left column');
+    assert.ok(direct[1].classList.contains('profile-drivers-col'),'Drivers occupy right column');
+    const stack=[...direct[0].children];
+    assert.equal(stack.length,2);
+    assert.ok(stack[0].classList.contains('profile-owner-col'),'Profile owner is above invoice');
+    assert.ok(stack[1].classList.contains('profile-invoice-col'),'Invoice sits under owner');
+    assert.equal(stack[1].dataset.r24OptionalProfile,'invoice');
+    assert.equal(direct[1].dataset.r24OptionalProfile,'drivers');
+    assert.ok(direct[1].querySelector('#drivers-list'));
+    assert.ok(direct[0].querySelector('#invoice-company'));
+    assert.ok(direct[0].querySelector('#profile-license-since'));
+    const style=html.slice(html.indexOf('<style>'),html.indexOf('</style>'));
+    assert.match(style,/#view-profile \.profile-grid\{[\s\S]*?grid-template-columns:minmax\(0,1\.08fr\) minmax\(0,\.92fr\)/);
+    assert.match(style,/#view-profile \.profile-main-stack\{[\s\S]*?flex-direction:column/);
+    assert.match(style,/#view-profile #drivers-list\{display:grid;grid-template-columns:minmax\(0,1fr\)/);
+    dom.window.close();
+});
+
+test('profile mobile shows owner, additional drivers, then invoice without changing form actions',()=>{
+    const style=html.slice(html.indexOf('<style>'),html.indexOf('</style>'));
+    assert.match(style,/@media\(max-width:1150px\)\{[\s\S]*?#view-profile \.profile-main-stack\{display:contents\}/);
+    for(const [name,order] of [['owner','1'],['drivers','2'],['invoice','3']])
+        assert.ok(style.includes('#view-profile .profile-'+name+'-col{order:'+order+'}'),'Wrong mobile order: '+name);
+    assert.match(style,/@media\(max-width:768px\)\{[\s\S]*?#view-profile #drivers-list \.driver-row\{grid-template-columns:1fr/);
+    assert.match(style,/#view-profile \.profile-invoice-col \.settings-card\{grid-template-columns:1fr\}/);
+    assert.ok(style.includes('body.r24-profile-incomplete #view-profile .profile-col[data-r24-optional-profile]{display:none!important}'));
+    for(const action of ['onclick="saveProfile()"','onclick="addDriverRow()"','onclick="saveDrivers()"','onclick="saveInvoiceData()"','onclick="clearInvoiceForm()"','onclick="deleteInvoiceData()"'])
+        assert.ok(html.includes(action),'Original action missing: '+action);
 });
