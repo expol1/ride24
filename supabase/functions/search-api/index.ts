@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import {isCaravelBooking} from "../_shared/caravel-production-hold.mjs";
 import {loadCaravelRelease, type CaravelRelease} from "../_shared/caravel-release.ts";
+import {caravelFeeLabel} from "../_shared/caravel-fee-label.ts";
 import {searchCaravelOffers} from "../_shared/caravel-search.ts";
 import {caravelProductionReadClient} from "../_shared/caravel-paid-fulfillment.ts";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
@@ -22,6 +23,7 @@ import { apiPriceTotals, apiQuoteContext, assertApiPricingCompatible } from "../
 type AdminClient = ReturnType<typeof serviceClient>;
 
 type SearchBody = {
+  caravelDriverAge?: unknown;
   pickupLocationId?: unknown;
   pickupType?: unknown;
   pickupCountry?: unknown;
@@ -856,6 +858,7 @@ async function searchCaravelPartner(
   quoteBudget: QuoteBudget,
   platformMarginPercent: number,
   release: CaravelRelease,
+  driverAge: number,
 ): Promise<Record<string, unknown>[]> {
   if (!release.open) return [];
   const partner = pickupLocation.partners;
@@ -871,7 +874,7 @@ async function searchCaravelPartner(
     admin: admin as never, client, release,
     pickup: {id: pickupLocation.id, external_id: pickupLocation.external_id},
     dropoff: {id: dropoffLocation.id, external_id: dropoffLocation.external_id},
-    pickupDate, returnDate, pickupTime, returnTime, days, driverAge: 30, currency, maxOffers,
+    pickupDate, returnDate, pickupTime, returnTime, days, driverAge, currency, maxOffers,
     loadCarClasses: async (ids) => (classes = await loadCarClasses(admin, pickupLocation.partner_id, ids)),
   });
   if (!offers.length) {
@@ -898,6 +901,12 @@ async function searchCaravelPartner(
       noCardHold: release.terms.noCardRequired === true,
       caravel_free_cancellation_until_pickup: release.terms.freeCancellationUntilPickup === true,
       caravel_consent_required: true,
+      caravel_driver_age: driverAge,
+      caravel_mandatory_fees: offer.mandatoryFees.map(f => ({
+        name_pl: caravelFeeLabel(f.type, f.label, "pl"),
+        name_en: caravelFeeLabel(f.type, f.label, "en"),
+        amount_minor: f.amount_minor
+      })),
       caravel_customer_total_minor: offer.customerMinor,
       caravel_partner_total_minor: offer.rentalMinor,
       caravel_ride24_fee_minor: offer.feeMinor,
@@ -1054,7 +1063,7 @@ serve(async (req) => {
           if (caravelRelease?.open && isCaravelBooking({partner_id: pickupLocation.partner_id, partners: pickupLocation.partners})) {
             return await searchCaravelPartner(admin, pickupLocation, pickupCriteria, dropoffCriteria,
               pickupDate.text, returnDate.text, pickupTime, returnTime, days, quoteBudget, platformMarginPercent,
-              caravelRelease);
+              caravelRelease, typeof body.caravelDriverAge === "number" && Number.isInteger(body.caravelDriverAge) && body.caravelDriverAge >= 18 && body.caravelDriverAge <= 120 ? body.caravelDriverAge : 30);
           }
           return await searchPartner(
             admin,

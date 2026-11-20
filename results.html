@@ -441,6 +441,15 @@ async function getExchangeRate(currency, requireLive = false) {
             }, 3000);
         };
 
+        async function savedCaravelDriverAge(db) {
+            try {
+                const {data:{session}} = await db.auth.getSession();
+                if (!session?.user?.id) return null;
+                const {data} = await db.from("profiles").select("age").eq("id",session.user.id).maybeSingle();
+                return Number.isInteger(data?.age) ? data.age : null;
+            } catch { return null; }
+        }
+
         async function renderCars() {
             const container = document.getElementById('results-container');
             const db = window.supabaseClient; 
@@ -483,6 +492,7 @@ async function getExchangeRate(currency, requireLive = false) {
                 }
 
                 const filters = JSON.parse(searchParamsStr);
+                const driverAge = savedCaravelDriverAge(db);
                 let loc = filters.pickup_location;
                 // Refresh saved selections: the display label is never the provider lookup key.
                 // Old browser sessions may contain Polish labels from before normalization.
@@ -725,6 +735,7 @@ let query = db
                             "apikey": supabaseKey
                         },
                         body: JSON.stringify({
+                            caravelDriverAge: await driverAge,
                             pickupLocationId: loc.id || undefined,
                             dropoffLocationId: filters.drop_location?.id || undefined,
                             pickupType: loc.type || "",
@@ -796,6 +807,7 @@ let query = db
                 const resultPricing = window.Ride24ResultPricing;
                 const selectedPickupName = String(loc.location_name || loc.name || "").trim();
                 const locationFeesByCar = new Map(cars.map(car => {
+                    if (car.partners?.api_provider === "caravel") return [car, 0];
                     const fees = resultPricing.selectedLocationFees(
                         car, selectedPickupName, returnLocationName, returnLocationRowsByPartner, duration.billedDays
                     );
@@ -1143,6 +1155,11 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
 <div class="car-price-box">
     <div class="price-info">${lang === 'pl' ? 'Wynajem' : 'Rental'} ${labels.daysInfo}</div>
     <div class="price-total">${displayTotal} <span>${safeCurrency}</span></div>
+    ${caravelExact && Number.isInteger(parsedFeatures.caravel_driver_age)
+        ? `<div class="price-info">${lang === 'pl' ? 'Wiek kierowcy w wycenie' : 'Quoted driver age'}: ${parsedFeatures.caravel_driver_age}</div>` : ''}
+    ${caravelExact && Array.isArray(parsedFeatures.caravel_mandatory_fees)
+        ? parsedFeatures.caravel_mandatory_fees.map(fee =>
+            `<div class="price-info">${lang === 'pl' ? 'W cenie' : 'Included'}: ${escapeHtmlValue(lang === 'pl' ? fee.name_pl : fee.name_en)} · ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {style:'currency',currency:'EUR'}).format(fee.amount_minor / 100)}</div>`).join('') : ''}
     ${locationFeesByCar.get(car) > 0
         ? `<div class="price-info">${lang === 'pl' ? 'Opłaty za odbiór i zwrot' : 'Pickup and return fees'}: ${new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(locationFeesByCar.get(car))} ${safeCurrency}</div>`
         : ''}

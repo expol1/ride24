@@ -11,6 +11,7 @@
  *  - Stripe takes only the separate Ride24 booking fee; the rental is paid to
  *    Caravel at pickup; a vehicle CATEGORY is booked, not a model.
  */
+import {caravelFeeLabel} from "./caravel-fee-label.ts";
 import {renderCaravelTermsHtml} from "./caravel-terms-canonical.ts";
 import type {CaravelRelease} from "./caravel-release.ts";
 import {CARAVEL_PARTNER_ID} from "./caravel-release.ts";
@@ -45,17 +46,6 @@ export const CARAVEL_COVERAGE_LABELS: Readonly<Record<string, {pl: string; en: s
   towing_and_recovery: {pl: "holowanie", en: "towing and recovery"},
 });
 const label = (code: string, lang: "pl" | "en") => CARAVEL_COVERAGE_LABELS[code]?.[lang] ?? code;
-// Only provider-returned, already reconciled amounts are shown to the customer.
-const CARAVEL_FEE_NAMES: Record<string, {pl:string;en:string}> = {
-  young_driver: {pl:"Młody kierowca",en:"Young driver"},
-  senior_driver: {pl:"Starszy kierowca",en:"Senior driver"},
-  additional_driver: {pl:"Dodatkowy kierowca",en:"Additional driver"},
-  one_way: {pl:"Zwrot w innym punkcie",en:"One-way return"},
-  out_of_hours: {pl:"Obsługa poza godzinami pracy",en:"Out-of-hours service"},
-  premium_location: {pl:"Dopłata za lokalizację",en:"Premium location fee"},
-  delivery: {pl:"Dostawa lub odbiór",en:"Delivery or collection"},
-};
-
 const money = (minor: number, currency: string) => `${(minor / 100).toFixed(2)} ${currency}`;
 
 export type CaravelQuoteRow = {
@@ -177,7 +167,7 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
       };
     }),
     fees:(bd.fees as Array<{type:string;label:string;amount_minor:number}>).map(x => ({
-      label:CARAVEL_FEE_NAMES[x.type]?.[lang] || x.label || (pl ? "Opłata Caravel" : "Caravel fee"),
+      label:caravelFeeLabel(x.type,x.label,lang),
       original_label:x.label,
       type:x.type,
       amount:money(x.amount_minor, f.currency),

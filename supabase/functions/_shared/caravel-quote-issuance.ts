@@ -43,6 +43,7 @@ export type CaravelQuoteIssueResult=
  |{ok:true;apiQuoteId:string;providerQuoteId:string;
    supplierId:string;partnerPayableMinor:number;
    ride24ReservationFeeMinor:number;customerTotalMinor:number;
+   mandatoryFees:Array<{type:string;label:string;amount_minor:number}>;
    expiresAt:string}
  |{ok:false;reason:string};
 const PARTNER_ID="78721481-7619-44df-a9b7-5faa344b69bb";
@@ -405,5 +406,6 @@ export async function issueVerifiedCaravelQuote(args:{
    providerQuoteId:parsed.quote.quoteId,supplierId:args.supplierId,
    partnerPayableMinor:contract.totalMinor,
    ride24ReservationFeeMinor:feeMinor,customerTotalMinor:customerMinor,
+   mandatoryFees:priceBreakdown.fees,
    expiresAt:new Date(parsed.quote.expiresAtEpochMs).toISOString()};
 }
