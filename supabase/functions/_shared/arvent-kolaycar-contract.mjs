@@ -71,7 +71,7 @@ export function arventOfferExtrasRows(raw) {
   // ambiguous value into a purported supplier quotation.
   const rawPrice=x.price;
   const numeric=typeof rawPrice==="number"?rawPrice:
-    typeof rawPrice==="string" && /^(0|[1-9][0-9]{0,5})(?:\\.[0-9]{1,2})?$/.test(rawPrice.trim())
+    typeof rawPrice==="string" && /^(0|[1-9][0-9]{0,5})(?:\.[0-9]{1,2})?$/.test(rawPrice.trim())
       ? Number(rawPrice.trim()):Number.NaN;
   const price=Number.isFinite(numeric)&&numeric>=0&&numeric<=100000
     &&Math.abs(numeric*100-Math.round(numeric*100))<0.00001
