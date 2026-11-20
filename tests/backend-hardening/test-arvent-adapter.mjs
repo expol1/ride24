@@ -164,6 +164,13 @@ test("supplier-confirmed rental duration determines day-based billing; disagreem
  await assert.rejects(()=>changed.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100}),
    /ARVENT_EXTRAS_QUOTE_CHANGED/);
 });
+test("Arvent does not misclassify unknown mandatory extras as optional",async()=>{
+ const a=setup({requiredExtras:[{code:6,name:"Infant seat",price:9,
+   extraRentalType:"rental",extraQuantityIncreasable:false}]});
+ await assert.rejects(()=>a.arventReadOfferExtras(creds,input,
+   {vehicle_id:"100",sipp:"CDAR",total_amount:100}),/REQUIRED_EXTRAS_UNVERIFIED/);
+ assert.ok(a.calls.every(x=>x.path!=="/reservations/save"));
+});
 test("server guard prevents any supplier creation or cancellation in unapproved environment",async()=>{
  const a=setup();
  await assert.rejects(()=>a.arventCreateBooking(creds,{...input,partner_discount_percent:0,
