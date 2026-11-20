@@ -3178,11 +3178,23 @@ async function forceCancel(bookingId) {
 }
 
 async function markRefundDone(id) {
-    if (!confirm("Oznaczyć jako zwrócone?")) return;
+    // Records an already completed MANUAL bank transfer only.
+    // It never initiates a Stripe refund or sends money to the customer.
+    if (!confirm("Czy przelew zwrotny został już faktycznie wykonany?\\n\\nTa operacja wyłącznie oznacza zwrot jako rozliczony w Ride24. Nie wysyła pieniędzy ani nie uruchamia zwrotu Stripe.")) return;
     const { error } = await db.rpc("admin_mark_refund_done", { p_id: id });
-    if (error) alert("Błąd: " + error.message);
-    else { alert("Gotowe"); loadRefunds(); loadRadarData(); }
-
+    if (error) {
+        const code=String(error.message||"");
+        const explanation=code.includes("API_CANCELLATION_NOT_VERIFIED")
+            ? "Caravel nie potwierdził anulowania tej rezerwacji lub nie ma zgodnego dowodu w historii API."
+            : code.includes("API_REFUND_ALREADY_IN_PROGRESS")
+            ? "Zwrot jest już realizowany inną ścieżką — sprawdź Stripe i historię rezerwacji."
+            : code.includes("API_PAYMENT_NOT_VERIFIED")
+            ? "Nie ma potwierdzonej płatności do ręcznego rozliczenia."
+            : code.includes("REFUND_AMOUNT_INVALID")
+            ? "Kwota zwrotu wymaga sprawdzenia przed oznaczeniem jako rozliczona."
+            : "Błąd: "+code;
+        alert(explanation);
+    } else { alert("Zwrot oznaczony jako rozliczony (po przelewie ręcznym)."); loadRefunds(); loadRadarData(); }
 }
 
 async function forceCancel(bookingId) {
