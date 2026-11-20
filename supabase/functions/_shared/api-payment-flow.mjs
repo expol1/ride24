@@ -130,6 +130,14 @@ export async function advanceApiPayment(deps,id) {
 
   async function acceptResult(result,from) {
     const reference=typeof result?.booking_reference==='string'?result.booking_reference:result?.reference;
+    // Arvent-specific fail-safe: no voucher or Stripe refund if the supplier
+    // reference, rate, route or purchased extras have not been reconciled.
+    // Do not change AVIA/Caravel/local partners' payment handling.
+    if(w.prepared_quote?.provider==='arvent_kolaycar'&&result?.needs_manual_review===true){
+      await move(from,'unknown',{provider_reference:reference||null,
+        last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+      return {state:'unknown'};
+    }
     if(result?.status==='rejected' && result?.definitive_rejection===true) {
       await move(from,'refund_pending',{provider_reference:reference||null,last_error:'PROVIDER_REJECTED'});
       return {state:'refund_pending'};
