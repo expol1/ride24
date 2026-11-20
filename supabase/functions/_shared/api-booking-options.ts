@@ -19,6 +19,13 @@ export async function readArventExtrasCatalog(admin:any,partnerId:string) {
 // interpretation of the undocumented extraRentalType enum.
 export async function readArventOfferExtras(admin:any,partnerId:string,quote:any,body:any) {
  const supplier=quote?.raw_response?.provider_quote_data;
+ if(supplier?.provider!=="arvent_kolaycar"
+  ||supplier?.sipp!==quote?.external_group_id
+  ||String(supplier?.pickup_location_id)!==String(quote?.pickup_location_external_id)
+  ||String(supplier?.dropoff_location_id)!==String(quote?.dropoff_location_external_id||quote?.pickup_location_external_id)
+  ||String(supplier?.currency||"EUR").toUpperCase()!=="EUR"
+  ||Number(supplier?.total_amount)!==Number(quote?.partner_net_total))
+  throw Error("PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED");
  const input={
   pickup_location_id:quote?.pickup_location_external_id,
   dropoff_location_id:quote?.dropoff_location_external_id||quote?.pickup_location_external_id,
