@@ -14,7 +14,7 @@ const durationSource=await readFile(new URL("../../supabase/functions/_shared/re
 const durationCompiled=ts.transpileModule(durationSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const durationSandbox={exports:{}};vm.runInNewContext(durationCompiled,durationSandbox);
 
-function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,supplierDays=null,extrasDays=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false,cancelResponse=null}={}){
+function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,supplierDays=null,extrasDays=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,savedReservationExtras=null,save401=false,cancelResponse=null}={}){
  const calls=[];
  let cancellationClaimed=false;
  const transport={
@@ -45,6 +45,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    if(path==="/reservations/save")return {success:true,resultCode:0,
     data:{reservationNumber:savedRef,sippCode:savedSipp,agencyReservationReference:"R24-XYZ",reservationStatusType:savedStatus,
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     reservationExtras:savedReservationExtras,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
    if(path.startsWith("/reservations?")&&path.includes("agencyReservationReference="))
@@ -53,6 +54,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    if(path.startsWith("/reservations?"))return {success:true,resultCode:0,
     data:{reservationNumber:savedRef,sippCode:savedSipp,reservationStatusType:savedStatus,
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     reservationExtras:savedReservationExtras,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
    if(path.startsWith("/reservations/cancel?"))return cancelResponse||{success:true,data:{reservationNumber:"A-1",reservationStatusType:3}};
@@ -198,6 +200,28 @@ test("approved status 1 only clears review after price and contract verification
  assert.equal(result.status,"confirmed");
  assert.equal(result.needs_manual_review,false);
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
+});
+test("paid Arvent additional driver saves code2 and POA full total, but only confirms supplier receipt",async()=>{
+ const inputWithDriver={...syntheticBooking,partner_amount:107,rental_amount:100,extras_amount:7,
+   extras_pricing_certified:true,extra_billing_map:{},
+   extra_selections:[{code:'2',quantity:1,total_cents:700,required:false,billing:'rental'}],
+   additional_driver:{name:'Secondary Driver',age:30,license_first_issued:'2024-01-01'}};
+ const opts={allowWrites:true,savedStatus:1,savedPrice:107,
+   requiredExtras:[{code:2,name:'Ek Sürücü',price:7,extraRentalType:'rental',
+      extraQuantityIncreasable:false,isRequired:false}]};
+ const verified=setup({...opts,savedReservationExtras:[{code:2,piece:1}]});
+ const success=await verified.arventCreateBooking(creds,inputWithDriver);
+ assert.equal(success.status,'confirmed');
+ assert.equal(success.needs_manual_review,false);
+ const sent=verified.calls.find(x=>x.path==='/reservations/save').request.body;
+ assert.equal(sent.payment.paymentType,3);
+ assert.equal(sent.pricing.paidAmount,0);
+ assert.deepEqual(sent.extras,[{code:'2',piece:1}]);
+ assert.match(sent.customer.note,/Secondary Driver/);
+ const missing=setup(opts);
+ const unverified=await missing.arventCreateBooking(creds,inputWithDriver);
+ assert.equal(unverified.status,'pending');
+ assert.equal(unverified.needs_manual_review,true);
 });
 test("received 0 stays in provider_pending for safe polling, never triggers voucher",async()=>{
  const a=setup({allowWrites:true,savedStatus:0});
