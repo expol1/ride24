@@ -157,8 +157,9 @@ test('numeric Supabase money values may be decimal strings but never NaN/null',a
 test('checkout handler admits a validated Arvent quote without a Renteon calculation and blocks failed preflight',async()=>{
  const file=new URL('../../supabase/functions/create_checkout_session/index.ts',import.meta.url);
  const compiled=ts.transpileModule(await readFile(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}});
- for(const verified of [false,true]){
+ for(const [verified,client,appVersion] of [[false,'web',null],[true,'web',null],[true,'android',30],[true,'android',null],[true,'android',31]]){
   const calls=[];
+  const androidBlocked=client==='android'&&!(appVersion>=31);
   const cart={id:'b',partner_id:'p',client_id:'u',status:'awaiting_payment',api_quote_id:'q',
    provider_type:'api',online_payment_pln:35,payment_deadline:new Date(Date.now()+44*60000).toISOString(),
    partners:{api_provider:'arvent_kolaycar'}};
@@ -181,14 +182,21 @@ test('checkout handler admits a validated Arvent quote without a Renteon calcula
    if(name.includes('arvent-kolaycar'))return {arventVerifyCheckout:async()=>{
     calls.push('extras');if(!verified)throw Error('unverified');}};
    if(name.includes('partner-api'))return {loadPartnerCredentials:async()=>({})};
-   if(name.includes('payment-return'))return {};
+   if(name.includes('payment-return'))return {androidPaymentReturnUrl:(_u,id,kind)=>'https://example.invalid/functions/v1/payment-return?b='+id+'&r='+kind};
    if(name.includes('caravel-production-hold'))return caravelHold;
    if(name.includes('caravel-release'))return {loadCaravelRelease:async()=>{throw Error('Arvent checkout entered Caravel release flow');}};
    throw Error('Unexpected import '+name);
   };
   vm.runInNewContext(compiled.outputText,{exports:{},require,Deno:{env:{get:()=>''}},Response,console});
   const res=await handler(new Request('https://example.invalid',{method:'POST',headers:{Authorization:'Bearer test'},
-   body:JSON.stringify({booking_id:'b'})}));
+   body:JSON.stringify({booking_id:'b',client,...(appVersion?{app_version_code:appVersion}:{}),return_app:'pl.ride24.client'})}));
+  if(androidBlocked){
+   // Older Android builds: clear update message, no supplier check, no Stripe session.
+   assert.equal(res.status,409);
+   assert.equal((await res.json()).error,'ARVENT_APP_UPDATE_REQUIRED');
+   assert.deepEqual(calls,[]);
+   continue;
+  }
   assert.equal(res.status,verified?200:409);
   assert.deepEqual(calls,verified?['revalidate','extras','stripe']:['revalidate','extras']);
  }
