@@ -214,7 +214,24 @@ export async function issueVerifiedCaravelQuote(args:{
  try{
   response=(await args.client.quote(
     requested,args.idempotencyKey,args.supplierId)).data;
- }catch{return reject("CARAVEL_QUOTE_SUPPLIER_REQUEST_FAILED");}
+ }catch(error){
+  // Supplier-safe diagnostics only: structured API code/status and validation issues.
+  // Never log the request body, customer data, headers, tokens or error message.
+  const failure=error instanceof Error ? error as Error & {
+    status?:unknown; code?:unknown; details?:unknown;
+  } : null;
+  const status=typeof failure?.status==="number" && Number.isInteger(failure.status) ? failure.status : null;
+  const code=typeof failure?.code==="string" && /^[A-Z0-9_]{1,64}$/.test(failure.code) ? failure.code : "UNCLASSIFIED";
+  const issues=Array.isArray(failure?.details) ? failure.details.slice(0,5).map((item:unknown)=>{
+    const entry=rec(item);
+    return {
+      field:typeof entry?.field==="string" && /^[a-zA-Z0-9_.\\[\\]-]{1,64}$/.test(entry.field) ? entry.field : null,
+      issue:typeof entry?.issue==="string" && /^[a-zA-Z0-9_]{1,64}$/.test(entry.issue) ? entry.issue : null,
+    };
+  }) : [];
+  console.warn("Caravel quote rejected by supplier",JSON.stringify({status,code,issues}));
+  return reject("CARAVEL_QUOTE_SUPPLIER_REQUEST_FAILED");
+ }
  const api=rec(response);
  if(!api||api.supplier_id!==undefined&&api.supplier_id!==args.supplierId||
     api.vehicle_id!==undefined&&api.vehicle_id!==requested.vehicle_id||
