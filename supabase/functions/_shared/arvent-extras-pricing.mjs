@@ -25,9 +25,12 @@ export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = 
       typeof x.price_eur==="number" && Number.isFinite(x.price_eur) &&
       x.price_eur>=0 && x.price_eur<=100000 &&
       Math.abs(x.price_eur*100-Math.round(x.price_eur*100))<1e-6;
+    // Supplier says whether multiple units are allowed. Ride24 caps at ten
+    // for request safety; this is not advertised as a supplier maximum.
     const maxQuantity=x.code==="2" ? 1 :
-      x.quantity_increasable===true && Number.isInteger(x.max_quantity) && x.max_quantity>=1
-        ? Math.min(x.max_quantity,10) : 1;
+      x.quantity_increasable===true
+        ? Math.min(Number.isInteger(x.max_quantity)&&x.max_quantity>=1?x.max_quantity:10,10)
+        : 1;
     return {...x, billing:mode, max_quantity:maxQuantity,
       bookable:certified===true && valid && (mode!==null || x.price_eur===0)};
   });
@@ -55,7 +58,7 @@ export function arventSelectedExtrasQuote({
   // A mandatory item is included even when the customer did not select it.
   for(const item of catalog){
     if(item.required){
-      if(!item.bookable)throw Error("ARVENT_REQUIRED_EXTRA_UNPRICED");
+      if(!item.bookable && item.price_eur!==0)throw Error("ARVENT_REQUIRED_EXTRA_UNPRICED");
       if(!chosen.has(item.code))chosen.set(item.code,1);
     }
   }
