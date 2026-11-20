@@ -284,7 +284,10 @@ function vehicleCard(v: VerifiedCaravelVehicle, scopeSupplierId: string): Result
   // Bags are optional in the spec: when Caravel does not state both counts the
   // card shows "—" (bags = null). Never a guessed number.
   const bagsKnown = safeInt(v?.largeBags) && safeInt(v?.smallBags);
-  if (bagsKnown && (v.largeBags < 0 || v.smallBags < 0 || v.largeBags + v.smallBags > 99))
+  // safeInt() above already guarantees a numeric value when bagsKnown is true.
+  // Narrow only the TypeScript types; keep the exact validation and JSON output.
+  if (bagsKnown && ((v.largeBags as number) < 0 || (v.smallBags as number) < 0 ||
+      (v.largeBags as number) + (v.smallBags as number) > 99))
     errors.push("BAGS_UNVERIFIED");
   if (v?.imageUrl !== null && !(typeof v?.imageUrl === "string" && /^https:\/\/\S+$/i.test(v.imageUrl)))
     errors.push("IMAGE_UNVERIFIED");
