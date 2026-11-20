@@ -90,6 +90,22 @@ export function arventOfferExtrasRows(raw) {
  return items;
 }
 
+// Verify that the baseline vehicle-only quote may safely continue.
+// A supplier-mandatory add-on not represented in the Ride24 price must
+// NEVER be silently omitted, even though optional extras are still preview-only.
+export function arventAssertVehicleOnlyExtrasSafe(raw) {
+ if(raw===null)return;
+ if(!Array.isArray(raw))throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
+ const normalized=arventOfferExtrasRows(raw);
+ for(let i=0;i<raw.length;i++){
+  const original=raw[i],option=normalized[i];
+  if(typeof original?.isRequired!=="boolean")
+   throw Error("PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNVERIFIED");
+  if(original.isRequired && option.price_eur!==0)
+   throw Error("PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNPRICED");
+ }
+}
+
 export function arventDate(v) {
  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(str(v,12));
  if(!m)throw Error("PARTNER_API_ERROR:ARVENT_DATE_INVALID");
