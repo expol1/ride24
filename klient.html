@@ -2344,7 +2344,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261120-arvent2";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261120-arvent3";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -3159,6 +3159,7 @@ document.addEventListener("click", async function(e) {
            const docs = document.querySelector("#termsModal .docs-container");
            const btn = document.getElementById("confirmBookingBtn");
            window.r24ArventForm = !!on;
+           if (!on) window.r24ArventExtraDriverAllowed = false;
            if (note) note.hidden = !on;
            // Arvent: retain the standard extras section, but distinguish
            // supplier catalogue entries from offer-priced/bookable extras.
@@ -3187,7 +3188,8 @@ document.addEventListener("click", async function(e) {
                equipmentHeading.textContent = isEn ? equipmentHeading.dataset.en : equipmentHeading.dataset.pl;
            }
            if (licence) licence.readOnly = !!on;
-           if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
+           if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; window.r24ArventExtraDriverAllowed = false; }
+           else if (addSelect && !on) addSelect.disabled = false;
            // Same order as every standard Ride24 booking: documents, price, consent.
            // Also restores order when reopening after an older Arvent form.
            if (price && docs && docs.nextElementSibling !== price) docs.after(price);
@@ -3487,7 +3489,10 @@ document.addEventListener("click", async function(e) {
                     ? additionalValue
                     : null;
 
-                if (window.r24ArventForm && additionalDriverId) {
+                // Arvent: additional driver only after the supplier has
+                // returned a priced, certified code 2 and the person is bound
+                // to the current server quote. Other partners are unaffected.
+                if (window.r24ArventForm && additionalDriverId && window.r24ArventExtraDriverAllowed !== true) {
                     throw new Error(isEn ? "An additional driver is not available for this offer." : "Dodatkowy kierowca jest niedostępny w tej ofercie.");
                 }
                 if (driverId && additionalDriverId && driverId === additionalDriverId) {
