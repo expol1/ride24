@@ -153,7 +153,10 @@ test('Arvent: server summary shown without extras picker; booking may continue w
   await ui.start();
   const box=document.getElementById('bookingPriceBreakdown');
   assert.equal(box.hidden,false);
-  assert.equal(document.getElementById('bookingExtrasPicker').hidden,true);
+  const picker=document.getElementById('bookingExtrasPicker');
+  assert.equal(picker.hidden,false);
+  assert.match(picker.textContent,/no equipment that can be ordered online/);
+  assert.equal(picker.querySelectorAll('input,select').length,0);
   const text=box.textContent;
   for(const part of ['Booking summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay Arvent at pickup','EDMR'])assert.ok(text.includes(part),part);
   assert.ok(/14\.35/.test(text));

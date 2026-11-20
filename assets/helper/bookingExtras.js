@@ -17,8 +17,14 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
     // Arvent: read-only server preview bound to the search api_quote_id.
     // Only server values are shown; nothing is computed here.
     function renderArvent(box, picker, total, a) {
-        picker.hidden = true; if (total) total.hidden = true;
+        if (total) total.hidden = true;
         el('equipmentLegacyInfo').hidden = true;
+        // Only extras the supplier actually prices for this offer could be listed;
+        // the server sends none today, so nothing can be selected or charged.
+        picker.hidden = false;
+        picker.append(node('p', (a.extras || []).length ? '' : label(
+            'W tej ofercie wypożyczalnia nie udostępnia obecnie dodatkowego wyposażenia do zamówienia online. Rezerwacja obejmuje wybraną kategorię auta bez dodatków.',
+            'The rental company currently offers no equipment that can be ordered online for this offer. The booking covers the selected car category without extras.')));
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
         box.append(node('h4', label('Podsumowanie rezerwacji', 'Booking summary')));

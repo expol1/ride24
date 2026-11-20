@@ -75,7 +75,7 @@ test('loyalty discount is applied exactly as in the booking request',async()=>{
 test('additional driver is refused with a clear Arvent message (never silently dropped)',async()=>{
  const r=await setup().call({additional_driver_id:'33333333-3333-4333-8333-333333333333'});
  assert.equal(r.status,400);assert.equal(r.body.code,'ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE');
- assert.match(r.body.error,/Dodatkowy kierowca niedostępny w rezerwacji online Arvent/);
+ assert.match(r.body.error,/Dodatkowy kierowca jest niedostępny w tej ofercie\./);
 });
 test('selected extras are refused for Arvent',async()=>{
  const r=await setup().call({extras:[{id:'x',quantity:1}]});

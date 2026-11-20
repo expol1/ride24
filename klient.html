@@ -2344,7 +2344,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261120-arvent";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261120-arvent2";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -3160,8 +3160,9 @@ document.addEventListener("click", async function(e) {
            const btn = document.getElementById("confirmBookingBtn");
            window.r24ArventForm = !!on;
            if (note) note.hidden = !on;
-           if (callout) callout.hidden = !!on;
-           if (extrasInfo) extrasInfo.hidden = !on;
+           // Standard Ride24 extras section (same look); its window states what the offer allows.
+           if (callout) callout.hidden = false;
+           if (extrasInfo) extrasInfo.hidden = true;
            if (licence) licence.readOnly = !!on;
            if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
            if (price && docs) {
@@ -3466,7 +3467,7 @@ document.addEventListener("click", async function(e) {
                     : null;
 
                 if (window.r24ArventForm && additionalDriverId) {
-                    throw new Error(isEn ? "An additional driver is not available in Arvent online bookings." : "Dodatkowy kierowca niedostępny w rezerwacji online Arvent.");
+                    throw new Error(isEn ? "An additional driver is not available for this offer." : "Dodatkowy kierowca jest niedostępny w tej ofercie.");
                 }
                 if (driverId && additionalDriverId && driverId === additionalDriverId) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
@@ -5515,7 +5516,7 @@ window.closeReviewModal = function() {
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
-                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#92400E" data-pl="Dodatkowy kierowca niedostępny w rezerwacji online Arvent." data-en="An additional driver is not available in Arvent online bookings.">Dodatkowy kierowca niedostępny w rezerwacji online Arvent.</small>
+                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#92400E" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>
                 </div>
             </div>
 
