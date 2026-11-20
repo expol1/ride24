@@ -86,7 +86,7 @@ test('selected extras are refused for Arvent',async()=>{
  assert.equal(r.body.code,'ARVENT_EXTRAS_UNAVAILABLE');
 });
 test('expired, used or foreign quote blocks the summary and asks for a new search',async()=>{
- for(const quote of [{expires_at:new Date(Date.now()-1000).toISOString()},{booking_id:'b'},{car_class_id:'other'},{start_date:'2026-12-11'}]){
+ for(const quote of [{expires_at:new Date(Date.now()-1000).toISOString()},{booking_id:'b'},{used_at:new Date().toISOString()},{currency:'USD'},{car_class_id:'other'},{start_date:'2026-12-11'}]){
   const r=await setup({quote}).call({});
   assert.equal(r.status,409);assert.equal(r.body.code,'QUOTE_EXPIRED');
  }
