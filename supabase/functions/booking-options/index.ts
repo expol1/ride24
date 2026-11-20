@@ -111,6 +111,10 @@ serve(async(req: Request)=>{
         'Cannot verify the extras configuration. Please try again.',503);
       const settings=configuration?.api_settings||{};
       const certified=settings.arvent_extras_pricing_certified===true;
+      if(body.additional_driver_id && (!certified || settings.arvent_additional_driver_certified!==true))
+        throw new BookingOptionsError('ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE',
+          'Dodatkowy kierowca jest niedostępny w tej ofercie.',
+          'An additional driver is not available for this offer.',400);
       const typeMap=settings.arvent_extra_billing_types && typeof settings.arvent_extra_billing_types==='object'
          && !Array.isArray(settings.arvent_extra_billing_types) ? settings.arvent_extra_billing_types : {};
       const effectiveItems=arventPricedExtrasCatalog(offerExtras.items,typeMap,certified);
