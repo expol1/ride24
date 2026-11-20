@@ -1,3 +1,4 @@
+import * as arventContract from '../../supabase/functions/_shared/arvent-kolaycar-contract.mjs';
 import * as normalization from '../../supabase/functions/_shared/provider-normalization.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -35,7 +36,7 @@ function adapters() {
   const transport={endpointFor:()=>'/reservations',sanitizePartnerPayload:x=>x,
     partnerApiRequest:async(_credentials,path,request)=>{requests.push({path,...request});return {id:'external-1',status:'pending'};}};
   const aggregator={aggregatorTest:async()=>({ok:true}),aggregatorLocations:async()=>[],aggregatorGroups:async()=>[],aggregatorAvailability:async()=>[],aggregatorBook:async()=>({}),aggregatorStatus:async()=>({}),aggregatorCancel:async()=>({})};
-  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?aggregator:name.includes('arvent-kolaycar')?{}:name.includes('caravel-paid-fulfillment')?{cancelCaravelBooking:async()=>{throw Error('Caravel cancel must not run for other providers');}}:(()=>{throw Error(name)})(),
+  const sandbox={exports:{},require:name=>name.includes('partner-api')?transport:name.includes('ride24-security')?{}:name.includes('renteon-aggregator')?aggregator:name.includes('arvent-kolaycar-contract')?arventContract:name.includes('arvent-kolaycar')?{}:name.includes('caravel-paid-fulfillment')?{cancelCaravelBooking:async()=>{throw Error('Caravel cancel must not run for other providers');}}:(()=>{throw Error(name)})(),
     URL,URLSearchParams,TextEncoder,TextDecoder,crypto,console};
   vm.runInNewContext(adapterCode,sandbox);
   return {requests,...sandbox.exports};
@@ -113,6 +114,7 @@ function setup() {
       if(specifier.includes('booking-options.mjs'))return options;
       if(specifier.includes('driver-age.mjs'))return driverAge;
       if(specifier.includes('arvent-driver-eligibility.mjs'))return arventLicense;
+      if(specifier.includes('arvent-kolaycar-contract'))return arventContract;
       if(specifier.includes('caravel-production-hold.mjs'))return caravelHold;
       // Caravel release gate stays closed in these generic harnesses (production today).
       if(specifier.includes('caravel-release.ts'))return {loadCaravelRelease:async()=>({open:false,reason:'CARAVEL_NOT_CERTIFIED'})};
