@@ -159,6 +159,16 @@ test('certified Arvent extras sum as EUR per-day equipment plus rental driver, w
  assert.equal(saved.raw_response.ride24_options.binding.additional_driver_id,second);
  assert.equal(saved.raw_response.ride24_options.arvent_extra.extras_cents,3700);
 });
+test('free mandatory supplier equipment preserves the existing vehicle-only price and checkout',async()=>{
+ const s=setup({offerItems:[{code:'27',name:'Mandatory no-charge equipment',price_eur:0,
+   billing_type:null,quantity_increasable:false,required:true,kind:'other'}]});
+ const r=await s.call({});
+ assert.equal(r.status,200);
+ assert.equal(r.body.enabled,false);
+ assert.equal(r.body.arvent.total,88.14);
+ assert.equal(r.body.arvent.pay_on_pickup,84.75);
+ assert.equal(s.getSavedQuote(),null);
+});
 test('uncertified Arvent numeric supplier price cannot be selected or guessed',async()=>{
  const r=await setup({offerItems:[{code:'6',name:'Infant seat',price_eur:5,billing_type:'1',quantity_increasable:true,required:false,kind:'other'}]})
   .call({extras:[{id:'6',quantity:1}]});
