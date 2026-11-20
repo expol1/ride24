@@ -69,10 +69,11 @@ export async function revalidatePaidProvider(credentials:any,booking:any,quote:a
    additional_driver:booking.add_driver_name?{name:booking.add_driver_name,age:Number(booking.add_driver_age)}:null,
    client_email:booking.client_email,client_phone:booking.client_phone};
 }
-// Supplier live offers are SIPP groups. The technical vehicleId is private
-// and is allowed to change between browsing and revalidation ONLY if the
-// customer-selected SIPP, rental total and explicitly verified conditions
-// remain identical. Do not trust stale reservationTokens or displayed models.
+// Supplier live offers are grouped for Ride24 customers by SIPP category.
+// Mustafa explicitly did NOT certify substituting another technical vehicleId
+// in the same category. Until Arvent approves this, keep the original internal
+// vehicleId stable across the paid re-quote, without exposing it in the UI.
+// Do not trust stale reservationTokens or displayed vehicle models.
 async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  if(booking.cancelled_at||['cancelled','rejected','expired','payment_expired'].includes(booking.status))
   fail('CANCELLED_BEFORE_DISPATCH');
@@ -156,10 +157,18 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
    pickup_time:pickupTime,return_time:returnTime,currency:'EUR'};
  const live=await arventSearch(credentials,input);
  const match=live.find((offer:any)=>offer.external_id===sipp
+   &&String(offer.provider_quote_data?.vehicle_id||'')===vehicleId
    &&offer.currency==='EUR'&&offer.deposit_amount===0
    &&cents(offer.public_price_total)===base);
- if(!match)fail(live.some((offer:any)=>offer.external_id===sipp)
-   ?'PROVIDER_PRICE_OR_TERMS_CHANGED':'PROVIDER_UNAVAILABLE');
+ if(!match){
+   const substitute=live.some((offer:any)=>offer.external_id===sipp
+     &&offer.currency==='EUR'&&offer.deposit_amount===0
+     &&cents(offer.public_price_total)===base
+     &&String(offer.provider_quote_data?.vehicle_id||'')!==vehicleId);
+   fail(substitute?'ARVENT_VEHICLE_SUBSTITUTION_UNVERIFIED'
+      :live.some((offer:any)=>offer.external_id===sipp)
+        ?'PROVIDER_PRICE_OR_TERMS_CHANGED':'PROVIDER_UNAVAILABLE');
+ }
  if(pickup!==dropoff)fail('ARVENT_ONE_WAY_PAYMENT_UNVERIFIED');
  // Supplier requires the actual length of licence tenure. Validate
  // a first-issued date self-declared by the selected main driver; never
