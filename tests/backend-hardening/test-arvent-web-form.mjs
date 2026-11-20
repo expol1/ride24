@@ -16,7 +16,7 @@ const durationJs=ts.transpileModule(durationModule,{compilerOptions:{target:ts.S
 const durationSandbox={exports:{}};vm.runInNewContext(durationJs,durationSandbox);
 const duration=durationSandbox.exports;
 
-function setup({quote={},rate=4.2345,loyalty=0,rateFails=false}={}){
+function setup({quote={},rate=4.2345,loyalty=0,rateFails=false,offerError=null}={}){
  let handler;const calls=[];
  const q={id:QUOTE,partner_id:ARVENT,car_class_id:'car',booking_id:null,start_date:'2026-12-10',end_date:'2026-12-13',
   partner_net_total:84.75,commission_total:3.39,final_total:88.14,currency:'EUR',expires_at:new Date(Date.now()+600000).toISOString(),
@@ -29,7 +29,7 @@ function setup({quote={},rate=4.2345,loyalty=0,rateFails=false}={}){
   async rpc(name){calls.push(name);return {data:loyalty,error:null};},
  };
  const require=n=>{
-  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}],readArventOfferExtras:async()=>({status:'present',items:[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]})};
+  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}],readArventOfferExtras:async()=>{if(offerError)throw Error(offerError);return {status:'present',items:[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]};}};
   if(n.includes('driver-age'))return driverAge;
   if(n.includes('http/server'))return {serve:f=>handler=f};
   if(n.includes('ride24-security'))return {authenticatedUser:async()=>({id:'user-1'}),corsHeaders:()=>({}),enforceRateLimit:async()=>{},
@@ -90,6 +90,22 @@ test('expired, used or foreign quote blocks the summary and asks for a new searc
   const r=await setup({quote}).call({});
   assert.equal(r.status,409);assert.equal(r.body.code,'QUOTE_EXPIRED');
  }
+});
+test('Arvent offer change during extras lookup blocks checkout before payment',async()=>{
+ for(const code of ['ARVENT_OFFER_CHANGED','ARVENT_EXTRAS_QUOTE_CHANGED','ARVENT_QUOTE_REQUIRED']){
+  const r=await setup({offerError:'PARTNER_API_ERROR:'+code}).call({});
+  assert.equal(r.status,409);
+  assert.equal(r.body.code,'QUOTE_EXPIRED');
+  assert.match(r.body.error,/Oferta lub jej cena zmieniła się/);
+ }
+});
+test('Arvent extras endpoint downtime never fabricates extras nor breaks vehicle-only price',async()=>{
+ const r=await setup({offerError:'PARTNER_API_ERROR:HTTP:503'}).call({});
+ assert.equal(r.status,200);
+ assert.equal(r.body.arvent.offer_extras.status,'unavailable');
+ assert.deepEqual(r.body.arvent.offer_extras.items,[]);
+ assert.equal(r.body.arvent.pay_on_pickup,84.75);
+ assert.equal(r.body.arvent.total,88.14);
 });
 test('missing NBP rate blocks the summary (no fallback rate for Arvent)',async()=>{
  const r=await setup({rateFails:true}).call({});
