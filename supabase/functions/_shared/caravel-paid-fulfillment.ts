@@ -251,7 +251,19 @@ export async function createPaidCaravel(credentials: unknown, prepared: Rec, opt
       })()]:[])],
     customer: customer as never, payment_model: "pay_on_arrival",
   }, prepared.idempotency_key as string, prepared.supplier_id as string);
-  return resultFromBooking(response.data, prepared);
+  const created = resultFromBooking(response.data, prepared);
+  // The POST /v1/bookings body can be a summary without every settlement field
+  // (first production booking, 20 Nov 2026: confirmed at Caravel, held here).
+  // GET /v1/bookings/{id} is authoritative: use it only when it verifies cleanly
+  // against the same quote; otherwise keep the POST result and its reference.
+  const createdId = rec(response.data)?.booking_id;
+  if (!("needs_manual_review" in created) || typeof createdId !== "string" || !isUuid(createdId)) return created;
+  try {
+    const read = resultFromBooking((await client.bookingStatusSandbox(createdId, prepared.supplier_id as string)).data, prepared);
+    return "needs_manual_review" in read || read.booking_reference !== createdId ? created : read;
+  } catch {
+    return created;
+  }
 }
 
 export async function readPaidCaravelStatus(credentials: unknown, reference: string, prepared: Rec,

@@ -265,3 +265,24 @@ test("shared flow: flags off -> Caravel never reaches the supplier even after pa
   assert.equal(f.w.last_error, "ADAPTER_NOT_READY");
   assert.equal(state.calls.length, 0);
 });
+
+test("create: POST summary without settlement fields -> authoritative GET confirms (first production booking)", () => withFlags(ON, async () => {
+  const state = newState();
+  const prepared = await revalidatePaidCaravel(creds(), booking(), quoteRow(), {factory: fakeFactory(state), nowMs: NOW});
+  state.booked = (k) => { const full = confirmed(k); delete full.payment; delete full.protection; state.status = confirmed(k); return full; };
+  const result = await createPaidCaravel(creds(), prepared, {factory: fakeFactory(state)});
+  assert.equal(result.status, "confirmed");
+  assert.equal(result.needs_manual_review, undefined);
+  assert.equal(result.booking_reference, "c0ffee00-1111-4222-8333-444455556666");
+  assert.deepEqual(state.calls.filter((c) => c[0] === "status").map((c) => c[1]), ["c0ffee00-1111-4222-8333-444455556666"]);
+  assert.equal(state.calls.filter((c) => c[0] === "book").length, 1, "never re-books");
+
+  // GET that still differs (real prepayment) keeps manual review and the supplier reference.
+  const s2 = newState();
+  const p2 = await revalidatePaidCaravel(creds(), booking(), quoteRow(), {factory: fakeFactory(s2), nowMs: NOW});
+  s2.booked = (k) => { const full = confirmed(k); delete full.payment;
+    s2.status = confirmed(k, {payment: {model: "pay_on_arrival", amount_on_arrival: money(10000), amount_prepaid: money(5000)}}); return full; };
+  const r2 = await createPaidCaravel(creds(), p2, {factory: fakeFactory(s2)});
+  assert.equal(r2.needs_manual_review, true);
+  assert.equal(r2.booking_reference, "c0ffee00-1111-4222-8333-444455556666");
+}));
