@@ -277,7 +277,9 @@
             </a>
         </div>
         
-        <div id="results-container" class="car-list"></div>
+        <div id="results-container" class="car-list">
+            <p role="status" style="color:white; text-align:center; padding:50px; font-size:18px; font-weight:600;" data-pl="Wyszukujemy najlepsze oferty w bazie Ride24..." data-en="Searching for the best Ride24 offers...">Wyszukujemy najlepsze oferty w bazie Ride24...</p>
+        </div>
     </div>
 
    <div id="authModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(15,23,42,0.6); backdrop-filter:blur(8px); align-items:center; justify-content:center;">
@@ -472,7 +474,6 @@ async function getExchangeRate(currency, requireLive = false) {
             }
             
             const initialLang = localStorage.getItem("lang") === "en" ? "en" : "pl";
-            container.innerHTML = `<p style="color:white; text-align:center; padding:50px; font-size:18px; font-weight:600;" data-pl="Wyszukujemy najlepsze oferty w bazie Ride24..." data-en="Searching for the best Ride24 offers...">${initialLang === "en" ? "Searching for the best Ride24 offers..." : "Wyszukujemy najlepsze oferty w bazie Ride24..."}</p>`;
 
             try {
                 const searchParamsStr = localStorage.getItem("searchParams");
@@ -691,7 +692,6 @@ let query = db
                     rawCars = data || [];
                 }
 
-                container.innerHTML = '';
 
                 // 3. DEDUPLIKACJA AUT
                 const unique = new Map();
@@ -1160,7 +1160,8 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                         row.style.border = "2px solid #F59E0B"; 
                     }
 
-                    container.appendChild(row);
+                    if (index === 0) container.replaceChildren(row);
+                    else container.appendChild(row);
                 });
                 // 📄 4️⃣ KOMUNIKAT O LIMITACH (Transparentność ofert)
                 // Wyświetla się tylko, gdy baza zwróci równe 20 wyników (czyli osiągnięto limit strony)
