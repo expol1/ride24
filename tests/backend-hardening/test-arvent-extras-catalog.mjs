@@ -32,7 +32,7 @@ test('Arvent offer extras keep driver code 2, supplier amount and unknown billin
  assert.equal(items.length,2);
  assert.deepEqual(items[0],{
   code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'3',
-  quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false
+  quantity_increasable:false,max_quantity:null,required:false,kind:'additional_driver',booking_confirmed:false
  });
  assert.equal(items[1].kind,'other');
  assert.equal(items[1].quantity_increasable,true);
