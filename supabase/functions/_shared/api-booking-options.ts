@@ -2,7 +2,7 @@ import { BookingOptionsError, priceFingerprint, quoteChanged, pricedExtrasEnable
 import { assertApiQuoteContext } from './api-quote-contract.mjs';
 import { loadPartnerCredentials } from './partner-api.ts';
 import { aggregatorQuoteOptions } from './renteon-aggregator.ts';
-import { arventFetchExtrasCatalog } from './arvent-kolaycar.ts';
+import { arventFetchExtrasCatalog, arventReadOfferExtras } from './arvent-kolaycar.ts';
 import { providerPricingSnapshot, providerServiceCatalog, unconfirmedServicePrice, serviceNames } from './provider-services.mjs';
 import { customerPricing } from './booking-items.mjs';
 import { exchangeRate } from './booking-exchange-rate.ts';
@@ -13,6 +13,24 @@ import { rentalDuration } from './rental-duration.ts';
 export async function readArventExtrasCatalog(admin:any,partnerId:string) {
  const credentials=await loadPartnerCredentials(admin,partnerId);
  return arventFetchExtrasCatalog(credentials);
+}
+
+// Offer-bound, read-only supplier re-quote. No SaveReservation and no
+// interpretation of the undocumented extraRentalType enum.
+export async function readArventOfferExtras(admin:any,partnerId:string,quote:any,body:any) {
+ const supplier=quote?.raw_response?.provider_quote_data;
+ const input={
+  pickup_location_id:quote?.pickup_location_external_id,
+  dropoff_location_id:quote?.dropoff_location_external_id||quote?.pickup_location_external_id,
+  pickup_date:quote?.start_date,return_date:quote?.end_date,
+  pickup_time:body.pickup_time,return_time:body.return_time,currency:"EUR"
+ };
+ const credentials=await loadPartnerCredentials(admin,partnerId);
+ return arventReadOfferExtras(credentials,input,{
+  vehicle_id:String(supplier?.vehicle_id||""),
+  sipp:String(supplier?.sipp||""),
+  total_amount:Number(quote?.partner_net_total)
+ });
 }
 
 export async function makeApiBookingOptions(admin:any,user:any,car:any,partner:any,body:any,ages:number[]) {
