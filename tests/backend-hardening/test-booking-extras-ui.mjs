@@ -168,3 +168,32 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.equal(ui.canSubmit(),true);
   assert.deepEqual(ui.payload(),{});
 });
+
+
+test('Arvent alone disables misleading extras action; switching to local restores normal picker', async () => {
+  const source = await readFile(new URL('../../klient.html', import.meta.url), 'utf8');
+  const start = source.indexOf('window.ride24ArventFormMode = function(on) {');
+  const stop = source.indexOf('window.ride24ArventGoToProfile = function', start);
+  assert.ok(start > 0 && stop > start, 'Arvent form mode is present');
+  const dom = new JSDOM(`<div id="termsModal">
+    <div class="r24-extras-callout"><button type="button" class="docs-extra-item">
+      <span class="r24-extras-copy"><strong data-pl="Wybierz dodatki do wynajmu" data-en="Choose rental extras">Wybierz dodatki do wynajmu</strong>
+      <small data-pl="Zobacz dostępne usługi i ich aktualną cenę." data-en="See available services and their current prices.">Zobacz dostępne usługi i ich aktualną cenę.</small></span>
+      <span class="r24-extras-action">Sprawdź</span>
+    </button></div>
+    <section id="bookingPriceBreakdown"></section><div class="docs-container"></div>
+  </div>`);
+  const win = dom.window;
+  vm.runInNewContext(source.slice(start, stop), {window: win, document: win.document, localStorage: {getItem: () => 'pl'}});
+  const button = win.document.querySelector('.docs-extra-item');
+  const title = button.querySelector('strong');
+  const action = button.querySelector('.r24-extras-action');
+  win.ride24ArventFormMode(true);
+  assert.equal(button.disabled, true);
+  assert.equal(title.textContent, 'Dodatki niedostępne online');
+  assert.equal(action.hidden, true);
+  win.ride24ArventFormMode(false);
+  assert.equal(button.disabled, false);
+  assert.equal(title.textContent, 'Wybierz dodatki do wynajmu');
+  assert.equal(action.hidden, false);
+});

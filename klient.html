@@ -3160,9 +3160,31 @@ document.addEventListener("click", async function(e) {
            const btn = document.getElementById("confirmBookingBtn");
            window.r24ArventForm = !!on;
            if (note) note.hidden = !on;
-           // Standard Ride24 extras section (same look); its window states what the offer allows.
+           // Arvent-only: no priced extras are supplied by kolayCAR at present.
+           // Do not offer a misleading "Choose extras" action. Restore the standard
+           // selectable tile unchanged whenever the booking is not Arvent.
            if (callout) callout.hidden = false;
            if (extrasInfo) extrasInfo.hidden = true;
+           const extrasButton = callout?.querySelector("button.docs-extra-item");
+           const extrasTitle = extrasButton?.querySelector(".r24-extras-copy strong");
+           const extrasDescription = extrasButton?.querySelector(".r24-extras-copy small");
+           const extrasAction = extrasButton?.querySelector(".r24-extras-action");
+           if (extrasButton) {
+               extrasButton.disabled = !!on;
+               extrasButton.style.cursor = on ? "default" : "";
+               extrasButton.setAttribute("aria-disabled", on ? "true" : "false");
+           }
+           if (extrasTitle) {
+               extrasTitle.dataset.pl = on ? "Dodatki niedostępne online" : "Wybierz dodatki do wynajmu";
+               extrasTitle.dataset.en = on ? "Extras unavailable online" : "Choose rental extras";
+               extrasTitle.textContent = isEn ? extrasTitle.dataset.en : extrasTitle.dataset.pl;
+           }
+           if (extrasDescription) {
+               extrasDescription.dataset.pl = on ? "W tej ofercie nie można zamówić dodatkowego wyposażenia." : "Zobacz dostępne usługi i ich aktualną cenę.";
+               extrasDescription.dataset.en = on ? "No additional equipment can be ordered for this offer." : "See available services and their current prices.";
+               extrasDescription.textContent = isEn ? extrasDescription.dataset.en : extrasDescription.dataset.pl;
+           }
+           if (extrasAction) extrasAction.hidden = !!on;
            if (licence) licence.readOnly = !!on;
            if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
            if (price && docs) {
