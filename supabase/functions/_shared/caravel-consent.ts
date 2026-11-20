@@ -134,6 +134,7 @@ export type CaravelConsentView = {
     breakdown?: {rental_base:string;customer_rental:string; fee_total:string; extras_total:string; partner_total:string;
       fees:Array<{label:string; original_label:string; type:string; amount:string}>;
       extras:Array<{extra_id:string;name:string;quantity:number;amount:string}>}};
+  different_return_location?: boolean;
   driver_age: number;
   additional_driver_age: number | null;
   statements: string[];
@@ -219,6 +220,7 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
       customer_total: money(customerMinor, f.currency), customer_total_minor: customerMinor, ride24_fee_minor: ride24FeeMinor,
       ride24_fee: `${f.feeMajor.toFixed(2)} ${f.currency}`, ride24_fee_currency: f.currency, charged_by_stripe: "ride24_fee_only",
       ...(breakdown ? {breakdown} : {})},
+    different_return_location: typeof f.quote.pickup_location_external_id === 'string' && typeof f.quote.dropoff_location_external_id === 'string' && f.quote.pickup_location_external_id !== f.quote.dropoff_location_external_id,
     driver_age: f.driverAge, additional_driver_age: f.additionalDriverAge, statements,
     echo: {terms_document_id: t.documentId, terms_content_hash: t.contentHash, terms_language: t.language,
       excluded_codes: [...f.excludes], damage_admin_fee_minor: f.excludes.length ? f.adminFeeMinor : null},
