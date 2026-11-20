@@ -46,7 +46,7 @@ export function arventCatalogRows(response) {
   if(!record(item))continue;
   const code=str(item.code??item.extraCode??item.extraId,60);
   const name=str(item.name??item.extraName??item.title??item.description,120);
-  if(!code||!name||/[<>\\x00-\\x1f]/.test(name)||seen.has(code))continue;
+  if(!code||!name||name.includes("<")||name.includes(">")||[...name].some(ch=>ch.charCodeAt(0)<32)||seen.has(code))continue;
   seen.add(code);
   result.push({code,name});
  }
