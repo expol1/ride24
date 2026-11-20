@@ -85,7 +85,7 @@ test("readiness backgrounds remain saturated across the full row and grey stays 
     ["ready","#80e89e","#dcf9e5"]
   ];
   for(const [key,left,right] of variants){
-    const rule=new RegExp("tr\\\\.r24-partner-row--"+key+"\\\\s*\\\\{\\\\s*background:linear-gradient\\\\(90deg,([^;]+);");
+    const rule=new RegExp("tr\\.r24-partner-row--"+key+"\\s*\\{\\s*background:linear-gradient\\(90deg,([^;]+);");
     const match=block.match(rule);
     assert.ok(match,"Missing gradient: "+key);
     assert.ok(match[1].includes(left+" 0%"),"Distinct visible left edge: "+key);
