@@ -148,17 +148,21 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   const {ui}=setup();
   globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
     pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)',
-    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],
+    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],offer_extras:{status:'present',items:[{code:'2',name:'Ek Sürücü',kind:'additional_driver',price_eur:4.99},{code:'1',name:'GPS',price_eur:3.5}]},
     total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75}});
   await ui.start();
   const box=document.getElementById('bookingPriceBreakdown');
   assert.equal(box.hidden,false);
   const picker=document.getElementById('bookingExtrasPicker');
   assert.equal(picker.hidden,false);
-  assert.match(picker.textContent,/Rental company extras catalogue/);
+  assert.match(picker.textContent,/Services returned for your rental dates/);
   assert.match(picker.textContent,/GPS/);
   assert.match(picker.textContent,/Infant seat/);
-  assert.match(picker.textContent,/Price and online booking unavailable/);
+  assert.match(picker.textContent,/Additional driver/);
+  assert.match(picker.textContent,/€4.99/);
+  assert.match(picker.textContent,/billing and booking conditions still require confirmation/);
+  assert.match(picker.textContent,/Not priced for this offer/);
+  assert.equal(picker.querySelectorAll('button,input,select').length,0);
   assert.equal(picker.querySelectorAll('input,select').length,0);
   const text=box.textContent;
   for(const part of ['Price summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay at pickup','EDMR'])assert.ok(text.includes(part),part);
