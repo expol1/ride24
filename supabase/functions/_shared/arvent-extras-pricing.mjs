@@ -93,3 +93,22 @@ export function arventBookingTotals({rentalCents,ride24FeeCents,extrasCents,loya
     loyalty_discount_cents:discountCents,total_cents:grossCents-discountCents,
     online_pln_cents:onlinePlnCents,exchange_rate:nbpRate};
 }
+
+export function arventOptionsSnapshot({rentalCents,ride24FeeCents,extraQuote,days,loyaltyPercent,nbpRate}) {
+ const totals=arventBookingTotals({rentalCents,ride24FeeCents,
+  extrasCents:extraQuote.total_cents,loyaltyPercent,nbpRate});
+ const items=[{kind:"rental",id:null,name_pl:"Wynajem samochodu",name_en:"Car rental",
+  quantity:1,days,billing:"rental",partner_cents:rentalCents,
+  customer_cents:rentalCents+ride24FeeCents}];
+ for(const x of extraQuote.items){
+  items.push({kind:"extra",id:x.code,code:x.code,
+   name_pl:x.code==="2"?"Dodatkowy kierowca":x.name,
+   name_en:x.code==="2"?"Additional driver":x.name,
+   quantity:x.quantity,days:x.days,billing:x.billing,
+   partner_cents:x.total_cents,customer_cents:x.total_cents});
+ }
+ if(items.reduce((sum,x)=>sum+x.partner_cents,0)!==totals.partner_cents ||
+    items.reduce((sum,x)=>sum+x.customer_cents,0)!==totals.gross_cents)
+  throw Error("ARVENT_PRICE_SNAPSHOT_MISMATCH");
+ return {version:2,currency:"EUR",items,...totals};
+}
