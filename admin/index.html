@@ -596,7 +596,7 @@
 }
 
 
-        /* Baza Partnerów — one continuous, subtle gradient across the ENTIRE row. */
+        /* Baza Partnerów — clearly differentiated yellow, neutral grey and green rows, edge to edge. */
         #view-partners .r24-partner-readiness-legend {
             display:flex; flex-wrap:wrap; align-items:center; column-gap:22px; row-gap:9px;
             margin:-9px 0 20px; color:#475569; font-size:12px; font-weight:650;
@@ -608,17 +608,17 @@
             display:inline-block; width:10px; height:10px; border-radius:3px; flex:0 0 10px;
             border:1px solid rgba(15,23,42,.12);
         }
-        #view-partners .r24-partner-readiness-dot--agreement { background:#fbbf24; }
-        #view-partners .r24-partner-readiness-dot--setup { background:#94a3b8; }
-        #view-partners .r24-partner-readiness-dot--ready { background:#4ade80; }
+        #view-partners .r24-partner-readiness-dot--agreement { background:#eab308; }
+        #view-partners .r24-partner-readiness-dot--setup { background:#8b8b8b; }
+        #view-partners .r24-partner-readiness-dot--ready { background:#22c55e; }
         #view-partners #admin-partners-tbody > tr.r24-partner-row--agreement {
-            background:linear-gradient(90deg,rgba(251,191,36,.29) 0%,rgba(254,243,199,.20) 53%,rgba(255,255,255,.97) 100%);
+            background:linear-gradient(90deg,#fbd75e 0%,#fde89c 54%,#fff3c7 100%);
         }
         #view-partners #admin-partners-tbody > tr.r24-partner-row--setup {
-            background:linear-gradient(90deg,rgba(148,163,184,.24) 0%,rgba(241,245,249,.35) 55%,rgba(255,255,255,.97) 100%);
+            background:linear-gradient(90deg,#c4c4c4 0%,#dedede 54%,#f0f0f0 100%);
         }
         #view-partners #admin-partners-tbody > tr.r24-partner-row--ready {
-            background:linear-gradient(90deg,rgba(74,222,128,.19) 0%,rgba(220,252,231,.20) 54%,rgba(255,255,255,.97) 100%);
+            background:linear-gradient(90deg,#80e89e 0%,#b0efc1 54%,#dcf9e5 100%);
         }
         /* Keep existing table hover styles from covering the gradient. */
         #view-partners #admin-partners-tbody > tr.r24-partner-row--agreement > td,
@@ -630,13 +630,13 @@
             background:transparent;
         }
         #view-partners #admin-partners-tbody > tr.r24-partner-row--agreement > td:first-child {
-            box-shadow:inset 4px 0 0 #eab308;
+            box-shadow:inset 5px 0 0 #d49b00;
         }
         #view-partners #admin-partners-tbody > tr.r24-partner-row--setup > td:first-child {
-            box-shadow:inset 4px 0 0 #94a3b8;
+            box-shadow:inset 5px 0 0 #888888;
         }
         #view-partners #admin-partners-tbody > tr.r24-partner-row--ready > td:first-child {
-            box-shadow:inset 4px 0 0 #22c55e;
+            box-shadow:inset 5px 0 0 #16a34a;
         }
         @media (max-width:768px) {
             #view-partners .r24-partner-readiness-legend {gap:10px 16px; margin:-7px 0 16px;}
