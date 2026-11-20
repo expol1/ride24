@@ -12,6 +12,36 @@ const ID = /^[A-Za-z0-9_-]{1,128}$/;
 const encoder = new TextEncoder();
 const rec = (x) => x && typeof x === "object" && !Array.isArray(x) ? x : null;
 
+/**
+ * Non-personal shape of a SIGNED event that failed validation, for the log:
+ * top-level keys, value types, api_version/type and the failed rules. Never
+ * values of names, emails, phones or the `data` snapshot.
+ */
+export function describeSignedEvent(envelope, event) {
+  const e = rec(envelope) ?? {};
+  const failed = [];
+  if (!event) failed.push("PARSE");
+  else {
+    if (!ID.test(event.event_id)) failed.push("event_id");
+    if (!ID.test(event.booking_id)) failed.push("booking_id");
+    if (!ID.test(event.operator_id)) failed.push("operator_id");
+    if (!ID.test(event.supplier_id ?? "")) failed.push("supplier_id");
+    if (event.api_version !== "1.67.0") failed.push("api_version");
+    if (typeof event.external_ref !== "string" || event.external_ref.length > 150) failed.push("external_ref");
+    if (!Number.isFinite(Date.parse(event.occurred_at))) failed.push("occurred_at");
+    if (event.sequence !== null && event.sequence < 1) failed.push("sequence");
+  }
+  const short = (v) => typeof v === "string" ? v.slice(0, 40) : v === null ? null : typeof v;
+  return {
+    failed,
+    keys: Object.keys(e).slice(0, 30),
+    types: Object.fromEntries(Object.entries(e).slice(0, 30).map(([k, v]) => [k, Array.isArray(v) ? "array" : v === null ? "null" : typeof v])),
+    type: short(e.type), api_version: short(e.api_version),
+    data_keys: rec(e.data) ? Object.keys(e.data).slice(0, 30) : null,
+    data_booking_id_matches: rec(e.data) && e.data.booking_id !== undefined ? e.data.booking_id === e.booking_id : null,
+  };
+}
+
 export async function handleCaravelProductionDelivery({
   method, path, rawBody, signature, secrets, fetchBooking, record, nowSecs,
 } = {}) {
@@ -39,7 +69,7 @@ export async function handleCaravelProductionDelivery({
       typeof event.external_ref !== "string" || event.external_ref.length > 150 ||
       !Number.isFinite(Date.parse(event.occurred_at)) ||
       (event.sequence !== null && event.sequence < 1))
-    return {status: 400, accepted: false, reason: "INVALID_SIGNED_EVENT"};
+    return {status: 400, accepted: false, reason: "INVALID_SIGNED_EVENT", diagnostic: describeSignedEvent(envelope, event)};
   if (typeof fetchBooking !== "function" || typeof record !== "function")
     return {status: 503, accepted: false, reason: "RECEIVER_NOT_CONFIGURED"};
   try {

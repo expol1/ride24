@@ -58,9 +58,13 @@ serve(async(req)=>{
         return data;
       },
     });
+    // Signature was valid but the event shape was refused: log its non-personal shape.
+    if(result.diagnostic)console.warn("Caravel webhook rejected",JSON.stringify(result.diagnostic).slice(0,1500));
+    if(!result.accepted&&!result.diagnostic)console.warn("Caravel webhook not accepted",result.reason);
     return respond(result.status,{accepted:result.accepted,reason:result.reason,
       ...(result.needs_reconciliation?{needs_reconciliation:true}:{})});
-  } catch {
+  } catch (e) {
+    console.error("Caravel webhook failure",String((e as Error)?.message??e).slice(0,120));
     return respond(503,{accepted:false,reason:"RETRYABLE_WEBHOOK_FAILURE"});
   }
 });

@@ -66,3 +66,17 @@ test("signed supplier self-test acknowledges without booking I/O",async()=>{
   assert.equal((await invoke({...options,signature:null})).result.status,401);
   assert.equal((await invoke({...options,event:{...sample,event_id:null}})).result.status,400);
 });
+
+test("rejected signed event is described without personal data (diagnostic log)", async () => {
+  const {describeSignedEvent} = await import("../supabase/functions/_shared/caravel-production-webhook-delivery.mjs");
+  const envelope = {event_id: "evt_1", type: "booking.confirmed", occurred_at: "2026-11-20T10:27:00Z", api_version: "1.68.0",
+    operator_id: "op_1", booking_id: "79049f00-7c48-4b2f-b3be-43ca577e133c", external_ref: "ride24-x", revision: 1,
+    data: {booking_id: "79049f00-7c48-4b2f-b3be-43ca577e133c", customer: {email: "secret@example.test", name: "Jan Kowalski"}}};
+  const d = describeSignedEvent(envelope, {...envelope, sequence: null, supplier_id: null});
+  assert.deepEqual(d.failed, ["supplier_id", "api_version"]);
+  assert.equal(d.api_version, "1.68.0");
+  assert.deepEqual(d.data_keys, ["booking_id", "customer"]);
+  assert.equal(d.data_booking_id_matches, true);
+  assert.doesNotMatch(JSON.stringify(d), /secret@example|Kowalski/);
+  assert.deepEqual(describeSignedEvent({}, null).failed, ["PARSE"]);
+});

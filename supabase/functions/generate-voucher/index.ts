@@ -549,9 +549,18 @@ async function createVoucherPdf(
   );
 
   if (booking.api_booking_reference) {
-    page.drawText(fitText(font, `Supplier ref / Nr wypożyczalni: ${booking.api_booking_reference}`, 9, 245), {
-      x: 300, y: 714, size: 9, font, color: rgb(0.88, 0.92, 0.97),
-    });
+    // The partner's booking number must be readable in full (e.g. a 36-character
+    // Caravel UUID): label on one line, the complete reference on the next.
+    const supplierRef = `Supplier ref / Nr wypożyczalni: ${booking.api_booking_reference}`;
+    if (font.widthOfTextAtSize(supplierRef, 9) <= 280) {
+      page.drawText(supplierRef, {x: 300, y: 714, size: 9, font, color: rgb(0.88, 0.92, 0.97)});
+    } else {
+      page.drawText("Supplier ref / Nr wypożyczalni:", {x: 300, y: 718, size: 9, font, color: rgb(0.88, 0.92, 0.97)});
+      const refSize = font.widthOfTextAtSize(booking.api_booking_reference, 9) <= 280 ? 9 : 8;
+      page.drawText(fitText(font, booking.api_booking_reference, refSize, 285), {
+        x: 300, y: 706, size: refSize, font: bold, color: rgb(1, 1, 1),
+      });
+    }
   }
 
   let y = 640;
