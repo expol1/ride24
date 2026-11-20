@@ -1340,20 +1340,13 @@
     
         .booking-price-breakdown {background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;text-align:left;}
         /* Caravel: same compact, readable price card as AVIA; amounts stay server-certified. */
-        #caravelConsent .caravel-price-summary{margin:14px 0 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
-        #caravelConsent .caravel-price-summary h4{color:#0f172a;font-size:16px;font-weight:800;margin:0 0 12px}
-        #caravelConsent .caravel-price-summary .booking-price-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:baseline;column-gap:12px;line-height:1.45;margin:8px 0;color:#0f172a}
-        #caravelConsent .caravel-price-summary .booking-price-row span:first-child{min-width:0}
-        #caravelConsent .caravel-price-summary .booking-price-row>:last-child{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;justify-self:end}
-        #caravelConsent .caravel-price-summary .caravel-price-total{padding-top:9px;margin-top:10px;border-top:1px solid #cbd5e1;font-weight:800}
-        #caravelConsent .caravel-price-summary .caravel-price-payment{font-size:13px}
-        #caravelConsent .caravel-price-summary .caravel-price-payment:last-of-type{font-weight:650}
         #caravelConsent .caravel-legal-heading{display:block;font-size:13px;font-weight:800;color:#0f172a;margin:14px 0 8px}
         #caravelConsent .caravel-premium-note{margin:12px 0;padding:11px 13px;border:1px solid #86efac;border-radius:10px;background:#f0fdf4;color:#166534;font-weight:700}
         #caravelConsent .caravel-warning-note{margin:10px 0;padding:10px 12px;border:1px solid #fed7aa;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:650}
         #caravelConsent details summary:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
-        @media(max-width:560px){#caravelConsent .caravel-price-summary{padding:13px}#caravelConsent .caravel-price-summary .booking-price-row{font-size:12px;gap:8px}}
 
+        #caravelConsent .caravel-price-summary h4 {font-size:16px;}
+        #caravelConsent .booking-price-row>:last-child {font-variant-numeric:tabular-nums;text-align:right;}
         .booking-price-breakdown h4 {margin:0 0 12px;}
         .booking-price-row {display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:9px 0;font-size:13px;}
         .booking-price-row>:last-child {white-space:nowrap;}
@@ -2302,7 +2295,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
-    <script src="assets/caravel-consent.js?v=20261120-caravel-summary"></script>
+    <script src="assets/caravel-consent.js?v=20261120-caravel-summary-2"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
@@ -3112,7 +3105,6 @@ document.addEventListener("click", async function(e) {
     const generalAck = document.getElementById("acceptTerms");
     if (generalAck) generalAck.checked = false;
 
-    document.getElementById("caravelDriverProfile").hidden=true;
     const select = document.getElementById("driverSelect");
     const addSelect = document.getElementById("additionalDriverSelect");
 
@@ -3209,9 +3201,6 @@ document.addEventListener("click", async function(e) {
             if(price) price.hidden=true;
             const driverService=window.Ride24CaravelConsent.driverService();
             addSelect.disabled=!driverService;
-            const driverProfile=document.getElementById("caravelDriverProfile");
-            driverProfile.hidden=!driverService;
-            driverProfile.onclick=editCaravelDriver;
             // Additional driver must be an individually saved driver profile.
             // The "Me" option has no driver id and cannot be a second driver.
             addSelect.querySelectorAll('option[value=""]').forEach(opt => opt.remove());
@@ -3223,9 +3212,6 @@ document.addEventListener("click", async function(e) {
             // main driver's price before collecting any consent or payment.
             if(driverService){
                 addSelect.options[0].textContent=isEn?"None":"Brak";
-                const rate=(driverService.unit_minor/100).toLocaleString(isEn?"en":"pl");
-                driverProfile.textContent=(isEn?"Edit driver in Profile":"Edytuj kierowcę w profilu")+" · "+rate+" "+driverService.currency+
-                    (driverService.pricing_type==="per_day"?(isEn?" / day":" / dzień"):(isEn?" / rental":" / wynajem"));
             }
             const savedDrivers=caravelProfileReturn?.quote===localStorage.getItem("selectedApiQuoteId")
                 ? caravelProfileReturn : window.Ride24CaravelConsent.savedDrivers();
@@ -5309,7 +5295,6 @@ window.closeReviewModal = function() {
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
-                    <button type="button" id="caravelDriverProfile" hidden></button>
                 </div>
             </div>
 
