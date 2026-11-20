@@ -14,11 +14,37 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const r = node('div'); r.className = 'booking-price-row';
         r.append(node(strong ? 'strong' : 'span', name), node(strong ? 'strong' : 'span', value)); parent.append(r);
     }
+    // Arvent: read-only server preview bound to the search api_quote_id.
+    // Only server values are shown; nothing is computed here.
+    function renderArvent(box, picker, total, a) {
+        picker.hidden = true; if (total) total.hidden = true;
+        el('equipmentLegacyInfo').hidden = true;
+        box.hidden = false;
+        const cents = v => Math.round(Number(v) * 100);
+        box.append(node('h4', label('Podsumowanie rezerwacji', 'Booking summary')));
+        const cat = a.category || {};
+        const catText = [cat.group_name, cat.example_model ? cat.example_model + label(' lub podobny', ' or similar') : null, cat.sipp ? '(' + cat.sipp + ')' : null].filter(Boolean).join(' ');
+        if (catText) row(box, label('Kategoria samochodu', 'Car category'), catText);
+        row(box, label('Odbiór', 'Pickup'), `${a.start_date} ${a.pickup_time} • ${a.pickup_location}`);
+        row(box, label('Zwrot', 'Return'), `${a.end_date} ${a.return_time} • ${a.return_location}`);
+        row(box, label('Liczba rozliczanych dób', 'Billed rental days'), String(a.billed_days));
+        row(box, label('Wynajem za cały okres', 'Rental for the whole period'), money(cents(a.rental_total), a.currency));
+        for (const fee of (a.mandatory_fees || [])) row(box, isEn() ? fee.name_en : fee.name_pl, money(cents(fee.amount), a.currency));
+        row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
+        if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
+        row(box, label('Całkowita cena rezerwacji', 'Total booking price'), money(cents(a.total), a.currency), true);
+        row(box, label('Do zapłaty teraz w Ride24 (Stripe)', 'Pay now to Ride24 (Stripe)'), money(cents(a.online_pln), 'PLN'), true);
+        row(box, label('Do zapłaty Arvent przy odbiorze', 'Pay Arvent at pickup'), money(cents(a.pay_on_pickup), a.currency), true);
+        box.append(node('small', label(
+            `Kwota w PLN to odrębna opłata rezerwacyjna Ride24 (${money(cents(a.ride24_fee), a.currency)} według kursu NBP ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', po rabacie' : ''}). Wynajem ${money(cents(a.pay_on_pickup), a.currency)} płacisz bezpośrednio Arvent przy odbiorze.`,
+            `The PLN amount is the separate Ride24 booking fee (${money(cents(a.ride24_fee), a.currency)} at NBP rate ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', after discount' : ''}). You pay the rental of ${money(cents(a.pay_on_pickup), a.currency)} directly to Arvent at pickup.`)));
+    }
     function render() {
         const box = el('bookingPriceBreakdown'); box.replaceChildren();
         const picker = el('bookingExtrasPicker'); picker.replaceChildren();
         const total = el('bookingExtrasTotal'); total?.replaceChildren();
         const enabled = quote?.enabled === true;
+        if (quote?.arvent) { renderArvent(box, picker, total, quote.arvent); return; }
         box.hidden = !enabled;
         picker.hidden = !enabled;
         if (total) total.hidden = !enabled;

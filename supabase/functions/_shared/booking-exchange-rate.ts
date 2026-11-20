@@ -9,7 +9,7 @@ function firstRecord(value: unknown): Record<string, unknown> | null {
   return isRecord(value) ? value : null;
 }
 
-export async function exchangeRate(currency: string): Promise<number> {
+export async function exchangeRate(currency: string, requireLive = false): Promise<number> {
   if (currency === "PLN") return 1;
 
   const tables = ["A", "B"] as const;
@@ -54,6 +54,8 @@ export async function exchangeRate(currency: string): Promise<number> {
   }
 
   // Zachowujemy dotychczasowy awaryjny fallback wyłącznie dla EUR/USD.
+  // Arvent (requireLive) never prices against a fallback rate.
+  if (requireLive) throw new Error("Nie udało się pobrać aktualnego kursu NBP");
   if (currency === "USD") return 4.0;
   if (currency === "EUR") return 4.5;
   throw new Error("Nie udało się pobrać kursu waluty partnera");

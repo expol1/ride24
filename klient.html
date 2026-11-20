@@ -2344,7 +2344,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261120-arvent";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -3147,6 +3147,42 @@ document.addEventListener("click", async function(e) {
                api_quote_id: localStorage.getItem("selectedApiQuoteId") || null
            };
        }
+       // Arvent-only form layout. Every other partner keeps the original form.
+       window.ride24ArventFormMode = function(on) {
+           const isEn = localStorage.getItem("client_lang") === "en";
+           const addSelect = document.getElementById("additionalDriverSelect");
+           const note = document.getElementById("arventAdditionalDriverNote");
+           const callout = document.querySelector("#termsModal .r24-extras-callout");
+           const extrasInfo = document.getElementById("arventExtrasInfo");
+           const licence = document.getElementById("arventLicenseSince");
+           const price = document.getElementById("bookingPriceBreakdown");
+           const docs = document.querySelector("#termsModal .docs-container");
+           const btn = document.getElementById("confirmBookingBtn");
+           window.r24ArventForm = !!on;
+           if (note) note.hidden = !on;
+           if (callout) callout.hidden = !!on;
+           if (extrasInfo) extrasInfo.hidden = !on;
+           if (licence) licence.readOnly = !!on;
+           if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
+           if (price && docs) {
+               // Arvent: price summary before the documents and the consent.
+               if (on && price.nextElementSibling !== docs) docs.before(price);
+               if (!on && docs.nextElementSibling !== price) docs.after(price);
+           }
+           if (btn) {
+               btn.dataset.pl = on ? "Potwierdzam i przechodzę do płatności Ride24" : "Potwierdzam i rezerwuję";
+               btn.dataset.en = on ? "Confirm and continue to Ride24 payment" : "Confirm & Book";
+               btn.textContent = isEn ? btn.dataset.en : btn.dataset.pl;
+           }
+           window.ride24ArventLicenceCheck?.();
+       };
+       window.ride24ArventGoToProfile = function() {
+           window.closeTermsModal();
+           window.switchTab("profile");
+           const field = document.getElementById("profile-license-since");
+           field?.scrollIntoView({ block: "center" });
+           field?.focus();
+       };
        const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
            context:bookingQuoteContext, isApiBooking:()=>!!localStorage.getItem("selectedApiQuoteId"), isEn:()=>localStorage.getItem("client_lang")==="en"});
        let caravelProfileReturn = null;
@@ -3174,6 +3210,8 @@ document.addEventListener("click", async function(e) {
     if (arventLicenseBlock) arventLicenseBlock.hidden = true;
     const arventLicenseInput = document.getElementById("arventLicenseSince");
     if (arventLicenseInput) arventLicenseInput.value = "";
+    window.r24IsArventBooking = false;
+    window.ride24ArventFormMode(false);
     window.r24LocalMinLicenceYears = 0;
     window.r24BookingLicencePeople = null;
     const licenceNotice = document.getElementById("bookingDriverLicenceInfo");
@@ -3231,6 +3269,17 @@ document.addEventListener("click", async function(e) {
             if (!input) return;
             const chosen = select.value ? (myDrivers || []).find(d => d.id === select.value) : null;
             input.value = window.ride24LicenseDate(chosen ? chosen.license_since : profileCheck.license_since) || "";
+            window.ride24ArventLicenceCheck?.();
+        };
+        // Arvent: the date always comes from the selected person's saved data.
+        window.ride24ArventLicenceCheck = () => {
+            const input = document.getElementById("arventLicenseSince");
+            const missing = document.getElementById("arventLicenseMissing");
+            const block = document.getElementById("arventLicenseRequirement");
+            const lacking = !!window.r24ArventForm && block && !block.hidden && !window.ride24LicenseDate(input?.value);
+            if (missing) missing.hidden = !lacking;
+            if (lacking) document.getElementById("confirmBookingBtn").disabled = true;
+            else if (window.r24ArventForm) document.getElementById("confirmBookingBtn").disabled = !bookingExtras.canSubmit();
         };
         prefillLicense();
 
@@ -3303,7 +3352,9 @@ document.addEventListener("click", async function(e) {
             }
         } else {
             addSelect.disabled=false;
+            window.ride24ArventFormMode(!!window.r24IsArventBooking);
             await bookingExtras.start();
+            window.ride24ArventLicenceCheck?.();
         }
 
     }, 0);
@@ -3320,10 +3371,11 @@ document.addEventListener("click", async function(e) {
                     car.partner_id !== "91e04805-31da-4242-9e6f-b6075019d784";
                 const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,min_license_years,provider_type,api_provider").eq("id", car.partner_id).single();
                 const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+                window.r24IsArventBooking = partner?.api_provider === "arvent_kolaycar"
+                    || car.partner_id === "bf29a373-c464-4cec-87a7-c3218ea1ea51";
                 if (arventLicenseBlock) {
                     // Arvent may still be staged under api_provider=custom before launch.
-                    arventLicenseBlock.hidden = !(partner?.api_provider === "arvent_kolaycar"
-                        || car.partner_id === "bf29a373-c464-4cec-87a7-c3218ea1ea51");
+                    arventLicenseBlock.hidden = !window.r24IsArventBooking;
                 }
 
                 const localLicenceYears = partner?.provider_type === "local" ? Number(partner.min_license_years ?? 0) : 0;
@@ -3413,6 +3465,9 @@ document.addEventListener("click", async function(e) {
                     ? additionalValue
                     : null;
 
+                if (window.r24ArventForm && additionalDriverId) {
+                    throw new Error(isEn ? "An additional driver is not available in Arvent online bookings." : "Dodatkowy kierowca niedostępny w rezerwacji online Arvent.");
+                }
                 if (driverId && additionalDriverId && driverId === additionalDriverId) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
                 }
@@ -3517,7 +3572,7 @@ document.addEventListener("click", async function(e) {
                 if (btn) {
                     btn.disabled = false;
                     btn.disabled = caravelBooking ? false : !bookingExtras.canSubmit();
-                    btn.innerText = isEn ? "Confirm & Book" : "Potwierdzam i rezerwuję";
+                    btn.innerText = isEn ? (btn.dataset.en || "Confirm & Book") : (btn.dataset.pl || "Potwierdzam i rezerwuję");
                 }
             }
         };
@@ -5452,13 +5507,19 @@ window.closeReviewModal = function() {
                         style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;">
                     <small data-pl="Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu."
                            data-en="Use the original licence entitlement date, not the date your replacement card was printed.">Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu.</small>
+                    <p id="arventLicenseMissing" role="alert" hidden style="margin:8px 0 0;padding:10px;border-radius:8px;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:13px">
+                        <span data-pl="Brak zapisanej daty pierwszego uzyskania prawa jazdy dla wybranego kierowcy." data-en="No original driving-licence date is saved for the selected driver.">Brak zapisanej daty pierwszego uzyskania prawa jazdy dla wybranego kierowcy.</span>
+                        <button type="button" class="btn-secondary" style="margin-top:6px" onclick="window.ride24ArventGoToProfile()" data-pl="Uzupełnij w profilu" data-en="Complete in profile">Uzupełnij w profilu</button>
+                    </p>
                 </div>
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
+                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#92400E" data-pl="Dodatkowy kierowca niedostępny w rezerwacji online Arvent." data-en="An additional driver is not available in Arvent online bookings.">Dodatkowy kierowca niedostępny w rezerwacji online Arvent.</small>
                 </div>
             </div>
 
+    <p id="arventExtrasInfo" hidden style="margin:0 0 14px;padding:10px 12px;border-radius:10px;background:#F1F5F9;color:#334155;font-size:13px" data-pl="Dodatki: w tej ofercie nie ma dodatków do zamówienia online. Rezerwacja obejmuje wybraną kategorię auta z pełnym ubezpieczeniem i warunkami Arvent." data-en="Extras: this offer has no extras that can be ordered online. The booking covers the selected car category with full insurance and Arvent's terms.">Dodatki: w tej ofercie nie ma dodatków do zamówienia online. Rezerwacja obejmuje wybraną kategorię auta z pełnym ubezpieczeniem i warunkami Arvent.</p>
     <!-- Extras are a primary booking step, not another legal document. Presentation only. -->
     <div class="r24-extras-callout">
         <button type="button" class="docs-extra-item" onclick="openEquipmentInfoModal()"
