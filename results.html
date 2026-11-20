@@ -1034,7 +1034,8 @@ const displayTotal = new Intl.NumberFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
                     
                     const feat = {
                         seats: car.seats ?? fallbackFeat.seats,
-                        bags: car.bags ?? fallbackFeat.bags,
+                        // Caravel: a missing bag count is shown as "—", never a class guess.
+                        bags: car.bags ?? (car.partners?.api_provider === 'caravel' ? '—' : fallbackFeat.bags),
                         trans: transmissionRaw 
                             ? (['A', 'AUTO', 'AUTOMATIC'].includes(transmissionRaw) 
                                 ? (lang === 'pl' ? 'Automatyczna' : 'Automatic') 

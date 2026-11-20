@@ -281,7 +281,10 @@ function vehicleCard(v: VerifiedCaravelVehicle, scopeSupplierId: string): Result
   if (v?.transmission !== "manual" && v?.transmission !== "automatic") errors.push("TRANSMISSION_UNVERIFIED");
   if (!["petrol", "diesel", "hybrid", "plugin_hybrid", "electric"].includes(v?.fuelType as string)) errors.push("FUEL_UNVERIFIED");
   if (!safeInt(v?.seats) || v.seats < 1 || v.seats > 99) errors.push("SEATS_UNVERIFIED");
-  if (!safeInt(v?.largeBags) || !safeInt(v?.smallBags) || v.largeBags < 0 || v.smallBags < 0 || v.largeBags + v.smallBags > 99)
+  // Bags are optional in the spec: when Caravel does not state both counts the
+  // card shows "—" (bags = null). Never a guessed number.
+  const bagsKnown = safeInt(v?.largeBags) && safeInt(v?.smallBags);
+  if (bagsKnown && (v.largeBags < 0 || v.smallBags < 0 || v.largeBags + v.smallBags > 99))
     errors.push("BAGS_UNVERIFIED");
   if (v?.imageUrl !== null && !(typeof v?.imageUrl === "string" && /^https:\/\/\S+$/i.test(v.imageUrl)))
     errors.push("IMAGE_UNVERIFIED");
@@ -306,7 +309,7 @@ function vehicleCard(v: VerifiedCaravelVehicle, scopeSupplierId: string): Result
     transmission: v.transmission,
     fuel_type: v.fuelType,
     seats: v.seats,
-    bags: (v.largeBags as number) + (v.smallBags as number),
+    bags: bagsKnown ? (v.largeBags as number) + (v.smallBags as number) : null,
     image: v.imageUrl,
     description: name,
     mileage_limit: mileageLimit,
@@ -316,8 +319,8 @@ function vehicleCard(v: VerifiedCaravelVehicle, scopeSupplierId: string): Result
       provider: CARAVEL_PROVIDER,
       acriss,
       supplier_id: v.supplierId,
-      large_bags: v.largeBags,
-      small_bags: v.smallBags,
+      large_bags: bagsKnown ? v.largeBags : null,
+      small_bags: bagsKnown ? v.smallBags : null,
       minimum_driver_age: v.minDriverAge,
       maximum_driver_age: v.maxDriverAge,
       unlimited_mileage: mileageLimit === null,
@@ -940,7 +943,7 @@ export function caravelSyncRows(
         transmission: g.transmission || null,
         fuel_type: g.fuel_type || null,
         seats: g.seats ?? 5,
-        bags: g.bags ?? 2,
+        bags: typeof g.bags === "number" ? g.bags : null,
         image: g.image || null,
         description: g.description || g.example_model || g.class_code,
         features: {

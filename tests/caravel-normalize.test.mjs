@@ -159,7 +159,7 @@ test("fails closed on unverified or misleading card data", () => {
     [o => { o.availabilityRow.acriss = "QDMR"; }, "VEHICLE_CLASS_UNVERIFIED"],
     [o => { o.availabilityRow.supplier_id = "other"; }, "SUPPLIER_SCOPE_MISMATCH"],
     [o => { delete o.availabilityRow.seats; }, "SEATS_UNVERIFIED"],
-    [o => { delete o.availabilityRow.small_bags; }, "BAGS_UNVERIFIED"],
+    [o => { o.availabilityRow.small_bags = 120; }, "BAGS_UNVERIFIED"],
     [o => { delete o.availabilityRow.transmission; }, "TRANSMISSION_UNVERIFIED"],
     [o => { o.availabilityRow.fuel = "lpg"; }, "FUEL_UNVERIFIED"],
     [o => { o.context.partnerCurrency = "PLN"; }, "PARTNER_CURRENCY_MISMATCH"],
@@ -291,4 +291,16 @@ test("minor units convert per ISO currency exponent and fail closed otherwise", 
   assert.equal(minorToMajor(100, "XXX"), null);
   assert.equal(minorToMajor(1.5, "EUR"), null);
   assert.equal(minorToMajor(-1, "EUR"), null);
+});
+
+test("vehicle without stated bag counts is listed with bags unknown (null), never a guessed number", () => {
+  const ref = row(); delete ref.large_bags; delete ref.small_bags;
+  const cls = normalizeCaravelVehicleClass(caravelVehicleFromApi(ref, policies()), "sup-1");
+  assert.equal(cls.ok, true, JSON.stringify(cls.errors));
+  assert.equal(cls.value.bags, null);
+  assert.equal(cls.value.features.large_bags, null);
+  const rows = caravelSyncRows("78721481-7619-44df-a9b7-5faa344b69bb", [], [cls.value], new Map());
+  assert.equal(rows.car_classes[0].bags, null, "catalogue row keeps unknown bags, no default of 2");
+  const one = row(); delete one.small_bags;
+  assert.equal(normalizeCaravelVehicleClass(caravelVehicleFromApi(one, policies()), "sup-1").value.bags, null, "half-stated counts are unknown too");
 });
