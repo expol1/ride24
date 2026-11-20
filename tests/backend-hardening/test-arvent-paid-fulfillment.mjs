@@ -134,6 +134,18 @@ test('Received stays pending, Approved confirms and Cancelled is definitive reje
  assert.equal(cancelled.status,'rejected');
  assert.equal(cancelled.definitive_rejection,true);
 });
+test('Arvent cancelled status requiring manual reconciliation cannot trigger an automatic refund',async()=>{
+ for(const warning of ['agency_reference_mismatch','price_mismatch','unverified_extras']){
+  const f=fixture(x=>{x.status={status:'cancelled',booking_reference:'A-1',
+    supplier_status_type:3,needs_manual_review:true,warning};},approved);
+  const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
+  const result=await f.readPaidProviderStatus({},'A-1',prepared);
+  assert.equal(result.status,'pending');
+  assert.equal(result.definitive_rejection,false);
+  assert.equal(result.needs_manual_review,true);
+  assert.equal(result.supplier_status_type,3);
+ }
+});
 test('unknown supplier adapters never silently route to aggregator booking',async()=>{
  const f=fixture(()=>{},approved);
  await assert.rejects(f.createPaidProvider({},{provider:'not-real'}),flow.DefiniteApiFailure);
