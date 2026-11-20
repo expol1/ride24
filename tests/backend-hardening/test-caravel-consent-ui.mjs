@@ -93,15 +93,15 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
  assert.ok(s,'visible summary must not be hidden in legal details');
   assert.equal(s.querySelector('h4').textContent, 'Podsumowanie ceny');
   assert.equal(s.classList.contains('booking-price-breakdown'), true, 'Caravel must use the same layout class as AVIA');
-  assert.doesNotMatch(s.textContent,/Airport TAX/, 'zero price rows are hidden, not charged');
+  assert.match(s.textContent,/Airport TAX.*0,00\s€/, 'supplier-confirmed free fees remain visible');
   assert.doesNotMatch(s.textContent,/Young driver 3 days/, 'do not duplicate the original supplier label');
- assert.match(s.textContent,/Wynajem samochodu.*115\.00 EUR/);
- assert.match(s.textContent,/Młody kierowca.*33\.00 EUR/);
- assert.match(s.textContent,/Zwrot w innym punkcie.*17\.00 EUR/);
+ assert.match(s.textContent,/Wynajem samochodu.*115,00\s€/);
+ assert.match(s.textContent,/Młody kierowca.*33,00\s€/);
+ assert.match(s.textContent,/Zwrot w innym punkcie.*17,00\s€/);
  assert.doesNotMatch(s.textContent,/Łącznie/);
- assert.match(s.textContent,/Do zapłaty partnerowi.*150\.00 EUR/);
- assert.match(s.textContent,/Opłata rezerwacyjna Ride24 online.*64,50/);
- assert.match(s.textContent,/Ostateczna kwota/);
+ assert.match(s.textContent,/Do zapłaty partnerowi.*150,00\s€/);
+ assert.match(s.textContent,/Online po potwierdzeniu.*64,50/);
+ assert.match(s.textContent,/Opłatę Ride24/);
  assert.equal(w.Ride24CaravelConsent.canSubmit(),false);
  doc.getElementById('caravelTermsAccept').checked=true;
  doc.getElementById('caravelCoverageAck').checked=true;
@@ -139,8 +139,8 @@ test('Caravel: voluntary GPS switch requests an exact new supplier quote, resets
   assert.deepEqual(calls[1].body.extras,[{extra_id:'gps-1',quantity:1}]);
   assert.equal(w.localStorage.getItem('selectedApiQuoteId'),newId);
   assert.match(d.getElementById('caravelConsent').textContent,/Nawigacja GPS/);
-  assert.match(d.getElementById('caravelConsent').textContent,/171.00 EUR/);
-  assert.match(d.getElementById('caravelConsent').textContent,/167.10 EUR/);
+  assert.match(d.getElementById('caravelConsent').textContent,/171,00\s€/);
+  assert.match(d.getElementById('caravelConsent').textContent,/167,10\s€/);
   assert.equal(d.getElementById('acceptTerms').checked,false);
   assert.equal(w.Ride24CaravelConsent.canSubmit(),false,'changed supplier quote always clears the legal consent');
 });
@@ -167,7 +167,7 @@ test('Caravel second driver selection requotes supplier, updates price and reset
  assert.equal(calls[1].body.action,'drivers-requote');
  assert.equal(calls[1].body.additional_driver_id,selected);
  assert.equal(w.localStorage.getItem('selectedApiQuoteId'),fresh.api_quote_id);
- assert.match(d.getElementById('caravelConsent').textContent,/187.00 EUR/);
+ assert.match(d.getElementById('caravelConsent').textContent,/187,00\s€/);
  assert.match(d.getElementById('caravelConsent').textContent,/73,10/);
  assert.equal(d.getElementById('acceptTerms').checked,false);
  assert.equal(w.Ride24CaravelConsent.canSubmit(),false);
@@ -191,7 +191,7 @@ test('Caravel initial profile age 22 triggers supplier re-quote even without cha
    driverId:null,additionalDriverId:null,force:true}),true);
  assert.equal(calls[1].body.action,'drivers-requote');
  assert.equal(w.Ride24CaravelConsent.requiresAgeRequote(22),false);
- assert.match(w.document.getElementById('caravelConsent').textContent,/198.00 EUR/);
+ assert.match(w.document.getElementById('caravelConsent').textContent,/198,00\s€/);
 });
 
 test('Caravel: unbookable quote shows the server message and blocks submission', async () => {
@@ -214,7 +214,7 @@ test('Caravel: driver-age re-quote re-renders the new price and requires confirm
   assert.equal(calls[1].body.action, 'book');
   assert.equal(calls[1].body.consent.accepted, true);
   assert.equal(r.body.code, 'CARAVEL_REQUOTED_FOR_DRIVER_AGE');
-  assert.match(w.document.getElementById('caravelConsent').textContent, /180\.00 EUR/);
+  assert.match(w.document.getElementById('caravelConsent').textContent, /180,00\s€/);
   assert.equal(w.Ride24CaravelConsent.canSubmit(), false, 'checkboxes reset after a new price');
   assert.equal(w.localStorage.getItem('selectedApiQuoteId'), fresh.api_quote_id);
 });

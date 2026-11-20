@@ -19,6 +19,19 @@
     try { return localStorage.getItem("client_lang") === "en"; } catch (e) { return false; }
   }
 
+  function displayAmount(value, en) {
+    var match = /^(-?\d+\.\d{2}) (EUR|PLN)$/.exec(value);
+    return match ? new Intl.NumberFormat(en ? "en-US" : "pl-PL", {
+      style: "currency", currency: match[2]
+    }).format(Number(match[1])) : value;
+  }
+  function extraName(name, en) {
+    if (en) return name;
+    var seat = /^(?:Fotelik dziecięcy — )?(?:Baby Seat|Child Seat) \((\d+)-(\d+) years\)$/i.exec(name);
+    if (seat) return "Fotelik dziecięcy (" + seat[1] + "–" + seat[2] + (/^[2-4]$/.test(seat[2]) ? " lata)" : " lat)");
+    return /^(?:Fotelik dziecięcy — )?Booster Seat$/i.test(name) ? "Podkładka dla dziecka" : name;
+  }
+
   // Keep the binding terms and the provider's full disclosures reachable,
   // but make the compact reservation panel match Ride24's clickable documents.
   // The consent fields and server-verified acceptance payload are unchanged.
@@ -44,17 +57,12 @@
     pricePanel.className = "booking-price-breakdown caravel-price-summary";
     pricePanel.setAttribute("aria-label", en ? "Caravel itemised price" : "Rozliczenie Caravel");
     pricePanel.appendChild(text("h4", en ? "Price summary" : "Podsumowanie ceny"));
-    function zeroAmount(value) {
-      // Purely visual: hide explicitly zero-valued lines; never alter the totals.
-      return /^\s*0(?:[.,]0+)?\s*(?:EUR|€|PLN|zł)?\s*$/i.test(String(value == null ? "" : value));
-    }
-    function priceRow(name, value, kind) {
-      if (!name || value == null || value === "" || (kind === "item" && zeroAmount(value))) return;
+    function priceRow(name, value) {
+      if (!name || value == null || value === "") return;
       var row = document.createElement("div");
-      row.className = "booking-price-row" + (kind === "total" ? " caravel-price-total" : "") +
-        (kind === "payment" ? " caravel-price-payment" : "");
+      row.className = "booking-price-row";
       row.appendChild(text("span", name));
-      row.appendChild(text(kind === "total" ? "strong" : "span", value));
+      row.appendChild(text("span", displayAmount(value, en)));
       pricePanel.appendChild(row);
     }
     // The server supplies the Ride24 fee in PLN. Never put a long EUR
@@ -69,22 +77,22 @@
       }
       return en ? "PLN unavailable" : "— zł";
     }
-    priceRow(en ? "Car rental" : "Wynajem samochodu", breakdown?.customer_rental || money.customer_total, "rental");
+    priceRow(en ? "Car rental" : "Wynajem samochodu", breakdown?.customer_rental || money.customer_total);
     if (breakdown && Array.isArray(breakdown.fees)) {
       breakdown.fees.forEach(function (fee) {
-        if (fee && fee.label) priceRow(fee.label + (en ? " (mandatory)" : " (obowiązkowa)"), fee.amount, "item");
+        if (fee && fee.label) priceRow(fee.label + (en ? " (mandatory)" : " (obowiązkowa)"), fee.amount);
       });
       (Array.isArray(breakdown.extras) ? breakdown.extras : []).forEach(function (extra) {
-        if (extra && extra.name) priceRow(extra.name + (extra.quantity > 1 ? " × " + extra.quantity : ""), extra.amount, "extra");
+        if (extra && extra.name) priceRow(extraName(extra.name, en) + (extra.quantity >= 1 && extra.extra_id !== state.driverService?.extra_id ? " × " + extra.quantity : ""), extra.amount);
       });
     }
-    priceRow(en ? "Ride24 online fee" : "Opłata rezerwacyjna Ride24 online",
-      onlineFee(), "payment");
+    priceRow(en ? "Online after confirmation" : "Online po potwierdzeniu",
+      onlineFee());
     priceRow(en ? "Pay to Caravel at pickup" : "Do zapłaty partnerowi",
-      breakdown && breakdown.partner_total ? breakdown.partner_total : money.rental_at_pickup, "payment");
+      breakdown && breakdown.partner_total ? breakdown.partner_total : money.rental_at_pickup);
     pricePanel.appendChild(text("small", en
-      ? "Online fee is shown in PLN at the current exchange rate; the final amount is confirmed before payment. Rental and extras are paid to Caravel at pickup."
-      : "Płatność online w PLN według bieżącego kursu. Ostateczna kwota zostanie potwierdzona przed płatnością. Wynajem i dodatki płacisz Caravel przy odbiorze.",
+      ? "The Ride24 fee is paid online in PLN. Pay Caravel in EUR at pickup."
+      : "Opłatę Ride24 płacisz online w złotych. Kwotę dla Caravel płacisz przy odbiorze w euro.",
       "margin-top:10px;color:#64748B"));
     box.appendChild(pricePanel);
 
@@ -201,8 +209,8 @@
       var row=document.createElement("label");
       row.className="booking-extra-row";
       var left=document.createElement("span");
-      left.appendChild(text("strong",en?e.name_en:e.name_pl));
-      var price=(e.unit_minor/100).toFixed(2).replace(".",en?".":",")+" "+e.currency;
+      left.appendChild(text("strong",extraName(en?e.name_en:e.name_pl,en)));
+      var price=displayAmount((e.unit_minor/100).toFixed(2)+" "+e.currency,en);
       left.appendChild(text("small",price+(e.pricing_type==="per_day"?(en?" / day":" / dzień"):(en?" / rental":" / wynajem"))));
       if(e.price_cap_minor!=null)left.appendChild(text("small",en?"Price cap may apply; final supplier quote below.":"Możliwy limit ceny; ostateczna wycena poniżej."));
       row.appendChild(left);
@@ -210,7 +218,7 @@
       if(e.max_quantity===1){
         var toggle=document.createElement("input");toggle.type="checkbox";toggle.className="r24-extra-switch-input";
         toggle.setAttribute("role","switch");
-        toggle.setAttribute("aria-label",en?e.name_en:e.name_pl);
+        toggle.setAttribute("aria-label",extraName(en?e.name_en:e.name_pl,en));
         toggle.checked=!!existing;toggle.disabled=state.busy;
         toggle.onchange=function(){chooseExtra(e.extra_id,toggle.checked?1:0);};
         var switchBox=document.createElement("span");switchBox.className="r24-extra-switch";
@@ -221,7 +229,7 @@
         row.appendChild(switchBox);
       } else {
         var select=document.createElement("select");select.disabled=state.busy;
-        select.setAttribute("aria-label",en?e.name_en:e.name_pl);
+        select.setAttribute("aria-label",extraName(en?e.name_en:e.name_pl,en));
         for(var i=0;i<=e.max_quantity;i++){
           if(i>0 && i<(e.min_quantity||1))continue;
           var option=document.createElement("option");option.value=String(i);option.textContent=String(i);
@@ -237,9 +245,9 @@
     total.appendChild(text("strong",en?"Your Caravel extras":"Twoje dodatki Caravel"));
     (p?.extras||[]).forEach(function(x){var line=document.createElement("div");
       line.className="booking-price-row";
-      line.appendChild(text("span",x.name+" × "+x.quantity));
-      line.appendChild(text("strong",x.amount));total.appendChild(line);});
-    if(p)total.appendChild(text("p",(en?"To pay Caravel at pickup: ":"Do zapłaty Caravel przy odbiorze: ")+p.partner_total,
+      line.appendChild(text("span",extraName(x.name,en)+" × "+x.quantity));
+      line.appendChild(text("strong",displayAmount(x.amount,en)));total.appendChild(line);});
+    if(p)total.appendChild(text("p",(en?"To pay Caravel at pickup: ":"Do zapłaty Caravel przy odbiorze: ")+displayAmount(p.partner_total,en),
       "font-weight:750;margin:10px 0"));
     total.appendChild(text("small",en?"Only Caravel's confirmed quote is binding.":"Wiążąca jest wyłącznie wycena potwierdzona przez Caravel."));
   }
@@ -283,7 +291,7 @@
     try {sessionStorage.setItem("caravelDriverChoice",JSON.stringify({quote:state.quoteId,main:state.mainDriverId,extra:state.additionalDriverId}));} catch(e){}
   }
   function lockDriverControls(locked){
-    ["driverSelect","additionalDriverSelect","caravelDriverProfile"].forEach(function(id){
+    ["driverSelect","additionalDriverSelect"].forEach(function(id){
       var el=byId(id);
       if(el)el.disabled=locked || (id!=="driverSelect" && !state.driverService);
     });
