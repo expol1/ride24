@@ -83,3 +83,23 @@ test('open activates Caravel atomically; close is a kill switch; AVIA untouched;
     await assert.rejects(p.query(`select caravel_set_release(false,null,null,null,'','')`), /AUDIT_REQUIRED/);
   } finally { await p.close(); }
 });
+
+test('operator-hidden Caravel locations stay inactive through "Aktywuj API" and any later write', async () => {
+  const p = await db();
+  try {
+    await p.query(`insert into partner_locations(partner_id,external_id,is_api_managed,active) values($1,'4',true,true),($1,'23',true,true),($1,'5',true,false)`, [CARAVEL]);
+    await p.exec(await sql('20261120094416_caravel_operator_hidden_locations.sql'));
+    const loc = async () => Object.fromEntries((await p.query(
+      `select external_id, active, operator_hidden from partner_locations where partner_id=$1 order by external_id`, [CARAVEL])).rows
+      .map((r) => [r.external_id, [r.active, r.operator_hidden]]));
+    assert.deepEqual(await loc(), {'1': [false, false], '23': [false, true], '4': [false, true], '5': [false, false]});
+    await open(p);
+    assert.deepEqual(await loc(), {'1': [true, false], '23': [false, true], '4': [false, true], '5': [true, false]},
+      'release activates the catalogue except the hidden desks');
+    assert.equal((await state(p)).aviaLoc, true, 'other partners untouched');
+    await p.query(`update partner_locations set active = true where partner_id=$1`, [CARAVEL]);
+    assert.deepEqual((await loc())['4'], [false, true], 'a manual or sync write cannot re-show a hidden desk');
+    await p.query(`update partner_locations set operator_hidden = false, active = true where external_id='4'`);
+    assert.deepEqual((await loc())['4'], [true, false], 'clearing the flag is the explicit way back');
+  } finally { await p.close(); }
+});
