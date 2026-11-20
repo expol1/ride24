@@ -19,12 +19,13 @@ const records=[
   requires_quantity:false,quantity:{min:0,max:1},payable:"prepaid"},
 ];
 test("supplier catalogue includes only independently priced pay-on-arrival extras",()=>{
- const {catalog,unavailable}=caravelSafeExtraCatalog(records,sid);
+ const {catalog,unavailable,driverServices}=caravelSafeExtraCatalog(records,sid);
  assert.deepEqual(catalog.map(x=>x.extra_id),["gps-1","seat-1"]);
+ assert.equal(driverServices[0].extra_id,"second-driver");
  assert.equal(catalog[0].name_pl,"Nawigacja GPS");
  assert.equal(catalog[1].name_pl,"Fotelik dziecięcy — Baby seat");
  assert.equal(catalog[1].max_quantity,2);
- assert.deepEqual(unavailable.map(x=>x.reason),["ADDITIONAL_DRIVER_DATA_REQUIRED","PAYMENT_METHOD_UNSUPPORTED"]);
+ assert.deepEqual(unavailable.map(x=>x.reason),["PAYMENT_METHOD_UNSUPPORTED"]);
 });
 test("exact supplier quote lines, quantities, money and caps are required",()=>{
  const {catalog}=caravelSafeExtraCatalog(records,sid);
@@ -72,4 +73,14 @@ test("three supplier child seats remain distinguishable in Polish without invent
  assert.match(catalog[0].name_pl,/Baby seat/);
  assert.match(catalog[1].name_pl,/SEAT-B/);
  assert.match(catalog[2].name_pl,/SEAT-C/);
+});
+
+test("four-day supplier quote bills equipment days and a free named driver",()=>{
+ const {catalog,driverServices}=caravelSafeExtraCatalog(records.map(e=>e.category==="additional_driver"?{...e,unit_price:money(0)}:e),sid);
+ const choices=[{extra_id:"gps-1",quantity:1},{extra_id:"second-driver",quantity:1}];
+ const lines=[{code:"EQ-GPS",quantity:4,totalMinor:2800},{code:"DRIVER-2",quantity:4,totalMinor:0}];
+ const result=caravelCheckExtraSelection(choices,[...catalog,...driverServices],lines,4);
+ assert.equal(result.ok,true);
+ assert.deepEqual(result.priced.map(e=>[e.quantity,e.billed_quantity,e.total_minor]),[[1,4,2800],[1,4,0]]);
+ assert.equal(caravelCheckExtraSelection(choices,[...catalog,...driverServices],[{...lines[0],quantity:3},lines[1]],4).ok,false);
 });

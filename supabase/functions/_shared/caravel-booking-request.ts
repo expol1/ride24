@@ -33,7 +33,7 @@ export type CaravelRequestDeps = {
   requote?: (quoteRow: Rec, driverAge: number, release: CaravelRelease, selections?:CaravelExtraChoice[],
     additionalDriverAge?:number|null) => Promise<{ok: true; apiQuoteId: string} | {ok: false; reason: string}>;
   /** Authenticated read-only supplier catalog; caller verifies supplier identity. */
-  extrasCatalog?: (release:CaravelRelease) => Promise<{catalog:CaravelExtra[];unavailable:Array<{name:string;reason:string}>}>;
+  extrasCatalog?: (release:CaravelRelease) => Promise<{catalog:CaravelExtra[];driverServices?:CaravelExtra[];unavailable:Array<{name:string;reason:string}>}>;
 };
 export type CaravelRequestResult = {status: number; body: Rec};
 const out = (status: number, body: Rec): CaravelRequestResult => ({status, body});
@@ -103,7 +103,7 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
     if (!deps.extrasCatalog) return out(503,{code:"CARAVEL_EXTRAS_NOT_AVAILABLE"});
     try {
       const extra = await deps.extrasCatalog(release);
-      return out(200,{success:true,catalog:extra.catalog,unavailable:extra.unavailable});
+      return out(200,{success:true,catalog:extra.catalog,driver_service:extra.driverServices?.length===1?extra.driverServices[0]:null,unavailable:extra.unavailable});
     } catch {
       return out(503,{code:"CARAVEL_EXTRAS_REFERENCE_UNAVAILABLE",
         error:"Nie można pobrać katalogu dodatków Caravel. Wybór nie jest dostępny.",
@@ -146,12 +146,15 @@ export async function handleCaravelBookingRequest(deps: CaravelRequestDeps, inpu
   }
   let additional: {id:string;name:string;age:number;licenseSince:string}|null = null;
   if (additionalId) {
-    const {data:d}=await deps.admin.from("drivers").select("id,user_id,name,age,license_since")
+    const {data:d,error}=await deps.admin.from("drivers").select("id,user_id,name,age,license_since")
       .eq("id",additionalId).maybeSingle();
     const row=rec(d), name2=clean(row?.name,120), age2=Number(row?.age);
     const licence=typeof row?.license_since==="string"?row.license_since:"";
-    if(!row||row.user_id!==deps.userId||!name2||name2.split(/\s+/).length<2||
-        !Number.isInteger(age2)||age2<18||age2>90||!/^\d{4}-\d{2}-\d{2}$/.test(licence)||
+    if(error)return out(503,{code:"CARAVEL_DRIVER_READ_FAILED",error:"Nie udało się pobrać danych kierowcy.",error_en:"Could not load driver details."});
+    if(!row||row.user_id!==deps.userId)return out(400,{code:"INVALID_ADDITIONAL_DRIVER",error:"Wybierz ponownie zapisanego kierowcę.",error_en:"Select a saved driver again."});
+    if(!name2||name2.split(/\s+/).length<2||!Number.isInteger(age2)||age2<18||age2>90)
+      return out(400,{code:"CARAVEL_DRIVER_DETAILS_INVALID",error:"Sprawdź imię, nazwisko i wiek kierowcy (18–90 lat).",error_en:"Check the driver's full name and age (18–90)."});
+    if(licence<"1900-01-01"||licence>new Date(now).toISOString().slice(0,10)||!/^\d{4}-\d{2}-\d{2}$/.test(licence)||
         licence>String(quote.start_date))
       return out(400,{code:"CARAVEL_ADDITIONAL_DRIVER_INVALID",
         error:"Uzupełnij dane i datę pierwszego uzyskania prawa jazdy dodatkowego kierowcy w Profilu.",

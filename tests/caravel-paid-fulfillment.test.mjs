@@ -105,8 +105,14 @@ test("Caravel two-driver paid flow: identical roles, named second driver, no unq
    additional_driver_license_since:"2020-05-01"};
  const q=quoteRow();
  q.raw_response.provider_quote_data.drivers=[{age:30,role:"main"},{age:22,role:"additional"}];
+ const choice={extra_id:"named-driver",quantity:1};
+ const snapshot=q.raw_response.provider_quote_data;
+ snapshot.selected_extras=[choice];
+ snapshot.price_breakdown={extras_minor:0,extras:[{...choice,code:"ADVR",billed_quantity:3,amount_minor:0}]};
+ state.fresh.line_items.push({kind:"extra",code:"ADVR",quantity:3,total:money(0)});
  const prepared=await revalidatePaidCaravel(creds(),b,q,{factory:fakeFactory(state),nowMs:NOW});
  const call=state.calls.find(c=>c[0]==="quote");
+ assert.deepEqual(call[3].extras,[choice]);
  assert.deepEqual(call[3].drivers,[{age:30,role:"main"},{age:22,role:"additional"}]);
  assert.deepEqual(prepared.additional_driver,{first_name:"Anna",last_name:"Nowak",age:22});
  await createPaidCaravel(creds(),prepared,{factory:fakeFactory(state)});

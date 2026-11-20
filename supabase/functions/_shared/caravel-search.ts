@@ -159,16 +159,22 @@ export async function requoteCaravelForDriverAge(args: {
   if (!args.release.open) return {ok: false, reason: "CARAVEL_RELEASE_CLOSED"};
   const q = args.quoteRow, data = rec(rec(q.raw_response)?.provider_quote_data), ctx = rec(rec(q.raw_response)?.ride24_context);
   const protection = rec(data?.protection);
-  const requested = caravelSnapshotChoices(args.selectedExtras ?? data?.selected_extras ?? []);
+  let requested = caravelSnapshotChoices(args.selectedExtras ?? data?.selected_extras ?? []);
   if(!requested) return {ok:false,reason:"CARAVEL_EXTRA_SELECTION_INVALID"};
   if(args.additionalDriverAge!=null &&
     (!Number.isSafeInteger(args.additionalDriverAge)||args.additionalDriverAge<18||args.additionalDriverAge>90))
     return {ok:false,reason:"CARAVEL_ADDITIONAL_DRIVER_AGE_INVALID"};
   let extrasCatalog;
-  if(requested.length){
+  if(requested.length || args.additionalDriverAge!=null || data?.driver_service_id){
     try{
       const raw=(await args.client.reference("extras",args.release.terms.supplierId)).data;
-      extrasCatalog=caravelSafeExtraCatalog(raw,args.release.terms.supplierId,String(data?.currency)).catalog;
+      const {catalog,driverServices}=caravelSafeExtraCatalog(raw,args.release.terms.supplierId,String(data?.currency));
+      const service=driverServices[0];
+      if(args.additionalDriverAge!=null && driverServices.length!==1)
+        return {ok:false,reason:"CARAVEL_DRIVER_SERVICE_UNAVAILABLE"};
+      requested=requested.filter(x=>x.extra_id!==data?.driver_service_id && !driverServices.some(d=>d.extra_id===x.extra_id));
+      if(args.additionalDriverAge!=null && service)requested.push({extra_id:service.extra_id,quantity:1});
+      extrasCatalog=[...catalog,...driverServices];
     }catch{return {ok:false,reason:"CARAVEL_EXTRAS_CATALOG_UNAVAILABLE"};}
   }
   if (!data || !protection || typeof data.pickup_at !== "string" || typeof data.dropoff_at !== "string" || !ctx)

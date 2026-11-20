@@ -85,6 +85,6 @@ test("saves verify all fields before any database replacement, and unlock only a
   assert.ok(invoice.indexOf('invoiceProfileErrors(payload)')<invoice.indexOf('.upsert(payload'));
   const driver=html.slice(html.indexOf('window.saveDrivers = async function()'),html.indexOf('// --- REALNE ANULOWANIE',html.indexOf('window.saveDrivers = async function()')));
   assert.ok(driver.indexOf('additionalDriverErrors(candidate)')>=0);
-  assert.ok(driver.indexOf('additionalDriverErrors(candidate)')<driver.indexOf('.insert(newDrivers)'));
-  assert.ok(driver.indexOf('.insert(newDrivers)')<driver.indexOf('.in("id", existingIds)'));
+  assert.ok(driver.indexOf('additionalDriverErrors(candidate)')<driver.indexOf('.upsert(newDrivers'));
+  assert.doesNotMatch(driver, /\.delete\(/);
 });

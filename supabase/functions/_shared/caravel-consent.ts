@@ -141,7 +141,7 @@ export type CaravelConsentView = {
     customer_total: string; customer_total_minor: number; ride24_fee_minor: number;
     ride24_fee: string; ride24_fee_currency: string; ride24_fee_pln?: string;
     ride24_fee_pln_minor?: number; charged_by_stripe: "ride24_fee_only";
-    breakdown?: {rental_base:string; fee_total:string; extras_total:string; partner_total:string;
+    breakdown?: {rental_base:string;customer_rental:string; fee_total:string; extras_total:string; partner_total:string;
       fees:Array<{label:string; original_label:string; type:string; amount:string}>;
       extras:Array<{extra_id:string;name:string;quantity:number;amount:string}>}};
   driver_age: number;
@@ -166,6 +166,7 @@ export function buildCaravelConsentView(row: unknown, release: CaravelRelease, l
   const bd = f.breakdown;
   const breakdown = bd ? {
     rental_base:money(Number(bd.rental_minor), f.currency),
+    customer_rental:money(customerMinor - Number(bd.mandatory_fees_minor) - Number(bd.extras_minor), f.currency),
     fee_total:money(Number(bd.mandatory_fees_minor), f.currency),
     extras_total:money(Number(bd.extras_minor), f.currency),
     partner_total:at,

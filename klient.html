@@ -2302,7 +2302,7 @@ Dodaj opinię w Trustpilot
    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="assets/helper/supabaseConfig.js"></script>
     <script src="assets/helper/bookingItemBreakdown.js"></script>
-    <script src="assets/caravel-consent.js?v=20261119-profile-age-price"></script>
+    <script src="assets/caravel-consent.js?v=20261120-caravel-summary"></script>
     <script type="module">
     import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261113-switch";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
@@ -3080,6 +3080,7 @@ document.addEventListener("click", async function(e) {
        }
        const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
            context:bookingQuoteContext, isApiBooking:()=>!!localStorage.getItem("selectedApiQuoteId"), isEn:()=>localStorage.getItem("client_lang")==="en"});
+       let caravelProfileReturn = null;
        window.submitBooking = function() {
     const isEn = localStorage.getItem("client_lang") === "en";
     if (!window.r24ClientProfileReady) {
@@ -3111,6 +3112,7 @@ document.addEventListener("click", async function(e) {
     const generalAck = document.getElementById("acceptTerms");
     if (generalAck) generalAck.checked = false;
 
+    document.getElementById("caravelDriverProfile").hidden=true;
     const select = document.getElementById("driverSelect");
     const addSelect = document.getElementById("additionalDriverSelect");
 
@@ -3166,11 +3168,26 @@ document.addEventListener("click", async function(e) {
 
         const requoteCaravelDrivers = async () => {
             if (!window.Ride24CaravelConsent?.active()) return bookingExtras.refresh();
+            if (window.Ride24CaravelConsent.isBusy()) return;
+            const extra=(myDrivers || []).find(d=>d.id===addSelect.value);
+            if(extra && (!window.ride24LicenseDate(extra.license_since) || !extra.name?.trim().includes(" ") || !extra.age)){
+                editCaravelDriver();
+                return;
+            }
             await window.Ride24CaravelConsent.requoteDrivers({
                 driverId: select.value || null,
                 additionalDriverId: addSelect.value && addSelect.value !== "none" ? addSelect.value : null
             });
         };
+        function editCaravelDriver(){
+            caravelProfileReturn={quote:localStorage.getItem("selectedApiQuoteId"),main:select.value,extra:addSelect.value};
+            window.closeTermsModal();
+            window.switchTab("profile");
+            const rows=Array.from(document.querySelectorAll("#drivers-list .driver-entry"));
+            const row=rows.find(el=>el.dataset.id===caravelProfileReturn.extra);
+            (row?.querySelector(".driver-license-since") || document.getElementById("drivers-list"))?.scrollIntoView({block:"center"});
+            row?.querySelector(".driver-license-since")?.focus();
+        }
         select.onchange = async () => {
             if (select.value === addSelect.value) addSelect.value = "none";
             prefillLicense();
@@ -3190,7 +3207,11 @@ document.addEventListener("click", async function(e) {
             bookingExtras.close();
             const price = document.getElementById("bookingPriceBreakdown");
             if(price) price.hidden=true;
-            addSelect.disabled=false;
+            const driverService=window.Ride24CaravelConsent.driverService();
+            addSelect.disabled=!driverService;
+            const driverProfile=document.getElementById("caravelDriverProfile");
+            driverProfile.hidden=!driverService;
+            driverProfile.onclick=editCaravelDriver;
             // Additional driver must be an individually saved driver profile.
             // The "Me" option has no driver id and cannot be a second driver.
             addSelect.querySelectorAll('option[value=""]').forEach(opt => opt.remove());
@@ -3200,7 +3221,20 @@ document.addEventListener("click", async function(e) {
                 : "Wybierz zapisanego dodatkowego kierowcę. Przed rezerwacją potwierdzimy nową cenę w Caravel.";
             // Initial search quotes Caravel for age 30. Show the actual saved
             // main driver's price before collecting any consent or payment.
-            if (window.Ride24CaravelConsent.requiresAgeRequote(profileCheck.age)) {
+            if(driverService){
+                addSelect.options[0].textContent=isEn?"None":"Brak";
+                const rate=(driverService.unit_minor/100).toLocaleString(isEn?"en":"pl");
+                driverProfile.textContent=(isEn?"Edit driver in Profile":"Edytuj kierowcę w profilu")+" · "+rate+" "+driverService.currency+
+                    (driverService.pricing_type==="per_day"?(isEn?" / day":" / dzień"):(isEn?" / rental":" / wynajem"));
+            }
+            const savedDrivers=caravelProfileReturn?.quote===localStorage.getItem("selectedApiQuoteId")
+                ? caravelProfileReturn : window.Ride24CaravelConsent.savedDrivers();
+            if(savedDrivers && (savedDrivers.main || savedDrivers.extra)){
+                select.value=savedDrivers.main || "";
+                addSelect.value=savedDrivers.extra || "none";
+                caravelProfileReturn=null;
+                await window.Ride24CaravelConsent.requoteDrivers({driverId:select.value||null,additionalDriverId:addSelect.value==="none"?null:addSelect.value||null,force:true});
+            } else if (window.Ride24CaravelConsent.requiresAgeRequote(profileCheck.age) || window.Ride24CaravelConsent.hasAdditionalDriver()) {
                 await window.Ride24CaravelConsent.requoteDrivers({
                     driverId: select.value || null, additionalDriverId: null, force: true
                 });
@@ -4528,7 +4562,7 @@ function calculateRefundPercent(pickupDate) {
             }
             const rows = Array.from(document.querySelectorAll("#drivers-list .driver-entry"));
             const newDrivers = [];
-            const existingIds = [];
+
             const fieldSelector = {name:".driver-name", age:".driver-age", phone:".driver-phone", license_since:".driver-license-since"};
             for (const row of rows) {
                 const candidate = {
@@ -4547,8 +4581,9 @@ function calculateRefundPercent(pickupDate) {
                         errors.map(e => isEn ? e.en : e.pl).join(", "), "error");
                     return;
                 }
-                if (row.dataset.id && /^[0-9a-f-]{36}$/i.test(row.dataset.id)) existingIds.push(row.dataset.id);
+                if (!row.dataset.id) row.dataset.id=crypto.randomUUID();
                 newDrivers.push({
+                    id: row.dataset.id,
                     user_id: currentUser.id,
                     name: candidate.name,
                     age: Number(candidate.age),
@@ -4563,31 +4598,14 @@ function calculateRefundPercent(pickupDate) {
             }
             const saveBtn = document.querySelector('#view-profile .profile-col[data-r24-optional-profile="drivers"] .profile-actions button');
             if (saveBtn) saveBtn.disabled = true;
-            let createdIds = [];
             try {
-                // Insert first: validation/server errors cannot destroy existing saved drivers.
-                const {data: created, error: insertError} = await db.from("drivers")
-                    .insert(newDrivers).select("id");
-                if (insertError || created?.length !== newDrivers.length) {
-                    throw insertError || new Error("Incomplete driver write");
-                }
-                createdIds = created.map(d => d.id);
-                if (existingIds.length) {
-                    const {data: removed, error: deleteError} = await db.from("drivers")
-                        .delete().eq("user_id", currentUser.id).in("id", existingIds).select("id");
-                    if (deleteError || removed?.length !== existingIds.length) {
-                        throw deleteError || new Error("Previous driver records were not fully replaced");
-                    }
-                }
+                const {data,error}=await db.from("drivers").upsert(newDrivers,{onConflict:"id"}).select("id");
+                if(error || data?.length!==newDrivers.length) throw error || new Error("Incomplete driver write");
                 window.showToast(isEn ? "All driver details saved." : "Zapisano kompletne dane kierowców.", "success");
                 await loadUserProfile();
+                if(caravelProfileReturn)window.submitBooking();
             } catch (err) {
                 console.error("Additional drivers save failed:", err);
-                if (createdIds.length) {
-                    const rollback = await db.from("drivers").delete()
-                        .eq("user_id", currentUser.id).in("id", createdIds);
-                    if (rollback.error) console.error("Driver rollback failed:", rollback.error);
-                }
                 window.showToast(isEn
                     ? "Drivers were not fully saved. Your earlier entries were not intentionally changed."
                     : "Nie udało się w pełni zapisać kierowców. Wcześniejsze wpisy nie zostały celowo zmienione.", "error");
@@ -5291,6 +5309,7 @@ window.closeReviewModal = function() {
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
+                    <button type="button" id="caravelDriverProfile" hidden></button>
                 </div>
             </div>
 
