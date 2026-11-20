@@ -463,6 +463,46 @@ async function getExchangeRate(currency, requireLive = false) {
                     .replaceAll("'", "&#039;");
             }
 
+            // Caravel's own refusal (search-api `unavailable`) in customer words.
+            // Only codes Caravel returned and the desk hours it published are used.
+            function caravelUnavailableText(notice, lang) {
+                if (!notice || notice.provider !== "caravel" || !Array.isArray(notice.reasons)) return "";
+                const pl = lang === 'pl';
+                const reasons = notice.reasons.map(String);
+                const hhmm = v => /^\d{2}:\d{2}/.test(String(v || "")) ? String(v).slice(0, 5) : "";
+                const hours = v => v === "closed" ? (pl ? "zamknięte" : "closed") : escapeHtmlValue(v || "");
+                const lines = [];
+                if (reasons.includes("out_of_hours_not_offered")) {
+                    const ends = [];
+                    if (notice.pickup_outside_hours === true) ends.push(pl
+                        ? `odbiór o ${hhmm(notice.pickup_time)}${notice.pickup_hours ? ` (biuro: ${hours(notice.pickup_hours)})` : ""}`
+                        : `pickup at ${hhmm(notice.pickup_time)}${notice.pickup_hours ? ` (desk: ${hours(notice.pickup_hours)})` : ""}`);
+                    if (notice.dropoff_outside_hours === true) ends.push(pl
+                        ? `zwrot o ${hhmm(notice.return_time)}${notice.dropoff_hours ? ` (biuro: ${hours(notice.dropoff_hours)})` : ""}`
+                        : `return at ${hhmm(notice.return_time)}${notice.dropoff_hours ? ` (desk: ${hours(notice.dropoff_hours)})` : ""}`);
+                    lines.push(pl
+                        ? `Caravel nie obsługuje odbioru ani zwrotu poza godzinami pracy biura${ends.length ? `: ${ends.join(", ")}` : ""}. Wybierz godzinę w czasie pracy biura.`
+                        : `Caravel does not offer pickup or return outside desk hours${ends.length ? `: ${ends.join(", ")}` : ""}. Choose a time within desk hours.`);
+                }
+                if (reasons.includes("delivery_not_offered")) lines.push(pl
+                    ? (notice.different_return_location
+                        ? "Caravel nie obsługuje tej lokalizacji zwrotu na tej trasie (wymaga dostawy, której wypożyczalnia nie oferuje). Wybierz inne miejsce zwrotu, np. lotnisko."
+                        : "Caravel nie obsługuje tej lokalizacji (wymaga dostawy, której wypożyczalnia nie oferuje). Wybierz inne miejsce, np. lotnisko.")
+                    : (notice.different_return_location
+                        ? "Caravel does not serve this return location on this route (it needs a delivery the company does not offer). Choose another return place, e.g. an airport."
+                        : "Caravel does not serve this location (it needs a delivery the company does not offer). Choose another place, e.g. an airport."));
+                if (reasons.includes("one_way_not_offered")) lines.push(pl
+                    ? "Caravel nie oferuje zwrotu w innym miejscu na tej trasie. Wybierz zwrot w miejscu odbioru."
+                    : "Caravel does not offer a one-way return on this route. Return the car where you picked it up.");
+                if (reasons.includes("no_availability")) lines.push(pl
+                    ? "Caravel nie ma wolnych aut w tym terminie."
+                    : "Caravel has no cars available for these dates.");
+                if (!lines.length && reasons.length) lines.push(pl
+                    ? "Caravel nie potwierdził oferty dla tego terminu i miejsca. Spróbuj innej godziny lub lokalizacji."
+                    : "Caravel did not confirm an offer for this time and place. Try another time or location.");
+                return lines.join("<br>");
+            }
+
             function safeImageUrl(value, fallback = "auto.png") {
                 if (!String(value || "").trim()) return fallback;
                 try {
@@ -727,6 +767,7 @@ let query = db
                 // ten sam mechanizm rabatu partnera oraz globalnej marży Ride24.
                 let apiSearchIncomplete = false;
                 let apiSurchargesUnconfirmed = false;
+                let apiUnavailable = [];
                 try {
                     const apiResponse = await fetch(supabaseUrl + "/functions/v1/search-api", {
                         method: "POST",
@@ -759,6 +800,7 @@ let query = db
                     const apiData = await apiResponse.json().catch(() => ({}));
                     apiSurchargesUnconfirmed = Array.isArray(apiData.provider_errors)
                         && apiData.provider_errors.some(error => String(error?.code || '').endsWith('SURCHARGES_REQUIRE_QUOTE'));
+                    apiUnavailable = Array.isArray(apiData.unavailable) ? apiData.unavailable : [];
                     apiSearchIncomplete = !apiResponse.ok || apiData.success !== true
                         || apiData.partial === true || (apiData.provider_errors?.length || 0) > 0;
                     if (apiResponse.ok && Array.isArray(apiData.cars)) {
@@ -874,6 +916,9 @@ let query = db
                     if (lateChania) suggestion = lang === 'pl'
                         ? "Caravel: odbiór po 22:00 wymaga indywidualnego potwierdzenia wypożyczalni. Automatyczne oferty mogą być niedostępne. Spróbuj wcześniejszej godziny lub zapytaj Ride24."
                         : "Caravel: pickup after 22:00 needs the rental company's individual confirmation. Automatic offers may be unavailable. Try an earlier time or contact Ride24.";
+                    // Caravel's actual answer wins over the generic hints above.
+                    const caravelReason = apiUnavailable.map(n => caravelUnavailableText(n, lang)).filter(Boolean).join("<br>");
+                    if (caravelReason) suggestion = caravelReason;
 
                     container.innerHTML = `
                         <div style="text-align:center; color:white; padding:50px; background: rgba(0,0,0,0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">

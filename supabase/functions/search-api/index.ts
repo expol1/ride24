@@ -859,6 +859,7 @@ async function searchCaravelPartner(
   platformMarginPercent: number,
   release: CaravelRelease,
   driverAge: number,
+  notices: Record<string, unknown>[],
 ): Promise<Record<string, unknown>[]> {
   if (!release.open) return [];
   const partner = pickupLocation.partners;
@@ -870,7 +871,7 @@ async function searchCaravelPartner(
   const client = caravelProductionReadClient(await loadPartnerCredentials(admin, pickupLocation.partner_id));
   let classes = new Map<string, CarClassRow>();
   const currency = safeCurrency(partner.currency);
-  const {offers, rejected} = await searchCaravelOffers({
+  const {offers, rejected, unavailable} = await searchCaravelOffers({
     admin: admin as never, client, release,
     pickup: {id: pickupLocation.id, external_id: pickupLocation.external_id},
     dropoff: {id: dropoffLocation.id, external_id: dropoffLocation.external_id},
@@ -883,6 +884,10 @@ async function searchCaravelPartner(
     console.info("Caravel: no verified offers", JSON.stringify({
       pickup_time: pickupTime, return_time: returnTime, rejected,
     }));
+    // Caravel's own refusal codes and desk hours, so the customer sees why.
+    if (unavailable) notices.push({partner_id: pickupLocation.partner_id, provider: "caravel",
+      different_return_location: dropoffLocation.id !== pickupLocation.id,
+      pickup_time: pickupTime, return_time: returnTime, ...unavailable});
   }
   const output: Record<string, unknown>[] = [];
   const returnedLocations = dropoffLocation.id !== pickupLocation.id ? [pickupLocation, dropoffLocation] : [pickupLocation];
@@ -1055,6 +1060,7 @@ serve(async (req) => {
     }
     const quoteBudget: QuoteBudget = { remaining: MAX_RESULTS_PER_SEARCH };
     const providerErrors: Array<{ partner_id: string; code: string }> = [];
+    const unavailableNotices: Record<string, unknown>[] = [];
     const partnerResults = await mapConcurrent(
       [...uniquePartners.values()],
       MAX_PROVIDER_CONCURRENCY,
@@ -1063,7 +1069,8 @@ serve(async (req) => {
           if (caravelRelease?.open && isCaravelBooking({partner_id: pickupLocation.partner_id, partners: pickupLocation.partners})) {
             return await searchCaravelPartner(admin, pickupLocation, pickupCriteria, dropoffCriteria,
               pickupDate.text, returnDate.text, pickupTime, returnTime, days, quoteBudget, platformMarginPercent,
-              caravelRelease, typeof body.caravelDriverAge === "number" && Number.isInteger(body.caravelDriverAge) && body.caravelDriverAge >= 18 && body.caravelDriverAge <= 120 ? body.caravelDriverAge : 30);
+              caravelRelease, typeof body.caravelDriverAge === "number" && Number.isInteger(body.caravelDriverAge) && body.caravelDriverAge >= 18 && body.caravelDriverAge <= 120 ? body.caravelDriverAge : 30,
+              unavailableNotices);
           }
           return await searchPartner(
             admin,
@@ -1100,6 +1107,7 @@ serve(async (req) => {
       count: cars.length,
       partial: providerErrors.length > 0,
       provider_errors: providerErrors,
+      unavailable: unavailableNotices,
     });
   } catch (error) {
     console.error(

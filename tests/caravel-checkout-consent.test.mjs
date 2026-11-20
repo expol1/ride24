@@ -272,3 +272,24 @@ test("search-api / checkout / web wiring keeps every other partner path and fail
   assert.match(html, /id="caravelConsent" hidden/);
   assert.match(html, /window\.Ride24CaravelConsent\.canSubmit\(\)/);
 });
+
+test("search: no Caravel offer explains why with Caravel codes and the desks' own hours", async () => {
+  const {caravelHoursOn, caravelOutsideHours} = await import("../supabase/functions/_shared/caravel-hours.ts");
+  const desk = {location_id: "chq", timezone: "Europe/Athens",
+    hours: ["mon","tue","wed","thu","fri","sat","sun"].map((day) => ({day, open: "07:00", close: "22:00"}))};
+  assert.equal(caravelHoursOn(desk, "2027-01-11T23:30:00+02:00"), "07:00–22:00");
+  assert.equal(caravelOutsideHours(desk, "2027-01-11T23:30:00+02:00"), true);
+  assert.equal(caravelOutsideHours(desk, "2027-01-11T11:00:00+02:00"), false);
+  assert.equal(caravelHoursOn({...desk, holidays: [{date: "2027-01-11", closed: true}]}, "2027-01-11T11:00:00+02:00"), "closed");
+  const release = await loadCaravelRelease(fakeDb(await releasedState()));
+  const client = {environment: "production",
+    async locations() { return {data: [desk]}; },
+    async availability() { return {data: []}; }};
+  const r = await searchCaravelOffers({admin: {}, client, release,
+    pickup: {id: PICK, external_id: "chq"}, dropoff: {id: PICK, external_id: "chq"},
+    pickupDate: "2027-01-11", returnDate: "2027-01-14", pickupTime: "11:00", returnTime: "23:30", days: 3, driverAge: 30,
+    currency: "EUR", maxOffers: 5, nowMs: NOW, loadCarClasses: async () => new Map()});
+  assert.equal(r.offers.length, 0);
+  assert.deepEqual(r.unavailable, {reasons: ["no_availability"], pickup_outside_hours: false, dropoff_outside_hours: true,
+    pickup_hours: "07:00–22:00", dropoff_hours: "07:00–22:00"});
+});

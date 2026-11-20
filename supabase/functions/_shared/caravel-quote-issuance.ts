@@ -45,7 +45,7 @@ export type CaravelQuoteIssueResult=
    ride24ReservationFeeMinor:number;customerTotalMinor:number;
    mandatoryFees:Array<{type:string;label:string;amount_minor:number}>;
    expiresAt:string}
- |{ok:false;reason:string};
+ |{ok:false;reason:string;supplierIssues?:string[]};
 const PARTNER_ID="78721481-7619-44df-a9b7-5faa344b69bb";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SUPPLIER=/^[A-Za-z0-9_-]{1,128}$/;
@@ -230,7 +230,10 @@ export async function issueVerifiedCaravelQuote(args:{
     };
   }) : [];
   console.warn("Caravel quote rejected by supplier",JSON.stringify({status,code,issues}));
-  return reject("CARAVEL_QUOTE_SUPPLIER_REQUEST_FAILED");
+  // Caravel's own refusal codes (e.g. out_of_hours_not_offered, delivery_not_offered)
+  // let search tell the customer why no offer exists. Codes only, never free text.
+  const supplierIssues=[...new Set(issues.map(x=>x.issue).filter((x):x is string=>typeof x==="string"))];
+  return {ok:false,reason:"CARAVEL_QUOTE_SUPPLIER_REQUEST_FAILED",supplierIssues};
  }
  const api=rec(response);
  if(!api||api.supplier_id!==undefined&&api.supplier_id!==args.supplierId||

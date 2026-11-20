@@ -78,3 +78,15 @@ export function caravelLocalTime(instantIso: string, tz: string): string | null 
   const t = Number.isFinite(ms) ? local(ms, tz) : null;
   return t ? `${String(Math.floor(t.minute / 60)).padStart(2, "0")}:${String(t.minute % 60).padStart(2, "0")}` : null;
 }
+
+/** The desk's opening windows ("07:00–22:00") on the local date of an instant; "closed" or null if not stated. */
+export function caravelHoursOn(location: unknown, instantIso: string): string | null {
+  const loc = location && typeof location === "object" ? location as Json : null;
+  const ms = Date.parse(instantIso);
+  if (!loc || !Number.isFinite(ms) || typeof loc.timezone !== "string") return null;
+  const t = local(ms, loc.timezone);
+  const windows = t ? windowsFor(loc, t.date, t.day) : null;
+  if (!windows) return null;
+  const hhmm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  return windows.length ? windows.map((w) => `${hhmm(w.open)}–${hhmm(w.close)}`).join(", ") : "closed";
+}

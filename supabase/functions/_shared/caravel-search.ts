@@ -12,6 +12,7 @@ import {selectCaravelPremiumProtection} from "./caravel-normalize.ts";
 import type {CaravelClient} from "./caravel-sandbox-adapter.ts";
 import {caravelSafeExtraCatalog,caravelSnapshotChoices,type CaravelExtraChoice} from "./caravel-extra-selection.ts";
 import type {CaravelRelease} from "./caravel-release.ts";
+import {caravelHoursOn, caravelOutsideHours} from "./caravel-hours.ts";
 
 type Rec = Record<string, unknown>;
 const rec = (v: unknown): Rec | null => !!v && typeof v === "object" && !Array.isArray(v) ? v as Rec : null;
@@ -44,6 +45,13 @@ export type CaravelSearchOffer = {
   excludes: string[]; covers: string[]; adminFeeMinor: number | null;
 };
 
+/** Why Caravel returned no offer: its own refusal codes plus each desk's hours that day. */
+export type CaravelUnavailable = {
+  reasons: string[];
+  pickup_outside_hours: boolean | null; dropoff_outside_hours: boolean | null;
+  pickup_hours: string | null; dropoff_hours: string | null;
+};
+
 export async function searchCaravelOffers(args: {
   // deno-lint-ignore no-explicit-any
   admin: any;
@@ -54,8 +62,9 @@ export async function searchCaravelOffers(args: {
   driverAge: number; currency: string; maxOffers: number; nowMs?: number;
   loadCarClasses: (externalIds: string[]) => Promise<Map<string, {id: string; active?: unknown}>>;
   idempotencyKey?: () => string;
-}): Promise<{offers: CaravelSearchOffer[]; rejected: Record<string, number>}> {
+}): Promise<{offers: CaravelSearchOffer[]; rejected: Record<string, number>; unavailable?: CaravelUnavailable}> {
   const rejected: Record<string, number> = {};
+  const supplierIssues = new Set<string>();
   const bump = (k: string) => { rejected[k] = (rejected[k] ?? 0) + 1; };
   const release = args.release;
   if (!release.open) return {offers: [], rejected: {CARAVEL_RELEASE_CLOSED: 1}};
@@ -73,10 +82,21 @@ export async function searchCaravelOffers(args: {
   if (!pickupAt || !dropoffAt) return {offers: [], rejected: {CARAVEL_LOCATION_TIMEZONE_UNKNOWN: 1}};
   // The stable aliases retain the validated string types in async quote tasks.
   const verifiedPickupAt: string = pickupAt, verifiedDropoffAt: string = dropoffAt;
+  const desk = (id: string) => locations.find((x) => x.location_id === id) ?? null;
+  const unavailable = (): CaravelUnavailable => ({
+    reasons: [...supplierIssues],
+    pickup_outside_hours: caravelOutsideHours(desk(args.pickup.external_id), verifiedPickupAt),
+    dropoff_outside_hours: caravelOutsideHours(desk(args.dropoff.external_id), verifiedDropoffAt),
+    pickup_hours: caravelHoursOn(desk(args.pickup.external_id), verifiedPickupAt),
+    dropoff_hours: caravelHoursOn(desk(args.dropoff.external_id), verifiedDropoffAt),
+  });
   const rows = (await args.client.availability({pickup_location_id: args.pickup.external_id,
     dropoff_location_id: args.dropoff.external_id, pickup: pickupAt, dropoff: dropoffAt,
     driver_age: args.driverAge, currency: args.currency}, supplierId)).data as Rec[];
-  if (!rows.length) return {offers: [], rejected: {CARAVEL_SUPPLIER_NO_AVAILABILITY: 1}};
+  if (!rows.length) {
+    supplierIssues.add("no_availability");
+    return {offers: [], rejected: {CARAVEL_SUPPLIER_NO_AVAILABILITY: 1}, unavailable: unavailable()};
+  }
   const offers: CaravelSearchOffer[] = [];
   const classes = await args.loadCarClasses([...new Set(rows.map((r) => r.vehicle_id).filter((v): v is string => typeof v === "string"))]);
 
@@ -125,7 +145,12 @@ export async function searchCaravelOffers(args: {
         reviewedTerms: readyRelease.snapshot, canonicalHashIndependentlyVerified: true, protection,
         approvedExclusions: readyRelease.review, allowProductionQuoteIssuance: true,
       });
-      if (!result.ok) { bump(String((result as Rec).reason ?? "QUOTE_REJECTED")); continue; }
+      if (!result.ok) {
+        const failed = result as Extract<CaravelQuoteIssueResult, {ok: false}>;
+        bump(String(failed.reason ?? "QUOTE_REJECTED"));
+        for (const issue of failed.supplierIssues ?? []) supplierIssues.add(issue);
+        continue;
+      }
       const ex = Array.isArray(protection.excludes) ? protection.excludes as string[] : [];
       return {carClassId: group.classId, apiQuoteId: result.apiQuoteId, vehicleId: group.vehicleId,
         supplierQuoteId: result.providerQuoteId, expiresAt: result.expiresAt,
@@ -144,7 +169,7 @@ export async function searchCaravelOffers(args: {
     const batch = await Promise.all(candidates.slice(i, i + 2).map(quoteVehicle));
     for (const offer of batch) if (offer && offers.length < args.maxOffers) offers.push(offer);
   }
-  return {offers, rejected};
+  return offers.length ? {offers, rejected} : {offers, rejected, unavailable: unavailable()};
 }
 
 /**

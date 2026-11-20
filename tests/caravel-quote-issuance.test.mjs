@@ -391,3 +391,14 @@ test("fee lines distinguish supplier pickup and return and retain new service na
  assert.equal(caravelFeeLabel("one_way","One way","pl"),"Zwrot w innym punkcie");
  assert.equal(caravelFeeLabel("operator_fee","Special location","en"),"Special location");
 });
+
+test("Caravel 422 refusal codes reach search as supplierIssues (codes only, no free text)",async()=>{
+ const admin=db(),c=client();
+ c.quote=async()=>{const e=new Error("Unprocessable");e.status=422;e.code="UNCLASSIFIED";
+  e.details=[{field:null,issue:"out_of_hours_not_offered"},{field:null,issue:"out_of_hours_not_offered"},
+   {field:"dropoff.location_id",issue:"delivery_not_offered"},{field:null,issue:"bad text!"}];throw e;};
+ const r=await issueVerifiedCaravelQuote(args(admin,c));
+ assert.equal(r.ok,false);
+ assert.equal(r.reason,"CARAVEL_QUOTE_SUPPLIER_REQUEST_FAILED");
+ assert.deepEqual(r.supplierIssues,["out_of_hours_not_offered","delivery_not_offered"]);
+});
