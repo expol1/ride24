@@ -5,8 +5,10 @@
 //   catalog-sync  {supplier_id}              merge production locations/groups, new rows INACTIVE
 //   release-open  {certified_at, document_id, content_hash, reason, confirm:"OPEN_CARAVEL_SALES"}
 //   release-close {reason}                   kill switch
-//   auto-sync (scheduler only, header x-cron-secret = CARAVEL_AUTO_SYNC_SECRET):
-//                                            catalogue + terms sync, pauses sales on a terms change
+//   auto-sync (scheduler only, header x-cron-secret = vault secret "caravel_auto_sync_cron",
+//              checked by caravel_auto_sync_secret_ok(); or the CARAVEL_AUTO_SYNC_SECRET env):
+//                                            catalogue + terms sync; machine-verified new terms
+//                                            continue selling, anything unverified pauses sales
 // Day-to-day administration happens in the existing "Konfiguracja Partnera API" modal
 // (api-partner-admin routes Test / Synchronizuj / Aktywuj / Wyłącz for Caravel).
 // Production supplier calls use partner_api_credentials (api.caravelway.com) only.
@@ -24,13 +26,25 @@ serve(async (req) => {
   if (Number(req.headers.get("content-length") || 0) > 16384) return jsonResponse(req, {code: "REQUEST_TOO_LARGE"}, 413);
   const body = await req.json().catch(() => null);
   if (body?.action === "auto-sync") {
-    try { requireSecret(req, "x-cron-secret", "CARAVEL_AUTO_SYNC_SECRET"); }
-    catch { return jsonResponse(req, {code: "CRON_AUTH_REQUIRED"}, 401); }
+    const admin = serviceClient();
+    let authorized = false;
+    try { requireSecret(req, "x-cron-secret", "CARAVEL_AUTO_SYNC_SECRET"); authorized = true; } catch { /* vault check below */ }
+    if (!authorized) {
+      const supplied = req.headers.get("x-cron-secret") ?? "";
+      const {data, error} = supplied.length >= 32
+        ? await admin.rpc("caravel_auto_sync_secret_ok", {p_secret: supplied}) : {data: false, error: null};
+      authorized = !error && data === true;
+    }
+    if (!authorized) return jsonResponse(req, {code: "CRON_AUTH_REQUIRED"}, 401);
     try {
-      const admin = serviceClient();
       const client = caravelProductionReadClient(await loadPartnerCredentials(admin, CARAVEL_PARTNER_ID));
-      return jsonResponse(req, await runCaravelAutoSync({admin, client}));
-    } catch { return jsonResponse(req, {code: "CARAVEL_AUTO_SYNC_SKIPPED"}, 200); }
+      const result = await runCaravelAutoSync({admin, client});
+      console.info("Caravel auto-sync", JSON.stringify(result).slice(0, 2000));
+      return jsonResponse(req, result);
+    } catch (e) {
+      console.error("Caravel auto-sync skipped", String((e as Error)?.message ?? e).slice(0, 120));
+      return jsonResponse(req, {code: "CARAVEL_AUTO_SYNC_SKIPPED"}, 200);
+    }
   }
   let ctx;
   try { ctx = await requireAdmin(req); } catch { return jsonResponse(req, {code: "ADMIN_REQUIRED"}, 403); }

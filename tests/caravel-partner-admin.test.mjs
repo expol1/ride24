@@ -93,7 +93,11 @@ test("Activate button: atomic release with certification time and newest reviewe
   assert.equal(off.ops[0].args.p_open, false);
 });
 
-test("auto-sync: unchanged terms keep selling; new terms version is stored and sales pause until Activate", async () => {
+test("auto-sync: unchanged terms keep selling; machine-verified new terms keep selling; unverified new terms pause", async (t) => {
+  const previousDeno = globalThis.Deno;
+  let flags = "true";
+  globalThis.Deno = {env: {get: () => flags}};
+  t.after(() => { if (previousDeno === undefined) delete globalThis.Deno; else globalThis.Deno = previousDeno; });
   const s = await releasedState({caravel_reviewed_terms: [await termsRow()]});
   const same = db(structuredClone(s));
   const r1 = await runCaravelAutoSync({admin: same, client: await client()});
@@ -105,8 +109,21 @@ test("auto-sync: unchanged terms keep selling; new terms version is stored and s
   const r2 = await runCaravelAutoSync({admin: changed, client: await client("caravel-en-v6")});
   assert.equal(r2.suppliers[0].terms.changed, true);
   assert.equal(r2.suppliers[0].terms.stored.ok, true, "re-verified with previous review parameters");
-  assert.equal(changed.ops.find((o) => o.rpc).args.p_open, false, "sales paused");
-  assert.match(changed.ops.find((o) => o.table === "partners").values.api_last_error, /CARAVEL_TERMS_CHANGED/);
+  assert.equal(r2.suppliers[0].terms.switched, true);
+  const rpcs = changed.ops.filter((o) => o.rpc);
+  assert.equal(rpcs.length, 1, "no pause in between");
+  assert.equal(rpcs[0].args.p_open, true, "sales continue on the new document");
+  assert.equal(rpcs[0].args.p_document_id, "caravel-en-v6");
+  assert.equal(rpcs[0].args.p_certified_at, s.caravel_release_control[0].official_certified_at, "existing certification kept");
+  assert.equal(changed.ops.find((o) => o.table === "partners").values.api_last_error, null);
+
+  // Any failed check (here: production flags off -> release refuses) pauses sales.
+  flags = "false";
+  const refused = db(structuredClone(s));
+  const r3 = await runCaravelAutoSync({admin: refused, client: await client("caravel-en-v7")});
+  assert.equal(r3.suppliers[0].terms.switched, false);
+  assert.deepEqual(refused.ops.filter((o) => o.rpc).map((o) => o.args.p_open), [false], "sales paused");
+  assert.match(refused.ops.find((o) => o.table === "partners").values.api_last_error, /CARAVEL_TERMS_CHANGED.*nie przeszedł/);
 });
 
 test("admin panel stays AVIA-simple: one provider option + one provider-only panel, no new buttons or tabs", () => {

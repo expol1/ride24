@@ -11,9 +11,10 @@
  *   deactivate -> caravel_set_release(close) kill switch
  *
  * runCaravelAutoSync() is the scheduled job (no UI): catalogue merge and terms
- * version check. A new terms document is stored when the machine checks pass, but
- * sales are PAUSED until an administrator presses "Aktywuj API" — old consent can
- * never be reused for a new version.
+ * version check. A new terms document that passes the machine checks becomes the
+ * selling version automatically (old consent is never reused: new quotes bind the
+ * new document). If it fails any check, sales are PAUSED until an administrator
+ * reviews it and presses "Aktywuj API".
  */
 import {ingestCaravelProductionTerms, syncCaravelCatalog, setCaravelRelease, CARAVEL_PARTNER_ID} from "./caravel-admin.ts";
 import {caravelPaidFulfillmentApproved} from "./caravel-paid-fulfillment.ts";
@@ -144,12 +145,31 @@ export async function runCaravelAutoSync(args: {admin: Db; client: Client}): Pro
       (meta.length !== 1 || meta[0].document_id !== release.terms.documentId || meta[0].content_hash !== release.terms.contentHash);
     let terms: Rec = {changed: false};
     if (changed) {
-      const stored = await refreshTerms(admin, client, sid, null, "auto-sync:verified-awaiting-activation");
-      const paused = await setCaravelRelease({admin, open: false, actor: "auto-sync",
-        reason: `Nowa wersja regulaminu Caravel (${meta[0]?.document_id ?? "brak"}): sprzedaż wstrzymana do ponownej aktywacji`});
-      await admin.from("partners").update({api_last_error: "CARAVEL_TERMS_CHANGED: przejrzyj regulamin i kliknij Aktywuj API"})
-        .eq("id", CARAVEL_PARTNER_ID);
-      terms = {changed: true, stored, paused: paused.ok};
+      // The new document passes the same machine checks as the Sync button
+      // (v5+, 100 EUR admin fee stated in its clause, free cancellation from the
+      // supplier policy, every key/exclusion clause present). Then sales continue
+      // on it automatically under the existing certification; the DB release
+      // function re-checks the contract. Anything that fails pauses sales.
+      const stored = await refreshTerms(admin, client, sid, null, "auto-sync:machine-verified");
+      let switched: {ok: boolean; code?: string} = {ok: false, code: "CARAVEL_TERMS_NOT_VERIFIED"};
+      if (stored.ok === true && "documentId" in stored) {
+        const gate = await admin.from("caravel_release_control").select("official_certified_at").eq("singleton", true).maybeSingle();
+        const certifiedAt = rec(gate?.data)?.official_certified_at;
+        switched = await setCaravelRelease({admin, open: true, certifiedAt: typeof certifiedAt === "string" ? certifiedAt : null,
+          documentId: stored.documentId, contentHash: stored.contentHash, actor: "auto-sync",
+          reason: `Nowa wersja regulaminu Caravel (${stored.documentId}) zweryfikowana automatycznie: sprzedaż kontynuowana`});
+      }
+      if (switched.ok) {
+        await admin.from("partners").update({api_last_error: null}).eq("id", CARAVEL_PARTNER_ID);
+        terms = {changed: true, stored, switched: true};
+      } else {
+        const paused = await setCaravelRelease({admin, open: false, actor: "auto-sync",
+          reason: `Nowa wersja regulaminu Caravel (${meta[0]?.document_id ?? "brak"}) nie przeszła weryfikacji: sprzedaż wstrzymana`});
+        await admin.from("partners").update({api_last_error:
+          `CARAVEL_TERMS_CHANGED: nowy regulamin nie przeszedł automatycznej weryfikacji (${String(("code" in stored && stored.code) || switched.code || "?")}); przejrzyj go i kliknij Aktywuj API`})
+          .eq("id", CARAVEL_PARTNER_ID);
+        terms = {changed: true, stored, switched: false, switch_code: switched.code ?? null, paused: paused.ok};
+      }
     }
     (out.suppliers as Rec[]).push({supplier_id: sid, catalog, terms});
   }
