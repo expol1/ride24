@@ -223,9 +223,15 @@ export async function readPaidProviderStatus(credentials:any,reference:string,pr
  if(prepared?.provider==='arvent_kolaycar'){
   if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
   const result=await arventBookingStatus(credentials,reference);
-  return result.status==='cancelled'
-   ?{...result,status:'rejected',definitive_rejection:true}
-   :result;
+  if(result.status==='cancelled'){
+   // Only a fully reconciled supplier cancellation may start a Stripe refund.
+   // Status 3 plus a mismatched Ride24 agency reference, price, route or
+   // other verification failure is NOT a definitive rejection.
+   return result.needs_manual_review===true
+    ?{...result,status:'pending',definitive_rejection:false,needs_manual_review:true}
+    :{...result,status:'rejected',definitive_rejection:true};
+  }
+  return result;
  }
  const result=await aggregatorStatus(credentials,reference);
  if(result.status==='cancelled')return {...result,status:'rejected',definitive_rejection:true};
