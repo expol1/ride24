@@ -61,6 +61,12 @@ serve(async (req) => {
     if (!Number.isFinite(amount) || amount <= 0) return new Response(JSON.stringify({ error: "INVALID_AMOUNT" }), { status: 409, headers: cors(req) });
 
     const isApi=booking.provider_type==='api';
+    // Arvent's pending/approval statuses are verified on WWW only; the current
+    // Android build was not verified, so no Arvent payment is taken in the app.
+    if(isApi&&booking.partners?.api_provider==='arvent_kolaycar'&&client==='android')
+      return new Response(JSON.stringify({error:'ARVENT_WEB_ONLY',
+        message:'Rezerwacje Arvent można obecnie opłacić na stronie ride24.pl (Moje rezerwacje).',
+        message_en:'Arvent bookings can currently be paid on ride24.pl (My bookings).'}),{status:409,headers:cors(req)});
     if(isApi) {
       if(!await apiPaymentEnabled(admin)||!hasPaidFulfillmentAdapter(booking.partners?.api_provider))
         return new Response(JSON.stringify({error:'API_PAYMENT_FLOW_PAUSED'}),{status:503,headers:cors(req)});
