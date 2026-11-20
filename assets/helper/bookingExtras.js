@@ -27,43 +27,54 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const offer = a.offer_extras && typeof a.offer_extras === 'object' ? a.offer_extras : {status:'unavailable',items:[]};
         const available = Array.isArray(offer.items) ? offer.items : [];
         const byCode = new Map(available.filter(x => x && typeof x.code === 'string').map(x => [x.code,x]));
-        const entries = new Map();
-        for (const extra of catalog) {
-            if (extra && typeof extra.code === 'string' && typeof extra.name === 'string')
-                entries.set(extra.code,extra.name);
-        }
-        for (const extra of available) {
-            if (extra && typeof extra.code === 'string' && !entries.has(extra.code))
-                entries.set(extra.code,typeof extra.name === 'string' ? extra.name : extra.code);
-        }
         const intro = offer.status === 'present'
-            ? label('Usługi pobrane dla wybranego terminu. Naliczanie i zamawianie online wymaga jeszcze potwierdzenia warunków dostawcy.',
-                    'Services returned for your rental dates. Online pricing and booking await supplier confirmation.')
+            ? label('Dostępność dla Twojego terminu została odczytana z API. Kwot nie doliczamy bez potwierdzenia zasad naliczania.',
+                    'Availability was retrieved for your rental dates. No charges are added until billing terms are confirmed.')
             : offer.status === 'none'
-            ? label('Dla tego terminu API nie udostępnia dodatków do zamówienia. Poniżej znajduje się ogólny katalog usług wypożyczalni.',
-                    'The API offers no bookable extras for these dates. The general rental company catalogue is below.')
-            : label('Nie można teraz potwierdzić dostępności dodatków dla tej oferty. Poniżej ogólny katalog usług.',
-                    'Extras availability cannot be confirmed for this offer. The general catalogue is shown below.');
+            ? label('Brak dodatków możliwych do zamówienia online w tej ofercie. Ogólny katalog możesz przejrzeć poniżej.',
+                    'No extras can be ordered online for this offer. You may browse the general catalogue below.')
+            : label('Nie można potwierdzić dostępności dodatków dla tego terminu. Ogólny katalog możesz przejrzeć poniżej.',
+                    'Extras availability could not be confirmed for these dates. You may browse the general catalogue below.');
         picker.append(node('p',intro));
-        for (const [code,name] of entries) {
-            const priced=byCode.get(code);
-            const item=node('div'); item.className='booking-extra-row';
+        const renderItem=(parent,code,name,priced)=>{
+            const item=node('div');item.className='booking-extra-row';
             const detail=node('span');
             detail.append(node('strong',code==='2'?label('Dodatkowy kierowca','Additional driver'):name));
-            if (priced && typeof priced.price_eur === 'number') {
+            if (priced && typeof priced.price_eur==='number'){
                 detail.append(node('small',label('Kwota przekazana przez API: ','Amount reported by API: ')
-                    +money(Math.round(priced.price_eur*100),'EUR')+label(' — sposób naliczania i zamówienia do potwierdzenia.',
+                    +money(Math.round(priced.price_eur*100),'EUR')
+                    +label(' — sposób naliczania i zamówienia do potwierdzenia.',
                         ' — billing and booking conditions still require confirmation.')));
             } else {
                 detail.append(node('small',priced
                     ?label('API nie podało poprawnej ceny; zamówienie niedostępne.','No valid price in API; online booking unavailable.')
                     :label('Brak wyceny dla tej oferty; zamówienie niedostępne.','Not priced for this offer; online booking unavailable.')));
             }
-            item.append(detail); picker.append(item);
+            item.append(detail);parent.append(item);
+        };
+        // Same clear separation as an AVIA supplier-calculated offer: what is
+        // returned for this rental is distinct from the unpriced global list.
+        if(available.length){
+            picker.append(node('h4',label('Usługi zwrócone dla tej oferty','Services returned for this offer')));
+            for(const option of available){
+                if(!option||typeof option.code!=='string')continue;
+                const entry=catalog.find(x=>x&&x.code===option.code);
+                renderItem(picker,option.code,entry?.name||option.name||option.code,option);
+            }
         }
-        if (!entries.size) picker.append(node('p',label(
-            'Brak dodatków w odpowiedzi dostawcy dla tej oferty.',
-            'No supplier extras returned for this offer.')));
+        const notOffered=catalog.filter(x=>x&&typeof x.name==='string'
+            &&typeof x.code==='string'&&!byCode.has(x.code));
+        if(notOffered.length){
+            const list=node('details');
+            list.open=offer.status!=='present';
+            list.append(node('summary',label('Pozostałe dodatki z katalogu (bez wyceny dla tej oferty)',
+                'Other catalogue extras (not priced for this offer)')));
+            for(const extra of notOffered)renderItem(list,extra.code,extra.name,null);
+            picker.append(list);
+        }
+        if(!available.length&&!notOffered.length)
+            picker.append(node('p',label('Brak dodatków w odpowiedzi dostawcy dla tej oferty.',
+                'No supplier extras returned for this offer.')));
         const additionalNote=el('arventAdditionalDriverNote');
         if (additionalNote) {
             const driver=byCode.get('2');
