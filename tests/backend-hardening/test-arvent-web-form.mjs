@@ -99,6 +99,19 @@ test('Arvent offer change during extras lookup blocks checkout before payment',a
   assert.match(r.body.error,/Oferta lub jej cena zmieniła się/);
  }
 });
+test('Arvent blocks payment when mandatory supplier extras cannot be priced safely',async()=>{
+ for(const reason of [
+  'ARVENT_REQUIRED_EXTRAS_UNVERIFIED',
+  'ARVENT_REQUIRED_EXTRAS_UNPRICED',
+  'ARVENT_EXTRAS_SHAPE',
+  'ARVENT_EXTRAS_DUPLICATE_OR_CODE'
+ ]){
+  const r=await setup({offerError:'PARTNER_API_ERROR:'+reason}).call({});
+  assert.equal(r.status,409,reason);
+  assert.equal(r.body.code,'ARVENT_EXTRAS_PRICE_UNVERIFIED',reason);
+  assert.match(r.body.error,/pełnej ceny oferty/,reason);
+ }
+});
 test('Arvent extras endpoint downtime never fabricates extras nor breaks vehicle-only price',async()=>{
  const r=await setup({offerError:'PARTNER_API_ERROR:HTTP:503'}).call({});
  assert.equal(r.status,200);
