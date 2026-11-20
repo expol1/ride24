@@ -14,7 +14,7 @@ const durationSource=await readFile(new URL("../../supabase/functions/_shared/re
 const durationCompiled=ts.transpileModule(durationSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const durationSandbox={exports:{}};vm.runInNewContext(durationCompiled,durationSandbox);
 
-function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,supplierDays=null,extrasDays=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,savedReservationExtras=null,save401=false,cancelResponse=null}={}){
+function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,supplierDays=null,extrasDays=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,savedReservationExtras=null,savedGetAgencyRef=null,save401=false,cancelResponse=null}={}){
  const calls=[];
  let cancellationClaimed=false;
  const transport={
@@ -53,6 +53,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
      agencyReservationReference:"R24-XYZ",reservationStatusType:0}};
    if(path.startsWith("/reservations?"))return {success:true,resultCode:0,
     data:{reservationNumber:savedRef,sippCode:savedSipp,reservationStatusType:savedStatus,
+     ...(savedGetAgencyRef!==null?{agencyReservationReference:savedGetAgencyRef}:{}),
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
      reservationExtras:savedReservationExtras,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
@@ -69,7 +70,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    eq(){return this;},limit(){return this;},
    async maybeSingle(){return {data:table==="api_quotes"?
     {external_group_id:"CDAR",pickup_location_external_id:"9",dropoff_location_external_id:"9"}:
-    {client_email:"synthetic@example.invalid",partner_currency:"EUR",
+    {reservation_code:"R24-XYZ",client_email:"synthetic@example.invalid",partner_currency:"EUR",
      partner_net_price_snapshot:100,api_quote_id:"10000000-0000-4000-8000-000000000001",
      start_date:"2030-12-16",end_date:"2030-12-17",pickup_time:"10:00:00",return_time:"10:00:00"},
     error:null};}
@@ -300,6 +301,27 @@ test("changed saved SIPP cannot confirm in either adapter path",async()=>{
    assert.equal(result.needs_manual_review,true);
   }
  }
+});
+test("Arvent status 1 cannot confirm a different Ride24 agency reference, despite matching amount and route",async()=>{
+ const ok=await setup({savedStatus:1,savedGetAgencyRef:"R24-XYZ"}).arventBookingStatus(creds,"A-1");
+ assert.equal(ok.status,"confirmed");
+ assert.equal(ok.agency_reference_verified,true);
+ const mismatch=await setup({savedStatus:1,savedGetAgencyRef:"R24-OTHER"}).arventBookingStatus(creds,"A-1");
+ assert.equal(mismatch.status,"pending");
+ assert.equal(mismatch.needs_manual_review,true);
+ assert.equal(mismatch.agency_reference_verified,false);
+ assert.equal(mismatch.terms_verified,false);
+});
+
+test("supplier status 3 with wrong agency reference is NOT enough to authorize an automatic refund",async()=>{
+ const a=setup({allowWrites:true,savedStatus:3,savedGetAgencyRef:"R24-OTHER"});
+ const s=await a.arventBookingStatus(creds,"A-1");
+ assert.equal(s.status,"cancelled");
+ assert.equal(s.needs_manual_review,true);
+ const cancelled=await a.arventCancelBooking(creds,"A-1");
+ assert.equal(cancelled.status,"cancelled");
+ assert.equal(cancelled.needs_manual_review,true);
+ assert.equal(a.calls.filter(x=>x.path.startsWith("/reservations/cancel?")).length,1);
 });
 test("different reservation number cannot confirm or trigger refund through polling",async()=>{
  for(const savedStatus of [1,3])
