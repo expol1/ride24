@@ -112,3 +112,17 @@ export function arventOptionsSnapshot({rentalCents,ride24FeeCents,extraQuote,day
   throw Error("ARVENT_PRICE_SNAPSHOT_MISMATCH");
  return {version:2,currency:"EUR",items,...totals};
 }
+
+export function arventReceiptExtrasMatch(receipt,expected) {
+ if(!Array.isArray(expected)||expected.length>20)return false;
+ if(expected.length===0)return true;
+ if(!Array.isArray(receipt) || receipt.length>250)return false;
+ const seen=new Map();
+ for(const item of receipt) {
+  const code=item && typeof item==="object" ? String(item.code??item.extraCode??"").trim() : "";
+  const qty=Number(item?.piece??item?.quantity??item?.extraQuantity);
+  if(!code || !Number.isInteger(qty) || qty<1 || seen.has(code))return false;
+  seen.set(code,qty);
+ }
+ return expected.every(x=>seen.get(x.code)===x.quantity);
+}
