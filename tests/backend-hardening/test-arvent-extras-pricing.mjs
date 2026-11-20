@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {arventBillingMode,arventPricedExtrasCatalog,arventSelectedExtrasQuote,arventBookingTotals}
+import {arventBillingMode,arventPricedExtrasCatalog,arventSelectedExtrasQuote,arventBookingTotals,arventReceiptExtrasMatch}
  from '../../supabase/functions/_shared/arvent-extras-pricing.mjs';
 
 const extras=[
@@ -66,4 +66,14 @@ test('Arvent mandatory services are added automatically; unknown price blocks pa
  assert.throws(()=>arventSelectedExtrasQuote({items:[{code:'2',name:'Ek Sürücü',price_eur:0,
   billing_type:'rental',quantity_increasable:false,required:true}],
   selections:[],certified:true,billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
+});
+
+test('Arvent voucher stays pending until supplier confirms every requested code and quantity',()=>{
+ const selected=[{code:'2',quantity:1},{code:'6',quantity:2}];
+ assert.equal(arventReceiptExtrasMatch(undefined,selected),false);
+ assert.equal(arventReceiptExtrasMatch([{code:'2',piece:1}],selected),false);
+ assert.equal(arventReceiptExtrasMatch([{code:'2',piece:1},{code:'6',piece:1}],selected),false);
+ assert.equal(arventReceiptExtrasMatch([{code:'2',piece:1},{code:'6',piece:2}],selected),true);
+ assert.equal(arventReceiptExtrasMatch([{code:'2',piece:1},{code:'6',piece:2},{code:'6',piece:2}],selected),false);
+ assert.equal(arventReceiptExtrasMatch(undefined,[]),true);
 });
