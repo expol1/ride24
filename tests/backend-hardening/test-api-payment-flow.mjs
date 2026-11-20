@@ -125,6 +125,20 @@ test('Arvent still 0 inside the 24h window (incl. overnight): keeps waiting, no 
   assert.equal(s.row.state,'provider_pending');assert.deepEqual(s.calls,['status']);
  }
 });
+test('Arvent at 24h: supplier approval needing manual review must not be auto-cancelled or refunded',async()=>{
+ for(const supplierStatus of ['confirmed','pending','rejected']){
+  const s=setup({row:arventRow(24*H+60000),status:{
+   status:supplierStatus,booking_reference:'A-1',needs_manual_review:true,
+   ...(supplierStatus==='rejected'?{definitive_rejection:true}:{})
+  }});
+  await advanceApiPayment(s.deps,'b');
+  assert.equal(s.row.state,'unknown');
+  assert.equal(s.row.last_error,'ARVENT_RECONCILIATION_REQUIRED');
+  assert.ok(!s.calls.includes('cancel'));
+  assert.ok(!s.calls.includes('refund'));
+  assert.ok(!s.calls.includes('voucher-email-push'));
+ }
+});
 test('Arvent 0 for 24h: cancel claimed, status 3 confirmed, then full Stripe refund',async()=>{
  const s=setup({row:late});
  await advanceApiPayment(s.deps,'b');
