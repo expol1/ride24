@@ -58,6 +58,8 @@ export function arventSelectedExtrasQuote({
   // A mandatory item is included even when the customer did not select it.
   for(const item of catalog){
     if(item.required){
+      if(item.code==="2" && !additionalDriverId)
+        throw Error("ARVENT_EXTRA_DRIVER_SELECTION_MISMATCH");
       if(!item.bookable && item.price_eur!==0)throw Error("ARVENT_REQUIRED_EXTRA_UNPRICED");
       if(!chosen.has(item.code))chosen.set(item.code,1);
     }
