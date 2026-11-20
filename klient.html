@@ -3171,11 +3171,9 @@ document.addEventListener("click", async function(e) {
            if (extrasInfo) extrasInfo.hidden = !on;
            if (licence) licence.readOnly = !!on;
            if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
-           if (price && docs) {
-               // Arvent: price summary before the documents and the consent.
-               if (on && price.nextElementSibling !== docs) docs.before(price);
-               if (!on && docs.nextElementSibling !== price) docs.after(price);
-           }
+           // Same order as every standard Ride24 booking: documents, price, consent.
+           // Also restores order when reopening after an older Arvent form.
+           if (price && docs && docs.nextElementSibling !== price) docs.after(price);
            if (btn) {
                btn.dataset.pl = on ? "Potwierdzam i przechodzę do płatności Ride24" : "Potwierdzam i rezerwuję";
                btn.dataset.en = on ? "Confirm and continue to Ride24 payment" : "Confirm & Book";
@@ -5522,7 +5520,7 @@ window.closeReviewModal = function() {
                 <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
-                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#92400E" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>
+                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#64748B" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>
                 </div>
             </div>
 
