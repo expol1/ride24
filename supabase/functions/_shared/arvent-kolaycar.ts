@@ -159,7 +159,9 @@ export async function arventReadOfferExtras(c:PartnerApiCredentials,input:Search
    pickupDate:priced.pickupDateTime,returnDate:priced.returnDateTime,
   },input))
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
- arventAssertVehicleOnlyExtrasSafe((data as any).extras);
+ // Do not decide mandatory-item billing here. The Arvent-only booking
+ // options route applies the certified billing map to the offer-bound items.
+ // A vehicle-only SaveReservation still rejects unpriced mandatory items.
  const items=arventOfferExtrasRows((data as any).extras);
  return {status:items.length?"present":"none",items};
 }
