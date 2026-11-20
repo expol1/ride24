@@ -52,6 +52,10 @@ export type CaravelQuoteRow = {
   id: string; partner_id: string; car_class_id: string; external_quote_reference: string;
   partner_net_total: number | string; commission_total: number | string; final_total: number | string;
   currency: string; expires_at: string; start_date: string; end_date: string;
+  // Existing, persisted columns of public.api_quotes. Type metadata only:
+  // the consent-view logic and all supplier charges remain unchanged.
+  pickup_location_external_id?: string | null;
+  dropoff_location_external_id?: string | null;
   booking_id?: string | null; used_at?: string | null; raw_response: unknown;
 };
 
