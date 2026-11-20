@@ -3188,8 +3188,18 @@ document.addEventListener("click", async function(e) {
                equipmentHeading.textContent = isEn ? equipmentHeading.dataset.en : equipmentHeading.dataset.pl;
            }
            if (licence) licence.readOnly = !!on;
-           if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; window.r24ArventExtraDriverAllowed = false; }
-           else if (addSelect && !on) addSelect.disabled = false;
+           if (addSelect && on) {
+               // Preserve the prior supplier's dropdown state; never globally
+               // enable a field that AVIA/Caravel/local forms disabled.
+               if (!Object.hasOwn(addSelect.dataset, "r24ArventPriorDisabled"))
+                   addSelect.dataset.r24ArventPriorDisabled = addSelect.disabled ? "true" : "false";
+               addSelect.value = "none";
+               addSelect.disabled = true;
+               window.r24ArventExtraDriverAllowed = false;
+           } else if (addSelect && !on && Object.hasOwn(addSelect.dataset, "r24ArventPriorDisabled")) {
+               addSelect.disabled = addSelect.dataset.r24ArventPriorDisabled === "true";
+               delete addSelect.dataset.r24ArventPriorDisabled;
+           }
            // Same order as every standard Ride24 booking: documents, price, consent.
            // Also restores order when reopening after an older Arvent form.
            if (price && docs && docs.nextElementSibling !== price) docs.after(price);
