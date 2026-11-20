@@ -19,17 +19,30 @@ const duration=durationSandbox.exports;
 function setup({quote={},rate=4.2345,loyalty=0,rateFails=false,offerError=null}={}){
  let handler;const calls=[];
  const q={id:QUOTE,partner_id:ARVENT,car_class_id:'car',booking_id:null,start_date:'2026-12-10',end_date:'2026-12-13',
-  partner_net_total:84.75,commission_total:3.39,final_total:88.14,currency:'EUR',expires_at:new Date(Date.now()+600000).toISOString(),
+  external_group_id:'EDMR',partner_net_total:84.75,commission_total:3.39,final_total:88.14,currency:'EUR',expires_at:new Date(Date.now()+600000).toISOString(),
   raw_response:{ride24_display:{class_code:'A',group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},ride24_context:{version:1,pickup_time:'10:00:00',return_time:'10:00:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)'},provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'123',sipp:'EDMR',total_amount:84.75}},pickup_location_external_id:'12',dropoff_location_external_id:'12',...quote};
  const admin={
-  from(table){const b={select(){return b;},eq(){return b;},
+  from(table){let selectedColumns=null;const b={select(columns){selectedColumns=columns;return b;},eq(){return b;},
    async single(){return {data:{id:'car',partner_id:ARVENT,active:true,allowed_location_ids:null,min_driver_age:null,driver_included:false,
      partners:{id:ARVENT,active:true,account_status:'active',currency:'EUR',provider_type:'api',api_provider:'arvent_kolaycar',min_rental_days:3,min_driver_age:21,max_driver_age:null}},error:null};},
-   async maybeSingle(){return table==='api_quotes'?{data:q,error:null}:{data:{age:40},error:null};}};return b;},
+   async maybeSingle(){
+    if(table==='api_quotes'){
+      // Simulate Supabase/PostgREST column projection: an omitted field
+      // MUST be absent from the returned row, not silently supplied by the fixture.
+      const columns=String(selectedColumns||'').split(',').map(x=>x.trim());
+      const data=Object.fromEntries(columns.filter(k=>Object.hasOwn(q,k)).map(k=>[k,q[k]]));
+      return {data,error:null};
+    }
+    return {data:{age:40},error:null};
+   }};return b;},
   async rpc(name){calls.push(name);return {data:loyalty,error:null};},
  };
  const require=n=>{
-  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}],readArventOfferExtras:async()=>{if(offerError)throw Error(offerError);return {status:'present',items:[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]};}};
+  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}],readArventOfferExtras:async(_admin,_partnerId,selectedQuote)=>{
+   if(offerError)throw Error(offerError);
+   if(!selectedQuote.external_group_id || selectedQuote.external_group_id!==selectedQuote.raw_response?.provider_quote_data?.sipp)
+     throw Error('PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED');
+   return {status:'present',items:[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]};}};
   if(n.includes('driver-age'))return driverAge;
   if(n.includes('http/server'))return {serve:f=>handler=f};
   if(n.includes('ride24-security'))return {authenticatedUser:async()=>({id:'user-1'}),corsHeaders:()=>({}),enforceRateLimit:async()=>{},
@@ -86,7 +99,7 @@ test('selected extras are refused for Arvent',async()=>{
  assert.equal(r.body.code,'ARVENT_EXTRAS_UNAVAILABLE');
 });
 test('expired, used or foreign quote blocks the summary and asks for a new search',async()=>{
- for(const quote of [{expires_at:new Date(Date.now()-1000).toISOString()},{booking_id:'b'},{used_at:new Date().toISOString()},{currency:'USD'},{car_class_id:'other'},{start_date:'2026-12-11'}]){
+ for(const quote of [{expires_at:new Date(Date.now()-1000).toISOString()},{booking_id:'b'},{used_at:new Date().toISOString()},{currency:'USD'},{car_class_id:'other'},{start_date:'2026-12-11'},{external_group_id:'XFAD'}]){
   const r=await setup({quote}).call({});
   assert.equal(r.status,409);assert.equal(r.body.code,'QUOTE_EXPIRED');
  }
