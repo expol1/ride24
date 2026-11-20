@@ -248,7 +248,11 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
  return {...status,status:status.status==="confirmed"&&!confirmed?"pending":status.status,
-  needs_manual_review:status.needs_manual_review||agencyMismatch||(status.status==="confirmed"&&!confirmed),
+  // A cancelled booking can trigger an irreversible customer refund.
+  // Verify its EUR amount, route, SIPP, deposit, agency reference and extras
+  // with the same rigor as an approved booking before automated processing.
+  needs_manual_review:status.needs_manual_review||agencyMismatch
+    ||((status.status==="confirmed"||status.status==="cancelled")&&!verified),
   // Not returned is "unknown", never misreported as a verified match.
   agency_reference_verified:supplierAgency?(!agencyMismatch):null,
   // Money, EUR, zero deposit/card hold, unlimited km, route, times and SIPP
