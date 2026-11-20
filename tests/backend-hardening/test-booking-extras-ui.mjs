@@ -196,7 +196,7 @@ test('Arvent shows the standard confirmation layout without a misleading extras 
   assert.equal(callout.style.display, 'none');
   assert.equal(callout.style.getPropertyPriority('display'), 'important');
   assert.equal(info.hidden, false);
-  assert.equal(price.nextElementSibling, docs);
+  assert.equal(docs.nextElementSibling, price);
   assert.match(info.textContent, /brak możliwości zamówienia online/);
 
   // Repeat mode switch and then open a non-Arvent/local booking.
