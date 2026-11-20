@@ -1,6 +1,7 @@
 import { aggregatorAvailability, aggregatorQuoteOptions, aggregatorBook, aggregatorStatus } from './renteon-aggregator.ts';
 import { arventSearch, arventCreateBooking, arventBookingStatus, arventCancelBooking } from './arvent-kolaycar.ts';
 import { arventLicenseEligible } from './arvent-driver-eligibility.mjs';
+import { arventLeadTimeAllowed } from './arvent-kolaycar-contract.mjs';
 import { selectedServices, serviceCents } from './provider-services.mjs';
 import { DefiniteApiFailure } from './api-payment-flow.mjs';
 import { caravelPaidFulfillmentApproved, revalidatePaidCaravel, createPaidCaravel, readPaidCaravelStatus } from './caravel-paid-fulfillment.ts';
@@ -75,6 +76,10 @@ export async function revalidatePaidProvider(credentials:any,booking:any,quote:a
 async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  if(booking.cancelled_at||['cancelled','rejected','expired','payment_expired'].includes(booking.status))
   fail('CANCELLED_BEFORE_DISPATCH');
+ // Minimum 47h before pickup (Turkey time) at checkout and again before
+ // SaveReservation. A paid booking past the limit is refunded, never sent.
+ if(!arventLeadTimeAllowed(booking.start_date,String(booking.pickup_time||'').slice(0,5)))
+  fail('ARVENT_MIN_LEAD_TIME');
  if(!quote||quote.booking_id!==booking.id||quote.partner_id!==booking.partner_id
    ||quote.car_class_id!==booking.car_class_id||booking.api_quote_id!==quote.id
    ||quote.start_date!==booking.start_date||quote.end_date!==booking.end_date)

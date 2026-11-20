@@ -77,38 +77,95 @@ test('definite Arvent failure before save qualifies for full refund, ambiguous t
  }
 });
 
-const late={state:'provider_pending',provider_reference:'A-1',
- paid_at:new Date(Date.now()-25*3600000).toISOString(),
- prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2030-06-01',pickup_time:'10:00'}};
-test('Arvent not approved within 30 minutes: cancelled at supplier first, then full refund',async()=>{
+const H=3600000;
+const arventRow=(receivedAgoMs,extra={})=>({state:'provider_pending',provider_reference:'A-1',
+ paid_at:new Date(Date.now()-receivedAgoMs-60000).toISOString(),
+ supplier_received_at:new Date(Date.now()-receivedAgoMs).toISOString(),
+ supplier_deadline_at:new Date(Date.now()-receivedAgoMs+24*H).toISOString(),
+ prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2030-06-01',pickup_time:'10:00'},...extra});
+const late=arventRow(24*H+60000);
+
+test('Arvent 0 -> 1 after 2 minutes: confirmed and voucher at once, no cancel',async()=>{
+ const s=setup({row:arventRow(2*60000),status:{status:'confirmed',booking_reference:'A-1'}});
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'confirmed');assert.deepEqual(s.calls,['status','voucher-email-push']);
+});
+test('Arvent 0 -> 1 after 15 hours: confirmed and voucher, no cancel',async()=>{
+ const s=setup({row:arventRow(15*H),status:{status:'confirmed',booking_reference:'A-1'}});
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'confirmed');assert.ok(!s.calls.includes('cancel'));assert.ok(!s.calls.includes('refund'));
+});
+test('Arvent still 0 inside the 24h window (incl. overnight): keeps waiting, no premature cancel',async()=>{
+ for(const ago of [60000,8*H,23*H+59*60000]){
+  const s=setup({row:arventRow(ago)});
+  await advanceApiPayment(s.deps,'b');
+  assert.equal(s.row.state,'provider_pending');assert.deepEqual(s.calls,['status']);
+ }
+});
+test('Arvent 0 for 24h: cancel claimed, status 3 confirmed, then full Stripe refund',async()=>{
  const s=setup({row:late});
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'refund_pending');assert.equal(s.row.last_error,'ARVENT_APPROVAL_TIMEOUT');
  assert.deepEqual(s.calls,['status','cancel']);
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'refunded');assert.ok(s.calls.includes('refund'));assert.ok(!s.calls.includes('create'));
+ assert.ok(!s.calls.includes('voucher-email-push'));
 });
-test('Arvent timeout without confirmed supplier cancellation never refunds',async()=>{
+test('Arvent timeout with API error or unconfirmed cancellation: urgent review, never a blind refund',async()=>{
  for(const opt of [{cancel:{status:'pending',booking_reference:'A-1',needs_manual_review:true}},{cancelError:Error('timeout')}]){
   const s=setup({row:late,...opt});
   await advanceApiPayment(s.deps,'b');
   assert.equal(s.row.state,'unknown');assert.equal(s.row.last_error,'ARVENT_TIMEOUT_CANCEL_UNCONFIRMED');
-  assert.ok(!s.calls.includes('refund'));
+  await advanceApiPayment(s.deps,'b');
+  assert.equal(s.row.state,'unknown');assert.ok(!s.calls.includes('refund'));assert.ok(!s.calls.includes('voucher-email-push'));
  }
 });
-test('Arvent approval read at the deadline still confirms instead of cancelling',async()=>{
- const s=setup({row:late,status:{status:'confirmed',booking_reference:'A-1'}});
+test('Arvent status 1 read exactly at the 24h boundary still confirms instead of cancelling',async()=>{
+ const s=setup({row:arventRow(24*H),status:{status:'confirmed',booking_reference:'A-1'}});
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'confirmed');assert.ok(!s.calls.includes('cancel'));
 });
-test('Arvent approval deadline is 30 minutes after payment, but at least 2h before local pickup',()=>{
- const paid='2026-11-19T14:40:00Z';
- assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2027-02-16',pickup_time:'10:00:00'}}),Date.parse('2026-11-19T15:10:00Z'));
- assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2026-11-19',pickup_time:'19:00'}}),Date.parse('2026-11-19T14:00:00Z'));
- assert.equal(arventApprovalDeadline({paid_at:paid,prepared_quote:{provider:'renteon_aggregator'}}),null);
+test('Arvent: two workers at the deadline never both confirm and refund',async()=>{
+ // Worker A claims the cancellation; worker B then sees status 1 but must not confirm.
+ const s=setup({row:late});
+ let release;const gate=new Promise(r=>release=r);
+ s.deps.cancel=async()=>{s.calls.push('cancel');await gate;return {status:'cancelled',booking_reference:'A-1'};};
+ const a=advanceApiPayment(s.deps,'b');
+ await new Promise(r=>setTimeout(r,5));
+ s.deps.status=async()=>{s.calls.push('status');return {status:'confirmed',booking_reference:'A-1'};};
+ const b=advanceApiPayment(s.deps,'b');
+ await new Promise(r=>setTimeout(r,5));release();
+ await Promise.all([a,b]);
+ assert.equal(s.row.state,'refund_pending');
+ assert.ok(!s.calls.includes('voucher-email-push'));
+});
+test('Arvent receipt time and 24h deadline are persisted when the supplier first accepts (status 0)',async()=>{
+ const s=setup({result:{status:'pending',booking_reference:'A-9'}});
+ s.deps.revalidate=async()=>({provider:'arvent_kolaycar',pickup_date:'2030-06-01',pickup_time:'10:00'});
+ s.deps.claimDispatch=async(_id,prepared)=>{s.row.state='dispatching';s.row.prepared_quote=prepared;return structuredClone(s.row);};
+ const before=Date.now();
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'provider_pending');
+ const received=Date.parse(s.row.supplier_received_at),deadline=Date.parse(s.row.supplier_deadline_at);
+ assert.ok(received>=before&&received<=Date.now());
+ assert.equal(deadline-received,24*H);
+});
+test('Arvent 24h deadline counts from supplier receipt and never later than 2h before pickup',()=>{
+ const q={provider:'arvent_kolaycar',pickup_date:'2027-02-16',pickup_time:'10:00:00'};
+ assert.equal(arventApprovalDeadline({paid_at:'2026-11-19T14:00:00Z',supplier_received_at:'2026-11-19T14:40:00Z',prepared_quote:q}),Date.parse('2026-11-20T14:40:00Z'));
+ assert.equal(arventApprovalDeadline({supplier_deadline_at:'2026-11-20T14:40:00Z',prepared_quote:q}),Date.parse('2026-11-20T14:40:00Z'));
+ assert.equal(arventApprovalDeadline({supplier_received_at:'2026-11-19T14:40:00Z',prepared_quote:{...q,pickup_date:'2026-11-20',pickup_time:'12:00'}}),Date.parse('2026-11-20T07:00:00Z'));
+ assert.equal(arventApprovalDeadline({paid_at:'2026-11-19T14:40:00Z',prepared_quote:{provider:'renteon_aggregator'}}),null);
 });
 test('other providers never use the Arvent approval timeout',async()=>{
  const s=setup({row:{...late,prepared_quote:{provider:'renteon_aggregator'}}});
  await advanceApiPayment(s.deps,'b');
  assert.ok(!s.calls.includes('cancel'));assert.equal(s.row.state,'provider_pending');
+});
+
+test('Arvent: a confirmed (API or audited manual) booking is never cancelled by the 24h timeout',async()=>{
+ const s=setup({row:{...late,state:'confirmed',provider_response:{manual_confirmation:{by:'admin'}}}});
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'confirmed');assert.ok(!s.calls.includes('cancel'));assert.ok(!s.calls.includes('refund'));
+ assert.deepEqual(s.calls,['voucher-email-push']);
 });

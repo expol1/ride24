@@ -5,7 +5,7 @@ import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
  arventLocationRows, arventGroupRows, arventOfferRows,
  arventOfferMatchesTerms, arventReservationStatus, arventSavePayload, arventSavedRouteMatches,
- arventSubmissionAllowed,
+ arventLeadTimeAllowed,
 } from "./arvent-kolaycar-contract.mjs";
 
 type SearchInput={
@@ -103,10 +103,10 @@ function searchPath(input:SearchInput):string {
  });
 }
 export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Promise<ApiVehicleGroup[]>{
- // Same-day pickup outside 10:00-17:00 Turkey time: no offers. The same
- // search runs again before SaveReservation, so a paid booking that crosses
- // the window is refunded before anything is sent to Arvent.
- if(!arventSubmissionAllowed(input.pickup_date))return [];
+ // Less than 47h before pickup: no offers. The same search runs again before
+ // SaveReservation, so a paid booking that crosses the limit is refunded
+ // before anything is sent to Arvent.
+ if(!arventLeadTimeAllowed(input.pickup_date,input.pickup_time))return [];
  const response=await request(c,searchPath(input));
  return arventOfferRows(response,{...input,currency:"EUR"}) as ApiVehicleGroup[];
 }
@@ -173,6 +173,9 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
  const confirmed=status.status==="confirmed"&&verified;
  return {...status,status:status.status==="confirmed"&&!confirmed?"pending":status.status,
   needs_manual_review:status.needs_manual_review||(status.status==="confirmed"&&!confirmed),
+  // Money, EUR, zero deposit/card hold, unlimited km, route, times and SIPP
+  // match the paid booking (independent of the supplier status code).
+  terms_verified:verified===true,
   provider_payload:statusEvidence(d)};
 }
 // Supplier documentation only supports GET /reservations by supplier
@@ -199,8 +202,8 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   throw Error("PARTNER_API_ERROR:ARVENT_PRICING_OR_EXTRAS_UNSUPPORTED");
  if(!input.vehicle_group_id||!input.main_driver?.name||!input.client_email||!input.client_phone)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
- if(!arventSubmissionAllowed(input.pickup_date))
-  throw Error("PARTNER_API_ERROR:ARVENT_SAME_DAY_SUBMISSION_CLOSED");
+ if(!arventLeadTimeAllowed(input.pickup_date,input.pickup_time))
+  throw Error("PARTNER_API_ERROR:ARVENT_MIN_LEAD_TIME");
  const quote=input.provider_quote_data as Record<string,unknown>|null;
  // Ride24 sells ACRISS/SIPP groups like AVIA. Keep the chosen supplier
  // vehicleId only in the private quote payload; never present it as a category.

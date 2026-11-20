@@ -3,6 +3,7 @@ import {isCaravelBooking} from "../_shared/caravel-production-hold.mjs";
 import {loadCaravelRelease, type CaravelRelease} from "../_shared/caravel-release.ts";
 import {caravelFeeLabel} from "../_shared/caravel-fee-label.ts";
 import {searchCaravelOffers} from "../_shared/caravel-search.ts";
+import {arventLeadTimeAllowed,ARVENT_MIN_LEAD_HOURS,ARVENT_MIN_LEAD_MESSAGE} from "../_shared/arvent-kolaycar-contract.mjs";
 import {caravelProductionReadClient} from "../_shared/caravel-paid-fulfillment.ts";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 import {
@@ -1061,6 +1062,16 @@ serve(async (req) => {
     const quoteBudget: QuoteBudget = { remaining: MAX_RESULTS_PER_SEARCH };
     const providerErrors: Array<{ partner_id: string; code: string }> = [];
     const unavailableNotices: Record<string, unknown>[] = [];
+    // Arvent sells only >= 47h before pickup: explain instead of showing nothing.
+    for (const [partnerId, location] of uniquePartners) {
+      if (location.partners.api_provider === "arvent_kolaycar"
+        && !arventLeadTimeAllowed(pickupDate.text, pickupTime)) {
+        uniquePartners.delete(partnerId);
+        unavailableNotices.push({ partner_id: partnerId, provider: "arvent_kolaycar",
+          reasons: ["min_lead_time"], min_lead_hours: ARVENT_MIN_LEAD_HOURS,
+          message_pl: ARVENT_MIN_LEAD_MESSAGE.pl, message_en: ARVENT_MIN_LEAD_MESSAGE.en });
+      }
+    }
     const partnerResults = await mapConcurrent(
       [...uniquePartners.values()],
       MAX_PROVIDER_CONCURRENCY,
