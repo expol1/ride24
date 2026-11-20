@@ -919,6 +919,10 @@ let query = db
                     // Caravel's actual answer wins over the generic hints above.
                     const caravelReason = apiUnavailable.map(n => caravelUnavailableText(n, lang)).filter(Boolean).join("<br>");
                     if (caravelReason) suggestion = caravelReason;
+                    // Arvent: bookable only >= 47h before pickup (message comes from the server).
+                    const arventReason = apiUnavailable.filter(n => n?.provider === "arvent_kolaycar")
+                        .map(n => escapeHtmlValue(lang === 'pl' ? n.message_pl : n.message_en)).filter(Boolean)[0];
+                    if (arventReason) suggestion = arventReason;
 
                     container.innerHTML = `
                         <div style="text-align:center; color:white; padding:50px; background: rgba(0,0,0,0.4); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">

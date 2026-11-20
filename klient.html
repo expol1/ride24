@@ -2763,6 +2763,11 @@ const res = await fetch(supabaseUrl + "/functions/v1/create_checkout_session", {
     console.error("❌ BRAK URL:", data);
     window.ride24PaymentRedirect?.(false);
     const offerChanged = data?.error === "ARVENT_QUOTE_UNVERIFIED" || data?.error === "QUOTE_EXPIRED";
+    if (data?.reason === "ARVENT_MIN_LEAD_TIME") {
+      alert(isEn ? "Arvent reservations are available no later than 47 hours before the planned pickup. Please choose a later date."
+                 : "Rezerwacje Arvent są dostępne najpóźniej 47 godzin przed planowanym odbiorem samochodu. Wybierz późniejszy termin.");
+      return false;
+    }
     alert(offerChanged
       ? (isEn ? "The supplier's offer has changed or expired. Nothing was charged. Please search again."
               : "Oferta dostawcy zmieniła się lub wygasła. Nic nie zostało pobrane. Wyszukaj ponownie.")
@@ -3571,6 +3576,8 @@ document.addEventListener("click", async function(e) {
     return_location,
     status,
     partner_response_deadline,
+    supplier_confirmation_deadline,
+    refund_reason,
     payment_deadline,
     api_status,
     vehicle_snapshot,
@@ -3590,7 +3597,7 @@ refund_completed_at,
     car_classes (
         class_code,
         description,
-        partners (currency)
+        partners (currency, api_provider)
     )
 `)
                  .eq("client_id", currentUser.id)
@@ -3681,6 +3688,12 @@ if (badge) {
                     // Paid API booking still waiting for the rental company's approval.
                     const awaitingSupplier = booking.status === 'pending'
                         && ['payment_provider_pending', 'payment_unknown'].includes(booking.api_status);
+                    // Arvent-only presentation (other partners keep their existing statuses).
+                    const isArvent = booking.car_classes?.partners?.api_provider === 'arvent_kolaycar';
+                    const arventWaiting = isArvent && booking.status === 'pending' && booking.api_status === 'payment_provider_pending';
+                    const arventReview = isArvent && booking.status === 'pending' && booking.api_status === 'payment_unknown';
+                    const arventRefund = isArvent && ['rejected', 'expired'].includes(booking.status)
+                        && ['pending', 'completed', 'failed'].includes(booking.refund_status);
 
                     // 🔥 FIX 4: Zmienne ładujące dane prosto z zagnieżdżonych relacji
                     const finalPrice = booking.final_price_snapshot || 0;
@@ -3690,7 +3703,16 @@ if (badge) {
 
 
 // --- DYNAMICZNE STATUSY (PREMIUM TILES) ---
-if (awaitingSupplier) {
+if (arventWaiting) {
+    statusHtml = `<div class="status-tile pending" data-pl="⏳ Oczekuje na potwierdzenie partnera" data-en="⏳ Awaiting partner confirmation">⏳ ${isEn ? 'Awaiting partner confirmation' : 'Oczekuje na potwierdzenie partnera'}</div>`;
+}
+else if (arventReview) {
+    statusHtml = `<div class="status-tile awaiting_payment" data-pl="🔎 Wymaga weryfikacji" data-en="🔎 Under review">🔎 ${isEn ? 'Under review' : 'Wymaga weryfikacji'}</div>`;
+}
+else if (arventRefund) {
+    statusHtml = `<div class="status-tile cancelled" data-pl="🚫 Anulowana – zwrot płatności" data-en="🚫 Cancelled – payment refunded">🚫 ${isEn ? 'Cancelled – payment refunded' : 'Anulowana – zwrot płatności'}</div>`;
+}
+else if (awaitingSupplier) {
     statusHtml = `<div class="status-tile pending" data-pl="💳 Opłacona – czeka na potwierdzenie" data-en="💳 Paid – awaiting confirmation">💳 ${isEn ? 'Paid – awaiting confirmation' : 'Opłacona – czeka na potwierdzenie'}</div>`;
 }
 else if (booking.status === 'pending') {
@@ -3721,7 +3743,31 @@ let actionsHtml = `<div style="display:flex;flex-direction:column;gap:8px; align
 
 const s = booking.status;
 
-if (awaitingSupplier) {
+if (arventWaiting) {
+    // Paid, not confirmed yet: no voucher. Countdown uses the server clock.
+    actionsHtml += `<span style="font-size:11px; color:var(--gray); max-width:240px;">${isEn
+        ? 'The rental company has received your booking. We are waiting for confirmation that the car is available. Once approved you will automatically receive the voucher.'
+        : 'Wypożyczalnia otrzymała Twoją rezerwację. Oczekujemy na potwierdzenie dostępności samochodu. Po zatwierdzeniu automatycznie otrzymasz voucher.'}</span>`;
+    actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;">${isEn ? 'Time left for confirmation:' : 'Pozostały czas na potwierdzenie:'}</span>`;
+    actionsHtml += `<span class="timer-badge supplier-timer" data-deadline="${booking.supplier_confirmation_deadline || ''}" style="font-size:13px; margin-top:0; color:var(--orange);">⌛ --:--:--</span>`;
+}
+else if (arventReview) {
+    actionsHtml += `<span style="font-size:11px; color:var(--gray); max-width:240px;">${isEn
+        ? 'We are clarifying the status of this booking with the rental company. Your payment is safe; Ride24 will contact you.'
+        : 'Wyjaśniamy status tej rezerwacji z wypożyczalnią. Twoja płatność jest bezpieczna – Ride24 skontaktuje się z Tobą.'}</span>`;
+}
+else if (arventRefund) {
+    const reason = booking.refund_reason === 'ARVENT_APPROVAL_TIMEOUT'
+        ? (isEn ? 'The rental company did not confirm the booking within 24 hours.' : 'Wypożyczalnia nie potwierdziła rezerwacji w ciągu 24 godzin.')
+        : (isEn ? 'The rental company could not provide the booking.' : 'Wypożyczalnia nie mogła zrealizować rezerwacji.');
+    const refund = booking.refund_status === 'completed'
+        ? (isEn ? 'Full refund completed to your original payment method.' : 'Pełny zwrot wykonany na pierwotną metodę płatności.')
+        : booking.refund_status === 'failed'
+        ? (isEn ? 'Refund needs manual handling – Ride24 will contact you.' : 'Zwrot wymaga ręcznej obsługi – Ride24 skontaktuje się z Tobą.')
+        : (isEn ? 'Full refund in progress.' : 'Pełny zwrot w toku.');
+    actionsHtml += `<span style="font-size:11px; color:var(--gray); max-width:240px;">${reason} ${refund}</span>`;
+}
+else if (awaitingSupplier) {
     // Paid: the supplier decides; an automatic full refund follows if it does not confirm in time.
     actionsHtml += `<span style="font-size:10px; color:var(--gray); font-weight:700; text-transform:uppercase;" data-pl="Potwierdzenie wypożyczalni do:" data-en="Rental company confirms by:">
         ${isEn ? 'Rental company confirms by:' : 'Potwierdzenie wypożyczalni do:'}
@@ -3893,6 +3939,33 @@ const endFull = `${booking.end_date} ${dropTimeClean}`;
 
                 if (dashboardAttentionIds.size === 0) {
                     dashTbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--gray); padding:24px;" data-pl="Nie masz nowych rezerwacji wymagających działania ani oczekujących na potwierdzenie partnera." data-en="No recent bookings need your action or are awaiting partner confirmation.">${isEn ? "No recent bookings need your action or are awaiting partner confirmation." : "Nie masz nowych rezerwacji wymagających działania ani oczekujących na potwierdzenie partnera."}</td></tr>`;
+                }
+
+                // --- ARVENT: 24h confirmation countdown on the SERVER clock ---
+                if (!window.supplierTimerRunning) {
+                    window.supplierTimerRunning = true;
+                    window.ride24ServerOffsetMs = 0;
+                    const syncClock = async () => {
+                        try {
+                            const t0 = Date.now();
+                            const { data } = await db.rpc('ride24_server_now');
+                            const server = Date.parse(data);
+                            if (Number.isFinite(server)) window.ride24ServerOffsetMs = server - (t0 + Date.now()) / 2;
+                        } catch (_) {}
+                    };
+                    syncClock(); setInterval(syncClock, 5 * 60 * 1000);
+                    setInterval(() => {
+                        const en = localStorage.getItem("client_lang") === "en";
+                        document.querySelectorAll('.supplier-timer').forEach(el => {
+                            const deadline = Date.parse(el.getAttribute('data-deadline') || '');
+                            if (!Number.isFinite(deadline)) { el.innerHTML = en ? "⌛ Starting…" : "⌛ Uruchamianie…"; return; }
+                            const diff = deadline - (Date.now() + window.ride24ServerOffsetMs);
+                            if (diff <= 0) { el.innerHTML = en ? "⌛ Checking with the rental company…" : "⌛ Sprawdzamy u wypożyczalni…"; return; }
+                            const h = Math.floor(diff / 3600000), m = Math.floor(diff % 3600000 / 60000), sec = Math.floor(diff % 60000 / 1000);
+                            const f = v => v < 10 ? '0' + v : v;
+                            el.innerHTML = '⌛ ' + f(h) + ':' + f(m) + ':' + f(sec);
+                        });
+                    }, 1000);
                 }
 
                 // --- SILNIK ODLICZANIA 24H DLA STATUSU PENDING ---
@@ -4983,9 +5056,24 @@ window.cancelBooking = async function(id, currentStatus) {
     // 1. Pobierz booking
     const { data: booking, error: bookingError } = await db
         .from("bookings")
-        .select("partner_id")
+        .select("partner_id, pickup_location_id, status")
         .eq("id", bookingId)
         .single();
+
+    // The guide is unlocked only for a confirmed, paid booking.
+    if (booking && booking.status !== "paid") {
+        window.showToast(isEn ? "The guide unlocks after the booking is confirmed." : "Autoprzewodnik będzie dostępny po potwierdzeniu rezerwacji.", "info");
+        return;
+    }
+    // Prefer the guide of the booked pickup location (multi-airport partners).
+    if (booking?.pickup_location_id) {
+        const { data: pickupLocation } = await db.from("partner_locations")
+            .select("guide_id").eq("id", booking.pickup_location_id).maybeSingle();
+        if (pickupLocation?.guide_id) {
+            const { data: g } = await db.from("travel_guides").select("folder_name").eq("id", pickupLocation.guide_id).maybeSingle();
+            if (g?.folder_name) { window.open(`/travel-guides/${g.folder_name}.html`, "_blank"); return; }
+        }
+    }
 
     if (bookingError || !booking) {
         window.showToast(

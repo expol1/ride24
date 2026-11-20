@@ -85,7 +85,9 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
  const w=await get();
  if(w?.state==='provider_pending')await one(admin.from('bookings').update({api_status:'payment_provider_pending',api_booking_reference:w.provider_reference,
    // Shown to the client as the supplier decision deadline (Arvent only).
-   ...(arventApprovalDeadline(w)!==null?{partner_response_deadline:new Date(arventApprovalDeadline(w)!).toISOString()}:{})}).eq('id',id).eq('status','pending').select('id'));
+   // Arvent: dedicated, client-readable 24h deadline. NOT partner_response_deadline,
+   // which auto_expire_bookings() uses to expire unpaid local-partner requests.
+   ...(arventApprovalDeadline(w)!==null?{supplier_confirmation_deadline:new Date(arventApprovalDeadline(w)!).toISOString()}:{})}).eq('id',id).eq('status','pending').select('id'));
  if(w?.state==='unknown') {
    await one(admin.from('api_booking_workflows').update({updated_at:new Date().toISOString()}).eq('booking_id',id).eq('state','unknown').select('booking_id'));
    await one(admin.from('bookings').update({manual_review:true,api_status:'payment_unknown',

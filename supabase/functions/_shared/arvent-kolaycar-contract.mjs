@@ -270,15 +270,21 @@ export function arventSavedRouteMatches(saved, expected) {
    &&end.time===endTime[1]+":"+endTime[2]);
 }
 
-// Arvent policy (2026-11-19): a reservation whose pickup is on the SAME
-// Turkish calendar day may only be submitted 10:00-17:00 Turkey time
-// (UTC+3, no DST). Pickup tomorrow or later: 24/7. Pickup service is 24/7.
-export function arventSubmissionAllowed(pickupDate,nowMs=Date.now()) {
- if(!/^\d{4}-\d{2}-\d{2}$/.test(String(pickupDate||"")))return false;
- const tr=new Date(nowMs+3*3600000);
- const today=tr.toISOString().slice(0,10);
- if(pickupDate>today)return true;
- if(pickupDate<today)return false;
- const minutes=tr.getUTCHours()*60+tr.getUTCMinutes();
- return minutes>=10*60&&minutes<17*60;
+// Arvent policy (2026-11-20): every new reservation needs at least 47 hours
+// between "now" and the pickup time (Europe/Istanbul, fixed UTC+3), checked on
+// search, before Stripe Checkout and immediately before SaveReservation.
+// Exactly 47h is allowed; 46h59m is not. Replaces the 10:00-17:00 same-day rule.
+export const ARVENT_MIN_LEAD_HOURS=47;
+export function arventPickupEpoch(pickupDate,pickupTime) {
+ const d=String(pickupDate||""),t=String(pickupTime||"");
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||!/^([01]\d|2[0-3]):[0-5]\d/.test(t))return NaN;
+ return Date.parse(d+"T"+t.slice(0,5)+":00+03:00");
 }
+export function arventLeadTimeAllowed(pickupDate,pickupTime,nowMs=Date.now()) {
+ const pickup=arventPickupEpoch(pickupDate,pickupTime);
+ return Number.isFinite(pickup)&&pickup-nowMs>=ARVENT_MIN_LEAD_HOURS*3600000;
+}
+export const ARVENT_MIN_LEAD_MESSAGE=Object.freeze({
+ pl:"Rezerwacje Arvent są dostępne najpóźniej 47 godzin przed planowanym odbiorem samochodu. Wybierz późniejszy termin.",
+ en:"Arvent reservations are available no later than 47 hours before the planned pickup. Please choose a later date.",
+});

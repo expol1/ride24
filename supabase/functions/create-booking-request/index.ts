@@ -1,5 +1,6 @@
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { arventLicenseYears } from "../_shared/arvent-driver-eligibility.mjs";
+import { arventLeadTimeAllowed, ARVENT_MIN_LEAD_MESSAGE } from "../_shared/arvent-kolaycar-contract.mjs";
 import {isCaravelBooking,CARAVEL_PRE_CERTIFICATION_ERROR} from "../_shared/caravel-production-hold.mjs";
 import { BookingOptionsError, assertAcceptedQuote, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, quoteChanged } from "../_shared/booking-options.mjs";
 import { assertApiOptionsQuote, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
@@ -1146,6 +1147,14 @@ serve(async (req) => {
       }
     }
     // Arvent reservations require the main driver's first name AND surname.
+    // Arvent: at least 47 hours between now and pickup (Turkey time).
+    if (isArventBooking && !arventLeadTimeAllowed(startDate.text, pickupTime)) {
+      return jsonResponse(req, {
+        code: "ARVENT_MIN_LEAD_TIME",
+        error: ARVENT_MIN_LEAD_MESSAGE.pl,
+        error_en: ARVENT_MIN_LEAD_MESSAGE.en,
+      }, 400);
+    }
     if (isArventBooking && String(mainDriverName || "").trim().split(/\s+/).length < 2) {
       return jsonResponse(req,{
         code:"ARVENT_DRIVER_SURNAME_REQUIRED",

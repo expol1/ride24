@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
  supplierData,arventDate,arventQuery,arventLocationRows,arventGroupRows,
  arventOfferMatchesTerms,arventOfferRows,arventReservationStatus,arventDateOfBirth,arventSavePayload,arventSavedRouteMatches,
- ARVENT_PATHS, ARVENT_INITIAL_AIRPORT_IATAS, arventSubmissionAllowed,
+ ARVENT_PATHS, ARVENT_INITIAL_AIRPORT_IATAS, arventLeadTimeAllowed,
 } from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 
 const ok=data=>({success:true,resultCode:0,data});
@@ -270,22 +270,21 @@ test("optional partner supplier note is forwarded as a single-line customer note
  assert.equal(noted.payment.paymentType,3);
 });
 
-test("same-day pickup may be submitted only 10:00-17:00 Turkey time; later dates 24/7",()=>{
- const at=iso=>Date.parse(iso);
- // 16:00 TR (13:00Z) same day, pickup 23:00: allowed.
- assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T13:00:00Z")),true);
- // 16:00 TR, pickup 01:00 tomorrow: allowed (different date).
- assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T13:00:00Z")),true);
- // 20:00 TR (17:00Z) same day: not allowed; tomorrow: allowed.
- assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T17:00:00Z")),false);
- assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T17:00:00Z")),true);
- // Boundaries: 09:59 no, 10:00 yes, 16:59 yes, 17:00 no (TR).
- assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T06:59:00Z")),false);
- assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T07:00:00Z")),true);
- assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T13:59:00Z")),true);
- assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T14:00:00Z")),false);
- // Turkish date rolls over at 21:00Z: 22:00Z on the 19th is already the 20th in TR.
- assert.equal(arventSubmissionAllowed("2026-11-20",at("2026-11-19T22:00:00Z")),false);
- assert.equal(arventSubmissionAllowed("2026-11-19",at("2026-11-19T22:00:00Z")),false);
- assert.equal(arventSubmissionAllowed("bad",at("2026-11-19T12:00:00Z")),false);
+test("Arvent minimum 47h lead time to pickup in Europe/Istanbul (UTC+3)",()=>{
+ const now=Date.parse("2026-11-20T09:00:00Z"); // 12:00 Turkey time
+ // Pickup 2026-11-22 11:00 TR = 08:00Z -> 47h exactly: allowed.
+ assert.equal(arventLeadTimeAllowed("2026-11-22","11:00",now),true);
+ // 48h: allowed.
+ assert.equal(arventLeadTimeAllowed("2026-11-22","12:00",now),true);
+ // 46h59m: blocked.
+ assert.equal(arventLeadTimeAllowed("2026-11-22","10:59",now),false);
+ // Today and tomorrow-too-soon: blocked.
+ assert.equal(arventLeadTimeAllowed("2026-11-20","23:00",now),false);
+ assert.equal(arventLeadTimeAllowed("2026-11-21","23:30",now),false);
+ // Seconds-accurate boundary at exactly 47h.
+ const pickup=Date.parse("2026-11-22T08:00:00Z");
+ assert.equal(arventLeadTimeAllowed("2026-11-22","11:00",pickup-47*3600000),true);
+ assert.equal(arventLeadTimeAllowed("2026-11-22","11:00",pickup-47*3600000+1000),false);
+ assert.equal(arventLeadTimeAllowed("bad","11:00",now),false);
+ assert.equal(arventLeadTimeAllowed("2026-11-22","",now),false);
 });

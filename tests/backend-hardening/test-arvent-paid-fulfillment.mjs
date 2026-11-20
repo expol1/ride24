@@ -1,3 +1,4 @@
+import * as arventContract from '../../supabase/functions/_shared/arvent-kolaycar-contract.mjs';
 import * as caravelHold from '../../supabase/functions/_shared/caravel-production-hold.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -51,7 +52,7 @@ function fixture(change=()=>{},flags={}){
  const require=n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow
   :n.includes('arvent-driver-eligibility')?license
   :n.includes('caravel-paid-fulfillment')?{caravelPaidFulfillmentApproved:()=>false}
-  :n.includes('arvent-kolaycar')?arvent:n.includes('renteon-aggregator')?renteon
+  :n.includes('arvent-kolaycar-contract')?arventContract:n.includes('arvent-kolaycar')?arvent:n.includes('renteon-aggregator')?renteon
   :(()=>{throw Error('Unexpected import: '+n)})();
  const sandbox={exports:{},require,console,
   Deno:{env:{get:key=>flags[key]===true?'true':undefined}}};
@@ -176,6 +177,7 @@ test('checkout handler admits a validated Arvent quote without a Renteon calcula
    if(name.includes('api-payment-runtime'))return {apiPaymentEnabled:async()=>true};
    if(name.includes('api-provider-fulfillment'))return {hasPaidFulfillmentAdapter:()=>true,
     revalidatePaidProvider:async()=>{calls.push('revalidate');return {};}};
+   if(name.includes('arvent-kolaycar-contract'))return arventContract;
    if(name.includes('arvent-kolaycar'))return {arventVerifyCheckout:async()=>{
     calls.push('extras');if(!verified)throw Error('unverified');}};
    if(name.includes('partner-api'))return {loadPartnerCredentials:async()=>({})};
