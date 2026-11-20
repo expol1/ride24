@@ -60,6 +60,13 @@ export async function advanceApiPayment(deps,id) {
       if(w.state==='provider_pending') {
         const current=await deps.status(id,w).catch(()=>null);
         if(current?.status==='confirmed'&&current.needs_manual_review!==true)return await acceptResult(current,'provider_pending');
+        if(current?.needs_manual_review===true){
+          // A supplier approval with mismatched price, route, extra or Ride24
+          // reference is not a request to cancel a potentially valid booking.
+          // Reconcile it manually before ANY cancellation or Stripe refund.
+          await move('provider_pending','unknown',{last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+          return {state:'unknown'};
+        }
         if(current?.status==='rejected'&&current.definitive_rejection===true)return await acceptResult(current,'provider_pending');
         w=await move('provider_pending','unknown',{last_error:'ARVENT_TIMEOUT_CANCELLING'});
         if(!w)return {skipped:true};
