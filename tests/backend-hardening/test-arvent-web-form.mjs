@@ -45,7 +45,7 @@ function setup({quote={},rate=4.2345,loyalty=0,rateFails=false,offerError=null,e
    if(offerError)throw Error(offerError);
    if(!selectedQuote.external_group_id || selectedQuote.external_group_id!==selectedQuote.raw_response?.provider_quote_data?.sipp)
      throw Error('PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED');
-   return {status:'present',items:offerItems||[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]};}};
+   return {status:'present',billed_days:3,items:offerItems||[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]};}};
   if(n.includes('arvent-extras-pricing.mjs'))return arventPricing;
   if(n.includes('driver-age'))return driverAge;
   if(n.includes('http/server'))return {serve:f=>handler=f};
@@ -168,6 +168,16 @@ test('free mandatory supplier equipment preserves the existing vehicle-only pric
  assert.equal(r.body.arvent.total,88.14);
  assert.equal(r.body.arvent.pay_on_pickup,84.75);
  assert.equal(s.getSavedQuote(),null);
+});
+test('Arvent prevents payment when daily supplier duration cannot be verified',async()=>{
+ const r=await setup({extraSettings:{arvent_extras_pricing_certified:true},
+   offerItems:[{code:'1',name:'GPS',price_eur:4,billing_type:'day',required:false,
+   quantity_increasable:false,kind:'other'}]})
+ .call({extras:[{id:'1',quantity:1}]});
+ // The mocked supplier supplies a three-day duration; daily add-on is safe.
+ assert.equal(r.status,200);
+ assert.equal(r.body.arvent.billed_days,3);
+ assert.equal(r.body.arvent.pay_on_pickup,96.75);
 });
 test('uncertified Arvent numeric supplier price cannot be selected or guessed',async()=>{
  const r=await setup({offerItems:[{code:'6',name:'Infant seat',price_eur:5,billing_type:'1',quantity_increasable:true,required:false,kind:'other'}]})
