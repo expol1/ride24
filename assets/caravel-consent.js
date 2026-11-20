@@ -86,6 +86,15 @@
         if (extra && extra.name) priceRow(extraName(extra.name, en) + (extra.quantity >= 1 && extra.extra_id !== state.driverService?.extra_id ? " × " + extra.quantity : ""), extra.amount);
       });
     }
+    if (state.view?.different_return_location) {
+      var oneWayFees = breakdown && Array.isArray(breakdown.fees) ? breakdown.fees.filter(function (fee) {
+        return fee && /^(one_way|oneway|different_dropoff|dropoff_location|return_location)$/i.test(String(fee.type || ""));
+      }) : [];
+      // Supplier fee is already included in the confirmed total and displayed above.
+      // Show only the requested informational line, never add it to the total.
+      priceRow(en ? "Return to a different location" : "Zwrot w innym miejscu",
+        oneWayFees.length ? (en ? "included above" : "ujęto powyżej") : (en ? "included in price" : "w cenie"));
+    }
     priceRow(en ? "Online after confirmation" : "Online po potwierdzeniu",
       onlineFee());
     priceRow(en ? "Pay to Caravel at pickup" : "Do zapłaty partnerowi",
