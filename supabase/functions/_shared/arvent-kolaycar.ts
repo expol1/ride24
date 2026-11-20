@@ -3,7 +3,7 @@ import { partnerApiRequest, sanitizePartnerPayload, type PartnerApiCredentials, 
 import { serviceClient } from "./ride24-security.ts";
 import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
- arventLocationRows, arventGroupRows, arventOfferRows,
+ arventLocationRows, arventGroupRows, arventOfferRows, arventCatalogRows,
  arventOfferMatchesTerms, arventReservationStatus, arventSavePayload, arventSavedRouteMatches,
  arventLeadTimeAllowed,
 } from "./arvent-kolaycar-contract.mjs";
@@ -83,6 +83,16 @@ export async function arventFetchGroups(c:PartnerApiCredentials):Promise<ApiVehi
  const response=await request(c,language(ARVENT_PATHS.groups));
  return arventGroupRows(response) as ApiVehicleGroup[];
 }
+const extrasCatalogCache=new Map<string,{until:number;items:Array<{code:string;name:string}>}>();
+// Read-only global catalogue. Item names are not proof of availability or price.
+export async function arventFetchExtrasCatalog(c:PartnerApiCredentials):Promise<Array<{code:string;name:string}>>{
+ const cached=extrasCatalogCache.get(c.partner_id);
+ if(cached&&cached.until>Date.now())return cached.items;
+ const items=arventCatalogRows(await request(c,language(ARVENT_PATHS.extras_catalog)));
+ extrasCatalogCache.set(c.partner_id,{until:Date.now()+10*60*1000,items});
+ return items;
+}
+
 function searchPath(input:SearchInput):string {
  const pickup=String(input.pickup_location_id||"").trim();
  const dropoff=String(input.dropoff_location_id||pickup).trim();
