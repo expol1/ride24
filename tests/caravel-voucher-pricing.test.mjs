@@ -16,9 +16,14 @@ test("Caravel voucher: paid partner quote and independent Ride24 fee, with manda
  assert.equal(p.partner_cents,18300);
  assert.equal(p.total_cents,19800);
  assert.equal(p.online_pln_cents,6450);
- assert.deepEqual(p.items.map(x=>x.kind),["rental","fee","platform_fee"]);
+ // Like other partners: no separate Ride24 fee line; the fee is in the rental price.
+ assert.deepEqual(p.items.map(x=>x.kind),["rental","fee"]);
+ assert.equal(p.items[0].customer_cents,16500);
+ assert.equal(p.items[0].partner_cents,15000);
+ assert.equal(p.commission_cents,1500);
+ assert.ok(!p.items.some(x=>/Ride24/.test(x.name_en+x.name_pl)));
  assert.equal(p.items[1].name_pl,"Młody kierowca");
- assert.equal(p.items[2].partner_cents,0);
+ assert.equal(p.items[1].customer_cents,3300);
 });
 test("Caravel voucher: GPS and two child seats shown as distinct supplier-priced lines",()=>{
  const extraQuote=structuredClone(quote);

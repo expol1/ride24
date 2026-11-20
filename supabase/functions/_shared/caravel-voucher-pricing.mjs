@@ -27,8 +27,10 @@ export function caravelVoucherPricing(booking,quote){
    cents(booking.pickup_payment_partner_currency)!==total||paid===0||
    bd.fees.length+bd.extras.length+2>23)
    throw Error("CARAVEL_VOUCHER_TOTALS_MISMATCH");
+ // Same presentation as every other Ride24 partner: the Ride24 fee is part of
+ // the customer's rental price (as in the checkout summary), never its own line.
  const items=[{kind:"rental",name_pl:"Wynajem z pakietem Premium",name_en:"Rental with Premium protection",
-   customer_cents:base,partner_cents:base}];
+   customer_cents:base+ride24,partner_cents:base}];
  let mandatorySum=0,extrasSum=0;
  for(const f of bd.fees){
   if(!isObj(f)||!amt(f.amount_minor)||typeof f.label!=="string"||f.label.length>120||
@@ -50,8 +52,6 @@ export function caravelVoucherPricing(booking,quote){
  }
  if(mandatorySum!==fees||extrasSum!==extras)
    throw Error("CARAVEL_VOUCHER_LINES_MISMATCH");
- items.push({kind:"platform_fee",name_pl:"Opłata rezerwacyjna Ride24",
-   name_en:"Ride24 reservation fee",customer_cents:ride24,partner_cents:0});
- return {version:2,currency:"EUR",items,partner_cents:total,gross_cents:customer,
+ return {version:2,currency:"EUR",items,partner_cents:total,gross_cents:customer,commission_cents:ride24,
    loyalty_discount_cents:0,total_cents:customer,online_pln_cents:paid};
 }
