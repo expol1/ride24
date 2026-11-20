@@ -3,7 +3,7 @@ import { partnerApiRequest, sanitizePartnerPayload, type PartnerApiCredentials, 
 import { serviceClient } from "./ride24-security.ts";
 import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
- arventLocationRows, arventGroupRows, arventOfferRows, arventCatalogRows,
+ arventLocationRows, arventGroupRows, arventOfferRows, arventCatalogRows, arventOfferExtrasRows,
  arventOfferMatchesTerms, arventReservationStatus, arventSavePayload, arventSavedRouteMatches,
  arventLeadTimeAllowed,
 } from "./arvent-kolaycar-contract.mjs";
@@ -120,6 +120,43 @@ export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Pr
  const response=await request(c,searchPath(input));
  return arventOfferRows(response,{...input,currency:"EUR"}) as ApiVehicleGroup[];
 }
+// Read-only offer-specific extras preview. This verifies the same SIPP, private
+// supplier vehicle id, exact EUR rental price, full-insurance terms and route
+// as the customer's selected Ride24 quote BEFORE requesting GET /extras.
+// A new ephemeral reservationToken never leaves this server function.
+export async function arventReadOfferExtras(c:PartnerApiCredentials,input:SearchInput,
+ quote:{vehicle_id:string;sipp:string;total_amount:number}):Promise<
+ {status:"none"|"present";items:ReturnType<typeof arventOfferExtrasRows>}> {
+ const vehicleId=String(quote?.vehicle_id||"");
+ const sipp=String(quote?.sipp||"").toUpperCase();
+ const amount=Number(quote?.total_amount);
+ if(!/^[1-9][0-9]*$/.test(vehicleId)||!/^[A-Z]{4}$/.test(sipp)
+    ||!Number.isFinite(amount)||amount<=0)throw Error("PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED");
+ const live=supplierData(await request(c,searchPath(input)));
+ const vehicles=Array.isArray(live)?live:(live&&typeof live==="object"
+  &&Array.isArray((live as any).vehicles)?(live as any).vehicles:[]);
+ const vehicle=vehicles.find((x:any)=>String(x?.vehicleId)===vehicleId
+  &&String(x?.sippCode||"").toUpperCase()===sipp
+  &&arventOfferMatchesTerms(x,"EUR")&&x.totalPrice===amount);
+ if(!vehicle)throw Error("PARTNER_API_ERROR:ARVENT_OFFER_CHANGED");
+ const data=supplierData(await request(c,ARVENT_PATHS.extras+"?"+arventQuery({
+  reservationToken:vehicle.reservationToken,languageCode:"EN"})));
+ if(!data||typeof data!=="object")throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
+ const priced=(data as any).vehicle;
+ if(!priced||String(priced.vehicleId)!==vehicleId
+  ||String(priced.sippCode||"").toUpperCase()!==sipp
+  ||!arventOfferMatchesTerms(priced,"EUR")
+  ||priced.totalPrice!==amount
+  ||priced.reservationToken!==vehicle.reservationToken
+  ||!arventSavedRouteMatches({
+   pickupLocationId:priced.pickupLocationId,returnLocationId:priced.returnLocationId,
+   pickupDate:priced.pickupDateTime,returnDate:priced.returnDateTime,
+  },input))
+  throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_QUOTE_CHANGED");
+ const items=arventOfferExtrasRows((data as any).extras);
+ return {status:items.length?"present":"none",items};
+}
+
 async function bookingContextFor(c:PartnerApiCredentials,reference:string):Promise<{
  id:string;client_email:string;partner_currency:unknown;partner_net_price_snapshot:unknown;
  api_quote_id:string|null;start_date:string;end_date:string;pickup_time:string;return_time:string;

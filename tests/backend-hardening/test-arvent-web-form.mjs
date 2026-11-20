@@ -20,7 +20,7 @@ function setup({quote={},rate=4.2345,loyalty=0,rateFails=false}={}){
  let handler;const calls=[];
  const q={id:QUOTE,partner_id:ARVENT,car_class_id:'car',booking_id:null,start_date:'2026-12-10',end_date:'2026-12-13',
   partner_net_total:84.75,commission_total:3.39,final_total:88.14,currency:'EUR',expires_at:new Date(Date.now()+600000).toISOString(),
-  raw_response:{ride24_display:{class_code:'A',group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'}},...quote};
+  raw_response:{ride24_display:{class_code:'A',group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},ride24_context:{version:1,pickup_time:'10:00:00',return_time:'10:00:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)'},provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'123',sipp:'EDMR',total_amount:84.75}},pickup_location_external_id:'12',dropoff_location_external_id:'12',...quote};
  const admin={
   from(table){const b={select(){return b;},eq(){return b;},
    async single(){return {data:{id:'car',partner_id:ARVENT,active:true,allowed_location_ids:null,min_driver_age:null,driver_included:false,
@@ -29,7 +29,7 @@ function setup({quote={},rate=4.2345,loyalty=0,rateFails=false}={}){
   async rpc(name){calls.push(name);return {data:loyalty,error:null};},
  };
  const require=n=>{
-  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}]};
+  if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}],readArventOfferExtras:async()=>({status:'present',items:[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]})};
   if(n.includes('driver-age'))return driverAge;
   if(n.includes('http/server'))return {serve:f=>handler=f};
   if(n.includes('ride24-security'))return {authenticatedUser:async()=>({id:'user-1'}),corsHeaders:()=>({}),enforceRateLimit:async()=>{},
@@ -61,7 +61,10 @@ test('Arvent without extras gets the server price summary: 88.14 = 84.75 rental 
  assert.equal(a.pay_on_pickup,84.75);
  assert.equal(a.billed_days,3);
  assert.deepEqual(a.extras,[]);assert.deepEqual(a.mandatory_fees,[]);
- assert.deepEqual(a.extra_catalog,[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}]);
+ assert.deepEqual(a.extra_catalog,[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}]);
+ assert.equal(a.offer_extras.status,'present');
+ assert.equal(a.offer_extras.items[0].kind,'additional_driver');
+ assert.equal(a.offer_extras.items[0].price_eur,4.99);
  assert.equal(a.category.sipp,'EDMR');
  // Same single formula as the booking request: commission x NBP rate x (1 - loyalty%).
  assert.equal(a.online_pln,contract.apiOnlinePaymentPln(3.39,4.2345,0));

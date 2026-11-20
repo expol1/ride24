@@ -53,6 +53,36 @@ export function arventCatalogRows(response) {
  return result;
 }
 
+// Offer-level /extras is the only supplier source for availability and prices.
+// These read-only fields are NEVER sufficient to calculate an invoice: the
+// meaning of extraRentalType and the quantity cap still requires certification.
+export function arventOfferExtrasRows(raw) {
+ if(raw===null)return [];
+ if(!Array.isArray(raw)||raw.length>250)throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
+ const seen=new Set(),items=[];
+ for(const x of raw){
+  if(!record(x))throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
+  const code=str(x.code,60);
+  if(!code||seen.has(code))throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_DUPLICATE_OR_CODE");
+  seen.add(code);
+  const name=str(x.name??x.extraName??x.title??x.description,120);
+  const price=typeof x.price==="number" && Number.isFinite(x.price) && x.price>=0
+   && x.price<=100000 && Math.abs(x.price*100-Math.round(x.price*100))<0.00001
+   ? x.price : null;
+  items.push({
+   code, name: name && !/[<>]/.test(name) ? name : code,
+   price_eur:price,
+   billing_type:typeof x.extraRentalType==="string"||Number.isInteger(x.extraRentalType)
+    ? str(x.extraRentalType,40):null,
+   quantity_increasable:typeof x.extraQuantityIncreasable==="boolean"?x.extraQuantityIncreasable:null,
+   required:x.isRequired===true,
+   kind:code==="2"?"additional_driver":"other",
+   booking_confirmed:false
+  });
+ }
+ return items;
+}
+
 export function arventDate(v) {
  const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(str(v,12));
  if(!m)throw Error("PARTNER_API_ERROR:ARVENT_DATE_INVALID");
