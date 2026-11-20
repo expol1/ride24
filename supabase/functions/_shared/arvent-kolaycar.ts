@@ -173,6 +173,9 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
  const confirmed=status.status==="confirmed"&&verified;
  return {...status,status:status.status==="confirmed"&&!confirmed?"pending":status.status,
   needs_manual_review:status.needs_manual_review||(status.status==="confirmed"&&!confirmed),
+  // Money, EUR, zero deposit/card hold, unlimited km, route, times and SIPP
+  // match the paid booking (independent of the supplier status code).
+  terms_verified:verified===true,
   provider_payload:statusEvidence(d)};
 }
 // Supplier documentation only supports GET /reservations by supplier

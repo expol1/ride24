@@ -1021,6 +1021,14 @@
                 <option value="all">Cała historia rezerwacji</option>
             </select>
         </div>
+        <div id="arvent-approval-panel" style="margin:0 0 18px;padding:14px;border:1px solid #F59E0B;border-radius:12px;background:#FFFBEB">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+                <strong>Arvent – opłacone rezerwacje czekające na potwierdzenie (24 h)</strong>
+                <button type="button" class="btn btn-secondary" onclick="loadArventApprovals()">Odśwież</button>
+            </div>
+            <p style="font-size:12px;color:#78350F;margin:6px 0 10px">Status 1 z API Arvent potwierdza automatycznie. „Potwierdź ręcznie” tylko po jednoznacznym potwierdzeniu od Arvent (np. WhatsApp/e-mail) – system najpierw sprawdza rezerwację w Arvent (status 0/1, cena, trasa, warunki) i zapisuje wpis audytowy.</p>
+            <div id="arvent-approval-list" style="font-size:13px">Ładowanie...</div>
+        </div>
         <p id="admin-bookings-count" class="dashboard-table-status" role="status">Ładowanie rezerwacji...</p>
         <div class="table-container admin-table-scroll">
             <table><thead><tr><th>Kod rezerwacji</th><th>Klient</th><th>Partner</th><th>Termin wynajmu</th><th>Status</th><th>Utworzono</th></tr></thead>
@@ -2563,7 +2571,7 @@ window.switchTab = function(tabId) {
             closeMobileMore();
             if (tabId === "radar") loadRadarData();
             if (tabId === "clients") loadClientsData();
-            if (tabId === "bookings") loadBookingsData();
+            if (tabId === "bookings") { loadBookingsData(); loadArventApprovals(); }
             if (tabId === "partners") loadPartnersData();
             if (tabId === "finances") loadStripeRevenue();
             if (tabId === "seo") loadSeo();
@@ -2822,6 +2830,49 @@ async function adminClientAction(userId,action){
     alert('Operacja nie została potwierdzona: '+(error?.message||'Błąd serwera.')+' Odśwież listę klientów.');
   }
 }
+// --- ARVENT: awaiting supplier approval + audited manual confirmation ---
+async function loadArventApprovals(){
+  const box=document.getElementById('arvent-approval-list');
+  if(!box)return;
+  box.textContent='Ładowanie...';
+  const {data,error}=await db.functions.invoke('arvent-admin-confirm',{body:{action:'list'}});
+  if(error||!data||data.error){box.textContent='Nie udało się wczytać listy Arvent.';return;}
+  const audits=new Map((data.audits||[]).map(a=>[a.booking_id,a]));
+  const labels={provider_pending:'Czeka na Arvent (status 0)',unknown:'Wymaga weryfikacji',dispatching:'Wysyłanie do Arvent',paid:'Opłacona – przed wysyłką',revalidating:'Sprawdzanie oferty'};
+  const rows=data.rows||[];
+  if(!rows.length){box.textContent='Brak rezerwacji Arvent oczekujących na potwierdzenie.';return;}
+  box.innerHTML=rows.map(r=>{
+    const b=r.bookings||{},a=audits.get(r.booking_id);
+    const deadline=r.supplier_deadline_at?new Date(r.supplier_deadline_at).toLocaleString('pl-PL'):'—';
+    const btn=r.state==='provider_pending'&&!a
+      ?'<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="confirmArventManually(\''+escapeHtml(r.booking_id)+'\',\''+escapeHtml(b.reservation_code||'')+'\')">Potwierdź ręcznie</button>':'';
+    return '<div style="padding:8px 0;border-top:1px solid #FDE68A">'
+      +'<strong>'+escapeHtml(b.reservation_code||r.booking_id)+'</strong> • Arvent: '+escapeHtml(r.provider_reference||'—')
+      +' • '+escapeHtml(b.main_driver_name||'—')+' ('+escapeHtml(b.client_email||'—')+')'
+      +'<br>'+escapeHtml(b.start_date||'')+' '+escapeHtml(String(b.pickup_time||'').slice(0,5))
+      +' • '+escapeHtml(labels[r.state]||r.state)+(r.last_error?' ['+escapeHtml(r.last_error)+']':'')
+      +' • termin Arvent: '+escapeHtml(deadline)+' '+btn
+      +(a?'<br><em>Potwierdzono ręcznie: '+escapeHtml(a.admin_email||'')+', '+escapeHtml(new Date(a.created_at).toLocaleString('pl-PL'))+' – '+escapeHtml(a.evidence)+'</em>':'')
+      +'</div>';
+  }).join('');
+}
+async function confirmArventManually(bookingId,code){
+  const evidence=prompt('Rezerwacja '+code+': wpisz jednoznaczne potwierdzenie od Arvent (kto, kiedy, kanał, treść). Min. 15 znaków.');
+  if(evidence===null)return;
+  if(evidence.trim().length<15){alert('Opis potwierdzenia jest za krótki.');return;}
+  if(!confirm('Potwierdzić '+code+'? Zostanie wystawiony voucher, a klient dostanie potwierdzenie.'))return;
+  const {data,error}=await db.functions.invoke('arvent-admin-confirm',{body:{action:'confirm',booking_id:bookingId,evidence:evidence.trim()}});
+  if(error||!data?.success){
+    const code2=data?.error||'';
+    const msg={SUPPLIER_STATUS_NOT_CONFIRMABLE:'Arvent pokazuje status '+(data?.supplier_status_type??'?')+(data?.terms_verified===false?' lub warunki/cena się nie zgadzają':'')+' – nie można potwierdzić.',
+      NOT_AWAITING_APPROVAL:'Rezerwacja nie czeka już na potwierdzenie (stan: '+(data?.state||'?')+').',
+      STATE_CHANGED:'Stan rezerwacji zmienił się w trakcie – odśwież listę.',SUPPLIER_STATUS_UNAVAILABLE:'Nie udało się odczytać statusu w Arvent – spróbuj ponownie.',
+      ALREADY_CONFIRMED:'Ta rezerwacja ma już wpis potwierdzenia.'}[code2]||('Nie udało się potwierdzić ('+(code2||'błąd')+').');
+    alert(msg);
+  } else alert('Potwierdzono. Status rezerwacji: '+(data.booking_status||'?')+(data.finalize==='retry_pending'?' (voucher zostanie dokończony automatycznie)':''));
+  loadArventApprovals();
+}
+
 async function loadBookingsData(){
   const tbody=document.getElementById('admin-bookings-tbody');
   const label=document.getElementById('admin-bookings-count');

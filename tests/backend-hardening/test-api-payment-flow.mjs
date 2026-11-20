@@ -162,3 +162,10 @@ test('other providers never use the Arvent approval timeout',async()=>{
  await advanceApiPayment(s.deps,'b');
  assert.ok(!s.calls.includes('cancel'));assert.equal(s.row.state,'provider_pending');
 });
+
+test('Arvent: a confirmed (API or audited manual) booking is never cancelled by the 24h timeout',async()=>{
+ const s=setup({row:{...late,state:'confirmed',provider_response:{manual_confirmation:{by:'admin'}}}});
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'confirmed');assert.ok(!s.calls.includes('cancel'));assert.ok(!s.calls.includes('refund'));
+ assert.deepEqual(s.calls,['voucher-email-push']);
+});
