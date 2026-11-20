@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { arventCatalogRows, arventOfferExtrasRows, arventSavePayload } from '../../supabase/functions/_shared/arvent-kolaycar-contract.mjs';
+import { arventCatalogRows, arventOfferExtrasRows, arventAssertVehicleOnlyExtrasSafe, arventSavePayload } from '../../supabase/functions/_shared/arvent-kolaycar-contract.mjs';
 
 test('Arvent global extras catalog parses actual supplier codes and names only', () => {
  const result=arventCatalogRows({success:true,resultCode:0,data:[
@@ -75,4 +75,23 @@ test('Arvent SaveReservation extra codes and quantities are bounded, unique, sin
   [{code:'6',piece:1.5}], [{code:'',piece:1}],
   Array.from({length:21},(_,i)=>({code:String(i+1),piece:1}))
  ]) assert.throws(()=>arventSavePayload({...base,extras}),/ARVENT_EXTRAS_INVALID/);
+});
+
+test('Arvent missing or payable mandatory extras fail before the Stripe booking flow',()=>{
+ assert.doesNotThrow(()=>arventAssertVehicleOnlyExtrasSafe(null));
+ assert.doesNotThrow(()=>arventAssertVehicleOnlyExtrasSafe([]));
+ assert.doesNotThrow(()=>arventAssertVehicleOnlyExtrasSafe([
+   {code:6,name:'Free required item',price:0,isRequired:true},
+   {code:2,name:'Optional additional driver',price:6,isRequired:false}
+ ]));
+ assert.throws(()=>arventAssertVehicleOnlyExtrasSafe([
+   {code:6,name:'Required infant seat',price:5,isRequired:true}
+ ]),/REQUIRED_EXTRAS_UNPRICED/);
+ assert.throws(()=>arventAssertVehicleOnlyExtrasSafe([
+   {code:6,name:'Required item',price:'invalid',isRequired:true}
+ ]),/REQUIRED_EXTRAS_UNPRICED/);
+ assert.throws(()=>arventAssertVehicleOnlyExtrasSafe([
+   {code:6,name:'Unknown required status',price:0}
+ ]),/REQUIRED_EXTRAS_UNVERIFIED/);
+ assert.throws(()=>arventAssertVehicleOnlyExtrasSafe([{code:2},{code:2}]),/EXTRAS_DUPLICATE_OR_CODE/);
 });
