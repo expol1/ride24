@@ -130,7 +130,7 @@ export async function arventReadOfferExtras(c:PartnerApiCredentials,input:Search
  const vehicleId=String(quote?.vehicle_id||"");
  const sipp=String(quote?.sipp||"").toUpperCase();
  const amount=Number(quote?.total_amount);
- if(!/^[1-9]\\d*$/.test(vehicleId)||!/^[A-Z]{4}$/.test(sipp)
+ if(!/^[1-9][0-9]*$/.test(vehicleId)||!/^[A-Z]{4}$/.test(sipp)
     ||!Number.isFinite(amount)||amount<=0)throw Error("PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED");
  const live=supplierData(await request(c,searchPath(input)));
  const vehicles=Array.isArray(live)?live:(live&&typeof live==="object"
