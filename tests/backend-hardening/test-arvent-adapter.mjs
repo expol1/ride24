@@ -113,6 +113,40 @@ test("live search sends EUR and dd.MM.yyyy then strips token",async()=>{
  assert.ok(a.calls.find(c=>c.path.includes("currencyCode=EUR")));
  assert.ok(!JSON.stringify(offers).includes("00000000-0000-4000-8000-000000000001"));
 });
+test("offer extras read returns supplier codes, prices and one additional driver without posting a reservation",async()=>{
+ const a=setup({requiredExtras:[
+  {code:2,name:"Ek Sürücü",price:4.99,extraRentalType:3,extraQuantityIncreasable:false,isRequired:false},
+  {code:6,name:"Bebek Koltuğu",price:8,extraRentalType:1,extraQuantityIncreasable:true,isRequired:false},
+ ]});
+ const result=await a.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100});
+ assert.equal(result.status,"present");
+ assert.equal(result.items.length,2);
+ assert.equal(result.items[0].code,"2");
+ assert.equal(result.items[0].kind,"additional_driver");
+ assert.equal(result.items[0].price_eur,4.99);
+ assert.equal(result.items[0].booking_confirmed,false);
+ assert.equal(result.items[1].code,"6");
+ assert.ok(a.calls.some(x=>x.path.startsWith("/extras?")));
+ assert.ok(a.calls.every(x=>x.path!=="/reservations/save"));
+ assert.ok(!JSON.stringify(result).includes("00000000-0000-4000-8000-000000000001"));
+});
+
+test("supplier extras null remains an empty, read-only offer, not a failed booking",async()=>{
+ const a=setup({requiredExtras:null});
+ const result=await a.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100});
+ assert.equal(result.status,"none");
+ assert.deepEqual(result.items,[]);
+ assert.ok(a.calls.every(x=>x.path!=="/reservations/save"));
+});
+
+test("mismatched group or price cannot access offer extras nor create a booking",async()=>{
+ for(const quote of [{vehicle_id:"100",sipp:"EDMR",total_amount:100},{vehicle_id:"100",sipp:"CDAR",total_amount:101}]){
+  const a=setup();
+  await assert.rejects(()=>a.arventReadOfferExtras(creds,input,quote),/ARVENT_OFFER_CHANGED/);
+  assert.ok(!a.calls.some(x=>x.path.startsWith("/extras?")));
+ }
+});
+
 test("server guard prevents any supplier creation or cancellation in unapproved environment",async()=>{
  const a=setup();
  await assert.rejects(()=>a.arventCreateBooking(creds,{...input,partner_discount_percent:0,
