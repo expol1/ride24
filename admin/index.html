@@ -595,6 +595,53 @@
     .r24-admin-pdf-btn { transition: none; }
 }
 
+
+        /* Baza Partnerów — one continuous, subtle gradient across the ENTIRE row. */
+        #view-partners .r24-partner-readiness-legend {
+            display:flex; flex-wrap:wrap; align-items:center; column-gap:22px; row-gap:9px;
+            margin:-9px 0 20px; color:#475569; font-size:12px; font-weight:650;
+        }
+        #view-partners .r24-partner-readiness-legend > span {
+            display:inline-flex; align-items:center; gap:7px; line-height:1.35;
+        }
+        #view-partners .r24-partner-readiness-dot {
+            display:inline-block; width:10px; height:10px; border-radius:3px; flex:0 0 10px;
+            border:1px solid rgba(15,23,42,.12);
+        }
+        #view-partners .r24-partner-readiness-dot--agreement { background:#fbbf24; }
+        #view-partners .r24-partner-readiness-dot--setup { background:#94a3b8; }
+        #view-partners .r24-partner-readiness-dot--ready { background:#4ade80; }
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--agreement {
+            background:linear-gradient(90deg,rgba(251,191,36,.29) 0%,rgba(254,243,199,.20) 53%,rgba(255,255,255,.97) 100%);
+        }
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--setup {
+            background:linear-gradient(90deg,rgba(148,163,184,.24) 0%,rgba(241,245,249,.35) 55%,rgba(255,255,255,.97) 100%);
+        }
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--ready {
+            background:linear-gradient(90deg,rgba(74,222,128,.19) 0%,rgba(220,252,231,.20) 54%,rgba(255,255,255,.97) 100%);
+        }
+        /* Keep existing table hover styles from covering the gradient. */
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--agreement > td,
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--setup > td,
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--ready > td,
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--agreement:hover > td,
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--setup:hover > td,
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--ready:hover > td {
+            background:transparent;
+        }
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--agreement > td:first-child {
+            box-shadow:inset 4px 0 0 #eab308;
+        }
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--setup > td:first-child {
+            box-shadow:inset 4px 0 0 #94a3b8;
+        }
+        #view-partners #admin-partners-tbody > tr.r24-partner-row--ready > td:first-child {
+            box-shadow:inset 4px 0 0 #22c55e;
+        }
+        @media (max-width:768px) {
+            #view-partners .r24-partner-readiness-legend {gap:10px 16px; margin:-7px 0 16px;}
+        }
+
         /* RIDE24_PARTNER_CONTACT_DIALOG_START: styles must be in the document HEAD, not in print HTML. */
         .partner-contact-name {
             border:0; padding:5px 0; background:transparent; color:#1D4ED8;
@@ -1067,6 +1114,11 @@
         <button class="btn-primary" onclick="openAddPartnerModal()" style="background: var(--green); border: none; padding: 10px 20px; border-radius: 8px; color: white; font-weight: 700; cursor: pointer;">
             + Dodaj Nowego Partnera
         </button>
+    </div>
+    <div class="r24-partner-readiness-legend" aria-label="Oznaczenia gotowości partnerów">
+        <span><i class="r24-partner-readiness-dot r24-partner-readiness-dot--agreement" aria-hidden="true"></i>Umowa niepodpisana</span>
+        <span><i class="r24-partner-readiness-dot r24-partner-readiness-dot--setup" aria-hidden="true"></i>Brak aktywnych aut lub lokalizacji</span>
+        <span><i class="r24-partner-readiness-dot r24-partner-readiness-dot--ready" aria-hidden="true"></i>Umowa i oferta kompletne</span>
     </div>
     <div class="saas-card" style="margin-bottom:20px;">
         <div class="saas-card-header">Globalna marża Ride24</div>
@@ -2866,6 +2918,53 @@ window.saveGlobalMargin = async function() {
     }
 };
 
+
+/* Read-only readiness indicator. Never alters partner status or agreement logic. */
+function adminPartnerRowReadiness(partner, carCount, locationCount, countsVerified) {
+    if (partner.agreement_accepted !== true) {
+        return { cssClass: "r24-partner-row--agreement", key: "agreement",
+            description: "Umowa niepodpisana" };
+    }
+    // A failed inventory request is UNKNOWN, not a false "no cars" report.
+    if (!countsVerified) {
+        return { cssClass: "", key: "unknown",
+            description: "Nie udało się zweryfikować aut i lokalizacji" };
+    }
+    const cars = Math.max(0, Number(carCount) || 0);
+    const locations = Math.max(0, Number(locationCount) || 0);
+    const summary = `Aktywne auta: ${cars}, aktywne lokalizacje: ${locations}`;
+    if (cars === 0 || locations === 0) {
+        return { cssClass: "r24-partner-row--setup", key: "setup",
+            description: `Wymaga uzupełnienia oferty. ${summary}` };
+    }
+    return { cssClass: "r24-partner-row--ready", key: "ready",
+        description: `Umowa podpisana i oferta uzupełniona. ${summary}` };
+}
+
+/* Read visible inventory in pages so PostgREST's default 1000-row limit cannot
+   silently mark a large partner incomplete. Fail neutral on API/RLS errors. */
+async function adminPartnerActiveInventoryCounts(table, partnerIds) {
+    const counts = new Map();
+    if (!partnerIds.length) return counts;
+    const pageSize = 500;
+    for (let from = 0; from < 50000; from += pageSize) {
+        const { data, error } = await db.from(table)
+            .select("partner_id")
+            .in("partner_id", partnerIds)
+            .eq("active", true)
+            .order("partner_id", { ascending: true })
+            .order("id", { ascending: true })
+            .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!Array.isArray(data)) throw new Error(`Invalid ${table} inventory response`);
+        for (const item of data) {
+            if (item.partner_id) counts.set(item.partner_id, (counts.get(item.partner_id) || 0) + 1);
+        }
+        if (data.length < pageSize) return counts;
+    }
+    throw new Error(`Inventory result too large to classify: ${table}`);
+}
+
 async function loadPartnersData() {
     const { data, error } = await db
     .from("partners")
@@ -2907,7 +3006,24 @@ async function loadPartnersData() {
         console.warn("Nie udało się pobrać listy umów indywidualnych.", agreementReadError);
     }
 
+    const partnerIds = data.map(p => p.id).filter(Boolean);
+    let activeCarsByPartner = new Map();
+    let activeLocationsByPartner = new Map();
+    let inventoryVerified = false;
+    try {
+        [activeCarsByPartner, activeLocationsByPartner] = await Promise.all([
+            adminPartnerActiveInventoryCounts("car_classes", partnerIds),
+            adminPartnerActiveInventoryCounts("partner_locations", partnerIds)
+        ]);
+        inventoryVerified = true;
+    } catch (inventoryError) {
+        console.warn("Nie udało się zweryfikować aut i lokalizacji partnerów.", inventoryError);
+    }
+
     data.forEach(p => {
+    const readiness = adminPartnerRowReadiness(
+        p, activeCarsByPartner.get(p.id) || 0, activeLocationsByPartner.get(p.id) || 0, inventoryVerified
+    );
     // 1. Logika statusu (Badge)
     let statusHtml = "";
     if (p.account_status === "pending") {
@@ -3015,9 +3131,9 @@ if ((p.provider_type ?? "local") === "api") {
         </span>
     `;
 }
-    // 3. Renderowanie wiersza do tabeli
+    // 3. Renderowanie wiersza do tabeli — only presentation changes.
     tbody.innerHTML += `
-        <tr>
+        <tr class="${readiness.cssClass}" data-r24-readiness="${readiness.key}" title="${readiness.description}">
             <td class="company-name">
     <button type="button" class="partner-contact-name"
         onclick="openPartnerContact('${p.id}')"
