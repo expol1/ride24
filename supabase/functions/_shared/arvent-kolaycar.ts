@@ -1,6 +1,8 @@
 import { arventLicenseEligible } from "./arvent-driver-eligibility.mjs";
 import { partnerApiRequest, sanitizePartnerPayload, type PartnerApiCredentials, type ApiLocation, type ApiVehicleGroup } from "./partner-api.ts";
 import { serviceClient } from "./ride24-security.ts";
+import { rentalDuration } from "./rental-duration.ts";
+import { arventSelectedExtrasQuote,arventReceiptExtrasMatch } from "./arvent-extras-pricing.mjs";
 import {
  ARVENT_ORIGIN, ARVENT_PATHS, arventDate, arventQuery, supplierData,
  arventLocationRows, arventGroupRows, arventOfferRows, arventCatalogRows, arventOfferExtrasRows, arventAssertVehicleOnlyExtrasSafe,
@@ -18,7 +20,11 @@ type BookingInput=SearchInput&{
  client_email?:string|null;client_phone?:string|null;
  partner_discount_percent?:number|null;partner_amount?:number|null;
  provider_quote_data?:unknown;
- additional_driver?:{name?:string|null;age?:number|null}|null;
+ additional_driver?:{name?:string|null;age?:number|null;license_first_issued?:string|null}|null;
+ rental_amount?:number|null;extras_amount?:number|null;
+ extra_selections?:Array<{code:string;quantity:number;total_cents:number;required?:boolean}>;
+ extra_billing_map?:Record<string,string>;
+ extras_pricing_certified?:boolean;
  supplier_note?:string|null;
 };
 
@@ -246,8 +252,13 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
  if(input.pickup_location_id!==input.dropoff_location_id)
   throw Error("PARTNER_API_ERROR:ARVENT_ONE_WAY_PAYMENT_UNVERIFIED");
  if(Number(input.partner_discount_percent??0)!==0||!Number.isFinite(input.partner_amount)
-  ||(input.partner_amount??0)<=0||input.additional_driver)
+  ||(input.partner_amount??0)<=0)
   throw Error("PARTNER_API_ERROR:ARVENT_PRICING_OR_EXTRAS_UNSUPPORTED");
+ const accepted=Array.isArray(input.extra_selections)?input.extra_selections:[];
+ if(accepted.length && input.extras_pricing_certified!==true)
+  throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_NOT_CERTIFIED");
+ if(Boolean(input.additional_driver)!==accepted.some(x=>x.code==="2"))
+  throw Error("PARTNER_API_ERROR:ARVENT_ADDITIONAL_DRIVER_MISMATCH");
  if(!input.vehicle_group_id||!input.main_driver?.name||!input.client_email||!input.client_phone)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
  if(!arventLeadTimeAllowed(input.pickup_date,input.pickup_time))
@@ -260,7 +271,7 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   ||quote.sipp!==input.vehicle_group_id
   ||!/^\d+$/.test(supplierVehicleId)
   ||!Number.isFinite(Number(quote.total_amount))
-  ||Number(quote.total_amount)!==input.partner_amount)
+  ||Number(quote.total_amount)!==Number(input.rental_amount??input.partner_amount))
   throw Error("PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED");
  // Re-price with a newly issued token. Never use or persist an old reservationToken.
  const live=supplierData(await request(c,searchPath(input)));
@@ -270,7 +281,7 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   &&arventOfferMatchesTerms(x,"EUR"));
  if(!current)throw Error("PARTNER_API_ERROR:ARVENT_OFFER_CHANGED");
  const actual=Number(current.totalPrice);
- if(actual!==input.partner_amount)
+ if(actual!==Number(input.rental_amount??input.partner_amount))
   throw Error("PARTNER_API_ERROR:ARVENT_PRICE_CHANGED");
  const extraData=supplierData(await request(c,ARVENT_PATHS.extras+"?"+arventQuery({
   reservationToken:current.reservationToken,languageCode:"EN"})));
@@ -305,16 +316,46 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
  if(extras.some((item:any)=>typeof item?.isRequired!=="boolean"))
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
  const required=extras.filter((item:any)=>item.isRequired);
- if(required.some((x:any)=>!x.code||x.price!==0))
-  throw Error("PARTNER_API_ERROR:ARVENT_REQUIRED_EXTRAS_UNPRICED");
+ if(!accepted.length){
+   // Unchanged vehicle-only booking: allow confirmed free mandatory services
+   // and never silently omit a payable service.
+   arventAssertVehicleOnlyExtrasSafe((extraData as any).extras);
+ }
+ const duration=rentalDuration(input.pickup_date,input.return_date,input.pickup_time,input.return_time);
+ const extrasQuote=accepted.length
+    ?arventSelectedExtrasQuote({items:arventOfferExtrasRows(extras),
+       selections:accepted.filter(x=>!x.required).map(x=>({id:x.code,quantity:x.quantity})),
+       additionalDriverId:input.additional_driver?"provided":null,
+       billedDays:duration.billedDays,certified:true,certifiedMap:input.extra_billing_map||{}})
+    :{items:required.map((x:any)=>({code:String(x.code),quantity:1,total_cents:0,required:true})),
+       total_cents:0,selected:required.map((x:any)=>({code:String(x.code),piece:1}))};
+ if(accepted.length){
+    if(extrasQuote.items.length!==accepted.length
+      ||extrasQuote.items.some((x:any)=>!accepted.some(y=>x.code===y.code
+        &&x.quantity===y.quantity&&x.total_cents===y.total_cents))
+      ||extrasQuote.total_cents!==Math.round(Number(input.extras_amount)*100))
+      throw Error("PARTNER_API_ERROR:ARVENT_EXTRA_PRICE_CHANGED");
+ }
+ if(Math.round((actual+extrasQuote.total_cents/100)*100)!==Math.round(Number(input.partner_amount)*100))
+   throw Error("PARTNER_API_ERROR:ARVENT_EXTRA_PRICE_CHANGED");
+ if(input.additional_driver){
+   if(!arventLicenseEligible(input.additional_driver.license_first_issued,
+         input.pickup_date,pricedVehicle.vendorMinimumDrivingLicenseAge)
+      ||!Number.isInteger(Number(input.additional_driver.age))
+      ||Number(input.additional_driver.age)<Number(pricedVehicle.vendorMinimumDriverAge)
+      ||String(input.additional_driver.name||"").trim().split(/\s+/).length<2)
+     throw Error("PARTNER_API_ERROR:ARVENT_ADDITIONAL_DRIVER_INELIGIBLE");
+ }
  const name=String(input.main_driver.name).trim().split(/\s+/);
  const first=name.shift()||"",surname=name.join(" ");
  if(!surname)throw Error("PARTNER_API_ERROR:ARVENT_SURNAME_REQUIRED");
  return arventSavePayload({
   reservationToken:current.reservationToken,reference:input.reservation_code||input.ride24_booking_id,
   customer:{name:first,surname,email:input.client_email,phoneNumber:input.client_phone,birthDay:"",
-   note:typeof input.supplier_note==="string"?input.supplier_note:""},
-  extras:required.map((x:any)=>({code:x.code,piece:1})),
+   note:((typeof input.supplier_note==="string"?input.supplier_note:"")
+      +(input.additional_driver?(" | Additional driver: "+String(input.additional_driver.name)
+          +" / licence since "+String(input.additional_driver.license_first_issued)):"")).slice(0,250)},
+  extras:extrasQuote.selected,
  });
 }
 export async function arventVerifyCheckout(c:PartnerApiCredentials,input:BookingInput):Promise<void>{
