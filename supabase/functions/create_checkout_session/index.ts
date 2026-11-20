@@ -100,8 +100,15 @@ serve(async (req) => {
       const {data:q,error:qe}=await admin.from('api_quotes').select('raw_response,booking_id,expires_at').eq('id',booking.api_quote_id).maybeSingle();
       if(q?.expires_at&&Date.parse(q.expires_at)<=Date.now())return new Response(JSON.stringify({error:'QUOTE_EXPIRED'}),{status:409,headers:cors(req)});
       if(Date.parse(booking.payment_deadline)-Date.now()<30*60*1000)return new Response(JSON.stringify({error:'PAYMENT_DEADLINE_TOO_CLOSE'}),{status:409,headers:cors(req)});
-      if(qe||q?.booking_id!==booking.id||(booking.partners?.api_provider!=='arvent_kolaycar'
-          &&(!q?.raw_response?.ride24_options||!q?.raw_response?.provider_quote_data?.calculated)))
+      // Caravel quotes carry no Renteon ride24_options/calculated: the accepted
+      // Caravel quote must be the one bound to this booking (terms and release
+      // were verified above; the paid adapter re-quotes before booking).
+      const acceptedQuote=isCaravelBooking(booking)
+        ?q?.raw_response?.provider_quote_data?.provider==='caravel'
+          &&q.raw_response.provider_quote_data.quote_id===booking.caravel_supplier_quote_id
+        :booking.partners?.api_provider==='arvent_kolaycar'
+          ||(!!q?.raw_response?.ride24_options&&!!q?.raw_response?.provider_quote_data?.calculated);
+      if(qe||q?.booking_id!==booking.id||!acceptedQuote)
         return new Response(JSON.stringify({error:'ACCEPTED_QUOTE_REQUIRED'}),{status:409,headers:cors(req)});
     }
 

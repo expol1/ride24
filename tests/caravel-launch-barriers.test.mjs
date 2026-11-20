@@ -42,3 +42,15 @@ test("all four independent launch holds use the SAME Caravel partner identity",(
   "supabase/functions/stripe-webhook/index.ts",
  ]) assert.match(load(p),/isCaravelBooking/);
 });
+
+test("Caravel uses the shared Stripe-first checkout: 45-min deadline at commit, own accepted-quote rule", () => {
+  const checkout = load("supabase/functions/create_checkout_session/index.ts");
+  // Caravel quotes have no Renteon ride24_options/calculated; the bound Caravel quote is required instead.
+  assert.match(checkout, /isCaravelBooking\(booking\)\s*\?q\?\.raw_response\?\.provider_quote_data\?\.provider==='caravel'/);
+  assert.match(checkout, /quote_id===booking\.caravel_supplier_quote_id/);
+  assert.match(checkout, /ride24_options&&!!q\?\.raw_response\?\.provider_quote_data\?\.calculated/, "Renteon rule unchanged");
+  const mig = load("supabase/migrations/20261120102212_caravel_booking_payment_deadline.sql");
+  assert.match(mig, /client_email,client_phone,payment_deadline,expires_at/);
+  assert.match(mig, /v_now \+ interval ''45 minutes'',v_now \+ interval ''45 minutes''/);
+  assert.match(mig, /CARAVEL_COMMIT_PATCH_ANCHOR_NOT_UNIQUE/);
+});
