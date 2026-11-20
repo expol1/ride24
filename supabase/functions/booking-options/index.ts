@@ -45,7 +45,7 @@ serve(async(req: Request)=>{
     if(partner.provider_type==='api' && partner.api_provider==='arvent_kolaycar') {
       // Arvent: no Ride24/online extras and no additional driver (not in SaveReservation).
       if(body.additional_driver_id) throw new BookingOptionsError('ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE',
-        'Dodatkowy kierowca niedostępny w rezerwacji online Arvent.','An additional driver is not available in Arvent online bookings.',400);
+        'Dodatkowy kierowca jest niedostępny w tej ofercie.','An additional driver is not available for this offer.',400);
       if((Array.isArray(body.extras) && body.extras.length) || body.pricing_version===2) throw new BookingOptionsError('ARVENT_EXTRAS_UNAVAILABLE',
         'Dodatki nie są dostępne do zamówienia online w tej ofercie.','Extras cannot be ordered online for this offer.',400);
       await assertApiPricingCompatible(admin, car.partner_id);

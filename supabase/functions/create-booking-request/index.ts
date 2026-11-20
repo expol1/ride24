@@ -1110,8 +1110,8 @@ serve(async (req) => {
     if (isArventBooking && additionalDriverId) {
       return jsonResponse(req, {
         code: "ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE",
-        error: "Dodatkowy kierowca niedostępny w rezerwacji online Arvent.",
-        error_en: "An additional driver is not available in Arvent online bookings.",
+        error: "Dodatkowy kierowca jest niedostępny w tej ofercie.",
+        error_en: "An additional driver is not available for this offer.",
       }, 400);
     }
 

@@ -144,7 +144,7 @@ test('customer refund tiers match UTC database rules at 60, 59, 30, 29 days',asy
 });
 
 
-test('Arvent: server summary shown without extras picker; booking may continue without extras',async()=>{
+test('Arvent: neutral server summary and no online extras; booking may continue',async()=>{
   const {ui}=setup();
   globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
     pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)',
@@ -153,10 +153,18 @@ test('Arvent: server summary shown without extras picker; booking may continue w
   await ui.start();
   const box=document.getElementById('bookingPriceBreakdown');
   assert.equal(box.hidden,false);
-  assert.equal(document.getElementById('bookingExtrasPicker').hidden,true);
+  const picker=document.getElementById('bookingExtrasPicker');
+  assert.equal(picker.hidden,false);
+  assert.match(picker.textContent,/Extras cannot currently be ordered online/);
+  assert.equal(picker.querySelectorAll('input,select').length,0);
   const text=box.textContent;
-  for(const part of ['Booking summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay Arvent at pickup','EDMR'])assert.ok(text.includes(part),part);
+  for(const part of ['Price summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay rental company at pickup','EDMR'])assert.ok(text.includes(part),part);
   assert.ok(/14\.35/.test(text));
+  assert.doesNotMatch(text,/Arvent|Stripe/);
+  assert.equal(box.querySelectorAll('h4').length,1);
+  await ui.refresh();
+  assert.equal(box.querySelectorAll('h4').length,1);
+  assert.equal(picker.querySelectorAll('p').length,1);
   assert.equal(ui.canSubmit(),true);
   assert.deepEqual(ui.payload(),{});
 });

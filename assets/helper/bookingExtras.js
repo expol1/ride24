@@ -17,11 +17,17 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
     // Arvent: read-only server preview bound to the search api_quote_id.
     // Only server values are shown; nothing is computed here.
     function renderArvent(box, picker, total, a) {
-        picker.hidden = true; if (total) total.hidden = true;
+        if (total) total.hidden = true;
         el('equipmentLegacyInfo').hidden = true;
+        // Only extras the supplier actually prices for this offer could be listed;
+        // the server sends none today, so nothing can be selected or charged.
+        picker.hidden = false;
+        picker.append(node('p', label(
+            'W tej ofercie dodatki nie są dostępne do zamówienia online. Rezerwacja obejmuje wybraną kategorię auta bez dodatków.',
+            'Extras cannot currently be ordered online for this offer. The booking covers the selected car category without extras.')));
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
-        box.append(node('h4', label('Podsumowanie rezerwacji', 'Booking summary')));
+        box.append(node('h4', label('Podsumowanie ceny', 'Price summary')));
         const cat = a.category || {};
         const catText = [cat.group_name, cat.example_model ? cat.example_model + label(' lub podobny', ' or similar') : null, cat.sipp ? '(' + cat.sipp + ')' : null].filter(Boolean).join(' ');
         if (catText) row(box, label('Kategoria samochodu', 'Car category'), catText);
@@ -33,11 +39,11 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
         if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
         row(box, label('Całkowita cena rezerwacji', 'Total booking price'), money(cents(a.total), a.currency), true);
-        row(box, label('Do zapłaty teraz w Ride24 (Stripe)', 'Pay now to Ride24 (Stripe)'), money(cents(a.online_pln), 'PLN'), true);
-        row(box, label('Do zapłaty Arvent przy odbiorze', 'Pay Arvent at pickup'), money(cents(a.pay_on_pickup), a.currency), true);
+        row(box, label('Opłata rezerwacyjna Ride24 — płatna teraz', 'Ride24 booking fee — pay now'), money(cents(a.online_pln), 'PLN'), true);
+        row(box, label('Do zapłaty wypożyczalni przy odbiorze', 'Pay rental company at pickup'), money(cents(a.pay_on_pickup), a.currency), true);
         box.append(node('small', label(
-            `Kwota w PLN to odrębna opłata rezerwacyjna Ride24 (${money(cents(a.ride24_fee), a.currency)} według kursu NBP ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', po rabacie' : ''}). Wynajem ${money(cents(a.pay_on_pickup), a.currency)} płacisz bezpośrednio Arvent przy odbiorze.`,
-            `The PLN amount is the separate Ride24 booking fee (${money(cents(a.ride24_fee), a.currency)} at NBP rate ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', after discount' : ''}). You pay the rental of ${money(cents(a.pay_on_pickup), a.currency)} directly to Arvent at pickup.`)));
+            `Kwota w PLN to odrębna opłata rezerwacyjna Ride24 (${money(cents(a.ride24_fee), a.currency)} według kursu NBP ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', po rabacie' : ''}). Wynajem ${money(cents(a.pay_on_pickup), a.currency)} płacisz bezpośrednio wypożyczalni przy odbiorze.`,
+            `The PLN amount is the separate Ride24 booking fee (${money(cents(a.ride24_fee), a.currency)} at NBP rate ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', after discount' : ''}). You pay the rental of ${money(cents(a.pay_on_pickup), a.currency)} directly to the rental company at pickup.`)));
     }
     function render() {
         const box = el('bookingPriceBreakdown'); box.replaceChildren();
