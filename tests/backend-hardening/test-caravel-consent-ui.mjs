@@ -97,7 +97,7 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
   assert.doesNotMatch(s.textContent,/Young driver 3 days/, 'do not duplicate the original supplier label');
  assert.match(s.textContent,/Wynajem samochodu.*115,00\s€/);
  assert.match(s.textContent,/Młody kierowca.*33,00\s€/);
- assert.match(s.textContent,/Zwrot w innym punkcie.*17,00\s€/);
+ assert.match(s.textContent,/Zwrot w innym miejscu.*17,00\s€/, 'positive Caravel one_way fee is shown as its own row');
  assert.doesNotMatch(s.textContent,/Łącznie/);
  assert.match(s.textContent,/Do zapłaty partnerowi.*150,00\s€/);
  assert.match(s.textContent,/Online po potwierdzeniu.*64,50/);
@@ -106,6 +106,18 @@ test('Caravel: supplier-confirmed age and one-way fees appear as separate rows, 
  doc.getElementById('caravelTermsAccept').checked=true;
  doc.getElementById('caravelCoverageAck').checked=true;
  assert.equal(w.Ride24CaravelConsent.canSubmit(),true);
+});
+
+test('Caravel: no different-location row when Caravel prices no one_way fee or prices it at zero',async()=>{
+ for (const fees of [[], [{type:'one_way',label:'Zwrot w innym punkcie',amount:'0.00 EUR'}]]) {
+  const v=await view();
+  v.money.breakdown={rental_base:'100.00 EUR',customer_rental:'115.00 EUR',fee_total:'0.00 EUR',partner_total:'100.00 EUR',fees};
+  const {w}=await page([{status:200,body:{success:true,consent:v}}]);
+  await w.Ride24CaravelConsent.prepare({partnerId:PARTNER,apiQuoteId:v.api_quote_id,accessToken:'jwt',supabaseUrl:'u',supabaseKey:'k'});
+  const s=w.document.querySelector('section[aria-label="Rozliczenie Caravel"]');
+  assert.doesNotMatch(s.textContent,/Zwrot w innym/);
+  assert.match(s.textContent,/Do zapłaty partnerowi.*100,00\s€/);
+ }
 });
 
 test('Caravel: voluntary GPS switch requests an exact new supplier quote, resets acceptance and updates amounts', async () => {

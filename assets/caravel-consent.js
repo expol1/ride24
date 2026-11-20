@@ -254,7 +254,7 @@
     total.appendChild(text("strong",en?"Your Caravel extras":"Twoje dodatki Caravel"));
     (p?.extras||[]).forEach(function(x){var line=document.createElement("div");
       line.className="booking-price-row";
-      line.appendChild(text("span",extraName(x.name,en)+" × "+x.quantity));
+      line.appendChild(text("span",extraName(x.name,en)+(x.extra_id!==state.driverService?.extra_id?" × "+x.quantity:"")));
       line.appendChild(text("strong",displayAmount(x.amount,en)));total.appendChild(line);});
     if(p)total.appendChild(text("p",(en?"To pay Caravel at pickup: ":"Do zapłaty Caravel przy odbiorze: ")+displayAmount(p.partner_total,en),
       "font-weight:750;margin:10px 0"));
