@@ -1894,7 +1894,7 @@ async>
 .r24-client-price-deposit{background:#fffbeb;color:#92400e;padding:15px;margin-top:12px;border:1px solid #fde68a;border-radius:10px}
 </style>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
-<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261115status-font-v5">
+<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261121booking-details-v6">
 <link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261115nav-compact-v3">
 <link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113-switch">
@@ -2458,152 +2458,184 @@ window.closeDeleteModal = function() {
     document.getElementById('deleteModal').style.display = 'none';
 };
 // --- LOGIKA MODALA SZCZEGÓŁÓW ---
-        window.openDetailsModal = function(
-    deposit,
-    mileage,
-    driverIncluded,
-    driverHours,
-    currency,
-    partnerTermsSnapshot,
-    partnerRulesSnapshot,
-    bookingId
+        
+window.openDetailsModal = function(
+    deposit, mileage, driverIncluded, driverHours, currency,
+    partnerTermsSnapshot, partnerRulesSnapshot, bookingId
 ) {
-
-           console.log("partnerTermsSnapshot:", partnerTermsSnapshot);
-           console.log("partnerRulesSnapshot:", partnerRulesSnapshot);
-
-            const isEn = localStorage.getItem("client_lang") === "en";
-            const body = document.getElementById("bookingDetailsBody");
-
-            const depValue = parseFloat(deposit);
-            const depText = (!isNaN(depValue) && depValue > 0) ? `${depValue} ${currency}` : (isEn ? "No deposit" : "Brak kaucji");
-            const milNumber=Number(mileage);
-            const milText=mileage !== '' && Number.isFinite(milNumber) && milNumber > 0 ? `${milNumber} km/${isEn ? 'day' : 'dzień'}` : (isEn ? 'Unlimited' : 'Bez limitu');
-
-            let html = `
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px;">
-                    <span>${isEn ? 'Deposit' : 'Kaucja'}:</span>
-                    <strong style="color: white;">${depText}</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>${isEn ? 'Mileage limit' : 'Limit km'}:</span>
-                    <strong style="color: white;">${milText}</strong>
-                </div>
-            `;
-
-            if (driverIncluded === true) {
-                const hrsText = driverHours !== '' ? ` (${driverHours}h)` : '';
-                html += `
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #334155;">
-                    <strong style="color: var(--blue); font-size: 15px;">🧑 ${isEn ? 'Driver included' : 'Kierowca w cenie'}${hrsText}</strong>
-                </div>`;
+    const modal = document.getElementById("bookingDetailsModal");
+    const body = document.getElementById("bookingDetailsBody");
+    if (!modal || !body) return;
+    const isEn = localStorage.getItem("client_lang") === "en";
+    const t = (pl,en) => isEn ? en : pl;
+    const booking = window.ride24BookingsById?.[bookingId] || null;
+    const el = (tag, cls, text) => {
+        const node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text !== undefined && text !== null) node.textContent = String(text);
+        return node;
+    };
+    const money = (amount, cur) => {
+        if (amount == null || amount === "" || !Number.isFinite(Number(amount))) return "—";
+        return Number(amount).toFixed(2) + " " + cur;
+    };
+    const formatDateTime = (day, time) => {
+        if (!day) return "—";
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day));
+        let shown = String(day);
+        if (match) {
+            const date = new Date(+match[1],+match[2]-1,+match[3]);
+            if (date.getFullYear()===+match[1] && date.getMonth()===+match[2]-1 && date.getDate()===+match[3]) {
+                shown = new Intl.DateTimeFormat(isEn ? "en-GB" : "pl-PL",{
+                    day:"2-digit",month:"long",year:"numeric"
+                }).format(date);
             }
-            // Dokumenty partnera
-if (partnerTermsSnapshot || partnerRulesSnapshot) {
+        }
+        return shown + (time ? " · " + String(time).slice(0,5) : "");
+    };
+    const field = (label,value,extraClass="") => {
+        const box = el("div","r24-detail-field "+extraClass);
+        box.append(el("span","r24-detail-label",label),el("strong","r24-detail-value",value));
+        return box;
+    };
+    const sectionTitle = (text) => el("h4","r24-detail-section-heading",text);
+    const status = booking?.status || "";
+    const refund = booking?.refund_status || "";
+    const statusStyle = ["cancelled","rejected","expired","payment_expired"].includes(status)
+        ? "is-cancelled" : ["accepted","paid"].includes(status)
+        ? "is-confirmed" : status==="awaiting_payment" ? "is-waiting" : "is-pending";
+    let statusLabel = booking ? translateStatus(status,isEn?"en":"pl") : "";
+    if (booking?.status==="pending" && ["payment_provider_pending","payment_unknown"].includes(booking.api_status)) {
+        statusLabel = booking.api_status==="payment_unknown"
+            ? t("Wymaga weryfikacji","Under review")
+            : t("Opłacona – oczekuje na potwierdzenie","Paid – awaiting confirmation");
+    }
+    const headline = document.getElementById("r24DetailsBookingNumber");
+    if (headline) headline.textContent = bookingId ? "#R24-"+String(bookingId).slice(-4) : "Ride24";
+    const closeX = document.getElementById("r24DetailsCloseX");
+    if (closeX) closeX.setAttribute("aria-label",t("Zamknij","Close"));
+    body.replaceChildren();
 
-    html += `
-        <div style="
-            margin-top:20px;
-            padding-top:20px;
-            border-top:1px solid #334155;
-        ">
-            <strong style="
-                display:block;
-                margin-bottom:12px;
-                color:white;
-                font-size:15px;
-            ">
-                📄 ${isEn ? "Partner documents" : "Dokumenty partnera"}
-            </strong>
-    `;
+    // Identical overview for Dashboard and My bookings, sourced from the saved client booking.
+    const overview = el("section","r24-detail-overview");
+    const top = el("div","r24-detail-overview-top");
+    const car = el("div","r24-detail-car");
+    const snap = booking?.vehicle_snapshot || {};
+    if (booking) {
+        const code = snap.class_code || booking.car_classes?.class_code || "";
+        if (code) car.append(el("span","r24-detail-car-code",code));
+        car.append(el("strong","r24-detail-car-name",
+            window.ride24VehicleLabel(snap,booking.car_classes,isEn)));
+    } else {
+        car.append(el("strong","r24-detail-car-name",t("Dane rezerwacji","Booking details")));
+    }
+    top.append(car);
+    if (statusLabel) top.append(el("span","r24-detail-status "+statusStyle,statusLabel));
+    overview.append(top);
 
-    if (partnerTermsSnapshot) {
-    html += `
-        <button
-            onclick="window.open('${partnerTermsSnapshot}','_blank','noopener,noreferrer')"
-            style="
-                width:100%;
-                margin-bottom:10px;
-                padding:12px;
-                background:#1E293B;
-                border:1px solid #334155;
-                border-radius:10px;
-                color:white;
-                cursor:pointer;
-                font-weight:600;
-                text-align:left;
-                transition:.2s;
-            "
-            onmouseover="this.style.background='#334155'"
-            onmouseout="this.style.background='#1E293B'">
+    if (booking) {
+        const itinerary = el("div","r24-detail-itinerary");
+        itinerary.append(
+            field(t("📍 Odbiór","📍 Pick-up"),booking.pickup_location || "—","r24-detail-pickup"),
+            field(t("🏁 Zwrot","🏁 Return"),booking.return_location || booking.pickup_location || "—","r24-detail-return"),
+            field(t("Data i godzina odbioru","Pick-up date & time"),
+                formatDateTime(booking.start_date,booking.pickup_time)),
+            field(t("Data i godzina zwrotu","Return date & time"),
+                formatDateTime(booking.end_date,booking.return_time))
+        );
+        overview.append(itinerary);
+        const amounts = el("div","r24-detail-amounts");
+        const partnerCurrency = booking.car_classes?.partners?.currency || currency || "EUR";
+        amounts.append(
+            field(t("Do zapłaty przy odbiorze","Pay at pick-up"),
+                money(booking.pickup_payment_partner_currency,partnerCurrency)),
+            field(t("Opłata online Ride24","Ride24 online payment"),
+                money(booking.online_payment_pln,"PLN"))
+        );
+        overview.append(amounts);
+        if (refund==="pending" || refund==="completed") {
+            overview.append(el("p","r24-detail-refund",
+                refund==="completed" ? t("Zwrot płatności zrealizowany","Refund completed")
+                    : t("Zwrot płatności w toku","Refund in progress")));
+        }
+    }
+    body.append(overview);
 
-            📘 ${isEn ? "Partner regulations" : "Regulamin partnera"}
+    // Leave the original pricing and extras renderer untouched (including archived API quotes).
+    const priceSection = el("section","r24-unified-pricing r24-detail-price-section");
+    body.append(priceSection);
+    window.openClientPriceBreakdown(bookingId,priceSection);
 
-        </button>
-    `;
-}
+    const conditions = el("section","r24-detail-conditions");
+    conditions.append(sectionTitle(t("Warunki wynajmu","Rental conditions")));
+    const facts = el("div","r24-detail-facts");
+    const depositAmount = Number(deposit);
+    const depositText = Number.isFinite(depositAmount) && depositAmount>0
+        ? money(depositAmount,currency||"EUR") : t("Brak kaucji","No deposit");
+    const mileageAmount = Number(mileage);
+    const mileageText = mileage!=="" && Number.isFinite(mileageAmount) && mileageAmount>0
+        ? mileageAmount+" "+t("km/dzień","km/day") : t("Bez limitu","Unlimited");
+    facts.append(field(t("Kaucja","Deposit"),depositText),
+        field(t("Limit kilometrów","Mileage"),mileageText));
+    if (driverIncluded===true) {
+        facts.append(field(t("Kierowca w cenie","Driver included"),
+            driverHours ? String(driverHours)+" h" : t("Tak","Yes")));
+    }
+    conditions.append(facts);
+    body.append(conditions);
 
-   if (partnerRulesSnapshot) {
-    html += `
-        <button
-            onclick="window.open('${partnerRulesSnapshot}','_blank','noopener,noreferrer')"
-            style="
-                width:100%;
-                padding:12px;
-                background:#1E293B;
-                border:1px solid #334155;
-                border-radius:10px;
-                color:white;
-                cursor:pointer;
-                font-weight:600;
-                text-align:left;
-                transition:.2s;
-            "
-            onmouseover="this.style.background='#334155'"
-            onmouseout="this.style.background='#1E293B'">
-
-            📗 ${isEn ? "Rental conditions" : "Warunki wynajmu"}
-
-        </button>
-    `;
-}
-
-    html += `</div>`;
-}
-            body.innerHTML = html;
-            // Presentation only: reuse the existing saved booking amounts inside this details modal.
-            const priceSection = document.createElement('section');
-            priceSection.className = 'r24-unified-pricing';
-            body.appendChild(priceSection);
-            window.openClientPriceBreakdown(bookingId, priceSection);
-            document.getElementById("bookingDetailsModal").style.display = "flex";
-            // Customer-only, read-only archived Caravel quote + accepted terms.
-            const booked=window.ride24BookingsById?.[bookingId];
-            if(booked?.partner_id==='78721481-7619-44df-a9b7-5faa344b69bb'){
-                const loading=document.createElement('p');
-                loading.textContent=isEn?'Loading confirmed Caravel booking details…'
-                    :'Pobieranie potwierdzonych szczegółów Caravel…';
-                loading.className='r24-price-legacy';
-                priceSection.replaceChildren(loading);
-                db.functions.invoke('client-caravel-booking-details',{body:{booking_id:bookingId}})
-                  .then(({data,error})=>{
-                      if(!priceSection.isConnected || document.getElementById('bookingDetailsModal')?.style.display!=='flex')return;
-                      if(error||!data?.success||!window.Ride24CaravelBookingDetails?.render(data.details,priceSection,isEn))
-                          throw new Error('CARAVEL_DETAILS_UNAVAILABLE');
-                  }).catch(()=>{
-                      if(!priceSection.isConnected || document.getElementById('bookingDetailsModal')?.style.display!=='flex')return;
-                      window.openClientPriceBreakdown(bookingId,priceSection);
-                      const message=document.createElement('p');
-                      message.className='r24-price-legacy';
-                      message.textContent=isEn
-                        ? 'Could not load booked Caravel extras or archived terms. Retry or contact Ride24.'
-                        : 'Nie udało się pobrać zamówionych dodatków i regulaminu Caravel. Spróbuj ponownie lub skontaktuj się z Ride24.';
-                      priceSection.prepend(message);
-                  });
-            }
+    const documents = el("section","r24-detail-documents");
+    const allowedDocument = raw => {
+        if (!raw || typeof raw!=="string") return null;
+        try {
+            const url = new URL(raw,window.location.origin);
+            return ["https:","http:"].includes(url.protocol) ? url.href : null;
+        } catch (_) {return null;}
+    };
+    const termsUrl = allowedDocument(partnerTermsSnapshot);
+    const rulesUrl = allowedDocument(partnerRulesSnapshot);
+    if (termsUrl || rulesUrl) {
+        documents.append(sectionTitle(t("Dokumenty partnera","Partner documents")));
+        const addDoc = (label,url) => {
+            const button = el("button","r24-detail-doc-link",label);
+            button.type = "button";
+            button.addEventListener("click",()=>window.open(url,"_blank","noopener,noreferrer"));
+            documents.append(button);
         };
+        if (termsUrl) addDoc(t("📘 Regulamin partnera","📘 Partner terms"),termsUrl);
+        if (rulesUrl) addDoc(t("📗 Warunki wynajmu","📗 Rental rules"),rulesUrl);
+        body.append(documents);
+    }
+    window.r24DetailsReturnFocus=document.activeElement;
+    modal.style.display="flex";
+    const firstClose=document.getElementById("r24DetailsCloseX");
+    firstClose?.focus({preventScroll:true});
 
-        window.openClientPriceBreakdown = function(id, inlineTarget = null) {
+    // Caravel's archived terms, drivers, purchased extras and prices remain authoritative.
+    const booked=booking;
+    if (booked?.partner_id==="78721481-7619-44df-a9b7-5faa344b69bb") {
+        const loading=el("p","r24-price-legacy",
+            t("Pobieranie zapisanych szczegółów Caravel…","Loading archived Caravel booking details…"));
+        priceSection.replaceChildren(loading);
+        db.functions.invoke("client-caravel-booking-details",{body:{booking_id:bookingId}})
+          .then(({data,error})=>{
+              if (!priceSection.isConnected || modal.style.display!=="flex") return;
+              if (error || !data?.success || !window.Ride24CaravelBookingDetails?.render(data.details,priceSection,isEn))
+                  throw new Error("CARAVEL_DETAILS_UNAVAILABLE");
+              // Documents are supplementary; keep booked drivers and the itemised extras above them.
+              const archiveDocs=priceSection.querySelector(".r24-caravel-booking-documents");
+              if (archiveDocs) priceSection.append(archiveDocs);
+          }).catch(()=>{
+              if (!priceSection.isConnected || modal.style.display!=="flex") return;
+              window.openClientPriceBreakdown(bookingId,priceSection);
+              priceSection.prepend(el("p","r24-price-legacy",
+                  t("Nie udało się pobrać zamówionych dodatków i regulaminu Caravel. Spróbuj ponownie lub skontaktuj się z Ride24.",
+                    "Could not load booked Caravel extras or archived terms. Retry or contact Ride24.")));
+          });
+    }
+};
+
+window.openClientPriceBreakdown = function(id, inlineTarget = null) {
             const booking = window.ride24BookingsById?.[id];
             if (!booking) return;
             const snapshot = booking.pricing_items_snapshot;
@@ -2670,6 +2702,9 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
         };
         window.closeDetailsModal = function() {
             document.getElementById("bookingDetailsModal").style.display = "none";
+            const prev=window.r24DetailsReturnFocus;
+            window.r24DetailsReturnFocus=null;
+            if (prev?.isConnected) prev.focus({preventScroll:true});
         };
         // --- LOYALTY TOOLTIP ---
 window.openLoyaltyModal = function() {
@@ -6012,15 +6047,19 @@ window.closeReviewModal = function() {
             </div>
         </div>
     </div>
-     <div id="bookingDetailsModal" class="custom-modal">
-        <div class="modal-content" style="max-width: 400px; text-align: left;">
-            <h3 style="margin-top: 0; color: white;" data-pl="Szczegóły rezerwacji" data-en="Booking details">Szczegóły rezerwacji</h3>
-
-            <div id="bookingDetailsBody" style="color: #94A3B8; font-size: 14px; line-height: 1.8; background: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+     <div id="bookingDetailsModal" class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="r24DetailsTitle">
+        <div class="modal-content r24-details-dialog">
+            <div class="r24-details-head">
+                <div>
+                    <span class="r24-details-eyebrow" id="r24DetailsBookingNumber">Ride24</span>
+                    <h3 id="r24DetailsTitle" data-pl="Szczegóły rezerwacji" data-en="Booking details">Szczegóły rezerwacji</h3>
                 </div>
-
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button class="btn-primary" onclick="closeDetailsModal()" data-pl="Zamknij" data-en="Close" style="width: 100%;">Zamknij</button>
+                <button type="button" class="r24-details-close-x" id="r24DetailsCloseX"
+                    onclick="closeDetailsModal()" aria-label="Zamknij">×</button>
+            </div>
+            <div id="bookingDetailsBody"></div>
+            <div class="modal-actions r24-details-footer">
+                <button class="btn-primary" onclick="closeDetailsModal()" data-pl="Zamknij" data-en="Close">Zamknij</button>
             </div>
         </div>
     </div>
