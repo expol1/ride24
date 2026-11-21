@@ -2595,10 +2595,9 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
                 if(snapshot.loyalty_discount_cents)
                     row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(snapshot.loyalty_discount_cents));
                 row(en?'Total price':'Cena łączna',money(snapshot.total_cents),'r24-client-price-total');
-                row(isArvent?(en?'Ride24 fee paid online':'Opłata Ride24 online'):'Online Ride24',
+                row(isArvent?(en?'Online after confirmation':'Online po potwierdzeniu'):'Online Ride24',
                     money(snapshot.online_pln_cents,'PLN'));
-                row(isArvent?(en?'Pay Arvent at pickup':'Do zapłaty Arvent przy odbiorze')
-                    :(en?'Payable to partner':'Do zapłaty partnerowi'),money(snapshot.partner_cents));
+                row(en?'Payable to partner':'Do zapłaty partnerowi',money(snapshot.partner_cents));
                 const deposit=Number(booking.deposit_snapshot||0);
                 row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
                     deposit>0?deposit.toFixed(2)+' '+snapshot.currency:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
@@ -2610,11 +2609,10 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
                     :'Dla tej rezerwacji nie zapisano rozliczenia szczegółowego. Poniżej znajdują się zapisane kwoty.');
                 notice.className='r24-price-legacy';body.append(notice);
                 const isArvent=booking.car_classes?.partners?.api_provider==='arvent_kolaycar';
-                row(isArvent?(en?'Ride24 fee paid online':'Opłata Ride24 online'):'Online Ride24',
+                row(isArvent?(en?'Online after confirmation':'Online po potwierdzeniu'):'Online Ride24',
                     (Number(booking.online_payment_pln)||0).toFixed(2)+' PLN');
                 const curr=booking.car_classes?.partners?.currency||'EUR';
-                row(isArvent?(en?'Pay Arvent at pickup':'Do zapłaty Arvent przy odbiorze')
-                    :(en?'At pickup':'Przy odbiorze'),
+                row(isArvent?(en?'Payable to partner':'Do zapłaty partnerowi'):(en?'At pickup':'Przy odbiorze'),
                     (Number(booking.pickup_payment_partner_currency)||0).toFixed(2)+' '+curr);
                 const deposit=Number(booking.deposit_snapshot||0);
                 row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
