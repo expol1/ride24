@@ -111,10 +111,10 @@ serve(async(req: Request)=>{
         'Cannot verify the extras configuration. Please try again.',503);
       const settings=configuration?.api_settings||{};
       const certified=settings.arvent_extras_pricing_certified===true;
-      if(body.additional_driver_id && (!certified || settings.arvent_additional_driver_certified!==true))
-        throw new BookingOptionsError('ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE',
-          'Dodatkowy kierowca jest niedostępny w tej ofercie.',
-          'An additional driver is not available for this offer.',400);
+      if(body.additional_driver_id)
+        throw new BookingOptionsError('ARVENT_ADDITIONAL_DRIVER_IDENTITY_NOT_REQUIRED',
+          'W Arvent wybierz płatny dodatek „Dodatkowy kierowca” bez podawania danych tej osoby.',
+          'For Arvent select the paid Additional driver option; personal details are not collected online.',400);
       const typeMap=settings.arvent_extra_billing_types && typeof settings.arvent_extra_billing_types==='object'
          && !Array.isArray(settings.arvent_extra_billing_types) ? settings.arvent_extra_billing_types : {};
       const effectiveItems=arventPricedExtrasCatalog(offerExtras.items,typeMap,certified);
@@ -145,7 +145,7 @@ serve(async(req: Request)=>{
       try {
         extraQuote=arventSelectedExtrasQuote({items:readyItems,selections:selected,
           billedDays:priceDays,certified,
-          certifiedMap:typeMap,additionalDriverId:body.additional_driver_id||null});
+          certifiedMap:typeMap,additionalDriverId:null});
       } catch(e) {
         const code=e instanceof Error?e.message:'';
         throw new BookingOptionsError(code==='ARVENT_EXTRA_DRIVER_SELECTION_MISMATCH'
@@ -162,7 +162,7 @@ serve(async(req: Request)=>{
           ride24FeeCents:Math.round(fee*100),extraQuote,days:priceDays,
           loyaltyPercent:discount,nbpRate:rate});
         const binding={user_id:user.id,driver_id:body.driver_id||null,
-          additional_driver_id:body.additional_driver_id||null,ages:driverAges,selections:selected};
+          additional_driver_id:null,ages:driverAges,selections:selected};
         quoteFingerprint=await priceFingerprint(snapshot,binding);
         // Persist precisely the server-accepted extras, not a client-entered
         // total. Same short-lived API quote transaction model as AVIA.
