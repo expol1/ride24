@@ -29,6 +29,21 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             ? offer.items.filter(x => x && (x.code === '2' || x.required === true)) : [];
         const byCode = new Map(available.filter(x => x && typeof x.code === 'string').map(x => [x.code,x]));
         const selectable = available.filter(x => x && x.bookable === true);
+        // Supplier names can be Turkish. Customer-facing Arvent UI must
+        // follow Ride24 PL/EN; unknown codes are shown neutrally by code
+        // rather than leaking an untranslated supplier label.
+        const extraName = code => {
+            const names = {
+                '1': ['Nawigacja GPS','GPS navigation'],
+                '2': ['Dodatkowy kierowca','Additional driver'],
+                '6': ['Fotelik niemowlęcy','Infant seat'],
+                '18': ['Wi-Fi','Wi-Fi']
+            };
+            const pair=names[String(code)];
+            return pair ? (isEn()?pair[1]:pair[0])
+                :label('Usługa partnera (kod '+String(code)+')',
+                    'Supplier service (code '+String(code)+')');
+        };
         const additional = el('additionalDriverSelect');
         const allowExtraDriver = selectable.some(x => x.code === '2');
         // Arvent's additional driver is a code-2 checkbox, NOT a saved
@@ -56,7 +71,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const renderItem=(parent,code,name,priced)=>{
             const item=node('div');item.className='booking-extra-row';
             const detail=node('span');
-            const title=code==='2'?label('Dodatkowy kierowca','Additional driver'):name;
+            const title=extraName(code);
             detail.append(node('strong',title));
             if(code==='2'){
                 detail.append(node('small',label('Stawka Arvent: 4 € / doba.','Arvent rate: €4 / day.')));
@@ -146,29 +161,27 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
         box.append(node('h4', label('Podsumowanie ceny', 'Price summary')));
-        const cat = a.category || {};
-        const catText = [cat.group_name, cat.example_model ? cat.example_model + label(' lub podobny', ' or similar') : null, cat.sipp ? '(' + cat.sipp + ')' : null].filter(Boolean).join(' ');
-        if (catText) row(box, label('Kategoria samochodu', 'Car category'), catText);
-        row(box, label('Odbiór', 'Pickup'), `${a.start_date} ${a.pickup_time} • ${a.pickup_location}`);
-        row(box, label('Zwrot', 'Return'), `${a.end_date} ${a.return_time} • ${a.return_location}`);
-        row(box, label('Liczba rozliczanych dób', 'Billed rental days'), String(a.billed_days));
-        row(box, label('Wynajem za cały okres', 'Rental for the whole period'), money(cents(a.rental_total), a.currency));
-        for (const fee of (a.mandatory_fees || [])) row(box, isEn() ? fee.name_en : fee.name_pl, money(cents(fee.amount), a.currency));
+        // The price panel is not an itinerary. Route, car category and
+        // dates are already shown in the search / booking context.
+        row(box, label('Wynajem ('+a.billed_days+' doby)', 'Car rental ('+a.billed_days+' days)'),
+            money(cents(a.rental_total), a.currency));
+        for (const fee of (a.mandatory_fees || []))
+            row(box, label('Opłata obowiązkowa','Mandatory fee'),
+                money(cents(fee.amount),a.currency));
         for (const extra of (a.extras || [])) {
             const qty=extra.quantity>1?' × '+extra.quantity:'';
             const days=extra.billing==='day'?' × '+extra.days+' '+label('dni','days'):'';
-            row(box,(extra.code==='2'?label('Dodatkowy kierowca','Additional driver'):extra.name)+qty+days,
-                money(extra.total_cents,'EUR'));
+            row(box,extraName(extra.code)+qty+days,money(extra.total_cents,'EUR'));
         }
         if (!(a.extras || []).length)
             row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
         if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
-        row(box, label('Całkowita cena rezerwacji', 'Total booking price'), money(cents(a.total), a.currency), true);
-        row(box, label('Opłata Ride24 (online)', 'Ride24 fee (online)'), money(cents(a.online_pln), 'PLN'), true);
-        row(box, label('Płatność przy odbiorze', 'Pay at pickup'), money(cents(a.pay_on_pickup), a.currency), true);
+        row(box, label('Cena łączna', 'Total booking price'), money(cents(a.total), a.currency), true);
+        row(box, label('Opłata Ride24 online', 'Ride24 fee online'), money(cents(a.online_pln), 'PLN'), true);
+        row(box, label('Do zapłaty Arvent przy odbiorze', 'Pay Arvent at pickup'), money(cents(a.pay_on_pickup), a.currency), true);
         box.append(node('small', label(
-            `Kwota w PLN to odrębna opłata rezerwacyjna Ride24 (${money(cents(a.ride24_fee), a.currency)} według kursu NBP ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', po rabacie' : ''}). Wynajem ${money(cents(a.pay_on_pickup), a.currency)} płacisz bezpośrednio wypożyczalni przy odbiorze.`,
-            `The PLN amount is the separate Ride24 booking fee (${money(cents(a.ride24_fee), a.currency)} at NBP rate ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', after discount' : ''}). You pay the rental of ${money(cents(a.pay_on_pickup), a.currency)} directly to the rental company at pickup.`)));
+            'Opłata Ride24 jest płatna online. Wynajem i dodatki płacisz Arvent przy odbiorze.',
+            'The Ride24 reservation fee is paid online. Rental and extras are paid to Arvent at pickup.')));
         // The same current server quote is visible inside this modal, rather
         // than forcing customers to close it to see their chosen extra's cost.
         if(total){
@@ -176,7 +189,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             total.append(node('strong',label('Twoje dodatki','Your extras')+': '
                 +(items.length?items.length:label('brak','none'))));
             for(const x of items){
-                const name=x.code==='2'?label('Dodatkowy kierowca','Additional driver'):x.name;
+                const name=extraName(x.code);
                 const suffix=(x.quantity>1?' × '+x.quantity:'')
                     +(x.billing==='day'?' × '+x.days+' '+label('dni','days'):'');
                 row(total,name+suffix,money(x.total_cents,'EUR'));
