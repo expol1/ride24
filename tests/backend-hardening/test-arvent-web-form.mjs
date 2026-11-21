@@ -74,6 +74,7 @@ test('Arvent without extras gets the server price summary: 88.14 = 84.75 rental 
  const a=r.body.arvent;
  assert.equal(r.body.enabled,false);
  assert.equal(a.total,88.14);assert.equal(a.rental_total,84.75);assert.equal(a.ride24_fee,3.39);
+ assert.equal(a.rental_public_total,88.14,'customer rental must match search price');
  assert.equal(Math.round((a.rental_total+a.ride24_fee)*100),Math.round(a.total*100));
  assert.equal(a.pay_on_pickup,84.75);
  assert.equal(a.billed_days,3);
@@ -146,6 +147,8 @@ test('Arvent certified code 2 adds EUR4 per day without collecting second driver
  assert.equal(r.status,200,JSON.stringify(r.body));
  assert.equal(r.body.enabled,true);
  assert.equal(r.body.arvent.pay_on_pickup,96.75);
+ assert.equal(r.body.arvent.rental_public_total,88.14,
+   'adding extras must not change the rental price already displayed in search');
  assert.equal(r.body.arvent.total,100.14);
  assert.equal(r.body.arvent.ride24_fee,3.39);
  assert.equal(r.body.arvent.online_pln,14.35);
