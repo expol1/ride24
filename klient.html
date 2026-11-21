@@ -1409,7 +1409,43 @@
             #view-payments .payments-table .payment-message-cell{padding:28px 18px}
         }
 
-
+        /* Płatności: te same gradienty statusów co w tabeli Moje rezerwacje. */
+        #view-payments .payments-table tbody tr.r24-payment-row{
+            --r24-pay-strong:#cbd5e1;--r24-pay-soft:#f8fafc;--r24-pay-edge:#64748b;
+            background:linear-gradient(100deg,var(--r24-pay-strong),var(--r24-pay-soft))!important
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row.r24-payment-confirmed{
+            --r24-pay-strong:#86d79b;--r24-pay-soft:#f0fdf4;--r24-pay-edge:#18833b
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row.r24-payment-cancelled{
+            --r24-pay-strong:#fca5a5;--r24-pay-soft:#fff1f2;--r24-pay-edge:#b91c1c
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row.r24-payment-waiting{
+            --r24-pay-strong:#facc15;--r24-pay-soft:#fffbeb;--r24-pay-edge:#bd8d00
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row>td{background:transparent!important}
+        #view-payments .payments-table tbody tr.r24-payment-row>td:first-child{
+            border-left:5px solid var(--r24-pay-edge);padding-left:21px
+        }
+        #view-payments .payments-table .payment-booking-link{
+            display:inline-block;appearance:none;border:0;padding:0;background:transparent;
+            color:#1d4ed8;font:inherit;font-size:14px;font-weight:800;cursor:pointer;
+            text-align:left;text-decoration:none
+        }
+        #view-payments .payments-table .payment-booking-link:hover{text-decoration:underline;color:#1e40af}
+        #view-payments .payments-table .payment-booking-link:focus-visible{
+            outline:3px solid #2563eb;outline-offset:4px;border-radius:3px
+        }
+        #view-payments .payments-table .payment-booking-link:disabled{opacity:.65;cursor:progress}
+        @media(max-width:720px){
+            #view-payments .payments-table tbody tr.r24-payment-row{
+                border-left:5px solid var(--r24-pay-edge);padding-left:13px;
+                background:linear-gradient(100deg,var(--r24-pay-strong),var(--r24-pay-soft))!important
+            }
+            #view-payments .payments-table tbody tr.r24-payment-row>td:first-child{
+                border-left:0;padding-left:0
+            }
+        }
 
 /* Profile onboarding gate: isolate required details until saved and verified. */
 body.r24-profile-checking .view-section{display:none!important}
@@ -5473,6 +5509,39 @@ function translateStatus(status, lang = null) {
 
     return map[status] ? map[status][currentLang] : status;
 }
+
+/* Płatności → Szczegóły: open the same saved-booking modal as in My bookings. */
+window.r24OpenPaymentBookingDetails = async function(bookingId) {
+    const isEn = localStorage.getItem("client_lang") === "en";
+    if (!window.r24ClientProfileReady || !currentUser?.id || !bookingId) return;
+    try {
+        let booking = window.ride24BookingsById?.[bookingId];
+        if (!booking) {
+            // Refresh the regular, client-scoped booking list rather than querying or displaying another user's booking.
+            await loadClientBookings();
+            booking = window.ride24BookingsById?.[bookingId];
+        }
+        if (!booking) {
+            window.showToast(isEn ? "Booking details are unavailable." : "Nie znaleziono szczegółów tej rezerwacji.", "error");
+            return;
+        }
+        const currency = booking.car_classes?.partners?.currency || "EUR";
+        window.openDetailsModal(
+            booking.deposit_snapshot ?? 0,
+            booking.mileage_limit_snapshot ?? "",
+            booking.driver_included_snapshot === true,
+            booking.driver_hours_snapshot ?? "",
+            currency,
+            booking.partner_terms_snapshot ?? "",
+            booking.partner_rules_snapshot ?? "",
+            booking.id
+        );
+    } catch (error) {
+        console.error("Payment booking details failed:", error);
+        window.showToast(isEn ? "Could not open booking details." : "Nie udało się otworzyć szczegółów rezerwacji.", "error");
+    }
+};
+
 window.loadPayments = async function() {
     if (!window.r24ClientProfileReady) return;
     console.log("💰 loadPayments start");
@@ -5480,6 +5549,19 @@ window.loadPayments = async function() {
 
     const tbody = document.getElementById("payments-tbody");
     if (!tbody) return;
+    if (!tbody.dataset.r24BookingDetailsBound) {
+        tbody.dataset.r24BookingDetailsBound = "1";
+        tbody.addEventListener("click", async event => {
+            const button = event.target.closest("button[data-r24-payment-booking]");
+            if (!button || !tbody.contains(button) || button.disabled) return;
+            button.disabled = true;
+            try {
+                await window.r24OpenPaymentBookingDetails(button.dataset.r24PaymentBooking);
+            } finally {
+                if (button.isConnected) button.disabled = false;
+            }
+        });
+    }
 
     tbody.innerHTML = `<tr class="payment-message-row"><td colspan="3" class="payment-message-cell" data-pl="Ładowanie..." data-en="Loading...">${isEn ? "Loading..." : "Ładowanie..."}</td></tr>`;
 
@@ -5544,7 +5626,7 @@ window.loadPayments = async function() {
                 paymentStatusClass = "awaiting_payment";
                 paymentStatusPl = "Zwrot w toku";
                 paymentStatusEn = "Refund pending";
-            } else if (b.status === "paid") {
+            } else if (b.status === "paid" || b.status === "accepted") {
                 paymentStatusClass = "paid";
             } else if (b.status === "cancelled" || b.status === "rejected") {
                 paymentStatusClass = "cancelled";
@@ -5552,10 +5634,27 @@ window.loadPayments = async function() {
                 paymentStatusClass = "expired";
             }
 
+            // Booking status controls the ROW, refund progress controls the LABEL.
+            // Even after a successful refund, a cancelled booking remains red like in My bookings.
+            let paymentRowState = "";
+            if (["cancelled", "rejected", "expired", "payment_expired"].includes(b.status)
+                || b.refund_status === "completed") {
+                paymentRowState = "r24-payment-cancelled";
+            } else if (b.refund_status === "pending" || b.status === "awaiting_payment") {
+                paymentRowState = "r24-payment-waiting";
+            } else if (b.status === "accepted" || b.status === "paid") {
+                paymentRowState = "r24-payment-confirmed";
+            }
             const actionHtml = actions ? '<div class="payment-action">' + actions + '</div>' : "";
             tbody.innerHTML += `
-                <tr>
-                    <td class="payment-reference"><span class="payment-id">#R24-${b.id.toString().slice(-4)}</span></td>
+                <tr class="r24-payment-row ${paymentRowState}">
+                    <td class="payment-reference">
+                        <button type="button" class="payment-id payment-booking-link"
+                            data-r24-payment-booking="${b.id}"
+                            aria-label="${isEn ? "View booking details" : "Zobacz szczegóły rezerwacji"} #R24-${b.id.toString().slice(-4)}"
+                            title="${isEn ? "View booking details" : "Zobacz szczegóły rezerwacji"}"
+                        >#R24-${b.id.toString().slice(-4)}</button>
+                    </td>
                     <td class="payment-money"><span class="payment-amount">${(b.online_payment_pln || 0).toFixed(2)}</span><span class="payment-currency">PLN</span></td>
                     <td class="payment-status-cell">
                         <div class="payment-status-actions">
