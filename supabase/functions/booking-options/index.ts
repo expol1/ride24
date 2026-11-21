@@ -198,7 +198,11 @@ serve(async(req: Request)=>{
         pickup_location:typeof body.pickup_location==='string'?body.pickup_location.slice(0,250):'',
         return_location:typeof body.return_location==='string'?body.return_location.slice(0,250):'',
         category:{class_code:display.class_code??null,group_name:display.group_name??null,example_model:display.example_model??null,sipp:display.sipp??null},
-        rental_total:rental, mandatory_fees:[],
+        // Public rental is the SAME amount shown in Ride24 search (rental
+        // plus the already embedded reservation fee), not the supplier net.
+        // It is a presentation field; supplier payable EUR and Stripe PLN
+        // are still split according to the verified server quote.
+        rental_total:rental, rental_public_total:total, mandatory_fees:[],
         extras:extraQuote.items,extra_catalog:extraCatalog,
         offer_extras:{...offerExtras,items:readyItems},
         total:needsPriceSnapshot?snapshot.gross_cents/100:total,
