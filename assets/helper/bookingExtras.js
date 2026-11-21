@@ -160,11 +160,15 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         }
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
+        // rental_public_total is the original customer-facing Ride24 SEARCH
+        // price, NOT the lower supplier net. The online/acquisition fee is
+        // already within that searched price; never add it as a new line.
+        const publicRentalCents=cents(a.rental_public_total);
         box.append(node('h4', label('Podsumowanie ceny', 'Price summary')));
         // The price panel is not an itinerary. Route, car category and
         // dates are already shown in the search / booking context.
         row(box, label('Wynajem ('+a.billed_days+' doby)', 'Car rental ('+a.billed_days+' days)'),
-            money(cents(a.rental_total), a.currency));
+            money(publicRentalCents, a.currency));
         for (const fee of (a.mandatory_fees || []))
             row(box, label('Opłata obowiązkowa','Mandatory fee'),
                 money(cents(fee.amount),a.currency));
@@ -175,8 +179,6 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         }
         if (!(a.extras || []).length)
             row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
-        row(box, label('Opłata rezerwacyjna Ride24', 'Ride24 reservation fee'),
-            money(cents(a.ride24_fee),a.currency));
         if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
         row(box, label('Cena łączna', 'Total booking price'), money(cents(a.total), a.currency), true);
         row(box, label('Opłata Ride24 online', 'Ride24 fee online'), money(cents(a.online_pln), 'PLN'), true);
@@ -196,9 +198,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                     +(x.billing==='day'?' × '+x.days+' '+label('dni','days'):'');
                 row(total,name+suffix,money(x.total_cents,'EUR'));
             }
-            row(total,label('Wynajem samochodu','Car rental'),money(cents(a.rental_total),a.currency));
-            row(total,label('Opłata rezerwacyjna Ride24','Ride24 reservation fee'),
-                money(cents(a.ride24_fee),a.currency));
+            row(total,label('Wynajem samochodu','Car rental'),money(publicRentalCents,a.currency));
             row(total,label('Cena łączna','Total booking price'),money(cents(a.total),a.currency),true);
             row(total,label('Opłata Ride24 online','Ride24 fee paid online'),money(cents(a.online_pln),'PLN'));
             row(total,label('Do zapłaty Arvent przy odbiorze','Pay Arvent at pickup'),money(cents(a.pay_on_pickup),a.currency),true);
