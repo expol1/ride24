@@ -1507,6 +1507,13 @@ body.r24-profile-incomplete #view-profile .profile-grid{grid-template-columns:mi
 #bookingDetailsModal { padding: 16px; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
 #bookingDetailsModal .modal-content { box-sizing: border-box; width: min(100%, 520px); max-width: 520px !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; margin: auto; flex-shrink: 0; }
 #bookingDetailsModal #bookingDetailsBody { overflow-wrap: anywhere; }
+#bookingDetailsModal .r24-arvent-booking-summary{padding:2px 0 16px;margin:0 0 14px;border-bottom:1px solid #475569}
+#bookingDetailsModal .r24-arvent-booking-summary h4{font-size:15px;font-weight:750;color:#f8fafc;margin:0 0 10px}
+#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field{display:grid;grid-template-columns:minmax(0,40%) minmax(0,60%);gap:12px;align-items:start;padding:9px 0;border-top:1px solid #334155}
+#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field span{font-size:12px;line-height:1.4;color:#cbd5e1}
+#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field strong{font-size:13px;line-height:1.5;color:#f8fafc;font-weight:650;overflow-wrap:anywhere}
+#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field .r24-booked-field-date{display:block;color:#f8fafc}
+#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field .r24-booked-field-place{display:block;color:#cbd5e1;font-size:12px}
 
 #bookingDetailsModal .r24-caravel-booking-documents,
 #bookingDetailsModal .r24-caravel-booking-drivers{margin:14px 0 18px;padding:14px 0;border-bottom:1px solid #475569}
@@ -2471,6 +2478,44 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
     html += `</div>`;
 }
             body.innerHTML = html;
+            const booked=window.ride24BookingsById?.[bookingId];
+            // Arvent uses the same existing details modal as other Ride24
+            // partners. Present saved facts only; never call the supplier or
+            // invent a driver's identity, assigned model, extra or amount.
+            if(booked?.car_classes?.partners?.api_provider==='arvent_kolaycar'){
+                const section=document.createElement('section');
+                section.className='r24-arvent-booking-summary';
+                const heading=document.createElement('h4');
+                heading.textContent=isEn?'Reservation details':'Szczegóły wynajmu';
+                section.append(heading);
+                const add=(name,value)=>{
+                    if(value==null || String(value).trim()==='')return;
+                    const r=document.createElement('div');
+                    r.className='r24-booked-field';
+                    const label=document.createElement('span');
+                    label.textContent=name;
+                    const text=document.createElement('strong');
+                    text.textContent=String(value);
+                    r.append(label,text);section.append(r);
+                };
+                const snap=booked.vehicle_snapshot||{};
+                const vehicle=typeof window.ride24VehicleLabel==='function'
+                    ?window.ride24VehicleLabel(snap,booked.car_classes,isEn)
+                    :[snap.group_name,snap.sipp||snap.class_code].filter(Boolean).join(' ');
+                add(isEn?'Booked vehicle category':'Zarezerwowana kategoria',vehicle);
+                add(isEn?'Ride24 reference':'Numer Ride24',
+                    booked.reservation_code||('R24-'+String(booked.id).slice(-4)));
+                add(isEn?'Arvent reference':'Numer Arvent',booked.api_booking_reference);
+                const when=(date,hour,place)=>[
+                    [date,hour].filter(Boolean).join(' '),place
+                ].filter(Boolean).join(' · ');
+                add(isEn?'Pickup':'Odbiór',
+                    when(booked.start_date,booked.pickup_time,booked.pickup_location));
+                add(isEn?'Return':'Zwrot',
+                    when(booked.end_date,booked.return_time,booked.return_location));
+                add(isEn?'Main driver':'Główny kierowca',booked.main_driver_name);
+                body.prepend(section);
+            }
             // Presentation only: reuse the existing saved booking amounts inside this details modal.
             const priceSection = document.createElement('section');
             priceSection.className = 'r24-unified-pricing';
@@ -2478,7 +2523,6 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
             window.openClientPriceBreakdown(bookingId, priceSection);
             document.getElementById("bookingDetailsModal").style.display = "flex";
             // Customer-only, read-only archived Caravel quote + accepted terms.
-            const booked=window.ride24BookingsById?.[bookingId];
             if(booked?.partner_id==='78721481-7619-44df-a9b7-5faa344b69bb'){
                 const loading=document.createElement('p');
                 loading.textContent=isEn?'Loading confirmed Caravel booking details…'
@@ -2534,16 +2578,24 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
             };
             if (valid) {
                 const money=(c,cur=snapshot.currency)=>(Number(c||0)/100).toFixed(2)+' '+cur;
+                const isArvent=booking.car_classes?.partners?.api_provider==='arvent_kolaycar';
                 for(const item of snapshot.items){
                     const name=(en?item.name_en:item.name_pl)+(item.location_name?' — '+item.location_name:'')+
                       (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(en?'days':'dni'):''):'');
-                    row(name,money(item.customer_cents));
+                    // The Arvent rental snapshot's customer amount includes
+                    // Ride24's separate fee; display the true supplier rental
+                    // here, then show the Ride24 fee on its own line.
+                    row(name,money(isArvent?item.partner_cents:item.customer_cents));
                 }
+                if(isArvent)row(en?'Ride24 reservation fee':'Opłata rezerwacyjna Ride24',
+                    money(snapshot.commission_cents));
                 if(snapshot.loyalty_discount_cents)
                     row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(snapshot.loyalty_discount_cents));
                 row(en?'Total price':'Cena łączna',money(snapshot.total_cents),'r24-client-price-total');
-                row('Online Ride24',money(snapshot.online_pln_cents,'PLN'));
-                row(en?'Payable to partner':'Do zapłaty partnerowi',money(snapshot.partner_cents));
+                row(isArvent?(en?'Ride24 fee paid online':'Opłata Ride24 online'):'Online Ride24',
+                    money(snapshot.online_pln_cents,'PLN'));
+                row(isArvent?(en?'Pay Arvent at pickup':'Do zapłaty Arvent przy odbiorze')
+                    :(en?'Payable to partner':'Do zapłaty partnerowi'),money(snapshot.partner_cents));
                 const deposit=Number(booking.deposit_snapshot||0);
                 row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
                     deposit>0?deposit.toFixed(2)+' '+snapshot.currency:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
@@ -2554,9 +2606,13 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
                     ?'An itemised breakdown was not saved for this booking. The recorded amounts are shown below.'
                     :'Dla tej rezerwacji nie zapisano rozliczenia szczegółowego. Poniżej znajdują się zapisane kwoty.');
                 notice.className='r24-price-legacy';body.append(notice);
-                row('Online Ride24',(Number(booking.online_payment_pln)||0).toFixed(2)+' PLN');
+                const isArvent=booking.car_classes?.partners?.api_provider==='arvent_kolaycar';
+                row(isArvent?(en?'Ride24 fee paid online':'Opłata Ride24 online'):'Online Ride24',
+                    (Number(booking.online_payment_pln)||0).toFixed(2)+' PLN');
                 const curr=booking.car_classes?.partners?.currency||'EUR';
-                row(en?'At pickup':'Przy odbiorze',(Number(booking.pickup_payment_partner_currency)||0).toFixed(2)+' '+curr);
+                row(isArvent?(en?'Pay Arvent at pickup':'Do zapłaty Arvent przy odbiorze')
+                    :(en?'At pickup':'Przy odbiorze'),
+                    (Number(booking.pickup_payment_partner_currency)||0).toFixed(2)+' '+curr);
                 const deposit=Number(booking.deposit_snapshot||0);
                 row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
                     deposit>0?deposit.toFixed(2)+' '+curr:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
@@ -3661,6 +3717,9 @@ document.addEventListener("click", async function(e) {
             .from("bookings")
             .select(`
     id,
+    reservation_code,
+    api_booking_reference,
+    main_driver_name,
     partner_id,
     caravel_terms_document_id,
     created_at,
