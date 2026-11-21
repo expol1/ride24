@@ -252,7 +252,7 @@ test('Arvent mobile modal uses only financial lines, translates extras into sele
  assert.doesNotMatch(client,/id="arventLicenseSince"/);
  assert.doesNotMatch(client,/id="arventLicenseRequirement"/);
  assert.match(client,/id="arventProfileLicenceNotice"/);
- assert.match(client,/selectedId[\\s\\S]*driver-license-since/);
+ assert.match(client,/selectedId[\s\S]*driver-license-since/);
  assert.match(client,/driverRow\.style\.display = on \? "none" : ""/);
  const price={enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,
    start_date:'2027-01-10',end_date:'2027-01-13',
