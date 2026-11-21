@@ -247,6 +247,27 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
 });
 
 
+test('Arvent missing GET /extras still shows confirmed driver rate but cannot select or charge it',async()=>{
+ const {ui}=setup();
+ globalThis.fetch=async()=>response({enabled:false,arvent:{
+  api_quote_id:'vehicle-quote',currency:'EUR',billed_days:3,
+  start_date:'2026-12-10',end_date:'2026-12-13',
+  pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya',
+  return_location:'Antalya',category:{sipp:'EDMR'},
+  rental_total:84.75,mandatory_fees:[],extras:[],extra_catalog:[],
+  offer_extras:{status:'none',items:[]},total:88.14,ride24_fee:3.39,
+  loyalty_discount_percent:0,exchange_rate:4.2345,
+  online_pln:14.35,pay_on_pickup:84.75}});
+ await ui.start();
+ const picker=document.getElementById('bookingExtrasPicker');
+ assert.match(picker.textContent,/Additional driver/);
+ assert.match(picker.textContent,/€4 \/ day/);
+ assert.match(picker.textContent,/not bookable online/);
+ assert.equal(picker.querySelectorAll('input,select').length,0);
+ assert.equal(document.getElementById('bookingExtrasTotal').hidden,false);
+ assert.deepEqual(ui.payload(),{});
+ assert.equal(ui.canSubmit(),true);
+});
 test('Arvent code-2 checkbox requotes server at 4 EUR per day, without second-driver identity',async()=>{
  const {ui}=setup();
  const base={api_quote_id:'vehicle-quote',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
