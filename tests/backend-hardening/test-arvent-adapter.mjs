@@ -209,13 +209,13 @@ test("approved status 1 only clears review after price and contract verification
  assert.equal(result.needs_manual_review,false);
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
 });
-test("paid Arvent additional driver saves code2 and POA full total, but only confirms supplier receipt",async()=>{
- const inputWithDriver={...syntheticBooking,partner_amount:107,rental_amount:100,extras_amount:7,
+test("Arvent SaveReservation sends confirmed 4€/day extra driver without secondary-driver identity",async()=>{
+ const inputWithDriver={...syntheticBooking,partner_amount:112,rental_amount:100,extras_amount:12,
    extras_pricing_certified:true,extra_billing_map:{},
-   extra_selections:[{code:'2',quantity:1,total_cents:700,required:false,billing:'rental'}],
-   additional_driver:{name:'Secondary Driver',age:30,license_first_issued:'2024-01-01'}};
- const opts={allowWrites:true,savedStatus:1,savedPrice:107,
-   requiredExtras:[{code:2,name:'Ek Sürücü',price:7,extraRentalType:'rental',
+   extra_selections:[{code:'2',quantity:1,total_cents:1200,required:false,billing:'day'}],
+   additional_driver:null,supplier_note:'Additional driver included'};
+ const opts={allowWrites:true,savedStatus:1,savedPrice:112,supplierDays:3,extrasDays:3,
+   requiredExtras:[{code:2,name:'Ek Sürücü',price:4,extraRentalType:'day',
       extraQuantityIncreasable:false,isRequired:false}]};
  const verified=setup({...opts,savedReservationExtras:[{code:2,piece:1}]});
  const success=await verified.arventCreateBooking(creds,inputWithDriver);
@@ -225,7 +225,8 @@ test("paid Arvent additional driver saves code2 and POA full total, but only con
  assert.equal(sent.payment.paymentType,3);
  assert.equal(sent.pricing.paidAmount,0);
  assert.deepEqual(sent.extras,[{code:'2',piece:1}]);
- assert.match(sent.customer.note,/Secondary Driver/);
+ assert.match(sent.customer.note,/Additional driver included/);
+ assert.doesNotMatch(sent.customer.note,/Secondary Driver|licence since/);
  const missing=setup(opts);
  const unverified=await missing.arventCreateBooking(creds,inputWithDriver);
  assert.equal(unverified.status,'pending');
