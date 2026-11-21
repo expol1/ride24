@@ -4550,7 +4550,8 @@ function calculateRefundPercent(pickupDate) {
             const rememberCheckbox = document.getElementById("invoice-remember");
             if (rememberCheckbox) rememberCheckbox.checked = true;
 
-            window.r24SetProfileSectionMode("invoice",!!invoiceData);
+            // Previously stored partial invoice records remain editable until every required field is valid.
+            window.r24SetProfileSectionMode("invoice",!!invoiceData && invoiceProfileErrors(invoiceData).length===0);
             if (!invoiceData) return;
 
             const companyInput = document.getElementById("invoice-company");
@@ -4869,7 +4870,8 @@ function calculateRefundPercent(pickupDate) {
             `;
             list.appendChild(row);
             window.r24SetupLicenseCalendar(row.querySelector(".driver-license-since"));
-            window.r24SetDriverMode(row,!!driverId);
+            // Legacy partial drivers must not look successfully completed; keep them ready for correction.
+            window.r24SetDriverMode(row,!!driverId && additionalDriverErrors({name,age,phone,license_since:licenseSince}).length===0);
             window.applyClientLanguage(row);
         };
         window.removeDriver=async function(button) {
