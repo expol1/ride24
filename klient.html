@@ -4473,6 +4473,7 @@ function calculateRefundPercent(pickupDate) {
 
             const list = document.getElementById("drivers-list");
             if(list) {
+                list.querySelectorAll(".driver-license-since").forEach(input=>input._flatpickr?.destroy());
                 list.innerHTML = "";
                 if(driversData && driversData.length > 0) {
                     driversData.forEach(driver => {
@@ -4723,7 +4724,7 @@ function calculateRefundPercent(pickupDate) {
                 if(input.id==="profile-email")return;
                 if(input.type==="checkbox")input.disabled=!!saved;
                 else input.readOnly=!!saved;
-                if(input._flatpickr)input._flatpickr.set("clickOpens",!saved);
+                if(input._flatpickr){input._flatpickr.set("clickOpens",!saved);if(input._flatpickr.altInput)input._flatpickr.altInput.disabled=!!saved;}
             });
             if(section==="invoice"){
                 const clear=card.querySelector('[onclick="clearInvoiceForm()"]');
@@ -4756,7 +4757,7 @@ function calculateRefundPercent(pickupDate) {
             }
             row.querySelectorAll("input").forEach(input=>{
                 input.readOnly=!!saved;
-                if(input._flatpickr)input._flatpickr.set("clickOpens",!saved);
+                if(input._flatpickr){input._flatpickr.set("clickOpens",!saved);if(input._flatpickr.altInput)input._flatpickr.altInput.disabled=!!saved;}
             });
         };
         window.r24ToggleDriverAction = function(button) {
