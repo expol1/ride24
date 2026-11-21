@@ -1821,6 +1821,33 @@ async>
 <link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261115nav-compact-v3">
 <link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113-switch">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/pl.js"></script>
+<style id="r24-profile-calendar-actions">
+/* Same Flatpickr styling as the Ride24 homepage search, scoped to profile dates. */
+.r24-profile-calendar.flatpickr-calendar{font-family:Inter,sans-serif!important;width:320px!important;border:0!important;border-top:4px solid #97d700!important;border-radius:16px!important;padding:10px!important;margin-top:8px!important;box-shadow:0 20px 50px #0002!important;z-index:100000!important}
+.r24-profile-calendar .flatpickr-months .flatpickr-month{background:transparent!important;color:#1e3a8a!important;fill:#1e3a8a!important;height:40px!important}
+.r24-profile-calendar .flatpickr-current-month{font-family:Manrope,sans-serif!important;font-size:110%!important;font-weight:800!important}
+.r24-profile-calendar .flatpickr-monthDropdown-months{font-weight:800!important;color:#1e3a8a!important}
+.r24-profile-calendar .flatpickr-weekday{color:#2563eb!important;font-size:11px!important;font-weight:800!important;text-transform:uppercase}
+.r24-profile-calendar .flatpickr-day{border-radius:8px!important;color:#102442!important;font-weight:600!important}
+.r24-profile-calendar .flatpickr-day:hover{background:#f1fce3!important;border-color:#f1fce3!important;color:#669900!important}
+.r24-profile-calendar .flatpickr-day.selected,.r24-profile-calendar .flatpickr-day.selected:hover{background:#97d700!important;border-color:#97d700!important;color:#fff!important;box-shadow:0 4px 10px #73d7004d!important}
+.r24-profile-calendar .flatpickr-day.today{border-color:#2563eb!important;color:#2563eb!important;font-weight:800!important}
+.r24-profile-calendar .flatpickr-day.today:hover{background:#2563eb!important;color:#fff!important}
+.r24-profile-calendar .flatpickr-innerContainer,.r24-profile-calendar .flatpickr-rContainer,.r24-profile-calendar .dayContainer,.r24-profile-calendar .flatpickr-days{width:100%!important;min-width:100%!important;max-width:100%!important}
+.r24-profile-calendar .dayContainer{justify-content:space-around!important}
+#view-profile .r24-save-edit.r24-edit-mode,#view-profile .r24-driver-action.r24-edit-mode{background:#a8eb12!important;color:#16350b!important;border:1px solid #7ccb00!important;box-shadow:0 5px 14px #8bd70024!important;font-weight:800}
+#view-profile .r24-save-edit.r24-edit-mode:hover,#view-profile .r24-driver-action.r24-edit-mode:hover{background:#90d500!important}
+#view-profile .driver-row .r24-driver-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+#view-profile .driver-row .r24-driver-action{padding:10px 16px;min-height:38px;border-radius:9px;font-size:12px;cursor:pointer}
+#view-profile .driver-row .btn-icon-remove{grid-column:auto;justify-self:auto}
+#view-profile .r24-fields-locked input:not([type="checkbox"]):not([type="hidden"]){background:#f8fafc;color:#334155}
+#view-profile .r24-fields-locked .flatpickr-input{cursor:default!important}
+@media(max-width:768px){#view-profile .driver-row .r24-driver-actions{flex-direction:column-reverse}#view-profile .driver-row .r24-driver-action,#view-profile .driver-row .btn-icon-remove{width:100%}}
+</style>
 </head>
 <body class="r24-profile-checking"> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -2159,7 +2186,7 @@ async>
                             </div>
                             <div style="flex: 1;"></div>
                             <div class="profile-actions">
-                                <button type="button" class="btn-primary" id="profile-save-required" onclick="saveProfile()" data-pl="Zapisz profil" data-en="Save profile">Zapisz profil</button>
+                                <button type="button" class="btn-primary r24-save-edit" id="profile-save-required" onclick="r24ToggleProfileSection('owner')" data-pl="Zapisz profil" data-en="Save profile">Zapisz profil</button>
                             </div>
                         </div>
                     </div>
@@ -2204,7 +2231,7 @@ async>
                             <div class="invoice-actions">
                                 <button type="button" class="btn-secondary" onclick="clearInvoiceForm()" data-pl="Wyczyść formularz" data-en="Clear form">Wyczyść formularz</button>
                                 <button type="button" class="btn-secondary btn-cancel-soft" onclick="deleteInvoiceData()" data-pl="Usuń zapisane dane" data-en="Delete saved data">Usuń zapisane dane</button>
-                                <button type="button" class="btn-primary" onclick="saveInvoiceData()" data-pl="Zapisz dane" data-en="Save data">Zapisz dane</button>
+                                <button type="button" class="btn-primary r24-save-edit" id="r24-invoice-save" onclick="r24ToggleProfileSection('invoice')" data-pl="Zapisz dane" data-en="Save data">Zapisz dane</button>
                             </div>
                         </div>
                     </div>
@@ -2217,10 +2244,6 @@ async>
 
                             <button type="button" class="btn-secondary" style="margin-top: 5px; width: max-content;" onclick="addDriverRow()" data-pl="+ Dodaj kierowcę" data-en="+ Add driver">+ Dodaj kierowcę</button>
 
-                            <div style="flex: 1;"></div>
-                            <div class="profile-actions">
-                                <button type="button" class="btn-primary" onclick="saveDrivers()" data-pl="Zapisz kierowców" data-en="Save drivers">Zapisz kierowców</button>
-                            </div>
                         </div>
                     </div>
 
@@ -4419,7 +4442,12 @@ function calculateRefundPercent(pickupDate) {
                 if(document.getElementById("profile-name")) document.getElementById("profile-name").value = profile.name || "";
                 if(document.getElementById("profile-age")) document.getElementById("profile-age").value = profile.age || "";
                 if(document.getElementById("profile-phone")) document.getElementById("profile-phone").value = profile.phone || "";
-                if(document.getElementById("profile-license-since")) document.getElementById("profile-license-since").value = profile.license_since || "";
+                const licenseInput=document.getElementById("profile-license-since");
+                if(licenseInput){
+                    licenseInput.value=profile.license_since || "";
+                    if(licenseInput._flatpickr)licenseInput._flatpickr.setDate(profile.license_since || "",false,"Y-m-d");
+                    else window.r24SetupLicenseCalendar(licenseInput);
+                }
                 // Never assume residence country for incomplete accounts.
                 if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "";
 
@@ -4434,6 +4462,8 @@ function calculateRefundPercent(pickupDate) {
                 }
             }
 
+            window.r24SetupLicenseCalendar(document.getElementById("profile-license-since"));
+            window.r24SetProfileSectionMode("owner",!!profile && clientProfileErrors(profile,currentUser.email).length===0);
             // Optional drivers are not loaded until the core account has been verified.
             if (clientProfileErrors(profile, currentUser.email).length > 0) return profile;
             const { data: driversData } = await db
@@ -4443,6 +4473,7 @@ function calculateRefundPercent(pickupDate) {
 
             const list = document.getElementById("drivers-list");
             if(list) {
+                list.querySelectorAll(".driver-license-since").forEach(input=>input._flatpickr?.destroy());
                 list.innerHTML = "";
                 if(driversData && driversData.length > 0) {
                     driversData.forEach(driver => {
@@ -4519,6 +4550,7 @@ function calculateRefundPercent(pickupDate) {
             const rememberCheckbox = document.getElementById("invoice-remember");
             if (rememberCheckbox) rememberCheckbox.checked = true;
 
+            window.r24SetProfileSectionMode("invoice",!!invoiceData);
             if (!invoiceData) return;
 
             const companyInput = document.getElementById("invoice-company");
@@ -4601,6 +4633,7 @@ function calculateRefundPercent(pickupDate) {
                 return;
             }
 
+            window.r24SetProfileSectionMode("invoice",true);
             window.showToast(
                 isEn ? "Invoice data saved." : "Dane do rachunku zapisane.",
                 "success"
@@ -4636,6 +4669,7 @@ function calculateRefundPercent(pickupDate) {
             window.clearInvoiceForm();
             const rememberCheckbox = document.getElementById("invoice-remember");
             if (rememberCheckbox) rememberCheckbox.checked = true;
+            window.r24SetProfileSectionMode("invoice",false);
             window.showToast(isEn ? "The data has been deleted." : "Dane zostały usunięte.", "success");
         }
 
@@ -4658,6 +4692,83 @@ function calculateRefundPercent(pickupDate) {
             const py = Number(pickupDate.slice(0,4)), pm = Number(pickupDate.slice(5,7)), pd = Number(pickupDate.slice(8,10));
             if (!Number.isInteger(py) || py < 1900 || pm < 1 || pm > 12 || pd < 1 || pd > 31) return null;
             return py - fy - ((pm < fm || (pm === fm && pd < fd)) ? 1 : 0);
+        };
+
+
+        // Dates are displayed as DD.MM.YYYY while the underlying input stays ISO for Supabase.
+        window.r24SetupLicenseCalendar = function(input) {
+            if (!input || input._flatpickr || typeof window.flatpickr !== "function") return;
+            const lang = localStorage.getItem("client_lang") === "en" ? "en" : "pl";
+            flatpickr(input, {
+                dateFormat:"Y-m-d", altInput:true, altFormat:"d.m.Y", allowInput:false,
+                disableMobile:true, minDate:"1900-01-01", maxDate:new Date(),
+                monthSelectorType:"dropdown",
+                locale:lang === "en" ? "default" : (flatpickr.l10ns?.pl || "pl"),
+                defaultDate:window.ride24LicenseDate(input.value) || null,
+                onReady: (_dates,_date,instance)=>instance.calendarContainer.classList.add("r24-profile-calendar")
+            });
+        };
+        window.r24SetProfileSectionMode = function(section,saved) {
+            const root = document.querySelector(section === "invoice"
+                ? "#view-profile .profile-invoice-col" : "#view-profile .profile-owner-col");
+            const button = root?.querySelector(".r24-save-edit");
+            const card = root?.querySelector(".settings-card");
+            if (!button || !card) return;
+            button.dataset.saved = saved ? "1" : "0";
+            button.classList.toggle("r24-edit-mode",!!saved);
+            card.classList.toggle("r24-fields-locked",!!saved);
+            button.dataset.pl=saved?"Edytuj":(section==="invoice"?"Zapisz dane":"Zapisz profil");
+            button.dataset.en=saved?"Edit":(section==="invoice"?"Save data":"Save profile");
+            button.textContent=button.dataset[localStorage.getItem("client_lang")==="en"?"en":"pl"];
+            card.querySelectorAll("input").forEach(input=>{
+                if(input.id==="profile-email")return;
+                if(input.type==="checkbox")input.disabled=!!saved;
+                else input.readOnly=!!saved;
+                if(input._flatpickr){input._flatpickr.set("clickOpens",!saved);if(input._flatpickr.altInput)input._flatpickr.altInput.disabled=!!saved;}
+            });
+            if(section==="invoice"){
+                const clear=card.querySelector('[onclick="clearInvoiceForm()"]');
+                if(clear)clear.disabled=!!saved;
+            }
+        };
+        window.r24ToggleProfileSection = function(section) {
+            const root=document.querySelector(section==="invoice"
+                ? "#view-profile .profile-invoice-col" : "#view-profile .profile-owner-col");
+            const button=root?.querySelector(".r24-save-edit");
+            if(!button)return;
+            if(button.dataset.saved==="1"){
+                window.r24SetProfileSectionMode(section,false);
+                root.querySelector(section==="invoice"?"#invoice-company":"#profile-name")?.focus();
+                return;
+            }
+            return section==="invoice"?window.saveInvoiceData():window.saveProfile();
+        };
+        window.r24SetDriverMode = function(row,saved) {
+            if(!row)return;
+            row.dataset.saved=saved?"1":"0";
+            row.classList.toggle("r24-fields-locked",!!saved);
+            const button=row.querySelector(".r24-driver-action");
+            if(button){
+                button.dataset.saved=saved?"1":"0";
+                button.classList.toggle("r24-edit-mode",!!saved);
+                button.dataset.pl=saved?"Edytuj":"Zapisz kierowcę";
+                button.dataset.en=saved?"Edit":"Save driver";
+                button.textContent=button.dataset[localStorage.getItem("client_lang")==="en"?"en":"pl"];
+            }
+            row.querySelectorAll("input").forEach(input=>{
+                input.readOnly=!!saved;
+                if(input._flatpickr){input._flatpickr.set("clickOpens",!saved);if(input._flatpickr.altInput)input._flatpickr.altInput.disabled=!!saved;}
+            });
+        };
+        window.r24ToggleDriverAction = function(button) {
+            const row=button?.closest(".driver-entry");
+            if(!row)return;
+            if(row.dataset.saved==="1"){
+                window.r24SetDriverMode(row,false);
+                row.querySelector(".driver-name")?.focus();
+                return;
+            }
+            return window.saveDrivers(row);
         };
 
         window.saveProfile = async function() {
@@ -4703,6 +4814,7 @@ function calculateRefundPercent(pickupDate) {
                         ? "The saved profile is still incomplete."
                         : "Zapisany profil nadal jest niekompletny.");
                 }
+                window.r24SetProfileSectionMode("owner",true);
                 const firstActivation = !window.r24ClientBookingsLoaded;
                 window.showToast(isEn ? "Profile saved — your panel is unlocked." : "Profil zapisany — panel odblokowany.", "success");
                 if (firstActivation) {
@@ -4722,106 +4834,107 @@ function calculateRefundPercent(pickupDate) {
             }
         };
 
-        window.addDriverRow = function(name = "", age = "", phone = "", driverId = "", licenseSince = "") {
-            const list = document.getElementById('drivers-list');
-            const row = document.createElement('div');
-            row.className = 'driver-row driver-entry';
-            row.dataset.id = driverId;
-            row.innerHTML = `
-                <div class="form-group" style="margin-bottom: 0;">
+
+        // Each driver saves separately. Never overwrite or remove other rows on a single-row save.
+        window.addDriverRow = function(name="",age="",phone="",driverId="",licenseSince="") {
+            const list=document.getElementById("drivers-list");
+            if(!list)return;
+            const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>
+                ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+            const row=document.createElement("div");
+            row.className="driver-row driver-entry";
+            row.dataset.id=driverId || "";
+            row.innerHTML=`
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Imię i nazwisko *" data-en="Full name *">Imię i nazwisko *</label>
-                    <input type="text" class="driver-name" placeholder="Jan Kowalski" value="${name}">
+                    <input type="text" class="driver-name" placeholder="Jan Kowalski" value="${esc(name)}">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Wiek *" data-en="Age *">Wiek *</label>
-                    <input type="number" class="driver-age" placeholder="30" min="18" value="${age}">
+                    <input type="number" class="driver-age" placeholder="30" min="18" value="${esc(age)}">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Telefon *" data-en="Phone *">Telefon *</label>
-                    <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
+                    <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${esc(phone)}">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Data pierwszego uzyskania prawa jazdy *" data-en="Date first granted a driving licence *">Data pierwszego uzyskania prawa jazdy *</label>
-                    <input type="date" class="driver-license-since" required autocomplete="off" value="${window.ride24LicenseDate(licenseSince) || ""}">
+                    <input type="date" class="driver-license-since" required autocomplete="off" value="${esc(window.ride24LicenseDate(licenseSince)||"")}">
                     <small data-pl="Podaj datę pierwszego uzyskania uprawnień, nie datę wydania nowego dokumentu." data-en="Enter the original entitlement date, not the date a replacement card was issued.">Podaj datę pierwszego uzyskania uprawnień, nie datę wydania nowego dokumentu.</small>
                 </div>
-                <button type="button" class="btn-icon-remove" onclick="removeDriver(this, '${driverId}')" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
+                <div class="r24-driver-actions">
+                    <button type="button" class="btn-primary r24-driver-action" onclick="r24ToggleDriverAction(this)" data-pl="Zapisz kierowcę" data-en="Save driver">Zapisz kierowcę</button>
+                    <button type="button" class="btn-icon-remove" onclick="removeDriver(this)" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
+                </div>
             `;
             list.appendChild(row);
-            window.detectLang();
-        }
-
-        window.removeDriver = async function(btnElement, driverId) {
-            const isEn = localStorage.getItem("client_lang") === "en";
-            if(driverId && db && currentUser) {
-                const { error } = await db.from("drivers").delete().eq("id", driverId).eq("user_id", currentUser.id);
-                if (!error) window.showToast(isEn ? "Driver removed" : "Kierowca usunięty", "info");
-            } else {
-                window.showToast(isEn ? "Row removed" : "Wiersz usunięty", "info");
-            }
-            btnElement.parentElement.remove();
-        }
-
-       window.saveDrivers = async function() {
-            const isEn = localStorage.getItem("client_lang") === "en";
-            if (!db || !currentUser?.id || !window.r24ClientProfileReady) {
-                window.switchTab("profile");
-                window.showToast(isEn ? "Complete and save your required profile first." : "Najpierw zapisz wymagane dane profilu.", "error");
-                return;
-            }
-            const rows = Array.from(document.querySelectorAll("#drivers-list .driver-entry"));
-            const newDrivers = [];
-
-            const fieldSelector = {name:".driver-name", age:".driver-age", phone:".driver-phone", license_since:".driver-license-since"};
-            for (const row of rows) {
-                const candidate = {
-                    name: row.querySelector(".driver-name")?.value.trim() || "",
-                    age: row.querySelector(".driver-age")?.value.trim() || "",
-                    phone: row.querySelector(".driver-phone")?.value.trim() || "",
-                    license_since: row.querySelector(".driver-license-since")?.value || ""
-                };
-                const errors = additionalDriverErrors(candidate);
-                if (errors.length) {
-                    const firstError = errors[0];
-                    const field = row.querySelector(fieldSelector[firstError.field]);
-                    field?.setAttribute("aria-invalid", "true");
-                    field?.focus();
-                    window.showToast((isEn ? "Complete driver details: " : "Uzupełnij dane kierowcy: ") +
-                        errors.map(e => isEn ? e.en : e.pl).join(", "), "error");
+            window.r24SetupLicenseCalendar(row.querySelector(".driver-license-since"));
+            window.r24SetDriverMode(row,!!driverId);
+            window.applyClientLanguage(row);
+        };
+        window.removeDriver=async function(button) {
+            const row=button?.closest(".driver-entry");
+            if(!row)return;
+            const isEn=localStorage.getItem("client_lang")==="en";
+            const id=row.dataset.id;
+            if(id){
+                if(!db || !currentUser?.id){window.showToast(isEn?"Login required.":"Wymagane logowanie.","error");return;}
+                button.disabled=true;
+                try {
+                    const {error}=await db.from("drivers").delete().eq("id",id).eq("user_id",currentUser.id);
+                    if(error)throw error;
+                } catch(error) {
+                    console.error("Driver removal failed",error);
+                    window.showToast(isEn?"Unable to remove driver.":"Nie udało się usunąć kierowcy.","error");
+                    button.disabled=false;
                     return;
                 }
-                if (!row.dataset.id) row.dataset.id=crypto.randomUUID();
-                newDrivers.push({
-                    id: row.dataset.id,
-                    user_id: currentUser.id,
-                    name: candidate.name,
-                    age: Number(candidate.age),
-                    phone: candidate.phone,
-                    age_updated_at: new Date().toISOString().slice(0, 10),
-                    license_since: candidate.license_since
-                });
             }
-            if (newDrivers.length === 0) {
-                window.showToast(isEn ? "There are no drivers to save." : "Nie ma kierowców do zapisania.", "info");
-                return;
+            row.querySelector(".driver-license-since")?._flatpickr?.destroy();
+            row.remove();
+            window.showToast(isEn?"Driver removed.":"Kierowca usunięty.","info");
+        };
+        window.saveDrivers=async function(targetRow=null) {
+            const isEn=localStorage.getItem("client_lang")==="en";
+            if(!db || !currentUser?.id || !window.r24ClientProfileReady){
+                window.switchTab("profile");
+                window.showToast(isEn?"Complete and save your required profile first.":"Najpierw zapisz wymagane dane profilu.","error");
+                return false;
             }
-            const saveBtn = document.querySelector('#view-profile .profile-col[data-r24-optional-profile="drivers"] .profile-actions button');
-            if (saveBtn) saveBtn.disabled = true;
-            try {
-                const {data,error}=await db.from("drivers").upsert(newDrivers,{onConflict:"id"}).select("id");
-                if(error || data?.length!==newDrivers.length) throw error || new Error("Incomplete driver write");
-                window.showToast(isEn ? "All driver details saved." : "Zapisano kompletne dane kierowców.", "success");
-                await loadUserProfile();
-                if(caravelProfileReturn)window.submitBooking();
-            } catch (err) {
-                console.error("Additional drivers save failed:", err);
-                window.showToast(isEn
-                    ? "Drivers were not fully saved. Your earlier entries were not intentionally changed."
-                    : "Nie udało się w pełni zapisać kierowców. Wcześniejsze wpisy nie zostały celowo zmienione.", "error");
-                await loadUserProfile().catch(console.error);
-            } finally {
-                if (saveBtn) saveBtn.disabled = false;
+            const rows=targetRow?[targetRow]:Array.from(document.querySelectorAll("#drivers-list .driver-entry")).filter(r=>r.dataset.saved!=="1");
+            const selectors={name:".driver-name",age:".driver-age",phone:".driver-phone",license_since:".driver-license-since"};
+            for(const row of rows){
+                const candidate={
+                    name:row.querySelector(".driver-name")?.value.trim()||"",
+                    age:row.querySelector(".driver-age")?.value.trim()||"",
+                    phone:row.querySelector(".driver-phone")?.value.trim()||"",
+                    license_since:row.querySelector(".driver-license-since")?.value||""
+                };
+                const errors=additionalDriverErrors(candidate);
+                if(errors.length){
+                    const field=row.querySelector(selectors[errors[0].field]);
+                    field?.setAttribute("aria-invalid","true");field?.focus();
+                    window.showToast((isEn?"Complete driver details: ":"Uzupełnij dane kierowcy: ")+errors.map(e=>isEn?e.en:e.pl).join(", "),"error");
+                    return false;
+                }
+                const btn=row.querySelector(".r24-driver-action");
+                if(btn)btn.disabled=true;
+                try{
+                    const driverId=row.dataset.id||crypto.randomUUID();
+                    const payload={id:driverId,user_id:currentUser.id,name:candidate.name,age:Number(candidate.age),phone:candidate.phone,age_updated_at:new Date().toISOString().slice(0,10),license_since:candidate.license_since};
+                    const {data,error}=await db.from("drivers").upsert(payload,{onConflict:"id"}).select("id").single();
+                    if(error || data?.id!==driverId)throw error||new Error("Driver write unconfirmed");
+                    row.dataset.id=driverId;
+                    window.r24SetDriverMode(row,true);
+                    window.showToast(isEn?"Driver saved.":"Kierowca zapisany.","success");
+                }catch(error){
+                    console.error("Additional driver save failed",error);
+                    window.showToast(isEn?"Could not save this driver.":"Nie udało się zapisać tego kierowcy.","error");
+                    return false;
+                }finally{if(btn)btn.disabled=false;}
             }
+            if(caravelProfileReturn)window.submitBooking();
+            return true;
         };
 
         // --- REALNE ANULOWANIE / ODRZUCANIE REZERWACJI ---
@@ -5268,6 +5381,12 @@ window.cancelBooking = async function(id, currentStatus) {
             lang = lang === "en" ? "en" : "pl";
             localStorage.setItem("client_lang", lang);
             window.applyClientLanguage(document);
+            if(typeof window.flatpickr==="function"){
+                const locale=lang==="en"?"default":(flatpickr.l10ns?.pl||"pl");
+                document.querySelectorAll("#view-profile .driver-license-since, #profile-license-since").forEach(input=>{
+                    if(input._flatpickr)input._flatpickr.set("locale",locale);
+                });
+            }
             window.r24RenderProfileProblems?.();
 
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
