@@ -175,6 +175,8 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         }
         if (!(a.extras || []).length)
             row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
+        row(box, label('Opłata rezerwacyjna Ride24', 'Ride24 reservation fee'),
+            money(cents(a.ride24_fee),a.currency));
         if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
         row(box, label('Cena łączna', 'Total booking price'), money(cents(a.total), a.currency), true);
         row(box, label('Opłata Ride24 online', 'Ride24 fee online'), money(cents(a.online_pln), 'PLN'), true);
@@ -195,6 +197,8 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 row(total,name+suffix,money(x.total_cents,'EUR'));
             }
             row(total,label('Wynajem samochodu','Car rental'),money(cents(a.rental_total),a.currency));
+            row(total,label('Opłata rezerwacyjna Ride24','Ride24 reservation fee'),
+                money(cents(a.ride24_fee),a.currency));
             row(total,label('Cena łączna','Total booking price'),money(cents(a.total),a.currency),true);
             row(total,label('Opłata Ride24 online','Ride24 fee paid online'),money(cents(a.online_pln),'PLN'));
             row(total,label('Do zapłaty Arvent przy odbiorze','Pay Arvent at pickup'),money(cents(a.pay_on_pickup),a.currency),true);
