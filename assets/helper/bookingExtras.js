@@ -17,15 +17,16 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
     // Arvent: read-only server preview bound to the search api_quote_id.
     // Only server values are shown; nothing is computed here.
     function renderArvent(box, picker, total, a) {
-        if (total) total.hidden = true;
+        if (total) total.hidden = false;
         el('equipmentLegacyInfo').hidden = true;
-        // /extras/list is global; /extras?reservationToken is offer-specific.
-        // Until billing modes, quantity caps and SaveReservation are certified,
-        // even supplier-priced options are INFORMATIONAL, never checkout items.
+        // Only the partner-approved optional code 2 (additional driver) and
+        // supplier-required items are relevant to this offer. All amounts are
+        // displayed exactly as returned by the server's verified quote.
         picker.hidden = false;
-        const catalog = Array.isArray(a.extra_catalog) ? a.extra_catalog : [];
+        const catalog = Array.isArray(a.extra_catalog) ? a.extra_catalog.filter(x => x?.code === '2') : [];
         const offer = a.offer_extras && typeof a.offer_extras === 'object' ? a.offer_extras : {status:'unavailable',items:[]};
-        const available = Array.isArray(offer.items) ? offer.items : [];
+        const available = Array.isArray(offer.items)
+            ? offer.items.filter(x => x && (x.code === '2' || x.required === true)) : [];
         const byCode = new Map(available.filter(x => x && typeof x.code === 'string').map(x => [x.code,x]));
         const selectable = available.filter(x => x && x.bookable === true);
         const additional = el('additionalDriverSelect');
@@ -36,8 +37,8 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         if (additional) { additional.disabled = true; additional.value = 'none'; }
         const modalHeading=document.querySelector('#equipmentInfoModal h3');
         if (modalHeading) {
-            modalHeading.dataset.pl = selectable.length ? 'Wybierz dodatki do wynajmu' : 'Katalog dodatków';
-            modalHeading.dataset.en = selectable.length ? 'Choose rental extras' : 'Extras catalogue';
+            modalHeading.dataset.pl = selectable.length ? 'Dodatkowy kierowca i cena' : 'Dodatkowy kierowca – informacja';
+            modalHeading.dataset.en = selectable.length ? 'Additional driver and price' : 'Additional driver – information';
             modalHeading.textContent = isEn() ? modalHeading.dataset.en : modalHeading.dataset.pl;
         }
         const intro = selectable.length
@@ -47,59 +48,68 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             ? label('Dostępność dla Twojego terminu została odczytana z API. Kwot nie doliczamy bez potwierdzenia zasad naliczania.',
                     'Availability was retrieved for your rental dates. No charges are added until billing terms are confirmed.')
             : offer.status === 'none'
-            ? label('Brak dodatków możliwych do zamówienia online w tej ofercie. Ogólny katalog możesz przejrzeć poniżej.',
-                    'No extras can be ordered online for this offer. You may browse the general catalogue below.')
-            : label('Nie można potwierdzić dostępności dodatków dla tego terminu. Ogólny katalog możesz przejrzeć poniżej.',
-                    'Extras availability could not be confirmed for these dates. You may browse the general catalogue below.');
+            ? label('Arvent potwierdził stawkę 4 € za dobę dla dodatkowego kierowcy, ale nie udostępnił tej usługi do zamówienia online w tej ofercie.',
+                    'Arvent confirmed €4 per day for an additional driver, but this option is not bookable online for this offer.')
+            : label('Dodatkowy kierowca kosztuje 4 € za dobę, ale czekamy na potwierdzenie dostępności tej usługi w API.',
+                    'The additional driver costs €4 per day, but this offer’s API availability is not yet confirmed.');
         picker.append(node('p',intro));
         const renderItem=(parent,code,name,priced)=>{
             const item=node('div');item.className='booking-extra-row';
             const detail=node('span');
-            detail.append(node('strong',code==='2'?label('Dodatkowy kierowca','Additional driver'):name));
-            if (priced && typeof priced.price_eur==='number'){
+            const title=code==='2'?label('Dodatkowy kierowca','Additional driver'):name;
+            detail.append(node('strong',title));
+            if(code==='2'){
+                detail.append(node('small',label('Stawka Arvent: 4 € / doba.','Arvent rate: €4 / day.')));
+                detail.append(node('small',priced?.bookable===true
+                    ?label('Prawo jazdy dodatkowy kierowca okaże przy odbiorze.','The additional driver presents their licence at pickup.')
+                    :label('Wybór online wymaga potwierdzonej wyceny API.','Online selection requires a verified offer-specific API quote.')));
+            } else if(priced && typeof priced.price_eur==='number'){
                 detail.append(node('small',label('Cena z API: ','Supplier rate: ')
                     +money(Math.round(priced.price_eur*100),'EUR')
                     +(priced.bookable===true
-                      ? (priced.billing==='day' ? label(' / doba',' / day') : label(' / wynajem',' / rental'))
+                      ?(priced.billing==='day'?label(' / doba',' / day'):label(' / wynajem',' / rental'))
                       :label(' — zasady naliczania wymagają potwierdzenia.',' — billing terms still require confirmation.'))));
             } else {
-                detail.append(node('small',priced
-                    ?label('API nie podało poprawnej ceny; zamówienie niedostępne.','No valid price in API; online booking unavailable.')
-                    :label('Brak wyceny dla tej oferty; zamówienie niedostępne.','Not priced for this offer; online booking unavailable.')));
+                detail.append(node('small',label('Brak potwierdzonej wyceny dla tej oferty.','No verified quote for this offer.')));
             }
-            if (priced?.bookable === true) {
-                if(code === '2') {
-                    detail.append(node('small',label('4 € za dobę. Prawo jazdy drugi kierowca okaże przy odbiorze.',
-                        '€4 per day. The second driver presents their licence at pickup.')));
-                }
-                {
-                    const max = Number.isInteger(priced.max_quantity) ? Math.min(10,Math.max(1,priced.max_quantity)) : 1;
-                    if(max === 1) {
-                        const cb=node('input');cb.type='checkbox';
-                        cb.setAttribute('aria-label', name);
-                        cb.checked=selections.some(x => x.id===code && x.quantity===1);
-                        cb.onchange=()=>{
-                            selections=selections.filter(x=>x.id!==code);
-                            if(cb.checked)selections.push({id:code,quantity:1});
-                            refresh();
-                        };
-                        item.append(cb);
-                    } else {
-                        const select=node('select');select.setAttribute('aria-label',name);
-                        for(let i=0;i<=max;i++){
-                            const opt=node('option',String(i));opt.value=String(i);select.append(opt);
-                        }
-                        select.value=String(selections.find(x=>x.id===code)?.quantity||0);
-                        select.onchange=()=>{
-                            selections=selections.filter(x=>x.id!==code);
-                            if(Number(select.value)>0)selections.push({id:code,quantity:Number(select.value)});
-                            refresh();
-                        };
-                        item.append(select);
+            item.append(detail);
+            if(priced?.bookable===true){
+                const max=Number.isInteger(priced.max_quantity)?Math.min(10,Math.max(1,priced.max_quantity)):1;
+                if(max===1){
+                    // Reuse the same premium accessible toggle as local
+                    // and Caravel. The Arvent server remains price authority.
+                    const control=node('span');control.className='r24-extra-switch';
+                    const toggle=node('input');toggle.type='checkbox';
+                    toggle.className='r24-extra-switch-input';
+                    toggle.setAttribute('role','switch');
+                    toggle.setAttribute('aria-label',title+': '+label('Tak lub Nie','Yes or No'));
+                    toggle.checked=selections.some(x=>x.id===code && x.quantity===1);
+                    const track=node('span');track.className='r24-extra-switch-track';
+                    track.setAttribute('aria-hidden','true');track.append(node('span'));
+                    const value=node('span',toggle.checked?label('Tak','Yes'):label('Nie','No'));
+                    value.className='r24-extra-switch-value';
+                    toggle.onchange=()=>{
+                        value.textContent=toggle.checked?label('Tak','Yes'):label('Nie','No');
+                        selections=selections.filter(x=>x.id!==code);
+                        if(toggle.checked)selections.push({id:code,quantity:1});
+                        refresh();
+                    };
+                    control.append(toggle,track,value);item.append(control);
+                } else {
+                    const select=node('select');select.setAttribute('aria-label',title);
+                    for(let i=0;i<=max;i++){
+                        const opt=node('option',String(i));opt.value=String(i);select.append(opt);
                     }
+                    select.value=String(selections.find(x=>x.id===code)?.quantity||0);
+                    select.onchange=()=>{
+                        selections=selections.filter(x=>x.id!==code);
+                        if(Number(select.value)>0)selections.push({id:code,quantity:Number(select.value)});
+                        refresh();
+                    };
+                    item.append(select);
                 }
             }
-            item.append(detail);parent.append(item);
+            parent.append(item);
         };
         // Same clear separation as an AVIA supplier-calculated offer: what is
         // returned for this rental is distinct from the unpriced global list.
@@ -113,14 +123,9 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         }
         const notOffered=catalog.filter(x=>x&&typeof x.name==='string'
             &&typeof x.code==='string'&&!byCode.has(x.code));
-        if(notOffered.length){
-            const list=node('details');
-            list.open=offer.status!=='present';
-            list.append(node('summary',label('Pozostałe dodatki z katalogu (bez wyceny dla tej oferty)',
-                'Other catalogue extras (not priced for this offer)')));
-            for(const extra of notOffered)renderItem(list,extra.code,extra.name,null);
-            picker.append(list);
-        }
+        // Only additional-driver code 2 may appear without a quote: show
+        // the known commercial rate but do not present a selectable input.
+        for(const extra of notOffered)renderItem(picker,extra.code,extra.name,null);
         if(!available.length&&!notOffered.length)
             picker.append(node('p',label('Brak dodatków w odpowiedzi dostawcy dla tej oferty.',
                 'No supplier extras returned for this offer.')));
@@ -163,6 +168,25 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         box.append(node('small', label(
             `Kwota w PLN to odrębna opłata rezerwacyjna Ride24 (${money(cents(a.ride24_fee), a.currency)} według kursu NBP ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', po rabacie' : ''}). Wynajem ${money(cents(a.pay_on_pickup), a.currency)} płacisz bezpośrednio wypożyczalni przy odbiorze.`,
             `The PLN amount is the separate Ride24 booking fee (${money(cents(a.ride24_fee), a.currency)} at NBP rate ${Number(a.exchange_rate).toFixed(4)}${a.loyalty_discount_percent ? ', after discount' : ''}). You pay the rental of ${money(cents(a.pay_on_pickup), a.currency)} directly to the rental company at pickup.`)));
+        // The same current server quote is visible inside this modal, rather
+        // than forcing customers to close it to see their chosen extra's cost.
+        if(total){
+            const items=Array.isArray(a.extras)?a.extras:[];
+            total.append(node('strong',label('Twoje dodatki','Your extras')+': '
+                +(items.length?items.length:label('brak','none'))));
+            for(const x of items){
+                const name=x.code==='2'?label('Dodatkowy kierowca','Additional driver'):x.name;
+                const suffix=(x.quantity>1?' × '+x.quantity:'')
+                    +(x.billing==='day'?' × '+x.days+' '+label('dni','days'):'');
+                row(total,name+suffix,money(x.total_cents,'EUR'));
+            }
+            row(total,label('Wynajem samochodu','Car rental'),money(cents(a.rental_total),a.currency));
+            row(total,label('Cena łączna','Total booking price'),money(cents(a.total),a.currency),true);
+            row(total,label('Opłata Ride24 online','Ride24 fee paid online'),money(cents(a.online_pln),'PLN'));
+            row(total,label('Do zapłaty Arvent przy odbiorze','Pay Arvent at pickup'),money(cents(a.pay_on_pickup),a.currency),true);
+            total.append(node('small',label('Wycena pochodzi z serwera Ride24. Bez potwierdzenia API nie można zamówić płatnego dodatku.',
+                'The quote comes from Ride24. Paid extras cannot be selected without supplier API certification.')));
+        }
     }
     function render() {
         const box = el('bookingPriceBreakdown'); box.replaceChildren();
