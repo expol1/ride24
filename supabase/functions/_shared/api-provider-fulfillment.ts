@@ -130,11 +130,10 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
   fail('ACCEPTED_QUOTE_MISMATCH');
  if(!booking.main_driver_name||!booking.client_email||!booking.client_phone)
   fail('ARVENT_DRIVER_DETAILS_UNSUPPORTED');
- if(extraDriver){
-  if(!booking.add_driver_name||!Number.isInteger(Number(booking.add_driver_age))
-    ||!booking.additional_driver_license_since)
-    fail('ARVENT_ADDITIONAL_DRIVER_INCOMPLETE');
- } else if(booking.add_driver_name||booking.add_driver_age)
+ // Arvent does not collect a second driver's personal data online. Code 2
+ // alone adds the EUR 4/day service; Arvent checks the licence at pickup.
+ if(booking.add_driver_name||booking.add_driver_age||booking.additional_driver_id
+    ||booking.additional_driver_license_since)
   fail('ARVENT_DRIVER_DETAILS_UNSUPPORTED');
  const pickup=String(quote.pickup_location_external_id||'');
  const dropoff=String(quote.dropoff_location_external_id||pickup);
@@ -191,13 +190,14 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
    partner_discount_percent:0,provider_quote_data:match.provider_quote_data,
    main_driver:{name:booking.main_driver_name,age,
      license_first_issued:booking.main_driver_license_since},
-   additional_driver:extraDriver?{name:booking.add_driver_name,
-     age:Number(booking.add_driver_age),
-     license_first_issued:booking.additional_driver_license_since}:null,
+   additional_driver:null,
    client_email:booking.client_email,client_phone:booking.client_phone,
    // Partner-level operational note forwarded to Arvent's reservation note.
-   supplier_note:typeof booking.partners?.api_settings?.supplier_booking_note==='string'
-     ?booking.partners.api_settings.supplier_booking_note.slice(0,250):'',
+   supplier_note:(
+     (typeof booking.partners?.api_settings?.supplier_booking_note==='string'
+       ?booking.partners.api_settings.supplier_booking_note:'')
+     +(extraDriver?' | Additional driver included':'')
+   ).trim().slice(0,250),
  };
 }
 export async function createPaidProvider(credentials:any,input:any) {
