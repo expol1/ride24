@@ -184,8 +184,8 @@ test('Arvent booking details show saved references, route, main driver, supplier
  assert.equal(find('Dodatkowy kierowca'),'12.00 EUR');
  assert.equal(find('Opłata rezerwacyjna Ride24'),undefined); // never charged twice
  assert.equal(find('Cena łączna'),'115.39 EUR');
- assert.equal(find('Opłata Ride24 online'),'14.50 PLN');
- assert.equal(find('Do zapłaty Arvent przy odbiorze'),'112.00 EUR');
+ assert.equal(find('Online po potwierdzeniu'),'14.50 PLN');
+ assert.equal(find('Do zapłaty partnerowi'),'112.00 EUR');
  assert.equal(details.querySelectorAll('.r24-arvent-booking-summary').length,1);
 });
 
@@ -230,7 +230,7 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.equal(picker.querySelectorAll('.booking-extra-row').length,1);
   assert.equal(picker.querySelectorAll('button,input,select').length,0);
   const text=box.textContent;
-  for(const part of ['Price summary','Car rental (3 days)','Extras','None','€88.14','€84.75','PLN','Pay Arvent at pickup'])assert.ok(text.includes(part),part);
+  for(const part of ['Price summary','Car rental (3 days)','Extras','None','€88.14','€84.75','PLN','Payable to partner'])assert.ok(text.includes(part),part);
   assert.ok(/14\.35/.test(text));
   assert.doesNotMatch(text,/Car category|Economy|EDMR|Antalya Airport|Pickup •|Stripe/);
   assert.equal(box.querySelectorAll('h4').length,1);
@@ -244,7 +244,7 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.ok(rentRow);
   assert.match(rentRow.lastElementChild.textContent,/€88.14/);
   assert.doesNotMatch(box.textContent,/Ride24 reservation fee/);
-  assert.match(currentTotal.textContent,/Pay Arvent at pickup/);
+  assert.match(currentTotal.textContent,/Payable to partner/);
   await ui.refresh();
   assert.equal(box.querySelectorAll('h4').length,1);
   assert.equal(picker.querySelectorAll('p').length,1);
@@ -280,7 +280,7 @@ test('Arvent mobile modal uses only financial lines, translates extras into sele
    assert.doesNotMatch(picker,/Ek Sürücü/);
    assert.doesNotMatch(summary,/Renault Clio|EDMR|Antalya Airport|Istanbul Airport/);
    assert.match(summary,english?/Car rental \(3 days\)/:/Wynajem \(3 doby\)/);
-   assert.match(summary,english?/Pay Arvent at pickup/:/Do zapłaty Arvent przy odbiorze/);
+   assert.match(summary,english?/Payable to partner/:/Do zapłaty partnerowi/);
  }
 });
 test('Arvent missing GET /extras still shows confirmed driver rate but cannot select or charge it',async()=>{
@@ -344,7 +344,7 @@ test('Arvent code-2 checkbox requotes server at 4 EUR per day, without second-dr
  assert.match(selectedTotal.textContent,/€88.14/); // unchanged search price
  assert.doesNotMatch(selectedTotal.textContent,/Ride24 reservation fee/);
  assert.match(selectedTotal.textContent,/€96.75/);
- assert.match(selectedTotal.textContent,/Pay Arvent at pickup/);
+ assert.match(selectedTotal.textContent,/Payable to partner/);
  assert.equal(document.querySelector('.r24-extra-switch-value').textContent,'Yes');
  const payload=ui.payload();
  assert.equal(payload.pricing_version,2);
