@@ -44,7 +44,7 @@ test('all actions still exist for every booking, payment and refund state',()=>{
     for(const s of ['pending','accepted','awaiting_payment','paid','cancelled','rejected','expired','payment_expired'])
         assert.ok(html.includes(s),'Missing booking status '+s);
     const paymentRenderer=part('window.loadPayments =','window.goToHome =');
-    const paymentRow=paymentRenderer.match(/tbody\.innerHTML \+= `\s*<tr>([\s\S]*?)<\/tr>\s*`/)?.[1];
+    const paymentRow=paymentRenderer.match(/tbody\.innerHTML \+= `\s*<tr\b[^>]*>([\s\S]*?)<\/tr>\s*`/)?.[1];
     assert.ok(paymentRow,'Missing payment row template');
     assert.equal((paymentRow.match(/<td\b/g)||[]).length,3,'Generated payment row must retain booking, amount and status/actions');
     assert.match(paymentRow,/payment-status-actions/);
@@ -56,7 +56,7 @@ test('unified details retain deposit, mileage, driver, partner documents and sav
     const details=part('window.openDetailsModal = function(','window.closeDetailsModal = function(');
     for(const s of ['deposit','mileage','driverIncluded','driverHours','partnerTermsSnapshot','partnerRulesSnapshot','bookingId'])
         assert.ok(details.includes(s),'Missing original rental data '+s);
-    assert.ok(details.includes('window.openClientPriceBreakdown(bookingId, priceSection)'));
+    assert.ok(/window\.openClientPriceBreakdown\(bookingId,\s*priceSection\)/.test(details));
     for(const s of ['snapshot.items','snapshot.loyalty_discount_cents','snapshot.total_cents','snapshot.online_pln_cents','snapshot.partner_cents','booking.deposit_snapshot'])
         assert.ok(details.includes(s),'Missing price component '+s);
     assert.ok(details.includes('inlineTarget.replaceChildren'));
@@ -262,6 +262,8 @@ test('profile mobile shows owner, additional drivers, then invoice without chang
     assert.match(style,/@media\(max-width:768px\)\{[\s\S]*?#view-profile #drivers-list \.driver-row\{grid-template-columns:1fr/);
     assert.match(style,/#view-profile \.profile-invoice-col \.settings-card\{grid-template-columns:1fr\}/);
     assert.ok(style.includes('body.r24-profile-incomplete #view-profile .profile-col[data-r24-optional-profile]{display:none!important}'));
-    for(const action of ['onclick="saveProfile()"','onclick="addDriverRow()"','onclick="saveDrivers()"','onclick="saveInvoiceData()"','onclick="clearInvoiceForm()"','onclick="deleteInvoiceData()"'])
+    for(const action of ['onclick="addDriverRow()"','onclick="clearInvoiceForm()"','onclick="deleteInvoiceData()"'])
         assert.ok(html.includes(action),'Original action missing: '+action);
+    assert.ok(html.includes('window.r24ToggleProfileSection = function(section)') && html.includes('return section==="invoice"?window.saveInvoiceData():window.saveProfile();'), 'Profile/invoice save dispatch missing');
+    assert.ok(html.includes('window.saveDrivers(row)'), 'Per-driver save dispatch missing');
 });
