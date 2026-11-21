@@ -181,11 +181,13 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
         if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
         row(box, label('Cena łączna', 'Total booking price'), money(cents(a.total), a.currency), true);
-        row(box, label('Opłata Ride24 online', 'Ride24 fee online'), money(cents(a.online_pln), 'PLN'), true);
-        row(box, label('Do zapłaty Arvent przy odbiorze', 'Pay Arvent at pickup'), money(cents(a.pay_on_pickup), a.currency), true);
+        row(box, label('Online po potwierdzeniu', 'Online after confirmation'),
+            money(cents(a.online_pln), 'PLN'), true);
+        row(box, label('Do zapłaty partnerowi', 'Payable to partner'),
+            money(cents(a.pay_on_pickup), a.currency), true);
         box.append(node('small', label(
-            'Opłata Ride24 jest płatna online. Wynajem i dodatki płacisz Arvent przy odbiorze.',
-            'The Ride24 reservation fee is paid online. Rental and extras are paid to Arvent at pickup.')));
+            'Płatność jest podzielona na część online i część płatną przy odbiorze. Nie są to dodatkowe opłaty ponad podaną cenę.',
+            'Payment is split between an online amount and an amount due at pickup. These are not charges added on top of the quoted price.')));
         // The same current server quote is visible inside this modal, rather
         // than forcing customers to close it to see their chosen extra's cost.
         if(total){
@@ -200,8 +202,10 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             }
             row(total,label('Wynajem samochodu','Car rental'),money(publicRentalCents,a.currency));
             row(total,label('Cena łączna','Total booking price'),money(cents(a.total),a.currency),true);
-            row(total,label('Opłata Ride24 online','Ride24 fee paid online'),money(cents(a.online_pln),'PLN'));
-            row(total,label('Do zapłaty Arvent przy odbiorze','Pay Arvent at pickup'),money(cents(a.pay_on_pickup),a.currency),true);
+            row(total,label('Online po potwierdzeniu','Online after confirmation'),
+                money(cents(a.online_pln),'PLN'));
+            row(total,label('Do zapłaty partnerowi','Payable to partner'),
+                money(cents(a.pay_on_pickup),a.currency),true);
             total.append(node('small',label('Wycena pochodzi z serwera Ride24. Bez potwierdzenia API nie można zamówić płatnego dodatku.',
                 'The quote comes from Ride24. Paid extras cannot be selected without supplier API certification.')));
         }
