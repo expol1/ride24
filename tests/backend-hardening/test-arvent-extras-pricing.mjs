@@ -5,7 +5,7 @@ import {arventBillingMode,arventPricedExtrasCatalog,arventSelectedExtrasQuote,ar
 
 const extras=[
  {code:'1',name:'GPS',price_eur:4.5,billing_type:'day',quantity_increasable:false,required:false},
- {code:'2',name:'Ek Sürücü',price_eur:7,billing_type:'rental',quantity_increasable:false,required:false},
+ {code:'2',name:'Ek Sürücü',price_eur:4,billing_type:'day',quantity_increasable:false,required:false},
  {code:'6',name:'Infant seat',price_eur:5,billing_type:'1',quantity_increasable:true,max_quantity:2,required:false},
 ];
 test('Arvent never guesses numeric extraRentalType: explicit supplier map required',()=>{
@@ -17,19 +17,32 @@ test('Arvent never guesses numeric extraRentalType: explicit supplier map requir
  assert.equal(arventBillingMode('UNSPECIFIED'),null);
  assert.ok(arventPricedExtrasCatalog(extras,{'1':'day'},false).every(x=>x.bookable===false));
 });
-test('Arvent server quote adds GPS by rental day, infant seats by declared quantity and one extra driver',()=>{
+test('Arvent adds only authorized paid code 2 at four euros per supplier rental day',()=>{
  const q=arventSelectedExtrasQuote({items:extras,
-  selections:[{id:'1',quantity:1},{id:'6',quantity:2},{id:'2',quantity:1}],
-  additionalDriverId:'secondary-driver',billedDays:3,certified:true,certifiedMap:{'1':'day'}});
- assert.equal(q.total_cents,5050); // GPS 13.50 + two seats x 3 x 5 = 30 + driver 7
- assert.deepEqual(q.selected,[{code:'1',piece:1},{code:'2',piece:1},{code:'6',piece:2}]);
- assert.deepEqual(q.items.map(x=>x.total_cents),[1350,700,3000]);
+  selections:[{id:'2',quantity:1}],
+  billedDays:3,certified:true,certifiedMap:{'1':'day'}});
+ assert.equal(q.total_cents,1200);
+ assert.deepEqual(q.selected,[{code:'2',piece:1}]);
+ assert.deepEqual(q.items.map(x=>x.total_cents),[1200]);
  const totals=arventBookingTotals({rentalCents:8475,ride24FeeCents:339,extrasCents:q.total_cents,
   loyaltyPercent:0,nbpRate:4.4559});
- assert.equal(totals.partner_cents,13525);
- assert.equal(totals.gross_cents,13864);
+ assert.equal(totals.partner_cents,9675);
+ assert.equal(totals.gross_cents,10014);
  assert.equal(totals.commission_cents,339);
  assert.equal(totals.online_pln_cents,1511);
+});
+test('Arvent refuses paid optional equipment not yet authorized by partner',()=>{
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,
+    selections:[{id:'1',quantity:1}],billedDays:3,certified:true}),/NOT_PRICED/);
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,
+    selections:[{id:'6',quantity:1}],billedDays:3,certified:true,certifiedMap:{'1':'day'}}),/NOT_PRICED/);
+});
+test('Arvent rejects incorrect driver rate or billing mode even with certified supplier extras',()=>{
+ for(const broken of [{price_eur:5},{price_eur:4,billing_type:'rental'}]){
+  const items=[{...extras[1],...broken}];
+  assert.throws(()=>arventSelectedExtrasQuote({items,selections:[{id:'2',quantity:1}],
+    billedDays:3,certified:true}),/NOT_PRICED/);
+ }
 });
 test('Arvent cannot infer a multi-unit cap from the supplier increasable flag alone',()=>{
  const item={code:'6',name:'Infant seat',price_eur:5,billing_type:'day',
@@ -40,13 +53,14 @@ test('Arvent cannot infer a multi-unit cap from the supplier increasable flag al
   billedDays:3,certified:true}),/NOT_PRICED/);
 });
 
-test('Arvent rejects a second driver with no saved identity and rejects the same person without the supplier service',()=>{
- assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:1}],certified:true,
-  billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
- assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[],certified:true,
-  additionalDriverId:'a',billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
+test('Arvent code 2 requires no personal identity online, but allows only one unit',()=>{
+ const quote=arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:1}],
+  billedDays:3,certified:true});
+ assert.equal(quote.total_cents,1200);
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[],
+  additionalDriverId:'some-saved-person',certified:true,billedDays:3}),/PERSONAL_DATA_UNNECESSARY/);
  assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:2}],
-  additionalDriverId:'b',certified:true,billedDays:3}),/NOT_PRICED/);
+  certified:true,billedDays:3}),/NOT_PRICED/);
 });
 test('Arvent invalid amounts, duplicate, unknown or unpriced options never calculate totals',()=>{
  for(const selections of [
@@ -65,7 +79,7 @@ test('Arvent mandatory services are added automatically; unknown price blocks pa
   selections:[],certified:true,billedDays:5}),/REQUIRED_EXTRA_UNPRICED/);
  assert.throws(()=>arventSelectedExtrasQuote({items:[{code:'2',name:'Ek Sürücü',price_eur:0,
   billing_type:'rental',quantity_increasable:false,required:true}],
-  selections:[],certified:true,billedDays:3}),/DRIVER_SELECTION_MISMATCH/);
+  selections:[],certified:true,billedDays:3}),/ADDITIONAL_DRIVER_NOT_MANDATORY/);
 });
 
 test('Arvent voucher stays pending until supplier confirms every requested code and quantity',()=>{
