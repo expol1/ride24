@@ -1350,6 +1350,10 @@
         .booking-price-breakdown h4 {margin:0 0 12px;}
         .booking-price-row {display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:9px 0;font-size:13px;}
         .booking-price-row>:last-child {white-space:nowrap;}
+        /* Arvent: narrow mobile view shows only prices; labels wrap, EUR/PLN never overflow. */
+        #termsModal #bookingPriceBreakdown .booking-price-row>:first-child{min-width:0;overflow-wrap:anywhere;flex:1 1 auto}
+        #termsModal #bookingPriceBreakdown .booking-price-row>:last-child{flex:0 0 auto;text-align:right;font-variant-numeric:tabular-nums}
+        #termsModal #bookingPriceBreakdown{min-width:0;max-width:100%;box-sizing:border-box}
         .booking-price-breakdown small,#bookingExtrasPicker small {display:block;color:#64748b;font-size:12px;line-height:1.5;}
         .booking-extra-row {display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin:9px 0;text-align:left;cursor:pointer;box-shadow:0 2px 8px rgba(15,23,42,.025);}
         .booking-extra-row span:first-child{min-width:0;}
@@ -3222,7 +3226,11 @@ document.addEventListener("click", async function(e) {
                // partner confirmed code-2 paid extra does not require this data.
                driverRow.style.display = on ? "none" : "";
            }
-           if (!on) window.r24ArventExtraDriverAllowed = false;
+           if (!on) {
+               window.r24ArventExtraDriverAllowed = false;
+               const missingDate=document.getElementById("arventProfileLicenceNotice");
+               if(missingDate) missingDate.hidden=true;
+           }
            if (note) note.hidden = true;
            // Arvent: retain the standard extras section, but distinguish
            // supplier catalogue entries from offer-priced/bookable extras.
