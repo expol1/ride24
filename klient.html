@@ -1447,6 +1447,47 @@
             }
         }
 
+/* Card opened from Payments: a concise copy of the My bookings row, NOT the rental-terms Details modal. */
+.r24-pay-booking-overlay[hidden]{display:none!important}
+.r24-pay-booking-overlay{position:fixed;inset:0;z-index:100005;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.72);backdrop-filter:blur(5px);overflow-y:auto}
+.r24-pay-booking-dialog{width:min(100%,790px);max-height:calc(100dvh - 36px);overflow-y:auto;border-radius:20px;background:#fff;box-shadow:0 26px 85px rgba(15,23,42,.3);font-family:Inter,sans-serif;color:#102442}
+.r24-pay-booking-header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:20px 24px;background:#1d4ed8;color:#fff}
+.r24-pay-booking-header h2{font-family:Manrope,sans-serif;font-size:20px;line-height:1.35;font-weight:800;margin:4px 0 0;color:#fff}
+.r24-pay-booking-eyebrow{font-size:11px;letter-spacing:1px;font-weight:800;opacity:.85}
+.r24-pay-booking-close{flex:0 0 38px;width:38px;height:38px;border:1px solid #ffffff66;border-radius:10px;background:#ffffff22;color:#fff;font-size:26px;cursor:pointer}
+.r24-pay-booking-body{padding:22px 24px}
+.r24-pay-booking-card{--r24-card-strong:#cbd5e1;--r24-card-soft:#f8fafc;--r24-card-edge:#64748b;padding:20px;border-left:5px solid var(--r24-card-edge);border-radius:14px;background:linear-gradient(100deg,var(--r24-card-strong),var(--r24-card-soft));border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
+.r24-pay-booking-card.is-confirmed{--r24-card-strong:#86d79b;--r24-card-soft:#f0fdf4;--r24-card-edge:#18833b}
+.r24-pay-booking-card.is-cancelled{--r24-card-strong:#fca5a5;--r24-card-soft:#fff1f2;--r24-card-edge:#b91c1c}
+.r24-pay-booking-card.is-waiting{--r24-card-strong:#facc15;--r24-card-soft:#fffbeb;--r24-card-edge:#bd8d00}
+.r24-pay-booking-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.r24-pay-booking-id{font-weight:850;font-size:17px;color:#1e3a8a}
+.r24-pay-booking-status{font-size:12px;font-weight:800;padding:7px 11px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#334155}
+.r24-pay-booking-car{margin:18px 0 14px;font-size:17px;font-weight:700;line-height:1.4}
+.r24-pay-booking-car .class-code{font-weight:900;font-size:20px;margin-right:8px}
+.r24-pay-booking-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.r24-pay-booking-field{min-width:0;padding:13px 15px;border-radius:12px;background:#fffffff0;border:1px solid #e2e8f0}
+.r24-pay-booking-field small{display:block;margin-bottom:6px;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.35px;font-weight:800}
+.r24-pay-booking-field strong{display:block;font-size:14px;line-height:1.45;color:#11244a;overflow-wrap:anywhere}
+.r24-pay-booking-route{margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.r24-pay-booking-route .r24-pay-booking-field{background:#fff}
+.r24-pay-booking-money strong{font-weight:850;color:#176b2d;font-size:17px}
+.r24-pay-booking-online strong{color:#1d4ed8}
+.r24-pay-booking-footer{padding:0 24px 22px;display:flex;justify-content:flex-end}
+.r24-pay-booking-footer button{border:0;border-radius:10px;background:#2563eb;color:#fff;padding:11px 22px;min-height:44px;font:700 14px Inter,sans-serif;cursor:pointer}
+.r24-pay-booking-footer button:hover{background:#1d4ed8}
+.r24-pay-booking-overlay button:focus-visible{outline:3px solid #97d700;outline-offset:3px}
+@media(max-width:620px){
+ .r24-pay-booking-overlay{padding:10px}
+ .r24-pay-booking-dialog{max-height:calc(100dvh - 20px);border-radius:15px}
+ .r24-pay-booking-header{padding:16px}
+ .r24-pay-booking-body{padding:14px}
+ .r24-pay-booking-card{padding:14px}
+ .r24-pay-booking-grid,.r24-pay-booking-route{grid-template-columns:1fr;gap:9px}
+ .r24-pay-booking-footer{padding:0 14px 14px}
+ .r24-pay-booking-footer button{width:100%}
+}
+
 /* Profile onboarding gate: isolate required details until saved and verified. */
 body.r24-profile-checking .view-section{display:none!important}
 body.r24-profile-checking #loyalty-card{visibility:hidden}
@@ -5511,34 +5552,132 @@ function translateStatus(status, lang = null) {
 }
 
 /* Płatności → Szczegóły: open the same saved-booking modal as in My bookings. */
-window.r24OpenPaymentBookingDetails = async function(bookingId) {
+
+window.r24ClosePaymentBookingCard = function() {
+    const modal = document.getElementById("r24PaymentBookingCardModal");
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    const previous = window.r24PaymentBookingCardTrigger;
+    window.r24PaymentBookingCardTrigger = null;
+    if (previous?.isConnected) previous.focus({preventScroll:true});
+};
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !document.getElementById("r24PaymentBookingCardModal")?.hidden) {
+        window.r24ClosePaymentBookingCard();
+    }
+});
+
+/* Payments ID → the actual booking card: vehicle, dates, both locations, amounts and status. */
+window.r24OpenPaymentBookingCard = async function(bookingId, trigger = null) {
     const isEn = localStorage.getItem("client_lang") === "en";
     if (!window.r24ClientProfileReady || !currentUser?.id || !bookingId) return;
     try {
         let booking = window.ride24BookingsById?.[bookingId];
         if (!booking) {
-            // Refresh the regular, client-scoped booking list rather than querying or displaying another user's booking.
-            await loadClientBookings();
+            await loadClientBookings(); // Query remains scoped to currentUser.id.
             booking = window.ride24BookingsById?.[bookingId];
         }
         if (!booking) {
-            window.showToast(isEn ? "Booking details are unavailable." : "Nie znaleziono szczegółów tej rezerwacji.", "error");
+            window.showToast(isEn ? "Booking not found." : "Nie znaleziono rezerwacji.", "error");
             return;
         }
-        const currency = booking.car_classes?.partners?.currency || "EUR";
-        window.openDetailsModal(
-            booking.deposit_snapshot ?? 0,
-            booking.mileage_limit_snapshot ?? "",
-            booking.driver_included_snapshot === true,
-            booking.driver_hours_snapshot ?? "",
-            currency,
-            booking.partner_terms_snapshot ?? "",
-            booking.partner_rules_snapshot ?? "",
-            booking.id
-        );
+        const modal = document.getElementById("r24PaymentBookingCardModal");
+        const body = document.getElementById("r24PaymentBookingCardBody");
+        if (!modal || !body) return;
+        const status = booking.status || "";
+        const refund = booking.refund_status || "";
+        const isArvent = booking.car_classes?.partners?.api_provider === "arvent_kolaycar";
+        const supplierPending = status === "pending" && ["payment_provider_pending","payment_unknown"].includes(booking.api_status);
+        let statusText = translateStatus(status, isEn ? "en" : "pl");
+        if (isArvent && status === "pending" && booking.api_status === "payment_provider_pending") {
+            statusText = isEn ? "Awaiting partner confirmation" : "Oczekuje na potwierdzenie partnera";
+        } else if (isArvent && status === "pending" && booking.api_status === "payment_unknown") {
+            statusText = isEn ? "Under review" : "Wymaga weryfikacji";
+        } else if (supplierPending) {
+            statusText = isEn ? "Paid – awaiting confirmation" : "Opłacona – czeka na potwierdzenie";
+        } else if (isArvent && ["rejected","expired"].includes(status) && ["pending","completed","failed"].includes(refund)) {
+            statusText = isEn ? "Cancelled – payment refund" : "Anulowana – zwrot płatności";
+        }
+        // Same red/green/yellow meaning as the payment row, independent from refund label.
+        const cardState = ["cancelled","rejected","expired","payment_expired"].includes(status) || refund === "completed"
+            ? "is-cancelled" : (refund === "pending" || status === "awaiting_payment"
+            ? "is-waiting" : (["accepted","paid"].includes(status) ? "is-confirmed" : ""));
+        const t = (pl,en) => isEn ? en : pl;
+        body.innerHTML = `
+            <section class="r24-pay-booking-card ${cardState}">
+                <div class="r24-pay-booking-top">
+                    <strong class="r24-pay-booking-id" data-booking-field="number"></strong>
+                    <span class="r24-pay-booking-status" data-booking-field="status"></span>
+                </div>
+                <div class="r24-pay-booking-car">
+                    <span class="class-code" data-booking-field="class"></span>
+                    <span class="class-label" data-booking-field="vehicle"></span>
+                </div>
+                <div class="r24-pay-booking-grid">
+                    <div class="r24-pay-booking-field">
+                        <small>${t("Data i godzina odbioru","Pickup date & time")}</small>
+                        <strong data-booking-field="pickupDate"></strong>
+                    </div>
+                    <div class="r24-pay-booking-field">
+                        <small>${t("Data i godzina zwrotu","Return date & time")}</small>
+                        <strong data-booking-field="returnDate"></strong>
+                    </div>
+                </div>
+                <div class="r24-pay-booking-route">
+                    <div class="r24-pay-booking-field">
+                        <small>${t("📍 Odbiór","📍 Pickup")}</small>
+                        <strong data-booking-field="pickupLocation"></strong>
+                    </div>
+                    <div class="r24-pay-booking-field">
+                        <small>${t("🏁 Zwrot","🏁 Return")}</small>
+                        <strong data-booking-field="returnLocation"></strong>
+                    </div>
+                </div>
+                <div class="r24-pay-booking-grid">
+                    <div class="r24-pay-booking-field r24-pay-booking-money">
+                        <small>${t("Przy odbiorze","At pickup")}</small>
+                        <strong data-booking-field="pickupAmount"></strong>
+                    </div>
+                    <div class="r24-pay-booking-field r24-pay-booking-money r24-pay-booking-online">
+                        <small>${t("Płatne teraz","Pay now")}</small>
+                        <strong data-booking-field="onlineAmount"></strong>
+                    </div>
+                </div>
+            </section>
+        `;
+        const set = (field,value) => {
+            const node = body.querySelector('[data-booking-field="'+field+'"]');
+            if (node) node.textContent = String(value ?? "—");
+        };
+        const snap = booking.vehicle_snapshot || {};
+        const carName = window.ride24VehicleLabel(snap,booking.car_classes,isEn);
+        const pickupLoc = booking.pickup_location || "—";
+        const dropLoc = booking.return_location || pickupLoc;
+        const fmtDate = (date,time) => date ? date+" "+String(time || "10:00").slice(0,5) : "—";
+        const fmtAmount = value => {
+            const n = Number(value ?? 0);
+            return Number.isFinite(n) ? n.toFixed(2) : "—";
+        };
+        set("number","#R24-"+String(booking.id).slice(-4));
+        set("status",statusText);
+        set("class",snap.class_code || booking.car_classes?.class_code || "?");
+        set("vehicle",carName);
+        set("pickupDate",fmtDate(booking.start_date,booking.pickup_time));
+        set("returnDate",fmtDate(booking.end_date,booking.return_time));
+        set("pickupLocation",pickupLoc);
+        set("returnLocation",dropLoc);
+        set("pickupAmount",fmtAmount(booking.pickup_payment_partner_currency)+" "+(booking.car_classes?.partners?.currency || "EUR"));
+        set("onlineAmount",fmtAmount(booking.online_payment_pln)+" PLN");
+        document.getElementById("r24PaymentBookingCardEyebrow").textContent=t("MOJA REZERWACJA","MY BOOKING");
+        document.getElementById("r24PaymentBookingCardHeading").textContent=t("Karta rezerwacji","Booking card");
+        document.getElementById("r24PaymentBookingCardClose").textContent=t("Zamknij","Close");
+        document.getElementById("r24PaymentBookingCardX").setAttribute("aria-label",t("Zamknij","Close"));
+        window.r24PaymentBookingCardTrigger = trigger || document.activeElement;
+        modal.hidden = false;
+        document.getElementById("r24PaymentBookingCardX").focus({preventScroll:true});
     } catch (error) {
-        console.error("Payment booking details failed:", error);
-        window.showToast(isEn ? "Could not open booking details." : "Nie udało się otworzyć szczegółów rezerwacji.", "error");
+        console.error("Payment booking card failed:",error);
+        window.showToast(isEn ? "Could not open booking card." : "Nie udało się otworzyć karty rezerwacji.","error");
     }
 };
 
@@ -5556,7 +5695,7 @@ window.loadPayments = async function() {
             if (!button || !tbody.contains(button) || button.disabled) return;
             button.disabled = true;
             try {
-                await window.r24OpenPaymentBookingDetails(button.dataset.r24PaymentBooking);
+                await window.r24OpenPaymentBookingCard(button.dataset.r24PaymentBooking, button);
             } finally {
                 if (button.isConnected) button.disabled = false;
             }
@@ -5852,6 +5991,27 @@ window.closeReviewModal = function() {
         </div>
     </div>
     <!-- Modal Usuwania Konta -->
+
+    <!-- Payment booking ID opens this booking summary card, not the deposit/rules modal. -->
+    <div id="r24PaymentBookingCardModal" class="r24-pay-booking-overlay" role="dialog"
+         aria-modal="true" aria-labelledby="r24PaymentBookingCardHeading" hidden
+         onclick="if(event.target===this)r24ClosePaymentBookingCard()">
+        <div class="r24-pay-booking-dialog">
+            <div class="r24-pay-booking-header">
+                <div>
+                    <div class="r24-pay-booking-eyebrow" id="r24PaymentBookingCardEyebrow">MOJA REZERWACJA</div>
+                    <h2 id="r24PaymentBookingCardHeading">Karta rezerwacji</h2>
+                </div>
+                <button type="button" class="r24-pay-booking-close" id="r24PaymentBookingCardX"
+                        aria-label="Zamknij" onclick="r24ClosePaymentBookingCard()">×</button>
+            </div>
+            <div id="r24PaymentBookingCardBody" class="r24-pay-booking-body"></div>
+            <div class="r24-pay-booking-footer">
+                <button type="button" id="r24PaymentBookingCardClose"
+                        onclick="r24ClosePaymentBookingCard()">Zamknij</button>
+            </div>
+        </div>
+    </div>
      <div id="bookingDetailsModal" class="custom-modal">
         <div class="modal-content" style="max-width: 400px; text-align: left;">
             <h3 style="margin-top: 0; color: white;" data-pl="Szczegóły rezerwacji" data-en="Booking details">Szczegóły rezerwacji</h3>
