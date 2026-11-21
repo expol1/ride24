@@ -1105,24 +1105,16 @@ serve(async (req) => {
         || (typeof body.main_driver_license_since === "string" && body.main_driver_license_since
           ? body.main_driver_license_since : null))
       : savedMainDriverLicenseSince;
-    // Arvent's separately priced code 2 is bound to a saved additional
-    // driver only through a signed server quote (pricing_version 2).
-    // Keep older clients and unpriced drivers blocked.
-    if (isArventBooking && additionalDriverId && body.pricing_version !== 2) {
+    // Arvent has explicitly confirmed that no secondary driver's identity
+    // or licence information is needed online: the person presents their
+    // licence to Arvent staff at pickup. The code-2 paid extra is selected
+    // via the supplier-priced extras quote, not additional_driver_id.
+    if (isArventBooking && additionalDriverId) {
       return jsonResponse(req, {
-        code: "ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE",
-        error: "Dodatkowy kierowca jest niedostępny w tej ofercie.",
-        error_en: "An additional driver is not available for this offer.",
+        code: "ARVENT_ADDITIONAL_DRIVER_IDENTITY_NOT_REQUIRED",
+        error: "W Arvent wybierz dodatek „Dodatkowy kierowca”, bez wybierania osoby z profilu.",
+        error_en: "For Arvent select the Additional driver extra without choosing a saved person.",
       }, 400);
-    }
-
-    if (isArventBooking && additionalDriverId &&
-        arventLicenseYears(savedAdditionalDriverLicenseSince,startDate.text) === null) {
-      return jsonResponse(req,{
-        code:"ARVENT_EXTRA_DRIVER_LICENSE_DATE_REQUIRED",
-        error:"Uzupełnij datę pierwszego uzyskania prawa jazdy dodatkowego kierowcy w jego profilu.",
-        error_en:"Enter the additional driver's original licence date in the saved driver profile."
-      },400);
     }
 
     // Local partner rule is opt-in: unset/zero has NO effect on existing bookings.
@@ -1452,7 +1444,8 @@ serve(async (req) => {
             !Number.isSafeInteger(accepted.rental_cents) ||
             !Number.isSafeInteger(accepted.extras_cents) ||
             accepted.rental_cents+accepted.extras_cents!==pricingItemsSnapshot.partner_cents ||
-            (additionalDriverId && !accepted.selected.some((x:any)=>x.code==="2" && x.quantity===1)))
+            (additionalDriverId || (accepted.selected.some((x:any)=>x.code==="2")
+               && !accepted.selected.some((x:any)=>x.code==="2" && x.quantity===1))))
           throw quoteChanged();
       }
       if(pricingItemsSnapshot) {
