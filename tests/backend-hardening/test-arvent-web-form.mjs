@@ -191,7 +191,8 @@ test('missing NBP rate blocks the summary (no fallback rate for Arvent)',async()
 test('booking request uses the same fee formula, saved licence date of the selected driver and refuses a second driver',async()=>{
  const src=await readFile(new URL('../../supabase/functions/create-booking-request/index.ts',import.meta.url),'utf8');
  assert.match(src,/let onlinePaymentPln = apiOnlinePaymentPln\(commission, rate, discountPercent\);/);
- assert.match(src,/\? \(savedMainDriverLicenseSince\s*\n\s*\|\| \(typeof body\.main_driver_license_since/);
+ assert.match(src,/const mainDriverLicenseSince = savedMainDriverLicenseSince;/);
+ assert.doesNotMatch(src,/typeof body\.main_driver_license_since === "string"/);
  assert.match(src,/isArventBooking && additionalDriverId\)[\s\S]{0,150}ARVENT_ADDITIONAL_DRIVER_IDENTITY_NOT_REQUIRED/);
  const checkout=await readFile(new URL('../../supabase/functions/create_checkout_session/index.ts',import.meta.url),'utf8');
  // Stripe charges exactly the stored online_payment_pln of the created booking.
