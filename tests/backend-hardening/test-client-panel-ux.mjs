@@ -264,6 +264,6 @@ test('profile mobile shows owner, additional drivers, then invoice without chang
     assert.ok(style.includes('body.r24-profile-incomplete #view-profile .profile-col[data-r24-optional-profile]{display:none!important}'));
     for(const action of ['onclick="addDriverRow()"','onclick="clearInvoiceForm()"','onclick="deleteInvoiceData()"'])
         assert.ok(html.includes(action),'Original action missing: '+action);
-    assert.ok(html.includes('window.r24SaveProfileSection'), 'Profile/invoice save dispatch missing');
+    assert.ok(html.includes('window.r24ToggleProfileSection = function(section)') && html.includes('return section==="invoice"?window.saveInvoiceData():window.saveProfile();'), 'Profile/invoice save dispatch missing');
     assert.ok(html.includes('window.saveDrivers(row)'), 'Per-driver save dispatch missing');
 });
