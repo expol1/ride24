@@ -2586,13 +2586,12 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
                 for(const item of snapshot.items){
                     const name=(en?item.name_en:item.name_pl)+(item.location_name?' — '+item.location_name:'')+
                       (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(en?'days':'dni'):''):'');
-                    // The Arvent rental snapshot's customer amount includes
-                    // Ride24's separate fee; display the true supplier rental
-                    // here, then show the Ride24 fee on its own line.
-                    row(name,money(isArvent?item.partner_cents:item.customer_cents));
+                    // All providers, including Arvent, must display the
+                    // customer-facing rental amount from search. For Arvent
+                    // item.customer_cents already INCLUDES the Ride24 fee.
+                    // The fee is a payment split, not a second surcharge.
+                    row(name,money(item.customer_cents));
                 }
-                if(isArvent)row(en?'Ride24 reservation fee':'Opłata rezerwacyjna Ride24',
-                    money(snapshot.commission_cents));
                 if(snapshot.loyalty_discount_cents)
                     row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(snapshot.loyalty_discount_cents));
                 row(en?'Total price':'Cena łączna',money(snapshot.total_cents),'r24-client-price-total');
