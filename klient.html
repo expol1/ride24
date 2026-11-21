@@ -1925,6 +1925,61 @@ async>
 #view-profile .r24-fields-locked .flatpickr-input{cursor:default!important}
 @media(max-width:768px){#view-profile .driver-row .r24-driver-actions{flex-direction:column-reverse}#view-profile .driver-row .r24-driver-action,#view-profile .driver-row .btn-icon-remove{width:100%}}
 </style>
+
+<style id="r24-loyalty-premium-tiers">
+/* START deliberately retains its original dark card. */
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]){
+  position:relative;isolation:isolate;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 27px rgba(4,16,35,.27);
+  transition:background .3s,border-color .3s,box-shadow .3s;
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(150deg,rgba(255,255,255,.48),transparent 34%,rgba(255,255,255,.16) 59%,transparent 90%);
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])>*{position:relative;z-index:1}
+#loyalty-card[data-loyalty-tier="silver"]{
+  --loyalty-ink:#1C2B3F;--loyalty-muted:#34475F;--loyalty-track:#53667F;--loyalty-edge:rgba(38,62,89,.25)
+}
+#loyalty-card[data-loyalty-tier="gold"]{
+  --loyalty-ink:#4A2D0B;--loyalty-muted:#654008;--loyalty-track:#885B11;--loyalty-edge:rgba(103,66,10,.25);
+  box-shadow:inset 0 1px 0 #fff2bb,0 12px 30px rgba(143,99,6,.25)
+}
+#loyalty-card[data-loyalty-tier="platinum"]{
+  --loyalty-ink:#16334C;--loyalty-muted:#2D5875;--loyalty-track:#496E87;--loyalty-edge:rgba(29,79,115,.25);
+  box-shadow:inset 0 1px 0 #fff,0 12px 29px rgba(56,117,160,.27)
+}
+#loyalty-card[data-loyalty-tier="vip"]{
+  --loyalty-ink:#F4FFE8;--loyalty-muted:#D4F8D9;--loyalty-track:#08291E;--loyalty-edge:rgba(189,247,135,.45);
+  box-shadow:inset 0 1px 0 rgba(227,255,205,.37),0 12px 34px rgba(19,91,58,.35)
+}
+#loyalty-card[data-loyalty-tier="vip"]::before{
+  background:linear-gradient(135deg,rgba(193,255,134,.2),transparent 38%,rgba(255,234,137,.09) 62%,transparent 94%)
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])>div:first-child>div,
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-progress-text,
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-next-level{
+  color:var(--loyalty-muted)!important
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-level-name{
+  color:var(--loyalty-ink)!important;font-size:19px!important;
+  letter-spacing:.45px;text-shadow:0 1px 0 rgba(255,255,255,.25)
+}
+#loyalty-card[data-loyalty-tier="vip"] #loyalty-level-name{text-shadow:0 1px 8px rgba(142,237,87,.22)}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-marketing-text{
+  color:var(--loyalty-ink)!important;line-height:1.4
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) svg{
+  fill:var(--loyalty-muted)!important
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) svg:hover{opacity:.7}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-progress-bar{
+  border-radius:4px;box-shadow:0 0 4px rgba(255,255,255,.25)
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])>div:last-child>div:nth-child(2){
+  background:var(--loyalty-track)!important;border-color:var(--loyalty-edge)!important
+}
+</style>
 </head>
 <body class="r24-profile-checking"> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -3026,12 +3081,13 @@ window.goToPayment = goToPayment;
         let payments = [];
         // 🔥 LOYALTY SYSTEM CONFIG
 // 🔥 LOYALTY SYSTEM CONFIG (Z nowymi, pięknymi tłami)
+// Visual palettes only. Reservation thresholds and discounts remain unchanged.
 const loyaltyConfig = {
   0: { name: "START", color: "#64748B", border: "#334155", bg: "rgba(30, 41, 59, 0.5)", discount: 0 },
-  1: { name: "SILVER", color: "#CBD5E1", border: "#94A3B8", bg: "rgba(148, 163, 184, 0.1)", discount: 5 },
-  2: { name: "GOLD", color: "#FBBF24", border: "#D97706", bg: "rgba(245, 158, 11, 0.1)", discount: 10 },
-  3: { name: "PLATINUM", color: "#38BDF8", border: "#0284C7", bg: "rgba(56, 189, 248, 0.1)", discount: 15 },
-  4: { name: "VIP", color: "#8CE619", border: "#73D700", bg: "rgba(34, 197, 94, 0.1)", discount: 20 }
+  1: { name: "SILVER", color: "#E7EFF6", border: "#DDE6EF", bg: "linear-gradient(125deg, #B4C0CE 0%, #F4F8FD 23%, #DFE6EE 42%, #F9FBFE 66%, #ADBCCB 100%)", discount: 5 },
+  2: { name: "GOLD", color: "#F7E3A4", border: "#F6D978", bg: "linear-gradient(125deg, #EAC472 0%, #FFF2BA 24%, #EBC36C 45%, #FFF7D9 65%, #E2B65A 100%)", discount: 10 },
+  3: { name: "PLATINUM", color: "#DDF5FF", border: "#CDE8F4", bg: "linear-gradient(125deg, #B5D3E6 0%, #EFF9FE 26%, #D1EAF6 46%, #F8FCFF 71%, #AFCEE0 100%)", discount: 15 },
+  4: { name: "VIP", color: "#A6EB45", border: "#B9F77B", bg: "linear-gradient(122deg, #092C24 0%, #145A42 23%, #1A7750 45%, #0D3A30 75%, #082C28 100%)", discount: 20 }
 };
 const thresholds = [3, 6, 10, 15];
 
@@ -3058,6 +3114,8 @@ function renderLoyaltyCard(paidCount) {
     document.getElementById("loyalty-level-name").style.color = config.color;
 
     const card = document.getElementById("loyalty-card");
+    // The current tier controls presentation only; no change to loyalty calculation.
+    card.dataset.loyaltyTier = config.name.toLowerCase();
     card.style.borderColor = config.border;
     card.style.background = config.bg;
 
