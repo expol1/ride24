@@ -32,8 +32,13 @@ export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = 
     const maxQuantity=x.code==="2" ? 1 :
       x.quantity_increasable===true && Number.isInteger(x.max_quantity) && x.max_quantity>=1
         ? Math.min(x.max_quantity,10) : 1;
+    // Arvent's commercial owner confirmed only code 2 at EUR 4 per
+    // supplier-billed day. Do NOT guess whether a numeric extraRentalType
+    // represents a daily unit price: supplier certification is still needed.
+    const driverTermsMatch=x.code!=="2"
+      ||(x.required!==true && mode==="day" && x.price_eur===4);
     return {...x, billing:mode, max_quantity:maxQuantity,
-      bookable:certified===true && valid && (mode!==null || x.price_eur===0)};
+      bookable:certified===true && valid && driverTermsMatch && (mode!==null || x.price_eur===0)};
   });
 }
 export function arventSelectedExtrasQuote({
@@ -54,13 +59,15 @@ export function arventSelectedExtrasQuote({
       throw Error("ARVENT_EXTRAS_NOT_PRICED");
     chosen.set(entry.id,entry.quantity);
   }
-  if(Boolean(additionalDriverId)!==chosen.has("2"))
-    throw Error("ARVENT_EXTRA_DRIVER_SELECTION_MISMATCH");
+  // Arvent requires only the paid code-2 service online. The driver's
+  // personal information and licence are checked by delivery staff.
+  if(additionalDriverId)
+    throw Error("ARVENT_ADDITIONAL_DRIVER_PERSONAL_DATA_UNNECESSARY");
   // A mandatory item is included even when the customer did not select it.
   for(const item of catalog){
     if(item.required){
-      if(item.code==="2" && !additionalDriverId)
-        throw Error("ARVENT_EXTRA_DRIVER_SELECTION_MISMATCH");
+      if(item.code==="2")
+        throw Error("ARVENT_ADDITIONAL_DRIVER_NOT_MANDATORY");
       if(!item.bookable && item.price_eur!==0)throw Error("ARVENT_REQUIRED_EXTRA_UNPRICED");
       if(!chosen.has(item.code))chosen.set(item.code,1);
     }
