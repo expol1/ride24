@@ -230,9 +230,9 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.equal(picker.querySelectorAll('.booking-extra-row').length,1);
   assert.equal(picker.querySelectorAll('button,input,select').length,0);
   const text=box.textContent;
-  for(const part of ['Price summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay at pickup','EDMR'])assert.ok(text.includes(part),part);
+  for(const part of ['Price summary','Car rental (3 days)','Extras','None','€88.14','€84.75','PLN','Pay Arvent at pickup'])assert.ok(text.includes(part),part);
   assert.ok(/14\.35/.test(text));
-  assert.doesNotMatch(text,/Arvent|Stripe/);
+  assert.doesNotMatch(text,/Car category|Economy|EDMR|Antalya Airport|Pickup •|Stripe/);
   assert.equal(box.querySelectorAll('h4').length,1);
   const currentTotal=document.getElementById('bookingExtrasTotal');
   assert.equal(currentTotal.hidden,false);
@@ -247,6 +247,36 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
 });
 
 
+test('Arvent mobile modal uses only financial lines, translates extras into selected PL/EN and has no redundant licence input',async()=>{
+ const client=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
+ assert.doesNotMatch(client,/id="arventLicenseSince"/);
+ assert.doesNotMatch(client,/id="arventLicenseRequirement"/);
+ assert.match(client,/id="arventProfileLicenceNotice"/);
+ assert.match(client,/selectedId[\\s\\S]*driver-license-since/);
+ assert.match(client,/driverRow\.style\.display = on \? "none" : ""/);
+ const price={enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,
+   start_date:'2027-01-10',end_date:'2027-01-13',
+   pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport',
+   return_location:'Istanbul Airport',category:{sipp:'EDMR',example_model:'Renault Clio'},
+   rental_total:84.75,mandatory_fees:[],extras:[],extra_catalog:[],
+   offer_extras:{status:'present',items:[{code:'2',name:'Ek Sürücü',price_eur:4.99,bookable:false,required:false}]},
+   total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,
+   online_pln:15.11,pay_on_pickup:84.75}};
+ for(const [english,translated] of [[true,'Additional driver'],[false,'Dodatkowy kierowca']]){
+   const {ctx}=setup();
+   const ui=createBookingExtras({db:{auth:{getSession:async()=>({data:{session:{access_token:'test'}}})}},
+      url:'https://example.test',key:'public',context:()=>({...ctx}),isEn:()=>english});
+   globalThis.fetch=async()=>response(price);
+   await ui.start();
+   const picker=document.getElementById('bookingExtrasPicker').textContent;
+   const summary=document.getElementById('bookingPriceBreakdown').textContent;
+   assert.match(picker,new RegExp(translated));
+   assert.doesNotMatch(picker,/Ek Sürücü/);
+   assert.doesNotMatch(summary,/Renault Clio|EDMR|Antalya Airport|Istanbul Airport/);
+   assert.match(summary,english?/Car rental \(3 days\)/:/Wynajem \(3 doby\)/);
+   assert.match(summary,english?/Pay Arvent at pickup/:/Do zapłaty Arvent przy odbiorze/);
+ }
+});
 test('Arvent missing GET /extras still shows confirmed driver rate but cannot select or charge it',async()=>{
  const {ui}=setup();
  globalThis.fetch=async()=>response({enabled:false,arvent:{
