@@ -30,11 +30,10 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const selectable = available.filter(x => x && x.bookable === true);
         const additional = el('additionalDriverSelect');
         const allowExtraDriver = selectable.some(x => x.code === '2');
-        if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = allowExtraDriver;
-        if (additional) {
-            additional.disabled = !allowExtraDriver;
-            if (!allowExtraDriver) additional.value = 'none';
-        }
+        // Arvent's additional driver is a code-2 checkbox, NOT a saved
+        // secondary-driver identity. Staff check the licence at pickup.
+        if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = false;
+        if (additional) { additional.disabled = true; additional.value = 'none'; }
         const modalHeading=document.querySelector('#equipmentInfoModal h3');
         if (modalHeading) {
             modalHeading.dataset.pl = selectable.length ? 'Wybierz dodatki do wynajmu' : 'Katalog dodatków';
@@ -70,9 +69,10 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             }
             if (priced?.bookable === true) {
                 if(code === '2') {
-                    detail.append(node('small',label('Wybierz osobę w polu „Dodatkowy kierowca”.',
-                        'Choose a saved person in the “Additional driver” field.')));
-                } else {
+                    detail.append(node('small',label('4 € za dobę. Prawo jazdy drugi kierowca okaże przy odbiorze.',
+                        '€4 per day. The second driver presents their licence at pickup.')));
+                }
+                {
                     const max = Number.isInteger(priced.max_quantity) ? Math.min(10,Math.max(1,priced.max_quantity)) : 1;
                     if(max === 1) {
                         const cb=node('input');cb.type='checkbox';
@@ -128,13 +128,13 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         if (additionalNote) {
             const driver=byCode.get('2');
             additionalNote.dataset.pl=allowExtraDriver
-                ?'Wybierz dodatkowego kierowcę z zapisanych osób; opłata zostanie doliczona do płatności przy odbiorze.'
-                :driver?'Dodatkowy kierowca wymaga potwierdzenia ceny i możliwości zamówienia przez wypożyczalnię.'
-                :'Dodatkowy kierowca jest niedostępny do zamówienia w tej ofercie.';
+                ?'Dodatkowy kierowca: 4 € za dobę. Wybierz dodatek w katalogu; prawo jazdy okaże przy odbiorze.'
+                :driver?'Dodatkowy kierowca: 4 € za dobę. Czekamy na potwierdzenie usługi w API dla tej oferty.'
+                :'Dodatkowy kierowca: 4 € za dobę, ale na razie brak potwierdzenia dostępności w tej ofercie.';
             additionalNote.dataset.en=allowExtraDriver
-                ?'Choose an additional driver from saved people; the fee will be added to payment at pickup.'
-                :driver?'An additional driver requires supplier confirmation of price and online booking.'
-                :'An additional driver cannot be booked for this offer.';
+                ?'Additional driver: €4 per day. Select the extra; the licence is checked at pickup.'
+                :driver?'Additional driver: €4 per day. Supplier API availability is pending.'
+                :'Additional driver: €4 per day, but offer-specific API availability is not yet confirmed.';
             additionalNote.textContent=isEn()?additionalNote.dataset.en:additionalNote.dataset.pl;
         }
         box.hidden = false;
@@ -284,12 +284,12 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         try {
             const c = context();
             const driverExtra = quote?.catalog?.find(x => x.code === 'additional_driver');
-            const arventDriver = quote?.arvent?.offer_extras?.items?.find(x => x.code === '2' && x.bookable === true);
-            if (driverExtra || arventDriver) {
-                const extraId=arventDriver?'2':driverExtra.id;
-                selections = selections.filter(x => x.id !== extraId);
-                if (c.additional_driver_id) selections.push({ id: extraId, quantity: 1 });
+            if (driverExtra) {
+                selections = selections.filter(x => x.id !== driverExtra.id);
+                if (c.additional_driver_id) selections.push({ id: driverExtra.id, quantity: 1 });
             }
+            // For Arvent code 2 is managed by its checkbox, never by the
+            // additional-driver person dropdown or a saved driver record.
             const { data: { session } } = await db.auth.getSession();
             if (!session?.access_token) throw new Error(label('Zaloguj się ponownie.', 'Please sign in again.'));
             const response = await fetch(url + '/functions/v1/booking-options', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: key }, body: JSON.stringify({ ...c, extras: selections }) });
