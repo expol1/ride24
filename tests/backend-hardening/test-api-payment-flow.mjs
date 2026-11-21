@@ -85,6 +85,29 @@ const arventRow=(receivedAgoMs,extra={})=>({state:'provider_pending',provider_re
  prepared_quote:{provider:'arvent_kolaycar',pickup_date:'2030-06-01',pickup_time:'10:00'},...extra});
 const late=arventRow(24*H+60000);
 
+test('Arvent manual review overrides a wrongly flagged definitive rejection, no refund or voucher',async()=>{
+ for(const currentState of ['paid','provider_pending']){
+  const response={status:'rejected',booking_reference:'A-1',definitive_rejection:true,
+    needs_manual_review:true,supplier_status_type:3};
+  const s=currentState==='paid'
+    ?setup({row:{prepared_quote:{provider:'arvent_kolaycar'}},result:response})
+    :setup({row:arventRow(2*60000),status:response});
+  await advanceApiPayment(s.deps,'b');
+  assert.equal(s.row.state,'unknown');
+  assert.equal(s.row.last_error,'ARVENT_RECONCILIATION_REQUIRED');
+  assert.ok(!s.calls.includes('refund'));
+  assert.ok(!s.calls.includes('voucher-email-push'));
+ }
+});
+test('Arvent confirmed booking under manual review never issues a voucher',async()=>{
+ const s=setup({row:arventRow(2*60000),status:{
+   status:'confirmed',booking_reference:'A-1',needs_manual_review:true}});
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'unknown');
+ assert.equal(s.row.last_error,'ARVENT_RECONCILIATION_REQUIRED');
+ assert.ok(!s.calls.includes('voucher-email-push'));
+ assert.ok(!s.calls.includes('refund'));
+});
 test('Arvent 0 -> 1 after 2 minutes: confirmed and voucher at once, no cancel',async()=>{
  const s=setup({row:arventRow(2*60000),status:{status:'confirmed',booking_reference:'A-1'}});
  await advanceApiPayment(s.deps,'b');
@@ -101,6 +124,43 @@ test('Arvent still 0 inside the 24h window (incl. overnight): keeps waiting, no 
   await advanceApiPayment(s.deps,'b');
   assert.equal(s.row.state,'provider_pending');assert.deepEqual(s.calls,['status']);
  }
+});
+test('Arvent at 24h: supplier approval needing manual review must not be auto-cancelled or refunded',async()=>{
+ for(const supplierStatus of ['confirmed','pending','rejected']){
+  const s=setup({row:arventRow(24*H+60000),status:{
+   status:supplierStatus,booking_reference:'A-1',needs_manual_review:true,
+   ...(supplierStatus==='rejected'?{definitive_rejection:true}:{})
+  }});
+  await advanceApiPayment(s.deps,'b');
+  assert.equal(s.row.state,'unknown');
+  assert.equal(s.row.last_error,'ARVENT_RECONCILIATION_REQUIRED');
+  assert.ok(!s.calls.includes('cancel'));
+  assert.ok(!s.calls.includes('refund'));
+  assert.ok(!s.calls.includes('voucher-email-push'));
+ }
+});
+test('Arvent deadline: unreadable supplier status retries GET and NEVER sends a blind cancellation',async()=>{
+ const s=setup({row:arventRow(24*H+60000)});
+ s.deps.status=async()=>{s.calls.push('status');throw Error('HTTP 503');};
+ const first=await advanceApiPayment(s.deps,'b');
+ const second=await advanceApiPayment(s.deps,'b');
+ assert.equal(first.state,'provider_pending');
+ assert.equal(second.state,'provider_pending');
+ assert.equal(s.row.state,'provider_pending');
+ assert.deepEqual(s.calls,['status','status']);
+ assert.ok(!s.calls.includes('cancel'));
+ assert.ok(!s.calls.includes('refund'));
+});
+
+test('Arvent deadline: an ambiguous non-pending supplier status requires reconciliation instead of cancellation',async()=>{
+ const s=setup({row:arventRow(24*H+60000),status:{
+  status:'unknown',booking_reference:'A-1',needs_manual_review:false
+ }});
+ await advanceApiPayment(s.deps,'b');
+ assert.equal(s.row.state,'unknown');
+ assert.equal(s.row.last_error,'ARVENT_RECONCILIATION_REQUIRED');
+ assert.ok(!s.calls.includes('cancel'));
+ assert.ok(!s.calls.includes('refund'));
 });
 test('Arvent 0 for 24h: cancel claimed, status 3 confirmed, then full Stripe refund',async()=>{
  const s=setup({row:late});

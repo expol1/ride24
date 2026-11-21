@@ -31,7 +31,7 @@ function fixture(change=()=>{},flags={}){
   raw_response:{provider_quote_data}};
  const fresh={external_id:'CDAR',currency:'EUR',deposit_amount:0,public_price_total:100,
   features:{minimum_driver_age:21,min_license_years:0},
-  provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'15',sipp:'CDAR',
+  provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'10',sipp:'CDAR',
    total_amount:100,currency:'EUR'}};
  const state={booking,quote,fresh,live:[fresh],status:{status:'pending',
   booking_reference:'A-1',needs_manual_review:false},throws:false};
@@ -74,13 +74,13 @@ test('two explicit production gates are required before Arvent accepts paid fulf
   assert.equal(f.calls.length,0);
  }
 });
-test('same SIPP group with another cheaper vehicle is safe only at identical EUR price',async()=>{
+test('same supplier vehicleId, SIPP group and EUR amount is safe for Arvent revalidation',async()=>{
  const f=fixture(()=>{},approved);
  assert.equal(f.hasPaidFulfillmentAdapter('arvent_kolaycar'),true);
  const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
  assert.equal(prepared.provider,'arvent_kolaycar');
  assert.equal(prepared.vehicle_group_id,'CDAR');
- assert.equal(prepared.provider_quote_data.vehicle_id,'15');
+ assert.equal(prepared.provider_quote_data.vehicle_id,'10');
  assert.equal(prepared.partner_amount,100);
  assert.equal(prepared.pickup_location_id,'12');
  assert.equal(prepared.pickup_time,'10:00');
@@ -89,6 +89,20 @@ test('same SIPP group with another cheaper vehicle is safe only at identical EUR
  assert.equal(result.status,'pending');
  assert.equal(result.needs_manual_review,false);
  assert.equal(f.calls.at(-1).stage,'create');
+});
+test('Arvent may replace vehicleId within the same SIPP only at identical EUR amount and terms',async()=>{
+ const f=fixture(s=>s.fresh.provider_quote_data.vehicle_id='15',approved);
+ const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
+ assert.equal(prepared.provider_quote_data.vehicle_id,'15');
+ assert.equal(prepared.vehicle_group_id,'CDAR');
+ assert.equal(prepared.partner_amount,100);
+ assert.deepEqual(f.calls.map(x=>x.stage),['search']);
+});
+test('Arvent cannot automatically upgrade into another SIPP category even at the same price',async()=>{
+ const f=fixture(s=>{s.fresh.external_id='FDAR';s.fresh.provider_quote_data.sipp='FDAR';},approved);
+ await assert.rejects(f.revalidatePaidProvider({},f.booking,f.quote),
+  e=>e instanceof flow.DefiniteApiFailure);
+ assert.deepEqual(f.calls.map(x=>x.stage),['search']);
 });
 test('new supplier price, category, deposit, driver or documents reject before creating booking',async()=>{
  const cases={
@@ -133,6 +147,18 @@ test('Received stays pending, Approved confirms and Cancelled is definitive reje
  const cancelled=await f.readPaidProviderStatus({},'A-1',prepared);
  assert.equal(cancelled.status,'rejected');
  assert.equal(cancelled.definitive_rejection,true);
+});
+test('Arvent cancelled status requiring manual reconciliation cannot trigger an automatic refund',async()=>{
+ for(const warning of ['agency_reference_mismatch','price_mismatch','unverified_extras']){
+  const f=fixture(x=>{x.status={status:'cancelled',booking_reference:'A-1',
+    supplier_status_type:3,needs_manual_review:true,warning};},approved);
+  const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
+  const result=await f.readPaidProviderStatus({},'A-1',prepared);
+  assert.equal(result.status,'pending');
+  assert.equal(result.definitive_rejection,false);
+  assert.equal(result.needs_manual_review,true);
+  assert.equal(result.supplier_status_type,3);
+ }
 });
 test('unknown supplier adapters never silently route to aggregator booking',async()=>{
  const f=fixture(()=>{},approved);

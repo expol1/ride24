@@ -2499,7 +2499,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261120-arvent2";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261121-arvent-driver-4eur";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -3344,6 +3344,7 @@ document.addEventListener("click", async function(e) {
        window.ride24ArventFormMode = function(on) {
            const isEn = localStorage.getItem("client_lang") === "en";
            const addSelect = document.getElementById("additionalDriverSelect");
+           const driverRow = document.getElementById("additionalDriverRow");
            const note = document.getElementById("arventAdditionalDriverNote");
            const callout = document.querySelector("#termsModal .r24-extras-callout");
            const extrasInfo = document.getElementById("arventExtrasInfo");
@@ -3352,6 +3353,8 @@ document.addEventListener("click", async function(e) {
            const docs = document.querySelector("#termsModal .docs-container");
            const btn = document.getElementById("confirmBookingBtn");
            window.r24ArventForm = !!on;
+           if (driverRow) driverRow.hidden = !!on;
+           if (!on) window.r24ArventExtraDriverAllowed = false;
            if (note) note.hidden = !on;
            // Arvent: retain the standard extras section, but distinguish
            // supplier catalogue entries from offer-priced/bookable extras.
@@ -3380,7 +3383,18 @@ document.addEventListener("click", async function(e) {
                equipmentHeading.textContent = isEn ? equipmentHeading.dataset.en : equipmentHeading.dataset.pl;
            }
            if (licence) licence.readOnly = !!on;
-           if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
+           if (addSelect && on) {
+               // Preserve the prior supplier's dropdown state; never globally
+               // enable a field that AVIA/Caravel/local forms disabled.
+               if (!Object.hasOwn(addSelect.dataset, "r24ArventPriorDisabled"))
+                   addSelect.dataset.r24ArventPriorDisabled = addSelect.disabled ? "true" : "false";
+               addSelect.value = "none";
+               addSelect.disabled = true;
+               window.r24ArventExtraDriverAllowed = false;
+           } else if (addSelect && !on && Object.hasOwn(addSelect.dataset, "r24ArventPriorDisabled")) {
+               addSelect.disabled = addSelect.dataset.r24ArventPriorDisabled === "true";
+               delete addSelect.dataset.r24ArventPriorDisabled;
+           }
            // Same order as every standard Ride24 booking: documents, price, consent.
            // Also restores order when reopening after an older Arvent form.
            if (price && docs && docs.nextElementSibling !== price) docs.after(price);
@@ -3680,8 +3694,13 @@ document.addEventListener("click", async function(e) {
                     ? additionalValue
                     : null;
 
+                // Arvent: additional driver only after the supplier has
+                // returned a priced, certified code 2 and the person is bound
+                // to the current server quote. Other partners are unaffected.
                 if (window.r24ArventForm && additionalDriverId) {
-                    throw new Error(isEn ? "An additional driver is not available for this offer." : "Dodatkowy kierowca jest niedostępny w tej ofercie.");
+                    throw new Error(isEn
+                      ? "Select the Additional driver paid extra. No second driver's details are needed online."
+                      : "Wybierz płatny dodatek Dodatkowy kierowca. Dane tej osoby podaje się dopiero przy odbiorze.");
                 }
                 if (driverId && additionalDriverId && driverId === additionalDriverId) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
@@ -5986,7 +6005,7 @@ window.closeReviewModal = function() {
                         <button type="button" class="btn-secondary" style="margin-top:6px" onclick="window.ride24ArventGoToProfile()" data-pl="Uzupełnij w profilu" data-en="Complete in profile">Uzupełnij w profilu</button>
                     </p>
                 </div>
-                <div>
+                <div id="additionalDriverRow">
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
                     <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#64748B" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>

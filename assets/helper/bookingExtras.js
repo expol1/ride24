@@ -27,7 +27,23 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const offer = a.offer_extras && typeof a.offer_extras === 'object' ? a.offer_extras : {status:'unavailable',items:[]};
         const available = Array.isArray(offer.items) ? offer.items : [];
         const byCode = new Map(available.filter(x => x && typeof x.code === 'string').map(x => [x.code,x]));
-        const intro = offer.status === 'present'
+        const selectable = available.filter(x => x && x.bookable === true);
+        const additional = el('additionalDriverSelect');
+        const allowExtraDriver = selectable.some(x => x.code === '2');
+        // Arvent's additional driver is a code-2 checkbox, NOT a saved
+        // secondary-driver identity. Staff check the licence at pickup.
+        if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = false;
+        if (additional) { additional.disabled = true; additional.value = 'none'; }
+        const modalHeading=document.querySelector('#equipmentInfoModal h3');
+        if (modalHeading) {
+            modalHeading.dataset.pl = selectable.length ? 'Wybierz dodatki do wynajmu' : 'Katalog dodatków';
+            modalHeading.dataset.en = selectable.length ? 'Choose rental extras' : 'Extras catalogue';
+            modalHeading.textContent = isEn() ? modalHeading.dataset.en : modalHeading.dataset.pl;
+        }
+        const intro = selectable.length
+            ? label('Wybierz dodatki. Kwoty są przeliczane przez Ride24 z cen otrzymanych dla tej oferty.',
+                    'Choose extras. Ride24 recalculates totals from this offer’s supplier prices.')
+            : offer.status === 'present'
             ? label('Dostępność dla Twojego terminu została odczytana z API. Kwot nie doliczamy bez potwierdzenia zasad naliczania.',
                     'Availability was retrieved for your rental dates. No charges are added until billing terms are confirmed.')
             : offer.status === 'none'
@@ -41,14 +57,47 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             const detail=node('span');
             detail.append(node('strong',code==='2'?label('Dodatkowy kierowca','Additional driver'):name));
             if (priced && typeof priced.price_eur==='number'){
-                detail.append(node('small',label('Kwota przekazana przez API: ','Amount reported by API: ')
+                detail.append(node('small',label('Cena z API: ','Supplier rate: ')
                     +money(Math.round(priced.price_eur*100),'EUR')
-                    +label(' — sposób naliczania i zamówienia do potwierdzenia.',
-                        ' — billing and booking conditions still require confirmation.')));
+                    +(priced.bookable===true
+                      ? (priced.billing==='day' ? label(' / doba',' / day') : label(' / wynajem',' / rental'))
+                      :label(' — zasady naliczania wymagają potwierdzenia.',' — billing terms still require confirmation.'))));
             } else {
                 detail.append(node('small',priced
                     ?label('API nie podało poprawnej ceny; zamówienie niedostępne.','No valid price in API; online booking unavailable.')
                     :label('Brak wyceny dla tej oferty; zamówienie niedostępne.','Not priced for this offer; online booking unavailable.')));
+            }
+            if (priced?.bookable === true) {
+                if(code === '2') {
+                    detail.append(node('small',label('4 € za dobę. Prawo jazdy drugi kierowca okaże przy odbiorze.',
+                        '€4 per day. The second driver presents their licence at pickup.')));
+                }
+                {
+                    const max = Number.isInteger(priced.max_quantity) ? Math.min(10,Math.max(1,priced.max_quantity)) : 1;
+                    if(max === 1) {
+                        const cb=node('input');cb.type='checkbox';
+                        cb.setAttribute('aria-label', name);
+                        cb.checked=selections.some(x => x.id===code && x.quantity===1);
+                        cb.onchange=()=>{
+                            selections=selections.filter(x=>x.id!==code);
+                            if(cb.checked)selections.push({id:code,quantity:1});
+                            refresh();
+                        };
+                        item.append(cb);
+                    } else {
+                        const select=node('select');select.setAttribute('aria-label',name);
+                        for(let i=0;i<=max;i++){
+                            const opt=node('option',String(i));opt.value=String(i);select.append(opt);
+                        }
+                        select.value=String(selections.find(x=>x.id===code)?.quantity||0);
+                        select.onchange=()=>{
+                            selections=selections.filter(x=>x.id!==code);
+                            if(Number(select.value)>0)selections.push({id:code,quantity:Number(select.value)});
+                            refresh();
+                        };
+                        item.append(select);
+                    }
+                }
             }
             item.append(detail);parent.append(item);
         };
@@ -78,12 +127,14 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const additionalNote=el('arventAdditionalDriverNote');
         if (additionalNote) {
             const driver=byCode.get('2');
-            additionalNote.dataset.pl=driver
-                ?'Dodatkowy kierowca widnieje w ofercie API, ale jego zamówienie online nie zostało jeszcze potwierdzone.'
-                :'Dodatkowy kierowca jest niedostępny do zamówienia w tej ofercie.';
-            additionalNote.dataset.en=driver
-                ?'An additional driver is listed by the supplier, but online booking has not yet been confirmed.'
-                :'An additional driver cannot be booked for this offer.';
+            additionalNote.dataset.pl=allowExtraDriver
+                ?'Dodatkowy kierowca: 4 € za dobę. Wybierz dodatek w katalogu; prawo jazdy okaże przy odbiorze.'
+                :driver?'Dodatkowy kierowca: 4 € za dobę. Czekamy na potwierdzenie usługi w API dla tej oferty.'
+                :'Dodatkowy kierowca: 4 € za dobę, ale na razie brak potwierdzenia dostępności w tej ofercie.';
+            additionalNote.dataset.en=allowExtraDriver
+                ?'Additional driver: €4 per day. Select the extra; the licence is checked at pickup.'
+                :driver?'Additional driver: €4 per day. Supplier API availability is pending.'
+                :'Additional driver: €4 per day, but offer-specific API availability is not yet confirmed.';
             additionalNote.textContent=isEn()?additionalNote.dataset.en:additionalNote.dataset.pl;
         }
         box.hidden = false;
@@ -97,7 +148,14 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         row(box, label('Liczba rozliczanych dób', 'Billed rental days'), String(a.billed_days));
         row(box, label('Wynajem za cały okres', 'Rental for the whole period'), money(cents(a.rental_total), a.currency));
         for (const fee of (a.mandatory_fees || [])) row(box, isEn() ? fee.name_en : fee.name_pl, money(cents(fee.amount), a.currency));
-        row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
+        for (const extra of (a.extras || [])) {
+            const qty=extra.quantity>1?' × '+extra.quantity:'';
+            const days=extra.billing==='day'?' × '+extra.days+' '+label('dni','days'):'';
+            row(box,(extra.code==='2'?label('Dodatkowy kierowca','Additional driver'):extra.name)+qty+days,
+                money(extra.total_cents,'EUR'));
+        }
+        if (!(a.extras || []).length)
+            row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
         if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
         row(box, label('Całkowita cena rezerwacji', 'Total booking price'), money(cents(a.total), a.currency), true);
         row(box, label('Opłata Ride24 (online)', 'Ride24 fee (online)'), money(cents(a.online_pln), 'PLN'), true);
@@ -230,6 +288,8 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 selections = selections.filter(x => x.id !== driverExtra.id);
                 if (c.additional_driver_id) selections.push({ id: driverExtra.id, quantity: 1 });
             }
+            // For Arvent code 2 is managed by its checkbox, never by the
+            // additional-driver person dropdown or a saved driver record.
             const { data: { session } } = await db.auth.getSession();
             if (!session?.access_token) throw new Error(label('Zaloguj się ponownie.', 'Please sign in again.'));
             const response = await fetch(url + '/functions/v1/booking-options', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}`, apikey: key }, body: JSON.stringify({ ...c, extras: selections }) });
@@ -258,6 +318,6 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             if (!ready || busy || quoteContext !== JSON.stringify(context())) throw new Error(label('Sprawdź aktualne podsumowanie ceny.', 'Review the current price summary.'));
             return quote?.enabled ? { pricing_version: 2, pricing_fingerprint: quote.fingerprint, extras: selections.map(x => ({ ...x })), ...(quote.api_quote_id ? {api_quote_id:quote.api_quote_id} : {}) } : {};
         },
-        canSubmit: () => ready && !busy,
+        canSubmit: () => ready && !busy && (!quote?.arvent || !selections.length || quote.enabled === true),
     };
 }

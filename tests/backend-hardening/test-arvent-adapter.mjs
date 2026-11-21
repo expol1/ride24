@@ -5,12 +5,16 @@ import vm from "node:vm";
 import ts from "typescript";
 import * as contract from "../../supabase/functions/_shared/arvent-kolaycar-contract.mjs";
 import * as license from "../../supabase/functions/_shared/arvent-driver-eligibility.mjs";
+import * as arventExtrasPricing from "../../supabase/functions/_shared/arvent-extras-pricing.mjs";
 
 const source=await readFile(new URL("../../supabase/functions/_shared/arvent-kolaycar.ts",import.meta.url),"utf8");
 const transformed=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true});
 assert.equal(transformed.diagnostics?.length||0,0,"Arvent adapter must parse as TypeScript");
+const durationSource=await readFile(new URL("../../supabase/functions/_shared/rental-duration.ts",import.meta.url),"utf8");
+const durationCompiled=ts.transpileModule(durationSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+const durationSandbox={exports:{}};vm.runInNewContext(durationCompiled,durationSandbox);
 
-function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,save401=false,cancelResponse=null}={}){
+function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",savedRef="A-1",requiredExtras=null,supplierDays=null,extrasDays=null,savedPrice=100,savedDeposit=0,savedPickupLocation=9,savedReservationExtras=null,savedGetAgencyRef=null,save401=false,cancelResponse=null}={}){
  const calls=[];
  let cancellationClaimed=false;
  const transport={
@@ -28,12 +32,12 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
     vehicleId:100,vehicleName:"Example Category",sippCode:"CDAR",
     currencyCode:"EUR",isAvailable:true,depositPrice:0,depositCreditCardRequired:false,
     excess:0,rentalConditions:[{conditionCode:"7",conditionName:"Full Insurance"}],
-    vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
+    vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,totalPrice:100,rentalDuration:supplierDays,reservationToken:"00000000-0000-4000-8000-000000000001"}]};
    if(path.startsWith("/extras?"))return {success:true,resultCode:0,
     data:{vehicle:{vehicleId:100,sippCode:"CDAR",currencyCode:"EUR",isAvailable:true,
      excess:0,rentalConditions:[{conditionCode:"7",conditionName:"Full Insurance"}],
      depositPrice:0,depositCreditCardRequired:false,vendorMinimumDriverAge:21,vendorMinimumDrivingLicenseAge:licenseYears,totalKMLimit:0,
-     totalPrice:100,reservationToken:"00000000-0000-4000-8000-000000000001",
+     totalPrice:100,rentalDuration:extrasDays,reservationToken:"00000000-0000-4000-8000-000000000001",
      pickupLocationId:9,returnLocationId:9,
      pickupDateTime:"2030-12-16T10:00:00",returnDateTime:"2030-12-17T10:00:00"},
      extras:requiredExtras}};
@@ -41,6 +45,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    if(path==="/reservations/save")return {success:true,resultCode:0,
     data:{reservationNumber:savedRef,sippCode:savedSipp,agencyReservationReference:"R24-XYZ",reservationStatusType:savedStatus,
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     reservationExtras:savedReservationExtras,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
    if(path.startsWith("/reservations?")&&path.includes("agencyReservationReference="))
@@ -48,7 +53,9 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
      agencyReservationReference:"R24-XYZ",reservationStatusType:0}};
    if(path.startsWith("/reservations?"))return {success:true,resultCode:0,
     data:{reservationNumber:savedRef,sippCode:savedSipp,reservationStatusType:savedStatus,
+     ...(savedGetAgencyRef!==null?{agencyReservationReference:savedGetAgencyRef}:{}),
      totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     reservationExtras:savedReservationExtras,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
    if(path.startsWith("/reservations/cancel?"))return cancelResponse||{success:true,data:{reservationNumber:"A-1",reservationStatusType:3}};
@@ -63,7 +70,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    eq(){return this;},limit(){return this;},
    async maybeSingle(){return {data:table==="api_quotes"?
     {external_group_id:"CDAR",pickup_location_external_id:"9",dropoff_location_external_id:"9"}:
-    {client_email:"synthetic@example.invalid",partner_currency:"EUR",
+    {reservation_code:"R24-XYZ",client_email:"synthetic@example.invalid",partner_currency:"EUR",
      partner_net_price_snapshot:100,api_quote_id:"10000000-0000-4000-8000-000000000001",
      start_date:"2030-12-16",end_date:"2030-12-17",pickup_time:"10:00:00",return_time:"10:00:00"},
     error:null};}
@@ -72,6 +79,8 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
   name==="./ride24-security.ts"?supabase:
   name==="./arvent-kolaycar-contract.mjs"?contract:
   name==="./arvent-driver-eligibility.mjs"?license:
+  name==="./arvent-extras-pricing.mjs"?arventExtrasPricing:
+  name==="./rental-duration.ts"?durationSandbox.exports:
   (()=>{throw Error("Unexpected import "+name)})();
  const sandbox={exports:{},require,Deno:{env:{get:key=>allowWrites&&["ARVENT_KOLAYCAR_WRITE_ALLOWED","ARVENT_STRIPE_FIRST_APPROVED"].includes(key)?"true":undefined}},URLSearchParams,URL,console};
  vm.runInNewContext(transformed.outputText,sandbox);
@@ -147,6 +156,22 @@ test("mismatched group or price cannot access offer extras nor create a booking"
  }
 });
 
+test("supplier-confirmed rental duration determines day-based billing; disagreement blocks the quote",async()=>{
+ const a=setup({supplierDays:3,extrasDays:3,requiredExtras:[{code:2,name:"Extra driver",
+   price:7,extraRentalType:1,extraQuantityIncreasable:false,isRequired:false}]});
+ const preview=await a.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100});
+ assert.equal(preview.billed_days,3);
+ const changed=setup({supplierDays:3,extrasDays:4,requiredExtras:[]});
+ await assert.rejects(()=>changed.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100}),
+   /ARVENT_EXTRAS_QUOTE_CHANGED/);
+});
+test("Arvent does not misclassify unknown mandatory extras as optional",async()=>{
+ const a=setup({requiredExtras:[{code:6,name:"Infant seat",price:9,
+   extraRentalType:"rental",extraQuantityIncreasable:false}]});
+ await assert.rejects(()=>a.arventReadOfferExtras(creds,input,
+   {vehicle_id:"100",sipp:"CDAR",total_amount:100}),/REQUIRED_EXTRAS_UNVERIFIED/);
+ assert.ok(a.calls.every(x=>x.path!=="/reservations/save"));
+});
 test("server guard prevents any supplier creation or cancellation in unapproved environment",async()=>{
  const a=setup();
  await assert.rejects(()=>a.arventCreateBooking(creds,{...input,partner_discount_percent:0,
@@ -183,6 +208,29 @@ test("approved status 1 only clears review after price and contract verification
  assert.equal(result.status,"confirmed");
  assert.equal(result.needs_manual_review,false);
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
+});
+test("Arvent SaveReservation sends confirmed 4€/day extra driver without secondary-driver identity",async()=>{
+ const inputWithDriver={...syntheticBooking,partner_amount:112,rental_amount:100,extras_amount:12,
+   extras_pricing_certified:true,extra_billing_map:{},
+   extra_selections:[{code:'2',quantity:1,total_cents:1200,required:false,billing:'day'}],
+   additional_driver:null,supplier_note:'Additional driver included'};
+ const opts={allowWrites:true,savedStatus:1,savedPrice:112,supplierDays:3,extrasDays:3,
+   requiredExtras:[{code:2,name:'Ek Sürücü',price:4,extraRentalType:'day',
+      extraQuantityIncreasable:false,isRequired:false}]};
+ const verified=setup({...opts,savedReservationExtras:[{code:2,piece:1}]});
+ const success=await verified.arventCreateBooking(creds,inputWithDriver);
+ assert.equal(success.status,'confirmed');
+ assert.equal(success.needs_manual_review,false);
+ const sent=verified.calls.find(x=>x.path==='/reservations/save').request.body;
+ assert.equal(sent.payment.paymentType,3);
+ assert.equal(sent.pricing.paidAmount,0);
+ assert.deepEqual(sent.extras,[{code:'2',piece:1}]);
+ assert.match(sent.customer.note,/Additional driver included/);
+ assert.doesNotMatch(sent.customer.note,/Secondary Driver|licence since/);
+ const missing=setup(opts);
+ const unverified=await missing.arventCreateBooking(creds,inputWithDriver);
+ assert.equal(unverified.status,'pending');
+ assert.equal(unverified.needs_manual_review,true);
 });
 test("received 0 stays in provider_pending for safe polling, never triggers voucher",async()=>{
  const a=setup({allowWrites:true,savedStatus:0});
@@ -255,6 +303,30 @@ test("changed saved SIPP cannot confirm in either adapter path",async()=>{
   }
  }
 });
+test("Arvent status 1 cannot confirm a different Ride24 agency reference, despite matching amount and route",async()=>{
+ const ok=await setup({savedStatus:1,savedGetAgencyRef:"R24-XYZ"}).arventBookingStatus(creds,"A-1");
+ assert.equal(ok.status,"confirmed");
+ assert.equal(ok.agency_reference_verified,true);
+ const missing=await setup({savedStatus:1,savedGetAgencyRef:null}).arventBookingStatus(creds,"A-1");
+ assert.equal(missing.status,"confirmed");
+ assert.equal(missing.agency_reference_verified,null);
+ const mismatch=await setup({savedStatus:1,savedGetAgencyRef:"R24-OTHER"}).arventBookingStatus(creds,"A-1");
+ assert.equal(mismatch.status,"pending");
+ assert.equal(mismatch.needs_manual_review,true);
+ assert.equal(mismatch.agency_reference_verified,false);
+ assert.equal(mismatch.terms_verified,false);
+});
+
+test("supplier status 3 with wrong agency reference is NOT enough to authorize an automatic refund",async()=>{
+ const a=setup({allowWrites:true,savedStatus:3,savedGetAgencyRef:"R24-OTHER"});
+ const s=await a.arventBookingStatus(creds,"A-1");
+ assert.equal(s.status,"cancelled");
+ assert.equal(s.needs_manual_review,true);
+ const cancelled=await a.arventCancelBooking(creds,"A-1");
+ assert.equal(cancelled.status,"cancelled");
+ assert.equal(cancelled.needs_manual_review,true);
+ assert.equal(a.calls.filter(x=>x.path.startsWith("/reservations/cancel?")).length,1);
+});
 test("different reservation number cannot confirm or trigger refund through polling",async()=>{
  for(const savedStatus of [1,3])
   await assert.rejects(setup({savedStatus,savedRef:"OTHER"}).arventBookingStatus(creds,"A-1"),/REFERENCE_MISMATCH/);
@@ -287,6 +359,24 @@ test("overlapping cancellations issue one supplier POST and then reconcile by GE
  assert.equal(a.calls.filter(call=>call.path.startsWith("/reservations/cancel?")).length,1);
  // Both the claimant (read-back after POST) and the overlapping caller confirm by GET.
  assert.equal(a.calls.filter(call=>call.path.startsWith("/reservations?")).length,2);
+});
+test("Arvent status 3 requires exact supplier price, deposit, route and agency reference before refund",async()=>{
+ const ok=await setup({savedStatus:3,savedPrice:100,savedDeposit:0,savedPickupLocation:9,
+  savedGetAgencyRef:"R24-XYZ"}).arventBookingStatus(creds,"A-1");
+ assert.equal(ok.status,"cancelled");
+ assert.equal(ok.needs_manual_review,false);
+ for(const mismatch of [
+  {savedPrice:101},
+  {savedDeposit:50},
+  {savedPickupLocation:10},
+  {savedGetAgencyRef:"R24-OTHER"}
+ ]){
+  const a=setup({savedStatus:3,...mismatch});
+  const result=await a.arventBookingStatus(creds,"A-1");
+  assert.equal(result.status,"cancelled",JSON.stringify(mismatch));
+  assert.equal(result.needs_manual_review,true,JSON.stringify(mismatch));
+  assert.equal(result.terms_verified,false,JSON.stringify(mismatch));
+ }
 });
 test("cancellation is confirmed only by supplier status 3 read back after the POST",async()=>{
  // Undocumented success body without reservation data is still verified by GET.

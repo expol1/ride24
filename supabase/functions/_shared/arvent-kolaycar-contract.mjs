@@ -82,6 +82,12 @@ export function arventOfferExtrasRows(raw) {
    billing_type:typeof x.extraRentalType==="string"||Number.isInteger(x.extraRentalType)
     ? str(x.extraRentalType,40):null,
    quantity_increasable:typeof x.extraQuantityIncreasable==="boolean"?x.extraQuantityIncreasable:null,
+   // Do not invent a supplier maximum when only a boolean "increasable"
+   // is provided. A missing numeric maximum permits one unit, not ten.
+   max_quantity:Number.isInteger(x.extraMaxQuantity??x.maxQuantity)
+      && Number(x.extraMaxQuantity??x.maxQuantity)>=1
+      && Number(x.extraMaxQuantity??x.maxQuantity)<=100
+       ? Number(x.extraMaxQuantity??x.maxQuantity):null,
    required:x.isRequired===true,
    kind:code==="2"?"additional_driver":"other",
    booking_confirmed:false

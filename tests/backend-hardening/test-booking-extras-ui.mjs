@@ -160,7 +160,7 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.match(picker.textContent,/Infant seat/);
   assert.match(picker.textContent,/Additional driver/);
   assert.match(picker.textContent,/€4.99/);
-  assert.match(picker.textContent,/billing and booking conditions still require confirmation/);
+  assert.match(picker.textContent,/billing terms still require confirmation/);
   assert.match(picker.textContent,/Not priced for this offer/);
   assert.match(picker.textContent,/Other catalogue extras/);
   assert.equal(picker.querySelectorAll('details').length,1);
@@ -182,6 +182,41 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
 });
 
 
+test('Arvent code-2 checkbox requotes server at 4 EUR per day, without second-driver identity',async()=>{
+ const {ui}=setup();
+ const base={api_quote_id:'vehicle-quote',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
+  pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',
+  return_location:'Antalya Airport (AYT)',category:{sipp:'EDMR'},
+  rental_total:84.75,mandatory_fees:[],extras:[],
+  extra_catalog:[{code:'2',name:'Additional driver'}],
+  offer_extras:{status:'present',items:[{code:'2',name:'Additional driver',price_eur:4,billing:'day',
+    billing_type:'day',max_quantity:1,quantity_increasable:false,bookable:true}]},
+  total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75};
+ const requests=[];
+ globalThis.fetch=async(_url,opts)=>{
+  const body=JSON.parse(opts.body);requests.push(body);
+  const extras=body.extras||[];
+  if(!extras.length)return response({enabled:false,arvent:base});
+  return response({enabled:true,api_quote_id:'derived-quote',fingerprint:'proof',
+   arvent:{...base,api_quote_id:'derived-quote',
+     extras:[{code:'2',name:'Additional driver',quantity:1,days:3,billing:'day',total_cents:1200}],
+     total:100.14,pay_on_pickup:96.75}});
+ };
+ await ui.start();
+ const picker=document.getElementById('bookingExtrasPicker');
+ const checkbox=picker.querySelector('input[type=checkbox]');
+ assert.ok(checkbox,'supplier-quoted extra driver checkbox available');
+ checkbox.checked=true;checkbox.onchange();
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.deepEqual(requests.at(-1).extras,[{id:'2',quantity:1}]);
+ assert.equal(requests.at(-1).additional_driver_id,null);
+ assert.equal(document.getElementById('bookingPriceBreakdown').textContent.includes('€100.14'),true);
+ const payload=ui.payload();
+ assert.equal(payload.pricing_version,2);
+ assert.equal(payload.api_quote_id,'derived-quote');
+ assert.equal(payload.pricing_fingerprint,'proof');
+ assert.deepEqual(payload.extras,[{id:'2',quantity:1}]);
+});
 test('Arvent extras catalogue tile is visible; other partners keep their normal selectable extras tile', async () => {
   const source = await readFile(new URL('../../klient.html', import.meta.url), 'utf8');
   const start = source.indexOf('window.ride24ArventFormMode = function(on) {');
