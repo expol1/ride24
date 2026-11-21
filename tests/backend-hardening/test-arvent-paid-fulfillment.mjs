@@ -90,11 +90,18 @@ test('same supplier vehicleId, SIPP group and EUR amount is safe for Arvent reva
  assert.equal(result.needs_manual_review,false);
  assert.equal(f.calls.at(-1).stage,'create');
 });
-test('Arvent cannot silently replace an unavailable supplier vehicleId with another car of same SIPP and price',async()=>{
+test('Arvent may replace vehicleId within the same SIPP only at identical EUR amount and terms',async()=>{
  const f=fixture(s=>s.fresh.provider_quote_data.vehicle_id='15',approved);
+ const prepared=await f.revalidatePaidProvider({},f.booking,f.quote);
+ assert.equal(prepared.provider_quote_data.vehicle_id,'15');
+ assert.equal(prepared.vehicle_group_id,'CDAR');
+ assert.equal(prepared.partner_amount,100);
+ assert.deepEqual(f.calls.map(x=>x.stage),['search']);
+});
+test('Arvent cannot automatically upgrade into another SIPP category even at the same price',async()=>{
+ const f=fixture(s=>{s.fresh.external_id='FDAR';s.fresh.provider_quote_data.sipp='FDAR';},approved);
  await assert.rejects(f.revalidatePaidProvider({},f.booking,f.quote),
-  e=>e instanceof flow.DefiniteApiFailure
-    &&e.message==='ARVENT_VEHICLE_SUBSTITUTION_UNVERIFIED');
+  e=>e instanceof flow.DefiniteApiFailure);
  assert.deepEqual(f.calls.map(x=>x.stage),['search']);
 });
 test('new supplier price, category, deposit, driver or documents reject before creating booking',async()=>{
