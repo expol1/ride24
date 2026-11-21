@@ -37,8 +37,12 @@ export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = 
     // represents a daily unit price: supplier certification is still needed.
     const driverTermsMatch=x.code!=="2"
       ||(x.required!==true && mode==="day" && x.price_eur===4);
+    // The Arvent manager currently authorizes only code 2 as a paid OPTIONAL
+    // service. Future equipment stays non-selectable, not silently sold.
+    const paidOptionalAllowed=x.code==="2" || x.required===true || x.price_eur===0;
     return {...x, billing:mode, max_quantity:maxQuantity,
-      bookable:certified===true && valid && driverTermsMatch && (mode!==null || x.price_eur===0)};
+      bookable:certified===true && valid && driverTermsMatch
+        && paidOptionalAllowed && (mode!==null || x.price_eur===0)};
   });
 }
 export function arventSelectedExtrasQuote({
