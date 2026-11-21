@@ -127,8 +127,9 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         // the known commercial rate but do not present a selectable input.
         for(const extra of notOffered)renderItem(picker,extra.code,extra.name,null);
         if(!available.length&&!notOffered.length)
-            picker.append(node('p',label('Brak dodatków w odpowiedzi dostawcy dla tej oferty.',
-                'No supplier extras returned for this offer.')));
+            // Commercial rate confirmed directly by Arvent; this is only an
+            // informational row until code 2 appears in a certified API quote.
+            renderItem(picker,'2',label('Dodatkowy kierowca','Additional driver'),null);
         const additionalNote=el('arventAdditionalDriverNote');
         if (additionalNote) {
             const driver=byCode.get('2');
