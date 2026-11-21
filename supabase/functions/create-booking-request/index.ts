@@ -1095,16 +1095,11 @@ serve(async (req) => {
       return jsonResponse(req, {code:"DRIVER_AGE_NOT_ALLOWED", error:`Wymagany wiek każdego kierowcy: ${range} lat.`, error_en:`Each driver must meet the age requirement: ${range}.`}, 400);
     }
 
-    // Arvent keeps its existing supplier-specific rule and optional submitted date.
+    // Arvent uses the selected main driver's licence date saved in the
+    // authenticated client/driver profile. Never accept a second manually
+    // submitted date from the booking form (including outdated clients).
     const isArventBooking = car.partner.api_provider === "arvent_kolaycar";
-    // Arvent: the date saved for the SELECTED main driver (owner or saved driver)
-    // always wins, so a form can never apply another person's date. A typed date
-    // is used only when that person has none saved yet (older app builds).
-    const mainDriverLicenseSince = isArventBooking
-      ? (savedMainDriverLicenseSince
-        || (typeof body.main_driver_license_since === "string" && body.main_driver_license_since
-          ? body.main_driver_license_since : null))
-      : savedMainDriverLicenseSince;
+    const mainDriverLicenseSince = savedMainDriverLicenseSince;
     // Arvent has explicitly confirmed that no secondary driver's identity
     // or licence information is needed online: the person presents their
     // licence to Arvent staff at pickup. The code-2 paid extra is selected
