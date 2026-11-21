@@ -95,8 +95,8 @@ test('loyalty discount is applied exactly as in the booking request',async()=>{
 });
 test('additional driver is refused with a clear Arvent message (never silently dropped)',async()=>{
  const r=await setup().call({additional_driver_id:'33333333-3333-4333-8333-333333333333'});
- assert.equal(r.status,400);assert.equal(r.body.code,'ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE');
- assert.match(r.body.error,/Dodatkowy kierowca jest niedostępny w tej ofercie\./);
+ assert.equal(r.status,400);assert.equal(r.body.code,'ARVENT_ADDITIONAL_DRIVER_IDENTITY_NOT_REQUIRED');
+ assert.match(r.body.error,/płatny dodatek|Dodatkowy kierowca/);
 });
 test('selected extras are refused for Arvent',async()=>{
  const r=await setup().call({extras:[{id:'x',quantity:1}]});
@@ -137,27 +137,26 @@ test('Arvent extras endpoint downtime never fabricates extras nor breaks vehicle
  assert.equal(r.body.arvent.pay_on_pickup,84.75);
  assert.equal(r.body.arvent.total,88.14);
 });
-test('certified Arvent extras sum as EUR per-day equipment plus rental driver, without changing Ride24 fee',async()=>{
- const second='33333333-3333-4333-8333-333333333333';
+test('Arvent certified code 2 adds EUR4 per day without collecting second driver identity',async()=>{
  const s=setup({extraSettings:{arvent_extras_pricing_certified:true,
-   arvent_additional_driver_certified:true,arvent_extra_billing_types:{'1':'day'}},
-   offerItems:[{code:'2',name:'Ek Sürücü',price_eur:7,billing_type:'rental',quantity_increasable:false,required:false,kind:'additional_driver'},
-     {code:'6',name:'Infant seat',price_eur:5,billing_type:'1',quantity_increasable:true,max_quantity:2,required:false,kind:'other'}]});
- const r=await s.call({additional_driver_id:second,extras:[{id:'2',quantity:1},{id:'6',quantity:2}]});
+   arvent_additional_driver_certified:true},
+   offerItems:[{code:'2',name:'Ek Sürücü',price_eur:4,billing_type:'day',
+     quantity_increasable:false,required:false,kind:'additional_driver'}]});
+ const r=await s.call({extras:[{id:'2',quantity:1}]});
  assert.equal(r.status,200,JSON.stringify(r.body));
  assert.equal(r.body.enabled,true);
- assert.equal(r.body.arvent.pay_on_pickup,121.75);
- assert.equal(r.body.arvent.total,125.14);
+ assert.equal(r.body.arvent.pay_on_pickup,96.75);
+ assert.equal(r.body.arvent.total,100.14);
  assert.equal(r.body.arvent.ride24_fee,3.39);
  assert.equal(r.body.arvent.online_pln,14.35);
- assert.equal(r.body.arvent.extras.length,2);
+ assert.equal(r.body.arvent.extras.length,1);
  assert.equal(r.body.api_quote_id,'44444444-4444-4444-8444-444444444444');
  assert.ok(r.body.fingerprint);
  const saved=s.getSavedQuote();
- assert.equal(saved.partner_net_total,121.75);
- assert.equal(saved.final_total,125.14);
- assert.equal(saved.raw_response.ride24_options.binding.additional_driver_id,second);
- assert.equal(saved.raw_response.ride24_options.arvent_extra.extras_cents,3700);
+ assert.equal(saved.partner_net_total,96.75);
+ assert.equal(saved.final_total,100.14);
+ assert.equal(saved.raw_response.ride24_options.binding.additional_driver_id,null);
+ assert.equal(saved.raw_response.ride24_options.arvent_extra.extras_cents,1200);
 });
 test('free mandatory supplier equipment preserves the existing vehicle-only price and checkout',async()=>{
  const s=setup({offerItems:[{code:'27',name:'Mandatory no-charge equipment',price_eur:0,
@@ -169,12 +168,12 @@ test('free mandatory supplier equipment preserves the existing vehicle-only pric
  assert.equal(r.body.arvent.pay_on_pickup,84.75);
  assert.equal(s.getSavedQuote(),null);
 });
-test('Arvent prevents payment when daily supplier duration cannot be verified',async()=>{
- const r=await setup({extraSettings:{arvent_extras_pricing_certified:true},
-   offerItems:[{code:'1',name:'GPS',price_eur:4,billing_type:'day',required:false,
-   quantity_increasable:false,kind:'other'}]})
- .call({extras:[{id:'1',quantity:1}]});
- // The mocked supplier supplies a three-day duration; daily add-on is safe.
+test('Arvent uses verified supplier days for additional driver rate',async()=>{
+ const r=await setup({extraSettings:{arvent_extras_pricing_certified:true,
+   arvent_additional_driver_certified:true},
+   offerItems:[{code:'2',name:'Extra driver',price_eur:4,billing_type:'day',
+     required:false,quantity_increasable:false,kind:'additional_driver'}]})
+ .call({extras:[{id:'2',quantity:1}]});
  assert.equal(r.status,200);
  assert.equal(r.body.arvent.billed_days,3);
  assert.equal(r.body.arvent.pay_on_pickup,96.75);
@@ -193,7 +192,7 @@ test('booking request uses the same fee formula, saved licence date of the selec
  const src=await readFile(new URL('../../supabase/functions/create-booking-request/index.ts',import.meta.url),'utf8');
  assert.match(src,/let onlinePaymentPln = apiOnlinePaymentPln\(commission, rate, discountPercent\);/);
  assert.match(src,/\? \(savedMainDriverLicenseSince\s*\n\s*\|\| \(typeof body\.main_driver_license_since/);
- assert.match(src,/isArventBooking && additionalDriverId && body\.pricing_version !== 2\)[\s\S]{0,150}ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE/);
+ assert.match(src,/isArventBooking && additionalDriverId\)[\s\S]{0,150}ARVENT_ADDITIONAL_DRIVER_IDENTITY_NOT_REQUIRED/);
  const checkout=await readFile(new URL('../../supabase/functions/create_checkout_session/index.ts',import.meta.url),'utf8');
  // Stripe charges exactly the stored online_payment_pln of the created booking.
  assert.match(checkout,/const amount = Number\(booking\.online_payment_pln \|\| 0\);/);
