@@ -286,8 +286,10 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
  const accepted=Array.isArray(input.extra_selections)?input.extra_selections:[];
  if(accepted.length && input.extras_pricing_certified!==true)
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_NOT_CERTIFIED");
- if(Boolean(input.additional_driver)!==accepted.some(x=>x.code==="2"))
-  throw Error("PARTNER_API_ERROR:ARVENT_ADDITIONAL_DRIVER_MISMATCH");
+ // An additional driver is a paid code-2 extra only. Partner staff verify
+ // their licence when the vehicle is delivered; no secondary-driver PII.
+ if(input.additional_driver)
+  throw Error("PARTNER_API_ERROR:ARVENT_SECONDARY_DRIVER_DATA_NOT_REQUIRED");
  if(!input.vehicle_group_id||!input.main_driver?.name||!input.client_email||!input.client_phone)
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
  if(!arventLeadTimeAllowed(input.pickup_date,input.pickup_time))
@@ -361,7 +363,7 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
  const extrasQuote=accepted.length
     ?arventSelectedExtrasQuote({items:arventOfferExtrasRows(extras),
        selections:accepted.filter(x=>!x.required).map(x=>({id:x.code,quantity:x.quantity})),
-       additionalDriverId:input.additional_driver?"provided":null,
+       additionalDriverId:null,
        billedDays:supplierDays??duration.billedDays,certified:true,certifiedMap:input.extra_billing_map||{}})
     :{items:required.map((x:any)=>({code:String(x.code),quantity:1,total_cents:0,required:true})),
        total_cents:0,selected:required.map((x:any)=>({code:String(x.code),piece:1}))};
@@ -374,23 +376,15 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
  }
  if(Math.round((actual+extrasQuote.total_cents/100)*100)!==Math.round(Number(input.partner_amount)*100))
    throw Error("PARTNER_API_ERROR:ARVENT_EXTRA_PRICE_CHANGED");
- if(input.additional_driver){
-   if(!arventLicenseEligible(input.additional_driver.license_first_issued,
-         input.pickup_date,pricedVehicle.vendorMinimumDrivingLicenseAge)
-      ||!Number.isInteger(Number(input.additional_driver.age))
-      ||Number(input.additional_driver.age)<Number(pricedVehicle.vendorMinimumDriverAge)
-      ||String(input.additional_driver.name||"").trim().split(/\s+/).length<2)
-     throw Error("PARTNER_API_ERROR:ARVENT_ADDITIONAL_DRIVER_INELIGIBLE");
- }
+ // No additional-driver identity or licence is required online by Arvent.
+ // The exact fee and selected code 2 were checked before reaching this point.
  const name=String(input.main_driver.name).trim().split(/\s+/);
  const first=name.shift()||"",surname=name.join(" ");
  if(!surname)throw Error("PARTNER_API_ERROR:ARVENT_SURNAME_REQUIRED");
  return arventSavePayload({
   reservationToken:current.reservationToken,reference:input.reservation_code||input.ride24_booking_id,
   customer:{name:first,surname,email:input.client_email,phoneNumber:input.client_phone,birthDay:"",
-   note:((typeof input.supplier_note==="string"?input.supplier_note:"")
-      +(input.additional_driver?(" | Additional driver: "+String(input.additional_driver.name)
-          +" / licence since "+String(input.additional_driver.license_first_issued)):"")).slice(0,250)},
+   note:(typeof input.supplier_note==="string"?input.supplier_note:"").slice(0,250)},
   extras:extrasQuote.selected,
  });
 }
