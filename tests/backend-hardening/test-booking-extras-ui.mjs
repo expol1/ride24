@@ -144,6 +144,72 @@ test('customer refund tiers match UTC database rules at 60, 59, 30, 29 days',asy
 });
 
 
+test('Arvent booking details show saved references, route, main driver, supplier rental, extra and fee separately',async()=>{
+ const source=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
+ const start=source.indexOf('window.openDetailsModal = function(');
+ const end=source.indexOf('window.closeDetailsModal = function()',start);
+ assert.ok(start>=0 && end>start);
+ assert.match(source,/api_booking_reference,\s*main_driver_name,/);
+ const dom=new JSDOM('<div id="bookingDetailsModal"><div id="bookingDetailsBody"></div></div>');
+ const booking={
+  id:'b',reservation_code:'R24-2026-42',api_booking_reference:'ARV-765',
+  main_driver_name:'Jan Kowalski',start_date:'2027-01-10',end_date:'2027-01-13',
+  pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport',
+  return_location:'Istanbul Airport',
+  vehicle_snapshot:{group_name:'Economy',sipp:'EDMR'},
+  car_classes:{partners:{api_provider:'arvent_kolaycar',currency:'EUR'}},
+  pricing_items_snapshot:{version:2,currency:'EUR',items:[
+   {kind:'rental',name_en:'Car rental',name_pl:'Wynajem samochodu',
+    customer_cents:10339,partner_cents:10000,quantity:1,days:3,billing:'rental'},
+   {kind:'extra',name_en:'Additional driver',name_pl:'Dodatkowy kierowca',
+    customer_cents:1200,partner_cents:1200,quantity:1,days:3,billing:'day'}],
+   commission_cents:339,partner_cents:11200,gross_cents:11539,total_cents:11539,
+   online_pln_cents:1450,loyalty_discount_cents:0},
+  deposit_snapshot:0
+ };
+ const win={ride24BookingsById:{b:booking},ride24VehicleLabel:()=> 'Economy (EDMR)'};
+ new Function('window','document','localStorage','db',source.slice(start,end))(
+  win,dom.window.document,{getItem:()=> 'pl'},null);
+ win.openDetailsModal(0,null,false,'','EUR','','','b');
+ const details=dom.window.document.getElementById('bookingDetailsBody');
+ assert.match(details.textContent,/Economy \(EDMR\)/);
+ assert.match(details.textContent,/R24-2026-42/);
+ assert.match(details.textContent,/ARV-765/);
+ assert.match(details.textContent,/Jan Kowalski/);
+ assert.match(details.textContent,/Antalya Airport/);
+ assert.match(details.textContent,/Istanbul Airport/);
+ const rows=[...details.querySelectorAll('.r24-client-price-row')];
+ const find=(label)=>rows.find(x=>x.firstElementChild.textContent.includes(label))?.lastElementChild.textContent;
+ assert.equal(find('Wynajem samochodu'),'100.00 EUR');
+ assert.equal(find('Dodatkowy kierowca'),'12.00 EUR');
+ assert.equal(find('Opłata rezerwacyjna Ride24'),'3.39 EUR');
+ assert.equal(find('Cena łączna'),'115.39 EUR');
+ assert.equal(find('Opłata Ride24 online'),'14.50 PLN');
+ assert.equal(find('Do zapłaty Arvent przy odbiorze'),'112.00 EUR');
+ assert.equal(details.querySelectorAll('.r24-arvent-booking-summary').length,1);
+});
+
+test('Arvent-only details improvements leave AVIA and local booking pricing unchanged',async()=>{
+ const src=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
+ const start=src.indexOf('window.openDetailsModal = function(');
+ const end=src.indexOf('window.closeDetailsModal = function()',start);
+ const dom=new JSDOM('<div id="bookingDetailsModal"><div id="bookingDetailsBody"></div></div>');
+ const booking={id:'x',car_classes:{partners:{api_provider:'avia',currency:'EUR'}},
+  pricing_items_snapshot:{version:2,currency:'EUR',items:[{kind:'rental',name_en:'Rental',
+   name_pl:'Wynajem',customer_cents:10339,partner_cents:10000}],
+   online_pln_cents:1450,partner_cents:10000,total_cents:10339,loyalty_discount_cents:0},
+  deposit_snapshot:0};
+ const win={ride24BookingsById:{x:booking}};
+ new Function('window','document','localStorage','db',src.slice(start,end))(
+  win,dom.window.document,{getItem:()=> 'pl'},null);
+ win.openDetailsModal(0,null,false,'','EUR','','','x');
+ const el=dom.window.document.getElementById('bookingDetailsBody');
+ assert.equal(el.querySelector('.r24-arvent-booking-summary'),null);
+ const rental=[...el.querySelectorAll('.r24-client-price-row')]
+  .find(row=>row.firstElementChild.textContent==='Wynajem');
+ assert.equal(rental.lastElementChild.textContent,'103.39 EUR');
+ assert.doesNotMatch(el.textContent,/Opłata rezerwacyjna Ride24/);
+});
 test('Arvent: neutral server summary and no online extras; booking may continue',async()=>{
   const {ui}=setup();
   globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
