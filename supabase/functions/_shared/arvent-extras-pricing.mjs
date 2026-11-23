@@ -13,7 +13,9 @@ export function arventBillingMode(rawType, certifiedMap = {}) {
   const knownRental=new Set(["booking","rental","one_time","one-time","once","fixed","per_rental","per-rental"]);
   if (knownDay.has(key)) return "day";
   if (knownRental.has(key)) return "rental";
-  // Never assume the meanings of the supplier's numeric enums.
+  if (key==="0") return "rental";
+  if (key==="1") return "day";
+  // Other numeric enums remain untrusted.
   const mapped=Object.hasOwn(certifiedMap,key) ? certifiedMap[key] : null;
   return mapped==="day" || mapped==="rental" ? mapped : null;
 }
@@ -35,11 +37,10 @@ export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = 
     // Arvent's commercial owner confirmed only code 2 at EUR 4 per
     // supplier-billed day. Do NOT guess whether a numeric extraRentalType
     // represents a daily unit price: supplier certification is still needed.
-    const driverTermsMatch=x.code!=="2"
-      ||(x.required!==true && mode==="day" && x.price_eur===4);
+    const driverTermsMatch=x.code!=="2"; // code 2 is IMM insurance, not a driver
     // The Arvent manager currently authorizes only code 2 as a paid OPTIONAL
     // service. Future equipment stays non-selectable, not silently sold.
-    const paidOptionalAllowed=x.code==="2" || x.required===true || x.price_eur===0;
+    const paidOptionalAllowed=x.code!=="2" && (x.required===true || x.price_eur===0);
     return {...x, billing:mode, max_quantity:maxQuantity,
       bookable:certified===true && valid && driverTermsMatch
         && paidOptionalAllowed && (mode!==null || x.price_eur===0)};
@@ -90,7 +91,7 @@ export function arventSelectedExtrasQuote({
     result.push({code,quantity,billing:mode,days:mode==="day"?billedDays:1,
       unit_cents:unitCents,total_cents:amountCents,
       name:typeof item.name==="string"?item.name.slice(0,120):code,
-      required:item.required===true,kind:code==="2"?"additional_driver":"extra"});
+      required:item.required===true,kind:"extra"});
   }
   return {items:result,total_cents:total,selected:result.map(x=>({code:x.code,piece:x.quantity}))};
 }
@@ -119,8 +120,8 @@ export function arventOptionsSnapshot({rentalCents,ride24FeeCents,extraQuote,day
   customer_cents:rentalCents+ride24FeeCents}];
  for(const x of extraQuote.items){
   items.push({kind:"extra",id:x.code,code:x.code,
-   name_pl:x.code==="2"?"Dodatkowy kierowca":x.name,
-   name_en:x.code==="2"?"Additional driver":x.name,
+   name_pl:x.name,
+   name_en:x.name,
    quantity:x.quantity,days:x.days,billing:x.billing,
    partner_cents:x.total_cents,customer_cents:x.total_cents});
  }
