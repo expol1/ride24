@@ -284,6 +284,9 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   ||(input.partner_amount??0)<=0)
   throw Error("PARTNER_API_ERROR:ARVENT_PRICING_OR_EXTRAS_UNSUPPORTED");
  const accepted=Array.isArray(input.extra_selections)?input.extra_selections:[];
+ // Supplier confirmed code 2 is IMM insurance, not additional driver.
+ if(accepted.some(x=>String(x.code)==="2"))
+  throw Error("PARTNER_API_ERROR:ARVENT_IMM_NOT_ADDITIONAL_DRIVER");
  if(accepted.length && input.extras_pricing_certified!==true)
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_NOT_CERTIFIED");
  // An additional driver is a paid code-2 extra only. Partner staff verify
