@@ -153,7 +153,7 @@ export function normalizeKayFleetQuote(
     || txt(q.currency).toUpperCase() !== "EUR"
     || txt(q.group_id) !== group.external_id
     || money(q.insurance_excess, "EXCESS") !== 0
-    || (q.deposit_amount != null && money(q.deposit_amount, "DEPOSIT") !== 0)
+    || q.deposit_amount !== 0
     || (q.full_insurance != null && q.full_insurance !== true)) {
     throw new Error("PARTNER_API_ERROR:KAYFLEET_QUOTE_UNVERIFIED");
   }
@@ -168,7 +168,7 @@ export function normalizeKayFleetQuote(
     throw new Error("PARTNER_API_ERROR:KAYFLEET_UNAVAILABLE");
   }
   return {
-    ...group, public_price: total / days, price_is_total: true,
+    ...group, deposit_amount: 0, public_price: total / days, price_is_total: true,
     public_price_total: total, quote_reference: reference, quote_expires_at: expires,
     location_external_ids: [...new Set([window.pickup_location_id, window.dropoff_location_id])],
     provider_quote_data: {
