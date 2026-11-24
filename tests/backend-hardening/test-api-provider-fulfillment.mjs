@@ -31,7 +31,7 @@ for(const [name,change] of Object.entries({unavailable:s=>s.available=false,pric
  test('post-payment '+name+' change refuses creation',async()=>{const f=fixture(change);await assert.rejects(f.revalidatePaidProvider({},f.booking,f.quote),flow.DefiniteApiFailure)});
 for(const [name,change] of Object.entries({route:s=>s.statusRow.PickupOffice.LocationCode='HR-SPU-SPU',currency:s=>s.statusRow.Currency='USD',time:s=>s.statusRow.PickupDate='2027-03-01T22:00:00',amount:s=>s.statusRow.Total=101,extras:s=>s.statusRow.Services=[]}))
  test('supplier confirmed status with changed '+name+' requires review',async()=>{const f=fixture(change);const p={partner_amount:100,provider_quote_data:f.quote.raw_response.provider_quote_data};assert.equal((await f.readPaidProviderStatus({},'test',p)).needs_manual_review,true)});
-test('unimplemented adapters cannot accept paid fulfillment',()=>{const f=fixture();for(const p of ['caravel','kolaycar','custom','unknown'])assert.equal(f.hasPaidFulfillmentAdapter(p),false)});
+test('unimplemented adapters cannot accept paid fulfillment',()=>{const f=fixture();for(const p of ['caravel','kolaycar','custom','kayfleet','unknown'])assert.equal(f.hasPaidFulfillmentAdapter(p),false)});
 
 test('same booked category may change representative model/photo without changing the contract',async()=>{
  const f=fixture(s=>{s.fresh.provider_quote_data.offer.ModelName='Another representative model';s.fresh.provider_quote_data.offer.CarModelImageURL='https://example.invalid/new.jpg';s.fresh.provider_quote_data.offer.SortOrder=5;});
