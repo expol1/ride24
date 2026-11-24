@@ -8,37 +8,37 @@ import {
 const extras = { car_seat_qty: 1, booster_seat_qty: 0, additional_drivers: 1 };
 const quoted = {
   quote_reference: "quote-1", quote_expires_at: new Date(Date.now() + 25 * 60_000).toISOString(),
-  group_id: "economy", currency: "EUR", grand_total: 380,
+  group_id: "economy", currency: "EUR", grand_total: 317.23,
   full_insurance: true, insurance_excess: 0, deposit_amount: 0,
 };
 const booking = () => ({
-  quote: structuredClone(quoted), group_id: "economy", approved_partner_total: 380,
+  quote: structuredClone(quoted), group_id: "economy", approved_partner_total: 317.23,
   approved_extras: structuredClone(extras), quoted_extras: structuredClone(extras),
   pickup_datetime: "2026-12-02T10:00:00+02:00",
   return_datetime: "2026-12-09T10:00:00+02:00",
   pickup_location: "Larnaca Airport", dropoff_location: "Larnaca Airport",
-  partner_ref: "R24-10045", idempotency_key: "ride24:immutable-booking-1",
+  partner_ref: "R24-TEST-1", idempotency_key: "ride24:immutable-booking-1",
   customer: { full_name: "Example Person", email: "customer@example.invalid", phone: "+35710000000" },
 });
 const confirmation = () => ({
-  reference: "external-test-1", booking_number: "FR-A1B2C3",
-  quote_reference: "quote-1", partner_ref: "R24-10045", status: "confirmed",
+  reference: "external-test-1", booking_number: "FR-TEST-001",
+  quote_reference: "quote-1", partner_ref: "R24-TEST-1", status: "confirmed",
   group_name: "Economy",
   pickup_datetime: "2026-12-02T10:00:00+02:00",
   return_datetime: "2026-12-09T10:00:00+02:00",
   pickup_location: "Larnaca Airport", dropoff_location: "Larnaca Airport",
-  currency: "EUR", rental_price: 210, insurance_fee: 105, delivery_fee: 0,
-  equipment_fee: 35, additional_driver_fee: 30, grand_total: 380,
+  currency: "EUR", rental_price: 183.23, insurance_fee: 84, delivery_fee: 10,
+  equipment_fee: 15, additional_driver_fee: 25, grand_total: 317.23,
   full_insurance: true, insurance_excess: 0, deposit_amount: 0,
   extras: structuredClone(extras),
 });
 function accepted() {
   return {
-    quote_reference: "quote-1", partner_ref: "R24-10045",
+    quote_reference: "quote-1", partner_ref: "R24-TEST-1",
     pickup_datetime: "2026-12-02T10:00:00+02:00",
     return_datetime: "2026-12-09T10:00:00+02:00",
     pickup_location: "Larnaca Airport", dropoff_location: "Larnaca Airport",
-    group_name: "Economy", grand_total: 380, extras: structuredClone(extras),
+    group_name: "Economy", grand_total: 317.23, extras: structuredClone(extras),
   };
 }
 test("KayFleet POST body binds the exact accepted quote, extras, route and idempotency", () => {
@@ -46,7 +46,7 @@ test("KayFleet POST body binds the exact accepted quote, extras, route and idemp
   assert.equal(output.path, "/api/partner/bookings");
   assert.equal(output.headers["Idempotency-Key"], "ride24:immutable-booking-1");
   assert.equal(output.body.quote_reference, "quote-1");
-  assert.equal(output.body.partner_ref, "R24-10045");
+  assert.equal(output.body.partner_ref, "R24-TEST-1");
   assert.equal(output.body.full_insurance, true);
   assert.deepEqual({
     car_seat_qty: output.body.car_seat_qty,
@@ -93,7 +93,7 @@ test("KayFleet 409 quote conflicts require a fresh customer-approved quote, not 
 });
 test("KayFleet full confirmed snapshot verifies complete amounts and matching extras", () => {
   assert.deepEqual(verifyKayfleetBookingSnapshot(confirmation(), accepted()),
-    { confirmed: true, reference: "external-test-1", booking_number: "FR-A1B2C3", total_eur: 380 });
+    { confirmed: true, reference: "external-test-1", booking_number: "FR-TEST-001", total_eur: 317.23 });
 });
 test("KayFleet nonzero deposit in a confirmed response is refused", () => {
   const row = confirmation();row.deposit_amount = 300;
@@ -101,8 +101,8 @@ test("KayFleet nonzero deposit in a confirmed response is refused", () => {
 });
 test("KayFleet confirmed payload with changed price, route, extras or insurance requires review", () => {
   for (const mutation of [
-    r => r.grand_total = 390,
-    r => r.rental_price = 211,
+    r => r.grand_total = 318,
+    r => r.rental_price = 184,
     r => r.pickup_location = "Paphos City",
     r => r.quote_reference = "another-quote",
     r => r.extras.additional_drivers = 2,
