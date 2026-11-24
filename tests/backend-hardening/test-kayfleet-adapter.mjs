@@ -58,7 +58,7 @@ function quote(change = {}) {
     quote_reference: "q-123", quote_expires_at: new Date(Date.now() + 15 * 60_000).toISOString(),
     group_id: "economy", group_name: "Economy", currency: "EUR", days: 5,
     daily_rate: 37.05, rental_total: 185.25, insurance_fee: 87.5,
-    insurance_excess: 0, equipment_fee: 0,
+    insurance_excess: 0, deposit_amount: 0, full_insurance: true, equipment_fee: 0,
     additional_driver_fee: 0, delivery_fee: 25, grand_total: 297.75,
     ...change,
   };
@@ -106,6 +106,7 @@ test("KayFleet quote includes full insurance and fees in exactly one partner tot
   assert.equal(result.public_price, 59.55);
   assert.equal(result.price_is_total, true);
   assert.equal(result.quote_reference, "q-123");
+  assert.equal(result.deposit_amount, 0, "only supplier-verified zero deposit may be listed");
   assert.equal(result.location_external_ids.join(","), "Paphos Airport,Larnaca Airport");
   assert.equal(result.provider_quote_data.quote.insurance_excess, 0);
 });
@@ -114,6 +115,8 @@ test("unsafe quotes never become offers: excess, price mismatch, expired, wrong 
   const group = a.normalizeKayFleetGroups(groups())[0];
   for (const bad of [
     { insurance_excess: 500 },
+    { deposit_amount: 300 },
+    { deposit_amount: undefined },
     { grand_total: 300 },
     { quote_expires_at: "2020-01-01T00:00:00Z" },
     { currency: "USD" },
