@@ -95,7 +95,7 @@ test("KayFleet full confirmed snapshot verifies complete amounts and matching ex
   assert.deepEqual(verifyKayfleetBookingSnapshot(confirmation(), accepted()),
     { confirmed: true, reference: "external-test-1", booking_number: "FR-A1B2C3", total_eur: 380 });
 });
-test("KayFleet sample deposit 300 EUR from IT email is refused, not silently accepted", () => {
+test("KayFleet nonzero deposit in a confirmed response is refused", () => {
   const row = confirmation();row.deposit_amount = 300;
   assert.throws(() => verifyKayfleetBookingSnapshot(row, accepted()), /ZERO_DEPOSIT_REQUIRED/);
 });
