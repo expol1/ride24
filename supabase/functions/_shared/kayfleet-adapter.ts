@@ -152,7 +152,9 @@ export function normalizeKayFleetQuote(
   if (!reference || !expires || !Number.isFinite(expiration) || expiration <= Date.now()
     || txt(q.currency).toUpperCase() !== "EUR"
     || txt(q.group_id) !== group.external_id
-    || money(q.insurance_excess, "EXCESS") !== 0) {
+    || money(q.insurance_excess, "EXCESS") !== 0
+    || (q.deposit_amount != null && money(q.deposit_amount, "DEPOSIT") !== 0)
+    || (q.full_insurance != null && q.full_insurance !== true)) {
     throw new Error("PARTNER_API_ERROR:KAYFLEET_QUOTE_UNVERIFIED");
   }
   const days = positive(q.days, "DAYS");
@@ -236,6 +238,9 @@ export async function kayfleetBookingStatus(
     definitive_rejection: status === "denied",
     // The v1 document does not specify the priced status payload. Do not
     // authorize a paid voucher until this is validated on a sandbox.
+    // Full insurance, zero excess and zero deposit MUST match the signed B2B terms.
+    liability_verified: status === "confirmed" && obj(payload).full_insurance === true
+      && obj(payload).insurance_excess === 0 && obj(payload).deposit_amount === 0,
     needs_manual_review: status === "confirmed" || ["active", "completed", "overdue"].includes(status),
     provider_payload: payload };
 }
