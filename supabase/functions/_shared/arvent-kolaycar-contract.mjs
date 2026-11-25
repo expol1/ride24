@@ -321,7 +321,7 @@ export function arventDateOfBirth(value) {
   throw Error("PARTNER_API_ERROR:ARVENT_BIRTHDAY_INVALID");
  return raw;
 }
-export function arventSavePayload({reservationToken,reference,customer,extras=[],driverCode=null}) {
+export function arventSavePayload({reservationToken,reference,customer,extras=[],driverCode=/** @type {string|null} */ (null)}) {
  if(!/^[0-9a-f-]{36}$/i.test(str(reservationToken,200)))
   throw Error("PARTNER_API_ERROR:ARVENT_TOKEN_REQUIRED");
  if(!str(reference,150)||!record(customer)||!str(customer.name)||!str(customer.surname)

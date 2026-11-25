@@ -1147,7 +1147,11 @@ export async function createProviderBooking(
   input: ProviderBookingInput,
 ): Promise<Record<string, unknown>> {
   const provider = safeProvider(providerValue);
-  if (provider === "arvent_kolaycar") return await arventCreateBooking(credentials, input);
+  if (provider === "arvent_kolaycar") {
+    const {pickup_location_id,dropoff_location_id}=input;
+    if (!pickup_location_id || !dropoff_location_id) throw Error("PARTNER_API_ERROR:ARVENT_LOCATION_ID_INVALID");
+    return await arventCreateBooking(credentials,{...input,pickup_location_id,dropoff_location_id});
+  }
   if (provider === "renteon_aggregator") {
     return await aggregatorBook(credentials, input);
   }

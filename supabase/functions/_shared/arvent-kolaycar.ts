@@ -315,7 +315,6 @@ export async function arventLookupByAgencyReference(c:PartnerApiCredentials,inpu
  const evidence=await dispatchEvidence(c,input.ride24_booking_id);
  if(row?.reservationNumber!==candidate.reservationNumber || row?.agencyReservationReference!==reference ||
     !await receiptTerms(row,input.vehicle_group_id,evidence) || !confirmedContract(row,input.partner_amount,Math.round(Number(input.extras_amount??0)*100),Number(evidence?.one_way_fee??row.oneWayFee??0)) || !arventSavedRouteMatches(row,input) ||
-
     !arventReceiptExtrasMatch(row.reservationExtras??row.extras,evidence?.extras??input.extra_selections??[]))return manual;
  // Only polling may authorize a voucher or refund. Keep the verified reference in the workflow.
  return {status:"pending",booking_reference:row.reservationNumber,needs_manual_review:false};
@@ -345,7 +344,8 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
  if(!arventLeadTimeAllowed(input.pickup_date,input.pickup_time))
   throw Error("PARTNER_API_ERROR:ARVENT_MIN_LEAD_TIME");
- if(rentalDuration(input.pickup_date,input.return_date,input.pickup_time||"",input.return_time||"").fullDays<3)
+ const duration=rentalDuration(input.pickup_date,input.return_date,input.pickup_time||"",input.return_time||"");
+ if(duration.fullDays<3)
   throw Error("PARTNER_API_ERROR:ARVENT_MIN_RENTAL_DAYS");
  const quote=input.provider_quote_data as Record<string,unknown>|null;
  // Ride24 sells ACRISS/SIPP groups like AVIA. Keep the chosen supplier
@@ -409,7 +409,6 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
    // and never silently omit a payable service.
    arventAssertVehicleOnlyExtrasSafe((extraData as any).extras);
  }
- const duration=rentalDuration(input.pickup_date,input.return_date,input.pickup_time,input.return_time);
  const vehicleDays=Number(current.rentalDuration),confirmedDays=Number(pricedVehicle.rentalDuration);
  const validDays=(n:number)=>Number.isInteger(n)&&n>=1&&n<=366;
  if(validDays(vehicleDays)&&validDays(confirmedDays)&&vehicleDays!==confirmedDays)

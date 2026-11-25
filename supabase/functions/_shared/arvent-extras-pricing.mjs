@@ -19,7 +19,7 @@ export function arventBillingMode(rawType, certifiedMap = {}) {
   const mapped=Object.hasOwn(certifiedMap,key) ? certifiedMap[key] : null;
   return mapped==="day" || mapped==="rental" ? mapped : null;
 }
-export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = false, driverCode = null) {
+export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = false, driverCode = /** @type {string|null} */ (null)) {
   if (!Array.isArray(items) || items.length > 250) throw Error("ARVENT_EXTRAS_INVALID");
   return items.map(x => {
     const mode=arventBillingMode(x.billing_type, certifiedMap);
@@ -44,7 +44,7 @@ export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = 
   });
 }
 export function arventSelectedExtrasQuote({
-  items, selections, billedDays, certifiedMap={}, certified=false, additionalDriverId=null, driverCode=null
+  items, selections, billedDays, certifiedMap={}, certified=false, additionalDriverId=null, driverCode=/** @type {string|null} */ (null)
 }) {
   if(!Number.isInteger(billedDays)||billedDays<1||billedDays>366 ||
      !Array.isArray(selections)||selections.length>20)
