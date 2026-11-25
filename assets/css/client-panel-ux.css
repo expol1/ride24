@@ -535,3 +535,173 @@ html:lang(en) #view-payments {
     max-width:100%!important;
   }
 }
+
+
+/* 2026-11-21 — unified customer booking details. Web presentation only.
+   Keep the existing r24-unified-pricing and archived Caravel renderers intact. */
+#bookingDetailsModal {
+  align-items:center!important;justify-content:center!important;
+  padding:14px!important;box-sizing:border-box!important;
+}
+#bookingDetailsModal .modal-content.r24-details-dialog {
+  width:min(780px,100%)!important;max-width:780px!important;
+  max-height:calc(100dvh - 28px)!important;
+  padding:0!important;margin:auto!important;
+  background:#f7fbff!important;color:#11244a!important;
+  border:1px solid #d2e3f8!important;border-radius:19px!important;
+  box-shadow:0 24px 80px rgba(6,28,70,.34)!important;
+  overflow-y:auto;overscroll-behavior:contain;
+}
+#bookingDetailsModal .r24-details-head {
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  margin:0;padding:16px 22px;
+  background:linear-gradient(115deg,#17479a,#2563eb);
+  border-bottom:4px solid #97d700;color:#fff;
+}
+#bookingDetailsModal .r24-details-eyebrow {
+  display:block;margin:0 0 2px;
+  color:#dbeafe;font-size:11px;line-height:1.3;font-weight:800;letter-spacing:.8px;
+}
+#bookingDetailsModal .r24-details-head h3 {
+  margin:0!important;color:#fff!important;
+  font:800 20px/1.4 Manrope,Inter,sans-serif;
+}
+#bookingDetailsModal .r24-details-close-x {
+  flex:0 0 38px;width:38px;height:38px;min-height:38px;
+  border:1px solid #ffffff66;border-radius:10px;cursor:pointer;
+  background:#ffffff24;color:#fff;font-size:26px;line-height:1;
+}
+#bookingDetailsModal .r24-details-close-x:hover{background:#ffffff42}
+#bookingDetailsModal #bookingDetailsBody {
+  padding:20px 22px!important;max-width:none!important;
+  border:0!important;border-radius:0!important;
+  background:#f7fbff!important;color:#102442!important;
+  overflow-wrap:anywhere;line-height:1.5!important;
+}
+#bookingDetailsModal .r24-detail-overview {
+  padding:18px;border:1px solid #c9def7;border-radius:15px;
+  background:linear-gradient(155deg,#ecf5ff,#f8fbff);
+  box-shadow:0 5px 17px rgba(30,64,175,.045);
+}
+#bookingDetailsModal .r24-detail-overview-top {
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;margin-bottom:14px;
+}
+#bookingDetailsModal .r24-detail-car {display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+#bookingDetailsModal .r24-detail-car-code {
+  flex:0 0 auto;border-radius:9px;padding:4px 9px;
+  font-weight:900;font-size:16px;background:#fff;color:#102d66;border:1px solid #c5d8f0
+}
+#bookingDetailsModal .r24-detail-car-name {font-size:16px;font-weight:800;color:#102442;line-height:1.45}
+#bookingDetailsModal .r24-detail-status {
+  max-width:100%;border-radius:100px;padding:7px 11px;
+  background:#e2e8f0;color:#334155;font-size:12px;font-weight:800;
+  border:1px solid #cbd5e1;line-height:1.35;
+}
+#bookingDetailsModal .r24-detail-status.is-confirmed{background:#dcfce7;color:#166534;border-color:#86efac}
+#bookingDetailsModal .r24-detail-status.is-cancelled{background:#ffe4e6;color:#be123c;border-color:#fecdd3}
+#bookingDetailsModal .r24-detail-status.is-waiting{background:#fef3c7;color:#92400e;border-color:#fcd34d}
+#bookingDetailsModal .r24-detail-status.is-pending{background:#dbeafe;color:#1e40af;border-color:#bfdbfe}
+#bookingDetailsModal .r24-detail-itinerary,
+#bookingDetailsModal .r24-detail-amounts,
+#bookingDetailsModal .r24-detail-facts {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+#bookingDetailsModal .r24-detail-amounts{margin-top:10px}
+#bookingDetailsModal .r24-detail-field {
+  min-width:0;display:flex;flex-direction:column;justify-content:center;
+  padding:12px 14px;border-radius:11px;
+  background:#fff;border:1px solid #dbe5f3;
+}
+#bookingDetailsModal .r24-detail-label {
+  display:block;margin-bottom:5px;
+  color:#64748b;font-size:11px;font-weight:800;letter-spacing:.2px;
+}
+#bookingDetailsModal .r24-detail-value {
+  display:block;color:#102442;font-size:13px;line-height:1.5;font-weight:800;
+  overflow-wrap:anywhere;white-space:normal;
+}
+#bookingDetailsModal .r24-detail-amounts .r24-detail-value {font-size:16px;color:#1d4ed8}
+#bookingDetailsModal .r24-detail-amounts .r24-detail-field:first-child .r24-detail-value{color:#15803d}
+#bookingDetailsModal .r24-detail-refund {
+  margin:12px 0 0;font-size:12px;font-weight:800;color:#9a3412;
+}
+#bookingDetailsModal .r24-unified-pricing.r24-detail-price-section {
+  margin:16px 0 0;padding:18px!important;
+  background:linear-gradient(150deg,#102b50,#1a375f)!important;
+  border:1px solid #26496e!important;border-radius:14px!important;color:#d7e8ff;
+}
+#bookingDetailsModal .r24-unified-pricing.r24-detail-price-section h4,
+#bookingDetailsModal .r24-unified-pricing.r24-detail-price-section .r24-detail-section-heading {
+  color:#fff;font-size:16px;font-weight:850;margin:0 0 13px;
+}
+#bookingDetailsModal .r24-unified-pricing.r24-detail-price-section .r24-client-price-row {
+  border-bottom-color:#375578;gap:12px;color:#dbeafe;
+}
+#bookingDetailsModal .r24-unified-pricing.r24-detail-price-section .r24-client-price-row > strong {
+  color:#fff;font-variant-numeric:tabular-nums;
+}
+#bookingDetailsModal .r24-detail-conditions {
+  margin:16px 0 0;padding:16px 18px;
+  background:#fff;border:1px solid #dbe5f3;border-radius:14px;
+}
+#bookingDetailsModal .r24-detail-section-heading {
+  margin:0 0 12px!important;color:#153668;font:800 15px/1.4 Manrope,Inter,sans-serif;
+}
+#bookingDetailsModal .r24-detail-conditions .r24-detail-field {background:#f6faff}
+#bookingDetailsModal .r24-detail-documents {
+  margin:16px 0 0;padding:16px 18px;
+  background:#fff;border:1px solid #dbe5f3;border-radius:14px;
+}
+#bookingDetailsModal .r24-detail-doc-link {
+  display:block;width:100%;margin-top:9px;padding:12px 13px;min-height:44px;
+  border:1px solid #c7dbf5;border-radius:10px;cursor:pointer;
+  background:#eff6ff;color:#194582;
+  font:750 13px/1.45 Inter,sans-serif;text-align:left;
+  overflow-wrap:anywhere;white-space:normal;
+}
+#bookingDetailsModal .r24-detail-doc-link:hover{background:#dbeafe}
+#bookingDetailsModal .r24-unified-pricing .r24-caravel-booking-documents {
+  margin:18px 0 0;padding-top:17px;border-top:1px solid #475569;border-bottom:0;
+}
+#bookingDetailsModal .r24-unified-pricing .r24-caravel-booking-documents h4{color:#f8fafc}
+#bookingDetailsModal .r24-unified-pricing .r24-caravel-booking-drivers{margin:4px 0 14px}
+#bookingDetailsModal .r24-unified-pricing .r24-caravel-document-btn{
+  color:#eaf2ff;background:#243b59;border-color:#4c6486;
+}
+#bookingDetailsModal .r24-unified-pricing .r24-caravel-document-btn:hover{background:#304b6f}
+#bookingDetailsModal .modal-actions.r24-details-footer {
+  position:sticky;bottom:0;z-index:8;
+  display:flex;justify-content:flex-end;
+  padding:12px 22px!important;margin:0!important;
+  background:#fff;border-top:1px solid #dbe5f3;
+}
+#bookingDetailsModal .r24-details-footer .btn-primary {
+  width:auto!important;min-width:150px;min-height:43px;
+  border-radius:9px!important;
+}
+#bookingDetailsModal .r24-details-close-x:focus-visible,
+#bookingDetailsModal .r24-detail-doc-link:focus-visible,
+#bookingDetailsModal .r24-details-footer button:focus-visible {
+  outline:3px solid #97d700;outline-offset:3px;
+}
+@media(max-width:620px){
+  #bookingDetailsModal {padding:7px!important}
+  #bookingDetailsModal .modal-content.r24-details-dialog {
+    max-height:calc(100dvh - 14px)!important;border-radius:13px!important
+  }
+  #bookingDetailsModal .r24-details-head {padding:14px 15px}
+  #bookingDetailsModal .r24-details-head h3 {font-size:17px}
+  #bookingDetailsModal #bookingDetailsBody {padding:12px!important}
+  #bookingDetailsModal .r24-detail-overview {padding:12px}
+  #bookingDetailsModal .r24-detail-itinerary,
+  #bookingDetailsModal .r24-detail-amounts,
+  #bookingDetailsModal .r24-detail-facts {grid-template-columns:minmax(0,1fr);gap:8px}
+  #bookingDetailsModal .r24-detail-conditions,
+  #bookingDetailsModal .r24-detail-documents,
+  #bookingDetailsModal .r24-unified-pricing.r24-detail-price-section {padding:13px!important}
+  #bookingDetailsModal .r24-unified-pricing .r24-client-price-row {gap:10px}
+  #bookingDetailsModal .r24-details-footer .btn-primary {width:100%!important}
+  #bookingDetailsModal .modal-actions.r24-details-footer {padding:10px 12px!important}
+}
