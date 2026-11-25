@@ -131,8 +131,8 @@ serve(async (req) => {
         price_data: {
           currency: "pln",
           product_data: {
-            name: "Opłata rezerwacyjna Ride24.pl",
-            description: `Rezerwacja: ${booking.reservation_code || booking.id}. Opłata nie obejmuje kosztu wynajmu samochodu.`,
+            name: "Ride24 – Auta z różnych zakątków świata",
+            description: `Rezerwacja: ${booking.reservation_code || booking.id}`,
           },
           unit_amount: Math.round(amount * 100),
         },
