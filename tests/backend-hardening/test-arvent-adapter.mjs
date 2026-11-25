@@ -209,28 +209,15 @@ test("approved status 1 only clears review after price and contract verification
  assert.equal(result.needs_manual_review,false);
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
 });
-test("Arvent SaveReservation sends confirmed 4€/day extra driver without secondary-driver identity",async()=>{
+test("Arvent rejects IMM code 2 before any supplier reservation write",async()=>{
  const inputWithDriver={...syntheticBooking,partner_amount:112,rental_amount:100,extras_amount:12,
    extras_pricing_certified:true,extra_billing_map:{},
    extra_selections:[{code:'2',quantity:1,total_cents:1200,required:false,billing:'day'}],
    additional_driver:null,supplier_note:'Additional driver included'};
- const opts={allowWrites:true,savedStatus:1,savedPrice:112,supplierDays:3,extrasDays:3,
-   requiredExtras:[{code:2,name:'Ek Sürücü',price:4,extraRentalType:'day',
-      extraQuantityIncreasable:false,isRequired:false}]};
- const verified=setup({...opts,savedReservationExtras:[{code:2,piece:1}]});
- const success=await verified.arventCreateBooking(creds,inputWithDriver);
- assert.equal(success.status,'confirmed');
- assert.equal(success.needs_manual_review,false);
- const sent=verified.calls.find(x=>x.path==='/reservations/save').request.body;
- assert.equal(sent.payment.paymentType,3);
- assert.equal(sent.pricing.paidAmount,0);
- assert.deepEqual(sent.extras,[{code:'2',piece:1}]);
- assert.match(sent.customer.note,/Additional driver included/);
- assert.doesNotMatch(sent.customer.note,/Secondary Driver|licence since/);
- const missing=setup(opts);
- const unverified=await missing.arventCreateBooking(creds,inputWithDriver);
- assert.equal(unverified.status,'pending');
- assert.equal(unverified.needs_manual_review,true);
+ const a=setup({allowWrites:true,savedStatus:1,savedPrice:112,supplierDays:3,extrasDays:3,
+   requiredExtras:[{code:2,name:'IMM',price:4,extraRentalType:1,extraQuantityIncreasable:false,isRequired:false}]});
+ await assert.rejects(()=>a.arventCreateBooking(creds,inputWithDriver),/ARVENT_FAILED_BEFORE_SAVE/);
+ assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,0);
 });
 test("received 0 stays in provider_pending for safe polling, never triggers voucher",async()=>{
  const a=setup({allowWrites:true,savedStatus:0});
