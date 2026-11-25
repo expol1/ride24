@@ -8,27 +8,23 @@ const extras=[
  {code:'2',name:'Ek Sürücü',price_eur:4,billing_type:'day',quantity_increasable:false,required:false},
  {code:'6',name:'Infant seat',price_eur:5,billing_type:'1',quantity_increasable:true,max_quantity:2,required:false},
 ];
-test('Arvent never guesses numeric extraRentalType: explicit supplier map required',()=>{
- assert.equal(arventBillingMode('1'),null);
- assert.equal(arventBillingMode(1),null);
+test('Arvent uses supplier-confirmed numeric billing enums',()=>{
+ assert.equal(arventBillingMode('1'),'day');
+ assert.equal(arventBillingMode(1),'day');
+ assert.equal(arventBillingMode(0),'rental');
  assert.equal(arventBillingMode('1',{'1':'day'}),'day');
  assert.equal(arventBillingMode('per_day'),'day');
  assert.equal(arventBillingMode('once'),'rental');
  assert.equal(arventBillingMode('UNSPECIFIED'),null);
  assert.ok(arventPricedExtrasCatalog(extras,{'1':'day'},false).every(x=>x.bookable===false));
 });
-test('Arvent adds only authorized paid code 2 at four euros per supplier rental day',()=>{
- const q=arventSelectedExtrasQuote({items:extras,
-  selections:[{id:'2',quantity:1}],
-  billedDays:3,certified:true,certifiedMap:{'1':'day'}});
- assert.equal(q.total_cents,1200);
- assert.deepEqual(q.selected,[{code:'2',piece:1}]);
- assert.deepEqual(q.items.map(x=>x.total_cents),[1200]);
- const totals=arventBookingTotals({rentalCents:8475,ride24FeeCents:339,extrasCents:q.total_cents,
-  loyaltyPercent:0,nbpRate:4.4559});
- assert.equal(totals.partner_cents,9675);
- assert.equal(totals.gross_cents,10014);
- assert.equal(totals.commission_cents,339);
+test('Arvent blocks IMM code 2 even if its price resembles the promised driver',()=>{
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:1}],billedDays:3,certified:true}),/NOT_PRICED/);
+ const q=arventSelectedExtrasQuote({items:extras,selections:[],billedDays:3,certified:true});
+ assert.equal(q.total_cents,0);
+ const totals=arventBookingTotals({rentalCents:8475,ride24FeeCents:339,extrasCents:0,loyaltyPercent:0,nbpRate:4.4559});
+ assert.equal(totals.partner_cents,8475);
+ assert.equal(totals.gross_cents,8814);
  assert.equal(totals.online_pln_cents,1511);
 });
 test('Arvent refuses paid optional equipment not yet authorized by partner',()=>{
@@ -53,10 +49,8 @@ test('Arvent cannot infer a multi-unit cap from the supplier increasable flag al
   billedDays:3,certified:true}),/NOT_PRICED/);
 });
 
-test('Arvent code 2 requires no personal identity online, but allows only one unit',()=>{
- const quote=arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:1}],
-  billedDays:3,certified:true});
- assert.equal(quote.total_cents,1200);
+test('Arvent blocks IMM and unnecessary secondary driver identity',()=>{
+ assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:1}],billedDays:3,certified:true}),/NOT_PRICED/);
  assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[],
   additionalDriverId:'some-saved-person',certified:true,billedDays:3}),/PERSONAL_DATA_UNNECESSARY/);
  assert.throws(()=>arventSelectedExtrasQuote({items:extras,selections:[{id:'2',quantity:2}],
