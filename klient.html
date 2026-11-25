@@ -1350,10 +1350,6 @@
         .booking-price-breakdown h4 {margin:0 0 12px;}
         .booking-price-row {display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin:9px 0;font-size:13px;}
         .booking-price-row>:last-child {white-space:nowrap;}
-        /* Arvent: narrow mobile view shows only prices; labels wrap, EUR/PLN never overflow. */
-        #termsModal #bookingPriceBreakdown .booking-price-row>:first-child{min-width:0;overflow-wrap:anywhere;flex:1 1 auto}
-        #termsModal #bookingPriceBreakdown .booking-price-row>:last-child{flex:0 0 auto;text-align:right;font-variant-numeric:tabular-nums}
-        #termsModal #bookingPriceBreakdown{min-width:0;max-width:100%;box-sizing:border-box}
         .booking-price-breakdown small,#bookingExtrasPicker small {display:block;color:#64748b;font-size:12px;line-height:1.5;}
         .booking-extra-row {display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin:9px 0;text-align:left;cursor:pointer;box-shadow:0 2px 8px rgba(15,23,42,.025);}
         .booking-extra-row span:first-child{min-width:0;}
@@ -1413,7 +1409,84 @@
             #view-payments .payments-table .payment-message-cell{padding:28px 18px}
         }
 
+        /* Płatności: te same gradienty statusów co w tabeli Moje rezerwacje. */
+        #view-payments .payments-table tbody tr.r24-payment-row{
+            --r24-pay-strong:#cbd5e1;--r24-pay-soft:#f8fafc;--r24-pay-edge:#64748b;
+            background:linear-gradient(100deg,var(--r24-pay-strong),var(--r24-pay-soft))!important
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row.r24-payment-confirmed{
+            --r24-pay-strong:#86d79b;--r24-pay-soft:#f0fdf4;--r24-pay-edge:#18833b
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row.r24-payment-cancelled{
+            --r24-pay-strong:#fca5a5;--r24-pay-soft:#fff1f2;--r24-pay-edge:#b91c1c
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row.r24-payment-waiting{
+            --r24-pay-strong:#facc15;--r24-pay-soft:#fffbeb;--r24-pay-edge:#bd8d00
+        }
+        #view-payments .payments-table tbody tr.r24-payment-row>td{background:transparent!important}
+        #view-payments .payments-table tbody tr.r24-payment-row>td:first-child{
+            border-left:5px solid var(--r24-pay-edge);padding-left:21px
+        }
+        #view-payments .payments-table .payment-booking-link{
+            display:inline-block;appearance:none;border:0;padding:0;background:transparent;
+            color:#1d4ed8;font:inherit;font-size:14px;font-weight:800;cursor:pointer;
+            text-align:left;text-decoration:none
+        }
+        #view-payments .payments-table .payment-booking-link:hover{text-decoration:underline;color:#1e40af}
+        #view-payments .payments-table .payment-booking-link:focus-visible{
+            outline:3px solid #2563eb;outline-offset:4px;border-radius:3px
+        }
+        #view-payments .payments-table .payment-booking-link:disabled{opacity:.65;cursor:progress}
+        @media(max-width:720px){
+            #view-payments .payments-table tbody tr.r24-payment-row{
+                border-left:5px solid var(--r24-pay-edge);padding-left:13px;
+                background:linear-gradient(100deg,var(--r24-pay-strong),var(--r24-pay-soft))!important
+            }
+            #view-payments .payments-table tbody tr.r24-payment-row>td:first-child{
+                border-left:0;padding-left:0
+            }
+        }
 
+/* Card opened from Payments: a concise copy of the My bookings row, NOT the rental-terms Details modal. */
+.r24-pay-booking-overlay[hidden]{display:none!important}
+.r24-pay-booking-overlay{position:fixed;inset:0;z-index:100005;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.72);backdrop-filter:blur(5px);overflow-y:auto}
+.r24-pay-booking-dialog{width:min(100%,790px);max-height:calc(100dvh - 36px);overflow-y:auto;border-radius:20px;background:#fff;box-shadow:0 26px 85px rgba(15,23,42,.3);font-family:Inter,sans-serif;color:#102442}
+.r24-pay-booking-header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:20px 24px;background:#1d4ed8;color:#fff}
+.r24-pay-booking-header h2{font-family:Manrope,sans-serif;font-size:20px;line-height:1.35;font-weight:800;margin:4px 0 0;color:#fff}
+.r24-pay-booking-eyebrow{font-size:11px;letter-spacing:1px;font-weight:800;opacity:.85}
+.r24-pay-booking-close{flex:0 0 38px;width:38px;height:38px;border:1px solid #ffffff66;border-radius:10px;background:#ffffff22;color:#fff;font-size:26px;cursor:pointer}
+.r24-pay-booking-body{padding:22px 24px}
+.r24-pay-booking-card{--r24-card-strong:#cbd5e1;--r24-card-soft:#f8fafc;--r24-card-edge:#64748b;padding:20px;border-left:5px solid var(--r24-card-edge);border-radius:14px;background:linear-gradient(100deg,var(--r24-card-strong),var(--r24-card-soft));border-top:1px solid #e2e8f0;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
+.r24-pay-booking-card.is-confirmed{--r24-card-strong:#86d79b;--r24-card-soft:#f0fdf4;--r24-card-edge:#18833b}
+.r24-pay-booking-card.is-cancelled{--r24-card-strong:#fca5a5;--r24-card-soft:#fff1f2;--r24-card-edge:#b91c1c}
+.r24-pay-booking-card.is-waiting{--r24-card-strong:#facc15;--r24-card-soft:#fffbeb;--r24-card-edge:#bd8d00}
+.r24-pay-booking-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.r24-pay-booking-id{font-weight:850;font-size:17px;color:#1e3a8a}
+.r24-pay-booking-status{font-size:12px;font-weight:800;padding:7px 11px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;color:#334155}
+.r24-pay-booking-car{margin:18px 0 14px;font-size:17px;font-weight:700;line-height:1.4}
+.r24-pay-booking-car .class-code{font-weight:900;font-size:20px;margin-right:8px}
+.r24-pay-booking-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.r24-pay-booking-field{min-width:0;padding:13px 15px;border-radius:12px;background:#fffffff0;border:1px solid #e2e8f0}
+.r24-pay-booking-field small{display:block;margin-bottom:6px;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.35px;font-weight:800}
+.r24-pay-booking-field strong{display:block;font-size:14px;line-height:1.45;color:#11244a;overflow-wrap:anywhere}
+.r24-pay-booking-route{margin:12px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.r24-pay-booking-route .r24-pay-booking-field{background:#fff}
+.r24-pay-booking-money strong{font-weight:850;color:#176b2d;font-size:17px}
+.r24-pay-booking-online strong{color:#1d4ed8}
+.r24-pay-booking-footer{padding:0 24px 22px;display:flex;justify-content:flex-end}
+.r24-pay-booking-footer button{border:0;border-radius:10px;background:#2563eb;color:#fff;padding:11px 22px;min-height:44px;font:700 14px Inter,sans-serif;cursor:pointer}
+.r24-pay-booking-footer button:hover{background:#1d4ed8}
+.r24-pay-booking-overlay button:focus-visible{outline:3px solid #97d700;outline-offset:3px}
+@media(max-width:620px){
+ .r24-pay-booking-overlay{padding:10px}
+ .r24-pay-booking-dialog{max-height:calc(100dvh - 20px);border-radius:15px}
+ .r24-pay-booking-header{padding:16px}
+ .r24-pay-booking-body{padding:14px}
+ .r24-pay-booking-card{padding:14px}
+ .r24-pay-booking-grid,.r24-pay-booking-route{grid-template-columns:1fr;gap:9px}
+ .r24-pay-booking-footer{padding:0 14px 14px}
+ .r24-pay-booking-footer button{width:100%}
+}
 
 /* Profile onboarding gate: isolate required details until saved and verified. */
 body.r24-profile-checking .view-section{display:none!important}
@@ -1511,13 +1584,6 @@ body.r24-profile-incomplete #view-profile .profile-grid{grid-template-columns:mi
 #bookingDetailsModal { padding: 16px; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; }
 #bookingDetailsModal .modal-content { box-sizing: border-box; width: min(100%, 520px); max-width: 520px !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; margin: auto; flex-shrink: 0; }
 #bookingDetailsModal #bookingDetailsBody { overflow-wrap: anywhere; }
-#bookingDetailsModal .r24-arvent-booking-summary{padding:2px 0 16px;margin:0 0 14px;border-bottom:1px solid #475569}
-#bookingDetailsModal .r24-arvent-booking-summary h4{font-size:15px;font-weight:750;color:#f8fafc;margin:0 0 10px}
-#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field{display:grid;grid-template-columns:minmax(0,40%) minmax(0,60%);gap:12px;align-items:start;padding:9px 0;border-top:1px solid #334155}
-#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field span{font-size:12px;line-height:1.4;color:#cbd5e1}
-#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field strong{font-size:13px;line-height:1.5;color:#f8fafc;font-weight:650;overflow-wrap:anywhere}
-#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field .r24-booked-field-date{display:block;color:#f8fafc}
-#bookingDetailsModal .r24-arvent-booking-summary .r24-booked-field .r24-booked-field-place{display:block;color:#cbd5e1;font-size:12px}
 
 #bookingDetailsModal .r24-caravel-booking-documents,
 #bookingDetailsModal .r24-caravel-booking-drivers{margin:14px 0 18px;padding:14px 0;border-bottom:1px solid #475569}
@@ -1828,10 +1894,92 @@ async>
 .r24-client-price-deposit{background:#fffbeb;color:#92400e;padding:15px;margin-top:12px;border:1px solid #fde68a;border-radius:10px}
 </style>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
-<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261115status-font-v5">
+<link rel="stylesheet" href="assets/css/client-panel-ux.css?v=20261121booking-details-v6">
 <link rel="stylesheet" href="assets/css/client-android-showcase.css?v=20261029a">
 <link rel="stylesheet" href="assets/css/client-mobile-dashboard-polish.css?v=20261115nav-compact-v3">
 <link rel="stylesheet" href="assets/css/booking-extras-visual-polish.css?v=20261113-switch">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/pl.js"></script>
+<style id="r24-profile-calendar-actions">
+/* Same Flatpickr styling as the Ride24 homepage search, scoped to profile dates. */
+.r24-profile-calendar.flatpickr-calendar{font-family:Inter,sans-serif!important;width:320px!important;border:0!important;border-top:4px solid #97d700!important;border-radius:16px!important;padding:10px!important;margin-top:8px!important;box-shadow:0 20px 50px #0002!important;z-index:100000!important}
+.r24-profile-calendar .flatpickr-months .flatpickr-month{background:transparent!important;color:#1e3a8a!important;fill:#1e3a8a!important;height:40px!important}
+.r24-profile-calendar .flatpickr-current-month{font-family:Manrope,sans-serif!important;font-size:110%!important;font-weight:800!important}
+.r24-profile-calendar .flatpickr-monthDropdown-months{font-weight:800!important;color:#1e3a8a!important}
+.r24-profile-calendar .flatpickr-weekday{color:#2563eb!important;font-size:11px!important;font-weight:800!important;text-transform:uppercase}
+.r24-profile-calendar .flatpickr-day{border-radius:8px!important;color:#102442!important;font-weight:600!important}
+.r24-profile-calendar .flatpickr-day:hover{background:#f1fce3!important;border-color:#f1fce3!important;color:#669900!important}
+.r24-profile-calendar .flatpickr-day.selected,.r24-profile-calendar .flatpickr-day.selected:hover{background:#97d700!important;border-color:#97d700!important;color:#fff!important;box-shadow:0 4px 10px #73d7004d!important}
+.r24-profile-calendar .flatpickr-day.today{border-color:#2563eb!important;color:#2563eb!important;font-weight:800!important}
+.r24-profile-calendar .flatpickr-day.today:hover{background:#2563eb!important;color:#fff!important}
+.r24-profile-calendar .flatpickr-innerContainer,.r24-profile-calendar .flatpickr-rContainer,.r24-profile-calendar .dayContainer,.r24-profile-calendar .flatpickr-days{width:100%!important;min-width:100%!important;max-width:100%!important}
+.r24-profile-calendar .dayContainer{justify-content:space-around!important}
+#view-profile .r24-save-edit.r24-edit-mode,#view-profile .r24-driver-action.r24-edit-mode{background:#a8eb12!important;color:#16350b!important;border:1px solid #7ccb00!important;box-shadow:0 5px 14px #8bd70024!important;font-weight:800}
+#view-profile .r24-save-edit.r24-edit-mode:hover,#view-profile .r24-driver-action.r24-edit-mode:hover{background:#90d500!important}
+#view-profile .driver-row .r24-driver-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+#view-profile .driver-row .r24-driver-action{padding:10px 16px;min-height:38px;border-radius:9px;font-size:12px;cursor:pointer}
+#view-profile .driver-row .btn-icon-remove{grid-column:auto;justify-self:auto}
+#view-profile .r24-fields-locked input:not([type="checkbox"]):not([type="hidden"]){background:#f8fafc;color:#334155}
+#view-profile .r24-fields-locked .flatpickr-input{cursor:default!important}
+@media(max-width:768px){#view-profile .driver-row .r24-driver-actions{flex-direction:column-reverse}#view-profile .driver-row .r24-driver-action,#view-profile .driver-row .btn-icon-remove{width:100%}}
+</style>
+
+<style id="r24-loyalty-premium-tiers">
+/* START deliberately retains its original dark card. */
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]){
+  position:relative;isolation:isolate;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 27px rgba(4,16,35,.27);
+  transition:background .3s,border-color .3s,box-shadow .3s;
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(150deg,rgba(255,255,255,.48),transparent 34%,rgba(255,255,255,.16) 59%,transparent 90%);
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])>*{position:relative;z-index:1}
+#loyalty-card[data-loyalty-tier="silver"]{
+  --loyalty-ink:#1C2B3F;--loyalty-muted:#34475F;--loyalty-track:#53667F;--loyalty-edge:rgba(38,62,89,.25)
+}
+#loyalty-card[data-loyalty-tier="gold"]{
+  --loyalty-ink:#4A2D0B;--loyalty-muted:#654008;--loyalty-track:#885B11;--loyalty-edge:rgba(103,66,10,.25);
+  box-shadow:inset 0 1px 0 #fff2bb,0 12px 30px rgba(143,99,6,.25)
+}
+#loyalty-card[data-loyalty-tier="platinum"]{
+  --loyalty-ink:#16334C;--loyalty-muted:#2D5875;--loyalty-track:#496E87;--loyalty-edge:rgba(29,79,115,.25);
+  box-shadow:inset 0 1px 0 #fff,0 12px 29px rgba(56,117,160,.27)
+}
+#loyalty-card[data-loyalty-tier="vip"]{
+  --loyalty-ink:#F4FFE8;--loyalty-muted:#D4F8D9;--loyalty-track:#08291E;--loyalty-edge:rgba(189,247,135,.45);
+  box-shadow:inset 0 1px 0 rgba(227,255,205,.37),0 12px 34px rgba(19,91,58,.35)
+}
+#loyalty-card[data-loyalty-tier="vip"]::before{
+  background:linear-gradient(135deg,rgba(193,255,134,.2),transparent 38%,rgba(255,234,137,.09) 62%,transparent 94%)
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])>div:first-child>div,
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-progress-text,
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-next-level{
+  color:var(--loyalty-muted)!important
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-level-name{
+  color:var(--loyalty-ink)!important;font-size:19px!important;
+  letter-spacing:.45px;text-shadow:0 1px 0 rgba(255,255,255,.25)
+}
+#loyalty-card[data-loyalty-tier="vip"] #loyalty-level-name{text-shadow:0 1px 8px rgba(142,237,87,.22)}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-marketing-text{
+  color:var(--loyalty-ink)!important;line-height:1.4
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) svg{
+  fill:var(--loyalty-muted)!important
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) svg:hover{opacity:.7}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"]) #loyalty-progress-bar{
+  border-radius:4px;box-shadow:0 0 4px rgba(255,255,255,.25)
+}
+#loyalty-card[data-loyalty-tier]:not([data-loyalty-tier="start"])>div:last-child>div:nth-child(2){
+  background:var(--loyalty-track)!important;border-color:var(--loyalty-edge)!important
+}
+</style>
 </head>
 <body class="r24-profile-checking"> <aside class="sidebar">
         <div class="sidebar-logo" onclick="goToHome()">
@@ -2170,7 +2318,7 @@ async>
                             </div>
                             <div style="flex: 1;"></div>
                             <div class="profile-actions">
-                                <button type="button" class="btn-primary" id="profile-save-required" onclick="saveProfile()" data-pl="Zapisz profil" data-en="Save profile">Zapisz profil</button>
+                                <button type="button" class="btn-primary r24-save-edit" id="profile-save-required" onclick="r24ToggleProfileSection('owner')" data-pl="Zapisz profil" data-en="Save profile">Zapisz profil</button>
                             </div>
                         </div>
                     </div>
@@ -2215,7 +2363,7 @@ async>
                             <div class="invoice-actions">
                                 <button type="button" class="btn-secondary" onclick="clearInvoiceForm()" data-pl="Wyczyść formularz" data-en="Clear form">Wyczyść formularz</button>
                                 <button type="button" class="btn-secondary btn-cancel-soft" onclick="deleteInvoiceData()" data-pl="Usuń zapisane dane" data-en="Delete saved data">Usuń zapisane dane</button>
-                                <button type="button" class="btn-primary" onclick="saveInvoiceData()" data-pl="Zapisz dane" data-en="Save data">Zapisz dane</button>
+                                <button type="button" class="btn-primary r24-save-edit" id="r24-invoice-save" onclick="r24ToggleProfileSection('invoice')" data-pl="Zapisz dane" data-en="Save data">Zapisz dane</button>
                             </div>
                         </div>
                     </div>
@@ -2228,10 +2376,6 @@ async>
 
                             <button type="button" class="btn-secondary" style="margin-top: 5px; width: max-content;" onclick="addDriverRow()" data-pl="+ Dodaj kierowcę" data-en="+ Add driver">+ Dodaj kierowcę</button>
 
-                            <div style="flex: 1;"></div>
-                            <div class="profile-actions">
-                                <button type="button" class="btn-primary" onclick="saveDrivers()" data-pl="Zapisz kierowców" data-en="Save drivers">Zapisz kierowców</button>
-                            </div>
                         </div>
                     </div>
 
@@ -2355,7 +2499,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261121-arvent-driver-4eur";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261120-arvent2";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -2369,189 +2513,184 @@ window.closeDeleteModal = function() {
     document.getElementById('deleteModal').style.display = 'none';
 };
 // --- LOGIKA MODALA SZCZEGÓŁÓW ---
-        window.openDetailsModal = function(
-    deposit,
-    mileage,
-    driverIncluded,
-    driverHours,
-    currency,
-    partnerTermsSnapshot,
-    partnerRulesSnapshot,
-    bookingId
+        
+window.openDetailsModal = function(
+    deposit, mileage, driverIncluded, driverHours, currency,
+    partnerTermsSnapshot, partnerRulesSnapshot, bookingId
 ) {
-
-           console.log("partnerTermsSnapshot:", partnerTermsSnapshot);
-           console.log("partnerRulesSnapshot:", partnerRulesSnapshot);
-
-            const isEn = localStorage.getItem("client_lang") === "en";
-            const body = document.getElementById("bookingDetailsBody");
-
-            const depValue = parseFloat(deposit);
-            const depText = (!isNaN(depValue) && depValue > 0) ? `${depValue} ${currency}` : (isEn ? "No deposit" : "Brak kaucji");
-            const milNumber=Number(mileage);
-            const milText=mileage !== '' && Number.isFinite(milNumber) && milNumber > 0 ? `${milNumber} km/${isEn ? 'day' : 'dzień'}` : (isEn ? 'Unlimited' : 'Bez limitu');
-
-            let html = `
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 8px;">
-                    <span>${isEn ? 'Deposit' : 'Kaucja'}:</span>
-                    <strong style="color: white;">${depText}</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>${isEn ? 'Mileage limit' : 'Limit km'}:</span>
-                    <strong style="color: white;">${milText}</strong>
-                </div>
-            `;
-
-            if (driverIncluded === true) {
-                const hrsText = driverHours !== '' ? ` (${driverHours}h)` : '';
-                html += `
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #334155;">
-                    <strong style="color: var(--blue); font-size: 15px;">🧑 ${isEn ? 'Driver included' : 'Kierowca w cenie'}${hrsText}</strong>
-                </div>`;
+    const modal = document.getElementById("bookingDetailsModal");
+    const body = document.getElementById("bookingDetailsBody");
+    if (!modal || !body) return;
+    const isEn = localStorage.getItem("client_lang") === "en";
+    const t = (pl,en) => isEn ? en : pl;
+    const booking = window.ride24BookingsById?.[bookingId] || null;
+    const el = (tag, cls, text) => {
+        const node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text !== undefined && text !== null) node.textContent = String(text);
+        return node;
+    };
+    const money = (amount, cur) => {
+        if (amount == null || amount === "" || !Number.isFinite(Number(amount))) return "—";
+        return Number(amount).toFixed(2) + " " + cur;
+    };
+    const formatDateTime = (day, time) => {
+        if (!day) return "—";
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day));
+        let shown = String(day);
+        if (match) {
+            const date = new Date(+match[1],+match[2]-1,+match[3]);
+            if (date.getFullYear()===+match[1] && date.getMonth()===+match[2]-1 && date.getDate()===+match[3]) {
+                shown = new Intl.DateTimeFormat(isEn ? "en-GB" : "pl-PL",{
+                    day:"2-digit",month:"long",year:"numeric"
+                }).format(date);
             }
-            // Dokumenty partnera
-if (partnerTermsSnapshot || partnerRulesSnapshot) {
+        }
+        return shown + (time ? " · " + String(time).slice(0,5) : "");
+    };
+    const field = (label,value,extraClass="") => {
+        const box = el("div","r24-detail-field "+extraClass);
+        box.append(el("span","r24-detail-label",label),el("strong","r24-detail-value",value));
+        return box;
+    };
+    const sectionTitle = (text) => el("h4","r24-detail-section-heading",text);
+    const status = booking?.status || "";
+    const refund = booking?.refund_status || "";
+    const statusStyle = ["cancelled","rejected","expired","payment_expired"].includes(status)
+        ? "is-cancelled" : ["accepted","paid"].includes(status)
+        ? "is-confirmed" : status==="awaiting_payment" ? "is-waiting" : "is-pending";
+    let statusLabel = booking ? translateStatus(status,isEn?"en":"pl") : "";
+    if (booking?.status==="pending" && ["payment_provider_pending","payment_unknown"].includes(booking.api_status)) {
+        statusLabel = booking.api_status==="payment_unknown"
+            ? t("Wymaga weryfikacji","Under review")
+            : t("Opłacona – oczekuje na potwierdzenie","Paid – awaiting confirmation");
+    }
+    const headline = document.getElementById("r24DetailsBookingNumber");
+    if (headline) headline.textContent = bookingId ? "#R24-"+String(bookingId).slice(-4) : "Ride24";
+    const closeX = document.getElementById("r24DetailsCloseX");
+    if (closeX) closeX.setAttribute("aria-label",t("Zamknij","Close"));
+    body.replaceChildren();
 
-    html += `
-        <div style="
-            margin-top:20px;
-            padding-top:20px;
-            border-top:1px solid #334155;
-        ">
-            <strong style="
-                display:block;
-                margin-bottom:12px;
-                color:white;
-                font-size:15px;
-            ">
-                📄 ${isEn ? "Partner documents" : "Dokumenty partnera"}
-            </strong>
-    `;
+    // Identical overview for Dashboard and My bookings, sourced from the saved client booking.
+    const overview = el("section","r24-detail-overview");
+    const top = el("div","r24-detail-overview-top");
+    const car = el("div","r24-detail-car");
+    const snap = booking?.vehicle_snapshot || {};
+    if (booking) {
+        const code = snap.class_code || booking.car_classes?.class_code || "";
+        if (code) car.append(el("span","r24-detail-car-code",code));
+        car.append(el("strong","r24-detail-car-name",
+            window.ride24VehicleLabel(snap,booking.car_classes,isEn)));
+    } else {
+        car.append(el("strong","r24-detail-car-name",t("Dane rezerwacji","Booking details")));
+    }
+    top.append(car);
+    if (statusLabel) top.append(el("span","r24-detail-status "+statusStyle,statusLabel));
+    overview.append(top);
 
-    if (partnerTermsSnapshot) {
-    html += `
-        <button
-            onclick="window.open('${partnerTermsSnapshot}','_blank','noopener,noreferrer')"
-            style="
-                width:100%;
-                margin-bottom:10px;
-                padding:12px;
-                background:#1E293B;
-                border:1px solid #334155;
-                border-radius:10px;
-                color:white;
-                cursor:pointer;
-                font-weight:600;
-                text-align:left;
-                transition:.2s;
-            "
-            onmouseover="this.style.background='#334155'"
-            onmouseout="this.style.background='#1E293B'">
+    if (booking) {
+        const itinerary = el("div","r24-detail-itinerary");
+        itinerary.append(
+            field(t("📍 Odbiór","📍 Pick-up"),booking.pickup_location || "—","r24-detail-pickup"),
+            field(t("🏁 Zwrot","🏁 Return"),booking.return_location || booking.pickup_location || "—","r24-detail-return"),
+            field(t("Data i godzina odbioru","Pick-up date & time"),
+                formatDateTime(booking.start_date,booking.pickup_time)),
+            field(t("Data i godzina zwrotu","Return date & time"),
+                formatDateTime(booking.end_date,booking.return_time))
+        );
+        overview.append(itinerary);
+        const amounts = el("div","r24-detail-amounts");
+        const partnerCurrency = booking.car_classes?.partners?.currency || currency || "EUR";
+        amounts.append(
+            field(t("Do zapłaty przy odbiorze","Pay at pick-up"),
+                money(booking.pickup_payment_partner_currency,partnerCurrency)),
+            field(t("Opłata online Ride24","Ride24 online payment"),
+                money(booking.online_payment_pln,"PLN"))
+        );
+        overview.append(amounts);
+        if (refund==="pending" || refund==="completed") {
+            overview.append(el("p","r24-detail-refund",
+                refund==="completed" ? t("Zwrot płatności zrealizowany","Refund completed")
+                    : t("Zwrot płatności w toku","Refund in progress")));
+        }
+    }
+    body.append(overview);
 
-            📘 ${isEn ? "Partner regulations" : "Regulamin partnera"}
+    // Leave the original pricing and extras renderer untouched (including archived API quotes).
+    const priceSection = el("section","r24-unified-pricing r24-detail-price-section");
+    body.append(priceSection);
+    window.openClientPriceBreakdown(bookingId,priceSection);
 
-        </button>
-    `;
-}
+    const conditions = el("section","r24-detail-conditions");
+    conditions.append(sectionTitle(t("Warunki wynajmu","Rental conditions")));
+    const facts = el("div","r24-detail-facts");
+    const depositAmount = Number(deposit);
+    const depositText = Number.isFinite(depositAmount) && depositAmount>0
+        ? money(depositAmount,currency||"EUR") : t("Brak kaucji","No deposit");
+    const mileageAmount = Number(mileage);
+    const mileageText = mileage!=="" && Number.isFinite(mileageAmount) && mileageAmount>0
+        ? mileageAmount+" "+t("km/dzień","km/day") : t("Bez limitu","Unlimited");
+    facts.append(field(t("Kaucja","Deposit"),depositText),
+        field(t("Limit kilometrów","Mileage"),mileageText));
+    if (driverIncluded===true) {
+        facts.append(field(t("Kierowca w cenie","Driver included"),
+            driverHours ? String(driverHours)+" h" : t("Tak","Yes")));
+    }
+    conditions.append(facts);
+    body.append(conditions);
 
-   if (partnerRulesSnapshot) {
-    html += `
-        <button
-            onclick="window.open('${partnerRulesSnapshot}','_blank','noopener,noreferrer')"
-            style="
-                width:100%;
-                padding:12px;
-                background:#1E293B;
-                border:1px solid #334155;
-                border-radius:10px;
-                color:white;
-                cursor:pointer;
-                font-weight:600;
-                text-align:left;
-                transition:.2s;
-            "
-            onmouseover="this.style.background='#334155'"
-            onmouseout="this.style.background='#1E293B'">
-
-            📗 ${isEn ? "Rental conditions" : "Warunki wynajmu"}
-
-        </button>
-    `;
-}
-
-    html += `</div>`;
-}
-            body.innerHTML = html;
-            const booked=window.ride24BookingsById?.[bookingId];
-            // Arvent uses the same existing details modal as other Ride24
-            // partners. Present saved facts only; never call the supplier or
-            // invent a driver's identity, assigned model, extra or amount.
-            if(booked?.car_classes?.partners?.api_provider==='arvent_kolaycar'){
-                const section=document.createElement('section');
-                section.className='r24-arvent-booking-summary';
-                const heading=document.createElement('h4');
-                heading.textContent=isEn?'Reservation details':'Szczegóły wynajmu';
-                section.append(heading);
-                const add=(name,value)=>{
-                    if(value==null || String(value).trim()==='')return;
-                    const r=document.createElement('div');
-                    r.className='r24-booked-field';
-                    const label=document.createElement('span');
-                    label.textContent=name;
-                    const text=document.createElement('strong');
-                    text.textContent=String(value);
-                    r.append(label,text);section.append(r);
-                };
-                const snap=booked.vehicle_snapshot||{};
-                const vehicle=typeof window.ride24VehicleLabel==='function'
-                    ?window.ride24VehicleLabel(snap,booked.car_classes,isEn)
-                    :[snap.group_name,snap.sipp||snap.class_code].filter(Boolean).join(' ');
-                add(isEn?'Booked vehicle category':'Zarezerwowana kategoria',vehicle);
-                add(isEn?'Ride24 reference':'Numer Ride24',
-                    booked.reservation_code||('R24-'+String(booked.id).slice(-4)));
-                add(isEn?'Arvent reference':'Numer Arvent',booked.api_booking_reference);
-                const when=(date,hour,place)=>[
-                    [date,hour].filter(Boolean).join(' '),place
-                ].filter(Boolean).join(' · ');
-                add(isEn?'Pickup':'Odbiór',
-                    when(booked.start_date,booked.pickup_time,booked.pickup_location));
-                add(isEn?'Return':'Zwrot',
-                    when(booked.end_date,booked.return_time,booked.return_location));
-                add(isEn?'Main driver':'Główny kierowca',booked.main_driver_name);
-                body.prepend(section);
-            }
-            // Presentation only: reuse the existing saved booking amounts inside this details modal.
-            const priceSection = document.createElement('section');
-            priceSection.className = 'r24-unified-pricing';
-            body.appendChild(priceSection);
-            window.openClientPriceBreakdown(bookingId, priceSection);
-            document.getElementById("bookingDetailsModal").style.display = "flex";
-            // Customer-only, read-only archived Caravel quote + accepted terms.
-            if(booked?.partner_id==='78721481-7619-44df-a9b7-5faa344b69bb'){
-                const loading=document.createElement('p');
-                loading.textContent=isEn?'Loading confirmed Caravel booking details…'
-                    :'Pobieranie potwierdzonych szczegółów Caravel…';
-                loading.className='r24-price-legacy';
-                priceSection.replaceChildren(loading);
-                db.functions.invoke('client-caravel-booking-details',{body:{booking_id:bookingId}})
-                  .then(({data,error})=>{
-                      if(!priceSection.isConnected || document.getElementById('bookingDetailsModal')?.style.display!=='flex')return;
-                      if(error||!data?.success||!window.Ride24CaravelBookingDetails?.render(data.details,priceSection,isEn))
-                          throw new Error('CARAVEL_DETAILS_UNAVAILABLE');
-                  }).catch(()=>{
-                      if(!priceSection.isConnected || document.getElementById('bookingDetailsModal')?.style.display!=='flex')return;
-                      window.openClientPriceBreakdown(bookingId,priceSection);
-                      const message=document.createElement('p');
-                      message.className='r24-price-legacy';
-                      message.textContent=isEn
-                        ? 'Could not load booked Caravel extras or archived terms. Retry or contact Ride24.'
-                        : 'Nie udało się pobrać zamówionych dodatków i regulaminu Caravel. Spróbuj ponownie lub skontaktuj się z Ride24.';
-                      priceSection.prepend(message);
-                  });
-            }
+    const documents = el("section","r24-detail-documents");
+    const allowedDocument = raw => {
+        if (!raw || typeof raw!=="string") return null;
+        try {
+            const url = new URL(raw,window.location.origin);
+            return ["https:","http:"].includes(url.protocol) ? url.href : null;
+        } catch (_) {return null;}
+    };
+    const termsUrl = allowedDocument(partnerTermsSnapshot);
+    const rulesUrl = allowedDocument(partnerRulesSnapshot);
+    if (termsUrl || rulesUrl) {
+        documents.append(sectionTitle(t("Dokumenty partnera","Partner documents")));
+        const addDoc = (label,url) => {
+            const button = el("button","r24-detail-doc-link",label);
+            button.type = "button";
+            button.addEventListener("click",()=>window.open(url,"_blank","noopener,noreferrer"));
+            documents.append(button);
         };
+        if (termsUrl) addDoc(t("📘 Regulamin partnera","📘 Partner terms"),termsUrl);
+        if (rulesUrl) addDoc(t("📗 Warunki wynajmu","📗 Rental rules"),rulesUrl);
+        body.append(documents);
+    }
+    window.r24DetailsReturnFocus=document.activeElement;
+    modal.style.display="flex";
+    const firstClose=document.getElementById("r24DetailsCloseX");
+    firstClose?.focus({preventScroll:true});
 
-        window.openClientPriceBreakdown = function(id, inlineTarget = null) {
+    // Caravel's archived terms, drivers, purchased extras and prices remain authoritative.
+    const booked=booking;
+    if (booked?.partner_id==="78721481-7619-44df-a9b7-5faa344b69bb") {
+        const loading=el("p","r24-price-legacy",
+            t("Pobieranie zapisanych szczegółów Caravel…","Loading archived Caravel booking details…"));
+        priceSection.replaceChildren(loading);
+        db.functions.invoke("client-caravel-booking-details",{body:{booking_id:bookingId}})
+          .then(({data,error})=>{
+              if (!priceSection.isConnected || modal.style.display!=="flex") return;
+              if (error || !data?.success || !window.Ride24CaravelBookingDetails?.render(data.details,priceSection,isEn))
+                  throw new Error("CARAVEL_DETAILS_UNAVAILABLE");
+              // Documents are supplementary; keep booked drivers and the itemised extras above them.
+              const archiveDocs=priceSection.querySelector(".r24-caravel-booking-documents");
+              if (archiveDocs) priceSection.append(archiveDocs);
+          }).catch(()=>{
+              if (!priceSection.isConnected || modal.style.display!=="flex") return;
+              window.openClientPriceBreakdown(bookingId,priceSection);
+              priceSection.prepend(el("p","r24-price-legacy",
+                  t("Nie udało się pobrać zamówionych dodatków i regulaminu Caravel. Spróbuj ponownie lub skontaktuj się z Ride24.",
+                    "Could not load booked Caravel extras or archived terms. Retry or contact Ride24.")));
+          });
+    }
+};
+
+window.openClientPriceBreakdown = function(id, inlineTarget = null) {
             const booking = window.ride24BookingsById?.[id];
             if (!booking) return;
             const snapshot = booking.pricing_items_snapshot;
@@ -2582,21 +2721,15 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
             };
             if (valid) {
                 const money=(c,cur=snapshot.currency)=>(Number(c||0)/100).toFixed(2)+' '+cur;
-                const isArvent=booking.car_classes?.partners?.api_provider==='arvent_kolaycar';
                 for(const item of snapshot.items){
                     const name=(en?item.name_en:item.name_pl)+(item.location_name?' — '+item.location_name:'')+
                       (item.kind==='extra'?' × '+item.quantity+(item.billing==='day'?' × '+item.days+' '+(en?'days':'dni'):''):'');
-                    // All providers, including Arvent, must display the
-                    // customer-facing rental amount from search. For Arvent
-                    // item.customer_cents already INCLUDES the Ride24 fee.
-                    // The fee is a payment split, not a second surcharge.
                     row(name,money(item.customer_cents));
                 }
                 if(snapshot.loyalty_discount_cents)
                     row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(snapshot.loyalty_discount_cents));
                 row(en?'Total price':'Cena łączna',money(snapshot.total_cents),'r24-client-price-total');
-                row(isArvent?(en?'Online after confirmation':'Online po potwierdzeniu'):'Online Ride24',
-                    money(snapshot.online_pln_cents,'PLN'));
+                row('Online Ride24',money(snapshot.online_pln_cents,'PLN'));
                 row(en?'Payable to partner':'Do zapłaty partnerowi',money(snapshot.partner_cents));
                 const deposit=Number(booking.deposit_snapshot||0);
                 row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
@@ -2608,12 +2741,9 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
                     ?'An itemised breakdown was not saved for this booking. The recorded amounts are shown below.'
                     :'Dla tej rezerwacji nie zapisano rozliczenia szczegółowego. Poniżej znajdują się zapisane kwoty.');
                 notice.className='r24-price-legacy';body.append(notice);
-                const isArvent=booking.car_classes?.partners?.api_provider==='arvent_kolaycar';
-                row(isArvent?(en?'Online after confirmation':'Online po potwierdzeniu'):'Online Ride24',
-                    (Number(booking.online_payment_pln)||0).toFixed(2)+' PLN');
+                row('Online Ride24',(Number(booking.online_payment_pln)||0).toFixed(2)+' PLN');
                 const curr=booking.car_classes?.partners?.currency||'EUR';
-                row(isArvent?(en?'Payable to partner':'Do zapłaty partnerowi'):(en?'At pickup':'Przy odbiorze'),
-                    (Number(booking.pickup_payment_partner_currency)||0).toFixed(2)+' '+curr);
+                row(en?'At pickup':'Przy odbiorze',(Number(booking.pickup_payment_partner_currency)||0).toFixed(2)+' '+curr);
                 const deposit=Number(booking.deposit_snapshot||0);
                 row(en?'Refundable cash deposit (not included in price)':'Zwrotna kaucja gotówkowa (poza ceną wynajmu)',
                     deposit>0?deposit.toFixed(2)+' '+curr:(en?'No deposit':'Brak kaucji'),'r24-client-price-deposit');
@@ -2627,6 +2757,9 @@ if (partnerTermsSnapshot || partnerRulesSnapshot) {
         };
         window.closeDetailsModal = function() {
             document.getElementById("bookingDetailsModal").style.display = "none";
+            const prev=window.r24DetailsReturnFocus;
+            window.r24DetailsReturnFocus=null;
+            if (prev?.isConnected) prev.focus({preventScroll:true});
         };
         // --- LOYALTY TOOLTIP ---
 window.openLoyaltyModal = function() {
@@ -2948,12 +3081,13 @@ window.goToPayment = goToPayment;
         let payments = [];
         // 🔥 LOYALTY SYSTEM CONFIG
 // 🔥 LOYALTY SYSTEM CONFIG (Z nowymi, pięknymi tłami)
+// Visual palettes only. Reservation thresholds and discounts remain unchanged.
 const loyaltyConfig = {
   0: { name: "START", color: "#64748B", border: "#334155", bg: "rgba(30, 41, 59, 0.5)", discount: 0 },
-  1: { name: "SILVER", color: "#CBD5E1", border: "#94A3B8", bg: "rgba(148, 163, 184, 0.1)", discount: 5 },
-  2: { name: "GOLD", color: "#FBBF24", border: "#D97706", bg: "rgba(245, 158, 11, 0.1)", discount: 10 },
-  3: { name: "PLATINUM", color: "#38BDF8", border: "#0284C7", bg: "rgba(56, 189, 248, 0.1)", discount: 15 },
-  4: { name: "VIP", color: "#8CE619", border: "#73D700", bg: "rgba(34, 197, 94, 0.1)", discount: 20 }
+  1: { name: "SILVER", color: "#E7EFF6", border: "#DDE6EF", bg: "linear-gradient(125deg, #B4C0CE 0%, #F4F8FD 23%, #DFE6EE 42%, #F9FBFE 66%, #ADBCCB 100%)", discount: 5 },
+  2: { name: "GOLD", color: "#F7E3A4", border: "#F6D978", bg: "linear-gradient(125deg, #EAC472 0%, #FFF2BA 24%, #EBC36C 45%, #FFF7D9 65%, #E2B65A 100%)", discount: 10 },
+  3: { name: "PLATINUM", color: "#DDF5FF", border: "#CDE8F4", bg: "linear-gradient(125deg, #B5D3E6 0%, #EFF9FE 26%, #D1EAF6 46%, #F8FCFF 71%, #AFCEE0 100%)", discount: 15 },
+  4: { name: "VIP", color: "#A6EB45", border: "#B9F77B", bg: "linear-gradient(122deg, #092C24 0%, #145A42 23%, #1A7750 45%, #0D3A30 75%, #082C28 100%)", discount: 20 }
 };
 const thresholds = [3, 6, 10, 15];
 
@@ -2980,6 +3114,8 @@ function renderLoyaltyCard(paidCount) {
     document.getElementById("loyalty-level-name").style.color = config.color;
 
     const card = document.getElementById("loyalty-card");
+    // The current tier controls presentation only; no change to loyalty calculation.
+    card.dataset.loyaltyTier = config.name.toLowerCase();
     card.style.borderColor = config.border;
     card.style.background = config.bg;
 
@@ -3208,27 +3344,15 @@ document.addEventListener("click", async function(e) {
        window.ride24ArventFormMode = function(on) {
            const isEn = localStorage.getItem("client_lang") === "en";
            const addSelect = document.getElementById("additionalDriverSelect");
-           const driverRow = document.getElementById("additionalDriverRow");
            const note = document.getElementById("arventAdditionalDriverNote");
            const callout = document.querySelector("#termsModal .r24-extras-callout");
            const extrasInfo = document.getElementById("arventExtrasInfo");
-
+           const licence = document.getElementById("arventLicenseSince");
            const price = document.getElementById("bookingPriceBreakdown");
            const docs = document.querySelector("#termsModal .docs-container");
            const btn = document.getElementById("confirmBookingBtn");
            window.r24ArventForm = !!on;
-           if (driverRow) {
-               driverRow.hidden = !!on;
-               // Explicitly hide the legacy saved-person selector for Arvent:
-               // partner confirmed code-2 paid extra does not require this data.
-               driverRow.style.display = on ? "none" : "";
-           }
-           if (!on) {
-               window.r24ArventExtraDriverAllowed = false;
-               const missingDate=document.getElementById("arventProfileLicenceNotice");
-               if(missingDate) missingDate.hidden=true;
-           }
-           if (note) note.hidden = true;
+           if (note) note.hidden = !on;
            // Arvent: retain the standard extras section, but distinguish
            // supplier catalogue entries from offer-priced/bookable extras.
            // All other partners retain the original title and picker behavior.
@@ -3241,33 +3365,22 @@ document.addEventListener("click", async function(e) {
            const extrasDescription = callout?.querySelector(".r24-extras-copy small");
            const equipmentHeading = document.querySelector("#equipmentInfoModal h3");
            if (extrasTitle) {
-               extrasTitle.dataset.pl = on ? "Dodatkowy kierowca" : "Wybierz dodatki do wynajmu";
-               extrasTitle.dataset.en = on ? "Additional driver" : "Choose rental extras";
+               extrasTitle.dataset.pl = on ? "Katalog dodatków do wynajmu" : "Wybierz dodatki do wynajmu";
+               extrasTitle.dataset.en = on ? "Rental extras catalogue" : "Choose rental extras";
                extrasTitle.textContent = isEn ? extrasTitle.dataset.en : extrasTitle.dataset.pl;
            }
            if (extrasDescription) {
-               extrasDescription.dataset.pl = on ? "4 € za dobę. Sprawdź dostępność i aktualną cenę." : "Zobacz dostępne usługi i ich aktualną cenę.";
-               extrasDescription.dataset.en = on ? "€4 per day. Check availability and the current price." : "See available services and their current prices.";
+               extrasDescription.dataset.pl = on ? "Sprawdź usługi partnera i ich dostępność online." : "Zobacz dostępne usługi i ich aktualną cenę.";
+               extrasDescription.dataset.en = on ? "See supplier services and their online availability." : "See available services and their current prices.";
                extrasDescription.textContent = isEn ? extrasDescription.dataset.en : extrasDescription.dataset.pl;
            }
            if (equipmentHeading) {
-               equipmentHeading.dataset.pl = on ? "Dodatkowy kierowca" : "Wybierz dodatki do wynajmu";
-               equipmentHeading.dataset.en = on ? "Additional driver" : "Choose rental extras";
+               equipmentHeading.dataset.pl = on ? "Katalog dodatków" : "Wybierz dodatki do wynajmu";
+               equipmentHeading.dataset.en = on ? "Extras catalogue" : "Choose rental extras";
                equipmentHeading.textContent = isEn ? equipmentHeading.dataset.en : equipmentHeading.dataset.pl;
            }
-
-           if (addSelect && on) {
-               // Preserve the prior supplier's dropdown state; never globally
-               // enable a field that AVIA/Caravel/local forms disabled.
-               if (!Object.hasOwn(addSelect.dataset, "r24ArventPriorDisabled"))
-                   addSelect.dataset.r24ArventPriorDisabled = addSelect.disabled ? "true" : "false";
-               addSelect.value = "none";
-               addSelect.disabled = true;
-               window.r24ArventExtraDriverAllowed = false;
-           } else if (addSelect && !on && Object.hasOwn(addSelect.dataset, "r24ArventPriorDisabled")) {
-               addSelect.disabled = addSelect.dataset.r24ArventPriorDisabled === "true";
-               delete addSelect.dataset.r24ArventPriorDisabled;
-           }
+           if (licence) licence.readOnly = !!on;
+           if (addSelect && on) { addSelect.value = "none"; addSelect.disabled = true; }
            // Same order as every standard Ride24 booking: documents, price, consent.
            // Also restores order when reopening after an older Arvent form.
            if (price && docs && docs.nextElementSibling !== price) docs.after(price);
@@ -3279,18 +3392,10 @@ document.addEventListener("click", async function(e) {
            window.ride24ArventLicenceCheck?.();
        };
        window.ride24ArventGoToProfile = function() {
-           const selectedId=document.getElementById("driverSelect")?.value;
            window.closeTermsModal();
            window.switchTab("profile");
-           // The licence belongs to the selected MAIN driver, not
-           // necessarily the account owner.
-           const driverRow=selectedId
-               ?[...document.querySelectorAll("#drivers-list .driver-entry")]
-                   .find(row=>row.dataset.id===selectedId)
-               :null;
-           const field=driverRow?.querySelector(".driver-license-since")
-               ||document.getElementById("profile-license-since");
-           field?.scrollIntoView({block:"center"});
+           const field = document.getElementById("profile-license-since");
+           field?.scrollIntoView({ block: "center" });
            field?.focus();
        };
        const bookingExtras = createBookingExtras({db, url:supabaseUrl, key:supabaseKey,
@@ -3316,7 +3421,10 @@ document.addEventListener("click", async function(e) {
     if (cardNotice) cardNotice.hidden = true;
     const cardAck = document.getElementById("aviaDebitCardConfirm");
     if (cardAck) cardAck.checked = false;
-
+    const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+    if (arventLicenseBlock) arventLicenseBlock.hidden = true;
+    const arventLicenseInput = document.getElementById("arventLicenseSince");
+    if (arventLicenseInput) arventLicenseInput.value = "";
     window.r24IsArventBooking = false;
     window.ride24ArventFormMode(false);
     window.r24LocalMinLicenceYears = 0;
@@ -3370,19 +3478,24 @@ document.addEventListener("click", async function(e) {
         select.innerHTML = optionsHtml;
         addSelect.innerHTML = `<option value="none" data-pl="Brak" data-en="None">${isEn ? "None" : "Brak"}</option>` + optionsHtml;
 
-        // Arvent reads the licence date only from the account's saved profile
-        // or the selected main driver's saved entry. No duplicate date input.
-        window.ride24ArventLicenceCheck = () => {
-            const chosen=select.value?(myDrivers||[]).find(d=>d.id===select.value):null;
-            const licenceDate=chosen?.license_since||(!select.value?profileCheck.license_since:null);
-            const lacking=!!window.r24ArventForm&&!window.ride24LicenseDate(licenceDate);
-            const warning=document.getElementById("arventProfileLicenceNotice");
-            if(warning)warning.hidden=!lacking;
-            const confirm=document.getElementById("confirmBookingBtn");
-            if(confirm&&window.r24ArventForm)
-                confirm.disabled=lacking||!bookingExtras.canSubmit();
+        // Prefill the licence date saved for the selected main driver (still editable).
+        const prefillLicense = () => {
+            const input = document.getElementById("arventLicenseSince");
+            if (!input) return;
+            const chosen = select.value ? (myDrivers || []).find(d => d.id === select.value) : null;
+            input.value = window.ride24LicenseDate(chosen ? chosen.license_since : profileCheck.license_since) || "";
+            window.ride24ArventLicenceCheck?.();
         };
-        const prefillLicense=()=>window.ride24ArventLicenceCheck?.();
+        // Arvent: the date always comes from the selected person's saved data.
+        window.ride24ArventLicenceCheck = () => {
+            const input = document.getElementById("arventLicenseSince");
+            const missing = document.getElementById("arventLicenseMissing");
+            const block = document.getElementById("arventLicenseRequirement");
+            const lacking = !!window.r24ArventForm && block && !block.hidden && !window.ride24LicenseDate(input?.value);
+            if (missing) missing.hidden = !lacking;
+            if (lacking) document.getElementById("confirmBookingBtn").disabled = true;
+            else if (window.r24ArventForm) document.getElementById("confirmBookingBtn").disabled = !bookingExtras.canSubmit();
+        };
         prefillLicense();
 
         const requoteCaravelDrivers = async () => {
@@ -3472,8 +3585,13 @@ document.addEventListener("click", async function(e) {
                 if (cardNotice) cardNotice.hidden =
                     car.partner_id !== "91e04805-31da-4242-9e6f-b6075019d784";
                 const { data: partner } = await db.from("partners").select("rental_terms_url, rental_rules_url,min_driver_age,max_driver_age,min_license_years,provider_type,api_provider").eq("id", car.partner_id).single();
+                const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
                 window.r24IsArventBooking = partner?.api_provider === "arvent_kolaycar"
                     || car.partner_id === "bf29a373-c464-4cec-87a7-c3218ea1ea51";
+                if (arventLicenseBlock) {
+                    // Arvent may still be staged under api_provider=custom before launch.
+                    arventLicenseBlock.hidden = !window.r24IsArventBooking;
+                }
 
                 const localLicenceYears = partner?.provider_type === "local" ? Number(partner.min_license_years ?? 0) : 0;
                 window.r24LocalMinLicenceYears = Number.isInteger(localLicenceYears) && localLicenceYears > 0 && localLicenceYears <= 50 ? localLicenceYears : 0;
@@ -3562,13 +3680,8 @@ document.addEventListener("click", async function(e) {
                     ? additionalValue
                     : null;
 
-                // Arvent: additional driver only after the supplier has
-                // returned a priced, certified code 2 and the person is bound
-                // to the current server quote. Other partners are unaffected.
                 if (window.r24ArventForm && additionalDriverId) {
-                    throw new Error(isEn
-                      ? "Select the Additional driver paid extra. No second driver's details are needed online."
-                      : "Wybierz płatny dodatek Dodatkowy kierowca. Dane tej osoby podaje się dopiero przy odbiorze.");
+                    throw new Error(isEn ? "An additional driver is not available for this offer." : "Dodatkowy kierowca jest niedostępny w tej ofercie.");
                 }
                 if (driverId && additionalDriverId && driverId === additionalDriverId) {
                     throw new Error(isEn ? "Select two different drivers." : "Wybierz dwóch różnych kierowców.");
@@ -3595,18 +3708,15 @@ document.addEventListener("click", async function(e) {
                     }
                 }
 
-                // Server reads the selected main driver's saved licence date.
-                // Never send or accept a second manual date from Arvent's form.
-                if (window.r24ArventForm) {
-                    const people = window.r24BookingLicencePeople;
-                    const main = driverId
-                        ? people?.drivers?.find(d => d.id === driverId)
-                        : people?.owner;
-                    if (!window.ride24LicenseDate(main?.license_since)) {
-                        throw new Error(isEn
-                            ? "Add the main driver's original driving-licence date in Profile."
-                            : "Uzupełnij w Profilu datę pierwszego uzyskania prawa jazdy głównego kierowcy.");
-                    }
+                const arventLicenseBlock = document.getElementById("arventLicenseRequirement");
+                const arventLicenseSince = arventLicenseBlock && !arventLicenseBlock.hidden
+                    ? document.getElementById("arventLicenseSince")?.value : null;
+                if (arventLicenseBlock && !arventLicenseBlock.hidden &&
+                    (!/^\d{4}-\d{2}-\d{2}$/.test(arventLicenseSince || "") ||
+                     arventLicenseSince > new Date().toISOString().slice(0, 10))) {
+                    throw new Error(isEn
+                        ? "Enter the original issue date of the main driver's driving licence."
+                        : "Podaj datę pierwszego uzyskania prawa jazdy głównego kierowcy.");
                 }
                 const pricingPayload = caravelBooking ? {} : bookingExtras.payload();
                 const caravelResult = caravelBooking ? await window.Ride24CaravelConsent.book({
@@ -3629,7 +3739,7 @@ document.addEventListener("click", async function(e) {
                         return_location: returnName,
                         driver_id: driverId,
                         additional_driver_id: additionalDriverId,
-
+                        ...(arventLicenseSince ? { main_driver_license_since: arventLicenseSince } : {}),
                         terms_accepted: true,
                         avia_personal_debit_card_acknowledged:
                             !!(document.getElementById("aviaCardRequirement") &&
@@ -3725,9 +3835,6 @@ document.addEventListener("click", async function(e) {
             .from("bookings")
             .select(`
     id,
-    reservation_code,
-    api_booking_reference,
-    main_driver_name,
     partner_id,
     caravel_terms_document_id,
     created_at,
@@ -4505,7 +4612,12 @@ function calculateRefundPercent(pickupDate) {
                 if(document.getElementById("profile-name")) document.getElementById("profile-name").value = profile.name || "";
                 if(document.getElementById("profile-age")) document.getElementById("profile-age").value = profile.age || "";
                 if(document.getElementById("profile-phone")) document.getElementById("profile-phone").value = profile.phone || "";
-                if(document.getElementById("profile-license-since")) document.getElementById("profile-license-since").value = profile.license_since || "";
+                const licenseInput=document.getElementById("profile-license-since");
+                if(licenseInput){
+                    licenseInput.value=profile.license_since || "";
+                    if(licenseInput._flatpickr)licenseInput._flatpickr.setDate(profile.license_since || "",false,"Y-m-d");
+                    else window.r24SetupLicenseCalendar(licenseInput);
+                }
                 // Never assume residence country for incomplete accounts.
                 if(document.getElementById("profile-country")) document.getElementById("profile-country").value = profile.country || "";
 
@@ -4520,6 +4632,8 @@ function calculateRefundPercent(pickupDate) {
                 }
             }
 
+            window.r24SetupLicenseCalendar(document.getElementById("profile-license-since"));
+            window.r24SetProfileSectionMode("owner",!!profile && clientProfileErrors(profile,currentUser.email).length===0);
             // Optional drivers are not loaded until the core account has been verified.
             if (clientProfileErrors(profile, currentUser.email).length > 0) return profile;
             const { data: driversData } = await db
@@ -4529,6 +4643,7 @@ function calculateRefundPercent(pickupDate) {
 
             const list = document.getElementById("drivers-list");
             if(list) {
+                list.querySelectorAll(".driver-license-since").forEach(input=>input._flatpickr?.destroy());
                 list.innerHTML = "";
                 if(driversData && driversData.length > 0) {
                     driversData.forEach(driver => {
@@ -4605,6 +4720,8 @@ function calculateRefundPercent(pickupDate) {
             const rememberCheckbox = document.getElementById("invoice-remember");
             if (rememberCheckbox) rememberCheckbox.checked = true;
 
+            // Previously stored partial invoice records remain editable until every required field is valid.
+            window.r24SetProfileSectionMode("invoice",!!invoiceData && invoiceProfileErrors(invoiceData).length===0);
             if (!invoiceData) return;
 
             const companyInput = document.getElementById("invoice-company");
@@ -4687,6 +4804,7 @@ function calculateRefundPercent(pickupDate) {
                 return;
             }
 
+            window.r24SetProfileSectionMode("invoice",true);
             window.showToast(
                 isEn ? "Invoice data saved." : "Dane do rachunku zapisane.",
                 "success"
@@ -4722,6 +4840,7 @@ function calculateRefundPercent(pickupDate) {
             window.clearInvoiceForm();
             const rememberCheckbox = document.getElementById("invoice-remember");
             if (rememberCheckbox) rememberCheckbox.checked = true;
+            window.r24SetProfileSectionMode("invoice",false);
             window.showToast(isEn ? "The data has been deleted." : "Dane zostały usunięte.", "success");
         }
 
@@ -4744,6 +4863,83 @@ function calculateRefundPercent(pickupDate) {
             const py = Number(pickupDate.slice(0,4)), pm = Number(pickupDate.slice(5,7)), pd = Number(pickupDate.slice(8,10));
             if (!Number.isInteger(py) || py < 1900 || pm < 1 || pm > 12 || pd < 1 || pd > 31) return null;
             return py - fy - ((pm < fm || (pm === fm && pd < fd)) ? 1 : 0);
+        };
+
+
+        // Dates are displayed as DD.MM.YYYY while the underlying input stays ISO for Supabase.
+        window.r24SetupLicenseCalendar = function(input) {
+            if (!input || input._flatpickr || typeof window.flatpickr !== "function") return;
+            const lang = localStorage.getItem("client_lang") === "en" ? "en" : "pl";
+            flatpickr(input, {
+                dateFormat:"Y-m-d", altInput:true, altFormat:"d.m.Y", allowInput:false,
+                disableMobile:true, minDate:"1900-01-01", maxDate:new Date(),
+                monthSelectorType:"dropdown",
+                locale:lang === "en" ? "default" : (flatpickr.l10ns?.pl || "pl"),
+                defaultDate:window.ride24LicenseDate(input.value) || null,
+                onReady: (_dates,_date,instance)=>instance.calendarContainer.classList.add("r24-profile-calendar")
+            });
+        };
+        window.r24SetProfileSectionMode = function(section,saved) {
+            const root = document.querySelector(section === "invoice"
+                ? "#view-profile .profile-invoice-col" : "#view-profile .profile-owner-col");
+            const button = root?.querySelector(".r24-save-edit");
+            const card = root?.querySelector(".settings-card");
+            if (!button || !card) return;
+            button.dataset.saved = saved ? "1" : "0";
+            button.classList.toggle("r24-edit-mode",!!saved);
+            card.classList.toggle("r24-fields-locked",!!saved);
+            button.dataset.pl=saved?"Edytuj":(section==="invoice"?"Zapisz dane":"Zapisz profil");
+            button.dataset.en=saved?"Edit":(section==="invoice"?"Save data":"Save profile");
+            button.textContent=button.dataset[localStorage.getItem("client_lang")==="en"?"en":"pl"];
+            card.querySelectorAll("input").forEach(input=>{
+                if(input.id==="profile-email")return;
+                if(input.type==="checkbox")input.disabled=!!saved;
+                else input.readOnly=!!saved;
+                if(input._flatpickr){input._flatpickr.set("clickOpens",!saved);if(input._flatpickr.altInput)input._flatpickr.altInput.disabled=!!saved;}
+            });
+            if(section==="invoice"){
+                const clear=card.querySelector('[onclick="clearInvoiceForm()"]');
+                if(clear)clear.disabled=!!saved;
+            }
+        };
+        window.r24ToggleProfileSection = function(section) {
+            const root=document.querySelector(section==="invoice"
+                ? "#view-profile .profile-invoice-col" : "#view-profile .profile-owner-col");
+            const button=root?.querySelector(".r24-save-edit");
+            if(!button)return;
+            if(button.dataset.saved==="1"){
+                window.r24SetProfileSectionMode(section,false);
+                root.querySelector(section==="invoice"?"#invoice-company":"#profile-name")?.focus();
+                return;
+            }
+            return section==="invoice"?window.saveInvoiceData():window.saveProfile();
+        };
+        window.r24SetDriverMode = function(row,saved) {
+            if(!row)return;
+            row.dataset.saved=saved?"1":"0";
+            row.classList.toggle("r24-fields-locked",!!saved);
+            const button=row.querySelector(".r24-driver-action");
+            if(button){
+                button.dataset.saved=saved?"1":"0";
+                button.classList.toggle("r24-edit-mode",!!saved);
+                button.dataset.pl=saved?"Edytuj":"Zapisz kierowcę";
+                button.dataset.en=saved?"Edit":"Save driver";
+                button.textContent=button.dataset[localStorage.getItem("client_lang")==="en"?"en":"pl"];
+            }
+            row.querySelectorAll("input").forEach(input=>{
+                input.readOnly=!!saved;
+                if(input._flatpickr){input._flatpickr.set("clickOpens",!saved);if(input._flatpickr.altInput)input._flatpickr.altInput.disabled=!!saved;}
+            });
+        };
+        window.r24ToggleDriverAction = function(button) {
+            const row=button?.closest(".driver-entry");
+            if(!row)return;
+            if(row.dataset.saved==="1"){
+                window.r24SetDriverMode(row,false);
+                row.querySelector(".driver-name")?.focus();
+                return;
+            }
+            return window.saveDrivers(row);
         };
 
         window.saveProfile = async function() {
@@ -4789,6 +4985,7 @@ function calculateRefundPercent(pickupDate) {
                         ? "The saved profile is still incomplete."
                         : "Zapisany profil nadal jest niekompletny.");
                 }
+                window.r24SetProfileSectionMode("owner",true);
                 const firstActivation = !window.r24ClientBookingsLoaded;
                 window.showToast(isEn ? "Profile saved — your panel is unlocked." : "Profil zapisany — panel odblokowany.", "success");
                 if (firstActivation) {
@@ -4808,106 +5005,108 @@ function calculateRefundPercent(pickupDate) {
             }
         };
 
-        window.addDriverRow = function(name = "", age = "", phone = "", driverId = "", licenseSince = "") {
-            const list = document.getElementById('drivers-list');
-            const row = document.createElement('div');
-            row.className = 'driver-row driver-entry';
-            row.dataset.id = driverId;
-            row.innerHTML = `
-                <div class="form-group" style="margin-bottom: 0;">
+
+        // Each driver saves separately. Never overwrite or remove other rows on a single-row save.
+        window.addDriverRow = function(name="",age="",phone="",driverId="",licenseSince="") {
+            const list=document.getElementById("drivers-list");
+            if(!list)return;
+            const esc=value=>String(value??"").replace(/[&<>"']/g,ch=>
+                ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+            const row=document.createElement("div");
+            row.className="driver-row driver-entry";
+            row.dataset.id=driverId || "";
+            row.innerHTML=`
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Imię i nazwisko *" data-en="Full name *">Imię i nazwisko *</label>
-                    <input type="text" class="driver-name" placeholder="Jan Kowalski" value="${name}">
+                    <input type="text" class="driver-name" placeholder="Jan Kowalski" value="${esc(name)}">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Wiek *" data-en="Age *">Wiek *</label>
-                    <input type="number" class="driver-age" placeholder="30" min="18" value="${age}">
+                    <input type="number" class="driver-age" placeholder="30" min="18" value="${esc(age)}">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Telefon *" data-en="Phone *">Telefon *</label>
-                    <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${phone}">
+                    <input type="tel" class="driver-phone" placeholder="+48 000 000 000" value="${esc(phone)}">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group" style="margin-bottom:0">
                     <label data-pl="Data pierwszego uzyskania prawa jazdy *" data-en="Date first granted a driving licence *">Data pierwszego uzyskania prawa jazdy *</label>
-                    <input type="date" class="driver-license-since" required autocomplete="off" value="${window.ride24LicenseDate(licenseSince) || ""}">
+                    <input type="date" class="driver-license-since" required autocomplete="off" value="${esc(window.ride24LicenseDate(licenseSince)||"")}">
                     <small data-pl="Podaj datę pierwszego uzyskania uprawnień, nie datę wydania nowego dokumentu." data-en="Enter the original entitlement date, not the date a replacement card was issued.">Podaj datę pierwszego uzyskania uprawnień, nie datę wydania nowego dokumentu.</small>
                 </div>
-                <button type="button" class="btn-icon-remove" onclick="removeDriver(this, '${driverId}')" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
+                <div class="r24-driver-actions">
+                    <button type="button" class="btn-primary r24-driver-action" onclick="r24ToggleDriverAction(this)" data-pl="Zapisz kierowcę" data-en="Save driver">Zapisz kierowcę</button>
+                    <button type="button" class="btn-icon-remove" onclick="removeDriver(this)" data-pl="🗑 Usuń kierowcę" data-en="🗑 Remove driver">🗑 Usuń kierowcę</button>
+                </div>
             `;
             list.appendChild(row);
-            window.detectLang();
-        }
-
-        window.removeDriver = async function(btnElement, driverId) {
-            const isEn = localStorage.getItem("client_lang") === "en";
-            if(driverId && db && currentUser) {
-                const { error } = await db.from("drivers").delete().eq("id", driverId).eq("user_id", currentUser.id);
-                if (!error) window.showToast(isEn ? "Driver removed" : "Kierowca usunięty", "info");
-            } else {
-                window.showToast(isEn ? "Row removed" : "Wiersz usunięty", "info");
-            }
-            btnElement.parentElement.remove();
-        }
-
-       window.saveDrivers = async function() {
-            const isEn = localStorage.getItem("client_lang") === "en";
-            if (!db || !currentUser?.id || !window.r24ClientProfileReady) {
-                window.switchTab("profile");
-                window.showToast(isEn ? "Complete and save your required profile first." : "Najpierw zapisz wymagane dane profilu.", "error");
-                return;
-            }
-            const rows = Array.from(document.querySelectorAll("#drivers-list .driver-entry"));
-            const newDrivers = [];
-
-            const fieldSelector = {name:".driver-name", age:".driver-age", phone:".driver-phone", license_since:".driver-license-since"};
-            for (const row of rows) {
-                const candidate = {
-                    name: row.querySelector(".driver-name")?.value.trim() || "",
-                    age: row.querySelector(".driver-age")?.value.trim() || "",
-                    phone: row.querySelector(".driver-phone")?.value.trim() || "",
-                    license_since: row.querySelector(".driver-license-since")?.value || ""
-                };
-                const errors = additionalDriverErrors(candidate);
-                if (errors.length) {
-                    const firstError = errors[0];
-                    const field = row.querySelector(fieldSelector[firstError.field]);
-                    field?.setAttribute("aria-invalid", "true");
-                    field?.focus();
-                    window.showToast((isEn ? "Complete driver details: " : "Uzupełnij dane kierowcy: ") +
-                        errors.map(e => isEn ? e.en : e.pl).join(", "), "error");
+            window.r24SetupLicenseCalendar(row.querySelector(".driver-license-since"));
+            // Legacy partial drivers must not look successfully completed; keep them ready for correction.
+            window.r24SetDriverMode(row,!!driverId && additionalDriverErrors({name,age,phone,license_since:licenseSince}).length===0);
+            window.applyClientLanguage(row);
+        };
+        window.removeDriver=async function(button) {
+            const row=button?.closest(".driver-entry");
+            if(!row)return;
+            const isEn=localStorage.getItem("client_lang")==="en";
+            const id=row.dataset.id;
+            if(id){
+                if(!db || !currentUser?.id){window.showToast(isEn?"Login required.":"Wymagane logowanie.","error");return;}
+                button.disabled=true;
+                try {
+                    const {error}=await db.from("drivers").delete().eq("id",id).eq("user_id",currentUser.id);
+                    if(error)throw error;
+                } catch(error) {
+                    console.error("Driver removal failed",error);
+                    window.showToast(isEn?"Unable to remove driver.":"Nie udało się usunąć kierowcy.","error");
+                    button.disabled=false;
                     return;
                 }
-                if (!row.dataset.id) row.dataset.id=crypto.randomUUID();
-                newDrivers.push({
-                    id: row.dataset.id,
-                    user_id: currentUser.id,
-                    name: candidate.name,
-                    age: Number(candidate.age),
-                    phone: candidate.phone,
-                    age_updated_at: new Date().toISOString().slice(0, 10),
-                    license_since: candidate.license_since
-                });
             }
-            if (newDrivers.length === 0) {
-                window.showToast(isEn ? "There are no drivers to save." : "Nie ma kierowców do zapisania.", "info");
-                return;
+            row.querySelector(".driver-license-since")?._flatpickr?.destroy();
+            row.remove();
+            window.showToast(isEn?"Driver removed.":"Kierowca usunięty.","info");
+        };
+        window.saveDrivers=async function(targetRow=null) {
+            const isEn=localStorage.getItem("client_lang")==="en";
+            if(!db || !currentUser?.id || !window.r24ClientProfileReady){
+                window.switchTab("profile");
+                window.showToast(isEn?"Complete and save your required profile first.":"Najpierw zapisz wymagane dane profilu.","error");
+                return false;
             }
-            const saveBtn = document.querySelector('#view-profile .profile-col[data-r24-optional-profile="drivers"] .profile-actions button');
-            if (saveBtn) saveBtn.disabled = true;
-            try {
-                const {data,error}=await db.from("drivers").upsert(newDrivers,{onConflict:"id"}).select("id");
-                if(error || data?.length!==newDrivers.length) throw error || new Error("Incomplete driver write");
-                window.showToast(isEn ? "All driver details saved." : "Zapisano kompletne dane kierowców.", "success");
-                await loadUserProfile();
-                if(caravelProfileReturn)window.submitBooking();
-            } catch (err) {
-                console.error("Additional drivers save failed:", err);
-                window.showToast(isEn
-                    ? "Drivers were not fully saved. Your earlier entries were not intentionally changed."
-                    : "Nie udało się w pełni zapisać kierowców. Wcześniejsze wpisy nie zostały celowo zmienione.", "error");
-                await loadUserProfile().catch(console.error);
-            } finally {
-                if (saveBtn) saveBtn.disabled = false;
+            const rows=targetRow?[targetRow]:Array.from(document.querySelectorAll("#drivers-list .driver-entry")).filter(r=>r.dataset.saved!=="1");
+            const selectors={name:".driver-name",age:".driver-age",phone:".driver-phone",license_since:".driver-license-since"};
+            for(const row of rows){
+                const candidate={
+                    name:row.querySelector(".driver-name")?.value.trim()||"",
+                    age:row.querySelector(".driver-age")?.value.trim()||"",
+                    phone:row.querySelector(".driver-phone")?.value.trim()||"",
+                    license_since:row.querySelector(".driver-license-since")?.value||""
+                };
+                const errors=additionalDriverErrors(candidate);
+                if(errors.length){
+                    const field=row.querySelector(selectors[errors[0].field]);
+                    field?.setAttribute("aria-invalid","true");field?.focus();
+                    window.showToast((isEn?"Complete driver details: ":"Uzupełnij dane kierowcy: ")+errors.map(e=>isEn?e.en:e.pl).join(", "),"error");
+                    return false;
+                }
+                const btn=row.querySelector(".r24-driver-action");
+                if(btn)btn.disabled=true;
+                try{
+                    const driverId=row.dataset.id||crypto.randomUUID();
+                    const payload={id:driverId,user_id:currentUser.id,name:candidate.name,age:Number(candidate.age),phone:candidate.phone,age_updated_at:new Date().toISOString().slice(0,10),license_since:candidate.license_since};
+                    const {data,error}=await db.from("drivers").upsert(payload,{onConflict:"id"}).select("id").single();
+                    if(error || data?.id!==driverId)throw error||new Error("Driver write unconfirmed");
+                    row.dataset.id=driverId;
+                    window.r24SetDriverMode(row,true);
+                    window.showToast(isEn?"Driver saved.":"Kierowca zapisany.","success");
+                }catch(error){
+                    console.error("Additional driver save failed",error);
+                    window.showToast(isEn?"Could not save this driver.":"Nie udało się zapisać tego kierowcy.","error");
+                    return false;
+                }finally{if(btn)btn.disabled=false;}
             }
+            if(caravelProfileReturn)window.submitBooking();
+            return true;
         };
 
         // --- REALNE ANULOWANIE / ODRZUCANIE REZERWACJI ---
@@ -5354,6 +5553,12 @@ window.cancelBooking = async function(id, currentStatus) {
             lang = lang === "en" ? "en" : "pl";
             localStorage.setItem("client_lang", lang);
             window.applyClientLanguage(document);
+            if(typeof window.flatpickr==="function"){
+                const locale=lang==="en"?"default":(flatpickr.l10ns?.pl||"pl");
+                document.querySelectorAll("#view-profile .driver-license-since, #profile-license-since").forEach(input=>{
+                    if(input._flatpickr)input._flatpickr.set("locale",locale);
+                });
+            }
             window.r24RenderProfileProblems?.();
 
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active-lang'));
@@ -5438,6 +5643,137 @@ function translateStatus(status, lang = null) {
 
     return map[status] ? map[status][currentLang] : status;
 }
+
+/* Płatności → Szczegóły: open the same saved-booking modal as in My bookings. */
+
+window.r24ClosePaymentBookingCard = function() {
+    const modal = document.getElementById("r24PaymentBookingCardModal");
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    const previous = window.r24PaymentBookingCardTrigger;
+    window.r24PaymentBookingCardTrigger = null;
+    if (previous?.isConnected) previous.focus({preventScroll:true});
+};
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !document.getElementById("r24PaymentBookingCardModal")?.hidden) {
+        window.r24ClosePaymentBookingCard();
+    }
+});
+
+/* Payments ID → the actual booking card: vehicle, dates, both locations, amounts and status. */
+window.r24OpenPaymentBookingCard = async function(bookingId, trigger = null) {
+    const isEn = localStorage.getItem("client_lang") === "en";
+    if (!window.r24ClientProfileReady || !currentUser?.id || !bookingId) return;
+    try {
+        let booking = window.ride24BookingsById?.[bookingId];
+        if (!booking) {
+            await loadClientBookings(); // Query remains scoped to currentUser.id.
+            booking = window.ride24BookingsById?.[bookingId];
+        }
+        if (!booking) {
+            window.showToast(isEn ? "Booking not found." : "Nie znaleziono rezerwacji.", "error");
+            return;
+        }
+        const modal = document.getElementById("r24PaymentBookingCardModal");
+        const body = document.getElementById("r24PaymentBookingCardBody");
+        if (!modal || !body) return;
+        const status = booking.status || "";
+        const refund = booking.refund_status || "";
+        const isArvent = booking.car_classes?.partners?.api_provider === "arvent_kolaycar";
+        const supplierPending = status === "pending" && ["payment_provider_pending","payment_unknown"].includes(booking.api_status);
+        let statusText = translateStatus(status, isEn ? "en" : "pl");
+        if (isArvent && status === "pending" && booking.api_status === "payment_provider_pending") {
+            statusText = isEn ? "Awaiting partner confirmation" : "Oczekuje na potwierdzenie partnera";
+        } else if (isArvent && status === "pending" && booking.api_status === "payment_unknown") {
+            statusText = isEn ? "Under review" : "Wymaga weryfikacji";
+        } else if (supplierPending) {
+            statusText = isEn ? "Paid – awaiting confirmation" : "Opłacona – czeka na potwierdzenie";
+        } else if (isArvent && ["rejected","expired"].includes(status) && ["pending","completed","failed"].includes(refund)) {
+            statusText = isEn ? "Cancelled – payment refund" : "Anulowana – zwrot płatności";
+        }
+        // Same red/green/yellow meaning as the payment row, independent from refund label.
+        const cardState = ["cancelled","rejected","expired","payment_expired"].includes(status) || refund === "completed"
+            ? "is-cancelled" : (refund === "pending" || status === "awaiting_payment"
+            ? "is-waiting" : (["accepted","paid"].includes(status) ? "is-confirmed" : ""));
+        const t = (pl,en) => isEn ? en : pl;
+        body.innerHTML = `
+            <section class="r24-pay-booking-card ${cardState}">
+                <div class="r24-pay-booking-top">
+                    <strong class="r24-pay-booking-id" data-booking-field="number"></strong>
+                    <span class="r24-pay-booking-status" data-booking-field="status"></span>
+                </div>
+                <div class="r24-pay-booking-car">
+                    <span class="class-code" data-booking-field="class"></span>
+                    <span class="class-label" data-booking-field="vehicle"></span>
+                </div>
+                <div class="r24-pay-booking-grid">
+                    <div class="r24-pay-booking-field">
+                        <small>${t("Data i godzina odbioru","Pickup date & time")}</small>
+                        <strong data-booking-field="pickupDate"></strong>
+                    </div>
+                    <div class="r24-pay-booking-field">
+                        <small>${t("Data i godzina zwrotu","Return date & time")}</small>
+                        <strong data-booking-field="returnDate"></strong>
+                    </div>
+                </div>
+                <div class="r24-pay-booking-route">
+                    <div class="r24-pay-booking-field">
+                        <small>${t("📍 Odbiór","📍 Pickup")}</small>
+                        <strong data-booking-field="pickupLocation"></strong>
+                    </div>
+                    <div class="r24-pay-booking-field">
+                        <small>${t("🏁 Zwrot","🏁 Return")}</small>
+                        <strong data-booking-field="returnLocation"></strong>
+                    </div>
+                </div>
+                <div class="r24-pay-booking-grid">
+                    <div class="r24-pay-booking-field r24-pay-booking-money">
+                        <small>${t("Przy odbiorze","At pickup")}</small>
+                        <strong data-booking-field="pickupAmount"></strong>
+                    </div>
+                    <div class="r24-pay-booking-field r24-pay-booking-money r24-pay-booking-online">
+                        <small>${t("Płatne teraz","Pay now")}</small>
+                        <strong data-booking-field="onlineAmount"></strong>
+                    </div>
+                </div>
+            </section>
+        `;
+        const set = (field,value) => {
+            const node = body.querySelector('[data-booking-field="'+field+'"]');
+            if (node) node.textContent = String(value ?? "—");
+        };
+        const snap = booking.vehicle_snapshot || {};
+        const carName = window.ride24VehicleLabel(snap,booking.car_classes,isEn);
+        const pickupLoc = booking.pickup_location || "—";
+        const dropLoc = booking.return_location || pickupLoc;
+        const fmtDate = (date,time) => date ? date+" "+String(time || "10:00").slice(0,5) : "—";
+        const fmtAmount = value => {
+            const n = Number(value ?? 0);
+            return Number.isFinite(n) ? n.toFixed(2) : "—";
+        };
+        set("number","#R24-"+String(booking.id).slice(-4));
+        set("status",statusText);
+        set("class",snap.class_code || booking.car_classes?.class_code || "?");
+        set("vehicle",carName);
+        set("pickupDate",fmtDate(booking.start_date,booking.pickup_time));
+        set("returnDate",fmtDate(booking.end_date,booking.return_time));
+        set("pickupLocation",pickupLoc);
+        set("returnLocation",dropLoc);
+        set("pickupAmount",fmtAmount(booking.pickup_payment_partner_currency)+" "+(booking.car_classes?.partners?.currency || "EUR"));
+        set("onlineAmount",fmtAmount(booking.online_payment_pln)+" PLN");
+        document.getElementById("r24PaymentBookingCardEyebrow").textContent=t("MOJA REZERWACJA","MY BOOKING");
+        document.getElementById("r24PaymentBookingCardHeading").textContent=t("Karta rezerwacji","Booking card");
+        document.getElementById("r24PaymentBookingCardClose").textContent=t("Zamknij","Close");
+        document.getElementById("r24PaymentBookingCardX").setAttribute("aria-label",t("Zamknij","Close"));
+        window.r24PaymentBookingCardTrigger = trigger || document.activeElement;
+        modal.hidden = false;
+        document.getElementById("r24PaymentBookingCardX").focus({preventScroll:true});
+    } catch (error) {
+        console.error("Payment booking card failed:",error);
+        window.showToast(isEn ? "Could not open booking card." : "Nie udało się otworzyć karty rezerwacji.","error");
+    }
+};
+
 window.loadPayments = async function() {
     if (!window.r24ClientProfileReady) return;
     console.log("💰 loadPayments start");
@@ -5445,6 +5781,19 @@ window.loadPayments = async function() {
 
     const tbody = document.getElementById("payments-tbody");
     if (!tbody) return;
+    if (!tbody.dataset.r24BookingDetailsBound) {
+        tbody.dataset.r24BookingDetailsBound = "1";
+        tbody.addEventListener("click", async event => {
+            const button = event.target.closest("button[data-r24-payment-booking]");
+            if (!button || !tbody.contains(button) || button.disabled) return;
+            button.disabled = true;
+            try {
+                await window.r24OpenPaymentBookingCard(button.dataset.r24PaymentBooking, button);
+            } finally {
+                if (button.isConnected) button.disabled = false;
+            }
+        });
+    }
 
     tbody.innerHTML = `<tr class="payment-message-row"><td colspan="3" class="payment-message-cell" data-pl="Ładowanie..." data-en="Loading...">${isEn ? "Loading..." : "Ładowanie..."}</td></tr>`;
 
@@ -5509,7 +5858,7 @@ window.loadPayments = async function() {
                 paymentStatusClass = "awaiting_payment";
                 paymentStatusPl = "Zwrot w toku";
                 paymentStatusEn = "Refund pending";
-            } else if (b.status === "paid") {
+            } else if (b.status === "paid" || b.status === "accepted") {
                 paymentStatusClass = "paid";
             } else if (b.status === "cancelled" || b.status === "rejected") {
                 paymentStatusClass = "cancelled";
@@ -5517,10 +5866,27 @@ window.loadPayments = async function() {
                 paymentStatusClass = "expired";
             }
 
+            // Booking status controls the ROW, refund progress controls the LABEL.
+            // Even after a successful refund, a cancelled booking remains red like in My bookings.
+            let paymentRowState = "";
+            if (["cancelled", "rejected", "expired", "payment_expired"].includes(b.status)
+                || b.refund_status === "completed") {
+                paymentRowState = "r24-payment-cancelled";
+            } else if (b.refund_status === "pending" || b.status === "awaiting_payment") {
+                paymentRowState = "r24-payment-waiting";
+            } else if (b.status === "accepted" || b.status === "paid") {
+                paymentRowState = "r24-payment-confirmed";
+            }
             const actionHtml = actions ? '<div class="payment-action">' + actions + '</div>' : "";
             tbody.innerHTML += `
-                <tr>
-                    <td class="payment-reference"><span class="payment-id">#R24-${b.id.toString().slice(-4)}</span></td>
+                <tr class="r24-payment-row ${paymentRowState}">
+                    <td class="payment-reference">
+                        <button type="button" class="payment-id payment-booking-link"
+                            data-r24-payment-booking="${b.id}"
+                            aria-label="${isEn ? "View booking details" : "Zobacz szczegóły rezerwacji"} #R24-${b.id.toString().slice(-4)}"
+                            title="${isEn ? "View booking details" : "Zobacz szczegóły rezerwacji"}"
+                        >#R24-${b.id.toString().slice(-4)}</button>
+                    </td>
                     <td class="payment-money"><span class="payment-amount">${(b.online_payment_pln || 0).toFixed(2)}</span><span class="payment-currency">PLN</span></td>
                     <td class="payment-status-cell">
                         <div class="payment-status-actions">
@@ -5606,18 +5972,21 @@ window.closeReviewModal = function() {
                     <p id="bookingDriverAgeInfo" role="status" style="font-size:13px"></p>
                     <p id="bookingDriverLicenceInfo" role="status" hidden style="font-size:13px;line-height:1.5;color:#475569"></p>
                     <select id="driverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
-                    <p id="arventProfileLicenceNotice" role="alert" hidden
-                       style="margin-top:8px;padding:10px;border:1px solid #fecaca;background:#fef2f2;border-radius:10px;color:#991b1b;font-size:13px">
-                       <span data-pl="Uzupełnij datę uzyskania prawa jazdy wybranego kierowcy w Profilu."
-                             data-en="Add the selected driver's driving-licence date in Profile.">Uzupełnij datę uzyskania prawa jazdy wybranego kierowcy w Profilu.</span>
-                       <button type="button" onclick="window.ride24ArventGoToProfile()"
-                           data-pl="Przejdź do profilu" data-en="Open profile"
-                           style="display:block;margin-top:8px;padding:8px 12px;border-radius:8px;border:1px solid #fecaca;background:white;color:#991b1b;font-weight:700;cursor:pointer">
-                           Przejdź do profilu
-                       </button>
+                </div>
+                <div id="arventLicenseRequirement" hidden>
+                    <label for="arventLicenseSince" style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;"
+                        data-pl="Data pierwszego uzyskania prawa jazdy głównego kierowcy"
+                        data-en="Date main driver first obtained their driving licence">Data pierwszego uzyskania prawa jazdy głównego kierowcy</label>
+                    <input type="date" id="arventLicenseSince" autocomplete="off"
+                        style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                    <small data-pl="Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu."
+                           data-en="Use the original licence entitlement date, not the date your replacement card was printed.">Podaj datę pierwszego uzyskania uprawnień, a nie ostatniego wydania dokumentu.</small>
+                    <p id="arventLicenseMissing" role="alert" hidden style="margin:8px 0 0;padding:10px;border-radius:8px;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-size:13px">
+                        <span data-pl="Brak zapisanej daty pierwszego uzyskania prawa jazdy dla wybranego kierowcy." data-en="No original driving-licence date is saved for the selected driver.">Brak zapisanej daty pierwszego uzyskania prawa jazdy dla wybranego kierowcy.</span>
+                        <button type="button" class="btn-secondary" style="margin-top:6px" onclick="window.ride24ArventGoToProfile()" data-pl="Uzupełnij w profilu" data-en="Complete in profile">Uzupełnij w profilu</button>
                     </p>
                 </div>
-                <div id="additionalDriverRow">
+                <div>
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
                     <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#64748B" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>
@@ -5715,15 +6084,40 @@ window.closeReviewModal = function() {
         </div>
     </div>
     <!-- Modal Usuwania Konta -->
-     <div id="bookingDetailsModal" class="custom-modal">
-        <div class="modal-content" style="max-width: 400px; text-align: left;">
-            <h3 style="margin-top: 0; color: white;" data-pl="Szczegóły rezerwacji" data-en="Booking details">Szczegóły rezerwacji</h3>
 
-            <div id="bookingDetailsBody" style="color: #94A3B8; font-size: 14px; line-height: 1.8; background: #1E293B; padding: 20px; border-radius: 8px; border: 1px solid #334155;">
+    <!-- Payment booking ID opens this booking summary card, not the deposit/rules modal. -->
+    <div id="r24PaymentBookingCardModal" class="r24-pay-booking-overlay" role="dialog"
+         aria-modal="true" aria-labelledby="r24PaymentBookingCardHeading" hidden
+         onclick="if(event.target===this)r24ClosePaymentBookingCard()">
+        <div class="r24-pay-booking-dialog">
+            <div class="r24-pay-booking-header">
+                <div>
+                    <div class="r24-pay-booking-eyebrow" id="r24PaymentBookingCardEyebrow">MOJA REZERWACJA</div>
+                    <h2 id="r24PaymentBookingCardHeading">Karta rezerwacji</h2>
                 </div>
-
-            <div class="modal-actions" style="margin-top: 20px;">
-                <button class="btn-primary" onclick="closeDetailsModal()" data-pl="Zamknij" data-en="Close" style="width: 100%;">Zamknij</button>
+                <button type="button" class="r24-pay-booking-close" id="r24PaymentBookingCardX"
+                        aria-label="Zamknij" onclick="r24ClosePaymentBookingCard()">×</button>
+            </div>
+            <div id="r24PaymentBookingCardBody" class="r24-pay-booking-body"></div>
+            <div class="r24-pay-booking-footer">
+                <button type="button" id="r24PaymentBookingCardClose"
+                        onclick="r24ClosePaymentBookingCard()">Zamknij</button>
+            </div>
+        </div>
+    </div>
+     <div id="bookingDetailsModal" class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="r24DetailsTitle">
+        <div class="modal-content r24-details-dialog">
+            <div class="r24-details-head">
+                <div>
+                    <span class="r24-details-eyebrow" id="r24DetailsBookingNumber">Ride24</span>
+                    <h3 id="r24DetailsTitle" data-pl="Szczegóły rezerwacji" data-en="Booking details">Szczegóły rezerwacji</h3>
+                </div>
+                <button type="button" class="r24-details-close-x" id="r24DetailsCloseX"
+                    onclick="closeDetailsModal()" aria-label="Zamknij">×</button>
+            </div>
+            <div id="bookingDetailsBody"></div>
+            <div class="modal-actions r24-details-footer">
+                <button class="btn-primary" onclick="closeDetailsModal()" data-pl="Zamknij" data-en="Close">Zamknij</button>
             </div>
         </div>
     </div>
