@@ -161,7 +161,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
         if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
         row(box, label('Cena łączna', 'Total booking price'), money(cents(a.total), a.currency), true);
-        row(box, label('Online po potwierdzeniu', 'Online after confirmation'),
+        row(box, label('Płatność online Ride24', 'Ride24 online payment'),
             money(cents(a.online_pln), 'PLN'), true);
         row(box, label('Do zapłaty partnerowi', 'Payable to partner'),
             money(cents(a.pay_on_pickup), a.currency), true);
@@ -182,7 +182,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             }
             row(total,label('Wynajem samochodu','Car rental'),money(publicRentalCents,a.currency));
             row(total,label('Cena łączna','Total booking price'),money(cents(a.total),a.currency),true);
-            row(total,label('Online po potwierdzeniu','Online after confirmation'),
+            row(total,label('Płatność online Ride24','Ride24 online payment'),
                 money(cents(a.online_pln),'PLN'));
             row(total,label('Do zapłaty partnerowi','Payable to partner'),
                 money(cents(a.pay_on_pickup),a.currency),true);
@@ -314,7 +314,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 selections = selections.filter(x => x.id !== driverExtra.id);
                 if (c.additional_driver_id) selections.push({ id: driverExtra.id, quantity: 1 });
             }
-            // For Arvent code 2 is managed by its checkbox, never by the
+            // The verified Arvent driver product is managed by its checkbox, never by the
             // additional-driver person dropdown or a saved driver record.
             const { data: { session } } = await db.auth.getSession();
             if (!session?.access_token) throw new Error(label('Zaloguj się ponownie.', 'Please sign in again.'));

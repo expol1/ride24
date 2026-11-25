@@ -2510,7 +2510,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261121-arvent-driver-4eur";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261125-arvent-offer";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -2754,7 +2754,7 @@ window.openClientPriceBreakdown = function(id, inlineTarget = null) {
                 if(snapshot.loyalty_discount_cents)
                     row(en?'Loyalty discount':'Rabat lojalnościowy','−'+money(snapshot.loyalty_discount_cents));
                 row(en?'Total price':'Cena łączna',money(snapshot.total_cents),'r24-client-price-total');
-                row(isArvent?(en?'Online after confirmation':'Online po potwierdzeniu'):'Online Ride24',
+                row(isArvent?(en?'Ride24 online payment':'Płatność online Ride24'):'Online Ride24',
                     money(snapshot.online_pln_cents,'PLN'));
                 row(en?'Payable to partner':'Do zapłaty partnerowi',money(snapshot.partner_cents));
                 const deposit=Number(booking.deposit_snapshot||0);
@@ -2768,7 +2768,7 @@ window.openClientPriceBreakdown = function(id, inlineTarget = null) {
                     :'Dla tej rezerwacji nie zapisano rozliczenia szczegółowego. Poniżej znajdują się zapisane kwoty.');
                 notice.className='r24-price-legacy';body.append(notice);
                 const isArvent=booking.car_classes?.partners?.api_provider==='arvent_kolaycar';
-                row(isArvent?(en?'Online after confirmation':'Online po potwierdzeniu'):'Online Ride24',
+                row(isArvent?(en?'Ride24 online payment':'Płatność online Ride24'):'Online Ride24',
                     (Number(booking.online_payment_pln)||0).toFixed(2)+' PLN');
                 const curr=booking.car_classes?.partners?.currency||'EUR';
                 row(isArvent?(en?'Payable to partner':'Do zapłaty partnerowi'):(en?'At pickup':'Przy odbiorze'),

@@ -1026,7 +1026,7 @@
                 <strong>Arvent – opłacone rezerwacje czekające na potwierdzenie (24 h)</strong>
                 <button type="button" class="btn btn-secondary" onclick="loadArventApprovals()">Odśwież</button>
             </div>
-            <p style="font-size:12px;color:#78350F;margin:6px 0 10px">Status 1 z API Arvent potwierdza automatycznie. „Potwierdź ręcznie” tylko po jednoznacznym potwierdzeniu od Arvent (np. WhatsApp/e-mail) – system najpierw sprawdza rezerwację w Arvent (status 0/1, cena, trasa, warunki) i zapisuje wpis audytowy.</p>
+            <p style="font-size:12px;color:#78350F;margin:6px 0 10px">Status 1 z API Arvent potwierdza automatycznie. Ponowna weryfikacja sprawdza w API status Approved, cenę, trasę, warunki i dodatki. Przy statusie Received rezerwacja nadal oczekuje.</p>
             <div id="arvent-approval-list" style="font-size:13px">Ładowanie...</div>
         </div>
         <p id="admin-bookings-count" class="dashboard-table-status" role="status">Ładowanie rezerwacji...</p>
@@ -2845,7 +2845,7 @@ async function loadArventApprovals(){
     const b=r.bookings||{},a=audits.get(r.booking_id);
     const deadline=r.supplier_deadline_at?new Date(r.supplier_deadline_at).toLocaleString('pl-PL'):'—';
     const btn=r.state==='provider_pending'&&!a
-      ?'<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="confirmArventManually(\''+escapeHtml(r.booking_id)+'\',\''+escapeHtml(b.reservation_code||'')+'\')">Potwierdź ręcznie</button>':'';
+      ?'<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="confirmArventManually(\''+escapeHtml(r.booking_id)+'\',\''+escapeHtml(b.reservation_code||'')+'\')">Zweryfikuj w Arvent</button>':'';
     return '<div style="padding:8px 0;border-top:1px solid #FDE68A">'
       +'<strong>'+escapeHtml(b.reservation_code||r.booking_id)+'</strong> • Arvent: '+escapeHtml(r.provider_reference||'—')
       +' • '+escapeHtml(b.main_driver_name||'—')+' ('+escapeHtml(b.client_email||'—')+')'

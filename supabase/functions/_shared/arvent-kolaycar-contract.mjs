@@ -392,6 +392,6 @@ export function arventLeadTimeAllowed(pickupDate,pickupTime,nowMs=Date.now()) {
  return Number.isFinite(pickup)&&pickup-nowMs>=ARVENT_MIN_LEAD_HOURS*3600000;
 }
 export const ARVENT_MIN_LEAD_MESSAGE=Object.freeze({
- pl:"Rezerwacje Arvent są dostępne najpóźniej 47 godzin przed planowanym odbiorem samochodu. Wybierz późniejszy termin.",
- en:"Arvent reservations are available no later than 47 hours before the planned pickup. Please choose a later date.",
+ pl:"Rezerwacje Arvent są dostępne najpóźniej 47 godzin przed planowanym odbiorem samochodu. Przy pilnym odbiorze zapytaj Ride24 o dostępność. Rezerwacja wymaga potwierdzenia wypożyczalni.",
+ en:"Arvent reservations are available no later than 47 hours before the planned pickup. For urgent pickup, ask Ride24 about availability. The rental company must confirm your request.",
 });

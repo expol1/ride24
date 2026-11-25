@@ -136,7 +136,7 @@ export async function advanceApiPayment(deps,id) {
   let result;
   try {result=await deps.create(id,prepared);}
   catch(error) {
-    if(prepared.provider==='arvent_kolaycar'&&error instanceof DefiniteApiFailure&&error.message==='ARVENT_FAILED_BEFORE_SAVE'){
+    if(prepared.provider==='arvent_kolaycar'&&error instanceof DefiniteApiFailure&&/^ARVENT_FAILED_BEFORE_SAVE(?::ARVENT_[A-Z_]+)?$/.test(error.message)){
       await move('dispatching','refund_pending',{last_error:error.message});
       return {state:'refund_pending'};
     }
@@ -167,7 +167,8 @@ export async function advanceApiPayment(deps,id) {
     const extra={provider_reference:reference,provider_response:result};
     if(w.prepared_quote?.provider==='arvent_kolaycar'&&!w.supplier_received_at) {
       // First supplier acceptance: start the persisted 24h approval window.
-      const received=Date.now();
+      const received=from==='unknown' && Number.isFinite(Date.parse(w.paid_at))
+        ?Math.min(Date.now(),Date.parse(w.paid_at)):Date.now();
       extra.supplier_received_at=new Date(received).toISOString();
       const deadline=arventDeadlineFrom(received,w.prepared_quote);
       if(deadline!==null)extra.supplier_deadline_at=new Date(deadline).toISOString();

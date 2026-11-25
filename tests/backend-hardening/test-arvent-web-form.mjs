@@ -45,7 +45,7 @@ function setup({quote={},rate=4.2345,loyalty=0,rateFails=false,offerError=null,e
    if(offerError)throw Error(offerError);
    if(!selectedQuote.external_group_id || selectedQuote.external_group_id!==selectedQuote.raw_response?.provider_quote_data?.sipp)
      throw Error('PARTNER_API_ERROR:ARVENT_QUOTE_REQUIRED');
-   return {status:'present',billed_days:3,items:offerItems||[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'additional_driver',booking_confirmed:false}]};}};
+   return {status:'present',billed_days:3,items:offerItems||[{code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'UNKNOWN',quantity_increasable:false,required:false,kind:'other',booking_confirmed:false}]};}};
   if(n.includes('arvent-extras-pricing.mjs'))return arventPricing;
   if(n.includes('driver-age'))return driverAge;
   if(n.includes('http/server'))return {serve:f=>handler=f};

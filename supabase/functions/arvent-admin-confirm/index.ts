@@ -1,15 +1,4 @@
-// Ride24 admin: Arvent bookings waiting for supplier approval, and an audited
-// MANUAL confirmation used only after Arvent explicitly confirmed (e.g. in
-// writing) while its API still shows status 0. Arvent only.
-//
-// Safety rules:
-// - Admin only (profiles.role = 'admin').
-// - The supplier status is ALWAYS read live from Arvent first. Only status 0
-//   (received) or 1 (approved) can be confirmed, and money, EUR, zero deposit
-//   and card hold, unlimited km, route, dates/times and SIPP must match.
-// - Only a workflow still in provider_pending can be confirmed (compare-and-set),
-//   so a confirmation never races the 24h timeout cancellation or a refund.
-// - Evidence text is mandatory; one immutable audit row per booking.
+// Audited admin retry of a verified supplier approval. Received remains pending.
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { corsHeaders, jsonResponse, requireAdmin } from "../_shared/ride24-security.ts";
 import { loadPartnerCredentials } from "../_shared/partner-api.ts";
@@ -63,7 +52,7 @@ Deno.serve(async (req) => {
     return jsonResponse(req, { error: "SUPPLIER_STATUS_UNAVAILABLE" }, 502);
   }
   const supplierStatus = live.supplier_status_type;
-  if (![0, 1].includes(supplierStatus) || live.terms_verified !== true || live.booking_reference !== w.provider_reference)
+  if (supplierStatus !== 1 || live.status !== "confirmed" || live.needs_manual_review !== false || live.extras_verified !== true || live.terms_verified !== true || live.booking_reference !== w.provider_reference)
     return jsonResponse(req, { error: "SUPPLIER_STATUS_NOT_CONFIRMABLE", supplier_status_type: supplierStatus,
       supplier_status_label: live.supplier_status_label, terms_verified: live.terms_verified === true }, 409);
 

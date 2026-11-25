@@ -109,7 +109,7 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  const driverCode=booking.partners.api_settings?.arvent_additional_driver_certified===true
    ?booking.partners.api_settings.arvent_additional_driver_code:null;
  const extraDriver=!!driverCode && driverCode!=='2' && selectedCodes.has(driverCode);
- if(selectedCodes.has('2') || (accepted?.driver_code && accepted.driver_code!==driverCode))
+ if(supplierSelections.some((x:any)=>x.code==='2' && !(x.required && x.total_cents===0)) || (accepted?.driver_code && accepted.driver_code!==driverCode))
    fail('ARVENT_EXTRAS_QUOTE_MISMATCH');
  if(accepted && (!options.snapshot||accepted.pricing_certified!==true
     ||!Number.isSafeInteger(accepted.rental_cents)||accepted.rental_cents!==base
@@ -213,7 +213,7 @@ export async function createPaidProvider(credentials:any,input:any) {
    try {
      return await arventCreateBooking(credentials,input);
    } catch(error) {
-     if(error instanceof Error&&error.message==='ARVENT_FAILED_BEFORE_SAVE')fail('ARVENT_FAILED_BEFORE_SAVE');
+     if(error instanceof Error&&/^ARVENT_FAILED_BEFORE_SAVE(?::ARVENT_[A-Z_]+)?$/.test(error.message))fail(error.message);
      throw error;
    }
  }

@@ -23,7 +23,7 @@ function setup({role='admin',state='provider_pending',live={},rpcResult=true,pro
    requireAdmin:async()=>{if(role!=='admin')throw Error('ADMIN_REQUIRED');return {user:{id:'admin-1',email:'ops@example.invalid'},admin};}};
   if(n.includes('partner-api'))return {loadPartnerCredentials:async()=>({partner_id:ARVENT})};
   if(n.includes('arvent-kolaycar'))return {arventBookingStatus:async()=>{calls.push('supplier-get');
-   return {booking_reference:'A-1',supplier_status_type:0,supplier_status_label:'received',terms_verified:true,status:'pending',provider_payload:{}, ...live};}};
+   return {booking_reference:'A-1',supplier_status_type:1,supplier_status_label:'approved',terms_verified:true,extras_verified:true,needs_manual_review:false,status:'confirmed',provider_payload:{}, ...live};}};
   if(n.includes('api-payment-runtime'))return {runApiPayment:async()=>{calls.push('finalize');return {state:'confirmed'};}};
   if(n.includes('stripe'))return {default:class{}};
   throw Error('Unexpected import '+n);
@@ -46,7 +46,7 @@ test('manual confirmation requires written evidence',async()=>{
  assert.equal(r.body.error,'EVIDENCE_REQUIRED');assert.deepEqual(s.calls,[]);
 });
 test('supplier status is read live first; cancelled or changed reservations are never confirmed',async()=>{
- for(const live of [{supplier_status_type:3},{supplier_status_type:6},{terms_verified:false},{booking_reference:'OTHER'}]){
+ for(const live of [{supplier_status_type:0},{extras_verified:false},{needs_manual_review:true},{supplier_status_type:3},{supplier_status_type:6},{terms_verified:false},{booking_reference:'OTHER'}]){
   const s=setup({live});
   const r=await s.call({action:'confirm',booking_id:BID,evidence});
   assert.equal(r.body.error,'SUPPLIER_STATUS_NOT_CONFIRMABLE');
@@ -70,7 +70,7 @@ test('lost compare-and-set (parallel timeout/confirmation) issues no voucher',as
  const r=await s.call({action:'confirm',booking_id:BID,evidence});
  assert.equal(r.body.error,'STATE_CHANGED');assert.ok(!s.calls.includes('finalize'));
 });
-test('status 0 with explicit Arvent evidence: atomic confirm + audit, then one shared finalisation',async()=>{
+test('verified status 1 with explicit Arvent evidence: atomic confirm + audit, then one shared finalisation',async()=>{
  const s=setup();
  const r=await s.call({action:'confirm',booking_id:BID,evidence});
  assert.equal(r.body.success,true);

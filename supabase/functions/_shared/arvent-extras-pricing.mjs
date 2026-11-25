@@ -68,7 +68,7 @@ export function arventSelectedExtrasQuote({
   // A mandatory item is included even when the customer did not select it.
   for(const item of catalog){
     if(item.required){
-      if(item.code===driverCode || item.code==="2")
+      if(item.code===driverCode && item.code!=="2")
         throw Error("ARVENT_ADDITIONAL_DRIVER_NOT_MANDATORY");
       if(!item.bookable && item.price_eur!==0)throw Error("ARVENT_REQUIRED_EXTRA_UNPRICED");
       if(!chosen.has(item.code))chosen.set(item.code,1);
@@ -130,7 +130,7 @@ export function arventOptionsSnapshot({rentalCents,ride24FeeCents,extraQuote,day
 
 export function arventReceiptExtrasMatch(receipt,expected) {
  if(!Array.isArray(expected)||expected.length>20)return false;
- if(expected.length===0)return true;
+ if(receipt==null)return expected.length===0;
  if(!Array.isArray(receipt) || receipt.length>250)return false;
  const seen=new Map();
  for(const item of receipt) {
@@ -139,5 +139,5 @@ export function arventReceiptExtrasMatch(receipt,expected) {
   if(!code || !Number.isInteger(qty) || qty<1 || seen.has(code))return false;
   seen.set(code,qty);
  }
- return expected.every(x=>seen.get(x.code)===x.quantity);
+ return seen.size===expected.length && expected.every(x=>seen.get(x.code)===x.quantity);
 }

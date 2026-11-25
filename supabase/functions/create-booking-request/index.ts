@@ -1439,7 +1439,7 @@ serve(async (req) => {
             !Number.isSafeInteger(accepted.rental_cents) ||
             !Number.isSafeInteger(accepted.extras_cents) ||
             accepted.rental_cents+accepted.extras_cents!==pricingItemsSnapshot.partner_cents ||
-            additionalDriverId || accepted.selected.some((x:any)=>x.code==="2" ||
+            additionalDriverId || accepted.selected.some((x:any)=>(x.code==="2" && !(x.required && x.total_cents===0)) ||
               (x.kind==="additional_driver" && (x.code!==accepted.driver_code || x.quantity!==1))))
           throw quoteChanged();
       }

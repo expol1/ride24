@@ -123,7 +123,8 @@ export async function arventSearch(c:PartnerApiCredentials,input:SearchInput):Pr
  // Less than 47h before pickup: no offers. The same search runs again before
  // SaveReservation, so a paid booking that crosses the limit is refunded
  // before anything is sent to Arvent.
- if(!arventLeadTimeAllowed(input.pickup_date,input.pickup_time) ||
+ if(rentalDuration(input.pickup_date,input.return_date,input.pickup_time||"",input.return_time||"").fullDays<3 ||
+    !arventLeadTimeAllowed(input.pickup_date,input.pickup_time) ||
     (input.pickup_location_id!==input.dropoff_location_id && Deno.env.get("ARVENT_ONE_WAY_CERTIFIED")!=="true"))return [];
  const response=await request(c,searchPath(input));
  return arventOfferRows(response,{...input,currency:"EUR"}) as ApiVehicleGroup[];
@@ -194,6 +195,27 @@ async function bookingContextFor(c:PartnerApiCredentials,reference:string,bookin
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_EMAIL_NOT_FOUND");
  return data;
 }
+async function tokenDigest(token:string) {
+ const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(token));
+ return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function dispatchEvidence(c:PartnerApiCredentials,id:string) {
+ const {data,error}=await serviceClient().from("arvent_dispatch_evidence")
+   .select("agency_reference,token_digest,sipp,one_way_fee,extras").eq("booking_id",id).eq("partner_id",c.partner_id).maybeSingle();
+ if(error)throw Error("PARTNER_API_ERROR:ARVENT_DISPATCH_EVIDENCE_UNAVAILABLE");
+ return data;
+}
+async function receiptTerms(row:Record<string,unknown>,sipp:unknown,evidence:any) {
+ if(!sippConsistent(row,sipp))return false;
+ const suppliedInsurance=row.excess!=null || row.rentalConditions!=null;
+ if(suppliedInsurance && !arventInsuranceIncluded(row))return false;
+ if(!evidence)return Boolean(row.sippCode && suppliedInsurance);
+ if(evidence.sipp!==sipp || evidence.agency_reference!==row.agencyReservationReference ||
+    Number(evidence.one_way_fee)!==(row.oneWayFee??0))return false;
+ if(typeof row.reservationTokenText==="string")
+   return (await tokenDigest(row.reservationTokenText))===evidence.token_digest;
+ return Boolean(row.sippCode && suppliedInsurance);
+}
 // Retain only the supplier evidence required for reconciliation.
 function statusEvidence(data:Record<string,unknown>){
  const fields=["reservationNumber","agencyReservationReference","reservationStatusType","sippCode",
@@ -211,13 +233,16 @@ function sippConsistent(d:Record<string,unknown>,expected:unknown):boolean {
  if(d.sippCode===undefined||d.sippCode===null||d.sippCode==="")return true;
  return typeof d.sippCode==="string"&&d.sippCode.toUpperCase()===expected;
 }
-function confirmedContract(d:Record<string,unknown>,expectedPrice:unknown):boolean {
+function confirmedContract(d:Record<string,unknown>,expectedPrice:unknown,extrasCents:number,oneWayFee:number):boolean {
  const wanted=Number(expectedPrice);
  return Number.isFinite(wanted)&&wanted>0
   &&typeof d.totalPrice==="number"&&Number.isFinite(d.totalPrice)
   &&d.totalPrice===wanted
   &&d.currencyCode==="EUR"&&d.depositPrice===0
-  &&d.depositCreditCardRequired===false&&d.totalKMLimit===0;
+  &&d.depositCreditCardRequired===false&&d.totalKMLimit===0
+  &&(d.paidAmount===undefined || d.paidAmount===0)
+  &&(oneWayFee===0 || d.oneWayFeePayToDelivery===true)
+  &&(extrasCents===0 || d.extraPricePayToDelivery===true);
 }
 export async function arventBookingStatus(c:PartnerApiCredentials,reference:string,bookingId?:string):Promise<Record<string,unknown>> {
  const booking=await bookingContextFor(c,reference,bookingId);
@@ -239,7 +264,8 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
    pickup_date:booking.start_date,return_date:booking.end_date,
    pickup_time:booking.pickup_time,return_time:booking.return_time,
   });
- const expectedExtras=quote?.raw_response?.ride24_options?.arvent_extra?.selected||[];
+ const evidence=await dispatchEvidence(c,booking.id);
+ const expectedExtras=evidence?.extras??quote?.raw_response?.ride24_options?.arvent_extra?.selected??[];
  const extrasVerified=arventReceiptExtrasMatch(d.reservationExtras??d.extras,expectedExtras);
  // Supplier reservationNumber and original customer email identify a record.
  // If Arvent also echoes the Ride24 agency reference it must match exactly,
@@ -248,8 +274,8 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
   ?d.agencyReservationReference.trim():null;
  const agencyMismatch=!!supplierAgency&&(!booking.reservation_code
   ||supplierAgency!==booking.reservation_code);
- const verified=arventInsuranceIncluded(d)&&booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot)
-  &&routeValid===true&&typeof d.sippCode==="string"&&sippConsistent(d,quote?.external_group_id)&&extrasVerified&&!agencyMismatch;
+ const verified=await receiptTerms(d,quote?.external_group_id,evidence)&&booking.partner_currency==="EUR"&&confirmedContract(d,booking.partner_net_price_snapshot,quote?.raw_response?.ride24_options?.arvent_extra?.extras_cents??0,Number(evidence?.one_way_fee??d.oneWayFee??0))
+  &&routeValid===true&&extrasVerified&&!agencyMismatch;
  // If status is "approved" but supplier price/terms cannot be proved, do
  // NOT return confirmed to the shared booking-status-sync handler.
  const confirmed=status.status==="confirmed"&&verified;
@@ -259,7 +285,7 @@ export async function arventBookingStatus(c:PartnerApiCredentials,reference:stri
   // with the same rigor as an approved booking before automated processing.
   definitive_rejection:status.supplier_status_type===6&&verified,
   needs_manual_review:(status.needs_manual_review && status.supplier_status_type!==6)||agencyMismatch
-    ||((status.status==="confirmed"||status.status==="cancelled"||status.supplier_status_type===6)&&!verified),
+    ||!verified,
   // Not returned is "unknown", never misreported as a verified match.
   agency_reference_verified:supplierAgency?(!agencyMismatch):null,
   // Money, EUR, zero deposit/card hold, unlimited km, route, times and SIPP
@@ -286,10 +312,11 @@ export async function arventLookupByAgencyReference(c:PartnerApiCredentials,inpu
  const detail=await request(c,ARVENT_PATHS.booking_status+"?"+arventQuery({
   reservationNumber:candidate.reservationNumber,customerEmail:input.client_email,languageType:"EN"}));
  const row=supplierData(detail) as Record<string,unknown>;
+ const evidence=await dispatchEvidence(c,input.ride24_booking_id);
  if(row?.reservationNumber!==candidate.reservationNumber || row?.agencyReservationReference!==reference ||
-    !arventInsuranceIncluded(row) || !confirmedContract(row,input.partner_amount) || !arventSavedRouteMatches(row,input) ||
-    row.sippCode!==input.vehicle_group_id ||
-    !arventReceiptExtrasMatch(row.reservationExtras??row.extras,input.extra_selections||[]))return manual;
+    !await receiptTerms(row,input.vehicle_group_id,evidence) || !confirmedContract(row,input.partner_amount,Math.round(Number(input.extras_amount??0)*100),Number(evidence?.one_way_fee??row.oneWayFee??0)) || !arventSavedRouteMatches(row,input) ||
+
+    !arventReceiptExtrasMatch(row.reservationExtras??row.extras,evidence?.extras??input.extra_selections??[]))return manual;
  // Only polling may authorize a voucher or refund. Keep the verified reference in the workflow.
  return {status:"pending",booking_reference:row.reservationNumber,needs_manual_review:false};
 }
@@ -306,7 +333,7 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   throw Error("PARTNER_API_ERROR:ARVENT_PRICING_OR_EXTRAS_UNSUPPORTED");
  const accepted=Array.isArray(input.extra_selections)?input.extra_selections:[];
  // Supplier confirmed code 2 is IMM insurance, not additional driver.
- if(accepted.some(x=>String(x.code)==="2"))
+ if(accepted.some(x=>String(x.code)==="2" && !(x.required && x.total_cents===0)))
   throw Error("PARTNER_API_ERROR:ARVENT_IMM_NOT_ADDITIONAL_DRIVER");
  if(accepted.length && input.extras_pricing_certified!==true)
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_NOT_CERTIFIED");
@@ -318,6 +345,8 @@ async function prepareReservation(c:PartnerApiCredentials,input:BookingInput){
   throw Error("PARTNER_API_ERROR:ARVENT_BOOKING_INPUT_MISSING");
  if(!arventLeadTimeAllowed(input.pickup_date,input.pickup_time))
   throw Error("PARTNER_API_ERROR:ARVENT_MIN_LEAD_TIME");
+ if(rentalDuration(input.pickup_date,input.return_date,input.pickup_time||"",input.return_time||"").fullDays<3)
+  throw Error("PARTNER_API_ERROR:ARVENT_MIN_RENTAL_DAYS");
  const quote=input.provider_quote_data as Record<string,unknown>|null;
  // Ride24 sells ACRISS/SIPP groups like AVIA. Keep the chosen supplier
  // vehicleId only in the private quote payload; never present it as a category.
@@ -426,11 +455,20 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  let payload;
  try {
   payload=await prepareReservation(c,input);
- } catch {
+ } catch(error) {
   // All supplier calls above are reads. No SaveReservation was attempted.
-  throw Error("ARVENT_FAILED_BEFORE_SAVE");
+  const reason=error instanceof Error ? /^(?:PARTNER_API_ERROR:)?(ARVENT_[A-Z_]+)$/.exec(error.message)?.[1] : null;
+  throw Error(reason?"ARVENT_FAILED_BEFORE_SAVE:"+reason:"ARVENT_FAILED_BEFORE_SAVE");
  }
  // This call creates a real supplier booking; only reachable after external certification.
+ const {error}=await serviceClient().from("arvent_dispatch_evidence").insert({
+  booking_id:input.ride24_booking_id,partner_id:c.partner_id,agency_reference:payload.agencyReservationReference,
+  sipp:input.vehicle_group_id,token_digest:await tokenDigest(payload.reservationToken),
+  one_way_fee:(input.provider_quote_data as Record<string,unknown>).one_way_fee??0,
+  extras:payload.extras.map((x:{code:string;piece:number})=>({code:x.code,quantity:x.piece})),
+ });
+ // A prior claimant may already have sent its POST. Only GET may reconcile it.
+ if(error)throw Error("PARTNER_API_ERROR:ARVENT_DISPATCH_CLAIM_UNAVAILABLE");
  const result=await request(c,ARVENT_PATHS.booking_create,{method:"POST",body:payload});
  const status=arventReservationStatus(result);
  if(!status.booking_reference)
@@ -447,7 +485,7 @@ export async function arventCreateBooking(c:PartnerApiCredentials,input:BookingI
  const routeMismatch=!arventSavedRouteMatches(d,input);
  // A supplier reference is insufficient proof that payable equipment or an
  // additional driver was accepted. Missing reservationExtras means review.
- const expectedExtras=Array.isArray(input.extra_selections)?input.extra_selections:[];
+ const expectedExtras=payload.extras.map((x:{code:string;piece:number})=>({code:x.code,quantity:x.piece}));
  const extrasMismatch=!arventReceiptExtrasMatch(d.reservationExtras??d.extras,expectedExtras);
  return {...status,
   // Do not leak "confirmed" into generic handlers without full verification.

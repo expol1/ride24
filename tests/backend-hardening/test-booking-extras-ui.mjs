@@ -184,7 +184,7 @@ test('Arvent booking details show saved references, route, main driver, supplier
  assert.equal(find('Dodatkowy kierowca'),'12.00 EUR');
  assert.equal(find('Opłata rezerwacyjna Ride24'),undefined); // never charged twice
  assert.equal(find('Cena łączna'),'115.39 EUR');
- assert.equal(find('Online po potwierdzeniu'),'14.50 PLN');
+ assert.equal(find('Płatność online Ride24'),'14.50 PLN');
  assert.equal(find('Do zapłaty partnerowi'),'112.00 EUR');
  assert.equal(details.querySelectorAll('.r24-arvent-booking-summary').length,1);
 });
@@ -214,7 +214,7 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   const {ui}=setup();
   globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
     pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)',
-    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],offer_extras:{status:'present',items:[{code:'2',name:'Ek Sürücü',kind:'additional_driver',price_eur:4.99},{code:'1',name:'GPS',price_eur:3.5}]},
+    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],offer_extras:{status:'present',items:[{code:'2',name:'IMM insurance',kind:'other',price_eur:4.99},{code:'1',name:'GPS',price_eur:3.5}]},
     total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75}});
   await ui.start();
   const box=document.getElementById('bookingPriceBreakdown');

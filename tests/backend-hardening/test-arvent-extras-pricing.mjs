@@ -5,7 +5,7 @@ import {arventBillingMode,arventPricedExtrasCatalog,arventSelectedExtrasQuote,ar
 
 const extras=[
  {code:'1',name:'GPS',price_eur:4.5,billing_type:'day',quantity_increasable:false,required:false},
- {code:'2',name:'Ek Sürücü',price_eur:4,billing_type:'day',quantity_increasable:false,required:false},
+ {code:'2',name:'IMM insurance',price_eur:4,billing_type:'day',quantity_increasable:false,required:false},
  {code:'6',name:'Infant seat',price_eur:5,billing_type:'1',quantity_increasable:true,max_quantity:2,required:false},
 ];
 test('Arvent uses supplier-confirmed numeric billing enums',()=>{
@@ -71,9 +71,9 @@ test('Arvent mandatory services are added automatically; unknown price blocks pa
  assert.equal(arventSelectedExtrasQuote({items:req,selections:[],certified:true,billedDays:5}).total_cents,400);
  assert.throws(()=>arventSelectedExtrasQuote({items:[{...req[0],price_eur:null}],
   selections:[],certified:true,billedDays:5}),/REQUIRED_EXTRA_UNPRICED/);
- assert.throws(()=>arventSelectedExtrasQuote({items:[{code:'2',name:'Ek Sürücü',price_eur:0,
+ assert.equal(arventSelectedExtrasQuote({items:[{code:'2',name:'IMM insurance',price_eur:0,
   billing_type:'rental',quantity_increasable:false,required:true}],
-  selections:[],certified:true,billedDays:3}),/ADDITIONAL_DRIVER_NOT_MANDATORY/);
+  selections:[],certified:true,billedDays:3}).total_cents,0);
 });
 
 test('Arvent voucher stays pending until supplier confirms every requested code and quantity',()=>{
