@@ -19,7 +19,7 @@ export function arventBillingMode(rawType, certifiedMap = {}) {
   const mapped=Object.hasOwn(certifiedMap,key) ? certifiedMap[key] : null;
   return mapped==="day" || mapped==="rental" ? mapped : null;
 }
-export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = false) {
+export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = false, driverCode = null) {
   if (!Array.isArray(items) || items.length > 250) throw Error("ARVENT_EXTRAS_INVALID");
   return items.map(x => {
     const mode=arventBillingMode(x.billing_type, certifiedMap);
@@ -31,28 +31,25 @@ export function arventPricedExtrasCatalog(items, certifiedMap = {}, certified = 
     // ceiling. Permit more than one only with an explicit offer-bound maximum.
     // The platform's ten-unit cap is an additional safeguard, never an
     // invented supplier entitlement.
-    const maxQuantity=x.code==="2" ? 1 :
+    const driver = typeof driverCode === "string" && x.code === driverCode && x.code !== "2" &&
+      /^(additional driver|extra driver|ek sürücü)$/iu.test(String(x.name).trim());
+    const maxQuantity=driver ? 1 :
       x.quantity_increasable===true && Number.isInteger(x.max_quantity) && x.max_quantity>=1
         ? Math.min(x.max_quantity,10) : 1;
-    // Arvent's commercial owner confirmed only code 2 at EUR 4 per
-    // supplier-billed day. Do NOT guess whether a numeric extraRentalType
-    // represents a daily unit price: supplier certification is still needed.
-    const driverTermsMatch=x.code!=="2"; // code 2 is IMM insurance, not a driver
-    // The Arvent manager currently authorizes only code 2 as a paid OPTIONAL
-    // service. Future equipment stays non-selectable, not silently sold.
-    const paidOptionalAllowed=x.code!=="2" && (x.required===true || x.price_eur===0);
-    return {...x, billing:mode, max_quantity:maxQuantity,
-      bookable:certified===true && valid && driverTermsMatch
+    const driverTermsMatch = !driver || (!x.required && mode==="day" && x.price_eur===4);
+    const paidOptionalAllowed = x.required || driver || x.price_eur===0;
+    return {...x, kind:driver?"additional_driver":"other", billing:mode, max_quantity:maxQuantity,
+      bookable:certified===true && valid && x.code!=="2" && driverTermsMatch
         && paidOptionalAllowed && (mode!==null || x.price_eur===0)};
   });
 }
 export function arventSelectedExtrasQuote({
-  items, selections, billedDays, certifiedMap={}, certified=false, additionalDriverId=null
+  items, selections, billedDays, certifiedMap={}, certified=false, additionalDriverId=null, driverCode=null
 }) {
   if(!Number.isInteger(billedDays)||billedDays<1||billedDays>366 ||
      !Array.isArray(selections)||selections.length>20)
     throw Error("ARVENT_EXTRAS_SELECTION_INVALID");
-  const catalog=arventPricedExtrasCatalog(items,certifiedMap,certified);
+  const catalog=arventPricedExtrasCatalog(items,certifiedMap,certified,driverCode);
   const byCode=new Map(catalog.map(x=>[x.code,x]));
   if(byCode.size!==catalog.length)throw Error("ARVENT_EXTRAS_DUPLICATE");
   const chosen=new Map();
@@ -64,14 +61,14 @@ export function arventSelectedExtrasQuote({
       throw Error("ARVENT_EXTRAS_NOT_PRICED");
     chosen.set(entry.id,entry.quantity);
   }
-  // Arvent requires only the paid code-2 service online. The driver's
+  // Arvent requires only the verified driver service online. The driver's
   // personal information and licence are checked by delivery staff.
   if(additionalDriverId)
     throw Error("ARVENT_ADDITIONAL_DRIVER_PERSONAL_DATA_UNNECESSARY");
   // A mandatory item is included even when the customer did not select it.
   for(const item of catalog){
     if(item.required){
-      if(item.code==="2")
+      if(item.code===driverCode || item.code==="2")
         throw Error("ARVENT_ADDITIONAL_DRIVER_NOT_MANDATORY");
       if(!item.bookable && item.price_eur!==0)throw Error("ARVENT_REQUIRED_EXTRA_UNPRICED");
       if(!chosen.has(item.code))chosen.set(item.code,1);
@@ -91,7 +88,7 @@ export function arventSelectedExtrasQuote({
     result.push({code,quantity,billing:mode,days:mode==="day"?billedDays:1,
       unit_cents:unitCents,total_cents:amountCents,
       name:typeof item.name==="string"?item.name.slice(0,120):code,
-      required:item.required===true,kind:"extra"});
+      required:item.required===true,kind:item.kind});
   }
   return {items:result,total_cents:total,selected:result.map(x=>({code:x.code,piece:x.quantity}))};
 }
@@ -120,8 +117,8 @@ export function arventOptionsSnapshot({rentalCents,ride24FeeCents,extraQuote,day
   customer_cents:rentalCents+ride24FeeCents}];
  for(const x of extraQuote.items){
   items.push({kind:"extra",id:x.code,code:x.code,
-   name_pl:x.name,
-   name_en:x.name,
+   name_pl:x.kind==="additional_driver"?"Dodatkowy kierowca":x.name,
+   name_en:x.kind==="additional_driver"?"Additional driver":x.name,
    quantity:x.quantity,days:x.days,billing:x.billing,
    partner_cents:x.total_cents,customer_cents:x.total_cents});
  }

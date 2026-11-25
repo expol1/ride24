@@ -5,14 +5,14 @@ import { arventCatalogRows, arventOfferExtrasRows, arventAssertVehicleOnlyExtras
 test('Arvent global extras catalog parses actual supplier codes and names only', () => {
  const result=arventCatalogRows({success:true,resultCode:0,data:[
   {code:1,name:'GPS',price:999},
-  {code:2,extraName:'Ek Sürücü',price:19},
+  {code:2,extraName:'IMM insurance',price:19},
   {extraCode:6,name:'Bebek Koltuğu',price:7},
   {code:1,name:'Duplicate GPS'},
   {code:40,name:'GPS (other code)'}
  ]});
  assert.deepEqual(result,[
   {code:'1',name:'GPS'},
-  {code:'2',name:'Ek Sürücü'},
+  {code:'2',name:'IMM insurance'},
   {code:'6',name:'Bebek Koltuğu'},
   {code:'40',name:'GPS (other code)'}
  ]);
@@ -24,15 +24,15 @@ test('Arvent accepts wrapped supplier catalog but rejects invalid envelope',()=>
  assert.throws(()=>arventCatalogRows({success:true,data:{unknown:[]}}),/CATALOG_SHAPE/);
 });
 
-test('Arvent offer extras keep driver code 2, supplier amount and unknown billing; never mark bookable',()=>{
+test('Arvent offer extras keep IMM code 2, supplier amount and unknown billing; never mark bookable',()=>{
  const items=arventOfferExtrasRows([
-  {code:2,name:'Ek Sürücü',price:4.99,extraRentalType:3,extraQuantityIncreasable:false,isRequired:false},
+  {code:2,name:'IMM insurance',price:4.99,extraRentalType:3,extraQuantityIncreasable:false,isRequired:false},
   {code:6,name:'Bebek Koltuğu',price:5,extraRentalType:'unknown',extraQuantityIncreasable:true,isRequired:false},
  ]);
  assert.equal(items.length,2);
  assert.deepEqual(items[0],{
-  code:'2',name:'Ek Sürücü',price_eur:4.99,billing_type:'3',
-  quantity_increasable:false,max_quantity:null,required:false,kind:'additional_driver',booking_confirmed:false
+  code:'2',name:'IMM insurance',price_eur:4.99,billing_type:'3',
+  quantity_increasable:false,max_quantity:null,required:false,kind:'other',booking_confirmed:false
  });
  assert.equal(items[1].kind,'other');
  assert.equal(items[1].quantity_increasable,true);
@@ -41,7 +41,7 @@ test('Arvent offer extras keep driver code 2, supplier amount and unknown billin
 });
 test('Arvent absent extras and ambiguous pricing never become a confirmed charge',()=>{
  assert.deepEqual(arventOfferExtrasRows(null),[]);
- const item=arventOfferExtrasRows([{code:2,name:'Ek Sürücü',price:'not a price',isRequired:false}])[0];
+ const item=arventOfferExtrasRows([{code:2,name:'IMM insurance',price:'not a price',isRequired:false}])[0];
  assert.equal(item.price_eur,null);
  assert.equal(item.booking_confirmed,false);
  assert.throws(()=>arventOfferExtrasRows([{code:'2'},{code:'2'}]),/DUPLICATE_OR_CODE/);
@@ -51,7 +51,7 @@ test('Arvent absent extras and ambiguous pricing never become a confirmed charge
 
 test('Arvent exact two-decimal supplier prices accept JSON number or decimal text, never estimates',()=>{
  const rows=arventOfferExtrasRows([
-  {code:2,name:'Ek Sürücü',price:'4.99',isRequired:false},
+  {code:2,name:'IMM insurance',price:'4.99',isRequired:false},
   {code:6,name:'Bebek Koltuğu',price:0,isRequired:false},
   {code:18,name:'Wi-Fi',price:'100.00',isRequired:false},
   {code:40,name:'GPS',price:'4,99',isRequired:false},
@@ -64,13 +64,13 @@ test('Arvent exact two-decimal supplier prices accept JSON number or decimal tex
 });
 
 test('Arvent SaveReservation extra codes and quantities are bounded, unique, single extra driver',()=>{
- const base={reservationToken:'11111111-1111-4111-8111-111111111111',
+ const base={driverCode:'TEST-driver',reservationToken:'11111111-1111-4111-8111-111111111111',
   reference:'RIDE24-TEST',
   customer:{name:'Anna',surname:'Nowak',email:'anna@example.invalid',phoneNumber:'000000000'}};
- const valid=arventSavePayload({...base,extras:[{code:'2',piece:1},{code:'6',piece:2}]});
- assert.deepEqual(valid.extras,[{code:'2',piece:1},{code:'6',piece:2}]);
+ const valid=arventSavePayload({...base,extras:[{code:'TEST-driver',piece:1},{code:'6',piece:2}]});
+ assert.deepEqual(valid.extras,[{code:'TEST-driver',piece:1},{code:'6',piece:2}]);
  for(const extras of [
-  [{code:'2',piece:2}], [{code:'6',piece:11}],
+  [{code:'TEST-driver',piece:2}], [{code:'6',piece:11}],
   [{code:'6',piece:1},{code:'6',piece:2}], [{code:'6',piece:0}],
   [{code:'6',piece:1.5}], [{code:'',piece:1}],
   Array.from({length:21},(_,i)=>({code:String(i+1),piece:1}))
@@ -82,7 +82,7 @@ test('Arvent missing or payable mandatory extras fail before the Stripe booking 
  assert.doesNotThrow(()=>arventAssertVehicleOnlyExtrasSafe([]));
  assert.doesNotThrow(()=>arventAssertVehicleOnlyExtrasSafe([
    {code:6,name:'Free required item',price:0,isRequired:true},
-   {code:2,name:'Optional additional driver',price:6,isRequired:false}
+   {code:2,name:'IMM insurance',price:6,isRequired:false}
  ]));
  assert.throws(()=>arventAssertVehicleOnlyExtrasSafe([
    {code:6,name:'Required infant seat',price:5,isRequired:true}

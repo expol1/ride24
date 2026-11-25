@@ -106,7 +106,11 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  const supplierSelections=Array.isArray(accepted?.selected)?accepted.selected:[];
  const extrasCents=accepted?Number(accepted.extras_cents):0;
  const selectedCodes=new Set(supplierSelections.map((x:any)=>x.code));
- const extraDriver=selectedCodes.has('2');
+ const driverCode=booking.partners.api_settings?.arvent_additional_driver_certified===true
+   ?booking.partners.api_settings.arvent_additional_driver_code:null;
+ const extraDriver=!!driverCode && driverCode!=='2' && selectedCodes.has(driverCode);
+ if(selectedCodes.has('2') || (accepted?.driver_code && accepted.driver_code!==driverCode))
+   fail('ARVENT_EXTRAS_QUOTE_MISMATCH');
  if(accepted && (!options.snapshot||accepted.pricing_certified!==true
     ||!Number.isSafeInteger(accepted.rental_cents)||accepted.rental_cents!==base
     ||!Number.isSafeInteger(extrasCents)||extrasCents<0
@@ -130,8 +134,8 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
   fail('ACCEPTED_QUOTE_MISMATCH');
  if(!booking.main_driver_name||!booking.client_email||!booking.client_phone)
   fail('ARVENT_DRIVER_DETAILS_UNSUPPORTED');
- // Arvent does not collect a second driver's personal data online. Code 2
- // alone adds the EUR 4/day service; Arvent checks the licence at pickup.
+ // Arvent does not collect a second driver's personal data online. The certified product
+ // adds the EUR 4/day service; Arvent checks the licence at pickup.
  if(booking.add_driver_name||booking.add_driver_age||booking.additional_driver_id
     ||booking.additional_driver_license_since)
   fail('ARVENT_DRIVER_DETAILS_UNSUPPORTED');
@@ -158,10 +162,12 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  const match=live.find((offer:any)=>offer.external_id===sipp
    &&offer.currency==='EUR'&&offer.deposit_amount===0
    &&cents(offer.public_price_total)===base
+   && (offer.provider_quote_data?.one_way_fee??0)===(old.one_way_fee??0)
+   && (old.terms_key ? offer.provider_quote_data?.terms_key===old.terms_key : String(offer.provider_quote_data?.vehicle_id)===vehicleId)
    &&/^[0-9]+$/.test(String(offer.provider_quote_data?.vehicle_id||'')));
  if(!match)fail(live.some((offer:any)=>offer.external_id===sipp)
      ?'PROVIDER_PRICE_OR_TERMS_CHANGED':'PROVIDER_UNAVAILABLE');
- if(pickup!==dropoff)fail('ARVENT_ONE_WAY_PAYMENT_UNVERIFIED');
+ if(pickup!==dropoff && Deno.env.get('ARVENT_ONE_WAY_CERTIFIED')!=='true')fail('ARVENT_ONE_WAY_PAYMENT_UNVERIFIED');
  // Supplier requires the actual length of licence tenure. Validate
  // a first-issued date self-declared by the selected main driver; never
  // infer tenure from age and never allow a missing/future issue date.
@@ -185,7 +191,7 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
    vehicle_group_id:sipp,...input,partner_amount:net/100,
    rental_amount:base/100,extras_amount:extrasCents/100,
    extra_selections:supplierSelections,
-   extra_billing_map:accepted?.billing_type_map||{},
+   driver_code:driverCode,extra_billing_map:accepted?.billing_type_map||{},
    extras_pricing_certified:accepted?.pricing_certified===true,
    partner_discount_percent:0,provider_quote_data:match.provider_quote_data,
    main_driver:{name:booking.main_driver_name,age,
@@ -218,13 +224,13 @@ export async function createPaidProvider(credentials:any,input:any) {
 // Arvent uses it; the result is "cancelled" only after GET shows status 3.
 export async function cancelPaidProviderAfterTimeout(credentials:any,reference:string,prepared:any) {
  if(prepared?.provider!=='arvent_kolaycar'||!arventPaymentApproved())fail('ADAPTER_NOT_READY');
- return arventCancelBooking(credentials,reference,{reason:'Ride24: not approved within the agreed time limit'});
+ return arventCancelBooking(credentials,reference,{reason:'Ride24: not approved within the agreed time limit'},prepared.ride24_booking_id);
 }
 export async function readPaidProviderStatus(credentials:any,reference:string,prepared:any) {
  if(prepared?.provider==='caravel')return readPaidCaravelStatus(credentials,reference,prepared);
  if(prepared?.provider==='arvent_kolaycar'){
   if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
-  const result=await arventBookingStatus(credentials,reference);
+  const result=await arventBookingStatus(credentials,reference,prepared.ride24_booking_id);
   if(result.status==='cancelled'){
    // Only a fully reconciled supplier cancellation may start a Stripe refund.
    // Status 3 plus a mismatched Ride24 agency reference, price, route or

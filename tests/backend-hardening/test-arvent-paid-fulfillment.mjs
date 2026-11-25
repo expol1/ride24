@@ -22,7 +22,7 @@ function fixture(change=()=>{},flags={}){
   start_date:'2027-02-16',end_date:'2027-02-18',pickup_time:'10:00:00',return_time:'10:00:00',
   main_driver_name:'Example Customer',main_driver_age:30,main_driver_license_since:'2024-01-01',add_driver_name:null,
   client_email:'example@example.invalid',client_phone:'+48000000000'};
- const provider_quote_data={provider:'arvent_kolaycar',vehicle_id:'10',sipp:'CDAR',
+ const provider_quote_data={provider:'arvent_kolaycar',vehicle_id:'10',terms_key:'same-conditions',sipp:'CDAR',
   total_amount:100,pickup_location_id:'12',dropoff_location_id:'12'};
  const quote={id:'q-1',booking_id:'bk-1',partner_id:'arvent',car_class_id:'cls',
   external_group_id:'CDAR',currency:'EUR',partner_net_total:100,partner_discount_percent:0,
@@ -31,7 +31,7 @@ function fixture(change=()=>{},flags={}){
   raw_response:{provider_quote_data}};
  const fresh={external_id:'CDAR',currency:'EUR',deposit_amount:0,public_price_total:100,
   features:{minimum_driver_age:21,min_license_years:0},
-  provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'10',sipp:'CDAR',
+  provider_quote_data:{provider:'arvent_kolaycar',vehicle_id:'10',terms_key:'same-conditions',sipp:'CDAR',
    total_amount:100,currency:'EUR'}};
  const state={booking,quote,fresh,live:[fresh],status:{status:'pending',
   booking_reference:'A-1',needs_manual_review:false},throws:false};

@@ -83,8 +83,8 @@ test("saves verify all fields before any database replacement, and unlock only a
   assert.ok(profile.indexOf('const verified = await loadUserProfile()')<profile.indexOf('window.r24ApplyClientProfileGate(verified'));
   const invoice=html.slice(html.indexOf('window.saveInvoiceData = async function()'),html.indexOf('window.deleteInvoiceData = async function()'));
   assert.ok(invoice.indexOf('invoiceProfileErrors(payload)')<invoice.indexOf('.upsert(payload'));
-  const driver=html.slice(html.indexOf('window.saveDrivers = async function()'),html.indexOf('window.cancelBooking = async function',html.indexOf('window.saveDrivers = async function()')));
+  const driver=html.slice(html.indexOf('window.saveDrivers=async function(targetRow=null)'),html.indexOf('window.cancelBooking = async function',html.indexOf('window.saveDrivers=async function(targetRow=null)')));
   assert.ok(driver.indexOf('additionalDriverErrors(candidate)')>=0);
-  assert.ok(driver.indexOf('additionalDriverErrors(candidate)')<driver.indexOf('.upsert(newDrivers'));
+  assert.ok(driver.indexOf('additionalDriverErrors(candidate)')<driver.indexOf('.upsert(payload'));
   assert.doesNotMatch(driver, /\.delete\(/);
 });

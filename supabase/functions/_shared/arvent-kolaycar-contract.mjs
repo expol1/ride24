@@ -62,7 +62,8 @@ export function arventOfferExtrasRows(raw) {
  const seen=new Set(),items=[];
  for(const x of raw){
   if(!record(x))throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_SHAPE");
-  const code=str(x.code,60);
+  const code=typeof x.code==="string"?x.code:String(x.code??"");
+  if(!/^[a-zA-Z0-9_-]{1,60}$/.test(code))throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_DUPLICATE_OR_CODE");
   if(!code||seen.has(code))throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_DUPLICATE_OR_CODE");
   seen.add(code);
   const name=str(x.name??x.extraName??x.title??x.description,120);
@@ -89,7 +90,7 @@ export function arventOfferExtrasRows(raw) {
       && Number(x.extraMaxQuantity??x.maxQuantity)<=100
        ? Number(x.extraMaxQuantity??x.maxQuantity):null,
    required:x.isRequired===true,
-   kind:code==="2"?"additional_driver":"other",
+   kind:"other",
    booking_confirmed:false
   });
  }
@@ -227,6 +228,23 @@ export function arventOfferMatchesTerms(x,currency="EUR") {
   &&num(x.totalKMLimit)===0&&num(x.totalPrice)!==null&&x.totalPrice>0
   &&Boolean(str(x.reservationToken,500));
 }
+// Supplier totalPrice already contains oneWayFee.
+export function arventOneWayFee(vehicle, input) {
+ const fee=vehicle?.oneWayFee;
+ const different=input.pickup_location_id!==input.dropoff_location_id;
+ if(!different && (fee==null || fee===0))return 0;
+ if(!different || typeof fee!=="number" || !Number.isFinite(fee) || fee<=0 ||
+    fee>vehicle.totalPrice || Math.abs(fee*100-Math.round(fee*100))>1e-6)return null;
+ return fee;
+}
+export function arventTermsKey(vehicle) {
+ let conditions=vehicle.rentalConditions;
+ if(typeof conditions==="string"){try{conditions=JSON.parse(conditions)}catch{return null;}}
+ if(!Array.isArray(conditions))return null;
+ return JSON.stringify([vehicle.vendorMinimumDriverAge,vehicle.vendorMinimumDrivingLicenseAge,
+   vehicle.personalNumberRequired??null,vehicle.vendorFlightPassRequired??null,
+   conditions.map(c=>[String(c?.conditionCode??""),String(c?.conditionName??"")]).sort()]);
+}
 export function arventOfferRows(e,input) {
  const payload=supplierData(e);
  const data=Array.isArray(payload)?payload:record(payload)&&Array.isArray(payload.vehicles)?payload.vehicles:null;
@@ -237,7 +255,7 @@ export function arventOfferRows(e,input) {
  if(!(days>0&&days<=366))throw Error("PARTNER_API_ERROR:ARVENT_DATES_INVALID");
  const grouped=new Map();
  for(const x of data.slice(0,10000)) {
-  if(!arventOfferMatchesTerms(x,currency))continue;
+  if(!arventOfferMatchesTerms(x,currency)||arventOneWayFee(x,input)===null)continue;
   const total=x.totalPrice;
   const supplierDays=num(x.rentalDuration);
   const billedDays=supplierDays!==null&&Number.isInteger(supplierDays)&&supplierDays>0&&supplierDays<=366
@@ -254,6 +272,7 @@ export function arventOfferRows(e,input) {
     insurance_unverified:false,full_insurance_included:true,insurance_excess_eur:0},
    provider_quote_data:{provider:ARVENT_PROVIDER,
     vehicle_id:id(x.vehicleId),sipp:c.external_id,
+    terms_key:arventTermsKey(x),one_way_fee:arventOneWayFee(x,input),
     total_amount:total,currency,pickup_location_id:input.pickup_location_id,
     dropoff_location_id:input.dropoff_location_id,quote_requires_live_revalidation:true}
   };
@@ -302,20 +321,20 @@ export function arventDateOfBirth(value) {
   throw Error("PARTNER_API_ERROR:ARVENT_BIRTHDAY_INVALID");
  return raw;
 }
-export function arventSavePayload({reservationToken,reference,customer,extras=[]}) {
+export function arventSavePayload({reservationToken,reference,customer,extras=[],driverCode=null}) {
  if(!/^[0-9a-f-]{36}$/i.test(str(reservationToken,200)))
   throw Error("PARTNER_API_ERROR:ARVENT_TOKEN_REQUIRED");
  if(!str(reference,150)||!record(customer)||!str(customer.name)||!str(customer.surname)
     ||!str(customer.email)||!str(customer.phoneNumber))
   throw Error("PARTNER_API_ERROR:ARVENT_CUSTOMER_INCOMPLETE");
  // One extra code per reservation, bounded quantities. In particular one
- // additional driver (code 2) is the absolute maximum for this integration;
+ // certified additional driver is the absolute maximum for this integration;
  // a future paid driver must also be independently certified by the supplier.
  const extraCodes=Array.isArray(extras)?extras.map(e=>str(e?.code,60)):[];
  if(!Array.isArray(extras)||extras.length>20||extras.some((e,i)=>
     !record(e)||!extraCodes[i]||!Number.isInteger(e.piece)
     ||e.piece<1||e.piece>10
-    ||(extraCodes[i]==="2"&&e.piece!==1))
+    ||(extraCodes[i]===driverCode&&e.piece!==1))
     ||new Set(extraCodes).size!==extraCodes.length)
   throw Error("PARTNER_API_ERROR:ARVENT_EXTRAS_INVALID");
  return {reservationToken,languageCode:"EN",

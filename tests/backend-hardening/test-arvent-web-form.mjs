@@ -81,7 +81,7 @@ test('Arvent without extras gets the server price summary: 88.14 = 84.75 rental 
  assert.deepEqual(a.extras,[]);assert.deepEqual(a.mandatory_fees,[]);
  assert.deepEqual(a.extra_catalog,[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}]);
  assert.equal(a.offer_extras.status,'present');
- assert.equal(a.offer_extras.items[0].kind,'additional_driver');
+ assert.equal(a.offer_extras.items[0].kind,'other');
  assert.equal(a.offer_extras.items[0].price_eur,4.99);
  assert.equal(a.category.sipp,'EDMR');
  // Same single formula as the booking request: commission x NBP rate x (1 - loyalty%).
@@ -138,12 +138,12 @@ test('Arvent extras endpoint downtime never fabricates extras nor breaks vehicle
  assert.equal(r.body.arvent.pay_on_pickup,84.75);
  assert.equal(r.body.arvent.total,88.14);
 });
-test('Arvent certified code 2 adds EUR4 per day without collecting second driver identity',async()=>{
+test('Arvent verified product code adds EUR4 per day without collecting second driver identity',async()=>{
  const s=setup({extraSettings:{arvent_extras_pricing_certified:true,
-   arvent_additional_driver_certified:true},
-   offerItems:[{code:'2',name:'Ek Sürücü',price_eur:4,billing_type:'day',
+   arvent_additional_driver_certified:true,arvent_additional_driver_code:'TEST-driver'},
+   offerItems:[{code:'TEST-driver',name:'Ek Sürücü',price_eur:4,billing_type:'day',
      quantity_increasable:false,required:false,kind:'additional_driver'}]});
- const r=await s.call({extras:[{id:'2',quantity:1}]});
+ const r=await s.call({extras:[{id:'TEST-driver',quantity:1}]});
  assert.equal(r.status,200,JSON.stringify(r.body));
  assert.equal(r.body.enabled,true);
  assert.equal(r.body.arvent.pay_on_pickup,96.75);
@@ -173,10 +173,10 @@ test('free mandatory supplier equipment preserves the existing vehicle-only pric
 });
 test('Arvent uses verified supplier days for additional driver rate',async()=>{
  const r=await setup({extraSettings:{arvent_extras_pricing_certified:true,
-   arvent_additional_driver_certified:true},
-   offerItems:[{code:'2',name:'Extra driver',price_eur:4,billing_type:'day',
+   arvent_additional_driver_certified:true,arvent_additional_driver_code:'TEST-driver'},
+   offerItems:[{code:'TEST-driver',name:'Extra driver',price_eur:4,billing_type:'day',
      required:false,quantity_increasable:false,kind:'additional_driver'}]})
- .call({extras:[{id:'2',quantity:1}]});
+ .call({extras:[{id:'TEST-driver',quantity:1}]});
  assert.equal(r.status,200);
  assert.equal(r.body.arvent.billed_days,3);
  assert.equal(r.body.arvent.pay_on_pickup,96.75);

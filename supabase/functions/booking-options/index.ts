@@ -117,7 +117,9 @@ serve(async(req: Request)=>{
           'For Arvent select the paid Additional driver option; personal details are not collected online.',400);
       const typeMap=settings.arvent_extra_billing_types && typeof settings.arvent_extra_billing_types==='object'
          && !Array.isArray(settings.arvent_extra_billing_types) ? settings.arvent_extra_billing_types : {};
-      const effectiveItems=arventPricedExtrasCatalog(offerExtras.items,typeMap,certified);
+      const driverCode=settings.arvent_additional_driver_certified===true
+        ? settings.arvent_additional_driver_code : null;
+      const effectiveItems=arventPricedExtrasCatalog(offerExtras.items,typeMap,certified,driverCode);
       const selected=body.extras||[];
       // No payment for a paid mandatory item whose billing could not be certified.
       if(effectiveItems.some((item:any)=>item.required &&
@@ -125,12 +127,7 @@ serve(async(req: Request)=>{
         throw new BookingOptionsError('ARVENT_EXTRAS_PRICE_UNVERIFIED',
           'Arvent nie potwierdził naliczania obowiązkowego dodatku. Nie pobierzemy opłaty.',
           'Arvent has not confirmed mandatory extras billing. No charge will be taken.',409);
-      if(selected.some((x:any)=>x?.id==='2') && settings.arvent_additional_driver_certified!==true)
-        throw new BookingOptionsError('ARVENT_DRIVER_NOT_CERTIFIED',
-          'Arvent musi potwierdzić sposób rejestracji dodatkowego kierowcy.',
-          'Arvent must confirm how the additional driver is registered.',409);
-      const readyItems=effectiveItems.map((x:any)=>({...x,
-        bookable:x.bookable && (x.code!=='2'||settings.arvent_additional_driver_certified===true)}));
+      const readyItems=effectiveItems;
       const supplierDays=offerExtras.billed_days;
       const hasChargedDaily=readyItems.some((x:any)=>x.billing==='day'&&x.price_eur>0
          && (x.required || selected.some((chosen:any)=>chosen?.id===x.code)));
@@ -144,7 +141,7 @@ serve(async(req: Request)=>{
       let extraQuote:{items:any[];total_cents:number;selected:any[]}|null=null;
       try {
         extraQuote=arventSelectedExtrasQuote({items:readyItems,selections:selected,
-          billedDays:priceDays,certified,
+          billedDays:priceDays,certified,driverCode,
           certifiedMap:typeMap,additionalDriverId:null});
       } catch(e) {
         const code=e instanceof Error?e.message:'';
@@ -182,7 +179,7 @@ serve(async(req: Request)=>{
               binding,fingerprint:quoteFingerprint,snapshot,
               arvent_extra:{rental_cents:Math.round(rental*100),
                 extras_cents:extraQuote.total_cents,selected:extraQuote.items,
-                billing_type_map:typeMap,pricing_certified:true}
+                driver_code:driverCode,billing_type_map:typeMap,pricing_certified:true}
             }}
           }).select('id').single();
         if(derivedError||!derived?.id)throw new BookingOptionsError('PRICING_UNAVAILABLE',

@@ -1102,7 +1102,7 @@ serve(async (req) => {
     const mainDriverLicenseSince = savedMainDriverLicenseSince;
     // Arvent has explicitly confirmed that no secondary driver's identity
     // or licence information is needed online: the person presents their
-    // licence to Arvent staff at pickup. The code-2 paid extra is selected
+    // licence to Arvent staff at pickup. The certified paid extra is selected
     // via the supplier-priced extras quote, not additional_driver_id.
     if (isArventBooking && additionalDriverId) {
       return jsonResponse(req, {
@@ -1439,8 +1439,8 @@ serve(async (req) => {
             !Number.isSafeInteger(accepted.rental_cents) ||
             !Number.isSafeInteger(accepted.extras_cents) ||
             accepted.rental_cents+accepted.extras_cents!==pricingItemsSnapshot.partner_cents ||
-            (additionalDriverId || (accepted.selected.some((x:any)=>x.code==="2")
-               && !accepted.selected.some((x:any)=>x.code==="2" && x.quantity===1))))
+            additionalDriverId || accepted.selected.some((x:any)=>x.code==="2" ||
+              (x.kind==="additional_driver" && (x.code!==accepted.driver_code || x.quantity!==1))))
           throw quoteChanged();
       }
       if(pricingItemsSnapshot) {

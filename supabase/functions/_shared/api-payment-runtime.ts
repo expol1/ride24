@@ -1,3 +1,4 @@
+import { arventLookupByAgencyReference } from "./arvent-kolaycar.ts";
 import { advanceApiPayment, arventApprovalDeadline } from './api-payment-flow.mjs';
 import { assertVoucherCompleted } from './api-voucher-confirmation.mjs';
 import { loadPartnerCredentials, sanitizePartnerPayload } from './partner-api.ts';
@@ -40,7 +41,12 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
    recover:async(_id:string,w:any)=>{
      // Renteon has not yet documented a unique OrderReference lookup guarantee.
      // Never interpret an empty search or an absent reference as permission to retry.
-     if(!w.provider_reference)return null;
+     if(w.last_error==='ARVENT_RECONCILIATION_REQUIRED')return null;
+     if(!w.provider_reference){
+       if(w.prepared_quote?.provider!=='arvent_kolaycar' || w.prepared_quote.ride24_booking_id!==id)return null;
+       await load();
+       return arventLookupByAgencyReference(credentials,w.prepared_quote);
+     }
      if(w.last_error==='PROVIDER_RESPONSE_REQUIRES_REVIEW'||w.last_error==='CANCELLED_DURING_DISPATCH')return null;
      await load();return readPaidProviderStatus(credentials,w.provider_reference,w.prepared_quote);
    },

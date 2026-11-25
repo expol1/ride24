@@ -44,7 +44,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    if(path==="/reservations/save"&&save401)throw Error("PARTNER_API_ERROR:HTTP:401");
    if(path==="/reservations/save")return {success:true,resultCode:0,
     data:{reservationNumber:savedRef,sippCode:savedSipp,agencyReservationReference:"R24-XYZ",reservationStatusType:savedStatus,
-     totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     excess:0,rentalConditions:[{conditionName:"Full Insurance"}],totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
      reservationExtras:savedReservationExtras,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
@@ -54,7 +54,7 @@ function setup({licenseYears=0,allowWrites=false,savedStatus=0,savedSipp="CDAR",
    if(path.startsWith("/reservations?"))return {success:true,resultCode:0,
     data:{reservationNumber:savedRef,sippCode:savedSipp,reservationStatusType:savedStatus,
      ...(savedGetAgencyRef!==null?{agencyReservationReference:savedGetAgencyRef}:{}),
-     totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
+     excess:0,rentalConditions:[{conditionName:"Full Insurance"}],totalPrice:savedPrice,currencyCode:"EUR",depositPrice:savedDeposit,
      reservationExtras:savedReservationExtras,
      pickupLocationId:savedPickupLocation,returnLocationId:9,pickupDate:"2030-12-16T10:00:00",returnDate:"2030-12-17T10:00:00",
      depositCreditCardRequired:false,totalKMLimit:0}};
@@ -124,14 +124,14 @@ test("live search sends EUR and dd.MM.yyyy then strips token",async()=>{
 });
 test("offer extras read returns supplier codes, prices and one additional driver without posting a reservation",async()=>{
  const a=setup({requiredExtras:[
-  {code:2,name:"Ek Sürücü",price:4.99,extraRentalType:3,extraQuantityIncreasable:false,isRequired:false},
+  {code:2,name:"IMM insurance",price:4.99,extraRentalType:3,extraQuantityIncreasable:false,isRequired:false},
   {code:6,name:"Bebek Koltuğu",price:8,extraRentalType:1,extraQuantityIncreasable:true,isRequired:false},
  ]});
  const result=await a.arventReadOfferExtras(creds,input,{vehicle_id:"100",sipp:"CDAR",total_amount:100});
  assert.equal(result.status,"present");
  assert.equal(result.items.length,2);
  assert.equal(result.items[0].code,"2");
- assert.equal(result.items[0].kind,"additional_driver");
+ assert.equal(result.items[0].kind,"other");
  assert.equal(result.items[0].price_eur,4.99);
  assert.equal(result.items[0].booking_confirmed,false);
  assert.equal(result.items[1].code,"6");
@@ -192,11 +192,17 @@ test("reservation status lookup uses server-side stored email and stays pending"
  assert.ok(lookup.path.includes("customerEmail=synthetic%40example.invalid"));
 });
 
-test("unsupported agency-reference lookup never sends an invented supplier request",async()=>{
- const a=setup();
- await assert.rejects(()=>a.arventLookupByAgencyReference(creds,"R24-XYZ","example@example.com"),
-  /ARVENT_AGENCY_LOOKUP_UNSUPPORTED/);
- assert.equal(a.calls.length,0);
+test("timeout recovery reads by reference and surname, then verifies by supplier number and email",async()=>{
+ const a=setup({savedGetAgencyRef:"R24-XYZ"});
+ const recovered=await a.arventLookupByAgencyReference(creds,syntheticBooking);
+ assert.equal(recovered.booking_reference,"A-1");
+ assert.equal(recovered.status,"pending");
+ assert.ok(a.calls.some(x=>x.path.includes("agencyReservationReference=R24-XYZ&customerSurname=Customer&languageType=EN")));
+ assert.ok(a.calls.some(x=>x.path.includes("reservationNumber=A-1&customerEmail=")));
+ const mismatch=await setup({savedGetAgencyRef:"OTHER"}).arventLookupByAgencyReference(creds,syntheticBooking);
+ assert.equal(mismatch.needs_manual_review,true);
+ assert.equal(mismatch.booking_reference,undefined);
+ assert.ok(a.calls.every(x=>x.path!=="/reservations/save"));
 });
 const syntheticBooking={...input,partner_discount_percent:0,partner_amount:100,
  idempotency_key:"ride24:synthetic",ride24_booking_id:"R24-XYZ",reservation_code:"R24-XYZ",
@@ -205,7 +211,8 @@ const syntheticBooking={...input,partner_discount_percent:0,partner_amount:100,
 test("approved status 1 only clears review after price and contract verification",async()=>{
  const a=setup({allowWrites:true,savedStatus:1});
  const result=await a.arventCreateBooking(creds,syntheticBooking);
- assert.equal(result.status,"confirmed");
+ assert.equal(result.status,"pending");
+ assert.equal((await a.arventBookingStatus(creds,"A-1")).status,"confirmed");
  assert.equal(result.needs_manual_review,false);
  assert.equal(a.calls.filter(c=>c.path==="/reservations/save").length,1);
 });
@@ -267,7 +274,7 @@ test("HTTP 401 cannot replay SaveReservation POST and risk double-booking",async
 test("live extras:null with verified token-bound vehicle does not prevent booking",async()=>{
  const a=setup({allowWrites:true,savedStatus:1});
  const created=await a.arventCreateBooking(creds,syntheticBooking);
- assert.equal(created.status,"confirmed");
+ assert.equal(created.status,"pending");
  const save=a.calls.find(x=>x.path==="/reservations/save");
  assert.ok(save);
  assert.equal(JSON.stringify(save.request.body.extras),"[]");
@@ -327,8 +334,8 @@ test("mandatory supplement without explicit zero price blocks supplier POST",asy
 });
 test("live reservation responses without sippCode confirm only on matching money, route and terms",async()=>{
  const a=setup({allowWrites:true,licenseYears:2,savedStatus:1,savedSipp:null});
- assert.equal((await a.arventCreateBooking(creds,syntheticBooking)).status,"confirmed");
- assert.equal((await a.arventBookingStatus(creds,"A-1")).status,"confirmed");
+ assert.equal((await a.arventCreateBooking(creds,syntheticBooking)).status,"pending");
+ assert.equal((await a.arventBookingStatus(creds,"A-1")).status,"pending");
  const other=setup({allowWrites:true,licenseYears:2,savedStatus:1,savedSipp:"PDAR"});
  assert.equal((await other.arventCreateBooking(creds,syntheticBooking)).status,"pending");
  assert.equal((await other.arventBookingStatus(creds,"A-1")).status,"pending");
@@ -393,6 +400,6 @@ test("positive supplier driving-licence tenure is checked before SaveReservation
  assert.equal(approved.calls.filter(c=>c.path==="/reservations/save").length,0);
  const eligible=setup({allowWrites:true,licenseYears:2,savedStatus:1});
  const confirmed=await eligible.arventCreateBooking(creds,syntheticBooking);
- assert.equal(confirmed.status,"confirmed");
+ assert.equal(confirmed.status,"pending");
  assert.equal(eligible.calls.filter(c=>c.path==="/reservations/save").length,1);
 });
