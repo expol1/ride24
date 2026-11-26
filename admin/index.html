@@ -819,6 +819,15 @@
  .mobile-admin-more-header button{border:0;border-radius:7px;background:#E2E8F0;font-size:24px;min-width:36px;min-height:36px}
  .mobile-admin-more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
  .mobile-admin-more-grid button,.mobile-admin-more-grid a{display:block;min-width:0;min-height:44px;padding:12px 8px;border:1px solid #E2E8F0;border-radius:9px;background:#F8FAFC;color:#0F172A;text-decoration:none;text-align:left;font:600 12px/1.35 Inter,sans-serif;overflow-wrap:anywhere}
+ #view-messages .table-container{min-width:0;max-width:100%}
+ #view-messages table,#view-messages tbody{display:block;width:100%;min-width:0}
+ #view-messages thead{display:none}
+ #view-messages tbody tr{display:grid;gap:6px;margin:10px;padding:12px;border:1px solid var(--border);border-radius:10px}
+ #view-messages td{display:block;min-width:0;padding:0;border:0;overflow-wrap:anywhere;white-space:normal}
+ #view-messages td:last-child:not([colspan]){display:flex;gap:8px;margin-top:4px}
+ #view-messages td button{flex:1;min-height:44px}
+ #reply-modal>div{box-sizing:border-box;max-height:90dvh;overflow:auto}
+ #reply-to-email{overflow-wrap:anywhere}
  #view-refunds .table-container{max-width:100%;overflow-x:visible}
  #view-refunds table,#view-refunds tbody{display:block;width:100%;min-width:0}
  #view-refunds thead{display:none}
@@ -1098,6 +1107,7 @@
         <h1 class="page-title">Wiadomości od klientów</h1>
     </div>
 
+    <p id="reply-confirmation" role="status" hidden></p>
     <div class="table-container">
         <div class="table-header">Skrzynka odbiorcza</div>
         <table>
@@ -1303,10 +1313,11 @@
 <div id="reply-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
     <div style="background:white; padding:30px; border-radius:12px; width:500px; max-width:90%;">
         <h3>Odpowiedź do: <span id="reply-to-email" style="color:var(--blue);"></span></h3>
-        <textarea id="reply-text" placeholder="Wpisz treść odpowiedzi..." style="width:100%; height:150px; margin:15px 0; padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit; color:black;"></textarea>
+        <div role="alert" id="reply-error"></div>
+        <textarea id="reply-text" aria-label="Treść odpowiedzi" maxlength="8000" placeholder="Wpisz treść odpowiedzi..." style="width:100%; height:150px; margin:15px 0; padding:10px; border-radius:8px; border:1px solid #ddd; font-family:inherit; color:black;"></textarea>
         <div style="display:flex; gap:10px; justify-content:flex-end;">
             <button onclick="closeReplyModal()" style="background:#eee; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">Anuluj</button>
-            <button onclick="sendReply()" style="background:var(--blue); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">Wyślij wiadomość</button>
+            <button id="reply-send" onclick="sendReply()" style="background:var(--blue); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">Wyślij wiadomość</button>
         </div>
     </div>
 </div>
@@ -2176,7 +2187,7 @@
 
             const { data, error } = await db
                 .from("contact_messages")
-                .select("id, name, email, message, created_at")
+                .select("id, name, email, message, created_at, replied_at")
                 .order("created_at", { ascending: false });
 
             if (error) {
@@ -2192,25 +2203,31 @@
 
             data.forEach(msg => {
                 const date = new Date(msg.created_at).toLocaleString('pl-PL');
-                tbody.innerHTML += `
-                    <tr>
-                        <td style="font-size: 11px; color: var(--gray);">${date}</td>
-                        <td>
-                            <div style="font-weight: 700;">${escapeHtml(msg.name)}</div>
-                            <div style="font-size: 12px; color: var(--blue); font-weight:600;">${escapeHtml(msg.email)}</div>
-                        </td>
-                        <td style="line-height: 1.5; font-size: 13px; white-space: pre-wrap; color: var(--text);">${escapeHtml(msg.message)}</td>
-                       <td>
-    <button class="btn-primary" style="margin-bottom: 5px; width: 100%;" 
-    onclick="openReplyModal('${msg.id}', '${msg.email}')">
-    Odpisz
-</button>
-    <button class="btn-danger" style="width: 100%;" onclick="deleteMessage('${msg.id}')">
-        Usuń
-    </button>
-</td>
-                    </tr>
-                `;
+                const row = tbody.insertRow();
+                row.insertCell().textContent = date;
+                const sender = row.insertCell();
+                const name = document.createElement('strong');
+                name.textContent = msg.name;
+                sender.append(name, document.createElement('br'), msg.email);
+                const body = row.insertCell();
+                body.style.whiteSpace = 'pre-wrap';
+                body.textContent = msg.message;
+                if (msg.replied_at) {
+                    const receipt = document.createElement('small');
+                    receipt.style.display = 'block';
+                    receipt.textContent = 'Odpowiedziano · ' + new Date(msg.replied_at).toLocaleString('pl-PL');
+                    body.append(receipt);
+                }
+                const actions = row.insertCell();
+                const reply = document.createElement('button');
+                reply.className = 'btn-primary';
+                reply.textContent = 'Odpisz';
+                reply.onclick = () => openReplyModal(msg.id, msg.email);
+                const remove = document.createElement('button');
+                remove.className = 'btn-danger';
+                remove.textContent = 'Usuń';
+                remove.onclick = () => deleteMessage(msg.id);
+                actions.append(reply, remove);
             });
         }
 
@@ -4128,90 +4145,62 @@ db.channel('admin-general')
     .subscribe();
 
 
-// 1. Otwieranie okienka
 let currentMessageId = null;
 
 function openReplyModal(id, email) {
     currentMessageId = id;
-    document.getElementById('reply-to-email').innerText = email;
+    document.getElementById('reply-error').textContent = '';
+    document.getElementById('reply-to-email').textContent = email;
+    document.getElementById('reply-confirmation').hidden = true;
     document.getElementById('reply-modal').style.display = 'flex';
+    document.getElementById('reply-text').focus();
 }
 
-// 2. Zamykanie okienka
 function closeReplyModal() {
+    if (document.getElementById('reply-send').disabled) return;
     document.getElementById('reply-modal').style.display = 'none';
-    document.getElementById('reply-text').value = ''; // czyści tekst
+    document.getElementById('reply-text').value = '';
+    currentMessageId = null;
 }
 
-// 3. "Wysyłanie" (na razie udawane, dopóki nie masz serwera poczty)
 async function sendReply() {
-    const email = document.getElementById('reply-to-email').innerText;
-    const text = document.getElementById('reply-text').value;
-    const btn = document.querySelector('#reply-modal button[onclick="sendReply()"]');
+    const button = document.getElementById('reply-send');
+    if (button.disabled || !currentMessageId) return;
+    const field = document.getElementById('reply-text');
+    const errorBox = document.getElementById('reply-error');
+    const email = document.getElementById('reply-to-email').textContent;
+    if (!field.value.trim()) {
+        errorBox.textContent = 'Wpisz treść odpowiedzi.';
+        field.focus();
+        return;
+    }
 
-    if(!text) return alert("Wpisz treść wiadomości!");
-
-    // Blokujemy przycisk, żeby nie wysłać 10 razy tej samej wiadomości
-    btn.innerText = "Wysyłanie...";
-    btn.disabled = true;
-    btn.style.opacity = "0.5";
-
+    errorBox.textContent = '';
+    button.disabled = true;
+    field.readOnly = true;
+    button.textContent = 'Wysyłanie…';
     try {
-        const { data: { session } } = await db.auth.getSession();
-        if (!session) throw new Error("Sesja wygasła. Zaloguj się ponownie.");
-
-        // Uderzamy do Twojej funkcji "send-reply"
-        const response = await fetch('https://zwyerdeuvyzgkgwglowr.supabase.co/functions/v1/send-reply', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
-                'apikey': 'sb_publishable_KMeRBCZCQH-S0Ubnr80v6w_Gub3vcQf'
-            },
-            body: JSON.stringify({ 
-                to: email, 
-                message: text 
-            })
+        const { data, error } = await db.functions.invoke('send-reply', {
+            body: { message_id: currentMessageId, to: email, message: field.value }
         });
-
-        const result = await response.json();
-        console.log(result);
-
-       if (response.ok && result.success) {
-
-    // 🔥 ZAPIS DO BAZY
-    const { error: updateError } = await db
-        .from("contact_messages")
-        .update({
-            admin_reply: text,
-            replied_at: new Date().toISOString(),
-            status: "replied"
-        })
-        .eq("id", currentMessageId);
-
-    if (updateError) {
-        console.error(updateError);
-        alert("Mail poszedł, ale NIE zapisano odpowiedzi w bazie!");
-    }
-
-    alert("✅ Wiadomość wysłana do: " + email);
-
-    closeReplyModal();
-    loadMessages();
-
-        } else {
-            throw new Error(result.error || "Błąd serwera pocztowego.");
+        if (error || !data?.success) {
+            const detail = await error?.context?.json?.().catch(() => null);
+            throw new Error(detail?.error || 'Nie udało się potwierdzić wysyłki. Treść została zachowana.');
         }
-
-    } catch (err) {
-        console.error("Błąd:", err);
-        alert("❌ Ups! Coś poszło nie tak: " + err.message);
+        const notice = document.getElementById('reply-confirmation');
+        notice.textContent = (data.already_sent ? 'Ta odpowiedź została już wysłana do ' : 'Wysłano odpowiedź do ') + email + '.';
+        if (data.saved_in_database === false) notice.textContent += ' Nie udało się zapisać odpowiedzi w historii.';
+        notice.hidden = false;
+    } catch (error) {
+        errorBox.textContent = error.message;
+        return;
     } finally {
-        // Przywracamy przycisk do życia
-        btn.innerText = "Wyślij wiadomość";
-        btn.disabled = false;
-        btn.style.opacity = "1";
+        button.disabled = false;
+        button.textContent = 'Wyślij wiadomość';
+        field.readOnly = false;
     }
+    closeReplyModal();
+    await loadMessages();
 }
 async function loadMarketingSettings() {
 
