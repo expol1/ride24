@@ -50,23 +50,9 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         // secondary-driver identity. Staff check the licence at pickup.
         if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = false;
         if (additional) { additional.disabled = true; additional.value = 'none'; }
-        const modalHeading=document.querySelector('#equipmentInfoModal h3');
-        if (modalHeading) {
-            modalHeading.dataset.pl = selectable.length ? 'Dodatkowy kierowca i cena' : 'Dodatkowy kierowca – informacja';
-            modalHeading.dataset.en = selectable.length ? 'Additional driver and price' : 'Additional driver – information';
-            modalHeading.textContent = isEn() ? modalHeading.dataset.en : modalHeading.dataset.pl;
-        }
-        const intro = selectable.length
-            ? label('Wybierz dodatki. Kwoty są przeliczane przez Ride24 z cen otrzymanych dla tej oferty.',
-                    'Choose extras. Ride24 recalculates totals from this offer’s supplier prices.')
-            : offer.status === 'present'
-            ? label('Dostępność dla Twojego terminu została odczytana z API. Kwot nie doliczamy bez potwierdzenia zasad naliczania.',
-                    'Availability was retrieved for your rental dates. No charges are added until billing terms are confirmed.')
-            : offer.status === 'none'
-            ? label('Arvent potwierdził stawkę 4 € za dobę dla dodatkowego kierowcy, ale nie udostępnił tej usługi do zamówienia online w tej ofercie.',
-                    'Arvent confirmed €4 per day for an additional driver, but this option is not bookable online for this offer.')
-            : label('Dodatkowy kierowca kosztuje 4 € za dobę, ale czekamy na potwierdzenie dostępności tej usługi w API.',
-                    'The additional driver costs €4 per day, but this offer’s API availability is not yet confirmed.');
+        const intro = available.length
+            ? label('Usługi dostępne dla tego wynajmu.', 'Services available for this rental.')
+            : label('Brak dodatków dla tej oferty.', 'No extras available for this offer.');
         picker.append(node('p',intro));
         const renderItem=(parent,code,name,priced)=>{
             const item=node('div');item.className='booking-extra-row';
@@ -135,7 +121,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 renderItem(picker,option.code,option.name,option);
             }
         }
-        picker.hidden=!available.length;
+        picker.hidden=false;
         const additionalNote=el('arventAdditionalDriverNote');
         if(additionalNote) additionalNote.hidden=!allowExtraDriver;
         box.hidden = false;
@@ -143,51 +129,27 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         // rental_public_total is the original customer-facing Ride24 SEARCH
         // price, NOT the lower supplier net. The online/acquisition fee is
         // already within that searched price; never add it as a new line.
-        const publicRentalCents=cents(a.rental_public_total);
-        box.append(node('h4', label('Podsumowanie ceny', 'Price summary')));
-        // The price panel is not an itinerary. Route, car category and
-        // dates are already shown in the search / booking context.
-        row(box, label('Wynajem ('+a.billed_days+' doby)', 'Car rental ('+a.billed_days+' days)'),
-            money(publicRentalCents, a.currency));
-        for (const fee of (a.mandatory_fees || []))
-            row(box, label('Opłata obowiązkowa','Mandatory fee'),
-                money(cents(fee.amount),a.currency));
-        for (const extra of (a.extras || [])) {
-            const qty=extra.quantity>1?' × '+extra.quantity:'';
-            const days=extra.billing==='day'?' × '+extra.days+' '+label('dni','days'):'';
-            row(box,extraName(extra.code)+qty+days,money(extra.total_cents,'EUR'));
-        }
-        if (!(a.extras || []).length)
-            row(box, label('Dodatki', 'Extras'), label('Brak', 'None'));
-        if (a.loyalty_discount_percent) row(box, label('Rabat lojalnościowy (opłata Ride24)', 'Loyalty discount (Ride24 fee)'), a.loyalty_discount_percent + '%');
-        row(box, label('Cena łączna', 'Total booking price'), money(cents(a.total), a.currency), true);
-        row(box, label('Płatność online Ride24', 'Ride24 online payment'),
-            money(cents(a.online_pln), 'PLN'), true);
-        row(box, label('Do zapłaty partnerowi', 'Payable to partner'),
-            money(cents(a.pay_on_pickup), a.currency), true);
-        box.append(node('small', label(
-            'Płatność jest podzielona na część online i część płatną przy odbiorze. Nie są to dodatkowe opłaty ponad podaną cenę.',
-            'Payment is split between an online amount and an amount due at pickup. These are not charges added on top of the quoted price.')));
-        // The same current server quote is visible inside this modal, rather
-        // than forcing customers to close it to see their chosen extra's cost.
-        if(total){
-            const items=Array.isArray(a.extras)?a.extras:[];
-            total.append(node('strong',label('Twoje dodatki','Your extras')+': '
-                +(items.length?items.length:label('brak','none'))));
-            for(const x of items){
-                const name=extraName(x.code);
-                const suffix=(x.quantity>1?' × '+x.quantity:'')
-                    +(x.billing==='day'?' × '+x.days+' '+label('dni','days'):'');
-                row(total,name+suffix,money(x.total_cents,'EUR'));
+        const extras = a.extras || [];
+        // Older no-extras quotes expose the public rental price as total.
+        const publicRentalCents = cents(a.rental_public_total ?? (!extras.length ? a.total : NaN));
+        if (!Number.isFinite(publicRentalCents)) throw Error('ARVENT_PUBLIC_PRICE_REQUIRED');
+        for (const panel of [box, total].filter(Boolean)) {
+            panel.append(node('h4', label('Podsumowanie ceny', 'Price summary')));
+            row(panel, label('Wynajem samochodu', 'Car rental'), money(publicRentalCents, a.currency));
+            for (const fee of (a.mandatory_fees || []))
+                row(panel, label('Opłata obowiązkowa', 'Mandatory fee'), money(cents(fee.amount), a.currency));
+            for (const extra of extras) {
+                const quantity = extra.quantity > 1 ? ' × ' + extra.quantity : '';
+                const days = extra.billing === 'day' ? ' × ' + extra.days + label(' dni', ' days') : '';
+                row(panel, extraName(extra.code) + quantity + days, money(extra.total_cents, a.currency));
             }
-            row(total,label('Wynajem samochodu','Car rental'),money(publicRentalCents,a.currency));
-            row(total,label('Cena łączna','Total booking price'),money(cents(a.total),a.currency),true);
-            row(total,label('Płatność online Ride24','Ride24 online payment'),
-                money(cents(a.online_pln),'PLN'));
-            row(total,label('Do zapłaty partnerowi','Payable to partner'),
-                money(cents(a.pay_on_pickup),a.currency),true);
-            total.append(node('small',label('Wycena pochodzi z serwera Ride24. Bez potwierdzenia API nie można zamówić płatnego dodatku.',
-                'The quote comes from Ride24. Paid extras cannot be selected without supplier API certification.')));
+            if (a.loyalty_discount_percent)
+                row(panel, label('Rabat lojalnościowy', 'Loyalty discount'), a.loyalty_discount_percent + '%');
+            row(panel, label('Łącznie', 'Total'), money(cents(a.total), a.currency), true);
+            row(panel, label('Płatność online', 'Online payment'), money(cents(a.online_pln), 'PLN'));
+            row(panel, label('Do zapłaty partnerowi', 'Payable to partner'), money(cents(a.pay_on_pickup), a.currency));
+            panel.append(node('small', label('Płatność online w PLN według kursu podanego w wycenie.',
+                'Online payment in PLN at the exchange rate used for this quote.')));
         }
     }
     function render() {

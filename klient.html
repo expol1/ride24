@@ -2510,7 +2510,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261125-arvent-offer";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261126-arvent-summary";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -3406,18 +3406,18 @@ document.addEventListener("click", async function(e) {
            const extrasDescription = callout?.querySelector(".r24-extras-copy small");
            const equipmentHeading = document.querySelector("#equipmentInfoModal h3");
            if (extrasTitle) {
-               extrasTitle.dataset.pl = on ? "Katalog dodatków do wynajmu" : "Wybierz dodatki do wynajmu";
-               extrasTitle.dataset.en = on ? "Rental extras" : "Choose rental extras";
+               extrasTitle.dataset.pl = "Wybierz dodatki do wynajmu";
+               extrasTitle.dataset.en = "Choose rental extras";
                extrasTitle.textContent = isEn ? extrasTitle.dataset.en : extrasTitle.dataset.pl;
            }
            if (extrasDescription) {
-               extrasDescription.dataset.pl = on ? "Sprawdź usługi partnera dostępne dla tej oferty." : "Zobacz dostępne usługi i ich aktualną cenę.";
-               extrasDescription.dataset.en = on ? "Check supplier services available for this offer." : "See available services and their current prices.";
+               extrasDescription.dataset.pl = "Zobacz dostępne usługi i ich aktualną cenę.";
+               extrasDescription.dataset.en = "See available services and their current prices.";
                extrasDescription.textContent = isEn ? extrasDescription.dataset.en : extrasDescription.dataset.pl;
            }
            if (equipmentHeading) {
-               equipmentHeading.dataset.pl = on ? "Katalog dodatków do wynajmu" : "Wybierz dodatki do wynajmu";
-               equipmentHeading.dataset.en = on ? "Rental extras" : "Choose rental extras";
+               equipmentHeading.dataset.pl = "Wybierz dodatki do wynajmu";
+               equipmentHeading.dataset.en = "Choose rental extras";
                equipmentHeading.textContent = isEn ? equipmentHeading.dataset.en : equipmentHeading.dataset.pl;
            }
 
@@ -3500,6 +3500,7 @@ document.addEventListener("click", async function(e) {
     // 🔥 ASYNC W TLE
     setTimeout(async () => {
 
+        const isEn = localStorage.getItem("client_lang") === "en";
         const { data: profileCheck } = await db
             .from("profiles")
             .select("name, phone, age, license_since")
@@ -3518,7 +3519,7 @@ document.addEventListener("click", async function(e) {
             .select("*")
             .eq("user_id", currentUser.id);
 
-        const isEn = localStorage.getItem("client_lang") === "en";
+
         window.r24BookingLicencePeople = { owner: profileCheck, drivers: myDrivers || [] };
         const ownerText = isEn ? `Me (${profileCheck.name})` : `Ja (${profileCheck.name})`;
 

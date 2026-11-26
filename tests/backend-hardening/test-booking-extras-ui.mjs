@@ -220,20 +220,23 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   const box=document.getElementById('bookingPriceBreakdown');
   assert.equal(box.hidden,false);
   const picker=document.getElementById('bookingExtrasPicker');
-  assert.equal(picker.hidden,true);
+  assert.equal(picker.hidden,false);
+  assert.match(picker.textContent,/No extras available/);
   assert.equal(picker.querySelectorAll('.booking-extra-row,button,input,select').length,0);
   const text=box.textContent;
-  for(const part of ['Price summary','Car rental (3 days)','Extras','None','€88.14','€84.75','PLN','Payable to partner'])assert.ok(text.includes(part),part);
+  for(const part of ['Price summary','Car rental','Total','Online payment','€88.14','€84.75','PLN','Payable to partner'])assert.ok(text.includes(part),part);
+  assert.deepEqual([...box.querySelectorAll('.booking-price-row')].map(r=>r.firstElementChild.textContent),
+    ['Car rental','Total','Online payment','Payable to partner']);
   assert.ok(/14\.35/.test(text));
   assert.doesNotMatch(text,/Car category|Economy|EDMR|Antalya Airport|Pickup •|Stripe/);
   assert.equal(box.querySelectorAll('h4').length,1);
   const currentTotal=document.getElementById('bookingExtrasTotal');
   assert.equal(currentTotal.hidden,false);
-  assert.match(currentTotal.textContent,/Total booking price/);
+  assert.match(currentTotal.textContent,/Total/);
   assert.match(currentTotal.textContent,/€88.14/);
   assert.doesNotMatch(currentTotal.textContent,/Ride24 reservation fee/);
   const rentRow=[...box.querySelectorAll('.booking-price-row')]
-    .find(r=>r.firstElementChild?.textContent==='Car rental (3 days)');
+    .find(r=>r.firstElementChild?.textContent==='Car rental');
   assert.ok(rentRow);
   assert.match(rentRow.lastElementChild.textContent,/€88.14/);
   assert.doesNotMatch(box.textContent,/Ride24 reservation fee/);
@@ -272,7 +275,7 @@ test('Arvent mobile modal uses only financial lines, translates extras into sele
    assert.match(picker,new RegExp(translated));
    assert.doesNotMatch(picker,/Ek Sürücü/);
    assert.doesNotMatch(summary,/Renault Clio|EDMR|Antalya Airport|Istanbul Airport/);
-   assert.match(summary,english?/Car rental \(3 days\)/:/Wynajem \(3 doby\)/);
+   assert.match(summary,english?/Car rental/:/Wynajem samochodu/);
    assert.match(summary,english?/Payable to partner/:/Do zapłaty partnerowi/);
  }
 });
@@ -289,7 +292,8 @@ test('Arvent missing GET /extras still shows confirmed driver rate but cannot se
   online_pln:14.35,pay_on_pickup:84.75}});
  await ui.start();
  const picker=document.getElementById('bookingExtrasPicker');
- assert.equal(picker.hidden,true);
+ assert.equal(picker.hidden,false);
+  assert.match(picker.textContent,/No extras available/);
  assert.equal(picker.querySelectorAll('input,select').length,0);
  assert.equal(document.getElementById('bookingExtrasTotal').hidden,false);
  assert.deepEqual(ui.payload(),{});
@@ -367,8 +371,8 @@ test('Arvent extras catalogue tile is visible; other partners keep their normal 
   win.ride24ArventFormMode(true);
   assert.equal(callout.hidden,false);
   assert.equal(callout.style.getPropertyValue('display'),'');
-  assert.equal(title.textContent,'Katalog dodatków do wynajmu');
-  assert.match(note.textContent,/Sprawdź usługi partnera/);
+  assert.equal(title.textContent,'Wybierz dodatki do wynajmu');
+  assert.match(note.textContent,/Zobacz dostępne usługi/);
   assert.equal(docs.nextElementSibling,price);
   win.ride24ArventFormMode(false);
   assert.equal(callout.hidden,false);
