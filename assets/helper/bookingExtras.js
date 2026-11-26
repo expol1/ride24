@@ -49,10 +49,26 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         // secondary-driver identity. Staff check the licence at pickup.
         if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = false;
         if (additional) { additional.disabled = true; additional.value = 'none'; }
+        const allowExtraDriver = selectable.some(x => x.kind === 'additional_driver');
+        const unavailable = label('Niedostępny online dla tej oferty.', 'Unavailable online for this offer.');
+        const driverStatus = allowExtraDriver
+            ? ((a.extras || []).some(x => byCode.get(x.code)?.kind === 'additional_driver')
+                ? label('Wybrany', 'Selected') : label('Do wyboru w dodatkach', 'Choose in rental extras'))
+            : unavailable;
         const driverNote = el('arventAdditionalDriverNote');
-        if (driverNote) { driverNote.hidden = true; driverNote.style.display = 'none'; }
+        if (driverNote) {
+            driverNote.hidden = false;
+            driverNote.style.removeProperty('display');
+            el('arventAdditionalDriverStatus').textContent = driverStatus;
+        }
+        if (!allowExtraDriver) {
+            const driver = node('div');
+            driver.className = 'booking-extra-row';
+            driver.append(node('strong', label('Dodatkowy kierowca', 'Additional driver')), node('small', unavailable));
+            picker.append(driver);
+        }
         const callout = document.querySelector('#termsModal .r24-extras-callout');
-        if (callout) callout.hidden = !selectable.length;
+        if (callout) callout.hidden = false;
         const modal = el('equipmentInfoModal');
         if (modal) {
             modal.dataset.r24Arvent = 'true';
@@ -63,8 +79,6 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 button.textContent = label(button.dataset.pl, button.dataset.en);
             }
         }
-        picker.hidden = !available.length;
-        if (total) total.hidden = !available.length;
         const renderItem=(parent,code,name,priced)=>{
             const item=node('div');item.className='booking-extra-row';
             const detail=node('span');
@@ -130,6 +144,19 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 if(!option||typeof option.code!=='string')continue;
                 renderItem(picker,option.code,option.name,option);
             }
+        }
+        // Catalogue entries are informational until this rental has a verified price and product.
+        const catalogueCodes = new Set();
+        for (const item of [...(Array.isArray(offer.items) ? offer.items : []),
+                            ...(Array.isArray(a.extra_catalog) ? a.extra_catalog : [])]) {
+            if (typeof item?.code === 'string' && item.code.trim() && !byCode.has(item.code)
+                && (item.code === '2' || item.kind !== 'additional_driver')) catalogueCodes.add(item.code);
+        }
+        if (catalogueCodes.size) {
+            picker.append(node('h4', label('Pozostałe dodatki partnera', 'Other supplier extras')));
+            picker.append(node('p', label('Katalog informacyjny. Tych dodatków nie można zamówić online.',
+                'For information only. These extras cannot be booked online.')));
+            for (const code of catalogueCodes) picker.append(node('div', extraName(code)));
         }
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
