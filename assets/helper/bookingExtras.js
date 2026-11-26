@@ -39,10 +39,8 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 '6': ['Fotelik niemowlęcy','Infant seat'],
                 '18': ['Wi-Fi','Wi-Fi']
             };
-            const pair=names[String(code)];
-            return pair ? (isEn()?pair[1]:pair[0])
-                :label('Usługa partnera (kod '+String(code)+')',
-                    'Supplier service (code '+String(code)+')');
+            if (!Object.hasOwn(names, code)) return null;
+            return names[code][isEn() ? 1 : 0];
         };
         const additional = el('additionalDriverSelect');
         // Arvent's additional driver is a paid option, NOT a saved
@@ -82,7 +80,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const renderItem=(parent,code,name,priced)=>{
             const item=node('div');item.className='booking-extra-row';
             const detail=node('span');
-            const title=extraName(code);
+            const title=extraName(code) || label('Usługa obowiązkowa', 'Required service');
             detail.append(node('strong',title));
             if(code !== '2' && priced?.kind==='additional_driver'){
                 detail.append(node('small',money(Math.round(priced.price_eur*100),'EUR') + label(' / doba',' / day')));
@@ -149,14 +147,16 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const catalogueCodes = new Set();
         for (const item of [...(Array.isArray(offer.items) ? offer.items : []),
                             ...(Array.isArray(a.extra_catalog) ? a.extra_catalog : [])]) {
-            if (typeof item?.code === 'string' && item.code.trim() && !byCode.has(item.code)
+            if (typeof item?.code === 'string' && extraName(item.code) && !byCode.has(item.code)
                 && (item.code === '2' || item.kind !== 'additional_driver')) catalogueCodes.add(item.code);
         }
         if (catalogueCodes.size) {
             picker.append(node('h4', label('Pozostałe dodatki partnera', 'Other supplier extras')));
             picker.append(node('p', label('Katalog informacyjny. Tych dodatków nie można zamówić online.',
                 'For information only. These extras cannot be booked online.')));
-            for (const code of catalogueCodes) picker.append(node('div', extraName(code)));
+            const list = node('ul');
+            for (const code of catalogueCodes) list.append(node('li', extraName(code)));
+            picker.append(list);
         }
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
@@ -175,7 +175,7 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             for (const extra of extras) {
                 const quantity = extra.quantity > 1 ? ' × ' + extra.quantity : '';
                 const days = extra.billing === 'day' ? ' × ' + extra.days + label(' dni', ' days') : '';
-                row(panel, extraName(extra.code) + quantity + days, money(extra.total_cents, a.currency));
+                row(panel, (extraName(extra.code) || label('Usługa w rezerwacji', 'Booked service')) + quantity + days, money(extra.total_cents, a.currency));
             }
             if (a.loyalty_discount_percent)
                 row(panel, label('Rabat lojalnościowy', 'Loyalty discount'), a.loyalty_discount_percent + '%');

@@ -215,7 +215,7 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   const {ui}=setup();
   globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
     pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)',
-    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],offer_extras:{status:'present',items:[{code:'2',name:'IMM insurance',kind:'other',price_eur:4.99},{code:'1',name:'GPS',price_eur:3.5}]},
+    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'},{code:'43',name:'Unknown'},{code:'23',name:'Unknown'}],offer_extras:{status:'present',items:[{code:'2',name:'IMM insurance',kind:'other',price_eur:4.99},{code:'1',name:'GPS',price_eur:3.5}]},
     total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75}});
   await ui.start();
   const box=document.getElementById('bookingPriceBreakdown');
@@ -226,6 +226,8 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.equal(picker.querySelectorAll('button,input,select').length,0);
   for (const name of ['GPS navigation','IMM insurance','Infant seat']) assert.ok(picker.textContent.includes(name));
   assert.equal(picker.textContent.match(/Additional driver/g).length,1);
+  assert.doesNotMatch(picker.textContent,/Supplier service|Unknown|23|43/);
+  assert.equal(picker.querySelectorAll('ul li').length,3);
   assert.equal(document.getElementById('arventAdditionalDriverNote').hidden,false);
   assert.equal(document.getElementById('arventAdditionalDriverStatus').textContent,'Unavailable online for this offer.');
   const text=box.textContent;
