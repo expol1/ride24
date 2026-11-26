@@ -24,6 +24,8 @@ test("licence field is isolated to Arvent web and booking backend; no bypass on 
  const paid=await readFile(new URL("../../supabase/functions/_shared/api-provider-fulfillment.ts",import.meta.url),"utf8");
  const supplier=await readFile(new URL("../../supabase/functions/_shared/arvent-kolaycar.ts",import.meta.url),"utf8");
  assert.doesNotMatch(frontend,/id="arventLicenseSince"/);
+ assert.match(frontend,/chosen\?\.license_since/);
+ assert.match(frontend,/profileCheck\.license_since/);
  assert.match(booking,/const mainDriverLicenseSince = savedMainDriverLicenseSince/);
  assert.match(booking,/isArventBooking && arventLicenseYears/);
  assert.match(booking,/main_driver_license_since: mainDriverLicenseSince/);
