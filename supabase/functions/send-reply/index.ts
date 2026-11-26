@@ -198,46 +198,14 @@ function messageHtml(
 </html>`;
 }
 
-function smtpConfiguration(): {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  password: string;
-  fromName: string;
-} {
-  const user = cleanEmail(Deno.env.get("ZOHO_SMTP_USER"));
-  const password = Deno.env.get("ZOHO_SMTP_APP_PASSWORD")?.trim();
-  const host = Deno.env.get("ZOHO_SMTP_HOST")?.trim() || "smtp.zoho.eu";
-  const port = Number(Deno.env.get("ZOHO_SMTP_PORT") || "465");
-  const fromName = cleanSingleLine(
-    Deno.env.get("ZOHO_FROM_NAME"),
-    100,
-    "Ride24",
-  ) || "Ride24";
-
-  if (
-    !user
-    || !password
-    || password.length < 8
-    || password.length > 500
-    || /[\u0000\r\n]/.test(password)
-    || !/^[A-Za-z0-9.-]+$/.test(host)
-    || !Number.isInteger(port)
-    || port < 1
-    || port > 65535
-  ) {
+function smtpConfiguration() {
+  const user = cleanEmail(Deno.env.get("GMAIL_SMTP_USER"));
+  const password = Deno.env.get("GMAIL_SMTP_APP_PASSWORD")?.replaceAll(" ", "").trim();
+  if (!user || !password || !/^[a-zA-Z0-9]{16}$/.test(password)) {
     throw new Error("EMAIL_CONFIGURATION_MISSING");
   }
 
-  return {
-    host,
-    port,
-    secure: port === 465,
-    user,
-    password,
-    fromName,
-  };
+  return { host: "smtp.gmail.com", port: 465, secure: true, user, password, fromName: "Ride24" };
 }
 
 async function loadContactMessage(
@@ -485,6 +453,9 @@ serve(async (req) => {
         : "UNKNOWN_ERROR",
     );
 
+    if (error instanceof Error && error.message === "EMAIL_CONFIGURATION_MISSING") {
+      return jsonResponse(req, { error: "Skonfiguruj konto Gmail i hasło aplikacji dla odpowiedzi Ride24." }, 503);
+    }
     const publicError = publicErrorMessage(error);
     return jsonResponse(
       req,
