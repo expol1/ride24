@@ -2512,7 +2512,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261126-arvent-extras-clean2";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261126-arvent-extras-names";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -2970,7 +2970,8 @@ const res = await fetch(supabaseUrl + "/functions/v1/create_checkout_session", {
   },
   body: JSON.stringify({
     amount,
-    booking_id: bookingId
+    booking_id: bookingId,
+    language: isEn ? "en" : "pl"
   }),
 });
 
@@ -3881,6 +3882,8 @@ document.addEventListener("click", async function(e) {
             return `${format(h)}h ${format(m)}m`;
         }
 
+       let arventRefreshTimer;
+       let arventRefreshCount = 0;
        async function loadClientBookings() {
             if (!window.r24ClientProfileReady) return;
             const dashTbody = document.getElementById('dashboard-bookings-tbody');
@@ -4023,7 +4026,9 @@ if (badge) {
                     const awaitingSupplier = booking.status === 'pending'
                         && ['payment_provider_pending', 'payment_unknown'].includes(booking.api_status);
                     // Arvent-only presentation (other partners keep their existing statuses).
-                    const isArvent = booking.car_classes?.partners?.api_provider === 'arvent_kolaycar';
+                    const isArvent = booking.car_classes?.partners?.api_provider === 'arvent_kolaycar'
+                        || booking.partner_id === 'bf29a373-c464-4cec-87a7-c3218ea1ea51';
+                    const arventDispatching = isArvent && booking.status === 'pending' && booking.api_status === 'payment_paid';
                     const arventWaiting = isArvent && booking.status === 'pending' && booking.api_status === 'payment_provider_pending';
                     const arventReview = isArvent && booking.status === 'pending' && booking.api_status === 'payment_unknown';
                     const arventRefund = isArvent && ['rejected', 'expired'].includes(booking.status)
@@ -4077,7 +4082,17 @@ let actionsHtml = `<div style="display:flex;flex-direction:column;gap:8px; align
 
 const s = booking.status;
 
-if (arventWaiting) {
+if (arventDispatching) {
+    actionsHtml += isEn ? 'Payment received. Sending your booking to the rental company…' : 'Płatność przyjęta. Przekazujemy rezerwację wypożyczalni…';
+    if (!arventRefreshTimer && arventRefreshCount < 12) {
+        arventRefreshTimer = setTimeout(() => {
+            arventRefreshTimer = null;
+            arventRefreshCount++;
+            loadClientBookings();
+        }, 5000);
+    }
+}
+else if (arventWaiting) {
     // Paid, not confirmed yet: no voucher. Countdown uses the server clock.
     actionsHtml += `<span style="font-size:11px; color:var(--gray); max-width:240px;">${isEn
         ? 'The rental company has received your booking. We are waiting for confirmation that the car is available. Once approved you will automatically receive the voucher.'
