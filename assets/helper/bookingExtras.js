@@ -25,14 +25,14 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         picker.hidden = false;
         const offer = a.offer_extras && typeof a.offer_extras === 'object' ? a.offer_extras : {status:'unavailable',items:[]};
         const available = Array.isArray(offer.items)
-            ? offer.items.filter(x => x && ((x.kind === 'additional_driver' && x.bookable) || x.required === true)) : [];
+            ? offer.items.filter(x => x && ((x.kind === 'additional_driver' && x.code !== '2' && x.bookable) || x.required === true)) : [];
         const byCode = new Map(available.filter(x => x && typeof x.code === 'string').map(x => [x.code,x]));
         const selectable = available.filter(x => x && x.bookable === true);
         // Supplier names can be Turkish. Customer-facing Arvent UI must
         // follow Ride24 PL/EN; unknown codes are shown neutrally by code
         // rather than leaking an untranslated supplier label.
         const extraName = code => {
-            if(byCode.get(code)?.kind==='additional_driver') return label('Dodatkowy kierowca','Additional driver');
+            if(code !== '2' && byCode.get(code)?.kind==='additional_driver') return label('Dodatkowy kierowca','Additional driver');
             const names = {
                 '1': ['Nawigacja GPS','GPS navigation'],
                 '2': ['Ubezpieczenie IMM','IMM insurance'],
@@ -50,16 +50,29 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         // secondary-driver identity. Staff check the licence at pickup.
         if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = false;
         if (additional) { additional.disabled = true; additional.value = 'none'; }
-        const intro = available.length
-            ? label('Usługi dostępne dla tego wynajmu.', 'Services available for this rental.')
-            : label('Brak dodatków dla tej oferty.', 'No extras available for this offer.');
-        picker.append(node('p',intro));
+        const unavailable = label('Niedostępny online dla tej oferty.', 'Unavailable online for this offer.');
+        const driverStatus = allowExtraDriver
+            ? ((a.extras || []).some(x => byCode.get(x.code)?.kind === 'additional_driver')
+                ? label('Wybrany', 'Selected') : label('Do wyboru w dodatkach', 'Choose in rental extras'))
+            : unavailable;
+        const driverNote = el('arventAdditionalDriverNote');
+        if (driverNote) {
+            driverNote.hidden = false;
+            driverNote.style.removeProperty('display');
+            el('arventAdditionalDriverStatus').textContent = driverStatus;
+        }
+        if (!allowExtraDriver) {
+            const driver = node('div');
+            driver.className = 'booking-extra-row';
+            driver.append(node('strong', label('Dodatkowy kierowca', 'Additional driver')), node('small', unavailable));
+            picker.append(driver);
+        }
         const renderItem=(parent,code,name,priced)=>{
             const item=node('div');item.className='booking-extra-row';
             const detail=node('span');
             const title=extraName(code);
             detail.append(node('strong',title));
-            if(priced?.kind==='additional_driver'){
+            if(code !== '2' && priced?.kind==='additional_driver'){
                 detail.append(node('small',label('Stawka Arvent: 4 € / doba.','Arvent rate: €4 / day.')));
                 detail.append(node('small',priced?.bookable===true
                     ?label('Prawo jazdy dodatkowy kierowca okaże przy odbiorze.','The additional driver presents their licence at pickup.')
@@ -121,9 +134,19 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                 renderItem(picker,option.code,option.name,option);
             }
         }
-        picker.hidden=false;
-        const additionalNote=el('arventAdditionalDriverNote');
-        if(additionalNote) additionalNote.hidden=!allowExtraDriver;
+        // Catalogue entries are informational until this rental has a verified price and product.
+        const catalogueCodes = new Set();
+        for (const item of [...(Array.isArray(offer.items) ? offer.items : []),
+                            ...(Array.isArray(a.extra_catalog) ? a.extra_catalog : [])]) {
+            if (typeof item?.code === 'string' && item.code.trim() && !byCode.has(item.code)
+                && (item.code === '2' || item.kind !== 'additional_driver')) catalogueCodes.add(item.code);
+        }
+        if (catalogueCodes.size) {
+            picker.append(node('h4', label('Pozostałe dodatki partnera', 'Other supplier extras')));
+            picker.append(node('p', label('Katalog informacyjny. Tych dodatków nie można zamówić online.',
+                'For information only. These extras cannot be booked online.')));
+            for (const code of catalogueCodes) picker.append(node('div', extraName(code)));
+        }
         box.hidden = false;
         const cents = v => Math.round(Number(v) * 100);
         // rental_public_total is the original customer-facing Ride24 SEARCH
