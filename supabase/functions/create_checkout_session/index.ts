@@ -130,10 +130,17 @@ serve(async (req) => {
       line_items: [{
         price_data: {
           currency: "pln",
-          product_data: {
-            name: "Ride24 – Auta z różnych zakątków świata",
-            description: `Rezerwacja: ${booking.reservation_code || booking.id}`,
-          },
+          product_data: booking.partners?.api_provider === "arvent_kolaycar"
+            ? {
+                name: body.language === "en" ? "Ride24 booking fee" : "Opłata rezerwacyjna Ride24",
+                description: body.language === "en"
+                  ? `Booking: ${booking.reservation_code || booking.id}. Pay the remaining rental balance directly to the rental company according to your offer.`
+                  : `Rezerwacja: ${booking.reservation_code || booking.id}. Pozostałą należność za wynajem płacisz bezpośrednio wypożyczalni zgodnie z ofertą.`,
+              }
+            : {
+                name: "Ride24 – Auta z różnych zakątków świata",
+                description: `Rezerwacja: ${booking.reservation_code || booking.id}`,
+              },
           unit_amount: Math.round(amount * 100),
         },
         quantity: 1,

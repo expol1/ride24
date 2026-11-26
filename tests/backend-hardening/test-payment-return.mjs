@@ -131,3 +131,30 @@ test('Caravel launch hold rejects a signed-in owner BEFORE creating a Stripe che
  assert.equal(calls.length,0);
  assert.equal(updates.length,0);
 });
+
+test('Arvent Checkout explains the balance at pickup using the saved quote and client language',async()=>{
+ const deadline=new Date(Date.now()+3600000).toISOString();
+ const booking={id,client_id:'owner',provider_type:'api',partners:{api_provider:'arvent_kolaycar'},status:'awaiting_payment',api_quote_id:'quote',payment_deadline:deadline,online_payment_pln:15.19,reservation_code:'R24-TEST'};
+ const quote={id:'quote',booking_id:id,expires_at:deadline};
+ const admin={from(table){
+   const row={bookings:booking,api_quotes:quote,api_booking_workflows:null}[table];
+   return {select(){return this},eq(){return this},is(){return this},update(){return this},maybeSingle:async()=>({data:row}),then(ok){ok({data:[{id}]})}};
+ }};
+ const calls=[];
+ class Stripe{constructor(){this.checkout={sessions:{create:async payload=>{calls.push(payload);return {id:'cs_fixture',url:'https://checkout.stripe.com/fixture'}}}}}}
+ const handler=captureHandler('supabase/functions/create_checkout_session/index.ts',{
+   Stripe,isCaravelBooking,apiPaymentEnabled:async()=>true,hasPaidFulfillmentAdapter:()=>true,
+   loadPartnerCredentials:async()=>({}),revalidatePaidProvider:async()=>({}),arventVerifyCheckout:async()=>{},
+   Deno:{env:{get:name=>name==='SUPABASE_URL'?base:name}},
+   createClient:(_url,key,options)=>options?{auth:{getUser:async()=>({data:{user:{id:'owner'}}})}}:admin,
+ });
+ for(const language of ['pl','en']){
+   const response=await handler(new Request(base,{method:'POST',headers:{Authorization:'Bearer fixture','Content-Type':'application/json'},body:JSON.stringify({booking_id:id,language})}));
+   assert.equal(response.status,200);
+   const price=calls.at(-1).line_items[0].price_data;
+   assert.equal(price.unit_amount,1519);
+   assert.equal(price.product_data.name,language==='pl'?'Opłata rezerwacyjna Ride24':'Ride24 booking fee');
+   assert.match(price.product_data.description,/R24-TEST/);
+   assert.match(price.product_data.description,language==='pl'?/Pozostałą należność za wynajem płacisz bezpośrednio wypożyczalni zgodnie z ofertą/:/remaining rental balance directly to the rental company/);
+ }
+});
