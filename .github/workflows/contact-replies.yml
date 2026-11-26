@@ -1,0 +1,19 @@
+name: Contact replies
+on:
+  pull_request:
+    paths:
+      - admin/index.html
+      - supabase/functions/send-reply/**
+      - supabase/migrations/*contact_reply_deliveries.sql
+      - tests/backend-hardening/test-contact-reply.mjs
+      - .github/workflows/contact-replies.yml
+jobs:
+  contact-reply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix tests/backend-hardening
+      - run: node --test tests/backend-hardening/test-contact-reply.mjs

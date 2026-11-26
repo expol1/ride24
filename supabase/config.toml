@@ -524,3 +524,7 @@ verify_jwt = true
 # Anonymous searches use the publishable API key, which is not a JWT.
 # The handler verifies that key and applies server-side validation/rate limits.
 verify_jwt = false
+
+[functions.send-reply]
+# The handler validates the access token and checks the administrator's profile.
+verify_jwt = false
