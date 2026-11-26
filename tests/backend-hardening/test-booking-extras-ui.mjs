@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import vm from 'node:vm';
 import { createBookingExtras } from '../../assets/helper/bookingExtras.js';
 const {JSDOM}=await import(process.env.JSDOM_MODULE || 'jsdom');
-const html='<input id="acceptTerms" type="checkbox"><button id="confirmBookingBtn"></button><section id="bookingPriceBreakdown"></section><div id="bookingExtrasPicker"></div><div id="bookingExtrasTotal"></div><div id="equipmentLegacyInfo"></div>';
+const html='<div id="arventAdditionalDriverNote" hidden><span id="arventAdditionalDriverStatus"></span></div><input id="acceptTerms" type="checkbox"><button id="confirmBookingBtn"></button><section id="bookingPriceBreakdown"></section><div id="bookingExtrasPicker"></div><div id="bookingExtrasTotal"></div><div id="equipmentLegacyInfo"></div>';
 const baseQuote={enabled:true,fingerprint:'current',catalog:[],pricing:{currency:'EUR',items:[{kind:'rental',name_pl:'Wynajem',name_en:'Rental',customer_cents:12500}],total_cents:12500,online_pln_cents:10750,pickup_payment_cents:10000,loyalty_discount_cents:0}};
 function setup(){globalThis.document=new JSDOM(html).window.document;const ctx={car_class_id:'car',additional_driver_id:null};return {ctx,ui:createBookingExtras({db:{auth:{getSession:async()=>({data:{session:{access_token:'test'}}})}},url:'https://example.test',key:'public',context:()=>({...ctx}),isEn:()=>true})};}
 function response(value){return {ok:true,json:async()=>value};}
@@ -29,6 +29,7 @@ test('one-time extras display real, accessible English switches while multiple s
   switches[0].checked=true;
   switches[0].onchange();
   assert.equal(document.querySelector('.r24-extra-switch-value').textContent,'Yes');
+ assert.equal(document.getElementById('arventAdditionalDriverStatus').textContent,'');
   await new Promise(resolve=>setTimeout(resolve,0));
   assert.deepEqual(ui.payload().extras,[{id:'gps',quantity:1}]);
 });
@@ -221,8 +222,12 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
   assert.equal(box.hidden,false);
   const picker=document.getElementById('bookingExtrasPicker');
   assert.equal(picker.hidden,false);
-  assert.match(picker.textContent,/No extras available/);
-  assert.equal(picker.querySelectorAll('.booking-extra-row,button,input,select').length,0);
+  assert.match(picker.textContent,/Additional driverUnavailable online for this offer/);
+  assert.equal(picker.querySelectorAll('button,input,select').length,0);
+  for (const name of ['GPS navigation','IMM insurance','Infant seat']) assert.ok(picker.textContent.includes(name));
+  assert.equal(picker.textContent.match(/Additional driver/g).length,1);
+  assert.equal(document.getElementById('arventAdditionalDriverNote').hidden,false);
+  assert.equal(document.getElementById('arventAdditionalDriverStatus').textContent,'Unavailable online for this offer.');
   const text=box.textContent;
   for(const part of ['Price summary','Car rental','Total','Online payment','€88.14','€84.75','PLN','Payable to partner'])assert.ok(text.includes(part),part);
   assert.deepEqual([...box.querySelectorAll('.booking-price-row')].map(r=>r.firstElementChild.textContent),
@@ -279,7 +284,7 @@ test('Arvent mobile modal uses only financial lines, translates extras into sele
    assert.match(summary,english?/Payable to partner/:/Do zapłaty partnerowi/);
  }
 });
-test('Arvent missing GET /extras still shows confirmed driver rate but cannot select or charge it',async()=>{
+test('Arvent empty offer shows the unavailable driver without selecting or charging it',async()=>{
  const {ui}=setup();
  globalThis.fetch=async()=>response({enabled:false,arvent:{
   api_quote_id:'vehicle-quote',currency:'EUR',billed_days:3,
@@ -293,7 +298,7 @@ test('Arvent missing GET /extras still shows confirmed driver rate but cannot se
  await ui.start();
  const picker=document.getElementById('bookingExtrasPicker');
  assert.equal(picker.hidden,false);
-  assert.match(picker.textContent,/No extras available/);
+  assert.match(picker.textContent,/Additional driverUnavailable online for this offer/);
  assert.equal(picker.querySelectorAll('input,select').length,0);
  assert.equal(document.getElementById('bookingExtrasTotal').hidden,false);
  assert.deepEqual(ui.payload(),{});
@@ -341,6 +346,7 @@ test('Arvent verified checkbox requotes server at 4 EUR per day, without second-
  assert.match(selectedTotal.textContent,/€96.75/);
  assert.match(selectedTotal.textContent,/Payable to partner/);
  assert.equal(document.querySelector('.r24-extra-switch-value').textContent,'Yes');
+ assert.equal(document.getElementById('arventAdditionalDriverStatus').textContent,'Selected');
  const payload=ui.payload();
  assert.equal(payload.pricing_version,2);
  assert.equal(payload.api_quote_id,'derived-quote');

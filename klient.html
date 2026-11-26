@@ -2510,7 +2510,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261126-arvent-summary";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261126-arvent-extras";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
@@ -3393,7 +3393,10 @@ document.addEventListener("click", async function(e) {
                const missingDate=document.getElementById("arventProfileLicenceNotice");
                if(missingDate) missingDate.hidden=true;
            }
-           if (note) note.hidden = true;
+           if (note) {
+               note.hidden = true;
+               note.style.display = "none";
+           }
            // Arvent: retain the standard extras section, but distinguish
            // supplier catalogue entries from offer-priced/bookable extras.
            // All other partners retain the original title and picker behavior.
@@ -6045,7 +6048,10 @@ window.closeReviewModal = function() {
                 <div id="additionalDriverRow">
                     <label style="font-size: 13px; font-weight: 700; color: var(--gray); margin-bottom: 6px; display: block;" data-pl="Dodatkowy kierowca (opcjonalnie)" data-en="Additional driver (optional)">Dodatkowy kierowca (opcjonalnie)</label>
                     <select id="additionalDriverSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; outline: none; background: white;"></select>
-                    <small id="arventAdditionalDriverNote" hidden style="display:block;margin-top:6px;color:#64748B" data-pl="Dodatkowy kierowca jest niedostępny w tej ofercie." data-en="An additional driver is not available for this offer.">Dodatkowy kierowca jest niedostępny w tej ofercie.</small>
+                </div>
+                <div id="arventAdditionalDriverNote" hidden>
+                    <strong data-pl="Dodatkowy kierowca" data-en="Additional driver">Dodatkowy kierowca</strong>
+                    <div id="arventAdditionalDriverStatus" role="status"></div>
                 </div>
             </div>
 
