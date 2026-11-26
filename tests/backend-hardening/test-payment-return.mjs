@@ -98,6 +98,8 @@ test('real checkout handler still ignores client amounts and authorizes the save
   const response=await handler(request);assert.equal(response.status,expected);
   if(expected===403){assert.equal(calls.length,0);assert.equal(updates.length,0);continue;}
   assert.equal(calls.length,1);assert.equal(calls[0].line_items[0].price_data.unit_amount,786);
+  assert.equal(calls[0].line_items[0].price_data.product_data.name,'Ride24 – Auta z różnych zakątków świata');
+  assert.equal(calls[0].line_items[0].price_data.product_data.description,'Rezerwacja: FIXTURE');
   assert.equal(calls[0].line_items[0].price_data.currency,'pln');assert.equal(calls[0].metadata.client_id,'user-a');
   assert.equal(new URL(calls[0].success_url).searchParams.get('app'),'test');assert.equal(new URL(calls[0].cancel_url).searchParams.get('status'),'cancel');
   assert.equal(JSON.stringify(updates),JSON.stringify([{status:'awaiting_payment',stripe_session_id:'cs_fixture'}]));

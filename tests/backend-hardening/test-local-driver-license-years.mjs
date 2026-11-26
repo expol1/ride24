@@ -20,14 +20,14 @@ test("local rule uses completed calendar years at pickup (same helper already us
 });
 
 test("additional-driver form rejects missing/invalid date BEFORE deleting any saved drivers", () => {
-  const start = client.indexOf("window.saveDrivers = async function");
+  const start = client.indexOf("window.saveDrivers=async function");
   const end = client.indexOf("window.cancelBooking = ", start);
   assert.ok(start >= 0 && end > start);
   const fn = client.slice(start, end);
   // Full additional-driver validation now runs before an INSERT, and existing drivers
   // are never removed until the new rows have been stored successfully.
   assert.ok(fn.indexOf("additionalDriverErrors(candidate)") >= 0);
-  assert.ok(fn.indexOf("additionalDriverErrors(candidate)") < fn.indexOf(".upsert(newDrivers"));
+  assert.ok(fn.indexOf("additionalDriverErrors(candidate)") < fn.indexOf(".upsert(payload"));
   assert.doesNotMatch(fn, /\.delete\(/);
   assert.match(client, /class="driver-license-since" required autocomplete="off"/);
 });

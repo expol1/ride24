@@ -144,36 +144,103 @@ test('customer refund tiers match UTC database rules at 60, 59, 30, 29 days',asy
 });
 
 
+test('Arvent booking details show saved references, route, main driver, supplier rental, extra and fee separately',async()=>{
+ const source=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
+ const start=source.indexOf('window.openDetailsModal = function(');
+ const end=source.indexOf('window.closeDetailsModal = function()',start);
+ assert.ok(start>=0 && end>start);
+ assert.match(source,/api_booking_reference,\s*main_driver_name,/);
+ const dom=new JSDOM('<div id="bookingDetailsModal"><div id="bookingDetailsBody"></div></div>');
+ const booking={
+  id:'b',reservation_code:'R24-2026-42',api_booking_reference:'ARV-765',
+  main_driver_name:'Jan Kowalski',start_date:'2027-01-10',end_date:'2027-01-13',
+  pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport',
+  return_location:'Istanbul Airport',
+  vehicle_snapshot:{group_name:'Economy',sipp:'EDMR'},
+  car_classes:{partners:{api_provider:'arvent_kolaycar',currency:'EUR'}},
+  pricing_items_snapshot:{version:2,currency:'EUR',items:[
+   {kind:'rental',name_en:'Car rental',name_pl:'Wynajem samochodu',
+    customer_cents:10339,partner_cents:10000,quantity:1,days:3,billing:'rental'},
+   {kind:'extra',name_en:'Additional driver',name_pl:'Dodatkowy kierowca',
+    customer_cents:1200,partner_cents:1200,quantity:1,days:3,billing:'day'}],
+   commission_cents:339,partner_cents:11200,gross_cents:11539,total_cents:11539,
+   online_pln_cents:1450,loyalty_discount_cents:0},
+  deposit_snapshot:0
+ };
+ const win={ride24BookingsById:{b:booking},ride24VehicleLabel:()=> 'Economy (EDMR)'};
+ new Function('window','document','localStorage','db','translateStatus',source.slice(start,end))(
+  win,dom.window.document,{getItem:()=> 'pl'},null,()=> '');
+ win.openDetailsModal(0,null,false,'','EUR','','','b');
+ const details=dom.window.document.getElementById('bookingDetailsBody');
+ assert.match(details.textContent,/Economy \(EDMR\)/);
+ assert.match(details.textContent,/R24-2026-42/);
+ assert.match(details.textContent,/ARV-765/);
+ assert.match(details.textContent,/Jan Kowalski/);
+ assert.match(details.textContent,/Antalya Airport/);
+ assert.match(details.textContent,/Istanbul Airport/);
+ const rows=[...details.querySelectorAll('.r24-client-price-row')];
+ const find=(label)=>rows.find(x=>x.firstElementChild.textContent.includes(label))?.lastElementChild.textContent;
+ assert.equal(find('Wynajem samochodu'),'103.39 EUR'); // search price, fee already inside
+ assert.equal(find('Dodatkowy kierowca'),'12.00 EUR');
+ assert.equal(find('Opłata rezerwacyjna Ride24'),undefined); // never charged twice
+ assert.equal(find('Cena łączna'),'115.39 EUR');
+ assert.equal(find('Płatność online Ride24'),'14.50 PLN');
+ assert.equal(find('Do zapłaty partnerowi'),'112.00 EUR');
+ assert.equal(details.querySelectorAll('.r24-arvent-booking-summary').length,1);
+});
+
+test('Arvent-only details improvements leave AVIA and local booking pricing unchanged',async()=>{
+ const src=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
+ const start=src.indexOf('window.openDetailsModal = function(');
+ const end=src.indexOf('window.closeDetailsModal = function()',start);
+ const dom=new JSDOM('<div id="bookingDetailsModal"><div id="bookingDetailsBody"></div></div>');
+ const booking={id:'x',car_classes:{partners:{api_provider:'avia',currency:'EUR'}},
+  pricing_items_snapshot:{version:2,currency:'EUR',items:[{kind:'rental',name_en:'Rental',
+   name_pl:'Wynajem',customer_cents:10339,partner_cents:10000}],
+   online_pln_cents:1450,partner_cents:10000,total_cents:10339,loyalty_discount_cents:0},
+  deposit_snapshot:0};
+ const win={ride24BookingsById:{x:booking},ride24VehicleLabel:()=> 'Category'};
+ new Function('window','document','localStorage','db','translateStatus',src.slice(start,end))(
+  win,dom.window.document,{getItem:()=> 'pl'},null,()=> '');
+ win.openDetailsModal(0,null,false,'','EUR','','','x');
+ const el=dom.window.document.getElementById('bookingDetailsBody');
+ assert.equal(el.querySelector('.r24-arvent-booking-summary'),null);
+ const rental=[...el.querySelectorAll('.r24-client-price-row')]
+  .find(row=>row.firstElementChild.textContent==='Wynajem');
+ assert.equal(rental.lastElementChild.textContent,'103.39 EUR');
+ assert.doesNotMatch(el.textContent,/Opłata rezerwacyjna Ride24/);
+});
 test('Arvent: neutral server summary and no online extras; booking may continue',async()=>{
   const {ui}=setup();
   globalThis.fetch=async()=>response({enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
     pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',return_location:'Antalya Airport (AYT)',
-    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],offer_extras:{status:'present',items:[{code:'2',name:'Ek Sürücü',kind:'additional_driver',price_eur:4.99},{code:'1',name:'GPS',price_eur:3.5}]},
+    category:{group_name:'Economy',example_model:'Citroen C Elysee',sipp:'EDMR'},rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],extra_catalog:[{code:'1',name:'GPS'},{code:'6',name:'Infant seat'}],offer_extras:{status:'present',items:[{code:'2',name:'IMM insurance',kind:'other',price_eur:4.99},{code:'1',name:'GPS',price_eur:3.5}]},
     total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75}});
   await ui.start();
   const box=document.getElementById('bookingPriceBreakdown');
   assert.equal(box.hidden,false);
   const picker=document.getElementById('bookingExtrasPicker');
   assert.equal(picker.hidden,false);
-  assert.match(picker.textContent,/Availability was retrieved for your rental dates/);
-  assert.match(picker.textContent,/GPS/);
-  assert.match(picker.textContent,/Infant seat/);
-  assert.match(picker.textContent,/Additional driver/);
-  assert.match(picker.textContent,/€4.99/);
-  assert.match(picker.textContent,/billing and booking conditions still require confirmation/);
-  assert.match(picker.textContent,/Not priced for this offer/);
-  assert.match(picker.textContent,/Other catalogue extras/);
-  assert.equal(picker.querySelectorAll('details').length,1);
-  assert.equal(picker.querySelectorAll('details .booking-extra-row').length,1);
-  assert.equal(picker.querySelectorAll(':scope > .booking-extra-row').length,2);
-  assert.equal(picker.querySelector('details').open,false);
-  assert.equal(picker.querySelectorAll('button,input,select').length,0);
-  assert.equal(picker.querySelectorAll('input,select').length,0);
+  assert.match(picker.textContent,/No extras available/);
+  assert.equal(picker.querySelectorAll('.booking-extra-row,button,input,select').length,0);
   const text=box.textContent;
-  for(const part of ['Price summary','Billed rental days','3','Extras','None','€88.14','€84.75','PLN','Pay at pickup','EDMR'])assert.ok(text.includes(part),part);
+  for(const part of ['Price summary','Car rental','Total','Online payment','€88.14','€84.75','PLN','Payable to partner'])assert.ok(text.includes(part),part);
+  assert.deepEqual([...box.querySelectorAll('.booking-price-row')].map(r=>r.firstElementChild.textContent),
+    ['Car rental','Total','Online payment','Payable to partner']);
   assert.ok(/14\.35/.test(text));
-  assert.doesNotMatch(text,/Arvent|Stripe/);
+  assert.doesNotMatch(text,/Car category|Economy|EDMR|Antalya Airport|Pickup •|Stripe/);
   assert.equal(box.querySelectorAll('h4').length,1);
+  const currentTotal=document.getElementById('bookingExtrasTotal');
+  assert.equal(currentTotal.hidden,false);
+  assert.match(currentTotal.textContent,/Total/);
+  assert.match(currentTotal.textContent,/€88.14/);
+  assert.doesNotMatch(currentTotal.textContent,/Ride24 reservation fee/);
+  const rentRow=[...box.querySelectorAll('.booking-price-row')]
+    .find(r=>r.firstElementChild?.textContent==='Car rental');
+  assert.ok(rentRow);
+  assert.match(rentRow.lastElementChild.textContent,/€88.14/);
+  assert.doesNotMatch(box.textContent,/Ride24 reservation fee/);
+  assert.match(currentTotal.textContent,/Payable to partner/);
   await ui.refresh();
   assert.equal(box.querySelectorAll('h4').length,1);
   assert.equal(picker.querySelectorAll('p').length,1);
@@ -182,6 +249,104 @@ test('Arvent: neutral server summary and no online extras; booking may continue'
 });
 
 
+test('Arvent mobile modal uses only financial lines, translates extras into selected PL/EN and has no redundant licence input',async()=>{
+ const client=await readFile(new URL('../../klient.html',import.meta.url),'utf8');
+ assert.doesNotMatch(client,/id="arventLicenseSince"/);
+ assert.doesNotMatch(client,/id="arventLicenseRequirement"/);
+ assert.match(client,/id="arventProfileLicenceNotice"/);
+ assert.match(client,/selectedId[\s\S]*driver-license-since/);
+ assert.match(client,/driverRow\.style\.display = on \? "none" : ""/);
+ const price={enabled:false,arvent:{api_quote_id:'q',currency:'EUR',billed_days:3,
+   start_date:'2027-01-10',end_date:'2027-01-13',
+   pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport',
+   return_location:'Istanbul Airport',category:{sipp:'EDMR',example_model:'Renault Clio'},
+   rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],extra_catalog:[],
+   offer_extras:{status:'present',items:[{code:'TEST-driver',kind:'additional_driver',name:'Ek Sürücü',price_eur:4,bookable:true,required:false}]},
+   total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,
+   online_pln:15.11,pay_on_pickup:84.75}};
+ for(const [english,translated] of [[true,'Additional driver'],[false,'Dodatkowy kierowca']]){
+   const {ctx}=setup();
+   const ui=createBookingExtras({db:{auth:{getSession:async()=>({data:{session:{access_token:'test'}}})}},
+      url:'https://example.test',key:'public',context:()=>({...ctx}),isEn:()=>english});
+   globalThis.fetch=async()=>response(price);
+   await ui.start();
+   const picker=document.getElementById('bookingExtrasPicker').textContent;
+   const summary=document.getElementById('bookingPriceBreakdown').textContent;
+   assert.match(picker,new RegExp(translated));
+   assert.doesNotMatch(picker,/Ek Sürücü/);
+   assert.doesNotMatch(summary,/Renault Clio|EDMR|Antalya Airport|Istanbul Airport/);
+   assert.match(summary,english?/Car rental/:/Wynajem samochodu/);
+   assert.match(summary,english?/Payable to partner/:/Do zapłaty partnerowi/);
+ }
+});
+test('Arvent missing GET /extras still shows confirmed driver rate but cannot select or charge it',async()=>{
+ const {ui}=setup();
+ globalThis.fetch=async()=>response({enabled:false,arvent:{
+  api_quote_id:'vehicle-quote',currency:'EUR',billed_days:3,
+  start_date:'2026-12-10',end_date:'2026-12-13',
+  pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya',
+  return_location:'Antalya',category:{sipp:'EDMR'},
+  rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],extra_catalog:[],
+  offer_extras:{status:'none',items:[]},total:88.14,ride24_fee:3.39,
+  loyalty_discount_percent:0,exchange_rate:4.2345,
+  online_pln:14.35,pay_on_pickup:84.75}});
+ await ui.start();
+ const picker=document.getElementById('bookingExtrasPicker');
+ assert.equal(picker.hidden,false);
+  assert.match(picker.textContent,/No extras available/);
+ assert.equal(picker.querySelectorAll('input,select').length,0);
+ assert.equal(document.getElementById('bookingExtrasTotal').hidden,false);
+ assert.deepEqual(ui.payload(),{});
+ assert.equal(ui.canSubmit(),true);
+});
+test('Arvent verified checkbox requotes server at 4 EUR per day, without second-driver identity',async()=>{
+ const {ui}=setup();
+ const base={api_quote_id:'vehicle-quote',currency:'EUR',billed_days:3,start_date:'2026-12-10',end_date:'2026-12-13',
+  pickup_time:'10:00',return_time:'10:00',pickup_location:'Antalya Airport (AYT)',
+  return_location:'Antalya Airport (AYT)',category:{sipp:'EDMR'},
+  rental_total:84.75,rental_public_total:88.14,mandatory_fees:[],extras:[],
+  extra_catalog:[{code:'TEST-driver',kind:'additional_driver',name:'Additional driver'}],
+  offer_extras:{status:'present',items:[{code:'TEST-driver',kind:'additional_driver',name:'Additional driver',price_eur:4,billing:'day',
+    billing_type:'day',max_quantity:1,quantity_increasable:false,bookable:true}]},
+  total:88.14,ride24_fee:3.39,loyalty_discount_percent:0,exchange_rate:4.2345,online_pln:14.35,pay_on_pickup:84.75};
+ const requests=[];
+ globalThis.fetch=async(_url,opts)=>{
+  const body=JSON.parse(opts.body);requests.push(body);
+  const extras=body.extras||[];
+  if(!extras.length)return response({enabled:false,arvent:base});
+  return response({enabled:true,api_quote_id:'derived-quote',fingerprint:'proof',
+   arvent:{...base,api_quote_id:'derived-quote',
+     extras:[{code:'TEST-driver',kind:'additional_driver',name:'Additional driver',quantity:1,days:3,billing:'day',total_cents:1200}],
+     total:100.14,pay_on_pickup:96.75}});
+ };
+ await ui.start();
+ const picker=document.getElementById('bookingExtrasPicker');
+ const checkbox=picker.querySelector('input[type=checkbox]');
+ assert.ok(checkbox,'supplier-quoted extra driver checkbox available');
+ assert.equal(checkbox.getAttribute('role'),'switch');
+ assert.equal(checkbox.closest('.r24-extra-switch')!==null,true);
+ assert.equal(document.querySelector('.r24-extra-switch-value').textContent,'No');
+ checkbox.checked=true;checkbox.onchange();
+ await new Promise(resolve=>setTimeout(resolve,0));
+ assert.deepEqual(requests.at(-1).extras,[{id:'TEST-driver',quantity:1}]);
+ assert.equal(requests.at(-1).additional_driver_id,null);
+ assert.equal(document.getElementById('bookingPriceBreakdown').textContent.includes('€100.14'),true);
+ const selectedTotal=document.getElementById('bookingExtrasTotal');
+ assert.equal(selectedTotal.hidden,false);
+ assert.match(selectedTotal.textContent,/Additional driver × 3 days/);
+ assert.match(selectedTotal.textContent,/€12.00/);
+ assert.match(selectedTotal.textContent,/€100.14/);
+ assert.match(selectedTotal.textContent,/€88.14/); // unchanged search price
+ assert.doesNotMatch(selectedTotal.textContent,/Ride24 reservation fee/);
+ assert.match(selectedTotal.textContent,/€96.75/);
+ assert.match(selectedTotal.textContent,/Payable to partner/);
+ assert.equal(document.querySelector('.r24-extra-switch-value').textContent,'Yes');
+ const payload=ui.payload();
+ assert.equal(payload.pricing_version,2);
+ assert.equal(payload.api_quote_id,'derived-quote');
+ assert.equal(payload.pricing_fingerprint,'proof');
+ assert.deepEqual(payload.extras,[{id:'TEST-driver',quantity:1}]);
+});
 test('Arvent extras catalogue tile is visible; other partners keep their normal selectable extras tile', async () => {
   const source = await readFile(new URL('../../klient.html', import.meta.url), 'utf8');
   const start = source.indexOf('window.ride24ArventFormMode = function(on) {');
@@ -206,8 +371,8 @@ test('Arvent extras catalogue tile is visible; other partners keep their normal 
   win.ride24ArventFormMode(true);
   assert.equal(callout.hidden,false);
   assert.equal(callout.style.getPropertyValue('display'),'');
-  assert.equal(title.textContent,'Katalog dodatków do wynajmu');
-  assert.match(note.textContent,/Sprawdź usługi partnera/);
+  assert.equal(title.textContent,'Wybierz dodatki do wynajmu');
+  assert.match(note.textContent,/Zobacz dostępne usługi/);
   assert.equal(docs.nextElementSibling,price);
   win.ride24ArventFormMode(false);
   assert.equal(callout.hidden,false);
