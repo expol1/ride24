@@ -1365,6 +1365,8 @@
         .equipment-info-box{max-height:calc(100dvh - 32px);overflow-y:auto;}
         .equipment-info-box:has(#bookingExtrasPicker:not([hidden])){width:min(560px,100%);}
         .equipment-info-actions{position:sticky;bottom:-26px;padding-top:12px;background:white;z-index:2;}
+        #equipmentInfoModal[data-r24-arvent] .equipment-info-actions{position:static;bottom:auto;}
+        #termsModal .r24-extras-callout[hidden]{display:none!important;}
         @media(max-width:560px){.booking-extra-row{padding:11px;gap:9px}.equipment-info-box{padding:18px!important}.equipment-info-actions{bottom:-18px}}
         #termsModal .modal-box,.equipment-info-box {max-height:90dvh;overflow-y:auto;overscroll-behavior:contain;}
     
@@ -2510,7 +2512,7 @@ Dodaj opinię w Trustpilot
     <script src="assets/helper/caravelBookingDetails.js?v=20261120-booked-snapshot1"></script>
     <script src="assets/caravel-consent.js?v=20261120-extras-label-1"></script>
     <script type="module">
-    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261126-arvent-extras";
+    import { createBookingExtras } from "./assets/helper/bookingExtras.js?v=20261126-arvent-extras-clean2";
     import { clientProfileErrors, additionalDriverErrors, invoiceProfileErrors } from "./assets/js/client-profile-required.mjs?v=20261119";
         // Otwieranie modala
 window.requestDeleteAccount = function() {
