@@ -45,11 +45,11 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
                     'Supplier service (code '+String(code)+')');
         };
         const additional = el('additionalDriverSelect');
-        const allowExtraDriver = selectable.some(x => x.kind === 'additional_driver');
         // Arvent's additional driver is a paid option, NOT a saved
         // secondary-driver identity. Staff check the licence at pickup.
         if (typeof window !== 'undefined') window.r24ArventExtraDriverAllowed = false;
         if (additional) { additional.disabled = true; additional.value = 'none'; }
+        const allowExtraDriver = selectable.some(x => x.kind === 'additional_driver');
         const unavailable = label('Niedostępny online dla tej oferty.', 'Unavailable online for this offer.');
         const driverStatus = allowExtraDriver
             ? ((a.extras || []).some(x => byCode.get(x.code)?.kind === 'additional_driver')
@@ -67,13 +67,25 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
             driver.append(node('strong', label('Dodatkowy kierowca', 'Additional driver')), node('small', unavailable));
             picker.append(driver);
         }
+        const callout = document.querySelector('#termsModal .r24-extras-callout');
+        if (callout) callout.hidden = false;
+        const modal = el('equipmentInfoModal');
+        if (modal) {
+            modal.dataset.r24Arvent = 'true';
+            const button = modal.querySelector('.equipment-info-actions button');
+            if (button) {
+                button.dataset.pl = 'Zatwierdź i kontynuuj';
+                button.dataset.en = 'Confirm and continue';
+                button.textContent = label(button.dataset.pl, button.dataset.en);
+            }
+        }
         const renderItem=(parent,code,name,priced)=>{
             const item=node('div');item.className='booking-extra-row';
             const detail=node('span');
             const title=extraName(code);
             detail.append(node('strong',title));
             if(code !== '2' && priced?.kind==='additional_driver'){
-                detail.append(node('small',label('Stawka Arvent: 4 € / doba.','Arvent rate: €4 / day.')));
+                detail.append(node('small',money(Math.round(priced.price_eur*100),'EUR') + label(' / doba',' / day')));
                 detail.append(node('small',priced?.bookable===true
                     ?label('Prawo jazdy dodatkowy kierowca okaże przy odbiorze.','The additional driver presents their licence at pickup.')
                     :label('Wybór online wymaga potwierdzonej wyceny API.','Online selection requires a verified offer-specific API quote.')));
@@ -128,7 +140,6 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         // Same clear separation as an AVIA supplier-calculated offer: what is
         // returned for this rental is distinct from the unpriced global list.
         if(available.length){
-            picker.append(node('h4',label('Usługi zwrócone dla tej oferty','Services returned for this offer')));
             for(const option of available){
                 if(!option||typeof option.code!=='string')continue;
                 renderItem(picker,option.code,option.name,option);
@@ -181,6 +192,14 @@ export function createBookingExtras({ db, url, key, context, isEn, isApiBooking 
         const total = el('bookingExtrasTotal'); total?.replaceChildren();
         const enabled = quote?.enabled === true;
         if (quote?.arvent) { renderArvent(box, picker, total, quote.arvent); return; }
+        const modal = el('equipmentInfoModal');
+        if (modal?.dataset.r24Arvent) {
+            delete modal.dataset.r24Arvent;
+            const button = modal.querySelector('.equipment-info-actions button');
+            if (button) { button.dataset.pl = 'OK, rozumiem'; button.dataset.en = 'OK, I understand'; button.textContent = label(button.dataset.pl, button.dataset.en); }
+            const callout = document.querySelector('#termsModal .r24-extras-callout');
+            if (callout) callout.hidden = false;
+        }
         box.hidden = !enabled;
         picker.hidden = !enabled;
         if (total) total.hidden = !enabled;
