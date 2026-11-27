@@ -220,7 +220,8 @@ test('database: one atomic approval per booking, by real delivery time, never on
   await p.query("insert into api_refund_holds(booking_id,reason,created_by) values($1,'held for owner decision','test')",[b]);
   assert.equal(await confirm(early),false,'refund hold');
   await p.exec("update api_refund_holds set released_at=now()");
-  await p.exec("update api_booking_workflows set state='unknown',last_error='ARVENT_TIMEOUT_CANCELLING'");
+  // Timeout claim already taken (state left provider_pending): email loses.
+  await p.exec("update api_booking_workflows set state='unknown',last_error='ARVENT_TIMEOUT_CANCEL_UNCONFIRMED'");
   assert.equal(await confirm(early),false,'timeout claim won');
   await p.exec("update api_booking_workflows set state='provider_pending',last_error=null");
   assert.equal(await confirm(early),true);
@@ -250,4 +251,44 @@ test('refund hold blocks only the held booking\'s refund transition',async()=>{
   await p.exec("update api_refund_holds set released_at=now()");
   await p.exec("update api_booking_workflows set state='refunding' where booking_id='00000000-0000-4000-8000-000000000001'");
  } finally {await p.close();}
+});
+
+test('database: the timeout cancellation claim waits for a timely email, never moves the deadline',async()=>{
+ const p=new PGlite();
+ try {
+  const b='163b5fdc-0f33-446d-b71e-52bf8b0db2aa';
+  await p.exec(`create role anon; create role authenticated; create role service_role;
+   create function is_admin() returns boolean language sql as 'select false';
+   create table bookings(id uuid primary key,partner_id uuid,status text,api_booking_reference text,cancelled_at timestamptz,refund_status text);
+   create table api_booking_workflows(booking_id uuid primary key,state text,last_error text,updated_at timestamptz,provider_response jsonb,
+    provider_reference text,paid_at timestamptz,payment_intent text,prepared_quote jsonb,supplier_received_at timestamptz,supplier_deadline_at timestamptz);
+   insert into bookings values('${b}','bf29a373-c464-4cec-87a7-c3218ea1ea51','pending','17BFD74AC95B',null,null);
+   insert into api_booking_workflows values('${b}','provider_pending',null,now(),null,'17BFD74AC95B',now()-interval '1 day','pi_x',
+    '{"provider":"arvent_kolaycar"}',now()-interval '1 day',now()-interval '2 minutes');`);
+  for(const f of ['20261127190000_api_refund_holds.sql','20261127200000_arvent_email_confirmations.sql'])
+   await p.exec(await readFile(new URL('../../supabase/migrations/'+f,import.meta.url),'utf8'));
+  const claim=()=>p.exec("update api_booking_workflows set state='unknown',last_error='ARVENT_TIMEOUT_CANCELLING'");
+  await assert.rejects(claim(),/ARVENT_EMAIL_CONFIRMATION_PENDING/,'polling grace');
+  await p.exec("update api_booking_workflows set supplier_deadline_at=now()-interval '10 minutes'");
+  await p.exec("insert into arvent_email_messages(source,mailbox_message_id,received_at,reservation_number) values('zoho','late',now()-interval '1 minute','17BFD74AC95B')");
+  const timely=(await p.query("insert into arvent_email_messages(source,mailbox_message_id,received_at,reservation_number) values('zoho','t',now()-interval '11 minutes','17BFD74AC95B') returning id")).rows[0].id;
+  await assert.rejects(claim(),/ARVENT_EMAIL_CONFIRMATION_PENDING/,'timely email pending');
+  await p.query("update arvent_email_messages set verdict='rejected' where id=$1",[timely]);
+  await claim();
+  assert.equal((await p.query('select state from api_booking_workflows')).rows[0].state,'unknown');
+  // Other transitions are unaffected.
+  await p.exec("update api_booking_workflows set state='refund_pending'");
+ } finally {await p.close();}
+});
+
+test('live readback summary from the real 17BFD74AC95B record',async()=>{
+ const {arventLiveSummary}=await import('../../supabase/functions/_shared/arvent-confirmation-document.mjs');
+ const ctx={booking:booking(),quote,evidence:{one_way_fee:0}};
+ const cancelled=arventLiveSummary({...livePayload(3),statusName:'Reservation received(...),Cancelled(...)'},ctx);
+ assert.equal(cancelled.status,'cancelled');assert.equal(cancelled.supplier_status_type,3);
+ const ok=arventLiveSummary(livePayload(0),ctx);
+ assert.deepEqual([ok.status,ok.terms_verified,ok.extras_verified,ok.needs_manual_review],['pending',true,true,false]);
+ assert.equal(arventLiveSummary({...livePayload(0),depositPrice:100},ctx).terms_verified,false);
+ assert.equal(arventLiveSummary({...livePayload(0),reservationExtras:[{code:2}]},ctx).extras_verified,false);
+ assert.throws(()=>arventLiveSummary(null,ctx),/ARVENT_BOOKING_SHAPE/);
 });

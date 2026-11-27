@@ -88,7 +88,7 @@ export async function processArventMail(deps, { source, mailboxMessageId, receiv
       return reject(["BOOKING_CANCELLED_OR_REFUNDED"], { booking_id: booking.id });
     if (workflow?.state !== "provider_pending") return reject(["WORKFLOW_STATE_" + String(workflow?.state || "missing").toUpperCase()], { booking_id: booking.id });
 
-    const live = await deps.liveStatus(booking, workflow);
+    const live = await deps.liveStatus(booking, workflow, { quote, evidence });
     const supplierStatus = live?.supplier_status_type;
     if (supplierStatus === 3 || supplierStatus === 6) return reject(["SUPPLIER_STATUS_" + supplierStatus], { booking_id: booking.id });
     if (!(supplierStatus === 0 || supplierStatus === 1) || live.booking_reference !== workflow.provider_reference

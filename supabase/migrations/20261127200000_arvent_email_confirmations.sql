@@ -91,6 +91,35 @@ end $$;
 revoke all on function public.arvent_email_confirm(uuid,uuid,text,integer,jsonb) from public, anon, authenticated;
 grant execute on function public.arvent_email_confirm(uuid,uuid,text,integer,jsonb) to service_role;
 
+-- The 24h timeout cancellation (provider_pending -> unknown with
+-- ARVENT_TIMEOUT_CANCELLING, before any supplier POST) yields while an Arvent
+-- confirmation email delivered by the deadline awaits verification, and for
+-- five minutes after the deadline (mailbox polling lag). Enforced in the
+-- database so every deployed worker version respects it; the deadline itself
+-- is never moved. A blocked claim is retried by the next status-sync tick.
+create or replace function public.arvent_timeout_yields_to_email()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+  if old.state = 'provider_pending' and new.state = 'unknown'
+     and new.last_error = 'ARVENT_TIMEOUT_CANCELLING'
+     and old.prepared_quote->>'provider' = 'arvent_kolaycar'
+     and old.supplier_deadline_at is not null
+     and (clock_timestamp() < old.supplier_deadline_at + interval '5 minutes'
+          or exists (select 1 from public.arvent_email_messages m
+                     where m.reservation_number = old.provider_reference
+                       and m.verdict = 'received'
+                       and m.received_at <= old.supplier_deadline_at)) then
+    raise exception 'ARVENT_EMAIL_CONFIRMATION_PENDING' using errcode = 'P0001';
+  end if;
+  return new;
+end $$;
+revoke all on function public.arvent_timeout_yields_to_email() from public, anon, authenticated;
+drop trigger if exists arvent_timeout_yields_to_email on public.api_booking_workflows;
+create trigger arvent_timeout_yields_to_email
+  before update of state on public.api_booking_workflows
+  for each row execute function public.arvent_timeout_yields_to_email();
+
 -- Poll the Ride24 mailbox every minute (no webhook needed). The function
 -- exits immediately when the mailbox secrets are not configured.
 do $$

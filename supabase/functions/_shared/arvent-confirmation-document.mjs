@@ -202,3 +202,36 @@ export function verifyArventCertificate({ doc, booking, workflow, live, quote, e
     && Number.isFinite(reservedMs) && receivedAtMs >= reservedMs - 60000);
   return { ok: r.length === 0, reasons: r };
 }
+
+// Summary of a raw Arvent GET /reservations record in the shape the shared
+// payment workflow stores (status/terms/extras flags + evidence payload).
+const LIVE_FIELDS = ["reservationNumber","agencyReservationReference","reservationStatusType","currencyCode","totalPrice",
+  "depositPrice","depositCreditCardRequired","totalKMLimit","pickupLocationId","returnLocationId","pickupDate","returnDate",
+  "pickupLocationName","returnLocationName","vehicleName","rentalDuration","vehicleCategoryTypeName","transmissionTypeName",
+  "fuelTypeName","dailyPrice","extraPrice","oneWayFee","paidAmount","reservationDate","reservationExtras","statusName"];
+export function arventLiveSummary(data, { booking, quote, evidence }) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw Error("ARVENT_BOOKING_SHAPE");
+  const raw = typeof data.reservationStatusType === "number" ? data.reservationStatusType : null;
+  const extrasCents = Number(quote?.raw_response?.ride24_options?.arvent_extra?.extras_cents ?? 0);
+  const extras = Array.isArray(data.reservationExtras) ? data.reservationExtras : [];
+  const terms = booking?.partner_currency === "EUR" && data.currencyCode === "EUR"
+    && toCents(data.totalPrice) === toCents(booking?.partner_net_price_snapshot)
+    && data.depositPrice === 0 && data.depositCreditCardRequired === false && data.totalKMLimit === 0
+    && (data.paidAmount === undefined || data.paidAmount === 0)
+    && String(data.pickupLocationId) === String(quote?.pickup_location_external_id)
+    && String(data.returnLocationId) === String(quote?.dropoff_location_external_id)
+    && toCents(data.oneWayFee ?? 0) === toCents(evidence?.one_way_fee ?? 0)
+    && (data.agencyReservationReference == null || data.agencyReservationReference === booking?.reservation_code);
+  const provider_payload = Object.fromEntries(LIVE_FIELDS.filter((k) => data[k] !== undefined)
+    .map((k) => [k, k === "reservationExtras" ? extras.slice(0, 20) : typeof data[k] === "string" ? data[k].slice(0, 500) : data[k]]));
+  return {
+    booking_reference: typeof data.reservationNumber === "string" ? data.reservationNumber : null,
+    supplier_status_type: raw,
+    status: raw === 1 ? "confirmed" : raw === 3 ? "cancelled" : "pending",
+    terms_verified: terms === true,
+    // Paid extras remain uncertified: only an extras-free reservation passes.
+    extras_verified: extrasCents === 0 && extras.length === 0 && toCents(data.extraPrice ?? 0) === 0,
+    needs_manual_review: !(terms === true),
+    provider_payload,
+  };
+}
