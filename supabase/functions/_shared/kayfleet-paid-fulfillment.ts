@@ -129,7 +129,6 @@ export async function revalidatePaidKayfleet(credentials:any,booking:any,quote:a
       pickup_location:pickup,dropoff_location:dropoff,
       group_name:fresh.group_name,grand_total:fresh.grand_total,extras,
     },
-    pickup_date:booking.start_date,pickup_time:str(booking.pickup_time),
   };
 }
 function requirePaidResponse(payload:any,prepared:any) {
