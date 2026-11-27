@@ -1026,7 +1026,7 @@
                 <strong>Arvent – opłacone rezerwacje czekające na potwierdzenie (24 h)</strong>
                 <button type="button" class="btn btn-secondary" onclick="loadArventApprovals()">Odśwież</button>
             </div>
-            <p style="font-size:12px;color:#78350F;margin:6px 0 10px">Status 1 z API Arvent potwierdza automatycznie. Ponowna weryfikacja sprawdza w API status Approved, cenę, trasę, warunki i dodatki. Przy statusie Received rezerwacja nadal oczekuje.</p>
+            <p style="font-size:12px;color:#78350F;margin:6px 0 10px">Po otrzymaniu e-maila porównaj numer rezerwacji w załączniku z numerem Arvent poniżej. Sam temat wiadomości lub nazwisko klienta nie identyfikuje rezerwacji. Ponowna weryfikacja sprawdza w API status Approved, cenę, trasę, warunki i dodatki. Przy statusie Received rezerwacja nadal oczekuje.</p>
             <div id="arvent-approval-list" style="font-size:13px">Ładowanie...</div>
         </div>
         <p id="admin-bookings-count" class="dashboard-table-status" role="status">Ładowanie rezerwacji...</p>
@@ -2857,15 +2857,19 @@ async function loadArventApprovals(){
   }).join('');
 }
 async function confirmArventManually(bookingId,code){
+  const documentReference=prompt('Przepisz numer rezerwacji Arvent z potwierdzenia dostawcy.');
+  if(!documentReference?.trim())return;
   const evidence=prompt('Rezerwacja '+code+': wpisz jednoznaczne potwierdzenie od Arvent (kto, kiedy, kanał, treść). Min. 15 znaków.');
   if(evidence===null)return;
   if(evidence.trim().length<15){alert('Opis potwierdzenia jest za krótki.');return;}
   if(!confirm('Potwierdzić '+code+'? Zostanie wystawiony voucher, a klient dostanie potwierdzenie.'))return;
-  const {data,error}=await db.functions.invoke('arvent-admin-confirm',{body:{action:'confirm',booking_id:bookingId,evidence:evidence.trim()}});
+  const {data,error}=await db.functions.invoke('arvent-admin-confirm',{body:{action:'confirm',booking_id:bookingId,document_reference:documentReference.trim(),evidence:evidence.trim()}});
   if(error||!data?.success){
-    const code2=data?.error||'';
-    const msg={SUPPLIER_STATUS_NOT_CONFIRMABLE:'Arvent pokazuje status '+(data?.supplier_status_type??'?')+(data?.terms_verified===false?' lub warunki/cena się nie zgadzają':'')+' – nie można potwierdzić.',
-      NOT_AWAITING_APPROVAL:'Rezerwacja nie czeka już na potwierdzenie (stan: '+(data?.state||'?')+').',
+    let detail=data;
+    if(!detail && error?.context?.json){try{detail=await error.context.json();}catch{}}
+    const code2=detail?.error||'';
+    const msg={DOCUMENT_REFERENCE_MISMATCH:'Numer w dokumencie nie zgadza się z numerem rezerwacji Arvent. Sprawdź załącznik.',SUPPLIER_STATUS_NOT_CONFIRMABLE:'Arvent pokazuje status '+(detail?.supplier_status_type??'?')+(detail?.terms_verified===false?' lub warunki/cena się nie zgadzają':'')+' – nie można potwierdzić.',
+      NOT_AWAITING_APPROVAL:'Rezerwacja nie czeka już na potwierdzenie (stan: '+(detail?.state||'?')+').',
       STATE_CHANGED:'Stan rezerwacji zmienił się w trakcie – odśwież listę.',SUPPLIER_STATUS_UNAVAILABLE:'Nie udało się odczytać statusu w Arvent – spróbuj ponownie.',
       ALREADY_CONFIRMED:'Ta rezerwacja ma już wpis potwierdzenia.'}[code2]||('Nie udało się potwierdzić ('+(code2||'błąd')+').');
     alert(msg);

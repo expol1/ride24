@@ -43,11 +43,15 @@ Deno.serve(async (req) => {
   if (w.state !== "provider_pending" || !w.provider_reference || w.provider_reference !== b.api_booking_reference)
     return jsonResponse(req, { error: "NOT_AWAITING_APPROVAL", state: w.state, last_error: w.last_error }, 409);
 
+  // Match the number independently transcribed from the supplier document.
+  if (typeof body.document_reference !== "string" || body.document_reference.trim() !== w.provider_reference)
+    return jsonResponse(req, { error: "DOCUMENT_REFERENCE_MISMATCH" }, 409);
+
   // Live supplier check: never confirm what Arvent has cancelled or changed.
   let live: Record<string, any>;
   try {
     const credentials = await loadPartnerCredentials(admin, ARVENT_PARTNER_ID);
-    live = await arventBookingStatus(credentials, w.provider_reference);
+    live = await arventBookingStatus(credentials, w.provider_reference, bookingId);
   } catch {
     return jsonResponse(req, { error: "SUPPLIER_STATUS_UNAVAILABLE" }, 502);
   }
