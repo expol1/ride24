@@ -5,6 +5,7 @@ import { arventLeadTimeAllowed } from './arvent-kolaycar-contract.mjs';
 import { selectedServices, serviceCents } from './provider-services.mjs';
 import { DefiniteApiFailure } from './api-payment-flow.mjs';
 import { caravelPaidFulfillmentApproved, revalidatePaidCaravel, createPaidCaravel, readPaidCaravelStatus } from './caravel-paid-fulfillment.ts';
+import {kayfleetPaymentApproved,revalidatePaidKayfleet,createPaidKayfleet,readPaidKayfleetStatus,cancelPaidKayfleetAfterTimeout} from './kayfleet-paid-fulfillment.ts';
 
 // A new adapter must implement all four operations before it can accept payment.
 // Generic HTTP endpoints are not evidence of safe post-payment fulfillment.
@@ -18,7 +19,8 @@ function arventPaymentApproved():boolean {
    &&Deno.env.get('ARVENT_STRIPE_FIRST_APPROVED')==='true';
 }
 export function hasPaidFulfillmentAdapter(provider:unknown) {
- return provider==='renteon_aggregator'
+ return (provider==='kayfleet'&&kayfleetPaymentApproved())
+  ||provider==='renteon_aggregator'
   ||(provider==='arvent_kolaycar'&&arventPaymentApproved())
   // Caravel: same shared Stripe-first workflow; disabled until both server flags are set.
   ||(provider==='caravel'&&caravelPaidFulfillmentApproved());
@@ -38,6 +40,8 @@ function servicesContract(model:any) {
 }
 export async function revalidatePaidProvider(credentials:any,booking:any,quote:any) {
  if(!hasPaidFulfillmentAdapter(booking.partners.api_provider))fail('ADAPTER_NOT_READY');
+ if(booking.partners.api_provider==='kayfleet')
+  return revalidatePaidKayfleet(credentials,booking,quote);
  if(booking.partners.api_provider==='arvent_kolaycar')
   return revalidatePaidArvent(credentials,booking,quote);
  if(booking.partners.api_provider==='caravel')
@@ -207,6 +211,7 @@ async function revalidatePaidArvent(credentials:any,booking:any,quote:any) {
  };
 }
 export async function createPaidProvider(credentials:any,input:any) {
+ if(input?.provider==='kayfleet') return createPaidKayfleet(credentials,input);
  if(input?.provider==='caravel')return createPaidCaravel(credentials,input);
  if(input?.provider==='arvent_kolaycar'){
    if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');
@@ -223,10 +228,12 @@ export async function createPaidProvider(credentials:any,input:any) {
 // Ride24-initiated cancellation after the supplier approval deadline. Only
 // Arvent uses it; the result is "cancelled" only after GET shows status 3.
 export async function cancelPaidProviderAfterTimeout(credentials:any,reference:string,prepared:any) {
+ if(prepared?.provider==='kayfleet')return cancelPaidKayfleetAfterTimeout(credentials,reference,prepared);
  if(prepared?.provider!=='arvent_kolaycar'||!arventPaymentApproved())fail('ADAPTER_NOT_READY');
  return arventCancelBooking(credentials,reference,{reason:'Ride24: not approved within the agreed time limit'},prepared.ride24_booking_id);
 }
 export async function readPaidProviderStatus(credentials:any,reference:string,prepared:any) {
+ if(prepared?.provider==='kayfleet')return readPaidKayfleetStatus(credentials,reference,prepared);
  if(prepared?.provider==='caravel')return readPaidCaravelStatus(credentials,reference,prepared);
  if(prepared?.provider==='arvent_kolaycar'){
   if(!arventPaymentApproved())fail('ADAPTER_NOT_READY');

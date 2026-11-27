@@ -1,5 +1,5 @@
 import { arventLookupByAgencyReference } from "./arvent-kolaycar.ts";
-import { advanceApiPayment, arventApprovalDeadline } from './api-payment-flow.mjs';
+import { advanceApiPayment, apiSupplierApprovalDeadline } from './api-payment-flow.mjs';
 import { assertVoucherCompleted } from './api-voucher-confirmation.mjs';
 import { loadPartnerCredentials, sanitizePartnerPayload } from './partner-api.ts';
 import { revalidatePaidProvider,createPaidProvider,readPaidProviderStatus,cancelPaidProviderAfterTimeout } from './api-provider-fulfillment.ts';
@@ -106,7 +106,7 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
    // Shown to the client as the supplier decision deadline (Arvent only).
    // Arvent: dedicated, client-readable 24h deadline. NOT partner_response_deadline,
    // which auto_expire_bookings() uses to expire unpaid local-partner requests.
-   ...(arventApprovalDeadline(w)!==null?{supplier_confirmation_deadline:new Date(arventApprovalDeadline(w)!).toISOString()}:{})}).eq('id',id).eq('status','pending').select('id'));
+   ...(apiSupplierApprovalDeadline(w)!==null?{supplier_confirmation_deadline:new Date(apiSupplierApprovalDeadline(w)!).toISOString()}:{})}).eq('id',id).eq('status','pending').select('id'));
  if(w?.state==='unknown') {
    await one(admin.from('api_booking_workflows').update({updated_at:new Date().toISOString()}).eq('booking_id',id).eq('state','unknown').select('booking_id'));
    await one(admin.from('bookings').update({manual_review:true,api_status:'payment_unknown',
