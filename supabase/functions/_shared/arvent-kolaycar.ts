@@ -220,7 +220,11 @@ async function receiptTerms(row:Record<string,unknown>,sipp:unknown,evidence:any
 function statusEvidence(data:Record<string,unknown>){
  const fields=["reservationNumber","agencyReservationReference","reservationStatusType","sippCode",
   "currencyCode","totalPrice","depositPrice","depositCreditCardRequired","totalKMLimit",
-  "pickupLocationId","returnLocationId","pickupDate","returnDate"];
+  "pickupLocationId","returnLocationId","pickupDate","returnDate",
+  // Names and amounts shown on the emailed confirmation PDF.
+  "pickupLocationName","returnLocationName","vehicleName","rentalDuration",
+  "vehicleCategoryTypeName","transmissionTypeName","fuelTypeName",
+  "dailyPrice","extraPrice","oneWayFee","paidAmount","reservationDate"];
  return sanitizePartnerPayload(Object.fromEntries(fields.map(key=>[key,data[key]])),4000);
 }
 // Live Arvent reservation responses (save and GET /reservations, verified

@@ -4,6 +4,8 @@ import { assertVoucherCompleted } from './api-voucher-confirmation.mjs';
 import { loadPartnerCredentials, sanitizePartnerPayload } from './partner-api.ts';
 import { revalidatePaidProvider,createPaidProvider,readPaidProviderStatus,cancelPaidProviderAfterTimeout } from './api-provider-fulfillment.ts';
 
+// Mailbox polling runs every minute; allow a few cycles of delivery lag.
+const ARVENT_EMAIL_POLL_GRACE_MS=5*60000;
 async function one(query:any) {const {data,error}=await query; if(error)throw Error('API_WORKFLOW_DB_ERROR');return data;}
 export async function apiPaymentEnabled(admin:any) {
  const row=await one(admin.from('api_payment_settings').select('enabled').eq('id',true).maybeSingle());return row?.enabled===true;
@@ -52,6 +54,17 @@ export async function runApiPayment(admin:any,stripe:any,id:string) {
    },
    status:async(_id:string,w:any)=>{await load();return readPaidProviderStatus(credentials,w.provider_reference,w.prepared_quote);},
    cancel:async(_id:string,w:any)=>{await load();return cancelPaidProviderAfterTimeout(credentials,w.provider_reference,w.prepared_quote);},
+   // Arvent: emailed confirmations are polled every minute. Hold the timeout
+   // cancellation while a message delivered by the deadline awaits
+   // verification, and for a short mailbox-polling lag after the deadline.
+   emailConfirmationPending:async(_id:string,w:any,deadline:number)=>{
+     if(w.prepared_quote?.provider!=='arvent_kolaycar'||!w.provider_reference)return false;
+     if(Date.now()<deadline+ARVENT_EMAIL_POLL_GRACE_MS)return true;
+     const row=await one(admin.from('arvent_email_messages').select('id')
+       .eq('reservation_number',w.provider_reference).eq('verdict','received')
+       .lte('received_at',new Date(deadline).toISOString()).limit(1).maybeSingle());
+     return !!row;
+   },
    finalize:async()=>{
      const ok=await rpc('api_finalize_confirmed',{p_booking_id:id});
      if(ok) {

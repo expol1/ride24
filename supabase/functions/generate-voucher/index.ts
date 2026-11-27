@@ -657,7 +657,9 @@ async function createVoucherPdf(
     font,
     bold,
     "Mileage / Limit km:",
-    booking.mileage_limit_snapshot !== null
+    // 0 and null both mean no mileage cap (Ride24 partner panel convention;
+    // Arvent API totalKMLimit=0 = unlimited).
+    booking.mileage_limit_snapshot !== null && booking.mileage_limit_snapshot > 0
       ? `${booking.mileage_limit_snapshot} km/day`
       : "Unlimited / Bez limitu",
     y,

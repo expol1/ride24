@@ -58,6 +58,12 @@ export async function advanceApiPayment(deps,id) {
     const deadline=arventApprovalDeadline(w);
     if(deadline!==null&&Date.now()>=deadline&&deps.cancel) {
       if(w.state==='provider_pending') {
+        // Arvent only: a confirmation email delivered before the (never reset)
+        // deadline that is still being fetched or verified wins this race.
+        // A failed lookup must not let the cancellation through either.
+        if(deps.emailConfirmationPending
+          && await deps.emailConfirmationPending(id,w,deadline).catch(()=>true))
+          return {state:'provider_pending',email_pending:true};
         const current=await deps.status(id,w).catch(()=>null);
         // Never cancel blind: a failed status GET could conceal a freshly
         // approved booking. Stay provider_pending and retry the read next tick.
