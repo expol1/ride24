@@ -29,7 +29,10 @@ export function kayfleetCounts(selections,additionalDriverId) {
     out[item.field]=count(selected.quantity,item.max_quantity,"EXTRAS_QUANTITY_INVALID");
     if(out[item.field]===0)fail("EXTRAS_QUANTITY_INVALID");
   }
-  if(Boolean(additionalDriverId)!==(out.additional_drivers===1))fail("ADDITIONAL_DRIVER_BINDING");
+  // The web may select a driver before the initial options catalogue arrives.
+  // Bind that driver automatically, but never allow the charge without identity.
+  if(additionalDriverId && out.additional_drivers===0)out.additional_drivers=1;
+  if(!additionalDriverId && out.additional_drivers===1)fail("ADDITIONAL_DRIVER_BINDING");
   return out;
 }
 export function kayfleetAssertQuote(q,expected={}) {
