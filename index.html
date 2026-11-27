@@ -1997,9 +1997,7 @@
                 padding: 10px 12px;
                 font-size: 12px;
             }
-            .cf-turnstile { 
-                transform: scale(0.85);
-                transform-origin: center;
+            .ride24-turnstile { 
                 margin: 16px auto !important; 
             }
         }
@@ -2242,27 +2240,14 @@
             }
         }
 
-        /* 🔥 POPRAWA WYGLĄDU CLOUDFLARE TURNSTILE (Logowanie i Partner) */
-        .cf-turnstile {
-            display: flex !important;
-            justify-content: center !important;
+        /* Cloudflare Turnstile (logowanie klienta i partnera). Bez transform,
+           scale ani overflow:hidden na kontenerze iframe: modyfikacja widżetu
+           powoduje "Weryfikacja negatywna" na części przeglądarek mobilnych. */
+        .ride24-turnstile {
+            display: block;
+            width: 100%;
+            min-height: 65px;
             margin: 24px auto 16px auto !important;
-            width: 100% !important;
-            overflow: hidden !important;
-        }
-
-        /* Delikatne dopasowanie ramki do Twojego designu */
-        .cf-turnstile iframe {
-            border-radius: 8px !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
-        }
-
-        /* Na bardzo wąskich telefonach lekko go skalujemy, żeby nie rozpychał okna */
-        @media (max-width: 380px) {
-            .cf-turnstile {
-                transform: scale(0.9);
-                transform-origin: center;
-            }
         }
 
         /* --- PREMIUM SAAS CALENDAR (KOLORYSTYKA FLAGOWA) --- */
@@ -2491,7 +2476,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css">
 <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/js/jsvectormap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world.js"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="assets/helper/turnstileWidget.js?v=20261127a" defer></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pl.js"></script>
@@ -4828,7 +4813,7 @@ window.closeLegal = function() {
             </div>
             
    
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
+            <div class="ride24-turnstile" data-ride24-turnstile></div>
             
             <button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 4px 15px rgba(115, 215, 0, 0.3);" data-pl="Zaloguj się" data-en="Log in">
                 Zaloguj się
@@ -4863,7 +4848,7 @@ window.closeLegal = function() {
             </a>
         </div>
         
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
+        <div class="ride24-turnstile" data-ride24-turnstile></div>
         
         <button id="partnerAuthBtn" onclick="partnerLogin()" style="width:100%; padding:14px; background:var(--blue); color:white; border:none; border-radius:12px; font-weight:600; font-size:16px; cursor:pointer; transition: background 0.2s;" data-pl="Zaloguj do panelu partnera" data-en="Log in to partner panel">
             Zaloguj do panelu partnera
@@ -4967,9 +4952,9 @@ async function handleAuth() {
     const lang = localStorage.getItem("lang") || "pl";
     const db = window.supabaseClient;
 
-    const token = document.querySelector('#authModal [name="cf-turnstile-response"]')?.value;
+    const token = window.Ride24Turnstile?.token(document.querySelector('#authModal [data-ride24-turnstile]'));
     if (!token) {
-        if (window.turnstile) window.turnstile.reset();
+        window.Ride24Turnstile?.reset(document.querySelector('#authModal [data-ride24-turnstile]'));
         return window.showToast(lang === 'pl' ? "Potwierdź, że nie jesteś robotem" : "Confirm you are human", "error");
     }
 
@@ -5022,7 +5007,7 @@ async function handleAuth() {
         btn.disabled = false;
         btn.innerText = mode === "login" ? (lang === 'pl' ? "Zaloguj się" : "Log in") : (lang === 'pl' ? "Zarejestruj się" : "Sign up");
     } finally {
-        if (window.turnstile) window.turnstile.reset();
+        window.Ride24Turnstile?.reset(document.querySelector('#authModal [data-ride24-turnstile]'));
     }
 }
 
@@ -5087,7 +5072,7 @@ async function partnerLogin() {
     const pass = document.getElementById("partner-password").value;
     const btn = document.getElementById("partnerAuthBtn");
     
-    const turnstileToken = document.querySelector('#partnerModal [name="cf-turnstile-response"]')?.value;
+    const turnstileToken = window.Ride24Turnstile?.token(document.querySelector('#partnerModal [data-ride24-turnstile]'));
     if (!turnstileToken) {
         alert(localStorage.getItem("lang") === "en" ? "Confirm that you are not a robot." : "Potwierdź, że nie jesteś robotem.");
         return;
@@ -5113,7 +5098,7 @@ async function partnerLogin() {
         btn.disabled = false;
         btn.innerText = localStorage.getItem("lang") === "en" ? "Log in to partner panel" : "Zaloguj do panelu partnera";
     } finally {
-        if (window.turnstile) window.turnstile.reset();
+        window.Ride24Turnstile?.reset(document.querySelector('#partnerModal [data-ride24-turnstile]'));
     }
 }
 

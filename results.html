@@ -231,8 +231,9 @@
 <script src="assets/js/results-location-pricing.js?v=20261110a"></script>
 <script src="assets/js/car-location-scope.js?v=20261118"></script>
     <script src="assets/js/location-contact-notice.js?v=20261031a"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="assets/helper/turnstileWidget.js?v=20261127a" defer></script>
 <link rel="stylesheet" href="assets/css/brand-logo.css?v=20261019b">
+<style>.ride24-turnstile{display:block;width:100%;min-height:65px;margin:12px auto 0 auto;}</style>
 </head>
 <body>
 
@@ -299,7 +300,7 @@
                 </label>
             </div>
 
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAACu2gUuoR8cE8lAv" data-theme="light"></div>
+            <div class="ride24-turnstile" data-ride24-turnstile></div>
             
             <button onclick="handleAuth()" id="mainAuthBtn" style="width:100%; padding:14px; background:var(--green); color:white; border:none; border-radius:12px; font-weight:800; font-size:16px; cursor:pointer; margin-top:15px; transition: transform 0.2s;" data-pl="Zaloguj się" data-en="Log in">
                 Zaloguj się
@@ -1417,9 +1418,9 @@ localStorage.setItem("bookingFlowVersion", "v2");
     const db = window.supabaseClient;
 
     // 🛡️ 1. TURNSTILE CHECK
-    const token = document.querySelector('[name="cf-turnstile-response"]')?.value;
+    const token = window.Ride24Turnstile?.token(document.querySelector('#authModal [data-ride24-turnstile]'));
     if (!token) {
-        if (window.turnstile) window.turnstile.reset();
+        window.Ride24Turnstile?.reset(document.querySelector('#authModal [data-ride24-turnstile]'));
         return window.showToast(lang === 'pl' ? "Potwierdź, że nie jesteś robotem" : "Confirm you are human", "error");
     }
 
@@ -1494,7 +1495,7 @@ if (data.user && !data.session) {
         btn.disabled = false;
         btn.innerText = authMode === "login" ? (lang === 'pl' ? "Zaloguj się" : "Log in") : (lang === 'pl' ? "Zarejestruj się" : "Sign up");
     } finally {
-        if (window.turnstile) window.turnstile.reset();
+        window.Ride24Turnstile?.reset(document.querySelector('#authModal [data-ride24-turnstile]'));
     }
 }
 
