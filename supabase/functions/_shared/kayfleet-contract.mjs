@@ -102,10 +102,10 @@ export function kayfleetBookingRequest(input) {
     },
   };
 }
-export function verifyKayfleetBookingSnapshot(response, accepted) {
+export function verifyKayfleetBookingSnapshot(response, accepted, {allowPending = false} = {}) {
   const r = rec(response), a = rec(accepted);
   if (!r || !a) fail("STATUS_NOT_VERIFIED");
-  if (r.status !== "confirmed") fail("NOT_CONFIRMED");
+  if (r.status !== "confirmed" && !(allowPending && r.status === "pending")) fail("NOT_CONFIRMED");
   kayfleetLiability(r, { requireDeposit: true });
   if (r.currency !== "EUR" || r.quote_reference !== a.quote_reference
     || r.partner_ref !== a.partner_ref || r.pickup_datetime !== a.pickup_datetime
@@ -121,7 +121,7 @@ export function verifyKayfleetBookingSnapshot(response, accepted) {
     .reduce((acc, key) => acc + euroCents(r[key], "STATUS_COMPONENT_" + key.toUpperCase()), 0);
   if (subtotal !== euroCents(r.grand_total, "STATUS_TOTAL"))
     fail("STATUS_PRICE_BREAKDOWN");
-  return { confirmed: true, reference: needed(r.reference, "REFERENCE"),
+  return { confirmed: r.status === "confirmed", reference: needed(r.reference, "REFERENCE"),
     booking_number: needed(r.booking_number, "BOOKING_NUMBER"),
     total_eur: r.grand_total };
 }
