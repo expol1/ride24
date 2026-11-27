@@ -55,8 +55,11 @@ export async function makeKayfleetBookingOptions(
       pickup_location:context.pickup_location_id,dropoff_location:context.dropoff_location_id});
     kayfleetAssertQuote(fresh,{group_id:quote.external_group_id,
       pickup_location:context.pickup_location_id,dropoff_location:context.dropoff_location_id,extras:selected});
-    for (const key of ["rental_total","insurance_fee","delivery_fee"])
-      if(Math.round(previous[key]*100)!==Math.round(fresh[key]*100))priceError();
+    for (const key of ["rental_total","insurance_fee","delivery_fee"]) {
+      const before=Number(previous[key]),after=fresh[key];
+      if(!Number.isFinite(before)||typeof after!=="number"||!Number.isFinite(after)
+        ||Math.round(before*100)!==Math.round(after*100))priceError();
+    }
   } catch {priceError();}
 
   let catalog=quote.raw_response?.kayfleet_catalog;
@@ -88,10 +91,12 @@ export async function makeKayfleetBookingOptions(
   const lv=Number(Array.isArray(loyalty)?loyalty[0]:loyalty);
   const discount=Math.max(0,Math.min(20,Number.isFinite(lv)?lv:0));
   const rate=await exchangeRate("EUR");
-  let snapshot;
-  try {snapshot=kayfleetSnapshot(fresh,{marginPercent:Number(quote.platform_margin_percent),
-    loyaltyPercent:discount,exchangeRate:rate});}
-  catch {priceError();}
+  const snapshot=(()=>{
+    try {
+      return kayfleetSnapshot(fresh,{marginPercent:Number(quote.platform_margin_percent),
+        loyaltyPercent:discount,exchangeRate:rate});
+    } catch {return priceError();}
+  })();
   const binding={user_id:user.id,driver_id:body.driver_id||null,
     additional_driver_id:body.additional_driver_id||null,ages,selections:body.extras??[]};
   const fingerprint=await priceFingerprint(snapshot,binding);

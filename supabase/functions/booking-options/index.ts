@@ -212,11 +212,11 @@ serve(async(req: Request)=>{
     }
     if(partner.provider_type==='api') {
       if(partner.api_provider==='kayfleet' && body.api_quote_id) {
-        await assertApiPricingCompatible(admin,car.partner_id,partner.api_provider);
+        await assertApiPricingCompatible(admin,car.partner_id,partner.api_provider || "custom");
         return jsonResponse(req,await makeKayfleetBookingOptions(admin,user,car,body,driverAges));
       }
       if(partner.api_provider==='renteon_aggregator' && body.api_quote_id) {
-        await assertApiPricingCompatible(admin,car.partner_id,partner.api_provider);
+        await assertApiPricingCompatible(admin,car.partner_id,partner.api_provider || "custom");
         return jsonResponse(req,await makeApiBookingOptions(admin,user,car,partner,body,driverAges));
       }
       assertApiRequestedOptions(body);

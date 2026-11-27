@@ -607,7 +607,7 @@ async function searchPartner(
   // Przy innym miejscu zwrotu oferta jest pokazywana tylko wtedy, gdy ten sam
   // partner faktycznie obsługuje wskazaną lokalizację.
   if (!dropoffLocation) return [];
-  await assertApiPricingCompatible(admin, pickupLocation.partner_id, partner.api_provider);
+  await assertApiPricingCompatible(admin, pickupLocation.partner_id, partner.api_provider || "custom");
 
   const credentials = await loadPartnerCredentials(
     admin,
@@ -802,7 +802,7 @@ async function searchPartner(
       features: mergedFeatures,
       mileage_limit: group.mileage_limit ?? carClass.mileage_limit,
       deposit_amount: group.deposit_amount ?? carClass.deposit_amount,
-      min_driver_age: ["arvent_kolaycar","kayfleet"].includes(partner.api_provider) && typeof group.features?.minimum_driver_age==="number"
+      min_driver_age: ["arvent_kolaycar","kayfleet"].includes(partner.api_provider || "") && typeof group.features?.minimum_driver_age==="number"
         ? Math.max(group.features.minimum_driver_age,Number(carClass.min_driver_age ?? partner.min_driver_age ?? 0))
         : carClass.min_driver_age,
       driver_included: group.driver_included ?? carClass.driver_included,

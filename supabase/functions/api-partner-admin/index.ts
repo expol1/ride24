@@ -986,7 +986,7 @@ async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise
   if (credentials.last_test_ok !== true || !credentials.last_sync_at) {
     throw new Error("Najpierw wykonaj poprawny test i synchronizację");
   }
-  await assertApiPricingCompatible(admin, partner.id, partner.api_provider);
+  await assertApiPricingCompatible(admin, partner.id, partner.api_provider || "custom");
 
   const { error } = await admin.from("partners").update({
     api_enabled: true,

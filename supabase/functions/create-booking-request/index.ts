@@ -1210,7 +1210,7 @@ serve(async (req) => {
       }
 
       if(body.pricing_version!==2) assertApiRequestedOptions(body);
-      await assertApiPricingCompatible(admin, car.partner_id, car.partner.api_provider);
+      await assertApiPricingCompatible(admin, car.partner_id, car.partner.api_provider || "custom");
       quoteClaim = await claimApiQuote(
         admin,
         body.api_quote_id,

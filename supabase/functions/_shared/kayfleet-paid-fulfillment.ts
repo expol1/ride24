@@ -115,6 +115,11 @@ export async function revalidatePaidKayfleet(credentials:any,booking:any,quote:a
   });
   return {
     provider:"kayfleet",ride24_booking_id:booking.id,
+    pickup_location_id:pickup,dropoff_location_id:dropoff,
+    pickup_date:booking.start_date,return_date:booking.end_date,
+    pickup_time:str(booking.pickup_time),return_time:str(booking.return_time),
+    vehicle_group_id:quote.external_group_id,currency:"EUR",
+    idempotency_key:"ride24:"+booking.id,
     ...request,
     expected:{
       quote_reference:fresh.quote_reference,
