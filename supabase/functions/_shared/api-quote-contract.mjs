@@ -2,7 +2,7 @@ import { BookingOptionsError } from './booking-options.mjs';
 
 // API quotes are provider-priced. Never silently combine them with locally
 // configured extras/fees: an adapter must first support and reconcile those items.
-export async function assertApiPricingCompatible(admin, partnerId) {
+export async function assertApiPricingCompatible(admin, partnerId, provider = 'custom') {
   const [locations, ...supplements] = await Promise.all([
     admin.from('partner_locations').select('extra_fee,extra_fee_amount,return_fee_amount')
       .eq('partner_id', partnerId).eq('active', true).limit(10000),
@@ -16,7 +16,7 @@ export async function assertApiPricingCompatible(admin, partnerId) {
   }
   const nonZero = value => value != null && Number(value) !== 0;
   if (locations.data.length >= 10000 || locations.data.some(location =>
-    (location.extra_fee === true && nonZero(location.extra_fee_amount)) || nonZero(location.return_fee_amount)
+    (provider !== 'kayfleet' && ((location.extra_fee === true && nonZero(location.extra_fee_amount)) || nonZero(location.return_fee_amount)))
   ) || supplements.some(result => result.data.length)) {
     throw new BookingOptionsError('API_PRICING_NOT_READY',
       'Nie możemy teraz potwierdzić pełnej ceny tej oferty. Wybierz inną ofertę.',

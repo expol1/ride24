@@ -37,6 +37,22 @@ export function arventApprovalDeadline(w) {
   return arventDeadlineFrom(Date.parse(w.supplier_received_at||w.paid_at),w.prepared_quote);
 }
 const ARVENT_TIMEOUT_STATES=new Set(['ARVENT_APPROVAL_OVERDUE','ARVENT_TIMEOUT_CANCELLING','ARVENT_TIMEOUT_CANCEL_UNCONFIRMED']);
+const KAYFLEET_TIMEOUT_STATES=new Set(['KAYFLEET_TIMEOUT_CANCELLING','KAYFLEET_TIMEOUT_CANCEL_UNCONFIRMED']);
+function kayfleetDeadlineFrom(receivedMs,prepared) {
+ if(!Number.isFinite(receivedMs))return null;
+ let deadline=receivedMs+24*3600000;
+ const pickup=Date.parse(prepared?.body?.pickup_datetime);
+ if(Number.isFinite(pickup))deadline=Math.min(deadline,pickup-2*3600000);
+ return deadline;
+}
+export function apiSupplierApprovalDeadline(w) {
+ const provider=w?.prepared_quote?.provider;
+ if(provider==='arvent_kolaycar')return arventApprovalDeadline(w);
+ if(provider!=='kayfleet')return null;
+ const stored=Date.parse(w.supplier_deadline_at);
+ if(Number.isFinite(stored))return stored;
+ return kayfleetDeadlineFrom(Date.parse(w.supplier_received_at||w.paid_at),w.prepared_quote);
+}
 
 export async function advanceApiPayment(deps,id) {
   let w=await deps.get(id);
@@ -54,14 +70,29 @@ export async function advanceApiPayment(deps,id) {
   // a compare-and-set to unknown/ARVENT_TIMEOUT_CANCELLING so no parallel
   // worker can confirm (voucher) while this one cancels (refund). From the
   // claim on, only the supplier's cancelled status 3 leads to a refund.
-  if(w.provider_reference&&(w.state==='provider_pending'||(w.state==='unknown'&&ARVENT_TIMEOUT_STATES.has(w.last_error)))) {
-    const deadline=arventApprovalDeadline(w);
+  const isKayfleet=w.prepared_quote?.provider==='kayfleet';
+  const timeoutReasons=isKayfleet?KAYFLEET_TIMEOUT_STATES:ARVENT_TIMEOUT_STATES;
+  if(w.provider_reference&&(w.state==='provider_pending'||(w.state==='unknown'&&timeoutReasons.has(w.last_error)))) {
+    const deadline=apiSupplierApprovalDeadline(w);
     if(deadline!==null&&Date.now()>=deadline&&deps.cancel) {
+      if(isKayfleet && w.state==='unknown') {
+        // A prior timeout cancellation might already have succeeded upstream.
+        // Never replay POST /cancel after an uncertain outcome: GET only and
+        // require the identical verified supplier reference before refund.
+        const checked=await deps.status(id,w).catch(()=>null);
+        if(checked?.status==='rejected' && checked.definitive_rejection===true
+          && checked.booking_reference===w.provider_reference
+          && checked.needs_manual_review!==true) {
+          await move('unknown','refund_pending',{last_error:'KAYFLEET_CANCELLATION_CONFIRMED'});
+          return {state:'refund_pending'};
+        }
+        return {state:'unknown',manual_review:true};
+      }
       if(w.state==='provider_pending') {
         // Arvent only: a confirmation email delivered before the (never reset)
         // deadline that is still being fetched or verified wins this race.
         // A failed lookup must not let the cancellation through either.
-        if(deps.emailConfirmationPending
+        if(!isKayfleet && deps.emailConfirmationPending
           && await deps.emailConfirmationPending(id,w,deadline).catch(()=>true))
           return {state:'provider_pending',email_pending:true};
         const current=await deps.status(id,w).catch(()=>null);
@@ -73,7 +104,7 @@ export async function advanceApiPayment(deps,id) {
           // A supplier approval with mismatched price, route, extra or Ride24
           // reference is not a request to cancel a potentially valid booking.
           // Reconcile it manually before ANY cancellation or Stripe refund.
-          await move('provider_pending','unknown',{last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+          await move('provider_pending','unknown',{last_error:(w.prepared_quote?.provider==='kayfleet'?'KAYFLEET_RECONCILIATION_REQUIRED':'ARVENT_RECONCILIATION_REQUIRED')});
           return {state:'unknown'};
         }
         if(current?.status==='rejected'&&current.definitive_rejection===true)return await acceptResult(current,'provider_pending');
@@ -81,22 +112,22 @@ export async function advanceApiPayment(deps,id) {
         // automatically at the approval deadline. Any other response needs
         // reconciliation instead of a supplier POST.
         if(current.status!=='pending'){
-          await move('provider_pending','unknown',{last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+          await move('provider_pending','unknown',{last_error:(w.prepared_quote?.provider==='kayfleet'?'KAYFLEET_RECONCILIATION_REQUIRED':'ARVENT_RECONCILIATION_REQUIRED')});
           return {state:'unknown'};
         }
-        w=await move('provider_pending','unknown',{last_error:'ARVENT_TIMEOUT_CANCELLING'});
+        w=await move('provider_pending','unknown',{last_error:isKayfleet?'KAYFLEET_TIMEOUT_CANCELLING':'ARVENT_TIMEOUT_CANCELLING'});
         if(!w)return {skipped:true};
       }
       // Idempotent: a repeated call never re-POSTs (durable claim per booking)
       // and only reads the supplier status back.
       const cancelled=await deps.cancel(id,w).catch(()=>null);
-      if(cancelled?.status==='cancelled' && cancelled.supplier_status_type===3
+      if(cancelled?.status==='cancelled' && (isKayfleet||cancelled.supplier_status_type===3)
         && cancelled.booking_reference===w.provider_reference && cancelled.needs_manual_review===false) {
-        await move('unknown','refund_pending',{last_error:'ARVENT_APPROVAL_TIMEOUT',provider_response:cancelled});
+        await move('unknown','refund_pending',{last_error:isKayfleet?'KAYFLEET_APPROVAL_TIMEOUT':'ARVENT_APPROVAL_TIMEOUT',provider_response:cancelled});
         return {state:'refund_pending'};
       }
-      if(w.last_error!=='ARVENT_TIMEOUT_CANCEL_UNCONFIRMED')
-        await move('unknown','unknown',{last_error:'ARVENT_TIMEOUT_CANCEL_UNCONFIRMED'});
+      if(w.last_error!==(isKayfleet?'KAYFLEET_TIMEOUT_CANCEL_UNCONFIRMED':'ARVENT_TIMEOUT_CANCEL_UNCONFIRMED'))
+        await move('unknown','unknown',{last_error:isKayfleet?'KAYFLEET_TIMEOUT_CANCEL_UNCONFIRMED':'ARVENT_TIMEOUT_CANCEL_UNCONFIRMED'});
       return {state:'unknown'};
     }
   }
@@ -143,7 +174,9 @@ export async function advanceApiPayment(deps,id) {
   let result;
   try {result=await deps.create(id,prepared);}
   catch(error) {
-    if(prepared.provider==='arvent_kolaycar'&&error instanceof DefiniteApiFailure&&/^ARVENT_FAILED_BEFORE_SAVE(?::ARVENT_[A-Z_]+)?$/.test(error.message)){
+    if(error instanceof DefiniteApiFailure&&(
+      (prepared.provider==='arvent_kolaycar'&&/^ARVENT_FAILED_BEFORE_SAVE(?::ARVENT_[A-Z_]+)?$/.test(error.message))
+      ||(prepared.provider==='kayfleet'&&error.message==='KAYFLEET_QUOTE_CONFLICT_NO_BOOKING'))){
       await move('dispatching','refund_pending',{last_error:error.message});
       return {state:'refund_pending'};
     }
@@ -157,9 +190,9 @@ export async function advanceApiPayment(deps,id) {
     // Arvent-specific fail-safe: no voucher or Stripe refund if the supplier
     // reference, rate, route or purchased extras have not been reconciled.
     // Do not change AVIA/Caravel/local partners' payment handling.
-    if(w.prepared_quote?.provider==='arvent_kolaycar'&&result?.needs_manual_review===true){
+    if(['arvent_kolaycar','kayfleet'].includes(w.prepared_quote?.provider)&&result?.needs_manual_review===true){
       await move(from,'unknown',{provider_reference:reference||null,
-        last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+        last_error:(w.prepared_quote?.provider==='kayfleet'?'KAYFLEET_RECONCILIATION_REQUIRED':'ARVENT_RECONCILIATION_REQUIRED')});
       return {state:'unknown'};
     }
     if(result?.status==='rejected' && result?.definitive_rejection===true) {
@@ -172,12 +205,14 @@ export async function advanceApiPayment(deps,id) {
     }
     const state=result.status==='confirmed'?'confirmed':'provider_pending';
     const extra={provider_reference:reference,provider_response:result};
-    if(w.prepared_quote?.provider==='arvent_kolaycar'&&!w.supplier_received_at) {
+    if(['arvent_kolaycar','kayfleet'].includes(w.prepared_quote?.provider)&&!w.supplier_received_at) {
       // First supplier acceptance: start the persisted 24h approval window.
       const received=from==='unknown' && Number.isFinite(Date.parse(w.paid_at))
         ?Math.min(Date.now(),Date.parse(w.paid_at)):Date.now();
       extra.supplier_received_at=new Date(received).toISOString();
-      const deadline=arventDeadlineFrom(received,w.prepared_quote);
+      const deadline=w.prepared_quote.provider==='kayfleet'
+        ?kayfleetDeadlineFrom(received,w.prepared_quote)
+        :arventDeadlineFrom(received,w.prepared_quote);
       if(deadline!==null)extra.supplier_deadline_at=new Date(deadline).toISOString();
     }
     const saved=await move(from,state,extra);

@@ -92,7 +92,7 @@ const ACTIONS = new Set<Action>([
   "activate",
   "deactivate",
 ]);
-const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar", "caravel"]);
+const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar", "kayfleet", "caravel"]);
 const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer", "renteon_oauth"]);
 const ENDPOINT_NAMES = new Set([
   "auth",
@@ -835,7 +835,8 @@ async function syncPartner(
           : true,
       },
       mileage_limit: group.mileage_limit ?? null,
-      deposit_amount: group.deposit_amount ?? null,
+      deposit_amount: partner.api_provider === 'kayfleet' ? 0 : (group.deposit_amount ?? null),
+      ...(partner.api_provider === 'kayfleet' ? {min_driver_age: 25} : {}),
       driver_included: group.driver_included === true,
       active: group.active !== false,
     }));
@@ -926,7 +927,10 @@ async function syncPartner(
         ...(partner.api_provider === "arvent_kolaycar" &&
             isRecord(partner.api_settings) &&
             partner.api_settings.arvent_certified === true
-          ? { arvent_certified: true } : {}) },
+          ? { arvent_certified: true } : {}),
+        ...(partner.api_provider === "kayfleet" && isRecord(partner.api_settings)
+            && partner.api_settings.kayfleet_certified === true
+          ? { kayfleet_certified: true } : {}) },
     }).eq("id", partner.id);
     if (partnerUpdateError) {
       throw new Error("Nie udało się zapisać wyniku synchronizacji partnera");
@@ -951,6 +955,14 @@ function ensureCommerciallyActive(partner: PartnerRow): void {
 }
 
 async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise<void> {
+  if (partner.api_provider === "kayfleet") {
+    const certified = isRecord(partner.api_settings) && partner.api_settings.kayfleet_certified === true;
+    const approved = Deno.env.get("KAYFLEET_STRIPE_FIRST_APPROVED") === "true";
+    const writes = Deno.env.get("KAYFLEET_LIVE_WRITE_ALLOWED") === "true";
+    const credentials = await getCredentials(admin, partner.id);
+    if (!certified || !approved || !writes || !credentials?.api_key?.startsWith("kf_live_"))
+      throw new Error("KayFleet: aktywacja wymaga certyfikacji E2E, zgody na Stripe-first i nowego klucza LIVE");
+  }
   if (partner.api_provider === "arvent_kolaycar") {
     // NEVER allow a pre-certification public launch, including while
     // one-off production test writes are enabled. A durable manual
@@ -974,14 +986,15 @@ async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise
   if (credentials.last_test_ok !== true || !credentials.last_sync_at) {
     throw new Error("Najpierw wykonaj poprawny test i synchronizację");
   }
-  await assertApiPricingCompatible(admin, partner.id);
+  await assertApiPricingCompatible(admin, partner.id, partner.api_provider || "custom");
 
   const { error } = await admin.from("partners").update({
     api_enabled: true,
     api_status: "active",
     api_last_error: null,
     api_settings: { configured: true, status: "active",
-      ...(partner.api_provider === "arvent_kolaycar" ? { arvent_certified: true } : {}) },
+      ...(partner.api_provider === "arvent_kolaycar" ? { arvent_certified: true } : {}),
+      ...(partner.api_provider === "kayfleet" ? { kayfleet_certified: true } : {}) },
   }).eq("id", partner.id);
   if (error) throw new Error("Nie udało się aktywować partnera API");
 }

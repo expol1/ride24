@@ -27,8 +27,27 @@ jobs:
         run: >-
           node --experimental-strip-types --test
           test-arvent-postman-audit.mjs test-arvent-admin-confirm.mjs test-arvent-email-confirmation.mjs test-arvent-web-form.mjs test-arvent-extras-catalog.mjs test-arvent-extras-pricing.mjs test-arvent-kolaycar.mjs test-arvent-adapter.mjs test-arvent-paid-fulfillment.mjs test-arvent-driver-eligibility.mjs test-caravel-e2e-db.mjs test-caravel-consent-ui.mjs test-caravel-booking-details.mjs test-caravel-release-switch-db.mjs test-caravel-production-webhook-db.mjs
-          test-api-compatibility.mjs test-caravel-voucher-confirmation.mjs test-api-voucher-confirmation.mjs test-api-cancellation-confirmation.mjs test-api-payment-flow.mjs test-api-payment-db.mjs test-api-payment-webhook.mjs test-api-provider-fulfillment.mjs test-renteon-booking-context.mjs test-renteon-demo-isolation.mjs test-provider-services.mjs test-api-readiness.mjs test-booking-items.mjs test-booking-options.mjs
+          test-api-compatibility.mjs test-caravel-voucher-confirmation.mjs test-api-voucher-confirmation.mjs test-api-cancellation-confirmation.mjs test-api-payment-flow.mjs test-api-payment-db.mjs test-api-payment-webhook.mjs test-api-provider-fulfillment.mjs test-kayfleet-adapter.mjs test-kayfleet-contract.mjs test-kayfleet-pricing.mjs test-kayfleet-payment-flow.mjs test-kayfleet-paid-fulfillment.mjs test-renteon-booking-context.mjs test-renteon-demo-isolation.mjs test-provider-services.mjs test-api-readiness.mjs test-booking-items.mjs test-booking-options.mjs
           test-booking-v2-handlers.mjs test-priced-extras-schema.mjs test-booking-extras-ui.mjs
           test-voucher-booking-items.mjs test-automatic-time-fees.mjs
           test-admin-caravel-refund-guard.mjs test-native-booking-contract.mjs test-payment-return.mjs
           test-results-location-fee-sort.mjs test-auto-contact-notice.mjs
+
+  kayfleet-deno-check:
+    name: Type-check KayFleet Edge integration (no secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Deno check supplier adapter, Ride24 payment and booking entrypoints
+        run: |
+          # Existing Ride24 entrypoints have pre-existing TS diagnostics under
+          # stricter global Deno settings. Check only the KayFleet module graph;
+          # full entrypoint behavior remains covered by compatibility QA.
+          deno check --config supabase/functions/caravel-audit-deno.json \
+            supabase/functions/_shared/kayfleet-adapter.ts \
+            supabase/functions/_shared/kayfleet-booking-options.ts \
+            supabase/functions/_shared/kayfleet-paid-fulfillment.ts

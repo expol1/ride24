@@ -110,6 +110,7 @@ function setup() {
       if(specifier.startsWith('npm:stripe'))return {default:class Stripe {}};
       if(specifier.includes('provider-normalization'))return normalization;
       if(specifier.includes('api-booking-options.ts'))return {makeApiBookingOptions:()=>{throw Error('Unexpected provider options call');}};
+      if(specifier.includes('kayfleet-booking-options.ts'))return {makeKayfleetBookingOptions:()=>{throw Error('KayFleet must not run for other partners');}};
       if(specifier.includes('api-readiness'))return readiness;
       if(specifier.includes('arvent-extras-pricing.mjs'))return arventPricing;
       if(specifier.includes('api-quote-contract'))return contract;

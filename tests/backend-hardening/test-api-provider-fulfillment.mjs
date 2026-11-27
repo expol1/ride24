@@ -15,7 +15,7 @@ function fixture(change=()=>{}) {
  const fresh={external_id:'MBMV',provider_quote_data:structuredClone(provider_quote_data)};fresh.provider_quote_data.offer.PriceDate='new';
  const result={calculated:structuredClone(calculated),provider_quote_data:structuredClone(provider_quote_data)};
  const state={booking,quote,fresh,result,available:true,status:'confirmed',statusRow:structuredClone(calculated)};change(state);
- const calls=[];const sandbox={exports:{},require:n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow:n.includes('caravel-paid-fulfillment')?{caravelPaidFulfillmentApproved:()=>false}:{
+ const calls=[];const sandbox={exports:{},require:n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow:n.includes('caravel-paid-fulfillment')?{caravelPaidFulfillmentApproved:()=>false}:n.includes('kayfleet-paid-fulfillment')?{kayfleetPaymentApproved:()=>false}:{
  aggregatorAvailability:async(_c,input)=>{calls.push({stage:'availability',input});return state.available?[fresh]:[]},
  aggregatorQuoteOptions:async(_c,_q,selections,ages)=>{calls.push({stage:'calculate',selections,ages});return result},
  aggregatorBook:async()=>{throw Error('Revalidation must never save a booking')},

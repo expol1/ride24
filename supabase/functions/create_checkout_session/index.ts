@@ -101,6 +101,27 @@ serve(async (req) => {
           return new Response(JSON.stringify({error:'ARVENT_QUOTE_UNVERIFIED',reason}),{status:409,headers:cors(req)});
         }
       }
+      if(booking.partners?.api_provider==='kayfleet') {
+        // KayFleet has a 30-minute quote_reference. Before Stripe can charge
+        // even the Ride24 fee, verify the exact accepted v2 total, zero deposit,
+        // supplier fleet and full-insurance quote against the LIVE API.
+        const {data:cart,error:cartError}=await admin.from('bookings')
+          .select('*,partners!bookings_partner_id_fkey(api_provider,rental_terms_url,rental_rules_url)')
+          .eq('id',booking.id).eq('client_id',user.id).maybeSingle();
+        const {data:accepted,error:quoteError}=await admin.from('api_quotes')
+          .select('*').eq('id',booking.api_quote_id).eq('booking_id',booking.id).maybeSingle();
+        if(cartError||quoteError||!cart||!accepted||!(Date.parse(accepted.expires_at)>Date.now()))
+          return new Response(JSON.stringify({error:'KAYFLEET_QUOTE_EXPIRED'}),{status:409,headers:cors(req)});
+        try {
+          const credentials=await loadPartnerCredentials(admin,cart.partner_id);
+          await revalidatePaidProvider(credentials,cart,accepted);
+        } catch(error) {
+          const raw=error instanceof Error?error.message:'';
+          const reason=/^(?:PARTNER_API_ERROR:)?([A-Z0-9_:]{3,80})$/.exec(raw)?.[1]||'UNVERIFIED';
+          console.error('KayFleet pre-Stripe quote verification failed',booking.id,reason);
+          return new Response(JSON.stringify({error:'KAYFLEET_QUOTE_UNVERIFIED',reason}),{status:409,headers:cors(req)});
+        }
+      }
       if(booking.stripe_session_id) {
         const old=await stripe.checkout.sessions.retrieve(booking.stripe_session_id);
         if(old.status==='open'&&old.amount_total===Math.round(amount*100)&&old.currency==='pln')
@@ -117,6 +138,11 @@ serve(async (req) => {
         ?q?.raw_response?.provider_quote_data?.provider==='caravel'
           &&q.raw_response.provider_quote_data.quote_id===booking.caravel_supplier_quote_id
         :booking.partners?.api_provider==='arvent_kolaycar'
+          ||(booking.partners?.api_provider==='kayfleet'
+            &&q?.raw_response?.provider_quote_data?.kayfleet===true
+            &&q?.raw_response?.provider_quote_data?.quote?.deposit_amount===0
+            &&q?.raw_response?.provider_quote_data?.quote?.insurance_excess===0
+            &&!!q?.raw_response?.ride24_options)
           ||(!!q?.raw_response?.ride24_options&&!!q?.raw_response?.provider_quote_data?.calculated);
       if(qe||q?.booking_id!==booking.id||!acceptedQuote)
         return new Response(JSON.stringify({error:'ACCEPTED_QUOTE_REQUIRED'}),{status:409,headers:cors(req)});
