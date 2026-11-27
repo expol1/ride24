@@ -75,6 +75,19 @@ export async function advanceApiPayment(deps,id) {
   if(w.provider_reference&&(w.state==='provider_pending'||(w.state==='unknown'&&timeoutReasons.has(w.last_error)))) {
     const deadline=apiSupplierApprovalDeadline(w);
     if(deadline!==null&&Date.now()>=deadline&&deps.cancel) {
+      if(isKayfleet && w.state==='unknown') {
+        // A prior timeout cancellation might already have succeeded upstream.
+        // Never replay POST /cancel after an uncertain outcome: GET only and
+        // require the identical verified supplier reference before refund.
+        const checked=await deps.status(id,w).catch(()=>null);
+        if(checked?.status==='rejected' && checked.definitive_rejection===true
+          && checked.booking_reference===w.provider_reference
+          && checked.needs_manual_review!==true) {
+          await move('unknown','refund_pending',{last_error:'KAYFLEET_CANCELLATION_CONFIRMED'});
+          return {state:'refund_pending'};
+        }
+        return {state:'unknown',manual_review:true};
+      }
       if(w.state==='provider_pending') {
         // Arvent only: a confirmation email delivered before the (never reset)
         // deadline that is still being fetched or verified wins this race.
