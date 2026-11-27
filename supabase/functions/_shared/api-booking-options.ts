@@ -34,6 +34,7 @@ export async function readArventOfferExtras(admin:any,partnerId:string,quote:any
  };
  const credentials=await loadPartnerCredentials(admin,partnerId);
  return arventReadOfferExtras(credentials,input,{
+  terms_key:supplier.terms_key,one_way_fee:supplier.one_way_fee,
   vehicle_id:String(supplier?.vehicle_id||""),
   sipp:String(supplier?.sipp||""),
   total_amount:Number(quote?.partner_net_total)

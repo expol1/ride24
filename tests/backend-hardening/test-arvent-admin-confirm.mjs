@@ -23,7 +23,7 @@ function setup({role='admin',state='provider_pending',live={},rpcResult=true,pro
    requireAdmin:async()=>{if(role!=='admin')throw Error('ADMIN_REQUIRED');return {user:{id:'admin-1',email:'ops@example.invalid'},admin};}};
   if(n.includes('partner-api'))return {loadPartnerCredentials:async()=>({partner_id:ARVENT})};
   if(n.includes('arvent-kolaycar'))return {arventBookingStatus:async()=>{calls.push('supplier-get');
-   return {booking_reference:'A-1',supplier_status_type:0,supplier_status_label:'received',terms_verified:true,status:'pending',provider_payload:{}, ...live};}};
+   return {booking_reference:'A-1',supplier_status_type:1,supplier_status_label:'approved',terms_verified:true,extras_verified:true,needs_manual_review:false,status:'confirmed',provider_payload:{}, ...live};}};
   if(n.includes('api-payment-runtime'))return {runApiPayment:async()=>{calls.push('finalize');return {state:'confirmed'};}};
   if(n.includes('stripe'))return {default:class{}};
   throw Error('Unexpected import '+n);
@@ -37,18 +37,18 @@ const evidence='WhatsApp Mustafa 20.11 14:05: approved, car assigned';
 
 test('only admins can use manual Arvent confirmation',async()=>{
  const s=setup({role:'client'});
- const r=await s.call({action:'confirm',booking_id:BID,evidence});
+ const r=await s.call({action:'confirm',booking_id:BID,document_reference:'A-1',evidence});
  assert.equal(r.status,403);assert.deepEqual(s.calls,[]);
 });
 test('manual confirmation requires written evidence',async()=>{
  const s=setup();
- const r=await s.call({action:'confirm',booking_id:BID,evidence:'ok'});
+ const r=await s.call({action:'confirm',booking_id:BID,document_reference:'A-1',evidence:'ok'});
  assert.equal(r.body.error,'EVIDENCE_REQUIRED');assert.deepEqual(s.calls,[]);
 });
 test('supplier status is read live first; cancelled or changed reservations are never confirmed',async()=>{
- for(const live of [{supplier_status_type:3},{supplier_status_type:6},{terms_verified:false},{booking_reference:'OTHER'}]){
+ for(const live of [{supplier_status_type:0},{extras_verified:false},{needs_manual_review:true},{supplier_status_type:3},{supplier_status_type:6},{terms_verified:false},{booking_reference:'OTHER'}]){
   const s=setup({live});
-  const r=await s.call({action:'confirm',booking_id:BID,evidence});
+  const r=await s.call({action:'confirm',booking_id:BID,document_reference:'A-1',evidence});
   assert.equal(r.body.error,'SUPPLIER_STATUS_NOT_CONFIRMABLE');
   assert.deepEqual(s.calls,['supplier-get']);
  }
@@ -56,23 +56,51 @@ test('supplier status is read live first; cancelled or changed reservations are 
 test('only a workflow still awaiting approval can be confirmed (not one claimed by the 24h timeout)',async()=>{
  for(const state of ['unknown','confirmed','refund_pending','refunded']){
   const s=setup({state});
-  const r=await s.call({action:'confirm',booking_id:BID,evidence});
+  const r=await s.call({action:'confirm',booking_id:BID,document_reference:'A-1',evidence});
   assert.equal(r.body.error,'NOT_AWAITING_APPROVAL');assert.deepEqual(s.calls,[]);
  }
 });
 test('non-Arvent bookings are refused',async()=>{
  const s=setup({provider:'renteon_aggregator'});
- const r=await s.call({action:'confirm',booking_id:BID,evidence});
+ const r=await s.call({action:'confirm',booking_id:BID,document_reference:'A-1',evidence});
  assert.equal(r.body.error,'NOT_ARVENT_BOOKING');assert.deepEqual(s.calls,[]);
 });
 test('lost compare-and-set (parallel timeout/confirmation) issues no voucher',async()=>{
  const s=setup({rpcResult:false});
- const r=await s.call({action:'confirm',booking_id:BID,evidence});
+ const r=await s.call({action:'confirm',booking_id:BID,document_reference:'A-1',evidence});
  assert.equal(r.body.error,'STATE_CHANGED');assert.ok(!s.calls.includes('finalize'));
 });
-test('status 0 with explicit Arvent evidence: atomic confirm + audit, then one shared finalisation',async()=>{
+test('verified status 1 with explicit Arvent evidence: atomic confirm + audit, then one shared finalisation',async()=>{
  const s=setup();
- const r=await s.call({action:'confirm',booking_id:BID,evidence});
+ const r=await s.call({action:'confirm',booking_id:BID,document_reference:'A-1',evidence});
  assert.equal(r.body.success,true);
+ assert.deepEqual(s.calls,['supplier-get','rpc:arvent_admin_confirm','finalize']);
+});
+
+test('an email with a missing or mismatched supplier document reference cannot confirm',async()=>{
+ for(const document_reference of [undefined,'OTHER','Test Test']){
+  const s=setup();
+  const r=await s.call({action:'confirm',booking_id:BID,document_reference,evidence});
+  assert.equal(r.body.error,'DOCUMENT_REFERENCE_MISMATCH');
+  assert.deepEqual(s.calls,[]);
+ }
+});
+
+test('Received requires a reviewed supplier email and PDF plus an independent live match',async()=>{
+ const email_proof={reviewed:true,sender:'info@arventcarrental.com',pdf_sha256:'a'.repeat(64)};
+ const request={action:'confirm',booking_id:BID,document_reference:'A-1',evidence};
+ const live={supplier_status_type:0,status:'pending'};
+ for(const proof of [null,{...email_proof,reviewed:false},{...email_proof,sender:'other'},{...email_proof,pdf_sha256:'invalid'}]){
+  const s=setup({live});
+  assert.equal((await s.call({...request,email_proof:proof})).body.error,'EMAIL_PDF_REQUIRED');
+  assert.deepEqual(s.calls,['supplier-get']);
+ }
+ for(const difference of [{terms_verified:false},{extras_verified:false},{needs_manual_review:true},{booking_reference:'OTHER'},{supplier_status_type:3},{supplier_status_type:6}]){
+  const s=setup({live:{...live,...difference}});
+  assert.equal((await s.call({...request,email_proof})).status,409);
+  assert.deepEqual(s.calls,['supplier-get']);
+ }
+ const s=setup({live});
+ assert.equal((await s.call({...request,email_proof})).body.success,true);
  assert.deepEqual(s.calls,['supplier-get','rpc:arvent_admin_confirm','finalize']);
 });

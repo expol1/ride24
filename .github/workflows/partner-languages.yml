@@ -13,6 +13,9 @@ on:
       - 'tests/backend-hardening/test-partner-*.mjs'
       - 'tests/backend-hardening/test-booking-extras-ui.mjs'
       - 'tests/backend-hardening/test-partner-login-mobile.mjs'
+      - 'tests/backend-hardening/test-turnstile-widget.mjs'
+      - 'assets/helper/turnstileWidget.js'
+      - 'results.html'
       - '.github/workflows/partner-languages.yml'
   pull_request:
     paths:
@@ -25,6 +28,9 @@ on:
       - 'tests/backend-hardening/test-partner-*.mjs'
       - 'tests/backend-hardening/test-booking-extras-ui.mjs'
       - 'tests/backend-hardening/test-partner-login-mobile.mjs'
+      - 'tests/backend-hardening/test-turnstile-widget.mjs'
+      - 'assets/helper/turnstileWidget.js'
+      - 'results.html'
       - '.github/workflows/partner-languages.yml'
   workflow_dispatch:
 jobs:
@@ -38,4 +44,4 @@ jobs:
       - name: Install isolated test dependencies
         run: npm ci --prefix tests/backend-hardening
       - name: Verify eight languages, unchanged data and partner onboarding
-        run: node --experimental-strip-types --test tests/backend-hardening/test-partner-languages.mjs tests/backend-hardening/test-partner-guide.mjs tests/backend-hardening/test-partner-onboarding.mjs tests/backend-hardening/test-booking-extras-ui.mjs tests/backend-hardening/test-partner-login-mobile.mjs tests/backend-hardening/test-partner-cash-deposit.mjs
+        run: node --experimental-strip-types --test tests/backend-hardening/test-partner-languages.mjs tests/backend-hardening/test-partner-guide.mjs tests/backend-hardening/test-partner-onboarding.mjs tests/backend-hardening/test-booking-extras-ui.mjs tests/backend-hardening/test-partner-login-mobile.mjs tests/backend-hardening/test-turnstile-widget.mjs tests/backend-hardening/test-partner-cash-deposit.mjs

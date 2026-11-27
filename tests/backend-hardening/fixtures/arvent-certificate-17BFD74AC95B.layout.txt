@@ -1,0 +1,66 @@
+                           VEHICLE DELIVERY CERTIFICATE
+                           Dear Test the details of your transaction have been successfully sent
+                           to your Email and SMS.
+
+
+                                    Reservation Number
+                                17BFD74AC95B
+
+
+Rezervation Detail
+
+Reservation Date                     27.11.2026 18:19:51
+Pick-up Date                         3/3/2027 6:00:00 PM
+Pick-up Location                     Antalya Airport
+                                     0531 023 53 55
+                                     info@arventcarrental.com
+
+
+Return Date                          3/6/2027 6:00:00 PM
+Return Location                      Antalya Airport
+                                     info@arventcarrental.com
+                                     0531 023 53 55
+                                  Rental Duration : 3 Day
+
+
+Selected Vehicle & Extras Information
+
+Vehicle Class                        Renault Clio
+                                     (Economic/Manual/Diesel) Minimum: 22yaş - 2yıl ehliyet
+                                     The specified vehicle model is an example of that class, a different
+                                     brand model may be provided depending on availability at the time of
+                                     rental in the same vehicle class.
+Mileage Limit                        0km
+Selected Extras
+
+
+Payment Information
+
+Rental Amount                                                       28,25 EUR x 3 = 84,75 EUR
+Extra / Insurance Amount                                                             0,00 EUR
+One-Way Fee                                                                          0,00 EUR
+Total Amount                                                                  84,75 EUR
+Paid Amount                                                                    0,00 EUR
+Payment On Delivery                                                           84,75 EUR
+
+
+Personal Information
+
+Name/Surname                        Test Test
+E-Mail                              rid****@t.pl
+Telephone                           +48500000000
+Identity / Pasaport No
+Country/City/District
+Flight No Arrival/Departure         /-
+Note
+
+
+İletişim
+
+Adress                              Samsun
+Telephone                           08502445355
+Telephone                           info@arventcarrental.com
+
+To ensure that our emails are delivered to your Inbox, you can add info@arventcarrental.com
+                           adress, Adres Defterine Address Book.
+

@@ -189,3 +189,59 @@ test('Arvent cancellation migration restricts claims and enforces exactly one ro
   await assert.rejects(p.query('insert into arvent_cancel_attempts(booking_id) values ($1)',[b]),e=>e.code==='23505');
  }finally{await p.close();}
 });
+
+test('Arvent dispatch survives retries and admin finalization requires GET Approved',async()=>{
+ const p=await db();
+ const load=name=>readFile(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8');
+ try {
+  await p.exec("create table partners(id uuid primary key); create function is_admin() returns boolean language sql as 'select false';");
+  await p.exec(await load('20261120140000_arvent_manual_confirmations.sql'));
+  await p.exec(await load('20261125110000_arvent_dispatch_evidence.sql'));
+  await p.query('insert into partners values ($1)',[b]);
+  const claim=()=>p.query("insert into arvent_dispatch_evidence(booking_id,partner_id,agency_reference,token_digest,sipp,one_way_fee,extras) values ($1,$1,'R24-test',repeat('a',64),'EDMR',0,'[]')",[b]);
+  await claim();
+  await assert.rejects(claim(),e=>e.code==='23505');
+  for(const role of ['anon','authenticated']){
+   const {rows}=await p.query("select has_table_privilege($1,'arvent_dispatch_evidence','SELECT,INSERT,UPDATE,DELETE') as allowed",[role]);
+   assert.equal(rows[0].allowed,false);
+  }
+  await record(p);
+  await p.exec(`update api_booking_workflows set state='provider_pending',provider_reference='S-1',
+    prepared_quote='{"provider":"arvent_kolaycar"}'`);
+  const proof={status:'confirmed',terms_verified:true,extras_verified:true,needs_manual_review:false,booking_reference:'S-1'};
+  const confirm=(status,response)=>p.query("select arvent_admin_confirm($1,'S-1',$1,null,'Verified GET receipt', $2,$3,$4) as ok",
+   [b,status,JSON.stringify({reservationStatusType:status}),JSON.stringify(response)]);
+  assert.equal((await confirm(0,proof)).rows[0].ok,false);
+  assert.equal((await confirm(1,{...proof,extras_verified:false})).rows[0].ok,false);
+  assert.equal((await confirm(1,proof)).rows[0].ok,true);
+  assert.equal((await confirm(1,proof)).rows[0].ok,false);
+ }finally{await p.close();}
+});
+
+test('Arvent supplier email approval respects timeout ownership and records Received through finalization',async()=>{
+ const p=await db();
+ try {
+  await p.exec("create function is_admin() returns boolean language sql as 'select false'; alter table bookings add partner_id uuid, add refund_status text; alter table api_booking_workflows add supplier_deadline_at timestamptz;");
+  for(const file of ['20261120140000_arvent_manual_confirmations.sql','20261127180000_arvent_email_approval.sql']){
+   await p.exec(await readFile(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
+  }
+  await record(p);
+  await p.exec(`update bookings set partner_id='bf29a373-c464-4cec-87a7-c3218ea1ea51',api_booking_reference='S-1';
+    update api_booking_workflows set state='provider_pending',provider_reference='S-1',
+      prepared_quote='{"provider":"arvent_kolaycar"}',supplier_deadline_at=now()-interval '1 minute'`);
+  const proof={status:'confirmed',terms_verified:true,extras_verified:true,needs_manual_review:false,booking_reference:'S-1',
+    manual_confirmation:{source:'supplier_email_pdf',document_reference:'S-1',sender:'info@arventcarrental.com',pdf_sha256:'a'.repeat(64)}};
+  const confirm=async evidence=>(await p.query("select arvent_admin_confirm($1,'S-1',$1,null,'Reviewed Arvent email and PDF',0,$2,$3) as ok",
+    [b,JSON.stringify({reservationStatusType:0,reservationNumber:'S-1'}),JSON.stringify(evidence)])).rows[0].ok;
+  assert.equal(await confirm(proof),false);
+  await p.exec("update api_booking_workflows set supplier_deadline_at=now()+interval '1 hour',state='unknown'");
+  assert.equal(await confirm(proof),false);
+  await p.exec("update api_booking_workflows set state='provider_pending'");
+  assert.equal(await confirm({...proof,manual_confirmation:null}),false);
+  assert.equal(await confirm(proof),true);
+  assert.equal(await confirm(proof),false);
+  assert.equal((await p.query('select api_finalize_confirmed($1) as ok',[b])).rows[0].ok,true);
+  assert.deepEqual((await p.query('select supplier_status_type,confirmation_source,pdf_sha256 from arvent_manual_confirmations')).rows[0],
+    {supplier_status_type:0,confirmation_source:'supplier_email_pdf',pdf_sha256:'a'.repeat(64)});
+ }finally{await p.close();}
+});

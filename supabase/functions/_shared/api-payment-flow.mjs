@@ -58,17 +58,41 @@ export async function advanceApiPayment(deps,id) {
     const deadline=arventApprovalDeadline(w);
     if(deadline!==null&&Date.now()>=deadline&&deps.cancel) {
       if(w.state==='provider_pending') {
+        // Arvent only: a confirmation email delivered before the (never reset)
+        // deadline that is still being fetched or verified wins this race.
+        // A failed lookup must not let the cancellation through either.
+        if(deps.emailConfirmationPending
+          && await deps.emailConfirmationPending(id,w,deadline).catch(()=>true))
+          return {state:'provider_pending',email_pending:true};
         const current=await deps.status(id,w).catch(()=>null);
+        // Never cancel blind: a failed status GET could conceal a freshly
+        // approved booking. Stay provider_pending and retry the read next tick.
+        if(!current)return {state:'provider_pending',retry:true};
         if(current?.status==='confirmed'&&current.needs_manual_review!==true)return await acceptResult(current,'provider_pending');
+        if(current?.needs_manual_review===true){
+          // A supplier approval with mismatched price, route, extra or Ride24
+          // reference is not a request to cancel a potentially valid booking.
+          // Reconcile it manually before ANY cancellation or Stripe refund.
+          await move('provider_pending','unknown',{last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+          return {state:'unknown'};
+        }
         if(current?.status==='rejected'&&current.definitive_rejection===true)return await acceptResult(current,'provider_pending');
+        // Only an explicitly observed pending request can be cancelled
+        // automatically at the approval deadline. Any other response needs
+        // reconciliation instead of a supplier POST.
+        if(current.status!=='pending'){
+          await move('provider_pending','unknown',{last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+          return {state:'unknown'};
+        }
         w=await move('provider_pending','unknown',{last_error:'ARVENT_TIMEOUT_CANCELLING'});
         if(!w)return {skipped:true};
       }
       // Idempotent: a repeated call never re-POSTs (durable claim per booking)
       // and only reads the supplier status back.
       const cancelled=await deps.cancel(id,w).catch(()=>null);
-      if(cancelled?.status==='cancelled'&&cancelled.needs_manual_review!==true) {
-        await move('unknown','refund_pending',{last_error:'ARVENT_APPROVAL_TIMEOUT'});
+      if(cancelled?.status==='cancelled' && cancelled.supplier_status_type===3
+        && cancelled.booking_reference===w.provider_reference && cancelled.needs_manual_review===false) {
+        await move('unknown','refund_pending',{last_error:'ARVENT_APPROVAL_TIMEOUT',provider_response:cancelled});
         return {state:'refund_pending'};
       }
       if(w.last_error!=='ARVENT_TIMEOUT_CANCEL_UNCONFIRMED')
@@ -119,7 +143,7 @@ export async function advanceApiPayment(deps,id) {
   let result;
   try {result=await deps.create(id,prepared);}
   catch(error) {
-    if(prepared.provider==='arvent_kolaycar'&&error instanceof DefiniteApiFailure&&error.message==='ARVENT_FAILED_BEFORE_SAVE'){
+    if(prepared.provider==='arvent_kolaycar'&&error instanceof DefiniteApiFailure&&/^ARVENT_FAILED_BEFORE_SAVE(?::ARVENT_[A-Z_]+)?$/.test(error.message)){
       await move('dispatching','refund_pending',{last_error:error.message});
       return {state:'refund_pending'};
     }
@@ -130,6 +154,14 @@ export async function advanceApiPayment(deps,id) {
 
   async function acceptResult(result,from) {
     const reference=typeof result?.booking_reference==='string'?result.booking_reference:result?.reference;
+    // Arvent-specific fail-safe: no voucher or Stripe refund if the supplier
+    // reference, rate, route or purchased extras have not been reconciled.
+    // Do not change AVIA/Caravel/local partners' payment handling.
+    if(w.prepared_quote?.provider==='arvent_kolaycar'&&result?.needs_manual_review===true){
+      await move(from,'unknown',{provider_reference:reference||null,
+        last_error:'ARVENT_RECONCILIATION_REQUIRED'});
+      return {state:'unknown'};
+    }
     if(result?.status==='rejected' && result?.definitive_rejection===true) {
       await move(from,'refund_pending',{provider_reference:reference||null,last_error:'PROVIDER_REJECTED'});
       return {state:'refund_pending'};
@@ -142,7 +174,8 @@ export async function advanceApiPayment(deps,id) {
     const extra={provider_reference:reference,provider_response:result};
     if(w.prepared_quote?.provider==='arvent_kolaycar'&&!w.supplier_received_at) {
       // First supplier acceptance: start the persisted 24h approval window.
-      const received=Date.now();
+      const received=from==='unknown' && Number.isFinite(Date.parse(w.paid_at))
+        ?Math.min(Date.now(),Date.parse(w.paid_at)):Date.now();
       extra.supplier_received_at=new Date(received).toISOString();
       const deadline=arventDeadlineFrom(received,w.prepared_quote);
       if(deadline!==null)extra.supplier_deadline_at=new Date(deadline).toISOString();

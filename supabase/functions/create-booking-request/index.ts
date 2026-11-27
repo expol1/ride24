@@ -1095,23 +1095,20 @@ serve(async (req) => {
       return jsonResponse(req, {code:"DRIVER_AGE_NOT_ALLOWED", error:`Wymagany wiek każdego kierowcy: ${range} lat.`, error_en:`Each driver must meet the age requirement: ${range}.`}, 400);
     }
 
-    // Arvent keeps its existing supplier-specific rule and optional submitted date.
+    // Arvent uses the selected main driver's licence date saved in the
+    // authenticated client/driver profile. Never accept a second manually
+    // submitted date from the booking form (including outdated clients).
     const isArventBooking = car.partner.api_provider === "arvent_kolaycar";
-    // Arvent: the date saved for the SELECTED main driver (owner or saved driver)
-    // always wins, so a form can never apply another person's date. A typed date
-    // is used only when that person has none saved yet (older app builds).
-    const mainDriverLicenseSince = isArventBooking
-      ? (savedMainDriverLicenseSince
-        || (typeof body.main_driver_license_since === "string" && body.main_driver_license_since
-          ? body.main_driver_license_since : null))
-      : savedMainDriverLicenseSince;
-    // Arvent online reservations carry only the main driver (SaveReservation has
-    // no additional-driver field); never take payment for a driver we would drop.
+    const mainDriverLicenseSince = savedMainDriverLicenseSince;
+    // Arvent has explicitly confirmed that no secondary driver's identity
+    // or licence information is needed online: the person presents their
+    // licence to Arvent staff at pickup. The certified paid extra is selected
+    // via the supplier-priced extras quote, not additional_driver_id.
     if (isArventBooking && additionalDriverId) {
       return jsonResponse(req, {
-        code: "ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE",
-        error: "Dodatkowy kierowca jest niedostępny w tej ofercie.",
-        error_en: "An additional driver is not available for this offer.",
+        code: "ARVENT_ADDITIONAL_DRIVER_IDENTITY_NOT_REQUIRED",
+        error: "W Arvent wybierz dodatek „Dodatkowy kierowca”, bez wybierania osoby z profilu.",
+        error_en: "For Arvent select the Additional driver extra without choosing a saved person.",
       }, 400);
     }
 
@@ -1433,6 +1430,19 @@ serve(async (req) => {
       const raw=quoteClaim?.row.raw_response;
       pricingItemsSnapshot=assertApiOptionsQuote(raw,body,user.id,
         [mainDriverAge,...(additionalDriverAge!==null?[additionalDriverAge]:[])]);
+      if(isArventBooking && pricingItemsSnapshot) {
+        const accepted=raw?.ride24_options?.arvent_extra;
+        // Arvent selected quotes must have a supplier-bound extras breakdown
+        // produced by booking-options, not just an arbitrary Renteon snapshot.
+        if(!accepted || accepted.pricing_certified!==true ||
+            !Array.isArray(accepted.selected) ||
+            !Number.isSafeInteger(accepted.rental_cents) ||
+            !Number.isSafeInteger(accepted.extras_cents) ||
+            accepted.rental_cents+accepted.extras_cents!==pricingItemsSnapshot.partner_cents ||
+            additionalDriverId || accepted.selected.some((x:any)=>(x.code==="2" && !(x.required && x.total_cents===0)) ||
+              (x.kind==="additional_driver" && (x.code!==accepted.driver_code || x.quantity!==1))))
+          throw quoteChanged();
+      }
       if(pricingItemsSnapshot) {
         const p=pricingItemsSnapshot;
         if(p.currency!==currency || p.exchange_rate!==rate || p.partner_cents!==Math.round(baseTotal*100)
@@ -1519,7 +1529,7 @@ serve(async (req) => {
       main_driver_name: mainDriverName,
       main_driver_age: mainDriverAge,
       ...(isArventBooking || localMinLicenseYears > 0 ? { main_driver_license_since: mainDriverLicenseSince } : {}),
-      ...(car.partner.provider_type === "local" && savedAdditionalDriverLicenseSince
+      ...((car.partner.provider_type === "local" || (isArventBooking && additionalDriverId)) && savedAdditionalDriverLicenseSince
         ? { additional_driver_license_since: savedAdditionalDriverLicenseSince } : {}),
       ...(localMinLicenseYears > 0 ? { min_license_years_snapshot: localMinLicenseYears } : {}),
       add_driver_name: additionalDriverName,

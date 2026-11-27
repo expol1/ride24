@@ -1,15 +1,4 @@
-// Ride24 admin: Arvent bookings waiting for supplier approval, and an audited
-// MANUAL confirmation used only after Arvent explicitly confirmed (e.g. in
-// writing) while its API still shows status 0. Arvent only.
-//
-// Safety rules:
-// - Admin only (profiles.role = 'admin').
-// - The supplier status is ALWAYS read live from Arvent first. Only status 0
-//   (received) or 1 (approved) can be confirmed, and money, EUR, zero deposit
-//   and card hold, unlimited km, route, dates/times and SIPP must match.
-// - Only a workflow still in provider_pending can be confirmed (compare-and-set),
-//   so a confirmation never races the 24h timeout cancellation or a refund.
-// - Evidence text is mandatory; one immutable audit row per booking.
+// Audited admin retry of a verified supplier approval. Received remains pending.
 import Stripe from "https://esm.sh/stripe@14?target=deno";
 import { corsHeaders, jsonResponse, requireAdmin } from "../_shared/ride24-security.ts";
 import { loadPartnerCredentials } from "../_shared/partner-api.ts";
@@ -54,16 +43,25 @@ Deno.serve(async (req) => {
   if (w.state !== "provider_pending" || !w.provider_reference || w.provider_reference !== b.api_booking_reference)
     return jsonResponse(req, { error: "NOT_AWAITING_APPROVAL", state: w.state, last_error: w.last_error }, 409);
 
+  // Match the number independently transcribed from the supplier document.
+  if (typeof body.document_reference !== "string" || body.document_reference.trim() !== w.provider_reference)
+    return jsonResponse(req, { error: "DOCUMENT_REFERENCE_MISMATCH" }, 409);
+
   // Live supplier check: never confirm what Arvent has cancelled or changed.
   let live: Record<string, any>;
   try {
     const credentials = await loadPartnerCredentials(admin, ARVENT_PARTNER_ID);
-    live = await arventBookingStatus(credentials, w.provider_reference);
+    live = await arventBookingStatus(credentials, w.provider_reference, bookingId);
   } catch {
     return jsonResponse(req, { error: "SUPPLIER_STATUS_UNAVAILABLE" }, 502);
   }
   const supplierStatus = live.supplier_status_type;
-  if (![0, 1].includes(supplierStatus) || live.terms_verified !== true || live.booking_reference !== w.provider_reference)
+  const received = supplierStatus === 0 && live.status === "pending";
+  const proof = body.email_proof;
+  if (received && !(proof?.reviewed === true && proof.sender === "info@arventcarrental.com"
+      && typeof proof.pdf_sha256 === "string" && /^[a-f0-9]{64}$/.test(proof.pdf_sha256)))
+    return jsonResponse(req, { error: "EMAIL_PDF_REQUIRED" }, 409);
+  if (!(received || (supplierStatus === 1 && live.status === "confirmed")) || live.needs_manual_review !== false || live.extras_verified !== true || live.terms_verified !== true || live.booking_reference !== w.provider_reference)
     return jsonResponse(req, { error: "SUPPLIER_STATUS_NOT_CONFIRMABLE", supplier_status_type: supplierStatus,
       supplier_status_label: live.supplier_status_label, terms_verified: live.terms_verified === true }, 409);
 
@@ -74,7 +72,9 @@ Deno.serve(async (req) => {
     p_admin_user_id: user.id, p_admin_email: user.email || null, p_evidence: evidence,
     p_supplier_status: supplierStatus, p_supplier_evidence: live.provider_payload || null,
     p_provider_response: { ...live, status: "confirmed", needs_manual_review: false,
-      manual_confirmation: { by: user.email || user.id, at: now, supplier_status_type: supplierStatus } },
+      manual_confirmation: { source: received ? "supplier_email_pdf" : "supplier_api",
+        ...(received ? { pdf_sha256: proof.pdf_sha256, sender: proof.sender, document_reference: w.provider_reference } : {}),
+        by: user.email || user.id, at: now, supplier_status_type: supplierStatus } },
   });
   if (rpcError) return jsonResponse(req, { error: rpcError.code === "23505" ? "ALREADY_CONFIRMED" : "CONFIRM_FAILED" }, 409);
   if (ok !== true) return jsonResponse(req, { error: "STATE_CHANGED" }, 409);

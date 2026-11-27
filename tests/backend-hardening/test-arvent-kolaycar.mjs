@@ -288,3 +288,12 @@ test("Arvent minimum 47h lead time to pickup in Europe/Istanbul (UTC+3)",()=>{
  assert.equal(arventLeadTimeAllowed("bad","11:00",now),false);
  assert.equal(arventLeadTimeAllowed("2026-11-22","",now),false);
 });
+
+test("supplier oneWayFee is included once in totalPrice and missing drop fees block one-way",()=>{
+ const route={...search,dropoff_location_id:"99"};
+ const vehicle={...example,totalPrice:150,oneWayFee:50};
+ const [offer]=arventOfferRows(ok([vehicle]),route);
+ assert.equal(offer.provider_quote_data.one_way_fee,50);
+ assert.equal(offer.public_price_total,150);
+ for(const fee of [undefined,-1,0,151])assert.equal(arventOfferRows(ok([{...vehicle,oneWayFee:fee}]),route).length,0);
+});

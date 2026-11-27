@@ -4,7 +4,8 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse, publicErrorMessage, serviceClient } from "../_shared/ride24-security.ts";
 import { readJsonObject } from "../_shared/booking-request.ts";
 import { exchangeRate } from "../_shared/booking-exchange-rate.ts";
-import { BookingOptionsError, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext } from "../_shared/booking-options.mjs";
+import { BookingOptionsError, loadBookingOptions, makeBookingQuote, pricedExtrasEnabled, pricingContext, priceFingerprint } from "../_shared/booking-options.mjs";
+import {arventPricedExtrasCatalog,arventSelectedExtrasQuote,arventOptionsSnapshot} from "../_shared/arvent-extras-pricing.mjs";
 import { apiOnlinePaymentPln, assertApiPricingCompatible, assertApiQuoteContext, assertApiRequestedOptions } from "../_shared/api-quote-contract.mjs";
 import { rentalDuration, meetsMinimumRental } from "../_shared/rental-duration.ts";
 
@@ -43,11 +44,11 @@ serve(async(req: Request)=>{
       }
     }
     if(partner.provider_type==='api' && partner.api_provider==='arvent_kolaycar') {
-      // Arvent: no Ride24/online extras and no additional driver (not in SaveReservation).
-      if(body.additional_driver_id) throw new BookingOptionsError('ARVENT_ADDITIONAL_DRIVER_UNAVAILABLE',
-        'Dodatkowy kierowca jest niedostępny w tej ofercie.','An additional driver is not available for this offer.',400);
-      if((Array.isArray(body.extras) && body.extras.length) || body.pricing_version===2) throw new BookingOptionsError('ARVENT_EXTRAS_UNAVAILABLE',
-        'Dodatki nie są dostępne do zamówienia online w tej ofercie.','Extras cannot be ordered online for this offer.',400);
+      // Arvent-only supplier-priced selections. Do not change Renteon or local extras.
+      // Preview accepts an original vehicle quote and selection codes, never a client price.
+      if(!Array.isArray(body.extras??[]) || (body.extras?.length||0)>20 || body.pricing_version===2)
+        throw new BookingOptionsError('ARVENT_EXTRAS_UNAVAILABLE',
+        'Wybierz dodatki ponownie dla tej oferty.','Choose extras again for this offer.',400);
       await assertApiPricingCompatible(admin, car.partner_id);
       // Read-only preview of the server quote; the booking request recomputes it.
       if(!isUuid(body.api_quote_id)) throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła. Wyszukaj ponownie.','The offer expired. Please search again.',409);
@@ -103,15 +104,108 @@ serve(async(req: Request)=>{
             return {status:'unavailable',items:[]};
           })
       ]);
-      return jsonResponse(req,{enabled:false,arvent:{
-        api_quote_id:q.id, currency, billed_days:duration.billedDays,
+      const {data:configuration,error:configurationError}=await admin.from('partners')
+        .select('api_settings').eq('id',car.partner_id).maybeSingle();
+      if(configurationError)throw new BookingOptionsError('ARVENT_EXTRAS_CONFIG_UNAVAILABLE',
+        'Nie można potwierdzić konfiguracji dodatków. Spróbuj ponownie.',
+        'Cannot verify the extras configuration. Please try again.',503);
+      const settings=configuration?.api_settings||{};
+      const certified=settings.arvent_extras_pricing_certified===true;
+      if(body.additional_driver_id)
+        throw new BookingOptionsError('ARVENT_ADDITIONAL_DRIVER_IDENTITY_NOT_REQUIRED',
+          'W Arvent wybierz płatny dodatek „Dodatkowy kierowca” bez podawania danych tej osoby.',
+          'For Arvent select the paid Additional driver option; personal details are not collected online.',400);
+      const typeMap=settings.arvent_extra_billing_types && typeof settings.arvent_extra_billing_types==='object'
+         && !Array.isArray(settings.arvent_extra_billing_types) ? settings.arvent_extra_billing_types : {};
+      const driverCode=settings.arvent_additional_driver_certified===true
+        ? settings.arvent_additional_driver_code : null;
+      const effectiveItems=arventPricedExtrasCatalog(offerExtras.items,typeMap,certified,driverCode);
+      const selected=body.extras||[];
+      // No payment for a paid mandatory item whose billing could not be certified.
+      if(effectiveItems.some((item:any)=>item.required &&
+         (!item.bookable && item.price_eur!==0)))
+        throw new BookingOptionsError('ARVENT_EXTRAS_PRICE_UNVERIFIED',
+          'Arvent nie potwierdził naliczania obowiązkowego dodatku. Nie pobierzemy opłaty.',
+          'Arvent has not confirmed mandatory extras billing. No charge will be taken.',409);
+      const readyItems=effectiveItems;
+      const supplierDays=offerExtras.billed_days;
+      const hasChargedDaily=readyItems.some((x:any)=>x.billing==='day'&&x.price_eur>0
+         && (x.required || selected.some((chosen:any)=>chosen?.id===x.code)));
+      if(hasChargedDaily && (!Number.isInteger(supplierDays)||supplierDays<1||supplierDays>366))
+        throw new BookingOptionsError('ARVENT_EXTRAS_BILLING_DAYS_UNVERIFIED',
+          'Arvent nie potwierdził liczby dób naliczania dodatków. Nie pobierzemy opłaty.',
+          'Arvent did not confirm how many days to bill extras. No charge will be taken.',409);
+      const priceDays=Number.isInteger(supplierDays)&&supplierDays>=1&&supplierDays<=366
+          ?supplierDays:duration.billedDays;
+      let savedQuoteId=q.id, quoteFingerprint:null|string=null, snapshot:any=null;
+      let extraQuote:{items:any[];total_cents:number;selected:any[]}|null=null;
+      try {
+        extraQuote=arventSelectedExtrasQuote({items:readyItems,selections:selected,
+          billedDays:priceDays,certified,driverCode,
+          certifiedMap:typeMap,additionalDriverId:null});
+      } catch(e) {
+        const code=e instanceof Error?e.message:'';
+        throw new BookingOptionsError(code==='ARVENT_EXTRA_DRIVER_SELECTION_MISMATCH'
+          ?'ARVENT_EXTRA_DRIVER_SELECTION_MISMATCH':'ARVENT_EXTRAS_UNAVAILABLE',
+          'Nie można potwierdzić ilości, ceny lub kierowcy dla wybranych dodatków.',
+          'The selected extras quantity, price or driver could not be verified.',409);
+      }
+      // Zero-price mandatory supplier equipment is already included in the
+      // vehicle-only SaveReservation. Do not mint a v2 paid-options quote for
+      // free mandatory items when the partner has not certified paid extras.
+      const needsPriceSnapshot=selected.length>0 || extraQuote.total_cents>0;
+      if(needsPriceSnapshot){
+        snapshot=arventOptionsSnapshot({rentalCents:Math.round(rental*100),
+          ride24FeeCents:Math.round(fee*100),extraQuote,days:priceDays,
+          loyaltyPercent:discount,nbpRate:rate});
+        const binding={user_id:user.id,driver_id:body.driver_id||null,
+          additional_driver_id:null,ages:driverAges,selections:selected};
+        quoteFingerprint=await priceFingerprint(snapshot,binding);
+        // Persist precisely the server-accepted extras, not a client-entered
+        // total. Same short-lived API quote transaction model as AVIA.
+        const {data:original,error:originalError}=await admin.from('api_quotes')
+          .select('*').eq('id',q.id).maybeSingle();
+        if(originalError||!original||original.partner_id!==car.partner_id||original.booking_id
+           ||original.used_at || !(Date.parse(original.expires_at)>Date.now()))
+          throw new BookingOptionsError('QUOTE_EXPIRED',
+            'Oferta wygasła. Wyszukaj ponownie.','Offer expired. Search again.',409);
+        const {id,created_at,used_at,booking_id,...copy}=original;
+        const {data:derived,error:derivedError}=await admin.from('api_quotes')
+          .insert({...copy,partner_net_total:snapshot.partner_cents/100,
+            commission_total:snapshot.commission_cents/100,
+            final_total:snapshot.gross_cents/100,
+            public_price_per_day:snapshot.partner_cents/100/duration.billedDays,
+            raw_response:{...original.raw_response,ride24_options:{
+              binding,fingerprint:quoteFingerprint,snapshot,
+              arvent_extra:{rental_cents:Math.round(rental*100),
+                extras_cents:extraQuote.total_cents,selected:extraQuote.items,
+                driver_code:driverCode,billing_type_map:typeMap,pricing_certified:true}
+            }}
+          }).select('id').single();
+        if(derivedError||!derived?.id)throw new BookingOptionsError('PRICING_UNAVAILABLE',
+          'Nie można zapisać zweryfikowanej wyceny dodatków.',
+          'Cannot save the verified extras quotation.',503);
+        savedQuoteId=derived.id;
+      }
+      return jsonResponse(req,{enabled:needsPriceSnapshot,
+        ...(needsPriceSnapshot?{api_quote_id:savedQuoteId,fingerprint:quoteFingerprint}:{}),
+        arvent:{
+        api_quote_id:savedQuoteId, currency, billed_days:priceDays,
         start_date:start, end_date:end, pickup_time:time(body.pickup_time).slice(0,5), return_time:time(body.return_time).slice(0,5),
         pickup_location:typeof body.pickup_location==='string'?body.pickup_location.slice(0,250):'',
         return_location:typeof body.return_location==='string'?body.return_location.slice(0,250):'',
         category:{class_code:display.class_code??null,group_name:display.group_name??null,example_model:display.example_model??null,sipp:display.sipp??null},
-        rental_total:rental, mandatory_fees:[], extras:[], extra_catalog:extraCatalog, offer_extras:offerExtras, total,
-        ride24_fee:fee, loyalty_discount_percent:discount, exchange_rate:rate,
-        online_pln:apiOnlinePaymentPln(fee,rate,discount), pay_on_pickup:rental,
+        // Public rental is the SAME amount shown in Ride24 search (rental
+        // plus the already embedded reservation fee), not the supplier net.
+        // It is a presentation field; supplier payable EUR and Stripe PLN
+        // are still split according to the verified server quote.
+        rental_total:rental, rental_public_total:total, mandatory_fees:[],
+        extras:extraQuote.items,extra_catalog:extraCatalog,
+        offer_extras:{...offerExtras,items:readyItems},
+        total:needsPriceSnapshot?snapshot.gross_cents/100:total,
+        ride24_fee:fee,loyalty_discount_percent:discount,exchange_rate:rate,
+        online_pln:needsPriceSnapshot?snapshot.online_pln_cents/100:apiOnlinePaymentPln(fee,rate,discount),
+        pay_on_pickup:needsPriceSnapshot?snapshot.partner_cents/100:rental,
         expires_at:q.expires_at,
       }});
     }

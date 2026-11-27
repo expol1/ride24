@@ -26,6 +26,7 @@ test("licence field is isolated to Arvent web and booking backend; no bypass on 
  assert.doesNotMatch(frontend,/id="arventLicenseSince"/);
  assert.match(frontend,/chosen\?\.license_since/);
  assert.match(frontend,/profileCheck\.license_since/);
+ assert.match(booking,/const mainDriverLicenseSince = savedMainDriverLicenseSince/);
  assert.match(booking,/isArventBooking && arventLicenseYears/);
  assert.match(booking,/main_driver_license_since: mainDriverLicenseSince/);
  assert.match(paid,/arventLicenseEligible\(booking.main_driver_license_since/);

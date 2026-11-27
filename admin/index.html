@@ -1035,7 +1035,7 @@
                 <strong>Arvent – opłacone rezerwacje czekające na potwierdzenie (24 h)</strong>
                 <button type="button" class="btn btn-secondary" onclick="loadArventApprovals()">Odśwież</button>
             </div>
-            <p style="font-size:12px;color:#78350F;margin:6px 0 10px">Status 1 z API Arvent potwierdza automatycznie. „Potwierdź ręcznie” tylko po jednoznacznym potwierdzeniu od Arvent (np. WhatsApp/e-mail) – system najpierw sprawdza rezerwację w Arvent (status 0/1, cena, trasa, warunki) i zapisuje wpis audytowy.</p>
+            <p style="font-size:12px;color:#78350F;margin:6px 0 10px">Po otrzymaniu e-maila porównaj numer rezerwacji w załączniku z numerem Arvent poniżej. Sam temat wiadomości lub nazwisko klienta nie identyfikuje rezerwacji. Przy statusie Received wybierz oryginalny PDF z e-maila Arvent. Porównaj cenę, walutę, grupę auta, trasę, terminy, warunki i dodatki. W razie rozbieżności pozostaw rezerwację do wyjaśnienia. Ride24 zapisze skrót dokumentu i ponownie sprawdzi dane w API.</p>
             <div id="arvent-approval-list" style="font-size:13px">Ładowanie...</div>
         </div>
         <p id="admin-bookings-count" class="dashboard-table-status" role="status">Ładowanie rezerwacji...</p>
@@ -2862,7 +2862,7 @@ async function loadArventApprovals(){
     const b=r.bookings||{},a=audits.get(r.booking_id);
     const deadline=r.supplier_deadline_at?new Date(r.supplier_deadline_at).toLocaleString('pl-PL'):'—';
     const btn=r.state==='provider_pending'&&!a
-      ?'<button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="confirmArventManually(\''+escapeHtml(r.booking_id)+'\',\''+escapeHtml(b.reservation_code||'')+'\')">Potwierdź ręcznie</button>':'';
+      ?'<label>Potwierdzenie Arvent (PDF) <input type="file" accept="application/pdf" id="arvent-pdf-'+escapeHtml(r.booking_id)+'"></label> <button type="button" class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="confirmArventManually(\''+escapeHtml(r.booking_id)+'\',\''+escapeHtml(b.reservation_code||'')+'\')">Zweryfikuj w Arvent</button>':'';
     return '<div style="padding:8px 0;border-top:1px solid #FDE68A">'
       +'<strong>'+escapeHtml(b.reservation_code||r.booking_id)+'</strong> • Arvent: '+escapeHtml(r.provider_reference||'—')
       +' • '+escapeHtml(b.main_driver_name||'—')+' ('+escapeHtml(b.client_email||'—')+')'
@@ -2874,15 +2874,29 @@ async function loadArventApprovals(){
   }).join('');
 }
 async function confirmArventManually(bookingId,code){
+  const documentReference=prompt('Przepisz numer rezerwacji Arvent z potwierdzenia dostawcy.');
+  if(!documentReference?.trim())return;
+  const file=document.getElementById('arvent-pdf-'+bookingId)?.files?.[0];
+  let emailProof=null;
+  if(file){
+    if(file.size>10*1024*1024){alert('Wybierz PDF do 10 MB.');return;}
+    const bytes=await file.arrayBuffer();
+    if(new TextDecoder().decode(bytes.slice(0,5))!=='%PDF-'){alert('Wybierz oryginalny plik PDF.');return;}
+    if(!confirm('Czy sprawdzono wiadomość od info@arventcarrental.com, numer z PDF, cenę, walutę, grupę auta, trasę, terminy, warunki i dodatki?'))return;
+    const hash=await crypto.subtle.digest('SHA-256',bytes);
+    emailProof={sender:'info@arventcarrental.com',reviewed:true,pdf_sha256:Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('')};
+  }
   const evidence=prompt('Rezerwacja '+code+': wpisz jednoznaczne potwierdzenie od Arvent (kto, kiedy, kanał, treść). Min. 15 znaków.');
   if(evidence===null)return;
   if(evidence.trim().length<15){alert('Opis potwierdzenia jest za krótki.');return;}
   if(!confirm('Potwierdzić '+code+'? Zostanie wystawiony voucher, a klient dostanie potwierdzenie.'))return;
-  const {data,error}=await db.functions.invoke('arvent-admin-confirm',{body:{action:'confirm',booking_id:bookingId,evidence:evidence.trim()}});
+  const {data,error}=await db.functions.invoke('arvent-admin-confirm',{body:{action:'confirm',booking_id:bookingId,document_reference:documentReference.trim(),email_proof:emailProof,evidence:evidence.trim()}});
   if(error||!data?.success){
-    const code2=data?.error||'';
-    const msg={SUPPLIER_STATUS_NOT_CONFIRMABLE:'Arvent pokazuje status '+(data?.supplier_status_type??'?')+(data?.terms_verified===false?' lub warunki/cena się nie zgadzają':'')+' – nie można potwierdzić.',
-      NOT_AWAITING_APPROVAL:'Rezerwacja nie czeka już na potwierdzenie (stan: '+(data?.state||'?')+').',
+    let detail=data;
+    if(!detail && error?.context?.json){try{detail=await error.context.json();}catch{}}
+    const code2=detail?.error||'';
+    const msg={EMAIL_PDF_REQUIRED:'Status Received. Wybierz i zweryfikuj PDF z wiadomości Arvent.',DOCUMENT_REFERENCE_MISMATCH:'Numer w dokumencie nie zgadza się z numerem rezerwacji Arvent. Sprawdź załącznik.',SUPPLIER_STATUS_NOT_CONFIRMABLE:'Arvent pokazuje status '+(detail?.supplier_status_type??'?')+(detail?.terms_verified===false?' lub warunki/cena się nie zgadzają':'')+' – nie można potwierdzić.',
+      NOT_AWAITING_APPROVAL:'Rezerwacja nie czeka już na potwierdzenie (stan: '+(detail?.state||'?')+').',
       STATE_CHANGED:'Stan rezerwacji zmienił się w trakcie – odśwież listę.',SUPPLIER_STATUS_UNAVAILABLE:'Nie udało się odczytać statusu w Arvent – spróbuj ponownie.',
       ALREADY_CONFIRMED:'Ta rezerwacja ma już wpis potwierdzenia.'}[code2]||('Nie udało się potwierdzić ('+(code2||'błąd')+').');
     alert(msg);

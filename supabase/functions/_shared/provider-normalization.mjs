@@ -1,7 +1,7 @@
 // Ride24 categories, as defined by the existing partner dashboard:
 // A Economy, B Compact, C Sedan, D SUV, E Premium, F Van / Family.
 // This is a display classification only. Never replace an external group ID.
-export function ride24ClassFromAcriss(value, seats = null) {
+export function ride24ClassFromAcriss(value, seats = /** @type {unknown} */ (null)) {
   const code = String(value || '').trim().toUpperCase();
   if (!/^[A-Z]{4}$/.test(code)) return null;
   const [segment, body] = code;

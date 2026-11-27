@@ -14,7 +14,13 @@ test('mobile partner login disables expensive backdrop blur only inside a mobile
     assert.match(style.textContent, /@media\s*\(max-width:\s*768px\)/);
     assert.match(style.textContent, /#partnerModal\s*\{[^}]*-webkit-backdrop-filter:\s*none\s*!important/s);
     assert.match(style.textContent, /#partnerModal\s*\{[^}]*backdrop-filter:\s*none\s*!important/s);
-    assert.ok(doc.querySelector('#partnerModal .cf-turnstile'), 'Captcha must remain in the form');
+    assert.ok(doc.querySelector('#partnerModal [data-ride24-turnstile]'), 'Captcha must remain in the form');
+    // Turnstile must not be scaled or clipped (mobile "Verification failed").
+    for (const style of doc.querySelectorAll('style')) {
+        assert.doesNotMatch(style.textContent, /turnstile[^{]*\{[^}]*(transform|overflow:\s*hidden)/i);
+    }
+    assert.ok(doc.querySelector('script[src^="assets/helper/turnstileWidget.js"]'));
+    assert.equal(doc.querySelector('script[src^="https://challenges.cloudflare.com"]'), null, 'no implicit auto-render');
 });
 
 test('mobile browser receives proper login field hints without per-keystroke handlers', () => {
@@ -45,10 +51,10 @@ function fixture({token='test-captcha-token', password='  exact password!  ', er
     const elements = {'partner-email':emailField,'partner-password':passwordField,partnerAuthBtn:button,partnerModal:modal};
     const window = {
         supabaseClient: {auth:{signInWithPassword:async args=>{sent.push(args);return {error};}}},
-        turnstile:{reset(){resets++;}}
+        Ride24Turnstile:{token:()=>token,reset(){resets++;}}
     };
     const document = {getElementById(id){return elements[id];},body:{style:{overflow:''}},
-        querySelector(){return {value:token};}};
+        querySelector(){return {};}};
     const ctx = vm.createContext({
         window,document,localStorage:{getItem:()=> 'pl'}, alert:message=>alerts.push(message),
         smartRedirect:async()=>{redirects++;}

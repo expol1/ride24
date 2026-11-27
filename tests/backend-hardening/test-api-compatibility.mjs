@@ -1,4 +1,5 @@
 import * as arventContract from '../../supabase/functions/_shared/arvent-kolaycar-contract.mjs';
+import * as arventPricing from '../../supabase/functions/_shared/arvent-extras-pricing.mjs';
 import * as normalization from '../../supabase/functions/_shared/provider-normalization.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -110,6 +111,7 @@ function setup() {
       if(specifier.includes('provider-normalization'))return normalization;
       if(specifier.includes('api-booking-options.ts'))return {makeApiBookingOptions:()=>{throw Error('Unexpected provider options call');}};
       if(specifier.includes('api-readiness'))return readiness;
+      if(specifier.includes('arvent-extras-pricing.mjs'))return arventPricing;
       if(specifier.includes('api-quote-contract'))return contract;
       if(specifier.includes('booking-options.mjs'))return options;
       if(specifier.includes('driver-age.mjs'))return driverAge;
