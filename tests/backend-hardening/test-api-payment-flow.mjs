@@ -11,7 +11,7 @@ function setup(options={}) {
  create:async()=>{calls.push('create');if(options.createError)throw options.createError;return options.result||{status:'confirmed',booking_reference:'demo-1'};},
  recover:async()=>{calls.push('lookup');return options.recovered||null;},
  status:async()=>{calls.push('status');return options.status||{status:'pending',booking_reference:'demo-1'};},
- cancel:async()=>{calls.push('cancel');if(options.cancelError)throw options.cancelError;return options.cancel||{status:'cancelled',booking_reference:'A-1'};},
+ cancel:async()=>{calls.push('cancel');if(options.cancelError)throw options.cancelError;return options.cancel||{status:'cancelled',booking_reference:'A-1',supplier_status_type:3,needs_manual_review:false};},
  finalize:async()=>{calls.push('voucher-email-push');},refund:async()=>{calls.push('refund');return options.refund||{id:'re_test',status:'succeeded'};},refundNotice:async()=>{calls.push('refund-notice');}};
  return {deps,calls,row};
 }
@@ -166,6 +166,7 @@ test('Arvent 0 for 24h: cancel claimed, status 3 confirmed, then full Stripe ref
  const s=setup({row:late});
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'refund_pending');assert.equal(s.row.last_error,'ARVENT_APPROVAL_TIMEOUT');
+ assert.equal(s.row.provider_response.supplier_status_type,3);
  assert.deepEqual(s.calls,['status','cancel']);
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'refunded');assert.ok(s.calls.includes('refund'));assert.ok(!s.calls.includes('create'));
@@ -189,7 +190,7 @@ test('Arvent: two workers at the deadline never both confirm and refund',async()
  // Worker A claims the cancellation; worker B then sees status 1 but must not confirm.
  const s=setup({row:late});
  let release;const gate=new Promise(r=>release=r);
- s.deps.cancel=async()=>{s.calls.push('cancel');await gate;return {status:'cancelled',booking_reference:'A-1'};};
+ s.deps.cancel=async()=>{s.calls.push('cancel');await gate;return {status:'cancelled',booking_reference:'A-1',supplier_status_type:3,needs_manual_review:false};};
  const a=advanceApiPayment(s.deps,'b');
  await new Promise(r=>setTimeout(r,5));
  s.deps.status=async()=>{s.calls.push('status');return {status:'confirmed',booking_reference:'A-1'};};
@@ -228,4 +229,14 @@ test('Arvent: a confirmed (API or audited manual) booking is never cancelled by 
  await advanceApiPayment(s.deps,'b');
  assert.equal(s.row.state,'confirmed');assert.ok(!s.calls.includes('cancel'));assert.ok(!s.calls.includes('refund'));
  assert.deepEqual(s.calls,['voucher-email-push']);
+});
+
+test('timeout refund requires a verified status 3 for the same supplier reservation',async()=>{
+ const verified={status:'cancelled',booking_reference:'A-1',supplier_status_type:3,needs_manual_review:false};
+ for(const difference of [{booking_reference:'other'},{supplier_status_type:0},{needs_manual_review:undefined}]){
+  const s=setup({row:late,cancel:{...verified,...difference}});
+  await advanceApiPayment(s.deps,'b');
+  assert.equal(s.row.last_error,'ARVENT_TIMEOUT_CANCEL_UNCONFIRMED');
+  assert.ok(!s.calls.includes('refund'));
+ }
 });

@@ -84,8 +84,9 @@ export async function advanceApiPayment(deps,id) {
       // Idempotent: a repeated call never re-POSTs (durable claim per booking)
       // and only reads the supplier status back.
       const cancelled=await deps.cancel(id,w).catch(()=>null);
-      if(cancelled?.status==='cancelled'&&cancelled.needs_manual_review!==true) {
-        await move('unknown','refund_pending',{last_error:'ARVENT_APPROVAL_TIMEOUT'});
+      if(cancelled?.status==='cancelled' && cancelled.supplier_status_type===3
+        && cancelled.booking_reference===w.provider_reference && cancelled.needs_manual_review===false) {
+        await move('unknown','refund_pending',{last_error:'ARVENT_APPROVAL_TIMEOUT',provider_response:cancelled});
         return {state:'refund_pending'};
       }
       if(w.last_error!=='ARVENT_TIMEOUT_CANCEL_UNCONFIRMED')
