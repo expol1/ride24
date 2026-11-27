@@ -85,3 +85,22 @@ test('an email with a missing or mismatched supplier document reference cannot c
   assert.deepEqual(s.calls,[]);
  }
 });
+
+test('Received requires a reviewed supplier email and PDF plus an independent live match',async()=>{
+ const email_proof={reviewed:true,sender:'info@arventcarrental.com',pdf_sha256:'a'.repeat(64)};
+ const request={action:'confirm',booking_id:BID,document_reference:'A-1',evidence};
+ const live={supplier_status_type:0,status:'pending'};
+ for(const proof of [null,{...email_proof,reviewed:false},{...email_proof,sender:'other'},{...email_proof,pdf_sha256:'invalid'}]){
+  const s=setup({live});
+  assert.equal((await s.call({...request,email_proof:proof})).body.error,'EMAIL_PDF_REQUIRED');
+  assert.deepEqual(s.calls,['supplier-get']);
+ }
+ for(const difference of [{terms_verified:false},{extras_verified:false},{needs_manual_review:true},{booking_reference:'OTHER'},{supplier_status_type:3},{supplier_status_type:6}]){
+  const s=setup({live:{...live,...difference}});
+  assert.equal((await s.call({...request,email_proof})).status,409);
+  assert.deepEqual(s.calls,['supplier-get']);
+ }
+ const s=setup({live});
+ assert.equal((await s.call({...request,email_proof})).body.success,true);
+ assert.deepEqual(s.calls,['supplier-get','rpc:arvent_admin_confirm','finalize']);
+});
