@@ -28,7 +28,7 @@ function scenario({state="paid",last_error=null,result={status:"pending",booking
     revalidate:async()=>{events.push("revalidate");if(revalidateError)throw revalidateError;return prepared();},
     create:async()=>{events.push("create");if(createError)throw createError;return result;},
     status:async()=>{events.push("GET-status");return status;},
-    recover:async()=>{events.push("GET-recover");return status;},
+    recover:async(_id,w)=>{events.push("GET-recover");return w.provider_reference?status:null;},
     cancel:async()=>{events.push("POST-cancel");return cancel;},
     finalize:async()=>{events.push("voucher");},
     refund:async()=>{events.push("stripe-refund");return {id:"re_test_kayfleet",status:"succeeded"};},
