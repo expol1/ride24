@@ -161,6 +161,15 @@ export function normalizeKayFleetQuote(
     || (q.full_insurance != null && q.full_insurance !== true)) {
     throw new Error("PARTNER_API_ERROR:KAYFLEET_QUOTE_UNVERIFIED");
   }
+  if (q.pickup_location != null && txt(q.pickup_location)!==window.pickup_location_id)
+    throw new Error("PARTNER_API_ERROR:KAYFLEET_ROUTE_MISMATCH");
+  if (q.dropoff_location != null && txt(q.dropoff_location)!==window.dropoff_location_id)
+    throw new Error("PARTNER_API_ERROR:KAYFLEET_ROUTE_MISMATCH");
+  const expectedDates = datetimes(window);
+  if (q.pickup_datetime != null && q.pickup_datetime !== expectedDates.pickup_datetime)
+    throw new Error("PARTNER_API_ERROR:KAYFLEET_TIME_MISMATCH");
+  if (q.return_datetime != null && q.return_datetime !== expectedDates.return_datetime)
+    throw new Error("PARTNER_API_ERROR:KAYFLEET_TIME_MISMATCH");
   const days = positive(q.days, "DAYS");
   const parts = ["rental_total", "insurance_fee", "equipment_fee",
     "additional_driver_fee", "delivery_fee"].map((k) => money(q[k], k.toUpperCase()));
@@ -224,6 +233,43 @@ export async function kayfleetSearch(
     catch { /* A group's unsafe/expired quote must not become an offer. */ }
   }
   return results;
+}
+// Source-of-truth quote for optional equipment, never a local price calculation.
+// KayFleet confirmed that all selected quantities are part of quote_reference.
+export type KayfleetExtras = {
+  car_seat_qty: number; booster_seat_qty: number; additional_drivers: number;
+};
+export async function kayfleetQuoteWithExtras(
+  credentials: PartnerApiCredentials, window: Window, groupId: string, extras: KayfleetExtras,
+): Promise<Record<string, unknown>> {
+  if (!groupId || groupId.length>200
+    || !Number.isInteger(extras.car_seat_qty) || extras.car_seat_qty<0 || extras.car_seat_qty>2
+    || !Number.isInteger(extras.booster_seat_qty) || extras.booster_seat_qty<0 || extras.booster_seat_qty>2
+    || !Number.isInteger(extras.additional_drivers) || extras.additional_drivers<0 || extras.additional_drivers>1)
+    throw new Error("PARTNER_API_ERROR:KAYFLEET_INVALID_EXTRAS");
+  const dates = datetimes(window);
+  const params = new URLSearchParams({
+    ...dates, group_id: groupId, pickup_location: window.pickup_location_id,
+    dropoff_location: window.dropoff_location_id, full_insurance: "true",
+    car_seat_qty: String(extras.car_seat_qty),
+    booster_seat_qty: String(extras.booster_seat_qty),
+    additional_drivers: String(extras.additional_drivers),
+  });
+  const raw = obj(await partnerApiRequest<unknown>(
+    credentials, "/api/partner/quote?" + params.toString(), { method: "GET" }));
+  // Same price/insurance/zero-deposit checks as the initial search quote.
+  normalizeKayFleetQuote({ external_id: groupId } as ApiVehicleGroup,
+    {available:true,available_count:1},raw,window);
+  const supplierExtras = obj(raw.extras);
+  if (supplierExtras.car_seat_qty !== extras.car_seat_qty
+    || supplierExtras.booster_seat_qty !== extras.booster_seat_qty
+    || supplierExtras.additional_drivers !== extras.additional_drivers)
+    throw new Error("PARTNER_API_ERROR:KAYFLEET_EXTRAS_MISMATCH");
+  if (money(raw.insurance_fee,"INSURANCE_FEE")<=0)
+    throw new Error("PARTNER_API_ERROR:KAYFLEET_INSURANCE_REQUIRED");
+  // GET /quote currently omits full_insurance, although the request has true.
+  // Keep it distinct: this flag attests to OUR validated request, not a supplier field.
+  return {...raw, requested_full_insurance:true};
 }
 export async function kayfleetBookingStatus(
   credentials: PartnerApiCredentials, reference: string,
