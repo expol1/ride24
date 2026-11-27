@@ -92,7 +92,7 @@ const ACTIONS = new Set<Action>([
   "activate",
   "deactivate",
 ]);
-const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar", "caravel"]);
+const PROVIDERS = new Set(["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar", "kayfleet", "caravel"]);
 const AUTH_TYPES = new Set(["custom_headers", "basic", "bearer", "renteon_oauth"]);
 const ENDPOINT_NAMES = new Set([
   "auth",
@@ -951,6 +951,14 @@ function ensureCommerciallyActive(partner: PartnerRow): void {
 }
 
 async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise<void> {
+  if (partner.api_provider === "kayfleet") {
+    const certified = isRecord(partner.api_settings) && partner.api_settings.kayfleet_certified === true;
+    const approved = Deno.env.get("KAYFLEET_STRIPE_FIRST_APPROVED") === "true";
+    const writes = Deno.env.get("KAYFLEET_LIVE_WRITE_ALLOWED") === "true";
+    const credentials = await getCredentials(admin, partner.id);
+    if (!certified || !approved || !writes || !credentials?.api_key?.startsWith("kf_live_"))
+      throw new Error("KayFleet: aktywacja wymaga certyfikacji E2E, zgody na Stripe-first i nowego klucza LIVE");
+  }
   if (partner.api_provider === "arvent_kolaycar") {
     // NEVER allow a pre-certification public launch, including while
     // one-off production test writes are enabled. A durable manual
