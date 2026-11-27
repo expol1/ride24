@@ -117,6 +117,11 @@ serve(async (req) => {
         ?q?.raw_response?.provider_quote_data?.provider==='caravel'
           &&q.raw_response.provider_quote_data.quote_id===booking.caravel_supplier_quote_id
         :booking.partners?.api_provider==='arvent_kolaycar'
+          ||(booking.partners?.api_provider==='kayfleet'
+            &&q?.raw_response?.provider_quote_data?.kayfleet===true
+            &&q?.raw_response?.provider_quote_data?.quote?.deposit_amount===0
+            &&q?.raw_response?.provider_quote_data?.quote?.insurance_excess===0
+            &&!!q?.raw_response?.ride24_options)
           ||(!!q?.raw_response?.ride24_options&&!!q?.raw_response?.provider_quote_data?.calculated);
       if(qe||q?.booking_id!==booking.id||!acceptedQuote)
         return new Response(JSON.stringify({error:'ACCEPTED_QUOTE_REQUIRED'}),{status:409,headers:cors(req)});

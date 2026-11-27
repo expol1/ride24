@@ -1,4 +1,5 @@
 import { makeApiBookingOptions, readArventExtrasCatalog, readArventOfferExtras } from "../_shared/api-booking-options.ts";
+import { makeKayfleetBookingOptions } from "../_shared/kayfleet-booking-options.ts";
 import { driverAgeAllowed, driverAgeLimits } from "../_shared/driver-age.mjs";
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { authenticatedUser, corsHeaders, enforceRateLimit, isUuid, jsonResponse, publicErrorMessage, serviceClient } from "../_shared/ride24-security.ts";
@@ -49,7 +50,7 @@ serve(async(req: Request)=>{
       if(!Array.isArray(body.extras??[]) || (body.extras?.length||0)>20 || body.pricing_version===2)
         throw new BookingOptionsError('ARVENT_EXTRAS_UNAVAILABLE',
         'Wybierz dodatki ponownie dla tej oferty.','Choose extras again for this offer.',400);
-      await assertApiPricingCompatible(admin, car.partner_id);
+      await assertApiPricingCompatible(admin, car.partner_id, partner.api_provider);
       // Read-only preview of the server quote; the booking request recomputes it.
       if(!isUuid(body.api_quote_id)) throw new BookingOptionsError('QUOTE_EXPIRED','Oferta wygasła. Wyszukaj ponownie.','The offer expired. Please search again.',409);
       const {data:q,error:qe}=await admin.from('api_quotes')
@@ -210,12 +211,16 @@ serve(async(req: Request)=>{
       }});
     }
     if(partner.provider_type==='api') {
+      if(partner.api_provider==='kayfleet' && body.api_quote_id) {
+        await assertApiPricingCompatible(admin,car.partner_id,partner.api_provider);
+        return jsonResponse(req,await makeKayfleetBookingOptions(admin,user,car,body,driverAges));
+      }
       if(partner.api_provider==='renteon_aggregator' && body.api_quote_id) {
-        await assertApiPricingCompatible(admin,car.partner_id);
+        await assertApiPricingCompatible(admin,car.partner_id,partner.api_provider);
         return jsonResponse(req,await makeApiBookingOptions(admin,user,car,partner,body,driverAges));
       }
       assertApiRequestedOptions(body);
-      await assertApiPricingCompatible(admin, car.partner_id);
+      await assertApiPricingCompatible(admin, car.partner_id, partner.api_provider);
       return jsonResponse(req,{enabled:false});
     }
     if(!await pricedExtrasEnabled(admin)) return jsonResponse(req,{enabled:false});

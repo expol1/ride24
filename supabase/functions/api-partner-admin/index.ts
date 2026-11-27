@@ -835,7 +835,8 @@ async function syncPartner(
           : true,
       },
       mileage_limit: group.mileage_limit ?? null,
-      deposit_amount: group.deposit_amount ?? null,
+      deposit_amount: partner.api_provider === 'kayfleet' ? 0 : (group.deposit_amount ?? null),
+      ...(partner.api_provider === 'kayfleet' ? {min_driver_age: 25} : {}),
       driver_included: group.driver_included === true,
       active: group.active !== false,
     }));
@@ -982,7 +983,7 @@ async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise
   if (credentials.last_test_ok !== true || !credentials.last_sync_at) {
     throw new Error("Najpierw wykonaj poprawny test i synchronizację");
   }
-  await assertApiPricingCompatible(admin, partner.id);
+  await assertApiPricingCompatible(admin, partner.id, partner.api_provider);
 
   const { error } = await admin.from("partners").update({
     api_enabled: true,

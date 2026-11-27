@@ -738,7 +738,7 @@ serve(async (req) => {
     try {
       quote = await loadQuote(admin, booking);
       assertApiQuoteContext(quote.raw_response, booking);
-      await assertApiPricingCompatible(admin, booking.partner_id);
+      await assertApiPricingCompatible(admin, booking.partner_id, booking.partner.api_provider);
     } catch (error) {
       const code = error instanceof Error
         ? cleanText(error.message, 160) || "INVALID_API_QUOTE"
