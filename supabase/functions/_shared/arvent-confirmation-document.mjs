@@ -13,9 +13,9 @@ export const ARVENT_SENDER_DOMAIN = "arventcarrental.com";
 const TR_OFFSET = "+03:00";
 
 const clean = (s) => String(s ?? "").replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, " ");
-const squash = (s) => clean(s).replace(/[ \t ]+/g, " ").trim();
+const squash = (s) => clean(s).replace(/[ \t\u00a0]+/g, " ").trim();
 const norm = (s) => squash(s).toLowerCase()
-  .normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/ı/g, "i")
+  .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/\u0131/g, "i")
   .replace(/[^a-z0-9]+/g, " ").trim();
 
 // "84,75" / "1.234,56" / "84.75" -> integer cents. Null when not a money value.

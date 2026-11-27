@@ -154,6 +154,8 @@ export async function verifyDkim(msg, resolveTxt) {
       if (t.v !== "1" || t.a !== "rsa-sha256" || !t.d || !t.s || !t.bh || !t.b || !t.h) { out.reason = "UNSUPPORTED_SIGNATURE"; continue; }
       if (t.x && Number(t.x) * 1000 < Date.now()) { out.reason = "SIGNATURE_EXPIRED"; continue; }
       if (t.l) { out.reason = "BODY_LENGTH_LIMIT_REJECTED"; continue; }
+      // A signature that does not cover From cannot vouch for the sender.
+      if (!t.h.toLowerCase().split(":").map((h) => h.trim()).includes("from")) { out.reason = "FROM_NOT_SIGNED"; continue; }
       const [hc, bc = "simple"] = (t.c || "simple/simple").toLowerCase().split("/");
       if (!/^(simple|relaxed)$/.test(hc) || !/^(simple|relaxed)$/.test(bc)) { out.reason = "CANON"; continue; }
       const bh = await sha256b64(canonBody(msg.body, bc));
@@ -209,8 +211,8 @@ export function trustedAuthResults(msg, trustedIds) {
 
 /**
  * Sender authenticity: From must be @domain and either our own DKIM check
- * passes for d=domain (aligned), or — for messages fetched straight from our
- * own mailbox provider — that provider's topmost Authentication-Results says
+ * passes for d=domain (aligned), or - for messages fetched straight from our
+ * own mailbox provider - that provider's topmost Authentication-Results says
  * dkim=pass for the same domain. SPF alone is NOT enough (the supplier's SPF
  * redirects to a shared consumer mail platform).
  */
