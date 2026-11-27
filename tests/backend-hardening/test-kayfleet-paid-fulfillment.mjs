@@ -55,7 +55,7 @@ function fixture({status="pending",errorPost=null,flags={KAYFLEET_LIVE_WRITE_ALL
       if(errorPost)throw errorPost;
       return reply();
     }
-    if(path.includes("/cancel"))return {...reply(),status:"cancelled"};
+    if(path.includes("/cancel")){status="cancelled";return {...reply(),status:"cancelled"};}
     if(path.startsWith("/api/partner/bookings/"))return reply();
     throw Error("Unexpected supplier path "+path);
   };
