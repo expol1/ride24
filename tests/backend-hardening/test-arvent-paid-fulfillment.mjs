@@ -52,6 +52,7 @@ function fixture(change=()=>{},flags={}){
  const require=n=>n.includes('provider-services')?services:n.includes('api-payment-flow')?flow
   :n.includes('arvent-driver-eligibility')?license
   :n.includes('caravel-paid-fulfillment')?{caravelPaidFulfillmentApproved:()=>false}
+  :n.includes('kayfleet-paid-fulfillment')?{kayfleetPaymentApproved:()=>false}
   :n.includes('arvent-kolaycar-contract')?arventContract:n.includes('arvent-kolaycar')?arvent:n.includes('renteon-aggregator')?renteon
   :(()=>{throw Error('Unexpected import: '+n)})();
  const sandbox={exports:{},require,console,

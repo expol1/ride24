@@ -41,6 +41,7 @@ function setup({quote={},rate=4.2345,loyalty=0,rateFails=false,offerError=null,e
   async rpc(name){calls.push(name);return {data:loyalty,error:null};},
  };
  const require=n=>{
+  if(n.includes('kayfleet-booking-options'))return {makeKayfleetBookingOptions:async()=>{throw Error('KayFleet path must not run for Arvent');}};
   if(n.includes('api-booking-options'))return {makeApiBookingOptions:async()=>{throw Error('Renteon path must not run for Arvent');},readArventExtrasCatalog:async()=>[{code:'1',name:'GPS'},{code:'2',name:'Ek Sürücü'},{code:'6',name:'Infant seat'}],readArventOfferExtras:async(_admin,_partnerId,selectedQuote)=>{
    if(offerError)throw Error(offerError);
    if(!selectedQuote.external_group_id || selectedQuote.external_group_id!==selectedQuote.raw_response?.provider_quote_data?.sipp)

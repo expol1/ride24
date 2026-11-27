@@ -52,8 +52,8 @@ test("writes flag off, sandbox host or bad reference -> throw (existing flow que
 test("shared cancelProviderBooking routes only 'caravel' to the Caravel cancel, before the generic provider check", () => {
   const src = readFileSync(new URL("../supabase/functions/_shared/provider-adapters.ts", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   const i = src.indexOf('=== "caravel")\n    return await cancelCaravelBooking(');
-  const j = src.indexOf("const provider = safeProvider(providerValue);\n  if (provider === \"arvent_kolaycar\") return await arventCancelBooking");
+  const j = src.indexOf("const provider = safeProvider(providerValue);\n  if (provider === \"kayfleet\") {");
   assert.ok(i > 0 && j > i);
-  assert.match(src, /\["ride24_standard_v1", "custom", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar"\]\.includes\(key\)/,
+  assert.match(src, /\["ride24_standard_v1", "custom", "kayfleet", "renteon", "renteon_aggregator", "easy_web_rent", "arvent_kolaycar"\]\.includes\(key\)/,
     "generic search/sync still reject caravel (UNSUPPORTED_PROVIDER)");
 });
