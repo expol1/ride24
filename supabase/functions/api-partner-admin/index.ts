@@ -927,7 +927,10 @@ async function syncPartner(
         ...(partner.api_provider === "arvent_kolaycar" &&
             isRecord(partner.api_settings) &&
             partner.api_settings.arvent_certified === true
-          ? { arvent_certified: true } : {}) },
+          ? { arvent_certified: true } : {}),
+        ...(partner.api_provider === "kayfleet" && isRecord(partner.api_settings)
+            && partner.api_settings.kayfleet_certified === true
+          ? { kayfleet_certified: true } : {}) },
     }).eq("id", partner.id);
     if (partnerUpdateError) {
       throw new Error("Nie udało się zapisać wyniku synchronizacji partnera");
@@ -990,7 +993,8 @@ async function activatePartner(admin: AdminClient, partner: PartnerRow): Promise
     api_status: "active",
     api_last_error: null,
     api_settings: { configured: true, status: "active",
-      ...(partner.api_provider === "arvent_kolaycar" ? { arvent_certified: true } : {}) },
+      ...(partner.api_provider === "arvent_kolaycar" ? { arvent_certified: true } : {}),
+      ...(partner.api_provider === "kayfleet" ? { kayfleet_certified: true } : {}) },
   }).eq("id", partner.id);
   if (error) throw new Error("Nie udało się aktywować partnera API");
 }
