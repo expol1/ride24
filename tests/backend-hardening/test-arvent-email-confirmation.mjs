@@ -292,3 +292,26 @@ test('live readback summary from the real 17BFD74AC95B record',async()=>{
  assert.equal(arventLiveSummary({...livePayload(0),reservationExtras:[{code:2}]},ctx).extras_verified,false);
  assert.throws(()=>arventLiveSummary(null,ctx),/ARVENT_BOOKING_SHAPE/);
 });
+
+test('gmail relay: private mail is dropped unparsed and unstored; Google\'s topmost DKIM verdict counts',async()=>{
+ const text=await fixture('unpdf');
+ const priv=harness({text});priv.deps.resolveTxt=async()=>{throw Error('must not resolve');};
+ const raw='Received: by 2002:a05::1 with SMTP id x; Fri, 27 Nov 2026 15:28:30 +0000\r\nFrom: Bank <alerts@bank.example>\r\nDate: Fri, 27 Nov 2026 15:28:20 +0000\r\nSubject: statement\r\n\r\nprivate\r\n';
+ const r=await processArventMail(priv.deps,{source:'gmail',mailboxMessageId:'g1',receivedAtMs:delivered,raw});
+ assert.deepEqual(r,{verdict:'ignored',reasons:['NOT_PARTNER_SENDER'],stored:false});
+ assert.equal(priv.calls.logged.length,0);
+ // A From header listed twice is treated as not the partner, too.
+ const twice=raw.replace('From: Bank <alerts@bank.example>','From: info@arventcarrental.com\r\nFrom: x@evil.example');
+ assert.equal((await processArventMail(priv.deps,{source:'gmail',mailboxMessageId:'g2',receivedAtMs:delivered,raw:twice})).stored,false);
+ const key=keys();
+ const signed=await signedMail({key,pdf:Buffer.from('%PDF')});
+ const g=harness({text});g.deps.resolveTxt=resolver(key);
+ const ok=await processArventMail(g.deps,{source:'gmail',mailboxMessageId:'g3',receivedAtMs:delivered,raw:signed});
+ assert.equal(ok.verdict,'approved');
+ assert.equal(g.calls.logged[0].source,'gmail');
+ const google='Authentication-Results: mx.google.com; dkim=pass header.i=@arventcarrental.com header.s=mail header.b=x; spf=pass smtp.mailfrom=info@arventcarrental.com\r\nFrom: info@arventcarrental.com\r\n\r\nx\r\n';
+ const {GOOGLE_AUTHSERV}=await import('../../supabase/functions/_shared/arvent-mail-ingest.mjs');
+ const ar=trustedAuthResults(parseMime(google),GOOGLE_AUTHSERV);
+ assert.equal(senderVerdict({msg:parseMime(google),dkim:[],authResults:ar,domain:'arventcarrental.com'}).ok,true);
+ assert.equal(trustedAuthResults(parseMime(google),ZOHO_AUTHSERV),null,'sources do not trust each other');
+});

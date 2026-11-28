@@ -9,7 +9,8 @@
 // Secrets (Supabase Edge secrets, never in the repo):
 //   ZOHO_MAIL_CLIENT_ID, ZOHO_MAIL_CLIENT_SECRET, ZOHO_MAIL_REFRESH_TOKEN,
 //   ZOHO_MAIL_DC (default "eu"), ZOHO_MAIL_ADDRESS (default kontakt@ride24.pl),
-//   ARVENT_MAIL_ALERT_TO (default kontakt@ride24.pl); existing RESEND_API_KEY,
+//   ARVENT_MAIL_ALERT_TO (default kontakt@ride24.pl), ARVENT_MAIL_RELAY_SECRET
+//   (Gmail Apps Script relay, scripts/arvent-gmail-relay); existing RESEND_API_KEY,
 //   STRIPE_SECRET_KEY, RIDE24_CRON_SECRET, RIDE24_INTERNAL_SECRET.
 import { extractText, getDocumentProxy, getMeta } from "npm:unpdf@2.2.3";
 import { corsHeaders, jsonResponse, requireAdmin, requireSecret, serviceClient } from "../_shared/ride24-security.ts";
@@ -209,6 +210,25 @@ async function pollZoho(admin: any) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
   if (req.method !== "POST") return jsonResponse(req, { error: "METHOD_NOT_ALLOWED" }, 405);
+  if (req.headers.get("x-ride24-mail-relay")) {
+    // Gmail relay (Apps Script on the owner's account, gmail.readonly scope):
+    // one raw message per call. The secret only gates the endpoint; the
+    // message itself must still pass Arvent DKIM and every booking check.
+    try { requireSecret(req, "x-ride24-mail-relay", "ARVENT_MAIL_RELAY_SECRET"); } catch { return jsonResponse(req, { error: "FORBIDDEN" }, 403); }
+    const body = await req.json().catch(() => ({}));
+    const id = typeof body.message_id === "string" && /^[A-Za-z0-9_-]{6,64}$/.test(body.message_id) ? body.message_id : "";
+    let raw = "";
+    try { raw = typeof body.raw_base64 === "string" && body.raw_base64.length < 20_000_000
+      ? new TextDecoder().decode(Uint8Array.from(atob(body.raw_base64), (c) => c.charCodeAt(0))) : ""; } catch { raw = ""; }
+    if (!id || !raw) return jsonResponse(req, { error: "MESSAGE_REQUIRED" }, 400);
+    let delivered = NaN;
+    try { delivered = deliveredAtMs(parseMime(raw)); } catch { /* invalid MIME */ }
+    if (!Number.isFinite(delivered)) return jsonResponse(req, { verdict: "ignored", reasons: ["NO_DELIVERY_STAMP"] });
+    try {
+      const r = await processArventMail(makeDeps(serviceClient()), { source: "gmail", mailboxMessageId: id, receivedAtMs: delivered, raw });
+      return jsonResponse(req, { verdict: r.verdict, reasons: r.reasons, voucher: (r as any).voucher === true });
+    } catch (e) { console.error("ARVENT_RELAY_FAILED", clip(e)); return jsonResponse(req, { verdict: "received", reasons: ["RETRY:" + clip(e)] }, 503); }
+  }
   if (req.headers.get("x-cron-secret")) {
     try { requireSecret(req, "x-cron-secret", "RIDE24_CRON_SECRET"); } catch { return jsonResponse(req, { error: "FORBIDDEN" }, 403); }
     try { return jsonResponse(req, await pollZoho(serviceClient())); }
