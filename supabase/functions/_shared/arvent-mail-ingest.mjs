@@ -13,10 +13,12 @@
 //   finalize(bookingId) -> {voucher:boolean}
 //   alert(kind, details)                      admin notification
 // }
-import { parseMime, verifyDkim, trustedAuthResults, senderVerdict, sha256hex } from "./mail-authentication.mjs";
+import { parseMime, verifyDkim, trustedAuthResults, senderVerdict, sha256hex, addressOf, domainOf } from "./mail-authentication.mjs";
 import { parseArventCertificate, verifyArventCertificate, ARVENT_SENDER_DOMAIN } from "./arvent-confirmation-document.mjs";
 
 export const ZOHO_AUTHSERV = [/^mx\.zohomail\.(eu|com|in|com\.au|jp|com\.cn|sa)$/, /^mx\.zoho\.(eu|com)$/];
+// Gmail relay: Google's own receiving MTA stamps the topmost header.
+export const GOOGLE_AUTHSERV = [/^mx\.google\.com$/];
 export const MAX_ATTEMPTS = 10;
 const isPdf = (p) => p.type === "application/pdf" || (/\.pdf$/i.test(p.filename || "") && /^application\/(octet-stream|x-pdf|pdf)$/.test(p.type));
 
@@ -30,8 +32,14 @@ export const transient = (m) => new Transient(m);
  */
 export async function processArventMail(deps, { source, mailboxMessageId, receivedAtMs, raw }) {
   const msg = parseMime(raw);
+  // Privacy: anything not claiming to come from the partner domain is
+  // dropped before parsing, verification or storage.
+  const claimed = msg.all("from");
+  if (claimed.length !== 1 || domainOf(addressOf(claimed[0])) !== ARVENT_SENDER_DOMAIN)
+    return { verdict: "ignored", reasons: ["NOT_PARTNER_SENDER"], stored: false };
   const dkim = await verifyDkim(msg, deps.resolveTxt);
-  const ar = source === "zoho" ? trustedAuthResults(msg, ZOHO_AUTHSERV) : null;
+  const ar = source === "zoho" ? trustedAuthResults(msg, ZOHO_AUTHSERV)
+    : source === "gmail" ? trustedAuthResults(msg, GOOGLE_AUTHSERV) : null;
   const sender = senderVerdict({ msg, dkim, authResults: ar, domain: ARVENT_SENDER_DOMAIN });
   const pdfs = msg.parts.filter(isPdf).slice(0, 5);
   const docs = [];
